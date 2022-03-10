@@ -33,7 +33,10 @@ dependencies:
   cupertino_icons: ^1.0.2
   http: ^0.13.4
   flutter_rating_bar: ^4.0.0
-  high_chart: ^2.0.2
+
+  # use our forked high_chart to fix iOS issue
+  high_chart:
+    git: https://github.com/EnsembleUI/high_chart.git
 
 dev_dependencies:
   flutter_test:

@@ -96,9 +96,11 @@ packages:
   high_chart:
     dependency: "direct main"
     description:
-      name: high_chart
-      url: "https://pub.dartlang.org"
-    source: hosted
+      path: "."
+      ref: HEAD
+      resolved-ref: "7f3667863663db95fd16e471980ce6328914dcf2"
+      url: "https://github.com/EnsembleUI/high_chart.git"
+    source: git
     version: "2.0.2"
   http:
     dependency: "direct main"
