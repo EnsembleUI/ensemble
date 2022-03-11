@@ -3,6 +3,7 @@ import 'package:ensemble/layout/hstack_builder.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/util/layout_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_builder.dart' as ensemble;
 import 'package:ensemble/widget/widget_registry.dart';
@@ -167,47 +168,14 @@ class VStackState extends State<VStack> {
     }
 
 
-    MainAxisAlignment mainAxis = MainAxisAlignment.start;
-    if (widget.builder.layout != null) {
-      switch(widget.builder.layout) {
-        case 'space-between':
-          mainAxis = MainAxisAlignment.spaceBetween;
-          break;
-        case 'center':
-        case 'middle':
-          mainAxis = MainAxisAlignment.center;
-          break;
-        case 'start':
-        case 'top':
-          mainAxis = MainAxisAlignment.start;
-          break;
-        case 'end':
-        case 'bottom':
-          mainAxis = MainAxisAlignment.end;
-          break;
-      }
-    }
+    MainAxisAlignment mainAxis = widget.builder.layout != null ?
+        LayoutUtils.getColumnMainAxisAlignment(widget.builder.layout!) :
+        MainAxisAlignment.start;
 
-    CrossAxisAlignment crossAxis = CrossAxisAlignment.center;
-    if (widget.builder.alignment != null) {
-      switch(widget.builder.alignment) {
-        case 'baseline':
-          crossAxis = CrossAxisAlignment.baseline;
-          break;
-        case 'center':
-        case 'middle':
-          crossAxis = CrossAxisAlignment.center;
-          break;
-        case 'start':
-        case 'top':
-          crossAxis = CrossAxisAlignment.start;
-          break;
-        case 'end':
-        case 'bottom':
-          crossAxis = CrossAxisAlignment.end;
-          break;
-      }
-    }
+
+    CrossAxisAlignment crossAxis = widget.builder.alignment != null ?
+        LayoutUtils.getColumnCrossAxisAlignment(widget.builder.alignment!) :
+        CrossAxisAlignment.start;
 
     // if gap is specified, insert SizeBox between children
     if (widget.builder.gap != null) {

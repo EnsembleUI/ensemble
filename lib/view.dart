@@ -1,4 +1,5 @@
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/util/layout_utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
@@ -35,6 +36,9 @@ class ViewState extends State<View>{
     // apply page-wide styles
     TextStyle? textStyle;
     int? bgColor;
+    bool scrollable = false;
+    MainAxisAlignment mainAxis = MainAxisAlignment.start;
+    CrossAxisAlignment crossAxis = CrossAxisAlignment.start;
 
     Map<String, dynamic>? pageStyles = widget.pageData.pageStyles;
     if (pageStyles != null) {
@@ -44,6 +48,15 @@ class ViewState extends State<View>{
 
       // Note: color can be hex or string
       bgColor = pageStyles['backgroundColor'];
+
+      scrollable = pageStyles['scrollable'] is bool && pageStyles['scrollable'];
+
+      if (pageStyles['layout'] != null) {
+        mainAxis = LayoutUtils.getColumnMainAxisAlignment(pageStyles['layout']);
+      }
+      if (pageStyles['alignment'] != null) {
+        crossAxis = LayoutUtils.getColumnCrossAxisAlignment(pageStyles['alignment']);
+      }
     }
 
 
@@ -56,17 +69,23 @@ class ViewState extends State<View>{
         child: Ink(
           color: bgColor != null ? Color(bgColor) : null,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: mainAxis,
+            crossAxisAlignment: crossAxis,
             children: widget.children)
         )
       );
+
+    Widget bodyWrapper =
+        scrollable ?
+        SingleChildScrollView(child: body) :
+        body;
 
     // modal page has certain criteria (no navBar, no header)
     if (widget.pageData.pageType == PageType.modal) {
       // need a close button to go back to non-modal pages
       // also animate up and down (vs left and right)
       return Scaffold(
-          body: body,
+          body: bodyWrapper,
           bottomSheet: widget.footer);
     }
     // regular page
@@ -77,9 +96,7 @@ class ViewState extends State<View>{
           AppBar(title: Text(widget.pageData.pageTitle!)) :
           null,
         body: SafeArea(
-          child: SingleChildScrollView(
-              child: body
-          ),
+          child: bodyWrapper
         ),
         bottomNavigationBar: widget.navBar,
       );
