@@ -109,6 +109,12 @@ class PageModel {
     // item is YamlMap
     YamlMap model = item as YamlMap;
 
+    // e.g if key is specified but not value e.g 'Spacer:'
+    if (model.values.first == null) {
+      return WidgetModel(model.keys.first, {}, {});
+    }
+
+
     // widget key may have optional ID
     List<String> keys = model.keys.first.toString().split('.');
     if (keys.isEmpty || keys.length > 2) {
@@ -146,37 +152,40 @@ class PageModel {
     else {
       // go through each sub properties
       model.values.first.forEach((key, value) {
-        if (key == 'styles') {
-          // expand the style map
-          (value as YamlMap).forEach((styleKey, styleValue) {
-            styles[styleKey] = Utils.evalExpression(styleValue, args);
-          });
-        } else if (key == "children") {
-          children = buildModels(value, args, subViewDefinitions);
-        } else if (key == "item-template") {
-          // attempt to resolve the localized dataMap fed into the item template
-          // we only take it if it resolves to a list
-          List<dynamic>? localizedDataList;
-          dynamic templateDataResult = Utils.evalExpression(value['data'], args);
-          if (templateDataResult is List<dynamic>) {
-            localizedDataList = templateDataResult;
-          }
+        if (value != null) {
+          if (key == 'styles') {
+            // expand the style map
+            (value as YamlMap).forEach((styleKey, styleValue) {
+              styles[styleKey] = Utils.evalExpression(styleValue, args);
+            });
+          } else if (key == "children") {
+            children = buildModels(value, args, subViewDefinitions);
+          } else if (key == "item-template") {
+            // attempt to resolve the localized dataMap fed into the item template
+            // we only take it if it resolves to a list
+            List<dynamic>? localizedDataList;
+            dynamic templateDataResult = Utils.evalExpression(
+                value['data'], args);
+            if (templateDataResult is List<dynamic>) {
+              localizedDataList = templateDataResult;
+            }
 
-          // item template should only have 1 root widget
-          itemTemplate = ItemTemplate(
-              value['data'],
-              value['name'],
-              value['template'],
-              localizedDataList);
-        }
-        // actions like onTap should evaluate its expressions upon the action only
-        else if (key.toString().startsWith("on")) {
-          props[key] = value;
-        }
-        // this is tricky. We only want to evaluate properties most likely, so need
-        // a way to distinguish them
-        else {
-          props[key] = Utils.evalExpression(value, args);
+            // item template should only have 1 root widget
+            itemTemplate = ItemTemplate(
+                value['data'],
+                value['name'],
+                value['template'],
+                localizedDataList);
+          }
+          // actions like onTap should evaluate its expressions upon the action only
+          else if (key.toString().startsWith("on")) {
+            props[key] = value;
+          }
+          // this is tricky. We only want to evaluate properties most likely, so need
+          // a way to distinguish them
+          else {
+            props[key] = Utils.evalExpression(value, args);
+          }
         }
       });
 

@@ -52,10 +52,10 @@ class ViewState extends State<View>{
       scrollable = pageStyles['scrollable'] is bool && pageStyles['scrollable'];
 
       if (pageStyles['layout'] != null) {
-        mainAxis = LayoutUtils.getColumnMainAxisAlignment(pageStyles['layout']);
+        mainAxis = LayoutUtils.getMainAxisAlignment(pageStyles['layout']);
       }
       if (pageStyles['alignment'] != null) {
-        crossAxis = LayoutUtils.getColumnCrossAxisAlignment(pageStyles['alignment']);
+        crossAxis = LayoutUtils.getCrossAxisAlignment(pageStyles['alignment']);
       }
     }
 

@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 
 class LayoutUtils {
 
-  static MainAxisAlignment getColumnMainAxisAlignment(String spec) {
+  static MainAxisAlignment getMainAxisAlignment(String spec) {
     switch (spec) {
       case 'space-between':
         return MainAxisAlignment.spaceBetween;
@@ -19,7 +19,8 @@ class LayoutUtils {
     }
   }
 
-  static CrossAxisAlignment getColumnCrossAxisAlignment(String spec) {
+
+  static CrossAxisAlignment getCrossAxisAlignment(String spec) {
     switch(spec) {
       case 'center':
       case 'middle':

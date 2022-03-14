@@ -15,7 +15,7 @@ class VStackBuilder extends BaseLayout {
     backgroundColor,
     padding,
     gap,
-    stretch,
+    this.expanded=false,
     layout,
     alignment,
     borderRadius,
@@ -24,9 +24,10 @@ class VStackBuilder extends BaseLayout {
     this.width,
 
     onTap,
-  }) : super(backgroundColor: backgroundColor, padding: padding, gap: gap, stretch: stretch, layout: layout, alignment: alignment, borderRadius: borderRadius, boxShadowColor: boxShadowColor, boxShadowOffset: boxShadowOffset, onTap: onTap);
+  }) : super(backgroundColor: backgroundColor, padding: padding, gap: gap, layout: layout, alignment: alignment, borderRadius: borderRadius, boxShadowColor: boxShadowColor, boxShadowOffset: boxShadowOffset, onTap: onTap);
 
   int? width;
+  final bool expanded;
 
   static VStackBuilder fromDynamic(Map<String, dynamic> props, Map<String, dynamic> styles, {WidgetRegistry? registry})
   {
@@ -36,11 +37,11 @@ class VStackBuilder extends BaseLayout {
 
 
       // styles
-      width: styles['width'],
-      backgroundColor: styles['backgroundColor'],
+      width: styles['width'] is int ? styles['width'] : null,
+      backgroundColor: styles['backgroundColor'] is int ? styles['backgroundColor'] : null,
       padding: styles['padding'],
       gap: styles['gap'],
-      stretch: styles['stretch'],
+      expanded: styles['expanded'] is bool ? styles['expanded'] : false,
       layout: styles['layout'],
       alignment: styles['alignment'],
       borderRadius: styles['borderRadius'],
@@ -169,12 +170,12 @@ class VStackState extends State<VStack> {
 
 
     MainAxisAlignment mainAxis = widget.builder.layout != null ?
-        LayoutUtils.getColumnMainAxisAlignment(widget.builder.layout!) :
+        LayoutUtils.getMainAxisAlignment(widget.builder.layout!) :
         MainAxisAlignment.start;
 
 
     CrossAxisAlignment crossAxis = widget.builder.alignment != null ?
-        LayoutUtils.getColumnCrossAxisAlignment(widget.builder.alignment!) :
+        LayoutUtils.getCrossAxisAlignment(widget.builder.alignment!) :
         CrossAxisAlignment.start;
 
     // if gap is specified, insert SizeBox between children
@@ -236,8 +237,8 @@ class VStackState extends State<VStack> {
         child: rtn);
     }
     // else if specified to stretch, and it's parent is HStack, wraps around Expanded widget
-    else if (widget.builder.stretch is bool && widget.builder.stretch as bool) {
-      // TODO: need to check, as only valid within a HStack/VStack/Flex
+    else if (widget.builder.expanded) {
+      // TODO: need to check, as only valid within a HStack/VStack/Flex otherwise exception
       return Expanded(child: rtn);
     }
     return rtn;

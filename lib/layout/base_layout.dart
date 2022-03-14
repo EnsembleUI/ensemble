@@ -5,7 +5,6 @@ abstract class BaseLayout extends WidgetBuilder {
     this.backgroundColor,
     this.padding,
     this.gap,
-    this.stretch,
     this.layout,
     this.alignment,
     this.borderRadius,
@@ -18,7 +17,6 @@ abstract class BaseLayout extends WidgetBuilder {
   int? backgroundColor;
   int? padding;
   int? gap;
-  final bool? stretch;
   String? layout;
   String? alignment;
   int? borderRadius;

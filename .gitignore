@@ -49,3 +49,4 @@ app.*.map.json
 main.dart
 assets/pages
 ensemble-config.yaml
+assets/fonts
