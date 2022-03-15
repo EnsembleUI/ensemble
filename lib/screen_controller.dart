@@ -201,7 +201,7 @@ class ScreenController {
     // always be the correct one we want to populate?)
     viewState ??= initialView?.getState();
 
-    if (viewState != null) {
+    if (viewState != null && viewState.mounted) {
       ActionResponse? action = viewState.widget.pageData.datasourceMap[actionName];
       if (action == null) {
         action = ActionResponse();

@@ -181,7 +181,7 @@ class Ensemble {
         bool replace=false,
         Map<String, dynamic>? args
       }) {
-    log ("Screen Arguments: " + args.toString());
+    //log ("Screen Arguments: " + args.toString());
     return ScreenController().renderPage(context, pageName, snapshot.data, args: args);
   }
 

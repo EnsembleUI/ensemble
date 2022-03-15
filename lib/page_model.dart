@@ -144,7 +144,7 @@ class PageModel {
             localizedArgs[param] = Utils.evalExpression(model.values.first[param], args);
           }
         }
-        print("LocalizedMap: " + localizedArgs.toString());
+        //print("LocalizedMap: " + localizedArgs.toString());
       }
       return buildModel(subViewDefinitions[widgetType]!['body'], localizedArgs, subViewDefinitions);
     }

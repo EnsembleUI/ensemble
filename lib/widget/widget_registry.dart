@@ -1,4 +1,5 @@
 
+import 'package:ensemble/layout/column_builder.dart';
 import 'package:ensemble/layout/grid_builder.dart';
 import 'package:ensemble/layout/hstack_builder.dart';
 import 'package:ensemble/layout/vstack_builder.dart';
@@ -50,6 +51,8 @@ class WidgetRegistry {
         VStackBuilder.type: VStackBuilder.fromDynamic,
         HStackBuilder.type: HStackBuilder.fromDynamic,
         GridBuilder.type: GridBuilder.fromDynamic,
+
+        ColumnBuilder.type: ColumnBuilder.fromDynamic,
   };
 }
 
