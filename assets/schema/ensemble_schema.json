@@ -1,0 +1,213 @@
+{
+  "$id": "https://ensembleui.com/language.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Ensemble",
+  "type": "object",
+  "properties": {
+    "View": {
+      "type": "object",
+      "description": "This is your root View",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Specifies the root widget i.e. Column, Row, Stack.",
+          "enum": [
+            "Column",
+            "Row"
+          ]
+        },
+        "children": {
+          "$ref": "#/$defs/Widgets"
+        }
+      },
+      "if": {
+        "properties": { "type": { "const": "Column" } }
+      },
+      "then": {
+        "properties": { "styles": { "$ref": "#/$defs/columnStyles" } }
+      },
+      "else": {
+        "properties": { "styles": { "$ref": "#/$defs/rowStyles" } }
+      }
+    }
+  },
+
+  "$defs": {
+
+    "baseStyles": {
+      "type": "object",
+      "properties": {
+        "expanded": {
+          "type": "boolean",
+          "description": "If our parent is a Row or Column, this flag will stretch our widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+        }
+      }
+    },
+
+    "boxLayoutStyles": {
+      "type": "object",
+      "properties": {
+        "width": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "margin": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "padding": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "gap": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "backgroundColor": {
+          "type": "string",
+          "description": "background color starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+        },
+        "borderColor": {
+          "type": "string",
+          "description": "border color starting with '0xFF' for full opacity"
+        },
+        "borderRadius": {
+          "type": "integer"
+        },
+        "fontFamily": {
+          "type": "string",
+          "description": "specify the font family applicable for all widgets inside this container"
+        },
+        "fontSize": {
+          "type": "integer",
+          "minimum": 0
+        }
+
+      }
+    },
+    "columnStyles": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseStyles"
+        },
+        {
+          "$ref": "#/$defs/boxLayoutStyles"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "mainAxis": {
+              "type": "string",
+              "enum": ["top", "bottom", "middle", "space-between"]
+            },
+            "crossAxis": {
+              "type": "string",
+              "enum": ["start", "end", "center", "stretch"]
+            },
+            "scrollable": {
+              "type": "boolean",
+              "description": "content can scroll vertically as needed"
+            },
+            "autoFit": {
+              "type": "boolean",
+              "description": "Explicitly make our column's width as wide as the largest child, but only if our column's parent does not already assign us a width. This attribute is useful for sizing children who don't have a width (e.g Divider)"
+            }
+          }
+        }
+      ]
+    },
+    "rowStyles": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseStyles"
+        },
+        {
+          "$ref": "#/$defs/boxLayoutStyles"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "mainAxis": {
+              "type": "string",
+              "enum": ["start", "end", "center", "space-between"]
+            },
+            "crossAxis": {
+              "type": "string",
+              "enum": ["top", "bottom", "middle", "stretch"]
+            },
+            "scrollable": {
+              "type": "boolean",
+              "description": "content can scroll horizontally as needed"
+            },
+            "autoFit": {
+              "type": "boolean",
+              "description": "Explicitly make our row's height as tall as the largest child, but only if our row's parent does not already assign us a height. This attribute is useful for sizing children who don't have a width (e.g vertical Divider)"
+            }
+          }
+        }
+      ]
+    },
+
+
+    "Widgets": {
+      "type": "array",
+      "description": "List of child widgets",
+      "items": {
+        "type": "object",
+        "properties": {
+
+          "Text": {
+            "type": "object",
+            "required": ["text"],
+            "properties": {
+              "text": {
+                "type": "string",
+                "description": "Your text"
+              },
+              "styles": {
+                "type": "object",
+                "properties": {
+                  "fontSize": {
+                    "type": "integer",
+                    "minimum": 6
+                  },
+                  "color": {
+                    "type": "string",
+                    "description": "Text color starting with '0xFF' for full opacity"
+                  }
+                }
+              }
+            }
+
+          },
+
+          "Column": {
+            "type": "object",
+            "properties": {
+              "styles": { "$ref": "#/$defs/columnStyles" }
+
+            }
+          },
+
+          "Row": {
+            "type": "object",
+            "properties": {
+              "styles": { "$ref": "#/$defs/rowStyles" }
+            }
+          }
+
+        }
+
+      }
+    }
+
+
+  }
+}
