@@ -56,6 +56,12 @@ flutter:
   assets:
     - ensemble-config.yaml
     - assets/pages/
+  fonts:
+    - family: Jost
+      fonts:
+        - asset: assets/fonts/Jost-VariableFont_wght.ttf
+        - asset: assets/fonts/Jost-Italic-VariableFont_wght.ttf
+          style: italic
 
 
   # This section identifies your Flutter project as a module meant for

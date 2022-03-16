@@ -101,7 +101,7 @@ class ScreenController {
     // save the current view to look up when populating initial API load ONLY
     initialView = View(
         pageData,
-        _buildChildren(context, pageModel.widgetModels),
+        buildWidget(context, pageModel.rootWidgetModel),
         footer: _buildFooter(context, pageModel),
         navBar: _buildNavigationBar(context, pageModel));
     return initialView!;

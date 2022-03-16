@@ -10,9 +10,9 @@ import 'package:ensemble/widget/widget_builder.dart' as ensemble;
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:flutter/material.dart';
 
-class ColumnBuilder extends BoxLayout {
-  static const type = 'Column';
-  ColumnBuilder({
+class RowBuilder extends BoxLayout {
+  static const type = 'Row';
+  RowBuilder({
     mainAxis,
     crossAxis,
     width,
@@ -64,9 +64,9 @@ class ColumnBuilder extends BoxLayout {
   );
 
 
-  static ColumnBuilder fromDynamic(Map<String, dynamic> props, Map<String, dynamic> styles, {WidgetRegistry? registry})
+  static RowBuilder fromDynamic(Map<String, dynamic> props, Map<String, dynamic> styles, {WidgetRegistry? registry})
   {
-    return ColumnBuilder(
+    return RowBuilder(
         // props
         onTap: props['onTap'],
 
@@ -101,28 +101,28 @@ class ColumnBuilder extends BoxLayout {
     required BuildContext context,
     List<Widget>? children,
     ItemTemplate? itemTemplate}) {
-    return EnsembleColumn(builder: this, children: children, itemTemplate: itemTemplate);
+    return EnsembleRow(builder: this, children: children, itemTemplate: itemTemplate);
   }
 
 }
 
-class EnsembleColumn extends StatefulWidget {
-  const EnsembleColumn({
+class EnsembleRow extends StatefulWidget {
+  const EnsembleRow({
     required this.builder,
     this.children,
     this.itemTemplate,
     Key? key
   }) : super(key: key);
 
-  final ColumnBuilder builder;
+  final RowBuilder builder;
   final List<Widget>? children;
   final ItemTemplate? itemTemplate;
 
   @override
-  State<StatefulWidget> createState() => ColumnState();
+  State<StatefulWidget> createState() => RowState();
 }
 
-class ColumnState extends State<EnsembleColumn> {
+class RowState extends State<EnsembleRow> {
   // data exclusively for item template (e.g api result)
   Map<String, dynamic>? itemTemplateData;
 
@@ -229,17 +229,17 @@ class ColumnState extends State<EnsembleColumn> {
       for (var i=0; i<children.length; i++) {
         updatedChildren.add(children[i]);
         if (i != children.length-1) {
-          updatedChildren.add(SizedBox(height: widget.builder.gap!.toDouble()));
+          updatedChildren.add(SizedBox(width: widget.builder.gap!.toDouble()));
         }
       }
       children = updatedChildren;
     }
 
-    Widget column = DefaultTextStyle.merge(
+    Widget row = DefaultTextStyle.merge(
       style: TextStyle(
           fontFamily: widget.builder.fontFamily,
           fontSize: widget.builder.fontSize != null ? widget.builder.fontSize!.toDouble() : null
-      ), child: Column(
+      ), child: Row(
         mainAxisAlignment: mainAxis,
         crossAxisAlignment: crossAxis,
         children: children)
@@ -260,13 +260,13 @@ class ColumnState extends State<EnsembleColumn> {
             ScreenController().executeAction(context, widget.builder.onTap),
         child: Padding(
             padding: EdgeInsets.all((widget.builder.padding ?? 0).toDouble()),
-            child: widget.builder.autoFit ? IntrinsicWidth(child: column) : column
+            child: widget.builder.autoFit ? IntrinsicHeight(child: row) : row
         )
       )
     );
 
     Widget rtnWrapper = widget.builder.scrollable ?
-        SingleChildScrollView(child: rtn) :
+        SingleChildScrollView(child: rtn, scrollDirection: Axis.horizontal,) :
         rtn;
 
     if (widget.builder.expanded) {

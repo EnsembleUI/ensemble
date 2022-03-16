@@ -1,22 +1,26 @@
-
-import 'dart:collection';
-import 'dart:convert';
+import 'dart:developer';
+import 'dart:math';
+import 'package:ensemble/error_handling.dart';
+import 'package:ensemble/layout/column_builder.dart';
+import 'package:ensemble/layout/hstack_builder.dart';
+import 'package:ensemble/layout/vstack_builder.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/unknown_builder.dart';
-import 'package:ensemble/widget/widget_builder.dart' as ensemble;
-import 'package:ensemble/widget/widget_registry.dart';
-import 'package:ensemble/util/yaml_util.dart';
-import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
-import 'package:flutter/cupertino.dart';
 
 class PageModel {
+  static final List<String> reservedTokens = [
+    'Import',
+    'View',
+    'Action',
+    'API'
+  ];
+
   String? title;
   Map<String, dynamic>? pageStyles;
   Map<String, dynamic>? args;
   Map<String, YamlMap>? subViewDefinitions;
   List<MenuItem> menuItems = [];
-  List<WidgetModel> widgetModels = [];
+  late WidgetModel rootWidgetModel;
   PageType pageType = PageType.full;
   Footer? footer;
 
@@ -25,11 +29,9 @@ class PageModel {
 
 
 
-  PageModel ({YamlMap? data, this.args}) {
-    if (data != null) {
-      processAPI(data['API']);
-      processModel(data);
-    }
+  PageModel ({required YamlMap data, this.args}) {
+    processAPI(data['API']);
+    processModel(data);
 
     //processView(pageMap['View']);
     //processLayout(pageMap['Layout']);
@@ -60,7 +62,6 @@ class PageModel {
       });
     }
 
-
     if (viewMap['footer'] != null && viewMap['footer']['children'] != null) {
       footer = Footer(buildModels(viewMap['footer']['children'], args, {}));
     }
@@ -68,17 +69,31 @@ class PageModel {
     // build a Map of the subviews' models first
     subViewDefinitions = createSubViewDefinitions(docMap, args);
 
-    widgetModels = buildModels(viewMap['children'], args, subViewDefinitions!);
+    if (viewMap['type'] == null ||
+        ![VStackBuilder.type, ColumnBuilder.type, HStackBuilder.type].contains(viewMap['type'])) {
+      throw LanguageError('Root widget type should only be Row or Column');
+    }
+    // View is special and can have many attributes,
+    // where as the root body (e.g Column) should be more restrictive
+    // (e.g the whole body shouldn't be click-enable)
+    // Let's manually select what can be specified here (really just styles/item-template/children)
+    YamlMap rootItemMap = YamlMap.wrap({
+      'children': viewMap['children'],
+      'item-template': viewMap['item-template'],
+      'styles': viewMap['styles']
+    });
+    rootWidgetModel = buildModelFromName(viewMap['type'], rootItemMap, args, subViewDefinitions!);
   }
 
   Map<String, YamlMap> createSubViewDefinitions(YamlMap docMap, Map<String, dynamic>? args) {
     Map<String, YamlMap> subViewDefinitions = {};
     docMap.forEach((key, value) {
-      if ((key as String).endsWith('.View')) {
-        String keyName = key.split('.').first.trim();
-        if (value['body'] != null) {
-          subViewDefinitions[keyName] = value;
+      if (!reservedTokens.contains(key)) {
+        if (value == null || value['type'] == null) {
+          throw LanguageError("SubView requires a widget 'type'");
         }
+        subViewDefinitions[key] = value;
+
       }
     });
     return subViewDefinitions;
@@ -96,106 +111,120 @@ class PageModel {
 
   // each model can be dynamic (Spacer) or YamlMap (Text: ....)
   static WidgetModel buildModel(dynamic item, Map<String, dynamic>? args, Map<String, YamlMap> subViewDefinitions) {
-    // e.g Spacer or a SubModel
+    String? key;
+    YamlMap? itemMap;
+
+    // e.g Spacer
     if (item is String) {
-      // sub-model without any parameters
-      if (subViewDefinitions[item] != null) {
-        return buildModel(subViewDefinitions[item]!['body'], args, subViewDefinitions);
-      }
-      // e.g Spacer
-      return WidgetModel(item, {}, {});
+      key = item;
+    } else if (item is YamlMap){
+      YamlMap model = item;
+      key = model.keys.first.toString();
+      itemMap = model[key];
+    } else {
+      throw LanguageError("Invalid token '$item'", recovery: 'Please review your definition');
     }
 
-    // item is YamlMap
-    YamlMap model = item as YamlMap;
-
-    // e.g if key is specified but not value e.g 'Spacer:'
-    if (model.values.first == null) {
-      return WidgetModel(model.keys.first, {}, {});
-    }
-
-
-    // widget key may have optional ID
-    List<String> keys = model.keys.first.toString().split('.');
+    // widget name may have optional ID
+    List<String> keys = key.split('.');
     if (keys.isEmpty || keys.length > 2) {
-      throw Exception("Invalid Widget Definition");
+      throw LanguageError("Too many tokens");
+    }
+    String widgetType = keys.last.trim();
+    String? widgetId;
+    if (keys.length == 2) {
+      widgetId = keys.first.trim();
     }
 
+    // first try to handle the widget as a SubView
+    YamlMap? subViewMap = subViewDefinitions[widgetType];
+    if (subViewMap != null) {
+      String subViewWidgetType = subViewMap['type'];
+
+      Map<String, dynamic> localizedArgs = {};
+      localizedArgs.addAll(args ?? {});
+
+      // if subview has parameters
+      if (subViewMap['parameters'] is YamlList && itemMap != null) {
+        // add (and potentially overwrite) parameters to our data map
+        for (var param in (subViewMap['parameters'] as YamlList)) {
+          if (itemMap[param] != null) {
+            localizedArgs[param] = Utils.evalExpression(itemMap[param], args);
+          }
+        }
+        //log("LocalizedMap: " + localizedArgs.toString());
+      }
+      return buildModelFromName(subViewWidgetType, subViewMap, localizedArgs, subViewDefinitions);
+    }
+    // regular widget
+    else {
+      // e.g Spacer or Spacer:
+      if (itemMap == null) {
+        return WidgetModel(widgetType, {}, {});
+      }
+      return buildModelFromName(widgetType, itemMap, args, subViewDefinitions, widgetId: widgetId);
+    }
+
+
+  }
+
+  static WidgetModel buildModelFromName(String widgetType, YamlMap itemMap, Map<String, dynamic>? args, Map<String, YamlMap> subViewDefinitions, {String? widgetId}) {
     Map<String, dynamic> props = {};
+    if (widgetId != null) {
+      props['id'] = widgetId;
+    }
     Map<String, dynamic> styles = {};
     List<WidgetModel>? children;
     ItemTemplate? itemTemplate;
 
-    String widgetType = keys.last.trim();
-    if (keys.length == 2) {
-      props['id'] = keys.first.trim();
-    }
 
-    // if this is a subView, process it
-    if (subViewDefinitions[widgetType] != null) {
-      Map<String, dynamic> localizedArgs = {};
-      localizedArgs.addAll(args ?? {});
-
-      // if subview has parameters, and invoker specifies values for these parameters
-      if (subViewDefinitions[widgetType]!['parameters'] is YamlList && model.values.isNotEmpty) {
-        // add (and overwrite) parameters to our data map
-        for (var param in (subViewDefinitions[widgetType]!['parameters'] as YamlList)) {
-          if (model.values.first[param] != null) {
-            localizedArgs[param] = Utils.evalExpression(model.values.first[param], args);
+    // go through each sub properties
+    itemMap.forEach((key, value) {
+      if (value != null) {
+        if (key == 'styles') {
+          // expand the style map
+          (value as YamlMap).forEach((styleKey, styleValue) {
+            styles[styleKey] = Utils.evalExpression(styleValue, args);
+          });
+        } else if (key == "children") {
+          children = buildModels(value, args, subViewDefinitions);
+        } else if (key == "item-template") {
+          // attempt to resolve the localized dataMap fed into the item template
+          // we only take it if it resolves to a list
+          List<dynamic>? localizedDataList;
+          dynamic templateDataResult = Utils.evalExpression(
+              value['data'], args);
+          if (templateDataResult is List<dynamic>) {
+            localizedDataList = templateDataResult;
           }
+
+          // item template should only have 1 root widget
+          itemTemplate = ItemTemplate(
+              value['data'],
+              value['name'],
+              value['template'],
+              localizedDataList);
         }
-        //print("LocalizedMap: " + localizedArgs.toString());
+        // actions like onTap should evaluate its expressions upon the action only
+        else if (key.toString().startsWith("on")) {
+          props[key] = value;
+        }
+        // this is tricky. We only want to evaluate properties most likely, so need
+        // a way to distinguish them
+        else {
+          props[key] = Utils.evalExpression(value, args);
+        }
       }
-      return buildModel(subViewDefinitions[widgetType]!['body'], localizedArgs, subViewDefinitions);
-    }
-    // else go through properties/styles/item-template for this widget
-    else {
-      // go through each sub properties
-      model.values.first.forEach((key, value) {
-        if (value != null) {
-          if (key == 'styles') {
-            // expand the style map
-            (value as YamlMap).forEach((styleKey, styleValue) {
-              styles[styleKey] = Utils.evalExpression(styleValue, args);
-            });
-          } else if (key == "children") {
-            children = buildModels(value, args, subViewDefinitions);
-          } else if (key == "item-template") {
-            // attempt to resolve the localized dataMap fed into the item template
-            // we only take it if it resolves to a list
-            List<dynamic>? localizedDataList;
-            dynamic templateDataResult = Utils.evalExpression(
-                value['data'], args);
-            if (templateDataResult is List<dynamic>) {
-              localizedDataList = templateDataResult;
-            }
+    });
 
-            // item template should only have 1 root widget
-            itemTemplate = ItemTemplate(
-                value['data'],
-                value['name'],
-                value['template'],
-                localizedDataList);
-          }
-          // actions like onTap should evaluate its expressions upon the action only
-          else if (key.toString().startsWith("on")) {
-            props[key] = value;
-          }
-          // this is tricky. We only want to evaluate properties most likely, so need
-          // a way to distinguish them
-          else {
-            props[key] = Utils.evalExpression(value, args);
-          }
-        }
-      });
+    return WidgetModel(
+        widgetType,
+        styles,
+        props,
+        children: children,
+        itemTemplate: itemTemplate);
 
-      return WidgetModel(
-          widgetType,
-          styles,
-          props,
-          children: children,
-          itemTemplate: itemTemplate);
-    }
+
   }
 
 }

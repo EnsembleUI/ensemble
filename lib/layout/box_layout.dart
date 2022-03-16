@@ -14,11 +14,14 @@ abstract class BoxLayout extends WidgetBuilder {
     this.backgroundColor,
     this.borderColor,
     this.borderRadius,
+    this.fontFamily,
+    this.fontSize,
 
     this.shadowColor,
     this.shadowOffset,
     this.shadowBlur,
 
+    this.scrollable = false,
     this.onTap,
     expanded,
     this.autoFit = false,
@@ -39,11 +42,14 @@ abstract class BoxLayout extends WidgetBuilder {
   final int? backgroundColor;
   final int? borderColor;
   final int? borderRadius;
+  final String? fontFamily;
+  final int? fontSize;
 
   final int? shadowColor;
   final List<int>? shadowOffset;
   final int? shadowBlur;
 
+  final bool scrollable;
   final dynamic onTap;
 
 
