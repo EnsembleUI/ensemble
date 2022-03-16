@@ -47,6 +47,6 @@ app.*.symbols
 # Obfuscation related
 app.*.map.json
 main.dart
-assets/pages
+assets/ensemble/pages
 ensemble-config.yaml
 assets/fonts
