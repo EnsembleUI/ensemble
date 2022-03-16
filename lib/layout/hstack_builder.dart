@@ -1,6 +1,7 @@
 import 'package:ensemble/layout/base_layout.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/util/layout_utils.dart';
 import 'package:ensemble/widget/image_builder.dart';
 import 'package:ensemble/widget/text_input_builder.dart';
 import 'package:ensemble/widget/widget_registry.dart';
@@ -14,18 +15,19 @@ class HStackBuilder extends BaseLayout {
     backgroundColor,
     padding,
     gap,
-    stretch,
+    this.expanded=false,
     layout,
     alignment,
     borderRadius,
     boxShadowColor,
     boxShadowOffset,     // HStack sometimes need to stretch content to 100%
-    this.width,
+    this.height,
 
     onTap,
-  }) : super(backgroundColor: backgroundColor, padding: padding, gap: gap, stretch: stretch, layout: layout, alignment: alignment, borderRadius: borderRadius, boxShadowColor: boxShadowColor, boxShadowOffset: boxShadowOffset, onTap: onTap);
+  }) : super(backgroundColor: backgroundColor, padding: padding, gap: gap, layout: layout, alignment: alignment, borderRadius: borderRadius, boxShadowColor: boxShadowColor, boxShadowOffset: boxShadowOffset, onTap: onTap);
 
-  int? width;
+  int? height;
+  final bool expanded;
 
   static HStackBuilder fromDynamic(Map<String, dynamic> props, Map<String, dynamic> styles, {WidgetRegistry? registry})
   {
@@ -34,11 +36,11 @@ class HStackBuilder extends BaseLayout {
       onTap: props['onTap'],
 
       // styles
-      width: styles['width'],
-      backgroundColor: styles['backgroundColor'],
+      height: styles['height'] is int ? styles['height'] : null,
+      backgroundColor: styles['backgroundColor'] is int ? styles['backgroundColor'] : null,
       padding: styles['padding'],
       gap: styles['gap'],
-      stretch: styles['stretch'],
+        expanded: styles['expanded'] is bool ? styles['expanded'] : false,
       layout: styles['layout'],
       alignment: styles['alignment'],
       borderRadius: styles['borderRadius'],
@@ -116,47 +118,13 @@ class HStackState extends State<HStack> {
     }
 
 
-    MainAxisAlignment mainAxis = MainAxisAlignment.start;
-    if (widget.builder.layout != null) {
-      switch(widget.builder.layout) {
-        case 'space-between':
-          mainAxis = MainAxisAlignment.spaceBetween;
-          break;
-        case 'center':
-        case 'middle':
-          mainAxis = MainAxisAlignment.center;
-          break;
-        case 'start':
-        case 'top':
-          mainAxis = MainAxisAlignment.start;
-          break;
-        case 'end':
-        case 'bottom':
-          mainAxis = MainAxisAlignment.end;
-          break;
-      }
-    }
+    MainAxisAlignment mainAxis = widget.builder.layout != null ?
+      LayoutUtils.getMainAxisAlignment(widget.builder.layout!) :
+      MainAxisAlignment.start;
 
-    CrossAxisAlignment crossAxis = CrossAxisAlignment.center;
-    if (widget.builder.alignment != null) {
-      switch(widget.builder.alignment) {
-        case 'baseline':
-          crossAxis = CrossAxisAlignment.baseline;
-          break;
-        case 'center':
-        case 'middle':
-          crossAxis = CrossAxisAlignment.center;
-          break;
-        case 'start':
-        case 'top':
-          crossAxis = CrossAxisAlignment.start;
-          break;
-        case 'end':
-        case 'bottom':
-          crossAxis = CrossAxisAlignment.end;
-          break;
-      }
-    }
+    CrossAxisAlignment crossAxis = widget.builder.alignment != null ?
+      LayoutUtils.getCrossAxisAlignment(widget.builder.alignment!) :
+      CrossAxisAlignment.start;
 
     // if gap is specified, insert SizeBox between children
     if (widget.builder.gap != null) {
@@ -206,14 +174,14 @@ class HStackState extends State<HStack> {
 
     );
 
-    // if width is specified
-    if (widget.builder.width is int) {
+    // if height is specified
+    if (widget.builder.height is int) {
       return SizedBox(
-          width: (widget.builder.width as int).toDouble(),
+          height: (widget.builder.height as int).toDouble(),
           child: rtn);
     }
     // if specified to stretch, and it's parent is HStack, wraps around Expanded widget
-    else if (widget.builder.stretch is bool && widget.builder.stretch as bool) {
+    else if (widget.builder.expanded) {
       // TODO: need to check, as only valid within a HStack/VStack/Flex
       return Expanded(child: rtn);
     }

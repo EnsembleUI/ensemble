@@ -13,8 +13,9 @@ class DividerBuilder extends ensemble.WidgetBuilder {
     this.color,
     this.indent,
     this.endIndent,
-  });
-  int? thickness;
+    expanded,
+  }) : super(expanded: expanded);
+  final int? thickness;
   int? color;
   int? indent;
   int? endIndent;
@@ -25,7 +26,8 @@ class DividerBuilder extends ensemble.WidgetBuilder {
       // props
 
       // styles
-      thickness: styles['thickness'],
+      expanded: styles['expanded'] is bool ? styles['expanded'] : false,
+      thickness: styles['thickness'] is int? styles['thickness'] : 1,
       color: styles['color'],
       indent: styles['indent'],
       endIndent: styles['endIndent'],
@@ -59,22 +61,15 @@ class DividerState extends State<EnsembleDivider> {
   @override
   Widget build(BuildContext context) {
 
-    // only work for horizontal divider. Replace with Column for vertical
-    return Row(
-        children: [
-          Expanded(
-            child: Divider(
-              thickness: (widget.builder.thickness ?? 1).toDouble(),
-              indent: (widget.builder.indent ?? 0).toDouble(),
-              endIndent: (widget.builder.endIndent ?? 0).toDouble(),
-              color:
-                widget.builder.color != null ?
-                Color(widget.builder.color!) :
-                const Color(0xFFD3D3D3)))
-    ]
+    return Divider(
+        thickness: (widget.builder.thickness ?? 1).toDouble(),
+        indent: (widget.builder.indent ?? 0).toDouble(),
+        endIndent: (widget.builder.endIndent ?? 0).toDouble(),
+        color:
+          widget.builder.color != null ?
+          Color(widget.builder.color!) :
+          const Color(0xFFD3D3D3)
     );
-
-
 
 
   }

@@ -1,5 +1,6 @@
-import 'package:ensemble/layout/base_layout.dart';
-import 'package:ensemble/layout/hstack_builder.dart';
+import 'dart:math';
+
+import 'package:ensemble/layout/box_layout.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -9,44 +10,88 @@ import 'package:ensemble/widget/widget_builder.dart' as ensemble;
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:flutter/material.dart';
 
-class VStackBuilder extends BaseLayout {
-  static const type = 'VStack';
-  VStackBuilder({
-    backgroundColor,
+class ColumnBuilder extends BoxLayout {
+  static const type = 'Column';
+  ColumnBuilder({
+    mainAxis,
+    crossAxis,
+    width,
+    height,
+    margin,
     padding,
     gap,
-    this.expanded=false,
-    layout,
-    alignment,
+
+    backgroundColor,
+    borderColor,
     borderRadius,
-    boxShadowColor,
-    boxShadowOffset,
-    this.width,
+    fontFamily,
+    fontSize,
 
+    shadowColor,
+    shadowOffset,
+    shadowBlur,
+
+    expanded,
+    autoFit,
+
+    scrollable,
     onTap,
-  }) : super(backgroundColor: backgroundColor, padding: padding, gap: gap, layout: layout, alignment: alignment, borderRadius: borderRadius, boxShadowColor: boxShadowColor, boxShadowOffset: boxShadowOffset, onTap: onTap);
 
-  int? width;
-  final bool expanded;
 
-  static VStackBuilder fromDynamic(Map<String, dynamic> props, Map<String, dynamic> styles, {WidgetRegistry? registry})
+  }) : super(
+    mainAxis: mainAxis,
+    crossAxis: crossAxis,
+    width: width,
+    height: height,
+    margin: margin,
+    padding: padding,
+    gap: gap,
+
+    backgroundColor: backgroundColor,
+    borderColor: borderColor,
+    borderRadius: borderRadius,
+    fontFamily: fontFamily,
+    fontSize: fontSize,
+
+    shadowColor: shadowColor,
+    shadowOffset: shadowOffset,
+    shadowBlur: shadowBlur,
+
+    scrollable: scrollable,
+    onTap: onTap,
+    expanded: expanded,
+    autoFit: autoFit,
+  );
+
+
+  static ColumnBuilder fromDynamic(Map<String, dynamic> props, Map<String, dynamic> styles, {WidgetRegistry? registry})
   {
-    return VStackBuilder(
-      // props
-      onTap: props['onTap'],
+    return ColumnBuilder(
+        // props
+        onTap: props['onTap'],
 
+        // styles
+        scrollable: styles['scrollable'] is bool ? styles['scrollable'] : false,
+        expanded: styles['expanded'] is bool ? styles['expanded'] : false,
+        autoFit: styles['autoFit'] is bool ? styles['autoFit'] : false,
+        mainAxis: styles['mainAxis'],
+        crossAxis: styles['crossAxis'],
+        width: styles['width'] is int ? styles['width'] : null,
+        height: styles['height'] is int ? styles['height'] : null,
+        margin: styles['margin'] is int ? styles['margin'] : null,
+        padding: styles['padding'] is int ? styles['padding'] : null,
+        gap: styles['gap'] is int ? styles['gap'] : null,
 
-      // styles
-      width: styles['width'] is int ? styles['width'] : null,
-      backgroundColor: styles['backgroundColor'] is int ? styles['backgroundColor'] : null,
-      padding: styles['padding'],
-      gap: styles['gap'],
-      expanded: styles['expanded'] is bool ? styles['expanded'] : false,
-      layout: styles['layout'],
-      alignment: styles['alignment'],
-      borderRadius: styles['borderRadius'],
-      boxShadowColor: styles['boxShadowColor'],
-      boxShadowOffset: styles['boxShadowOffset']
+        backgroundColor: styles['backgroundColor'] is int ? styles['backgroundColor'] : null,
+        borderColor: styles['borderColor'] is int ? styles['borderColor'] : null,
+        borderRadius: styles['borderRadius'] is int ? styles['borderRadius'] : null,
+        fontFamily: styles['fontFamily'],
+        fontSize: styles['fontSize'] is int ? styles['fontSize'] : null,
+
+        //shadowColor: shadowColor,
+        //shadowOffset: shadowOffset,
+        //shadowBlur: shadowBlur,
+
     );
   }
 
@@ -56,28 +101,28 @@ class VStackBuilder extends BaseLayout {
     required BuildContext context,
     List<Widget>? children,
     ItemTemplate? itemTemplate}) {
-    return VStack(builder: this, children: children, itemTemplate: itemTemplate);
+    return EnsembleColumn(builder: this, children: children, itemTemplate: itemTemplate);
   }
 
 }
 
-class VStack extends StatefulWidget {
-  const VStack({
+class EnsembleColumn extends StatefulWidget {
+  const EnsembleColumn({
     required this.builder,
     this.children,
     this.itemTemplate,
     Key? key
   }) : super(key: key);
 
-  final VStackBuilder builder;
+  final ColumnBuilder builder;
   final List<Widget>? children;
   final ItemTemplate? itemTemplate;
 
   @override
-  State<StatefulWidget> createState() => VStackState();
+  State<StatefulWidget> createState() => ColumnState();
 }
 
-class VStackState extends State<VStack> {
+class ColumnState extends State<EnsembleColumn> {
   // data exclusively for item template (e.g api result)
   Map<String, dynamic>? itemTemplateData;
 
@@ -169,14 +214,14 @@ class VStackState extends State<VStack> {
     }
 
 
-    MainAxisAlignment mainAxis = widget.builder.layout != null ?
-        LayoutUtils.getMainAxisAlignment(widget.builder.layout!) :
-        MainAxisAlignment.start;
+    MainAxisAlignment mainAxis = widget.builder.mainAxis != null ?
+    LayoutUtils.getMainAxisAlignment(widget.builder.mainAxis!) :
+    MainAxisAlignment.start;
 
 
-    CrossAxisAlignment crossAxis = widget.builder.alignment != null ?
-        LayoutUtils.getCrossAxisAlignment(widget.builder.alignment!) :
-        CrossAxisAlignment.start;
+    CrossAxisAlignment crossAxis = widget.builder.crossAxis != null ?
+    LayoutUtils.getCrossAxisAlignment(widget.builder.crossAxis!) :
+    CrossAxisAlignment.start;
 
     // if gap is specified, insert SizeBox between children
     if (widget.builder.gap != null) {
@@ -190,59 +235,45 @@ class VStackState extends State<VStack> {
       children = updatedChildren;
     }
 
-    Widget rtn = Ink(
-      color:
-        widget.builder.backgroundColor != null ?
-        Color(widget.builder.backgroundColor!) :
-        null,
-      child: Padding(
-        padding: EdgeInsets.all((widget.builder.padding ?? 0).toDouble()),
-        child: InkWell(
-          splashColor: Colors.transparent,
-          onTap: widget.builder.onTap == null ? null : () =>
+    Widget column = DefaultTextStyle.merge(
+      style: TextStyle(
+          fontFamily: widget.builder.fontFamily,
+          fontSize: widget.builder.fontSize != null ? widget.builder.fontSize!.toDouble() : null
+      ), child: Column(
+        mainAxisAlignment: mainAxis,
+        crossAxisAlignment: crossAxis,
+        children: children)
+    );
+
+    Widget rtn = Container(
+      width: widget.builder.width != null ? widget.builder.width!.toDouble() : null,
+      height: widget.builder.height != null ? widget.builder.height!.toDouble() : null,
+      margin: EdgeInsets.all((widget.builder.margin ?? 0).toDouble()),
+      decoration: BoxDecoration(
+        border: widget.builder.borderColor != null ? Border.all(color: Color(widget.builder.borderColor!)) : null,
+        borderRadius: widget.builder.borderRadius != null ? BorderRadius.all(Radius.circular(widget.builder.borderRadius!.toDouble())) : null,
+        color: widget.builder.backgroundColor != null ? Color(widget.builder.backgroundColor!) : null
+      ),
+      child: InkWell(
+        splashColor: Colors.transparent,
+        onTap: widget.builder.onTap == null ? null : () =>
             ScreenController().executeAction(context, widget.builder.onTap),
-          child: Container(
-            decoration: widget.builder.boxShadowColor == null ? null : BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.all(Radius.circular((widget.builder.borderRadius ?? 0).toDouble())),
-              boxShadow: <BoxShadow>[
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.6),
-                  offset: widget.builder.boxShadowOffset != null && widget.builder.boxShadowOffset!.length == 2 ?
-                    Offset(
-                        widget.builder.boxShadowOffset![0].toDouble(),
-                        widget.builder.boxShadowOffset![1].toDouble()) :
-                    const Offset(4, 4),
-                  blurRadius: (widget.builder.borderRadius ?? 0).toDouble(),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.all(Radius.circular((widget.builder.borderRadius ?? 0).toDouble())),
-              child: Column(
-                mainAxisAlignment: mainAxis,
-                crossAxisAlignment: crossAxis,
-                children: children,
-              )
-            )
-          )
+        child: Padding(
+            padding: EdgeInsets.all((widget.builder.padding ?? 0).toDouble()),
+            child: widget.builder.autoFit ? IntrinsicWidth(child: column) : column
         )
       )
     );
 
-    // if width is specified
-    if (widget.builder.width is int) {
-      return SizedBox(
-        width: (widget.builder.width as int).toDouble(),
-        child: rtn);
-    }
-    // else if specified to stretch, and it's parent is HStack, wraps around Expanded widget
-    else if (widget.builder.expanded) {
-      // TODO: need to check, as only valid within a HStack/VStack/Flex otherwise exception
-      return Expanded(child: rtn);
-    }
-    return rtn;
+    Widget rtnWrapper = widget.builder.scrollable ?
+        SingleChildScrollView(child: rtn) :
+        rtn;
 
+    if (widget.builder.expanded) {
+      // TODO: need to check, as only valid within a HStack/VStack/Flex otherwise exception
+      return Expanded(child: rtnWrapper);
+    }
+    return rtnWrapper;
   }
 
 
