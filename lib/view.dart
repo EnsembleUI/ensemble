@@ -1,4 +1,5 @@
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/util/layout_utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
@@ -7,7 +8,7 @@ import 'package:yaml/yaml.dart';
 class View extends StatefulWidget {
   View(
       this.pageData,
-      this.children,
+      this.bodyWidget,
       {
         this.footer,
         this.navBar
@@ -15,7 +16,7 @@ class View extends StatefulWidget {
 
   final ViewState currentState = ViewState();
   final PageData pageData;
-  final List<Widget> children;
+  final Widget bodyWidget;
   final Widget? footer;
   final BottomNavigationBar? navBar;
 
@@ -32,56 +33,33 @@ class View extends StatefulWidget {
 class ViewState extends State<View>{
   @override
   Widget build(BuildContext context) {
-    // apply page-wide styles
-    TextStyle? textStyle;
-    int? bgColor;
-
-    Map<String, dynamic>? pageStyles = widget.pageData.pageStyles;
-    if (pageStyles != null) {
-      String? fontFamily = pageStyles['fontFamily'];
-      double? fontSize = pageStyles['fontSize'];
-      textStyle = TextStyle(fontFamily: fontFamily, fontSize: fontSize);
-
-      // Note: color can be hex or string
-      bgColor = pageStyles['backgroundColor'];
-    }
-
-
-
-    Widget body =
-      DefaultTextStyle.merge(
-        // page-wide styling
-        style: textStyle,
-        // for background color
-        child: Ink(
-          color: bgColor != null ? Color(bgColor) : null,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: widget.children)
-        )
-      );
 
     // modal page has certain criteria (no navBar, no header)
     if (widget.pageData.pageType == PageType.modal) {
       // need a close button to go back to non-modal pages
       // also animate up and down (vs left and right)
       return Scaffold(
-          body: body,
+          body: widget.bodyWidget,
           bottomSheet: widget.footer);
     }
     // regular page
     else {
       return Scaffold(
+        // slight optimization, if body background is set, let's paint
+        // the entire screen including the Safe Area
+        backgroundColor:
+            widget.pageData.pageStyles?['backgroundColor'] is int ?
+            Color(widget.pageData.pageStyles!['backgroundColor']) :
+            null,
         appBar:
           widget.pageData.pageTitle != null ?
           AppBar(title: Text(widget.pageData.pageTitle!)) :
           null,
         body: SafeArea(
-          child: SingleChildScrollView(
-              child: body
-          ),
+          child: widget.bodyWidget
         ),
         bottomNavigationBar: widget.navBar,
+        bottomSheet: widget.footer,
       );
     }
   }
