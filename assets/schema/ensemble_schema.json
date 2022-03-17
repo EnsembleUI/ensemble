@@ -4,6 +4,9 @@
   "title": "Ensemble",
   "type": "object",
   "properties": {
+    "Import": {
+
+    },
     "View": {
       "type": "object",
       "description": "This is your root View",
@@ -24,18 +27,110 @@
         }
       },
       "if": {
-        "properties": { "type": { "const": "Column" } }
+        "properties": {
+          "type": {
+            "const": "Column"
+          }
+        }
       },
       "then": {
-        "properties": { "styles": { "$ref": "#/$defs/columnStyles" } }
+        "properties": {
+          "styles": {
+            "$ref": "#/$defs/columnStyles"
+          }
+        }
       },
       "else": {
-        "properties": { "styles": { "$ref": "#/$defs/rowStyles" } }
+        "properties": {
+          "styles": {
+            "$ref": "#/$defs/rowStyles"
+          }
+        }
+      }
+    },
+    "Action": {
+
+    },
+    "API": {
+
+    }
+
+  },
+  "additionalProperties": {
+    "type": "object",
+    "required": ["type"],
+    "properties": {
+      "params": {
+        "type": "array",
+        "items": []
+      },
+      "type": {
+        "type": "string",
+        "description": "The root widget of your Sub View"
       }
     }
+
   },
 
+
   "$defs": {
+
+    "Text-payload": {
+      "type": "object",
+      "required": ["text"],
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "Your text"
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "fontSize": {
+              "type": "integer",
+              "minimum": 6
+            },
+            "color": {
+              "type": "string",
+              "description": "Text color starting with '0xFF' for full opacity"
+            }
+          }
+        }
+      }
+    },
+    "Column-payload": {
+      "type": "object",
+      "properties": {
+        "styles": { "$ref": "#/$defs/columnStyles" },
+        "children": { "$ref": "#/$defs/Widgets" }
+      }
+    },
+    "Row-payload": {
+      "type": "object",
+      "properties": {
+        "styles": { "$ref": "#/$defs/rowStyles" },
+        "children": { "$ref": "#/$defs/Widgets" }
+      }
+    },
+
+
+    "Widgets": {
+      "type": "array",
+      "description": "List of child widgets",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Text": { "$ref": "#/$defs/Text-payload" },
+          "Column": { "$ref": "#/$defs/Column-payload" },
+          "Row": { "$ref": "#/$defs/Row-payload" }
+        }
+
+      }
+    },
+
+
+
+
 
     "baseStyles": {
       "type": "object",
@@ -46,7 +141,6 @@
         }
       }
     },
-
     "boxLayoutStyles": {
       "type": "object",
       "properties": {
@@ -153,60 +247,12 @@
           }
         }
       ]
-    },
-
-
-    "Widgets": {
-      "type": "array",
-      "description": "List of child widgets",
-      "items": {
-        "type": "object",
-        "properties": {
-
-          "Text": {
-            "type": "object",
-            "required": ["text"],
-            "properties": {
-              "text": {
-                "type": "string",
-                "description": "Your text"
-              },
-              "styles": {
-                "type": "object",
-                "properties": {
-                  "fontSize": {
-                    "type": "integer",
-                    "minimum": 6
-                  },
-                  "color": {
-                    "type": "string",
-                    "description": "Text color starting with '0xFF' for full opacity"
-                  }
-                }
-              }
-            }
-
-          },
-
-          "Column": {
-            "type": "object",
-            "properties": {
-              "styles": { "$ref": "#/$defs/columnStyles" }
-
-            }
-          },
-
-          "Row": {
-            "type": "object",
-            "properties": {
-              "styles": { "$ref": "#/$defs/rowStyles" }
-            }
-          }
-
-        }
-
-      }
     }
+
+
+
+
+
 
 
   }
