@@ -7,15 +7,17 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 
-class DateInputBuilder extends InputBuilder {
+class DateInputBuilder extends FormInputBuilder {
   static const type = 'DateRange';
   DateInputBuilder ({
     required this.controller,
     enabled,
     required,
     label,
-    hintText
-  }) : super(enabled: enabled, required: required, label: label, hintText: hintText);
+    hintText,
+    fontSize,
+    expanded,
+  }) : super (enabled: enabled, required: required, label: label, hintText: hintText, fontSize: fontSize, expanded: expanded);
 
   final TextEditingController controller;
 
@@ -23,10 +25,18 @@ class DateInputBuilder extends InputBuilder {
   {
       return DateInputBuilder(
         controller: TextEditingController(),
+
+        // props
         enabled: props['enabled'],
         required: props['required'],
         label: props['label'],
-        hintText: props['hintText']);
+        hintText: props['hintText'],
+
+        // styles
+        fontSize: styles['fontSize'],
+        expanded: styles['expanded'] is bool ? styles['expanded'] : false,
+
+      );
   }
 
   @override
@@ -81,9 +91,7 @@ class _DateInputState extends State<DateInput> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 16, right: 16, top: 8, bottom: 8),
-      child: TextFormField(
+    Widget rtn = TextFormField(
         focusNode: focusNode,
         controller: widget.builder.controller,
         enabled: widget.builder.enabled,
@@ -92,9 +100,9 @@ class _DateInputState extends State<DateInput> {
         },
         onEditingComplete: () {
         },
-        style: const TextStyle(
-          fontSize: 18,
-        ),
+        style: widget.builder.fontSize != null ?
+          TextStyle(fontSize: widget.builder.fontSize!.toDouble()) :
+          null,
         cursorColor: EnsembleTheme.buildLightTheme().primaryColor,
         decoration: InputDecoration(
             floatingLabelBehavior: FloatingLabelBehavior.always,
@@ -108,9 +116,12 @@ class _DateInputState extends State<DateInput> {
                 }
             )
         ),
-      ),
-
     );
+
+    if (widget.builder.expanded) {
+      return Expanded(child: rtn);
+    }
+    return rtn;
   }
 
 
