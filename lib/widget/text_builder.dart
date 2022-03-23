@@ -4,7 +4,6 @@ import 'package:ensemble/widget/widget_builder.dart' as ensemble;
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/src/widgets/framework.dart';
 
 class TextBuilder extends ensemble.WidgetBuilder {
   static const type = 'Text';
@@ -30,11 +29,11 @@ class TextBuilder extends ensemble.WidgetBuilder {
   {
     return TextBuilder(
       // props
-      text: props['text'].toString(),
+      text: props['text']?.toString(),
 
       // styles
       font: styles['font'],
-      fontSize: styles['fontSize'],
+      fontSize: styles['fontSize'] is int ? styles['fontSize'] : null,
       fontWeight: styles['fontWeight'],
       color: styles['color'] is int ? styles['color'] : null,
       padding: styles['padding'] is int ? styles['padding'] : null,
@@ -63,6 +62,8 @@ class EnsembleText extends StatefulWidget {
 
   @override
   State<StatefulWidget> createState() => TextState();
+
+
 }
 
 class TextState extends State<EnsembleText> {
