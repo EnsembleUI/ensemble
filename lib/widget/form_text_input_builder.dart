@@ -1,29 +1,33 @@
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/widget/input_builder.dart';
 import 'package:ensemble/widget/widget_builder.dart' as ensemble;
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:flutter/material.dart';
 
-class TextInputBuilder extends ensemble.WidgetBuilder {
+class TextInputBuilder extends FormInputBuilder {
   static const type = 'TextInput';
   TextInputBuilder ({
-    this.enabled = true,
-    this.required = false,
-    this.label,
-    this.hintText
-  });
-
-  final bool? enabled;
-  final bool? required;
-  final String? label;
-  final String? hintText;
+    enabled,
+    required,
+    label,
+    hintText,
+    fontSize,
+    expanded,
+  }) : super (enabled: enabled, required: required, label: label, hintText: hintText, fontSize: fontSize, expanded: expanded);
 
   static TextInputBuilder fromDynamic(Map<String, dynamic> props, Map<String, dynamic> styles, {WidgetRegistry? registry})
   {
     return TextInputBuilder(
+      // props
       enabled: props['enabled'],
       required: props['required'],
       label: props['label'],
-      hintText: props['hintText']
+      hintText: props['hintText'],
+
+      // styles
+      fontSize: styles['fontSize'],
+      expanded: styles['expanded'] is bool ? styles['expanded'] : false,
+
     );
   }
 
@@ -94,9 +98,7 @@ class TextInputState extends State<TextInput> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 16, right: 16, top: 8, bottom: 8),
-      child: TextFormField(
+    Widget rtn = TextFormField(
         focusNode: focusNode,
         controller: textController,
         enabled: widget.builder.enabled,
@@ -104,17 +106,21 @@ class TextInputState extends State<TextInput> {
         },
         onEditingComplete: () {
         },
-        style: const TextStyle(
-          fontSize: 18,
-        ),
+        style: widget.builder.fontSize != null ?
+          TextStyle(fontSize: widget.builder.fontSize!.toDouble()) :
+          null,
         decoration: InputDecoration(
             floatingLabelBehavior: FloatingLabelBehavior.always,
             labelText: widget.builder.label,
             hintText: widget.builder.hintText,
             errorText: validationText
         ),
-      ),
-
     );
+
+    if (widget.builder.expanded) {
+      return Expanded(child: rtn);
+    }
+    return rtn;
+
   }
 }

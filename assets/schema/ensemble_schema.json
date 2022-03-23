@@ -1,6 +1,6 @@
 {
   "$id": "https://ensembleui.com/language.schema.json",
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Ensemble",
   "type": "object",
   "properties": {
@@ -64,8 +64,7 @@
     "required": ["type"],
     "properties": {
       "params": {
-        "type": "array",
-        "items": []
+        "type": "array"
       },
       "type": {
         "type": "string",
@@ -94,25 +93,117 @@
               "minimum": 6
             },
             "color": {
-              "type": "string",
+              "type": ["number", "string"],
               "description": "Text color starting with '0xFF' for full opacity"
             }
           }
         }
       }
     },
-    "Column-payload": {
+    "TextInput-payload": {
+      "allOf": [
+        { "$ref": "#/$defs/FormInput-payload" },
+        {
+          "type": "object",
+          "properties": {
+            "styles": {
+              "type": "object",
+              "properties": {
+                "fontSize": {
+                  "type": "integer",
+                  "minimum": 6
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "DateRange-payload": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/FormInput-payload"
+        }
+      ]
+    },
+    "Button-payload": {
       "type": "object",
+      "required": ["label"],
       "properties": {
-        "styles": { "$ref": "#/$defs/columnStyles" },
-        "children": { "$ref": "#/$defs/Widgets" }
+        "label": {
+          "type": "string",
+          "description": "Your button label"
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "color": {
+              "type": ["number", "string"],
+              "description": "Set the color for the button label starting with '0xFF' for full opacity"
+            },
+            "backgroundColor": {
+              "type": ["number", "string"],
+              "description": "Button background color starting with '0xFF' for full opacity"
+            },
+            "borderRadius": {
+              "type": "integer"
+            },
+            "outline": {
+              "type": "boolean",
+              "description": "Whether the button should have an outline border instead of filled background"
+            }
+          }
+        }
       }
     },
+    "Column-payload": {
+      "allOf": [
+        {
+          "type": "object",
+          "properties": {
+            "styles": { "$ref": "#/$defs/columnStyles" },
+            "children": { "$ref": "#/$defs/Widgets" }
+          }
+        },
+        { "$ref": "#/$defs/Templated-payload" }
+      ]
+    },
     "Row-payload": {
+      "allOf": [
+        {
+          "type": "object",
+          "properties": {
+            "styles": { "$ref": "#/$defs/rowStyles" },
+            "children": { "$ref": "#/$defs/Widgets" }
+          }
+        },
+        { "$ref": "#/$defs/Templated-payload" }
+      ]
+    },
+    "Templated-payload": {
       "type": "object",
       "properties": {
-        "styles": { "$ref": "#/$defs/rowStyles" },
-        "children": { "$ref": "#/$defs/Widgets" }
+        "item-template": {
+          "type": "object",
+          "properties": {
+            "data": { "type": "string" },
+            "name": { "type": "string" },
+            "template": { "$ref": "#/$defs/Widget" }
+          }
+        }
+      }
+    },
+    "FormInput-payload": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "Label for your input widget"
+        },
+        "hintText": {
+          "type": "string",
+          "description": "Placeholder for your input widget"
+        }
       }
     },
 
@@ -120,14 +211,17 @@
     "Widgets": {
       "type": "array",
       "description": "List of child widgets",
-      "items": {
-        "type": "object",
-        "properties": {
-          "Text": { "$ref": "#/$defs/Text-payload" },
-          "Column": { "$ref": "#/$defs/Column-payload" },
-          "Row": { "$ref": "#/$defs/Row-payload" }
-        }
-
+      "items": { "$ref": "#/$defs/Widget" }
+    },
+    "Widget": {
+      "type": "object",
+      "properties": {
+        "Text": { "$ref": "#/$defs/Text-payload" },
+        "TextInput": { "$ref": "#/$defs/TextInput-payload" },
+        "DateRange": { "$ref": "#/$defs/DateRange-payload" },
+        "Button": { "$ref": "#/$defs/Button-payload" },
+        "Column": { "$ref": "#/$defs/Column-payload" },
+        "Row": { "$ref": "#/$defs/Row-payload" }
       }
     },
 
@@ -168,11 +262,11 @@
           "minimum": 0
         },
         "backgroundColor": {
-          "type": "string",
+          "type": ["number", "string"],
           "description": "background color starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
         },
         "borderColor": {
-          "type": "string",
+          "type": ["number", "string"],
           "description": "border color starting with '0xFF' for full opacity"
         },
         "borderRadius": {
@@ -185,8 +279,21 @@
         "fontSize": {
           "type": "integer",
           "minimum": 0
+        },
+        "shadowColor": {
+          "type": ["number", "string"],
+          "description": "box shadow color starting with '0xFF' for full opacity"
+        },
+        "shadowRadius": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "shadowOffset": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
         }
-
       }
     },
     "columnStyles": {

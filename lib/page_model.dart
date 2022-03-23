@@ -12,7 +12,8 @@ class PageModel {
     'Import',
     'View',
     'Action',
-    'API'
+    'API',
+    'Functions'
   ];
 
   String? title;
