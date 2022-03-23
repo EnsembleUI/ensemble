@@ -8,17 +8,16 @@ import 'package:ensemble/widget/button_builder.dart';
 import 'package:ensemble/widget/chart_bubble_builder.dart';
 import 'package:ensemble/widget/chart_highcharts_builder.dart';
 import 'package:ensemble/widget/chart_pie_builder.dart';
-import 'package:ensemble/widget/date_input_builder.dart';
 import 'package:ensemble/widget/divider_builder.dart';
+import 'package:ensemble/widget/form_date_input_builder.dart';
+import 'package:ensemble/widget/form_text_input_builder.dart';
 import 'package:ensemble/widget/icon_builder.dart';
 import 'package:ensemble/widget/image_builder.dart';
 import 'package:ensemble/widget/rating_builder.dart';
 import 'package:ensemble/widget/spacer_builder.dart';
 import 'package:ensemble/widget/text_builder.dart';
-import 'package:ensemble/widget/text_input_builder.dart';
 import 'package:ensemble/widget/webview_builder.dart';
 import 'package:ensemble/widget/widget_builder.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 
 class WidgetRegistry {
   WidgetRegistry({
@@ -32,9 +31,11 @@ class WidgetRegistry {
 
   static Map<String, WidgetBuilderFunc> get widgetBuilders =>
       const <String, WidgetBuilderFunc> {
+        // form fields
         TextInputBuilder.type: TextInputBuilder.fromDynamic,
         DateInputBuilder.type: DateInputBuilder.fromDynamic,
         ButtonBuilder.type: ButtonBuilder.fromDynamic,
+
         TextBuilder.type: TextBuilder.fromDynamic,
         ImageBuilder.type: ImageBuilder.fromDynamic,
         IconBuilder.type: IconBuilder.fromDynamic,
@@ -49,12 +50,13 @@ class WidgetRegistry {
         ChartBubbleBuilder.type: ChartBubbleBuilder.fromDynamic,
 
         // layout
+        ColumnBuilder.type: ColumnBuilder.fromDynamic,
+        RowBuilder.type: RowBuilder.fromDynamic,
+
+        // deprecated
         VStackBuilder.type: VStackBuilder.fromDynamic,
         HStackBuilder.type: HStackBuilder.fromDynamic,
         GridBuilder.type: GridBuilder.fromDynamic,
-
-        ColumnBuilder.type: ColumnBuilder.fromDynamic,
-        RowBuilder.type: RowBuilder.fromDynamic,
   };
 }
 

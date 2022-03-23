@@ -16,7 +16,9 @@ class ColumnBuilder extends BoxLayout {
     mainAxis,
     crossAxis,
     width,
+    maxWidth,
     height,
+    maxHeight,
     margin,
     padding,
     gap,
@@ -29,7 +31,7 @@ class ColumnBuilder extends BoxLayout {
 
     shadowColor,
     shadowOffset,
-    shadowBlur,
+    shadowRadius,
 
     expanded,
     autoFit,
@@ -42,7 +44,9 @@ class ColumnBuilder extends BoxLayout {
     mainAxis: mainAxis,
     crossAxis: crossAxis,
     width: width,
+    maxWidth: maxWidth,
     height: height,
+    maxHeight: maxHeight,
     margin: margin,
     padding: padding,
     gap: gap,
@@ -55,7 +59,7 @@ class ColumnBuilder extends BoxLayout {
 
     shadowColor: shadowColor,
     shadowOffset: shadowOffset,
-    shadowBlur: shadowBlur,
+    shadowRadius: shadowRadius,
 
     scrollable: scrollable,
     onTap: onTap,
@@ -88,9 +92,9 @@ class ColumnBuilder extends BoxLayout {
         fontFamily: styles['fontFamily'],
         fontSize: styles['fontSize'] is int ? styles['fontSize'] : null,
 
-        //shadowColor: shadowColor,
-        //shadowOffset: shadowOffset,
-        //shadowBlur: shadowBlur,
+        shadowColor: styles['shadowColor'] is int ? styles['shadowColor'] : null,
+        shadowOffset: styles['shadowOffset'] is List<int> ? styles['shadowOffset'] : null,
+        shadowRadius: styles['shadowRadius'] is int ? styles['shadowRadius'] : null,
 
     );
   }
@@ -245,15 +249,34 @@ class ColumnState extends State<EnsembleColumn> {
         children: children)
     );
 
+    BoxDecoration boxDecoration = BoxDecoration(
+        color: widget.builder.backgroundColor != null ? Color(widget.builder.backgroundColor!) : null,
+        border: widget.builder.borderColor != null ? Border.all(color: Color(widget.builder.borderColor!)) : null,
+        borderRadius: widget.builder.borderRadius != null ? BorderRadius.all(Radius.circular(widget.builder.borderRadius!.toDouble())) : null,
+        boxShadow: widget.builder.shadowColor == null ? null : <BoxShadow>[
+          BoxShadow(
+            color: Color(widget.builder.shadowColor!),
+            blurRadius: (widget.builder.shadowRadius ?? 0).toDouble(),
+            offset: (widget.builder.shadowOffset != null && widget.builder.shadowOffset!.length >= 2) ?
+              Offset(
+                widget.builder.shadowOffset![0].toDouble(),
+                widget.builder.shadowOffset![1].toDouble(),
+              ) :
+              const Offset(0, 0),
+          )
+        ]
+    );
+
     Widget rtn = Container(
+      //constraints: BoxConstraints(maxWidth: 300),
       width: widget.builder.width != null ? widget.builder.width!.toDouble() : null,
       height: widget.builder.height != null ? widget.builder.height!.toDouble() : null,
       margin: EdgeInsets.all((widget.builder.margin ?? 0).toDouble()),
-      decoration: BoxDecoration(
-        border: widget.builder.borderColor != null ? Border.all(color: Color(widget.builder.borderColor!)) : null,
-        borderRadius: widget.builder.borderRadius != null ? BorderRadius.all(Radius.circular(widget.builder.borderRadius!.toDouble())) : null,
-        color: widget.builder.backgroundColor != null ? Color(widget.builder.backgroundColor!) : null
-      ),
+
+
+      clipBehavior: Clip.hardEdge,
+      decoration: boxDecoration,
+
       child: InkWell(
         splashColor: Colors.transparent,
         onTap: widget.builder.onTap == null ? null : () =>

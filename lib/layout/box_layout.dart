@@ -6,7 +6,9 @@ abstract class BoxLayout extends WidgetBuilder {
     this.mainAxis,
     this.crossAxis,
     this.width,
+    this.maxWidth,
     this.height,
+    this.maxHeight,
     this.margin,
     this.padding,
     this.gap,
@@ -19,7 +21,7 @@ abstract class BoxLayout extends WidgetBuilder {
 
     this.shadowColor,
     this.shadowOffset,
-    this.shadowBlur,
+    this.shadowRadius,
 
     this.scrollable = false,
     this.onTap,
@@ -34,7 +36,9 @@ abstract class BoxLayout extends WidgetBuilder {
   final String? crossAxis;
 
   final int? width;
+  final int? maxWidth;
   final int? height;
+  final int? maxHeight;
   final int? margin;
   final int? padding;
   final int? gap;
@@ -47,7 +51,7 @@ abstract class BoxLayout extends WidgetBuilder {
 
   final int? shadowColor;
   final List<int>? shadowOffset;
-  final int? shadowBlur;
+  final int? shadowRadius;
 
   final bool scrollable;
   final dynamic onTap;
