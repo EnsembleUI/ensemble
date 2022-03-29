@@ -14,11 +14,13 @@ class Ensemble {
   factory Ensemble() {
     return _instance;
   }
+  static const String MY_APP_PLACEHOLDER_PAGE = 'MyAppRootPage';
 
   bool init = false;
-  bool? useRemoteDefinition;
+  String? definitionFrom;
   String? localPath;
-  String? remoteApiKey;
+  String? remotePath;
+  String? appKey;
 
   /// initialize Ensemble configurations. This will be called
   /// automatically upon first page load. However call it in your existing
@@ -34,7 +36,7 @@ class Ensemble {
         String? definitionType = yamlMap['definitions']?['from'];
         if (definitionType == null) {
           throw ConfigError(
-              "Definitions needed to be defined as local or remote");
+              "Definitions needed to be defined as 'local', 'remote', or 'ensemble'");
         }
         if (definitionType == 'local') {
           String? path = yamlMap['definitions']?['local']?['path'];
@@ -42,20 +44,39 @@ class Ensemble {
             throw ConfigError(
                 "Path to page definitions is required for Local definitions");
           }
-          useRemoteDefinition = false;
+          definitionFrom = 'local';
           localPath = path;
-        } else {
-          String? myApiKey = yamlMap['definitions']?['remote']?['apiKey'];
-          if (myApiKey == null) {
-            throw ConfigError("apiKey is required for Remote definitions");
+        } else if (definitionType == 'remote') {
+          String? path = yamlMap['definitions']?['remote']?['path'];
+          if (path == null) {
+            throw ConfigError("Path to definitions is required for Remote definitions");
           }
-          useRemoteDefinition = true;
-          remoteApiKey = myApiKey;
+          definitionFrom = 'remote';
+          remotePath = path;
+        } else if (definitionType == 'ensemble') {
+          definitionFrom = 'ensemble';
+          // appKey can be passed at decision time, so don't required it here
+          appKey = yamlMap['definitions']?['ensemble']?['appKey'];
         }
       } catch (error) {
         log("Error loading ensemble-config.yaml.\n$error");
       }
     }
+  }
+
+  Widget renderApp(BuildContext context, String appId) {
+    /*if (!init) {
+      await initialize(context);
+    }
+*/
+
+    /*if (definitionFrom != 'ensemble') {
+      throw ConfigError("Render App is supported only for Ensemble-hosted definitions");
+    }*/
+    // set the AppKey from this point on
+    definitionFrom = 'ensemble';
+    appKey = appId;
+    return getPage(context, MY_APP_PLACEHOLDER_PAGE);
   }
 
   /// return an Ensemble page as an embeddable Widget
@@ -66,68 +87,78 @@ class Ensemble {
       }) {
     return FutureBuilder(
         future: getPageDefinition(context, pageName),
-        builder: (context, AsyncSnapshot snapshot) {
-          // loading
-          if (!snapshot.hasData) {
-            return const Scaffold(
-                body: Center(
-                    child: CircularProgressIndicator()
-                )
-            );
-          }
-          // load page
-          if (snapshot.data['View'] != null) {
-            // fetch data remotely before loading page
-            String? apiName = snapshot.data['Action']?['pageload']?['api'];
-            if (apiName != null) {
-              return FutureBuilder(
-                  future: HttpUtils.invokeApi(
-                      snapshot.data['API'][apiName], dataMap: pageArgs),
-                  builder: (context, AsyncSnapshot apiSnapshot) {
-                    if (!apiSnapshot.hasData) {
-                      return const Scaffold(
-                          body: Center(
-                              child: CircularProgressIndicator()
-                          )
-                      );
-                    } else if (apiSnapshot.hasError) {
-                      return const Scaffold(
-                          body: Center(
-                              child: Text(
-                                  "Unable to retrieve data. Please check your API definition.")
-                          )
-                      );
-                    }
-                    // merge API data with page arguments, then load
-                    pageArgs ??= {};
-                    pageArgs?[snapshot.data['Action']?['pageload']?['api']] =
-                        apiSnapshot.data;
-
-                    // itemTemplate listens for data changes, but the page has not been loaded yet,
-                    // so we will dispatch the data changes AFTER screen rendering
-                    WidgetsBinding.instance!.addPostFrameCallback((_) =>
-                        ScreenController().onActionResponse(
-                            context,
-                            snapshot.data['Action']?['pageload']?['api'],
-                            apiSnapshot.data));
-
-                    return _renderPage(
-                        context, pageName, snapshot, args: pageArgs);
-                  }
-              );
-            } else {
-              return _renderPage(context, pageName, snapshot, args: pageArgs);
-            }
-          }
-          // else error
-          return Scaffold(
-              body: Center(
-                  child: Text('Error loading reference page $pageName')
-              )
-          );
-        }
+        builder: (context, AsyncSnapshot snapshot) => processPageDefinition(context, snapshot, pageName, pageArgs: pageArgs)
     );
   }
+
+
+  Widget processPageDefinition(
+      BuildContext context,
+      AsyncSnapshot snapshot,
+      String pageName,
+      {
+        Map<String, dynamic>? pageArgs
+      }) {
+    // loading
+    if (!snapshot.hasData) {
+      return const Scaffold(
+          body: Center(
+              child: CircularProgressIndicator()
+          )
+      );
+    }
+    // load page
+    if (snapshot.data['View'] != null) {
+      // fetch data remotely before loading page
+      String? apiName = snapshot.data['Action']?['pageload']?['api'];
+      if (apiName != null) {
+        return FutureBuilder(
+            future: HttpUtils.invokeApi(
+                snapshot.data['API'][apiName], dataMap: pageArgs),
+            builder: (context, AsyncSnapshot apiSnapshot) {
+              if (!apiSnapshot.hasData) {
+                return const Scaffold(
+                    body: Center(
+                        child: CircularProgressIndicator()
+                    )
+                );
+              } else if (apiSnapshot.hasError) {
+                return const Scaffold(
+                    body: Center(
+                        child: Text(
+                            "Unable to retrieve data. Please check your API definition.")
+                    )
+                );
+              }
+              // merge API data with page arguments, then load
+              pageArgs ??= {};
+              pageArgs?[snapshot.data['Action']?['pageload']?['api']] =
+                  apiSnapshot.data;
+
+              // itemTemplate listens for data changes, but the page has not been loaded yet,
+              // so we will dispatch the data changes AFTER screen rendering
+              WidgetsBinding.instance!.addPostFrameCallback((_) =>
+                  ScreenController().onActionResponse(
+                      context,
+                      snapshot.data['Action']?['pageload']?['api'],
+                      apiSnapshot.data));
+
+              return _renderPage(
+                  context, pageName, snapshot, args: pageArgs);
+            }
+        );
+      } else {
+        return _renderPage(context, pageName, snapshot, args: pageArgs);
+      }
+    }
+    // else error
+    return Scaffold(
+        body: Center(
+            child: Text('Error loading reference page $pageName')
+        )
+    );
+  }
+
 
   /// Navigate to an Ensemble-powered page
   void navigateToPage(
@@ -166,10 +197,17 @@ class Ensemble {
     if (!init) {
       await initialize(context);
     }
-    return
-      useRemoteDefinition! ?
-      RemoteDefinitionProvider(pageName, remoteApiKey!).getDefinition() :
-      LocalDefinitionProvider(pageName, localPath!).getDefinition();
+    if (definitionFrom == 'local') {
+      return LocalDefinitionProvider(pageName, localPath!).getDefinition();
+    } else if (definitionFrom == 'remote') {
+      return RemoteDefinitionProvider(pageName, remotePath!).getDefinition();
+    } else {
+      // throw error here if AppKey is missing for Ensemble-hosted page
+      if (appKey == null) {
+        throw ConfigError("AppKey is required for Ensemble-hosted definitions");
+      }
+      return EnsembleDefinitionProvider(appKey!, pageName).getDefinition();
+    }
   }
 
 
