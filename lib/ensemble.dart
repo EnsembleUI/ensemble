@@ -64,7 +64,7 @@ class Ensemble {
     }
   }
 
-  Widget renderApp(BuildContext context, String appId) {
+  Widget renderApp(BuildContext context, String appId, String pageId) {
     /*if (!init) {
       await initialize(context);
     }
@@ -76,7 +76,7 @@ class Ensemble {
     // set the AppKey from this point on
     definitionFrom = 'ensemble';
     appKey = appId;
-    return getPage(context, MY_APP_PLACEHOLDER_PAGE);
+    return getPage(context, pageId);
   }
 
   /// return an Ensemble page as an embeddable Widget
@@ -203,9 +203,9 @@ class Ensemble {
       return RemoteDefinitionProvider(pageName, remotePath!).getDefinition();
     } else {
       // throw error here if AppKey is missing for Ensemble-hosted page
-      if (appKey == null) {
+      /*if (appKey == null) {
         throw ConfigError("AppKey is required for Ensemble-hosted definitions");
-      }
+      }*/
       return EnsembleDefinitionProvider(appKey!, pageName).getDefinition();
     }
   }

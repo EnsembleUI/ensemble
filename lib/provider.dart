@@ -45,9 +45,9 @@ class RemoteDefinitionProvider extends DefinitionProvider {
 }
 
 class EnsembleDefinitionProvider extends DefinitionProvider {
-  EnsembleDefinitionProvider(this.appKey, this.pageName);
+  EnsembleDefinitionProvider(this.appKey, this.pageId);
   final String appKey;
-  final String pageName;
+  final String pageId;
 
   @override
   Future<YamlMap> getDefinition() async {
@@ -60,10 +60,10 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
           && result[appKey]['screens'] is List
           && (result[appKey]['screens'] as List).isNotEmpty) {
         List<dynamic> screens = result[appKey]['screens'];
-        if (pageName != Ensemble.MY_APP_PLACEHOLDER_PAGE) {
+        if (pageId != Ensemble.MY_APP_PLACEHOLDER_PAGE) {
           for (dynamic screen in screens) {
-            if (screen['name'] == pageName) {
-              completer.complete(loadYaml(screen.content));
+            if (screen['id'] == pageId || screen['name'] == pageId) {
+              completer.complete(loadYaml(screen['content']));
               return completer.future;
             }
           }
