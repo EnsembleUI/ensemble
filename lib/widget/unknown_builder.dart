@@ -16,6 +16,6 @@ class UnknownBuilder extends ensemble.WidgetBuilder {
     required BuildContext context,
     List<Widget>? children,
     ItemTemplate? itemTemplate}) {
-    return Text("Unsupported Widget");
+    return const Text("Unsupported Widget");
   }
 }

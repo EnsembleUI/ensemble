@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:ensemble/error_handling.dart';
 import 'package:ensemble/layout/column_builder.dart';
 import 'package:ensemble/layout/hstack_builder.dart';
+import 'package:ensemble/layout/row_builder.dart';
 import 'package:ensemble/layout/vstack_builder.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:yaml/yaml.dart';
@@ -71,7 +72,7 @@ class PageModel {
     subViewDefinitions = createSubViewDefinitions(docMap, args);
 
     if (viewMap['type'] == null ||
-        ![VStackBuilder.type, ColumnBuilder.type, HStackBuilder.type].contains(viewMap['type'])) {
+        ![VStackBuilder.type, ColumnBuilder.type, RowBuilder.type, HStackBuilder.type].contains(viewMap['type'])) {
       throw LanguageError('Root widget type should only be Row or Column');
     }
     // View is special and can have many attributes,
