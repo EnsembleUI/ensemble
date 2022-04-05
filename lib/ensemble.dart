@@ -14,7 +14,8 @@ class Ensemble {
   factory Ensemble() {
     return _instance;
   }
-  static const String MY_APP_PLACEHOLDER_PAGE = 'MyAppRootPage';
+  // Ensemble-powered App have a root page concept, so pageName is optional
+  static const String ensembleRootPagePlaceholder = 'MyAppRootPage';
 
   bool init = false;
   String? definitionFrom;
@@ -62,21 +63,6 @@ class Ensemble {
         log("Error loading ensemble-config.yaml.\n$error");
       }
     }
-  }
-
-  Widget renderApp(BuildContext context, String appId, String pageId) {
-    /*if (!init) {
-      await initialize(context);
-    }
-*/
-
-    /*if (definitionFrom != 'ensemble') {
-      throw ConfigError("Render App is supported only for Ensemble-hosted definitions");
-    }*/
-    // set the AppKey from this point on
-    definitionFrom = 'ensemble';
-    appKey = appId;
-    return getPage(context, pageId);
   }
 
   /// return an Ensemble page as an embeddable Widget
@@ -198,9 +184,9 @@ class Ensemble {
       await initialize(context);
     }
     if (definitionFrom == 'local') {
-      return LocalDefinitionProvider(pageName, localPath!).getDefinition();
+      return LocalDefinitionProvider(localPath!, pageName).getDefinition();
     } else if (definitionFrom == 'remote') {
-      return RemoteDefinitionProvider(pageName, remotePath!).getDefinition();
+      return RemoteDefinitionProvider(remotePath!, pageName).getDefinition();
     } else {
       // throw error here if AppKey is missing for Ensemble-hosted page
       /*if (appKey == null) {
