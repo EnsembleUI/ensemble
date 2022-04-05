@@ -30,6 +30,12 @@
       <excludeFolder url="file://$MODULE_DIR$/.ios/.symlinks/plugins/webview_flutter_wkwebview/.dart_tool" />
       <excludeFolder url="file://$MODULE_DIR$/.ios/.symlinks/plugins/webview_flutter_wkwebview/build" />
       <excludeFolder url="file://$MODULE_DIR$/.ios/.symlinks/plugins/webview_flutter_wkwebview/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/.ios/.symlinks/plugins/flutter_js/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/.ios/.symlinks/plugins/flutter_js/build" />
+      <excludeFolder url="file://$MODULE_DIR$/.ios/.symlinks/plugins/flutter_js/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/.ios/.symlinks/plugins/flutter_js/example/build" />
+      <excludeFolder url="file://$MODULE_DIR$/.ios/.symlinks/plugins/flutter_js/example/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/.ios/.symlinks/plugins/flutter_js/example/.pub" />
     </content>
     <orderEntry type="jdk" jdkName="Android API 32 Platform" jdkType="Android SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

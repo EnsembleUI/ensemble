@@ -10,14 +10,14 @@ abstract class DefinitionProvider {
 }
 
 class LocalDefinitionProvider extends DefinitionProvider {
-  LocalDefinitionProvider(this.path, this.pageName);
+  LocalDefinitionProvider(this.path, this.pageId);
   final String path;
-  final String pageName;
+  final String pageId;
 
   @override
   Future<YamlMap> getDefinition() async {
     String formattedPath = path.endsWith('/') ? path : path + '/';
-    var pageStr = await rootBundle.loadString('$formattedPath$pageName.yaml', cache: false);
+    var pageStr = await rootBundle.loadString('$formattedPath$pageId.yaml', cache: false);
     return loadYaml(pageStr);
   }
 }
@@ -25,16 +25,16 @@ class LocalDefinitionProvider extends DefinitionProvider {
 
 
 class RemoteDefinitionProvider extends DefinitionProvider {
-  RemoteDefinitionProvider(this.path, this.pageName);
+  RemoteDefinitionProvider(this.path, this.pageId);
   final String path;
-  final String pageName;
+  final String pageId;
 
   @override
   Future<YamlMap> getDefinition() async {
     String formattedPath = path.endsWith('/') ? path : path + '/';
     Completer<YamlMap> completer = Completer();
     http.Response response = await http.get(
-        Uri.parse('$formattedPath$pageName.yaml'));
+        Uri.parse('$formattedPath$pageId.yaml'));
     if (response.statusCode == 200) {
       completer.complete(loadYaml(response.body));
     } else {
@@ -53,14 +53,19 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
   Future<YamlMap> getDefinition() async {
     Completer<YamlMap> completer = Completer();
     http.Response response = await http.get(
-        Uri.parse('https://pz0mwfkp5m.execute-api.us-east-1.amazonaws.com/dev/app'));
+        Uri.parse('https://pz0mwfkp5m.execute-api.us-east-1.amazonaws.com/dev/app?id=$appKey'));
     if (response.statusCode == 200) {
       Map<String, dynamic> result = json.decode(response.body);
       if (result[appKey] != null
           && result[appKey]['screens'] is List
           && (result[appKey]['screens'] as List).isNotEmpty) {
         List<dynamic> screens = result[appKey]['screens'];
-        if (pageId != Ensemble.MY_APP_PLACEHOLDER_PAGE) {
+
+        // TODO: support rootPage concept for App
+        if (pageId == Ensemble.ensembleRootPagePlaceholder) {
+          completer.completeError("Error: rootPage not specified");
+          return completer.future;
+        } else {
           for (dynamic screen in screens) {
             if (screen['id'] == pageId || screen['name'] == pageId) {
               completer.complete(loadYaml(screen['content']));
@@ -68,9 +73,6 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
             }
           }
         }
-        // return first page as default if pageName is not specified or not found
-        completer.complete(loadYaml(screens[0]['content']));
-        return completer.future;
       }
     }
     // error
