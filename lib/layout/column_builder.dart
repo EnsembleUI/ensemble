@@ -6,7 +6,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/layout_utils.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/widget_builder.dart' as ensemble;
+import 'package:ensemble/widget/ensemble_stateful_widget.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:flutter/material.dart';
 
@@ -110,13 +110,13 @@ class ColumnBuilder extends BoxLayout {
 
 }
 
-class EnsembleColumn extends StatefulWidget {
-  const EnsembleColumn({
+class EnsembleColumn extends EnsembleStatefulWidget {
+  EnsembleColumn({
     required this.builder,
     this.children,
     this.itemTemplate,
     Key? key
-  }) : super(key: key);
+  }) : super(builder: builder, key: key);
 
   final ColumnBuilder builder;
   final List<Widget>? children;
@@ -213,9 +213,18 @@ class ColumnState extends State<EnsembleColumn> {
           children.add(Templated(localDataMap: updatedDataMap, child: templatedWidget));
         }
       }
-
-
     }
+
+    // wrap each child with Expanded if specified
+    List<Widget> updatedChildren = [];
+    for (Widget child in children) {
+      if (child is EnsembleStatefulWidget && child.expanded) {
+        updatedChildren.add(Expanded(child: child));
+      } else {
+        updatedChildren.add(child);
+      }
+    }
+    children = updatedChildren;
 
 
     MainAxisAlignment mainAxis = widget.builder.mainAxis != null ?
@@ -288,15 +297,9 @@ class ColumnState extends State<EnsembleColumn> {
       )
     );
 
-    Widget rtnWrapper = widget.builder.scrollable ?
+    return widget.builder.scrollable ?
         SingleChildScrollView(child: rtn) :
         rtn;
-
-    if (widget.builder.expanded) {
-      // TODO: need to check, as only valid within a HStack/VStack/Flex otherwise exception
-      return Expanded(child: rtnWrapper);
-    }
-    return rtnWrapper;
   }
 
 

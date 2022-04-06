@@ -83,20 +83,54 @@
       "properties": {
         "text": {
           "type": "string",
-          "description": "Your text"
+          "description": "Your text content"
         },
         "styles": {
-          "type": "object",
-          "properties": {
-            "fontSize": {
-              "type": "integer",
-              "minimum": 6
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
             },
-            "color": {
-              "type": ["number", "string"],
-              "description": "Text color starting with '0xFF' for full opacity"
+            {
+              "type": "object",
+              "properties": {
+                "font": {
+                  "type": "string",
+                  "description": "Default built-in style for this text",
+                  "enum": [
+                    "title",
+                    "subtitle"
+                  ]
+                },
+                "fontSize": {
+                  "type": "integer",
+                  "minimum": 6
+                },
+                "fontWeight": {
+                  "type": "string",
+                  "enum": [
+                    "light", "normal", "bold", "w100", "w200", "w300", "w400", "w500", "w600", "w700", "w800", "w900"
+                  ]
+                },
+                "color": {
+                  "type": ["number", "string"],
+                  "description": "Text color starting with '0xFF' for full opacity"
+                },
+                "overflow": {
+                  "type": "string",
+                  "description": "how to handle text longer than available space",
+                  "enum": [
+                    "wrap", "visible", "clip", "fade", "ellipsis", "dotdotdot"
+                  ]
+                },
+                "textAlign": {
+                  "type": "string",
+                  "enum": [
+                    "start", "end", "center", "justify"
+                  ]
+                }
+              }
             }
-          }
+          ]
         }
       }
     },
