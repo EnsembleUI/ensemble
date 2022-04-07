@@ -19,6 +19,8 @@ class TextBuilder extends ensemble.WidgetBuilder {
     this.color,
     this.overflow,
     this.textAlign,
+    this.textStyle,
+    this.lineHeight,
   });
   String? text;
   String? font;
@@ -27,6 +29,8 @@ class TextBuilder extends ensemble.WidgetBuilder {
   int? color;
   String? overflow;
   String? textAlign;
+  String? textStyle;
+  String? lineHeight;
 
   static TextBuilder fromDynamic(Map<String, dynamic> props, Map<String, dynamic> styles, {WidgetRegistry? registry})
   {
@@ -41,6 +45,8 @@ class TextBuilder extends ensemble.WidgetBuilder {
       color: styles['color'] is int ? styles['color'] : null,
       overflow: styles['overflow'],
       textAlign: styles['textAlign'],
+      textStyle: styles['textStyle'],
+      lineHeight: styles['lineHeight']?.toString(),
     );
   }
 
@@ -168,6 +174,51 @@ class TextState extends State<EnsembleText> {
         break;
     }
 
+    FontStyle? fontStyle;
+    TextDecoration? textDecoration;
+    switch (widget.builder.textStyle) {
+      case 'italic':
+        fontStyle = FontStyle.italic;
+        break;
+      case 'underline':
+        textDecoration = TextDecoration.underline;
+        break;
+      case 'strikethrough':
+        textDecoration = TextDecoration.lineThrough;
+        break;
+      case 'italic_underline':
+        fontStyle = FontStyle.italic;
+        textDecoration = TextDecoration.underline;
+        break;
+      case 'italic_strikethrough':
+        fontStyle = FontStyle.italic;
+        textDecoration = TextDecoration.lineThrough;
+        break;
+    }
+
+    // Note: default should be null, as it may not be 1.0 depending on fonts
+    double? lineHeight;
+    switch (widget.builder.lineHeight) {
+      case '1.0':
+        lineHeight = 1;
+        break;
+      case '1.15':
+        lineHeight = 1.15;
+        break;
+      case '1.25':
+        lineHeight = 1.25;
+        break;
+      case '1.5':
+        lineHeight = 1.5;
+        break;
+      case '2.0':
+        lineHeight = 2;
+        break;
+      case '2.5':
+        lineHeight = 2.5;
+        break;
+    }
+
 
     return Text(
       widget.builder.text ?? '',
@@ -175,10 +226,14 @@ class TextState extends State<EnsembleText> {
       maxLines: maxLine,
       softWrap: softWrap,
       style: TextStyle(
+          decorationColor: Colors.blue,
+
           fontWeight: fontWeight,
+          fontStyle: fontStyle,
+          decoration: textDecoration,
           fontSize: fontSize,
           color: fontColor,
-          letterSpacing: 0.27),
+          height: lineHeight,),
       overflow: textOverflow,
     );
 
