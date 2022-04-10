@@ -1,33 +1,33 @@
 import 'package:ensemble/page_model.dart';
-import 'package:ensemble/widget/input_builder.dart';
-import 'package:ensemble/widget/widget_builder.dart' as ensemble;
+import 'package:ensemble/widget/ensemble_stateful_widget.dart';
+import 'package:ensemble/widget/form_field_builder.dart' as ensemble;
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:flutter/material.dart';
 
-class TextInputBuilder extends FormInputBuilder {
+class FormTextInputBuilder extends ensemble.FormFieldBuilder {
   static const type = 'TextInput';
-  TextInputBuilder ({
+  FormTextInputBuilder ({
     enabled,
     required,
     label,
     hintText,
-    fontSize,
-    expanded,
-  }) : super (enabled: enabled, required: required, label: label, hintText: hintText, fontSize: fontSize, expanded: expanded);
 
-  static TextInputBuilder fromDynamic(Map<String, dynamic> props, Map<String, dynamic> styles, {WidgetRegistry? registry})
+    fontSize,
+    styles,
+  }) : super (enabled: enabled, required: required, label: label, hintText: hintText, fontSize: fontSize, styles: styles);
+
+  static FormTextInputBuilder fromDynamic(Map<String, dynamic> props, Map<String, dynamic> styles, {WidgetRegistry? registry})
   {
-    return TextInputBuilder(
+    return FormTextInputBuilder(
       // props
-      enabled: props['enabled'],
-      required: props['required'],
+      enabled: props['enabled'] is bool ? props['enabled'] : true,
+      required: props['required'] is bool ? props['required'] : false,
       label: props['label'],
       hintText: props['hintText'],
 
       // styles
       fontSize: styles['fontSize'],
-      expanded: styles['expanded'] is bool ? styles['expanded'] : false,
-
+      styles: styles
     );
   }
 
@@ -42,26 +42,28 @@ class TextInputBuilder extends FormInputBuilder {
   }
 }
 
-class TextInput extends StatefulWidget {
-  const TextInput({
+class TextInput extends EnsembleStatefulWidget {
+  TextInput({
     required this.builder,
     Key? key
-  }) : super(key: key);
+  }) : super(builder: builder, key: key);
 
-  final TextInputBuilder builder;
+  final FormTextInputBuilder builder;
 
   @override
   State<StatefulWidget> createState() => TextInputState();
 }
 
 class TextInputState extends State<TextInput> {
-  String? validationText;
   final TextEditingController textController = TextEditingController();
   final focusNode = FocusNode();
 
+  // error to show the user
+  String? errorText;
+
   @override
   void initState() {
-    // on blur
+    // validate on blur
     focusNode.addListener(() {
       if (!focusNode.hasFocus) {
         validate();
@@ -73,25 +75,19 @@ class TextInputState extends State<TextInput> {
   @override
   void dispose() {
     textController.dispose();
+    focusNode.dispose();
     super.dispose();
   }
 
   void validate() {
-    bool hasValidation = false;
-
-    // required
-    if (widget.builder.required ?? false) {
-      if (textController.text.isEmpty) {
-        validationText = "This field is required";
-      } else {
-        validationText = null;
-      }
-      hasValidation = true;
+    if (widget.builder.required) {
+      setState(() {
+        errorText =
+          textController.text.isEmpty || textController.text.trim().isEmpty ?
+          "This field is required" :
+          null;
+      });
     }
-
-    if (hasValidation)
-      setState(() {});
-
   }
 
 
@@ -110,16 +106,13 @@ class TextInputState extends State<TextInput> {
           TextStyle(fontSize: widget.builder.fontSize!.toDouble()) :
           null,
         decoration: InputDecoration(
-            floatingLabelBehavior: FloatingLabelBehavior.always,
-            labelText: widget.builder.label,
-            hintText: widget.builder.hintText,
-            errorText: validationText
+          floatingLabelBehavior: FloatingLabelBehavior.always,
+          labelText: widget.builder.label,
+          hintText: widget.builder.hintText,
+          errorText: errorText
         ),
     );
 
-    if (widget.builder.expanded) {
-      return Expanded(child: rtn);
-    }
     return rtn;
 
   }

@@ -242,13 +242,23 @@
     "FormInput-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
         "label": {
           "type": "string",
-          "description": "Label for your input widget"
+          "description": "Label for your widget"
         },
         "hintText": {
           "type": "string",
-          "description": "Placeholder for your input widget"
+          "description": "Hint text explaining your widget"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "enabled": {
+          "type": "boolean"
         }
       }
     },

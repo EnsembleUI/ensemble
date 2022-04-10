@@ -10,8 +10,8 @@ class ChartHighChartsBuilder extends ensemble.WidgetBuilder {
     required this.data,
     this.width = 200,
     this.height = 200,
-
-  });
+    styles
+  }): super(styles: styles);
 
   int? width;
   int? height;
@@ -30,6 +30,7 @@ class ChartHighChartsBuilder extends ensemble.WidgetBuilder {
       // styles
       width: styles['width'],
       height: styles['height'],
+      styles: styles
     );
   }
 

@@ -11,7 +11,8 @@ class GridBuilder extends ensemble.WidgetBuilder {
   static const type = 'Grid';
   GridBuilder({
     this.columnCount = 1,
-  });
+    styles
+  }) : super(styles: styles);
 
   int columnCount;
 
@@ -23,6 +24,8 @@ class GridBuilder extends ensemble.WidgetBuilder {
       columnCount: props['columnCount'],
 
       // styles
+
+      styles: styles
     );
   }
 

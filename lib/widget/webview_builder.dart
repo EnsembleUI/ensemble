@@ -7,15 +7,18 @@ import 'package:webview_flutter/webview_flutter.dart';
 class WebViewBuilder extends ensemble.WidgetBuilder {
   static const type = 'WebView';
   WebViewBuilder({
-    this.uri
-  });
+    this.uri,
+    styles
+  }): super(styles: styles);
   String? uri;
 
   static WebViewBuilder fromDynamic(Map<String, dynamic> props, Map<String, dynamic> styles, {WidgetRegistry? registry})
   {
     return WebViewBuilder(
       // props
-      uri: props['uri'].toString()
+      uri: props['uri'].toString(),
+      // styles
+      styles: styles
     );
   }
 

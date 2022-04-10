@@ -32,7 +32,10 @@ class WidgetRegistry {
   static Map<String, WidgetBuilderFunc> get widgetBuilders =>
       const <String, WidgetBuilderFunc> {
         // form fields
-        TextInputBuilder.type: TextInputBuilder.fromDynamic,
+        FormTextInputBuilder.type: FormTextInputBuilder.fromDynamic,
+
+
+
         DateInputBuilder.type: DateInputBuilder.fromDynamic,
         ButtonBuilder.type: ButtonBuilder.fromDynamic,
 
@@ -54,8 +57,8 @@ class WidgetRegistry {
         RowBuilder.type: RowBuilder.fromDynamic,
 
         // deprecated
-        VStackBuilder.type: VStackBuilder.fromDynamic,
-        HStackBuilder.type: HStackBuilder.fromDynamic,
+        //VStackBuilder.type: VStackBuilder.fromDynamic,
+        //HStackBuilder.type: HStackBuilder.fromDynamic,
         GridBuilder.type: GridBuilder.fromDynamic,
   };
 }

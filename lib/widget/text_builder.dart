@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/ensemble_stateful_widget.dart';
 import 'package:ensemble/widget/widget_builder.dart' as ensemble;
 import 'package:ensemble/widget/widget_registry.dart';
@@ -21,7 +22,8 @@ class TextBuilder extends ensemble.WidgetBuilder {
     this.textAlign,
     this.textStyle,
     this.lineHeight,
-  });
+    styles,
+  }) : super(styles: styles);
   String? text;
   String? font;
   int? fontSize;
@@ -36,17 +38,19 @@ class TextBuilder extends ensemble.WidgetBuilder {
   {
     return TextBuilder(
       // props
-      text: props['text']?.toString(),
+      text: Utils.optionalString(props['text']),
 
       // styles
       font: styles['font'],
-      fontSize: styles['fontSize'] is int ? styles['fontSize'] : null,
+      fontSize: Utils.optionalInt(styles['fontSize']),
       fontWeight: styles['fontWeight'],
-      color: styles['color'] is int ? styles['color'] : null,
+      color: Utils.optionalInt(styles['color']),
       overflow: styles['overflow'],
       textAlign: styles['textAlign'],
       textStyle: styles['textStyle'],
-      lineHeight: styles['lineHeight']?.toString(),
+      lineHeight: Utils.optionalString(styles['lineHeight']),
+
+      styles: styles,
     );
   }
 
