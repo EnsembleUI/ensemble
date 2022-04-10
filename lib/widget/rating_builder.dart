@@ -13,7 +13,8 @@ class RatingBuilder extends ensemble.WidgetBuilder {
     this.value,
     this.count,
     this.display,
-  });
+    styles
+  }): super(styles: styles);
   double? value;
   int? count;
   String? display;
@@ -21,10 +22,13 @@ class RatingBuilder extends ensemble.WidgetBuilder {
   static RatingBuilder fromDynamic(Map<String, dynamic> props, Map<String, dynamic> styles, {WidgetRegistry? registry})
   {
     return RatingBuilder(
-        value: props['value'] ?? 0,
-        count: props['count'] ?? 0,
-        display: props['display'],
-      );
+      value: props['value'] ?? 0,
+      count: props['count'] ?? 0,
+      display: props['display'],
+
+      // styles
+      styles: styles
+    );
   }
 
 

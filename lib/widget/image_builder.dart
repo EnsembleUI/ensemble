@@ -10,8 +10,9 @@ class ImageBuilder extends ensemble.WidgetBuilder {
   ImageBuilder({
     this.source,
     this.width,
-    this.height
-  });
+    this.height,
+    styles
+  }): super(styles: styles);
 
   final String? source;
   final int? width;
@@ -19,9 +20,13 @@ class ImageBuilder extends ensemble.WidgetBuilder {
 
   static ImageBuilder fromDynamic(Map<String, dynamic> props, Map<String, dynamic> styles, {WidgetRegistry? registry}) {
     return ImageBuilder(
+      // props
       source: props['source'],
+
+      // styles
       width: styles['width'],
-      height: styles['height']
+      height: styles['height'],
+      styles: styles
     );
   }
 

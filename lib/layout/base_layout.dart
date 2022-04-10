@@ -11,8 +11,9 @@ abstract class BaseLayout extends WidgetBuilder {
     this.boxShadowColor,
     this.boxShadowOffset,
 
-    this.onTap
-  });
+    this.onTap,
+    styles
+  }): super(styles: styles);
 
   int? backgroundColor;
   int? padding;

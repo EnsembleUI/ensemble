@@ -12,8 +12,9 @@ class IconBuilder extends ensemble.WidgetBuilder {
     required this.icon,
     this.size,
     this.color,
-    this.padding
-  });
+    this.padding,
+    styles
+  }): super(styles: styles);
 
   final String icon;
   final int? size;
@@ -28,6 +29,7 @@ class IconBuilder extends ensemble.WidgetBuilder {
       size: styles['size'],
       color: styles['color'],
       padding: styles['padding'],
+      styles: styles
     );
   }
 

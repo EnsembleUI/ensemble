@@ -1,17 +1,18 @@
 import 'package:ensemble/widget/widget_builder.dart';
 
-abstract class FormInputBuilder extends WidgetBuilder {
-  FormInputBuilder({
+/// base class for form input widgets
+abstract class FormFieldBuilder extends WidgetBuilder {
+  FormFieldBuilder({
     this.enabled = true,
     this.required = false,
     this.label,
     this.hintText,
     this.fontSize,
-    expanded,
-  }) : super(expanded: expanded);
+    styles,
+  }) : super(styles: styles);
 
-  bool? enabled;
-  bool? required;
+  bool enabled;
+  bool required;
   String? label;
   String? hintText;
   int? fontSize;

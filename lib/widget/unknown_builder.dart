@@ -5,10 +5,13 @@ import 'package:flutter/material.dart';
 
 class UnknownBuilder extends ensemble.WidgetBuilder {
   static const type = 'unknown';
+  UnknownBuilder({
+    styles
+  }): super(styles: styles);
 
   static UnknownBuilder fromDynamic(Map<String, dynamic> props, Map<String, dynamic> styles, {WidgetRegistry? registry})
   {
-    return UnknownBuilder();
+    return UnknownBuilder(styles: styles);
   }
 
   @override

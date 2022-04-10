@@ -8,7 +8,8 @@ class ChartPieBuilder extends ensemble.WidgetBuilder {
   static const type = 'PieChart';
   ChartPieBuilder({
     this.size = 200,
-  });
+    styles
+  }): super(styles: styles);
 
   int? size;
 
@@ -23,7 +24,8 @@ class ChartPieBuilder extends ensemble.WidgetBuilder {
 
 
       // styles
-      size: props['size']
+      size: props['size'],
+      styles: styles
     );
   }
 

@@ -6,7 +6,9 @@ import 'package:flutter/material.dart';
 
 class ChartBubbleBuilder extends ensemble.WidgetBuilder {
   static const type = 'BubbleChart';
-  ChartBubbleBuilder();
+  ChartBubbleBuilder({
+    styles
+  }): super(styles: styles);
 
   final String _chartData = '''{  
       chart: {
@@ -65,6 +67,8 @@ class ChartBubbleBuilder extends ensemble.WidgetBuilder {
 
 
       // styles
+
+      styles: styles
     );
   }
 

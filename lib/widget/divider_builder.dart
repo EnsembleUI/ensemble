@@ -13,8 +13,8 @@ class DividerBuilder extends ensemble.WidgetBuilder {
     this.color,
     this.indent,
     this.endIndent,
-    expanded,
-  }) : super(expanded: expanded);
+    styles,
+  }): super(styles: styles);
   final int? thickness;
   int? color;
   int? indent;
@@ -26,11 +26,11 @@ class DividerBuilder extends ensemble.WidgetBuilder {
       // props
 
       // styles
-      expanded: styles['expanded'] is bool ? styles['expanded'] : false,
       thickness: styles['thickness'] is int? styles['thickness'] : 1,
       color: styles['color'],
       indent: styles['indent'],
       endIndent: styles['endIndent'],
+      styles: styles
     );
   }
 

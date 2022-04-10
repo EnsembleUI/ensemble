@@ -25,10 +25,11 @@ abstract class BoxLayout extends WidgetBuilder {
 
     this.scrollable = false,
     this.onTap,
-    expanded,
     this.autoFit = false,
 
-  }) : super (expanded: expanded);
+    styles
+
+  }): super(styles: styles);
 
   final bool autoFit;
 

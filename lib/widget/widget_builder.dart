@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 
 /// base class for all our widgets
 abstract class WidgetBuilder {
-  const WidgetBuilder({
-    this.expanded = false
-  });
+  WidgetBuilder({
+    required Map<String, dynamic> styles,
+  }) {
+    expanded = styles['expanded'] is bool ? styles['expanded'] : false;
 
-  final bool expanded;
+  }
+  late final bool expanded;
 
   Widget buildWidget({required BuildContext context, List<Widget>? children, ItemTemplate? itemTemplate});
 
