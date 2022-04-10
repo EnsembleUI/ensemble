@@ -1,13 +1,12 @@
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/page_model.dart';
-import 'package:ensemble/widget/input_builder.dart';
-import 'package:ensemble/widget/widget_builder.dart' as ensemble;
+import 'package:ensemble/widget/form_field_builder.dart' as ensemble;
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 
-class DateInputBuilder extends FormInputBuilder {
+class DateInputBuilder extends ensemble.FormFieldBuilder {
   static const type = 'DateRange';
   DateInputBuilder ({
     required this.controller,
@@ -16,8 +15,8 @@ class DateInputBuilder extends FormInputBuilder {
     label,
     hintText,
     fontSize,
-    expanded,
-  }) : super (enabled: enabled, required: required, label: label, hintText: hintText, fontSize: fontSize, expanded: expanded);
+    styles,
+  }) : super (enabled: enabled, required: required, label: label, hintText: hintText, fontSize: fontSize, styles: styles);
 
   final TextEditingController controller;
 
@@ -27,15 +26,14 @@ class DateInputBuilder extends FormInputBuilder {
         controller: TextEditingController(),
 
         // props
-        enabled: props['enabled'],
-        required: props['required'],
+        enabled: props['enabled'] is bool ? props['enabled'] : true,
+        required: props['required'] is bool ? props['required'] : false,
         label: props['label'],
         hintText: props['hintText'],
 
         // styles
         fontSize: styles['fontSize'],
-        expanded: styles['expanded'] is bool ? styles['expanded'] : false,
-
+        styles: styles
       );
   }
 
@@ -175,7 +173,7 @@ class _DateInputState extends State<DateInput> {
     bool hasValidation = false;
 
     // required
-    if (widget.builder.required ?? false) {
+    if (widget.builder.required) {
       if (widget.builder.controller.text.isEmpty) {
         validationText = "This field is required";
       } else {

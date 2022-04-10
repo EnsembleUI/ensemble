@@ -18,8 +18,9 @@ class ButtonBuilder extends ensemble.WidgetBuilder {
     this.borderRadius,
     this.padding,
 
-    this.onTap
-  });
+    this.onTap,
+    styles
+  }): super(styles: styles);
 
   final String? id;
   final String label;
@@ -46,6 +47,7 @@ class ButtonBuilder extends ensemble.WidgetBuilder {
       color: styles['color'] is int ? styles['color'] : null,
       borderRadius: styles['borderRadius'] is int ? styles['borderRadius'] : null,
       padding: styles['padding'] is int ? styles['padding'] : null,
+      styles: styles
     );
   }
 

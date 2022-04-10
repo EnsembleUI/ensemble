@@ -33,13 +33,12 @@ class ColumnBuilder extends BoxLayout {
     shadowOffset,
     shadowRadius,
 
-    expanded,
     autoFit,
 
     scrollable,
     onTap,
 
-
+    styles
   }) : super(
     mainAxis: mainAxis,
     crossAxis: crossAxis,
@@ -63,8 +62,8 @@ class ColumnBuilder extends BoxLayout {
 
     scrollable: scrollable,
     onTap: onTap,
-    expanded: expanded,
     autoFit: autoFit,
+    styles: styles
   );
 
 
@@ -76,7 +75,6 @@ class ColumnBuilder extends BoxLayout {
 
         // styles
         scrollable: styles['scrollable'] is bool ? styles['scrollable'] : false,
-        expanded: styles['expanded'] is bool ? styles['expanded'] : false,
         autoFit: styles['autoFit'] is bool ? styles['autoFit'] : false,
         mainAxis: styles['mainAxis'],
         crossAxis: styles['crossAxis'],
@@ -96,6 +94,7 @@ class ColumnBuilder extends BoxLayout {
         shadowOffset: styles['shadowOffset'] is List<int> ? styles['shadowOffset'] : null,
         shadowRadius: styles['shadowRadius'] is int ? styles['shadowRadius'] : null,
 
+        styles: styles
     );
   }
 

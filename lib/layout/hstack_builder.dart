@@ -9,6 +9,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/src/widgets/framework.dart';
 
+@Deprecated('use Row instead')
 class HStackBuilder extends BaseLayout {
   static const type = 'HStack';
   HStackBuilder({
