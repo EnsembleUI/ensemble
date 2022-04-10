@@ -61,21 +61,22 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
           && (result[appKey]['screens'] as List).isNotEmpty) {
         List<dynamic> screens = result[appKey]['screens'];
 
-        // TODO: support rootPage concept for App
-        if (pageId == Ensemble.ensembleRootPagePlaceholder) {
-          completer.completeError("Error: rootPage not specified");
-          return completer.future;
-        } else {
-          for (dynamic screen in screens) {
-            if (screen['id'] == pageId || screen['name'] == pageId) {
+        for (dynamic screen in screens) {
+          // if loading App without specifying page, load the root page
+          if (pageId == Ensemble.ensembleRootPagePlaceholder) {
+            if (screen['is_home']) {
               completer.complete(loadYaml(screen['content']));
               return completer.future;
             }
+          } else if (screen['id'] == pageId || screen['name'] == pageId) {
+            completer.complete(loadYaml(screen['content']));
+            return completer.future;
           }
         }
       }
     }
     // error
+    print("error processing page");
     completer.completeError("Error processing page");
     return completer.future;
   }

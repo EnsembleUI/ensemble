@@ -9,6 +9,7 @@ import 'package:ensemble/widget/widget_builder.dart' as ensemble;
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:flutter/material.dart';
 
+@Deprecated('Use Column instead')
 class VStackBuilder extends BaseLayout {
   static const type = 'VStack';
   VStackBuilder({

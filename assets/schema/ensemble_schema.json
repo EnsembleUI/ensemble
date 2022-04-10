@@ -83,20 +83,66 @@
       "properties": {
         "text": {
           "type": "string",
-          "description": "Your text"
+          "description": "Your text content"
         },
         "styles": {
-          "type": "object",
-          "properties": {
-            "fontSize": {
-              "type": "integer",
-              "minimum": 6
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
             },
-            "color": {
-              "type": ["number", "string"],
-              "description": "Text color starting with '0xFF' for full opacity"
+            {
+              "type": "object",
+              "properties": {
+                "font": {
+                  "type": "string",
+                  "description": "Default built-in style for this text",
+                  "enum": [
+                    "title",
+                    "subtitle"
+                  ]
+                },
+                "fontSize": {
+                  "type": "integer",
+                  "minimum": 6
+                },
+                "fontWeight": {
+                  "type": "string",
+                  "enum": [
+                    "light", "normal", "bold", "w100", "w200", "w300", "w400", "w500", "w600", "w700", "w800", "w900"
+                  ]
+                },
+                "color": {
+                  "type": ["number", "string"],
+                  "description": "Text color starting with '0xFF' for full opacity"
+                },
+                "overflow": {
+                  "type": "string",
+                  "description": "how to handle text longer than available space",
+                  "enum": [
+                    "wrap", "visible", "clip", "fade", "ellipsis", "dotdotdot"
+                  ]
+                },
+                "textAlign": {
+                  "type": "string",
+                  "enum": [
+                    "start", "end", "center", "justify"
+                  ]
+                },
+                "textStyle": {
+                  "type": "string",
+                  "enum": [
+                    "normal", "italic", "underline", "strikethrough", "italic_underline", "italic_strikethrough"
+                  ]
+                },
+                "lineHeight": {
+                  "type": ["number", "string"],
+                  "enum": [
+                    "default", "1.0", "1.15", "1.25", "1.5", "2.0", "2.5"
+                  ]
+                }
+              }
             }
-          }
+          ]
         }
       }
     },
@@ -196,13 +242,23 @@
     "FormInput-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
         "label": {
           "type": "string",
-          "description": "Label for your input widget"
+          "description": "Label for your widget"
         },
         "hintText": {
           "type": "string",
-          "description": "Placeholder for your input widget"
+          "description": "Hint text explaining your widget"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "enabled": {
+          "type": "boolean"
         }
       }
     },

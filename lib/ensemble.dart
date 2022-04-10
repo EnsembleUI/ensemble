@@ -85,14 +85,21 @@ class Ensemble {
       {
         Map<String, dynamic>? pageArgs
       }) {
-    // loading
-    if (!snapshot.hasData) {
+
+    if (snapshot.hasError) {
+      return const Scaffold(
+          body: Center(
+              child: Text('Error loading page')
+          )
+      );
+    } else if (!snapshot.hasData) {
       return const Scaffold(
           body: Center(
               child: CircularProgressIndicator()
           )
       );
     }
+
     // load page
     if (snapshot.data['View'] != null) {
       // fetch data remotely before loading page

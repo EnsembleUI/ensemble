@@ -9,8 +9,9 @@ import 'package:flutter/src/widgets/framework.dart';
 class SpacerBuilder extends ensemble.WidgetBuilder {
   static const type = 'Spacer';
   SpacerBuilder({
-    this.size
-  });
+    this.size,
+    styles
+  }): super(styles: styles);
 
   int? size;
 
@@ -21,6 +22,7 @@ class SpacerBuilder extends ensemble.WidgetBuilder {
 
       // styles
       size: styles['size'],
+      styles: styles
     );
   }
 
