@@ -84,8 +84,15 @@ class EnsembleText extends UpdatableStatefulWidget {
   @override
   Map<String, Function> setters() {
     return {
-      'text': (newValue) => builder.text = newValue
+      'text': (newValue) => builder.text = newValue,
+      'fontSize': (newInt) => updateFontSize(newInt)
     };
+  }
+
+  void updateFontSize(dynamic newValue) {
+    if (newValue is int) {
+      builder.fontSize = newValue;
+    }
   }
 }
 
@@ -252,18 +259,24 @@ class TextState extends EnsembleWidgetState<EnsembleText> {
       overflow: textOverflow,
     );
 
-    return Column(
+    /*return Column(
       children: [
         rtn,
         ElevatedButton(
-            onPressed: () => widget.setProperty('text', 'Hello'),
+            onPressed: () => updateMytext(),
             child: const Text("Click to update")
         )
       ],
-    );
+    );*/
+    return rtn;
 
 
 
+  }
+
+  void updateMytext() {
+    widget.setProperty('text', 'Hello');
+    widget.setProperty('fontSize', 40);
   }
 
 }
