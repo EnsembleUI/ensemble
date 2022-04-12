@@ -3,12 +3,10 @@ import 'dart:math';
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/ensemble_stateful_widget.dart';
+import 'package:ensemble/widget/ensemble_widget.dart';
 import 'package:ensemble/widget/widget_builder.dart' as ensemble;
 import 'package:ensemble/widget/widget_registry.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 class TextBuilder extends ensemble.WidgetBuilder {
   static const type = 'Text';
@@ -65,7 +63,7 @@ class TextBuilder extends ensemble.WidgetBuilder {
 
 }
 
-class EnsembleText extends EnsembleStatefulWidget{
+class EnsembleText extends UpdatableStatefulWidget {
   EnsembleText({
     required this.builder,
     Key? key
@@ -75,9 +73,23 @@ class EnsembleText extends EnsembleStatefulWidget{
 
   @override
   State<StatefulWidget> createState() => TextState();
+
+  @override
+  Map<String, Function> getters() {
+    return {
+      'text': () => builder.text ?? ''
+    };
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {
+      'text': (newValue) => builder.text = newValue
+    };
+  }
 }
 
-class TextState extends State<EnsembleText> {
+class TextState extends EnsembleWidgetState<EnsembleText> {
 
   @override
   Widget build(BuildContext context) {
@@ -224,14 +236,13 @@ class TextState extends State<EnsembleText> {
     }
 
 
-    return Text(
+    Widget rtn = Text(
       widget.builder.text ?? '',
       textAlign: textAlign,
       maxLines: maxLine,
       softWrap: softWrap,
       style: TextStyle(
           decorationColor: Colors.blue,
-
           fontWeight: fontWeight,
           fontStyle: fontStyle,
           decoration: textDecoration,
@@ -241,9 +252,18 @@ class TextState extends State<EnsembleText> {
       overflow: textOverflow,
     );
 
+    return Column(
+      children: [
+        rtn,
+        ElevatedButton(
+            onPressed: () => widget.setProperty('text', 'Hello'),
+            child: const Text("Click to update")
+        )
+      ],
+    );
+
 
 
   }
-
 
 }
