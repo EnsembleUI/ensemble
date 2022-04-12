@@ -42,20 +42,35 @@ class FormTextInputBuilder extends ensemble.FormFieldBuilder {
   }
 }
 
-class TextInput extends EnsembleStatefulWidget {
+class TextInput extends UpdatableStatefulWidget {
   TextInput({
     required this.builder,
     Key? key
   }) : super(builder: builder, key: key);
 
   final FormTextInputBuilder builder;
+  final TextEditingController textController = TextEditingController();
 
   @override
   State<StatefulWidget> createState() => TextInputState();
+
+  @override
+  Map<String, Function> getters() {
+    return {
+      'value': () => textController.value
+    };
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {
+      'value': (newValue) => textController.text = newValue
+    };
+  }
 }
 
-class TextInputState extends State<TextInput> {
-  final TextEditingController textController = TextEditingController();
+class TextInputState extends EnsembleWidgetState<TextInput> {
+
   final focusNode = FocusNode();
 
   // error to show the user
@@ -74,7 +89,7 @@ class TextInputState extends State<TextInput> {
 
   @override
   void dispose() {
-    textController.dispose();
+    widget.textController.clear();
     focusNode.dispose();
     super.dispose();
   }
@@ -83,7 +98,7 @@ class TextInputState extends State<TextInput> {
     if (widget.builder.required) {
       setState(() {
         errorText =
-          textController.text.isEmpty || textController.text.trim().isEmpty ?
+          widget.textController.text.isEmpty || widget.textController.text.trim().isEmpty ?
           "This field is required" :
           null;
       });
@@ -96,7 +111,7 @@ class TextInputState extends State<TextInput> {
   Widget build(BuildContext context) {
     Widget rtn = TextFormField(
         focusNode: focusNode,
-        controller: textController,
+        controller: widget.textController,
         enabled: widget.builder.enabled,
         onChanged: (String txt) {
         },
@@ -113,6 +128,16 @@ class TextInputState extends State<TextInput> {
         ),
     );
 
+    /*return Column(
+      children: [
+        rtn,
+        TextFormField(
+          onChanged: (String txt) {
+            widget.setProperty('value', txt);
+          },
+        )
+      ],
+    );*/
     return rtn;
 
   }
