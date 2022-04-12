@@ -6,7 +6,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/layout_utils.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/ensemble_stateful_widget.dart';
+import 'package:ensemble/widget/ensemble_widget.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:flutter/material.dart';
 

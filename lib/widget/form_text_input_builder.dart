@@ -1,5 +1,5 @@
 import 'package:ensemble/page_model.dart';
-import 'package:ensemble/widget/ensemble_stateful_widget.dart';
+import 'package:ensemble/widget/ensemble_widget.dart';
 import 'package:ensemble/widget/form_field_builder.dart' as ensemble;
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:flutter/material.dart';
