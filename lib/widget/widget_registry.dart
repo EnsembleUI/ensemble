@@ -4,6 +4,7 @@ import 'package:ensemble/layout/grid_builder.dart';
 import 'package:ensemble/layout/hstack_builder.dart';
 import 'package:ensemble/layout/row_builder.dart';
 import 'package:ensemble/layout/vstack_builder.dart';
+import 'package:ensemble/widget/EnsembleText.dart' as ensemble;
 import 'package:ensemble/widget/button_builder.dart';
 import 'package:ensemble/widget/chart_bubble_builder.dart';
 import 'package:ensemble/widget/chart_highcharts_builder.dart';
@@ -28,6 +29,10 @@ class WidgetRegistry {
   static final WidgetRegistry instance = WidgetRegistry(
     debugLabel: 'default',
   );
+
+  static Map<String, Function> get widgetMap => <String, Function> {
+    ensemble.EnsembleText.type: () => ensemble.EnsembleText()
+  };
 
   static Map<String, WidgetBuilderFunc> get widgetBuilders =>
       const <String, WidgetBuilderFunc> {
