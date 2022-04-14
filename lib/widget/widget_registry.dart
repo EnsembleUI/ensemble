@@ -44,7 +44,7 @@ class WidgetRegistry {
         DateInputBuilder.type: DateInputBuilder.fromDynamic,
         ButtonBuilder.type: ButtonBuilder.fromDynamic,
 
-        TextBuilder.type: TextBuilder.fromDynamic,
+        //TextBuilder.type: TextBuilder.fromDynamic,
         ImageBuilder.type: ImageBuilder.fromDynamic,
         IconBuilder.type: IconBuilder.fromDynamic,
         RatingBuilder.type: RatingBuilder.fromDynamic,
