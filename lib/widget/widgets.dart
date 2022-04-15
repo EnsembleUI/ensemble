@@ -2,7 +2,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:flutter/cupertino.dart';
 
 /// base mixin for widgets to be used with Ensemble
-mixin UpdatableWidget<C extends Controller, S extends WidgetState> on StatefulWidget {
+mixin UpdatableWidget<C extends WidgetController, S extends WidgetState> on StatefulWidget {
 
   List<String> getSettableProperties() {
     List<String> rtn = setters().keys.toList();
@@ -71,12 +71,12 @@ abstract class EnsembleWidgetState<W extends UpdatableWidget> extends State<W> w
 }
 
 /// base Controller class for your Ensemble widget
-abstract class Controller extends ChangeNotifier {
+abstract class WidgetController extends ChangeNotifier {
 
   // Note: we manage these here so the user doesn't need to do in their widgets
   // base properties applicable to all widgets
   bool expanded = false;
-  int? padding;
+  //int? padding;
 
   /// ask the widget to rebuild itself
   void dispatchChanges() {
@@ -99,7 +99,7 @@ abstract class Controller extends ChangeNotifier {
 }
 
 /// Controls attributes applicable for all Form Field widgets.
-class FormFieldController extends Controller {
+class FormFieldController extends WidgetController {
   bool enabled = true;
   bool required = false;
   String? label;

@@ -1,115 +1,88 @@
 
-import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
-import 'package:ensemble/widget/widget_builder.dart' as ensemble;
-import 'package:ensemble/widget/widget_registry.dart';
+import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/widgets.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/src/widgets/framework.dart';
-import 'package:yaml/yaml.dart';
 
-class ButtonBuilder extends ensemble.WidgetBuilder {
+class Button extends StatefulWidget with UpdatableWidget<ButtonController, ButtonState> {
   static const type = 'Button';
-  ButtonBuilder({
-    required this.id,
-    required this.label,
-    this.outline=false,
-    this.backgroundColor,
-    this.color,
-    this.borderRadius,
-    this.padding,
+  Button({Key? key}) : super(key: key);
 
-    this.onTap,
-    styles
-  }): super(styles: styles);
+  final ButtonController _controller = ButtonController();
+  @override
+  ButtonController get controller => _controller;
 
-  final String? id;
-  final String label;
-  final dynamic onTap;
-
-  final int? padding;
-  final bool? outline;
-  final int? backgroundColor;
-  final int? color;
-  final int? borderRadius;
-
-
-  static ButtonBuilder fromDynamic(Map<String, dynamic> props, Map<String, dynamic> styles, {WidgetRegistry? registry})
-  {
-    return ButtonBuilder(
-      // props
-      id: props['id'],
-      label: props['label'],
-      onTap: props['onTap'],
-
-      // styles
-      outline: styles['outline'] is bool ? styles['outline'] : null,
-      backgroundColor: styles['backgroundColor'] is int ? styles['backgroundColor'] : null,
-      color: styles['color'] is int ? styles['color'] : null,
-      borderRadius: styles['borderRadius'] is int ? styles['borderRadius'] : null,
-      padding: styles['padding'] is int ? styles['padding'] : null,
-      styles: styles
-    );
+  @override
+  Map<String, Function> getters() {
+    return {};
   }
 
   @override
-  Widget buildWidget({
-    required BuildContext context,
-    List<Widget>? children,
-    ItemTemplate? itemTemplate}) {
-    return Button(
-      builder: this
-    );
+  Map<String, Function> setters() {
+    return {
+      'label': (value) => _controller.label = value,
+      'onTap': (funcDefinition) => _controller.onTap = funcDefinition,
+
+      'outline': (value) => _controller.outline = value is bool ? value : null,
+      'backgroundColor': (value) => _controller.backgroundColor = Utils.optionalInt(value),
+      'color': (value) => _controller.color = Utils.optionalInt(value),
+      'borderRadius': (value) => _controller.borderRadius = Utils.optionalInt(value),
+      'padding': (value) => _controller.padding = Utils.optionalInt(value),
+    };
   }
 
-}
-
-
-class Button extends StatefulWidget {
-  const Button({required this.builder, Key? key})
-      : super(key: key);
-
-  final ButtonBuilder builder;
-
   @override
-  ButtonState createState() => ButtonState();
+  State<StatefulWidget> createState() => ButtonState();
+
+}
+
+class ButtonController extends WidgetController {
+  late String label;
+  dynamic onTap;
+
+  bool? outline;
+  int? backgroundColor;
+  int? color;
+  int? borderRadius;
+  int? padding;
 }
 
 
-class ButtonState extends State<Button> {
+class ButtonState extends EnsembleWidgetState<Button> {
   @override
   Widget build(BuildContext context) {
 
     ButtonStyle buttonStyle = ButtonStyle(
       padding: MaterialStateProperty.all<EdgeInsetsGeometry>(
-        widget.builder.padding != null ?
-        EdgeInsets.all((widget.builder.padding!).toDouble()) :
+        widget._controller.padding != null ?
+        EdgeInsets.all((widget._controller.padding!).toDouble()) :
         const EdgeInsets.only(left: 15, top: 3, right: 15, bottom: 3)),
       foregroundColor:
-        widget.builder.color is int ?
-        MaterialStateProperty.all<Color>(Color(widget.builder.color as int)) :
+        widget._controller.color is int ?
+        MaterialStateProperty.all<Color>(Color(widget._controller.color as int)) :
         null,
       backgroundColor:
-        (widget.builder.outline is bool && widget.builder.outline as bool) || widget.builder.backgroundColor is! int ?
+        (widget._controller.outline is bool && widget._controller.outline as bool) || widget._controller.backgroundColor is! int ?
         null :
-        MaterialStateProperty.all<Color>(Color(widget.builder.backgroundColor as int)),
+        MaterialStateProperty.all<Color>(Color(widget._controller.backgroundColor as int)),
       shape: MaterialStateProperty.all<RoundedRectangleBorder>(
         RoundedRectangleBorder(
           borderRadius:
-            widget.builder.borderRadius is int ?
-            BorderRadius.circular((widget.builder.borderRadius as int).toDouble()) :
+            widget._controller.borderRadius is int ?
+            BorderRadius.circular((widget._controller.borderRadius as int).toDouble()) :
             BorderRadius.zero,
           side: BorderSide(
             color:
-              widget.builder.backgroundColor is int ?
-              Color(widget.builder.backgroundColor as int) :
+              widget._controller.backgroundColor is int ?
+              Color(widget._controller.backgroundColor as int) :
               Theme.of(context).colorScheme.primary)
         )
       )
     );
 
-    Text label = Text(widget.builder.label);
+    Text label = Text(widget._controller.label);
 
-    if (widget.builder.outline is bool && widget.builder.outline as bool) {
+    if (widget._controller.outline is bool && widget._controller.outline as bool) {
       return TextButton(
         onPressed: () => onPressed(context),
         style: buttonStyle,
@@ -119,28 +92,13 @@ class ButtonState extends State<Button> {
         onPressed: () => onPressed(context),
         style: buttonStyle,
         child: label);
-  }
+    }
 
-        /*
-    return ElevatedButton(
-        onPressed: () => widget.builder.onTap == null ? null : ScreenController().executeAction(context, widget.builder.onTap),
-        style: ButtonStyle(
-            backgroundColor: MaterialStateProperty.all<Color>(Colors.red),
-          //foregroundColor: MaterialStateProperty.all<Color>(Colors.white),
-          shape: MaterialStateProperty.all<RoundedRectangleBorder>(
-            RoundedRectangleBorder(
-              //borderRadius: BorderRadius.circular(10),
-              //side: BorderSide(color: Colors.red)
-            )
-          )
-
-        ),
-        child: Text(widget.builder.label));*/
   }
 
   void onPressed(BuildContext context) {
-    if (widget.builder.onTap != null) {
-      ScreenController().executeAction(context, widget.builder.onTap);
+    if (widget._controller.onTap != null) {
+      ScreenController().executeAction(context, widget._controller.onTap);
     }
   }
 

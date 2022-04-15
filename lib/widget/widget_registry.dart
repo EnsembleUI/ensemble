@@ -32,15 +32,14 @@ class WidgetRegistry {
 
     // form fields
     TextField.type: () => TextField(),
+    Button.type: () => Button(),
   };
 
   static Map<String, WidgetBuilderFunc> get widgetBuilders =>
       const <String, WidgetBuilderFunc> {
         // form fields
         DateInputBuilder.type: DateInputBuilder.fromDynamic,
-        ButtonBuilder.type: ButtonBuilder.fromDynamic,
 
-        //TextBuilder.type: TextBuilder.fromDynamic,
         ImageBuilder.type: ImageBuilder.fromDynamic,
         IconBuilder.type: IconBuilder.fromDynamic,
         RatingBuilder.type: RatingBuilder.fromDynamic,
