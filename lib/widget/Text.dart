@@ -42,7 +42,7 @@ class Text extends StatefulWidget with UpdatableWidget<TextController, TextState
 
 }
 
-class TextController extends Controller {
+class TextController extends WidgetController {
   String? text;
   String? font;
   int? fontSize;

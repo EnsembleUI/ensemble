@@ -169,13 +169,6 @@
         }
       ]
     },
-    "DateRange-payload": {
-      "allOf": [
-        {
-          "$ref": "#/$defs/FormInput-payload"
-        }
-      ]
-    },
     "Button-payload": {
       "type": "object",
       "required": ["label"],
@@ -187,20 +180,23 @@
         "styles": {
           "type": "object",
           "properties": {
-            "color": {
-              "type": ["number", "string"],
-              "description": "Set the color for the button label starting with '0xFF' for full opacity"
+            "outline": {
+              "type": "boolean",
+              "description": "Whether the button should have an outline border instead of filled background"
             },
             "backgroundColor": {
               "type": ["number", "string"],
               "description": "Button background color starting with '0xFF' for full opacity"
             },
+            "color": {
+              "type": ["number", "string"],
+              "description": "Set the color for the button label starting with '0xFF' for full opacity"
+            },
             "borderRadius": {
               "type": "integer"
             },
-            "outline": {
-              "type": "boolean",
-              "description": "Whether the button should have an outline border instead of filled background"
+            "padding": {
+              "type": "integer"
             }
           }
         }
@@ -278,7 +274,6 @@
       "properties": {
         "Text": { "$ref": "#/$defs/Text-payload" },
         "TextInput": { "$ref": "#/$defs/TextInput-payload" },
-        "DateRange": { "$ref": "#/$defs/DateRange-payload" },
         "Button": { "$ref": "#/$defs/Button-payload" },
         "Column": { "$ref": "#/$defs/Column-payload" },
         "Row": { "$ref": "#/$defs/Row-payload" }
