@@ -2,8 +2,6 @@ import 'package:ensemble/layout/base_layout.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/layout_utils.dart';
-import 'package:ensemble/widget/form_text_input_builder.dart';
-import 'package:ensemble/widget/image_builder.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -106,18 +104,7 @@ class HStackState extends State<HStack> {
 
   @override
   Widget build(BuildContext context) {
-    List<Widget> children = [];
-    List<Widget> originalChildren = widget.children ?? [];
-    for (Widget originalChild in originalChildren) {
-      // Input Widgets stretches 100% to its parent,
-      // so need to be wrapped inside a Flexible to size more than 1
-      if (originalChild is TextInput || originalChild is EnsembleImage) {
-        children.add(Flexible(child: originalChild));
-      } else {
-        children.add(originalChild);
-      }
-    }
-
+    List<Widget> children = widget.children ?? [];
 
     MainAxisAlignment mainAxis = widget.builder.layout != null ?
       LayoutUtils.getMainAxisAlignment(widget.builder.layout!) :

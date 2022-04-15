@@ -1,22 +1,19 @@
 
 import 'package:ensemble/layout/column_builder.dart';
 import 'package:ensemble/layout/grid_builder.dart';
-import 'package:ensemble/layout/hstack_builder.dart';
 import 'package:ensemble/layout/row_builder.dart';
-import 'package:ensemble/layout/vstack_builder.dart';
-import 'package:ensemble/widget/EnsembleText.dart' as ensemble;
+import 'package:ensemble/widget/Text.dart' as ensemble;
 import 'package:ensemble/widget/button_builder.dart';
 import 'package:ensemble/widget/chart_bubble_builder.dart';
 import 'package:ensemble/widget/chart_highcharts_builder.dart';
 import 'package:ensemble/widget/chart_pie_builder.dart';
 import 'package:ensemble/widget/divider_builder.dart';
 import 'package:ensemble/widget/form_date_input_builder.dart';
-import 'package:ensemble/widget/form_text_input_builder.dart';
+import 'package:ensemble/widget/form_textfield.dart';
 import 'package:ensemble/widget/icon_builder.dart';
 import 'package:ensemble/widget/image_builder.dart';
 import 'package:ensemble/widget/rating_builder.dart';
 import 'package:ensemble/widget/spacer_builder.dart';
-import 'package:ensemble/widget/text_builder.dart';
 import 'package:ensemble/widget/webview_builder.dart';
 import 'package:ensemble/widget/widget_builder.dart';
 
@@ -31,16 +28,15 @@ class WidgetRegistry {
   );
 
   static Map<String, Function> get widgetMap => <String, Function> {
-    ensemble.EnsembleText.type: () => ensemble.EnsembleText()
+    ensemble.Text.type: () => ensemble.Text(),
+
+    // form fields
+    TextField.type: () => TextField(),
   };
 
   static Map<String, WidgetBuilderFunc> get widgetBuilders =>
       const <String, WidgetBuilderFunc> {
         // form fields
-        FormTextInputBuilder.type: FormTextInputBuilder.fromDynamic,
-
-
-
         DateInputBuilder.type: DateInputBuilder.fromDynamic,
         ButtonBuilder.type: ButtonBuilder.fromDynamic,
 

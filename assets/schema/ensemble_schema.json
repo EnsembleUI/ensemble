@@ -152,6 +152,10 @@
         {
           "type": "object",
           "properties": {
+            "value": {
+              "type": "string",
+              "description": "Specifying the value of your Text Input"
+            },
             "styles": {
               "type": "object",
               "properties": {

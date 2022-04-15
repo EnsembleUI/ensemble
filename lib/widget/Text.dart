@@ -3,78 +3,46 @@ import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' as material;
 
-class EnsembleText extends StatefulWidget with UpdatableWidget<TextPayload> {
+class Text extends StatefulWidget with UpdatableWidget<TextController, TextState> {
   static const type = 'Text';
-  EnsembleText({Key? key}) : super(key: key);
+  Text({Key? key}) : super(key: key);
 
-  final TextPayload _payload = TextPayload();
+  final TextController _controller = TextController();
   @override
-  TextPayload get payload => _payload;
-
-  @override
-  TextState createState() => TextState();
+  TextController get controller => _controller;
 
   @override
   Map<String, Function> getters() {
     return {
-      'text': () => _payload.text
+      'text': () => _controller.text
     };
   }
 
   @override
   Map<String, Function> setters() {
     return {
-      // props
-      'text': (newValue) => _payload.text = Utils.optionalString(newValue),
+      'text': (newValue) => _controller.text = Utils.optionalString(newValue),
 
-      // styles
-      'font': (value) => _payload.font = value,
-      'fontSize': (value) => _payload.fontSize = Utils.optionalInt(value),
-      'fontWeight': (value) => _payload.fontWeight = value,
-      'color': (value) => _payload.color = Utils.optionalInt(value),
-      'overflow': (value) => _payload.overflow = value,
-      'textAlign': (value) => _payload.textAlign = value,
-      'textStyle': (value) => _payload.textStyle = value,
-      'lineHeight': (value) => _payload.lineHeight = Utils.optionalString(value),
+      'font': (value) => _controller.font = value,
+      'fontSize': (value) => _controller.fontSize = Utils.optionalInt(value),
+      'fontWeight': (value) => _controller.fontWeight = value,
+      'color': (value) => _controller.color = Utils.optionalInt(value),
+      'overflow': (value) => _controller.overflow = value,
+      'textAlign': (value) => _controller.textAlign = value,
+      'textStyle': (value) => _controller.textStyle = value,
+      'lineHeight': (value) => _controller.lineHeight = Utils.optionalString(value),
 
     };
   }
 
-  void setProp(String key, dynamic value) {
-    switch(key) {
-      case 'text': _payload.text = Utils.optionalString(value); break;
-      case 'font':
-        _payload.font = value;
-        break;
-      case 'fontSize':
-        _payload.fontSize = Utils.optionalInt(value);
-        break;
-      case 'fontWeight':
-        _payload.fontWeight = value;
-        break;
-      case 'color':
-        _payload.color = Utils.optionalInt(value);
-        break;
-      case 'overflow':
-        _payload.overflow = value;
-        break;
-      case 'textAlign':
-        _payload.textAlign = value;
-        break;
-      case 'textStyle':
-        _payload.textStyle = value;
-        break;
-      case 'lineHeight':
-        _payload.lineHeight = Utils.optionalString(value);
-        break;
-    }
-  }
-
+  @override
+  TextState createState() => TextState();
 
 }
 
-class TextPayload extends Payload {
+class TextController extends Controller {
   String? text;
   String? font;
   int? fontSize;
@@ -86,7 +54,7 @@ class TextPayload extends Payload {
   String? lineHeight;
 }
 
-class TextState extends EnsembleWidgetState<EnsembleText> {
+class TextState extends EnsembleWidgetState<Text> {
   @override
   Widget build(BuildContext context) {
     FontWeight? fontWeight;
@@ -94,21 +62,21 @@ class TextState extends EnsembleWidgetState<EnsembleText> {
     Color? fontColor;
 
     // built-in font
-    if (widget.payload.font == 'title') {
+    if (widget.controller.font == 'title') {
       fontWeight = FontWeight.w600;
       fontSize = 22;
       fontColor = EnsembleTheme.darkerText;
-    } else if (widget.payload.font == 'subtitle') {
+    } else if (widget.controller.font == 'subtitle') {
       fontWeight = FontWeight.w500;
       fontSize = 16;
       fontColor = EnsembleTheme.grey;
     }
 
-    if (widget.payload.fontSize != null) {
-      fontSize = widget.payload.fontSize!.toDouble();
+    if (widget.controller.fontSize != null) {
+      fontSize = widget.controller.fontSize!.toDouble();
     }
-    if (widget.payload.fontWeight != null) {
-      switch (widget.payload.fontWeight) {
+    if (widget.controller.fontWeight != null) {
+      switch (widget.controller.fontWeight) {
         case 'w100':
           fontWeight = FontWeight.w100;
           break;
@@ -141,14 +109,14 @@ class TextState extends EnsembleWidgetState<EnsembleText> {
           break;
       }
     }
-    if (widget.payload.color != null) {
-      fontColor = Color(widget.payload.color!);
+    if (widget.controller.color != null) {
+      fontColor = Color(widget.controller.color!);
     }
 
     TextOverflow? textOverflow;
     int? maxLine = 1;
     bool? softWrap = false;
-    switch(widget.payload.overflow) {
+    switch(widget.controller.overflow) {
       case 'visible':
         textOverflow = TextOverflow.visible;
         break;
@@ -170,7 +138,7 @@ class TextState extends EnsembleWidgetState<EnsembleText> {
     }
 
     TextAlign? textAlign;
-    switch (widget.payload.textAlign) {
+    switch (widget.controller.textAlign) {
       case 'start':
         textAlign = TextAlign.start;
         break;
@@ -187,7 +155,7 @@ class TextState extends EnsembleWidgetState<EnsembleText> {
 
     FontStyle? fontStyle;
     TextDecoration? textDecoration;
-    switch (widget.payload.textStyle) {
+    switch (widget.controller.textStyle) {
       case 'italic':
         fontStyle = FontStyle.italic;
         break;
@@ -209,7 +177,7 @@ class TextState extends EnsembleWidgetState<EnsembleText> {
 
     // Note: default should be null, as it may not be 1.0 depending on fonts
     double? lineHeight;
-    switch (widget.payload.lineHeight) {
+    switch (widget.controller.lineHeight) {
       case '1.0':
         lineHeight = 1;
         break;
@@ -229,10 +197,8 @@ class TextState extends EnsembleWidgetState<EnsembleText> {
         lineHeight = 2.5;
         break;
     }
-
-
-    Widget rtn = Text(
-      widget.payload.text ?? '',
+    return material.Text(
+      widget.controller.text ?? '',
       textAlign: textAlign,
       maxLines: maxLine,
       softWrap: softWrap,
@@ -246,18 +212,6 @@ class TextState extends EnsembleWidgetState<EnsembleText> {
         height: lineHeight,),
       overflow: textOverflow,
     );
-
-    return Column(
-      children: [
-        rtn,
-        TextFormField(
-            onChanged: (newText) => widget.setProperty('text', newText)
-        )
-      ],
-    );
-    //return rtn;
-
-
 
   }
 
