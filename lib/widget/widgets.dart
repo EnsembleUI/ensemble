@@ -106,6 +106,9 @@ class FormFieldController extends WidgetController {
   bool required = false;
   String? label;
   String? hintText;
+  String? icon;
+  int? iconSize;
+  String? iconLibrary;
 
   Map<String, Function> getters() {
     return {
@@ -122,6 +125,9 @@ class FormFieldController extends WidgetController {
       'required': (value) => required = value is bool ? value : false,
       'label': (value) => label = Utils.optionalString(value),
       'hintText': (value) => hintText = Utils.optionalString(value),
+      'icon': (value) => icon = Utils.optionalString(value),
+      'iconSize': (value) => iconSize = Utils.optionalInt(value),
+      'iconLibrary': (value) => iconLibrary = Utils.optionalString(value),
     };
   }
 

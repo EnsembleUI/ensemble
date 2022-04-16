@@ -33,6 +33,7 @@ class WidgetRegistry {
 
     // form fields
     TextField.type: () => TextField(),
+    PasswordField.type: () => PasswordField(),
     Button.type: () => Button(),
 
     // containers

@@ -169,6 +169,25 @@
         }
       ]
     },
+    "Password-payload": {
+      "allOf": [
+        { "$ref": "#/$defs/FormInput-payload" },
+        {
+          "type": "object",
+          "properties": {
+            "styles": {
+              "type": "object",
+              "properties": {
+                "fontSize": {
+                  "type": "integer",
+                  "minimum": 6
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
     "Button-payload": {
       "type": "object",
       "required": ["label"],
@@ -259,6 +278,16 @@
         },
         "enabled": {
           "type": "boolean"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "iconSize": {
+          "type": "integer"
+        },
+        "iconLibrary": {
+          "type": "string",
+          "enum": ["default"]
         }
       }
     },
@@ -274,6 +303,7 @@
       "properties": {
         "Text": { "$ref": "#/$defs/Text-payload" },
         "TextInput": { "$ref": "#/$defs/TextInput-payload" },
+        "Password": { "$ref": "#/$defs/Password-payload" },
         "Button": { "$ref": "#/$defs/Button-payload" },
         "Column": { "$ref": "#/$defs/Column-payload" },
         "Row": { "$ref": "#/$defs/Row-payload" }
