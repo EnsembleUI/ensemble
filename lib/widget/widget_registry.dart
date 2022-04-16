@@ -2,8 +2,9 @@
 import 'package:ensemble/layout/column_builder.dart';
 import 'package:ensemble/layout/grid_builder.dart';
 import 'package:ensemble/layout/row_builder.dart';
+import 'package:ensemble/widget/Column.dart';
 import 'package:ensemble/widget/Text.dart' as ensemble;
-import 'package:ensemble/widget/button_builder.dart';
+import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/chart_bubble_builder.dart';
 import 'package:ensemble/widget/chart_highcharts_builder.dart';
 import 'package:ensemble/widget/chart_pie_builder.dart';
@@ -33,8 +34,12 @@ class WidgetRegistry {
     // form fields
     TextField.type: () => TextField(),
     Button.type: () => Button(),
+
+    // containers
+    Column.type: () => Column(),
   };
 
+  @Deprecated("Use widgetMap instead")
   static Map<String, WidgetBuilderFunc> get widgetBuilders =>
       const <String, WidgetBuilderFunc> {
         // form fields
@@ -53,7 +58,6 @@ class WidgetRegistry {
         ChartBubbleBuilder.type: ChartBubbleBuilder.fromDynamic,
 
         // layout
-        ColumnBuilder.type: ColumnBuilder.fromDynamic,
         RowBuilder.type: RowBuilder.fromDynamic,
 
         // deprecated

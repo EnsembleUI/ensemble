@@ -30,8 +30,10 @@ mixin UpdatableWidget<C extends WidgetController, S extends WidgetState> on Stat
     }
   }
 
-  // to be implemented by sub-class
+  /// make sure the same controller instance is
+  /// returned when calling this multiple times
   C get controller;
+
   @protected
   Map<String, Function> getters();
   @protected
