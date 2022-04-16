@@ -1,17 +1,14 @@
 
+import 'package:ensemble/framework/EnsembleIcon.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widgets.dart';
 import 'package:flutter/material.dart';
 
-class TextField extends StatefulWidget with UpdatableWidget<TextFieldController, TextFieldState> {
+
+
+class TextField extends BaseTextField {
   static const type = 'TextInput';
   TextField({Key? key}) : super(key: key);
-
-  // textController manages 'value', while _controller manages the rest
-  final TextEditingController textController = TextEditingController();
-  final TextFieldController _controller = TextFieldController();
-  @override
-  TextFieldController get controller => _controller;
 
   @override
   Map<String, Function> getters() {
@@ -28,9 +25,46 @@ class TextField extends StatefulWidget with UpdatableWidget<TextFieldController,
   }
 
   @override
-  State<StatefulWidget> createState() => TextFieldState();
+  bool isPassword() {
+    return false;
+  }
 
+}
 
+class PasswordField extends BaseTextField {
+  static const type = 'Password';
+  PasswordField({Key? key}) : super(key: key);
+
+  @override
+  Map<String, Function> getters() {
+    return _controller.getters();
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return _controller.setters();
+  }
+
+  @override
+  bool isPassword() {
+    return true;
+  }
+
+}
+
+abstract class BaseTextField extends StatefulWidget with UpdatableWidget<TextFieldController, TextFieldState> {
+  BaseTextField({Key? key}) : super(key: key);
+
+  // textController manages 'value', while _controller manages the rest
+  final TextEditingController textController = TextEditingController();
+  final TextFieldController _controller = TextFieldController();
+  @override
+  TextFieldController get controller => _controller;
+
+  @override
+  TextFieldState createState() => TextFieldState();
+
+  bool isPassword();
 
 }
 
@@ -50,14 +84,14 @@ class TextFieldController extends FormFieldController {
   Map<String, Function> setters() {
     Map<String, Function> mySetters = super.setters();
     mySetters.addAll({
-    'fontSize': (value) => fontSize = Utils.optionalInt(value),
+      'fontSize': (value) => fontSize = Utils.optionalInt(value),
     });
     return mySetters;
   }
 
 }
 
-class TextFieldState extends EnsembleWidgetState<TextField> {
+class TextFieldState extends EnsembleWidgetState<BaseTextField> {
   final focusNode = FocusNode();
 
   // error to show the user
@@ -96,6 +130,9 @@ class TextFieldState extends EnsembleWidgetState<TextField> {
   @override
   Widget build(BuildContext context) {
     return TextFormField(
+      obscureText: widget.isPassword(),
+      enableSuggestions: !widget.isPassword(),
+      autocorrect: !widget.isPassword(),
       controller: widget.textController,
       focusNode: focusNode,
       enabled: widget.controller.enabled,
@@ -104,13 +141,19 @@ class TextFieldState extends EnsembleWidgetState<TextField> {
       onEditingComplete: () {
       },
       style: widget.controller.fontSize != null ?
-      TextStyle(fontSize: widget.controller.fontSize!.toDouble()) :
-      null,
+        TextStyle(fontSize: widget.controller.fontSize!.toDouble()) :
+        null,
       decoration: InputDecoration(
-          floatingLabelBehavior: FloatingLabelBehavior.always,
-          labelText: widget.controller.label,
-          hintText: widget.controller.hintText,
-          errorText: errorText
+        floatingLabelBehavior: FloatingLabelBehavior.always,
+        labelText: widget.controller.label,
+        hintText: widget.controller.hintText,
+        errorText: errorText,
+        icon: widget.controller.icon == null ? null :
+          EnsembleIcon(
+              widget.controller.icon!,
+              size: widget.controller.iconSize,
+              library: widget.controller.iconLibrary)
+
       ),
     );
 
