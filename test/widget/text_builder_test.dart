@@ -1,4 +1,4 @@
-import 'package:ensemble/widget/text_builder.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -17,7 +17,7 @@ Map<String, dynamic> styles = {
 void main() {
 
 
-
+  /*
   testWidgets('Text widget', (WidgetTester tester) async {
     await tester.pumpWidget(TestUtils.getAppWrapper(
       TextBuilder.fromDynamic(props, styles)
@@ -28,6 +28,6 @@ void main() {
 
     //EnsembleText text = tester.widget(finder);
   });
-
+  */
 
 }
