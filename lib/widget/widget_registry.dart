@@ -1,8 +1,7 @@
 
-import 'package:ensemble/layout/column_builder.dart';
+import 'package:ensemble/layout/Row.dart';
 import 'package:ensemble/layout/grid_builder.dart';
-import 'package:ensemble/layout/row_builder.dart';
-import 'package:ensemble/widget/Column.dart';
+import 'package:ensemble/layout/Column.dart';
 import 'package:ensemble/widget/Text.dart' as ensemble;
 import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/chart_bubble_builder.dart';
@@ -38,6 +37,7 @@ class WidgetRegistry {
 
     // containers
     Column.type: () => Column(),
+    Row.type: () => Row(),
   };
 
   @Deprecated("Use widgetMap instead")
@@ -57,9 +57,6 @@ class WidgetRegistry {
         ChartHighChartsBuilder.type: ChartHighChartsBuilder.fromDynamic,
         ChartPieBuilder.type: ChartPieBuilder.fromDynamic,
         ChartBubbleBuilder.type: ChartBubbleBuilder.fromDynamic,
-
-        // layout
-        RowBuilder.type: RowBuilder.fromDynamic,
 
         // deprecated
         //VStackBuilder.type: VStackBuilder.fromDynamic,
