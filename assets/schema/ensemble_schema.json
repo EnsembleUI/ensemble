@@ -152,6 +152,10 @@
         {
           "type": "object",
           "properties": {
+            "value": {
+              "type": "string",
+              "description": "Specifying the value of your Text Input"
+            },
             "styles": {
               "type": "object",
               "properties": {
@@ -165,10 +169,22 @@
         }
       ]
     },
-    "DateRange-payload": {
+    "Password-payload": {
       "allOf": [
+        { "$ref": "#/$defs/FormInput-payload" },
         {
-          "$ref": "#/$defs/FormInput-payload"
+          "type": "object",
+          "properties": {
+            "styles": {
+              "type": "object",
+              "properties": {
+                "fontSize": {
+                  "type": "integer",
+                  "minimum": 6
+                }
+              }
+            }
+          }
         }
       ]
     },
@@ -183,20 +199,23 @@
         "styles": {
           "type": "object",
           "properties": {
-            "color": {
-              "type": ["number", "string"],
-              "description": "Set the color for the button label starting with '0xFF' for full opacity"
+            "outline": {
+              "type": "boolean",
+              "description": "Whether the button should have an outline border instead of filled background"
             },
             "backgroundColor": {
               "type": ["number", "string"],
               "description": "Button background color starting with '0xFF' for full opacity"
             },
+            "color": {
+              "type": ["number", "string"],
+              "description": "Set the color for the button label starting with '0xFF' for full opacity"
+            },
             "borderRadius": {
               "type": "integer"
             },
-            "outline": {
-              "type": "boolean",
-              "description": "Whether the button should have an outline border instead of filled background"
+            "padding": {
+              "type": "integer"
             }
           }
         }
@@ -259,6 +278,16 @@
         },
         "enabled": {
           "type": "boolean"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "iconSize": {
+          "type": "integer"
+        },
+        "iconLibrary": {
+          "type": "string",
+          "enum": ["default"]
         }
       }
     },
@@ -274,7 +303,7 @@
       "properties": {
         "Text": { "$ref": "#/$defs/Text-payload" },
         "TextInput": { "$ref": "#/$defs/TextInput-payload" },
-        "DateRange": { "$ref": "#/$defs/DateRange-payload" },
+        "Password": { "$ref": "#/$defs/Password-payload" },
         "Button": { "$ref": "#/$defs/Button-payload" },
         "Column": { "$ref": "#/$defs/Column-payload" },
         "Row": { "$ref": "#/$defs/Row-payload" }

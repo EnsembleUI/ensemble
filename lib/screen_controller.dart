@@ -4,9 +4,11 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/view.dart';
+import 'package:ensemble/widget/container.dart';
 import 'package:ensemble/widget/unknown_builder.dart';
 import 'package:ensemble/widget/widget_builder.dart' as ensemble;
 import 'package:ensemble/widget/widget_registry.dart';
+import 'package:ensemble/widget/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
 
@@ -118,21 +120,52 @@ class ScreenController {
 
   /// build a widget from a given model
   Widget buildWidget(BuildContext context, WidgetModel model) {
-    WidgetBuilderFunc builderFunc = WidgetRegistry.widgetBuilders[model.type]
-        ?? UnknownBuilder.fromDynamic;
-    ensemble.WidgetBuilder builder = builderFunc(
-        model.props,
-        model.styles,
-        registry: registry);
 
-    // first create the child widgets for layouts
-    List<Widget>? layoutChildren;
-    if (model.children != null) {
-      layoutChildren = _buildChildren(context, model.children!);
+    Function? widgetInstance = WidgetRegistry.widgetMap[model.type];
+    if (widgetInstance != null) {
+      UpdatableWidget widget = widgetInstance.call();
+
+      // set props and styles on the widget. At this stage the widget
+      // has not been attached, so no worries about ValueNotifier
+      for (String key in model.props.keys) {
+        if (widget.getSettableProperties().contains(key)) {
+          widget.setProperty(key, model.props[key]);
+        }
+      }
+      for (String key in model.styles.keys) {
+        if (widget.getSettableProperties().contains(key)) {
+          widget.setProperty(key, model.styles[key]);
+        }
+      }
+
+      // build children and pass itemTemplate for Containers
+      if (widget is UpdatableContainer) {
+        List<Widget>? layoutChildren;
+        if (model.children != null) {
+          layoutChildren = _buildChildren(context, model.children!);
+        }
+        (widget as UpdatableContainer).initChildren(children: layoutChildren, itemTemplate: model.itemTemplate);
+      }
+
+      return widget;
+    } else {
+      WidgetBuilderFunc builderFunc = WidgetRegistry.widgetBuilders[model.type]
+          ?? UnknownBuilder.fromDynamic;
+      ensemble.WidgetBuilder builder = builderFunc(
+          model.props,
+          model.styles,
+          registry: registry);
+
+      // first create the child widgets for layouts
+      List<Widget>? layoutChildren;
+      if (model.children != null) {
+        layoutChildren = _buildChildren(context, model.children!);
+      }
+
+      // create the widget
+      return builder.buildWidget(context: context, children: layoutChildren, itemTemplate: model.itemTemplate);
     }
 
-    // create the widget
-    return builder.buildWidget(context: context, children: layoutChildren, itemTemplate: model.itemTemplate);
   }
 
   /// register listeners for data changes

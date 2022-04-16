@@ -1,29 +1,48 @@
-import 'dart:math';
 
 import 'package:ensemble/ensemble_theme.dart';
-import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/ensemble_stateful_widget.dart';
-import 'package:ensemble/widget/widget_builder.dart' as ensemble;
-import 'package:ensemble/widget/widget_registry.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:ensemble/widget/widgets.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter/material.dart' as material;
 
-class TextBuilder extends ensemble.WidgetBuilder {
+class Text extends StatefulWidget with UpdatableWidget<TextController, TextState> {
   static const type = 'Text';
-  TextBuilder({
-    this.text,
-    this.font,
-    this.fontSize,
-    this.fontWeight,
-    this.color,
-    this.overflow,
-    this.textAlign,
-    this.textStyle,
-    this.lineHeight,
-    styles,
-  }) : super(styles: styles);
+  Text({Key? key}) : super(key: key);
+
+  final TextController _controller = TextController();
+  @override
+  TextController get controller => _controller;
+
+  @override
+  Map<String, Function> getters() {
+    return {
+      'text': () => _controller.text
+    };
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {
+      'text': (newValue) => _controller.text = Utils.optionalString(newValue),
+
+      'font': (value) => _controller.font = value,
+      'fontSize': (value) => _controller.fontSize = Utils.optionalInt(value),
+      'fontWeight': (value) => _controller.fontWeight = value,
+      'color': (value) => _controller.color = Utils.optionalInt(value),
+      'overflow': (value) => _controller.overflow = value,
+      'textAlign': (value) => _controller.textAlign = value,
+      'textStyle': (value) => _controller.textStyle = value,
+      'lineHeight': (value) => _controller.lineHeight = Utils.optionalString(value),
+
+    };
+  }
+
+  @override
+  TextState createState() => TextState();
+
+}
+
+class TextController extends WidgetController {
   String? text;
   String? font;
   int? fontSize;
@@ -33,75 +52,31 @@ class TextBuilder extends ensemble.WidgetBuilder {
   String? textAlign;
   String? textStyle;
   String? lineHeight;
-
-  static TextBuilder fromDynamic(Map<String, dynamic> props, Map<String, dynamic> styles, {WidgetRegistry? registry})
-  {
-    return TextBuilder(
-      // props
-      text: Utils.optionalString(props['text']),
-
-      // styles
-      font: styles['font'],
-      fontSize: Utils.optionalInt(styles['fontSize']),
-      fontWeight: styles['fontWeight'],
-      color: Utils.optionalInt(styles['color']),
-      overflow: styles['overflow'],
-      textAlign: styles['textAlign'],
-      textStyle: styles['textStyle'],
-      lineHeight: Utils.optionalString(styles['lineHeight']),
-
-      styles: styles,
-    );
-  }
-
-
-  @override
-  Widget buildWidget({
-    required BuildContext context,
-    List<Widget>? children,
-    ItemTemplate? itemTemplate}) {
-    return EnsembleText(builder: this);
-  }
-
 }
 
-class EnsembleText extends EnsembleStatefulWidget{
-  EnsembleText({
-    required this.builder,
-    Key? key
-  }) : super(builder: builder, key: key);
-
-  final TextBuilder builder;
-
-  @override
-  State<StatefulWidget> createState() => TextState();
-}
-
-class TextState extends State<EnsembleText> {
-
+class TextState extends EnsembleWidgetState<Text> {
   @override
   Widget build(BuildContext context) {
-
     FontWeight? fontWeight;
     double? fontSize;
     Color? fontColor;
 
     // built-in font
-    if (widget.builder.font == 'title') {
+    if (widget.controller.font == 'title') {
       fontWeight = FontWeight.w600;
       fontSize = 22;
       fontColor = EnsembleTheme.darkerText;
-    } else if (widget.builder.font == 'subtitle') {
+    } else if (widget.controller.font == 'subtitle') {
       fontWeight = FontWeight.w500;
       fontSize = 16;
       fontColor = EnsembleTheme.grey;
     }
 
-    if (widget.builder.fontSize != null) {
-      fontSize = widget.builder.fontSize!.toDouble();
+    if (widget.controller.fontSize != null) {
+      fontSize = widget.controller.fontSize!.toDouble();
     }
-    if (widget.builder.fontWeight != null) {
-      switch (widget.builder.fontWeight) {
+    if (widget.controller.fontWeight != null) {
+      switch (widget.controller.fontWeight) {
         case 'w100':
           fontWeight = FontWeight.w100;
           break;
@@ -134,14 +109,14 @@ class TextState extends State<EnsembleText> {
           break;
       }
     }
-    if (widget.builder.color != null) {
-      fontColor = Color(widget.builder.color!);
+    if (widget.controller.color != null) {
+      fontColor = Color(widget.controller.color!);
     }
 
     TextOverflow? textOverflow;
     int? maxLine = 1;
     bool? softWrap = false;
-    switch(widget.builder.overflow) {
+    switch(widget.controller.overflow) {
       case 'visible':
         textOverflow = TextOverflow.visible;
         break;
@@ -163,7 +138,7 @@ class TextState extends State<EnsembleText> {
     }
 
     TextAlign? textAlign;
-    switch (widget.builder.textAlign) {
+    switch (widget.controller.textAlign) {
       case 'start':
         textAlign = TextAlign.start;
         break;
@@ -180,7 +155,7 @@ class TextState extends State<EnsembleText> {
 
     FontStyle? fontStyle;
     TextDecoration? textDecoration;
-    switch (widget.builder.textStyle) {
+    switch (widget.controller.textStyle) {
       case 'italic':
         fontStyle = FontStyle.italic;
         break;
@@ -202,7 +177,7 @@ class TextState extends State<EnsembleText> {
 
     // Note: default should be null, as it may not be 1.0 depending on fonts
     double? lineHeight;
-    switch (widget.builder.lineHeight) {
+    switch (widget.controller.lineHeight) {
       case '1.0':
         lineHeight = 1;
         break;
@@ -222,26 +197,21 @@ class TextState extends State<EnsembleText> {
         lineHeight = 2.5;
         break;
     }
-
-
-    return Text(
-      widget.builder.text ?? '',
+    return material.Text(
+      widget.controller.text ?? '',
       textAlign: textAlign,
       maxLines: maxLine,
       softWrap: softWrap,
       style: TextStyle(
-          decorationColor: Colors.blue,
-
-          fontWeight: fontWeight,
-          fontStyle: fontStyle,
-          decoration: textDecoration,
-          fontSize: fontSize,
-          color: fontColor,
-          height: lineHeight,),
+        decorationColor: Colors.blue,
+        fontWeight: fontWeight,
+        fontStyle: fontStyle,
+        decoration: textDecoration,
+        fontSize: fontSize,
+        color: fontColor,
+        height: lineHeight,),
       overflow: textOverflow,
     );
-
-
 
   }
 
