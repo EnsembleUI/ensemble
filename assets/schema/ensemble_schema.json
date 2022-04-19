@@ -79,7 +79,7 @@
 
     "Text-payload": {
       "type": "object",
-      "required": ["text"],
+      "required": [],
       "properties": {
         "text": {
           "type": "string",
@@ -287,7 +287,7 @@
         },
         "iconLibrary": {
           "type": "string",
-          "enum": ["default"]
+          "enum": ["default", "fontAwesome"]
         }
       }
     },
