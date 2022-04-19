@@ -146,6 +146,41 @@
         }
       }
     },
+    "Icon-payload": {
+      "type": "object",
+      "required": ["icon"],
+      "properties": {
+        "icon": {
+          "type": "string",
+          "description": "Icon name from Material Icons or Font Awesome"
+        },
+        "library": {
+          "type": "string",
+          "enum": [
+            "default",
+            "fontAwesome"
+          ]
+        },
+        "styles": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "size": {
+                  "type": "integer"
+                },
+                "color": {
+                  "type": ["number", "string"]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
     "TextInput-payload": {
       "allOf": [
         { "$ref": "#/$defs/FormInput-payload" },
@@ -280,14 +315,23 @@
           "type": "boolean"
         },
         "icon": {
-          "type": "string"
-        },
-        "iconSize": {
-          "type": "integer"
+          "type": "string",
+          "description": "Icon name from Material Icons or Font Awesome"
         },
         "iconLibrary": {
           "type": "string",
           "enum": ["default", "fontAwesome"]
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "iconSize": {
+              "type": "integer"
+            },
+            "iconColor": {
+              "type": ["number", "string"]
+            }
+          }
         }
       }
     },
@@ -302,6 +346,7 @@
       "type": "object",
       "properties": {
         "Text": { "$ref": "#/$defs/Text-payload" },
+        "Icon": { "$ref": "#/$defs/Icon-payload" },
         "TextInput": { "$ref": "#/$defs/TextInput-payload" },
         "Password": { "$ref": "#/$defs/Password-payload" },
         "Button": { "$ref": "#/$defs/Button-payload" },

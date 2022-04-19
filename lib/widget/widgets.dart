@@ -107,8 +107,10 @@ class FormFieldController extends WidgetController {
   String? label;
   String? hintText;
   String? icon;
-  int? iconSize;
   String? iconLibrary;
+  int? iconSize;
+  int? iconColor;
+
 
   Map<String, Function> getters() {
     return {
@@ -126,8 +128,9 @@ class FormFieldController extends WidgetController {
       'label': (value) => label = Utils.optionalString(value),
       'hintText': (value) => hintText = Utils.optionalString(value),
       'icon': (value) => icon = Utils.optionalString(value),
-      'iconSize': (value) => iconSize = Utils.optionalInt(value),
       'iconLibrary': (value) => iconLibrary = Utils.optionalString(value),
+      'iconSize': (value) => iconSize = Utils.optionalInt(value),
+      'iconColor': (value) => iconColor = Utils.optionalInt(value),
     };
   }
 

@@ -8,9 +8,9 @@ import 'package:ensemble/widget/chart_bubble_builder.dart';
 import 'package:ensemble/widget/chart_highcharts_builder.dart';
 import 'package:ensemble/widget/chart_pie_builder.dart';
 import 'package:ensemble/widget/divider_builder.dart';
+import 'package:ensemble/widget/ensemble_icon.dart';
 import 'package:ensemble/widget/form_date_input_builder.dart';
 import 'package:ensemble/widget/form_textfield.dart';
-import 'package:ensemble/widget/icon_builder.dart';
 import 'package:ensemble/widget/image_builder.dart';
 import 'package:ensemble/widget/rating_builder.dart';
 import 'package:ensemble/widget/spacer_builder.dart';
@@ -29,6 +29,7 @@ class WidgetRegistry {
 
   static Map<String, Function> get widgetMap => <String, Function> {
     ensemble.Text.type: () => ensemble.Text(),
+    EnsembleIcon.type: () => EnsembleIcon(),
 
     // form fields
     TextField.type: () => TextField(),
@@ -47,7 +48,6 @@ class WidgetRegistry {
         DateInputBuilder.type: DateInputBuilder.fromDynamic,
 
         ImageBuilder.type: ImageBuilder.fromDynamic,
-        IconBuilder.type: IconBuilder.fromDynamic,
         RatingBuilder.type: RatingBuilder.fromDynamic,
         WebViewBuilder.type: WebViewBuilder.fromDynamic,
         DividerBuilder.type: DividerBuilder.fromDynamic,
