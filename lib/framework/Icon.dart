@@ -1,15 +1,17 @@
 
 import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' as flutter;
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-class EnsembleIcon extends Icon {
-  EnsembleIcon(
+class Icon extends flutter.Icon {
+  Icon(
       String icon,
       {
         Key? key,
         String? library,
         int? size,
-      }) : super(_iconFromName(icon, library), key: key, size: size?.toDouble());
+        Color? color,
+      }) : super(_iconFromName(icon, library), key: key, size: size?.toDouble(), color: color);
 
   static IconData? _iconFromName(String name, String? library) {
     return library == 'fontAwesome' ? _fontAwesomeIcons[name] : _defaultIcons[name];

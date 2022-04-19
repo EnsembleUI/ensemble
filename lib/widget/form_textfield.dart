@@ -1,5 +1,5 @@
 
-import 'package:ensemble/framework/EnsembleIcon.dart';
+import 'package:ensemble/framework/Icon.dart' as ensemble;
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widgets.dart';
 import 'package:flutter/material.dart';
@@ -149,11 +149,13 @@ class TextFieldState extends EnsembleWidgetState<BaseTextField> {
         hintText: widget.controller.hintText,
         errorText: errorText,
         icon: widget.controller.icon == null ? null :
-          EnsembleIcon(
-              widget.controller.icon!,
-              size: widget.controller.iconSize,
-              library: widget.controller.iconLibrary)
-
+          ensemble.Icon(
+            widget.controller.icon!,
+            library: widget.controller.iconLibrary,
+            size: widget.controller.iconSize,
+            color: widget._controller.iconColor != null ?
+              Color(widget.controller.iconColor!) :
+              null)
       ),
     );
 
