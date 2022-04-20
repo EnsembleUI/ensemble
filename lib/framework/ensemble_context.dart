@@ -1,8 +1,4 @@
-
-
-
-import 'package:ensemble/widget/widgets.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:sdui/invokables/invokable.dart';
 
 class EnsembleContext {
   EnsembleContext(Map<String, dynamic>? dataMap) {
@@ -32,8 +28,8 @@ class EnsembleContext {
   }
 
   // invokable widget, traversable with getters, setters & methods
-  final Map<String, UpdatableWidget> _invokableMap = {};
-  void addInvokableContext(String id, UpdatableWidget widget) {
+  final Map<String, Invokable> _invokableMap = {};
+  void addInvokableContext(String id, Invokable widget) {
     _invokableMap[id] = widget;
   }
 
@@ -82,7 +78,7 @@ class EnsembleContext {
     else if (_invokableMap[tokens[0]] != null) {
       // support getters only
       if (tokens.length == 2) {
-        UpdatableWidget widget = _invokableMap[tokens[0]]!;
+        Invokable widget = _invokableMap[tokens[0]]!;
         if (widget.getGettableProperties().contains(tokens[1])) {
           return widget.getProperty(tokens[1]);
         }
