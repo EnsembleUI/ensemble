@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/ensemble_context.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -95,7 +96,8 @@ class ColumnState extends EnsembleWidgetState<Column> {
         // we need to have at least 2+ tokens e.g apiName.key1
         if (dataTokens.length >= 2) {
           // exclude the apiName and reconstruct the variable
-          dynamic dataList = Utils.evalVariable(dataTokens.sublist(1).join('.'), itemTemplateData);
+          EnsembleContext context = EnsembleContext(itemTemplateData);
+          dynamic dataList = context.evalVariable(dataTokens.sublist(1).join('.'));
           if (dataList is List) {
             rendererItems = dataList;
           }
@@ -106,20 +108,23 @@ class ColumnState extends EnsembleWidgetState<Column> {
       // now loop through each and render the content
       if (rendererItems != null) {
         for (Map<String, dynamic> dataMap in rendererItems) {
-          // our dataMap needs to have a prefix using item-template's name
-          Map<String, dynamic> updatedDataMap = {widget.itemTemplate!.name: dataMap};
+          // we need to build a context localized to this item template.
+          // Here we need to add a prefix using the item-template's name
+          // TODO: also need context from the current page
+          Map<String, dynamic> localizedDataMap = {widget.itemTemplate!.name: dataMap};
+          EnsembleContext localizedContext = EnsembleContext(localizedDataMap);
 
           // Unfortunately we need to get the SubView as we are building the template.
           // TODO: refactor this. Widget shouldn't need to know about this
           WidgetModel model = PageModel.buildModel(
               widget.itemTemplate!.template,
-              updatedDataMap,
+              localizedContext,
               ScreenController().getSubViewDefinitionsFromRootView(context));
-          Widget templatedWidget = ScreenController().buildWidget(context, model);
+          Widget templatedWidget = ScreenController().buildWidget(localizedContext, model);
 
           // wraps each templated widget under Templated so we can
           // constraint the data scope
-          children.add(Templated(localDataMap: updatedDataMap, child: templatedWidget));
+          children.add(Templated(localDataMap: localizedDataMap, child: templatedWidget));
         }
       }
     }

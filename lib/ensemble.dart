@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 
+import 'package:ensemble/framework/ensemble_context.dart';
 import 'package:ensemble/provider.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/http_utils.dart';
@@ -66,6 +67,7 @@ class Ensemble {
   }
 
   /// return an Ensemble page as an embeddable Widget
+  /// Optionally can pass in data argument to fill any value e.g hotelName = "St Regis"
   FutureBuilder getPage(
       BuildContext context,
       String pageName, {
@@ -107,7 +109,7 @@ class Ensemble {
       if (apiName != null) {
         return FutureBuilder(
             future: HttpUtils.invokeApi(
-                snapshot.data['API'][apiName], dataMap: pageArgs),
+                snapshot.data['API'][apiName], eContext: EnsembleContext(pageArgs)),
             builder: (context, AsyncSnapshot apiSnapshot) {
               if (!apiSnapshot.hasData) {
                 return const Scaffold(
@@ -131,8 +133,9 @@ class Ensemble {
               // itemTemplate listens for data changes, but the page has not been loaded yet,
               // so we will dispatch the data changes AFTER screen rendering
               WidgetsBinding.instance!.addPostFrameCallback((_) =>
-                  ScreenController().onActionResponse(
+                  ScreenController().onAPIResponse(
                       context,
+                      snapshot.data['API'][apiName],
                       snapshot.data['Action']?['pageload']?['api'],
                       apiSnapshot.data));
 
