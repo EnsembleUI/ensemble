@@ -3,14 +3,13 @@ import 'package:ensemble/framework/ensemble_context.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/http_utils.dart';
-import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/view.dart';
-import 'package:ensemble/widget/container.dart';
 import 'package:ensemble/widget/unknown_builder.dart';
 import 'package:ensemble/widget/widget_builder.dart' as ensemble;
 import 'package:ensemble/widget/widget_registry.dart';
-import 'package:ensemble/widget/widgets.dart';
+import 'package:ensemble/widget/widget.dart';
 import 'package:flutter/material.dart';
+import 'package:sdui/invokables/invokable.dart';
 import 'package:yaml/yaml.dart';
 
 
@@ -124,7 +123,7 @@ class ScreenController {
 
     Function? widgetInstance = WidgetRegistry.widgetMap[model.type];
     if (widgetInstance != null) {
-      UpdatableWidget widget = widgetInstance.call();
+      Invokable widget = widgetInstance.call();
 
       // set props and styles on the widget. At this stage the widget
       // has not been attached, so no worries about ValueNotifier
@@ -152,7 +151,7 @@ class ScreenController {
         (widget as UpdatableContainer).initChildren(children: layoutChildren, itemTemplate: model.itemTemplate);
       }
 
-      return widget;
+      return widget as HasController;
     } else {
       WidgetBuilderFunc builderFunc = WidgetRegistry.widgetBuilders[model.type]
           ?? UnknownBuilder.fromDynamic;

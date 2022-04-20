@@ -1,5 +1,6 @@
 
 import 'package:ensemble/framework/ensemble_context.dart';
+import 'package:ensemble/layout/Column.dart';
 import 'package:ensemble/widget/Text.dart';
 import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/form_textfield.dart';
@@ -79,12 +80,26 @@ void main() {
     expect(context.eval(r'$(myTextField.what)'), 'myTextField.what');
   });
 
+  /*test("Container getters", () {
+    Column myColumn = Column();
+    myColumn.setProperty("width", 200);
+
+    EnsembleContext context = getBaseContext();
+    context.addInvokableContext("myColumn", myColumn);
+
+    expect(context.eval(r'$(myColumn.width)'), 200);
+    expect(context.eval(r'My waist is $(myColumn.width)'), 'My waist is 200');
+
+
+  });*/
+
   test("Code block", () {
     EnsembleContext context = getDataAndWidgetContext();
+    expect(context.eval(r'$(myText.text) $(myTextField.value)'), 'Hello Ronald');
+
     context.evalCode(
     r' myText.text = "Goodbye"; '
     r' myTextField.value = "Peter"; ');
-
     // will fail until evalCode() implementation
     //expect(context.eval(r'$(myText.text) $(myTextField.value)'), 'Goodbye Peter');
   });

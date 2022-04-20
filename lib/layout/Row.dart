@@ -4,13 +4,12 @@ import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/layout_utils.dart';
-import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/container.dart';
-import 'package:ensemble/widget/widgets.dart';
+import 'package:ensemble/widget/widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as flutter;
+import 'package:sdui/invokables/invokable.dart';
 
-class Row extends StatefulWidget with UpdatableContainer, UpdatableWidget<BoxLayoutController, RowState> {
+class Row extends StatefulWidget with UpdatableContainer, Invokable, HasController<BoxLayoutController, RowState> {
   static const type = 'Row';
   Row({Key? key}) : super(key: key);
 
@@ -23,12 +22,15 @@ class Row extends StatefulWidget with UpdatableContainer, UpdatableWidget<BoxLay
 
   @override
   Map<String, Function> getters() {
-    return _controller.getters();
+    return {};
   }
-
   @override
   Map<String, Function> setters() {
-    return _controller.setters();
+    return {};
+  }
+  @override
+  Map<String, Function> methods() {
+    return {};
   }
 
   @override
@@ -39,9 +41,11 @@ class Row extends StatefulWidget with UpdatableContainer, UpdatableWidget<BoxLay
 
   @override
   State<StatefulWidget> createState() => RowState();
+
+
 }
 
-class RowState extends EnsembleWidgetState<Row> {
+class RowState extends WidgetState<Row> {
   // data exclusively for item template (e.g api result)
   Map<String, dynamic>? itemTemplateData;
 
@@ -138,7 +142,9 @@ class RowState extends EnsembleWidgetState<Row> {
     // wrap each child with Expanded if specified
     List<Widget> updatedChildren = [];
     for (Widget child in children) {
-      if (child is UpdatableWidget && child.controller.expanded) {
+      if (child is HasController &&
+          child.controller is WidgetController &&
+          (child.controller as WidgetController).expanded) {
         updatedChildren.add(Expanded(child: child));
       } else {
         updatedChildren.add(child);

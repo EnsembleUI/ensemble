@@ -34,6 +34,9 @@ dependencies:
   http: ^0.13.4
   flutter_rating_bar: ^4.0.0
 
+  sdui:
+    path: ../sdui
+
   # use our forked high_chart to fix iOS issue
   high_chart:
     git: https://github.com/EnsembleUI/high_chart.git
@@ -43,15 +46,11 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^1.0.0
 
-# For information on the generic Dart part of this file, see the
-# following page: https://dart.dev/tools/pub/pubspec
-
 flutter:
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
-
 
   # This section identifies your Flutter project as a module meant for
   # embedding in a native host app.  These identifiers should _not_ ordinarily

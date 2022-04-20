@@ -3,13 +3,12 @@ import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/layout_utils.dart';
-import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/container.dart';
-import 'package:ensemble/widget/widgets.dart';
+import 'package:ensemble/widget/widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as flutter;
+import 'package:sdui/invokables/invokable.dart';
 
-class Column extends StatefulWidget with UpdatableContainer, UpdatableWidget<BoxLayoutController, ColumnState> {
+class Column extends StatefulWidget with UpdatableContainer, Invokable, HasController<BoxLayoutController, ColumnState> {
   static const type = 'Column';
   Column({Key? key}) : super(key: key);
 
@@ -22,12 +21,15 @@ class Column extends StatefulWidget with UpdatableContainer, UpdatableWidget<Box
 
   @override
   Map<String, Function> getters() {
-    return _controller.getters();
+    return {};
   }
-
   @override
   Map<String, Function> setters() {
-    return _controller.setters();
+    return {};
+  }
+  @override
+  Map<String, Function> methods() {
+    return {};
   }
 
   @override
@@ -38,9 +40,11 @@ class Column extends StatefulWidget with UpdatableContainer, UpdatableWidget<Box
 
   @override
   State<StatefulWidget> createState() => ColumnState();
+
+
 }
 
-class ColumnState extends EnsembleWidgetState<Column> {
+class ColumnState extends WidgetState<Column> {
   // data exclusively for item template (e.g api result)
   Map<String, dynamic>? itemTemplateData;
 
@@ -132,7 +136,9 @@ class ColumnState extends EnsembleWidgetState<Column> {
     // wrap each child with Expanded if specified
     List<Widget> updatedChildren = [];
     for (Widget child in children) {
-      if (child is UpdatableWidget && child.controller.expanded) {
+      if (child is HasController &&
+          child.controller is WidgetController &&
+          (child.controller as WidgetController).expanded) {
         updatedChildren.add(Expanded(child: child));
       } else {
         updatedChildren.add(child);

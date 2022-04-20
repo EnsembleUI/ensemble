@@ -1,10 +1,11 @@
 
 import 'package:ensemble/framework/Icon.dart' as ensembleLib;
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/widgets.dart';
+import 'package:ensemble/widget/widget.dart';
 import 'package:flutter/material.dart';
+import 'package:sdui/invokables/invokable.dart';
 
-class EnsembleIcon extends StatefulWidget with UpdatableWidget<IconController, IconState> {
+class EnsembleIcon extends StatefulWidget with Invokable, HasController<IconController, IconState> {
   static const type = 'Icon';
   EnsembleIcon({Key? key}) : super(key: key);
 
@@ -19,7 +20,6 @@ class EnsembleIcon extends StatefulWidget with UpdatableWidget<IconController, I
   Map<String, Function> getters() {
     return {};
   }
-
   @override
   Map<String, Function> setters() {
     return {
@@ -28,6 +28,10 @@ class EnsembleIcon extends StatefulWidget with UpdatableWidget<IconController, I
       'size': (value) => _controller.size = Utils.optionalInt(value),
       'color': (value) => _controller.color = Utils.optionalInt(value),
     };
+  }
+  @override
+  Map<String, Function> methods() {
+    return {};
   }
 
 }
@@ -38,7 +42,7 @@ class IconController extends WidgetController {
   int? color;
 }
 
-class IconState extends EnsembleWidgetState<EnsembleIcon> {
+class IconState extends WidgetState<EnsembleIcon> {
 
   @override
   Widget build(BuildContext context) {
