@@ -1,9 +1,9 @@
 import 'dart:developer';
 import 'dart:math';
 import 'package:ensemble/error_handling.dart';
+import 'package:ensemble/framework/ensemble_context.dart';
 import 'package:ensemble/layout/Row.dart';
 import 'package:ensemble/layout/hstack_builder.dart';
-import 'package:ensemble/layout/vstack_builder.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/layout/Column.dart';
 import 'package:yaml/yaml.dart';
@@ -19,7 +19,7 @@ class PageModel {
 
   String? title;
   Map<String, dynamic>? pageStyles;
-  Map<String, dynamic>? args;
+  late EnsembleContext eContext;
   Map<String, YamlMap>? subViewDefinitions;
   List<MenuItem> menuItems = [];
   late WidgetModel rootWidgetModel;
@@ -31,7 +31,10 @@ class PageModel {
 
 
 
-  PageModel ({required YamlMap data, this.args}) {
+  PageModel ({required YamlMap data, Map<String, dynamic>? pageArguments}) {
+    // build the page context from
+    eContext = EnsembleContext(pageArguments);
+
     processAPI(data['API']);
     processModel(data);
 
@@ -65,14 +68,14 @@ class PageModel {
     }
 
     if (viewMap['footer'] != null && viewMap['footer']['children'] != null) {
-      footer = Footer(buildModels(viewMap['footer']['children'], args, {}));
+      footer = Footer(PageModel.buildModels(viewMap['footer']['children'], eContext, {}));
     }
 
     // build a Map of the subviews' models first
-    subViewDefinitions = createSubViewDefinitions(docMap, args);
+    subViewDefinitions = createSubViewDefinitions(docMap);
 
     if (viewMap['type'] == null ||
-        ![VStackBuilder.type, Column.type, Row.type, HStackBuilder.type].contains(viewMap['type'])) {
+        ![Column.type, Row.type, HStackBuilder.type].contains(viewMap['type'])) {
       throw LanguageError('Root widget type should only be Row or Column');
     }
     // View is special and can have many attributes,
@@ -84,10 +87,10 @@ class PageModel {
       'item-template': viewMap['item-template'],
       'styles': viewMap['styles']
     });
-    rootWidgetModel = buildModelFromName(viewMap['type'], rootItemMap, args, subViewDefinitions!);
+    rootWidgetModel = PageModel.buildModelFromName(viewMap['type'], rootItemMap, eContext, subViewDefinitions!);
   }
 
-  Map<String, YamlMap> createSubViewDefinitions(YamlMap docMap, Map<String, dynamic>? args) {
+  Map<String, YamlMap> createSubViewDefinitions(YamlMap docMap) {
     Map<String, YamlMap> subViewDefinitions = {};
     docMap.forEach((key, value) {
       if (!reservedTokens.contains(key)) {
@@ -102,17 +105,17 @@ class PageModel {
   }
 
 
-  static List<WidgetModel> buildModels(YamlList models, Map<String, dynamic>? args, Map<String, YamlMap> subViewDefinitions) {
+  static List<WidgetModel> buildModels(YamlList models, EnsembleContext eContext, Map<String, YamlMap> subViewDefinitions) {
     List<WidgetModel> rtn = [];
     for (dynamic item in models) {
-      rtn.add(buildModel(item, args, subViewDefinitions));
+      rtn.add(buildModel(item, eContext, subViewDefinitions));
     }
     return rtn;
   }
 
 
   // each model can be dynamic (Spacer) or YamlMap (Text: ....)
-  static WidgetModel buildModel(dynamic item, Map<String, dynamic>? args, Map<String, YamlMap> subViewDefinitions) {
+  static WidgetModel buildModel(dynamic item, EnsembleContext eContext, Map<String, YamlMap> subViewDefinitions) {
     String? key;
     YamlMap? itemMap;
 
@@ -143,20 +146,19 @@ class PageModel {
     if (subViewMap != null) {
       String subViewWidgetType = subViewMap['type'];
 
-      Map<String, dynamic> localizedArgs = {};
-      localizedArgs.addAll(args ?? {});
+      EnsembleContext localizedContext = eContext.clone();
 
       // if subview has parameters
       if (subViewMap['parameters'] is YamlList && itemMap != null) {
         // add (and potentially overwrite) parameters to our data map
         for (var param in (subViewMap['parameters'] as YamlList)) {
           if (itemMap[param] != null) {
-            localizedArgs[param] = Utils.evalExpression(itemMap[param], args);
+            localizedContext.addDataContextById(param, eContext.eval(itemMap[param]));
           }
         }
         //log("LocalizedMap: " + localizedArgs.toString());
       }
-      return buildModelFromName(subViewWidgetType, subViewMap, localizedArgs, subViewDefinitions);
+      return PageModel.buildModelFromName(subViewWidgetType, subViewMap, localizedContext, subViewDefinitions);
     }
     // regular widget
     else {
@@ -164,13 +166,13 @@ class PageModel {
       if (itemMap == null) {
         return WidgetModel(widgetType, {}, {});
       }
-      return buildModelFromName(widgetType, itemMap, args, subViewDefinitions, widgetId: widgetId);
+      return PageModel.buildModelFromName(widgetType, itemMap, eContext, subViewDefinitions, widgetId: widgetId);
     }
 
 
   }
 
-  static WidgetModel buildModelFromName(String widgetType, YamlMap itemMap, Map<String, dynamic>? args, Map<String, YamlMap> subViewDefinitions, {String? widgetId}) {
+  static WidgetModel buildModelFromName(String widgetType, YamlMap itemMap, EnsembleContext eContext, Map<String, YamlMap> subViewDefinitions, {String? widgetId}) {
     Map<String, dynamic> props = {};
     if (widgetId != null) {
       props['id'] = widgetId;
@@ -186,16 +188,15 @@ class PageModel {
         if (key == 'styles') {
           // expand the style map
           (value as YamlMap).forEach((styleKey, styleValue) {
-            styles[styleKey] = Utils.evalExpression(styleValue, args);
+            styles[styleKey] = eContext.eval(styleValue);
           });
         } else if (key == "children") {
-          children = buildModels(value, args, subViewDefinitions);
+          children = buildModels(value, eContext, subViewDefinitions);
         } else if (key == "item-template") {
           // attempt to resolve the localized dataMap fed into the item template
           // we only take it if it resolves to a list
           List<dynamic>? localizedDataList;
-          dynamic templateDataResult = Utils.evalExpression(
-              value['data'], args);
+          dynamic templateDataResult = eContext.eval(value['data']);
           if (templateDataResult is List<dynamic>) {
             localizedDataList = templateDataResult;
           }
@@ -214,7 +215,7 @@ class PageModel {
         // this is tricky. We only want to evaluate properties most likely, so need
         // a way to distinguish them
         else {
-          props[key] = Utils.evalExpression(value, args);
+          props[key] = eContext.eval(value);
         }
       }
     });

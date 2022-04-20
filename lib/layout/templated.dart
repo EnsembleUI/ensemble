@@ -2,7 +2,7 @@
 import 'package:flutter/cupertino.dart';
 
 class Templated extends StatefulWidget {
-  Templated({
+  const Templated({
     Key? key,
     required this.localDataMap,
     required this.child
@@ -10,16 +10,9 @@ class Templated extends StatefulWidget {
 
   final Map<String, dynamic> localDataMap;
   final Widget child;
-  final TemplatedState currentState = TemplatedState();
-
 
   @override
-  TemplatedState createState() => currentState;
-
-  TemplatedState getState() {
-    return currentState;
-  }
-
+  TemplatedState createState() => TemplatedState();
 
 }
 

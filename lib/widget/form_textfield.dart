@@ -37,7 +37,9 @@ class PasswordField extends BaseTextField {
 
   @override
   Map<String, Function> getters() {
-    return _controller.getters();
+    Map<String, Function> myGetters = _controller.getters();
+    myGetters['value'] = () => textController.text;
+    return myGetters;
   }
 
   @override
