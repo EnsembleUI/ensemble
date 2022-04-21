@@ -1,5 +1,5 @@
 import 'package:ensemble/ensemble.dart';
-import 'package:ensemble/framework/ensemble_context.dart';
+import 'package:ensemble/framework/context.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/http_utils.dart';
@@ -42,6 +42,9 @@ class ScreenController {
         apiMap[key] = value;
       });
     }
+
+    // we now have the build context
+    pageModel.eContext.setBuildContext(context);
 
     PageData pageData = PageData(
       pageTitle: pageModel.title,
@@ -197,8 +200,8 @@ class ScreenController {
         YamlMap? api = viewState.widget.pageData.apiMap?[apiName];
         if (api != null) {
           HttpUtils.invokeApi(api, eContext: eContext)
-              .then((result) => onAPIResponse(context, api, apiName, result))
-              .onError((error, stackTrace) => onApiError(context, api, error));
+              .then((result) => onAPIResponse(context, eContext, api, apiName, result))
+              .onError((error, stackTrace) => onApiError(context, eContext, api, error));
         }
       } else if (payload['action'] == ActionType.navigateScreen.name) {
 
@@ -235,7 +238,7 @@ class ScreenController {
   }
 
   /// e.g upon return of API result
-  void onAPIResponse(BuildContext context, YamlMap apiPayload, String actionName, Map<String, dynamic> result) {
+  void onAPIResponse(BuildContext context, EnsembleContext eContext, YamlMap apiPayload, String actionName, Map<String, dynamic> result) {
     ViewState? viewState = context.findRootAncestorStateOfType<ViewState>();
     // when API is invoked before the page is load, we don't have the context
     // of the page. In this case fallback to the initial View (which should
@@ -245,7 +248,7 @@ class ScreenController {
     if (viewState != null && viewState.mounted) {
       // process API response
       if (apiPayload['onResponse'] != null) {
-        processCodeBlock(apiPayload['onResponse'].toString());
+        processCodeBlock(eContext, apiPayload['onResponse'].toString());
       }
 
       // update data source, which will dispatch changes to its listeners
@@ -260,19 +263,19 @@ class ScreenController {
 
   }
 
-  void onApiError(BuildContext context, YamlMap apiPayload, Object? error) {
+  void onApiError(BuildContext context, EnsembleContext eContext, YamlMap apiPayload, Object? error) {
     if (apiPayload['onError'] != null) {
-      processCodeBlock(apiPayload['onError'].toString());
+      processCodeBlock(eContext, apiPayload['onError'].toString());
     }
 
     // silently fail if error handle is not defined? or should we alert user?
   }
 
-  void processCodeBlock(String codeBlock) {
-    Match? match = RegExp("//.*@code\n").matchAsPrefix(codeBlock);
-    if (match != null) {
-      String code = codeBlock.substring(match.end);
-      print(">>$code<<");
+  void processCodeBlock(EnsembleContext eContext, String codeBlock) {
+    try {
+      eContext.evalCode(codeBlock);
+    } catch (e) {
+      print ("Code block exception: " + e.toString());
     }
   }
 

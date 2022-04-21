@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 
-import 'package:ensemble/framework/ensemble_context.dart';
+import 'package:ensemble/framework/context.dart';
 import 'package:ensemble/provider.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/http_utils.dart';
@@ -107,9 +107,10 @@ class Ensemble {
       // fetch data remotely before loading page
       String? apiName = snapshot.data['Action']?['pageload']?['api'];
       if (apiName != null) {
+        EnsembleContext eContext = EnsembleContext(buildContext: context, dataMap: pageArgs);
         return FutureBuilder(
             future: HttpUtils.invokeApi(
-                snapshot.data['API'][apiName], eContext: EnsembleContext(pageArgs)),
+                snapshot.data['API'][apiName], eContext: eContext),
             builder: (context, AsyncSnapshot apiSnapshot) {
               if (!apiSnapshot.hasData) {
                 return const Scaffold(
@@ -135,6 +136,7 @@ class Ensemble {
               WidgetsBinding.instance!.addPostFrameCallback((_) =>
                   ScreenController().onAPIResponse(
                       context,
+                      eContext,
                       snapshot.data['API'][apiName],
                       snapshot.data['Action']?['pageload']?['api'],
                       apiSnapshot.data));

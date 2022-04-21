@@ -1,7 +1,7 @@
 import 'dart:developer';
 import 'dart:math';
 import 'package:ensemble/error_handling.dart';
-import 'package:ensemble/framework/ensemble_context.dart';
+import 'package:ensemble/framework/context.dart';
 import 'package:ensemble/layout/Row.dart';
 import 'package:ensemble/layout/hstack_builder.dart';
 import 'package:ensemble/util/utils.dart';
@@ -33,7 +33,7 @@ class PageModel {
 
   PageModel ({required YamlMap data, Map<String, dynamic>? pageArguments}) {
     // build the page context from
-    eContext = EnsembleContext(pageArguments);
+    eContext = EnsembleContext(dataMap: pageArguments);
 
     processAPI(data['API']);
     processModel(data);

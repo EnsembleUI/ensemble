@@ -1,5 +1,5 @@
 
-import 'package:ensemble/framework/ensemble_context.dart';
+import 'package:ensemble/framework/context.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -79,7 +79,7 @@ class RowState extends WidgetState<Row> {
 
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext buildContext) {
 
     List<Widget> children = widget.children ?? [];
 
@@ -104,7 +104,7 @@ class RowState extends WidgetState<Row> {
         // we need to have at least 2+ tokens e.g apiName.key1
         if (dataTokens.length >= 2) {
           // exclude the apiName and reconstruct the variable
-          EnsembleContext context = EnsembleContext(itemTemplateData);
+          EnsembleContext context = EnsembleContext(buildContext: buildContext, dataMap: itemTemplateData);
           dynamic dataList = context.evalVariable(dataTokens.sublist(1).join('.'));
           if (dataList is List) {
             rendererItems = dataList;
@@ -120,7 +120,7 @@ class RowState extends WidgetState<Row> {
           // Here we need to add a prefix using the item-template's name
           // TODO: also need context from the current page
           Map<String, dynamic> localizedDataMap = {widget.itemTemplate!.name: dataMap};
-          EnsembleContext localizedContext = EnsembleContext(localizedDataMap);
+          EnsembleContext localizedContext = EnsembleContext(dataMap: localizedDataMap);
 
           // Unfortunately we need to get the SubView as we are building the template.
           // TODO: refactor this. Widget shouldn't need to know about this
