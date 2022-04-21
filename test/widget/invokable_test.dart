@@ -1,5 +1,5 @@
 
-import 'package:ensemble/framework/ensemble_context.dart';
+import 'package:ensemble/framework/context.dart';
 import 'package:ensemble/layout/Column.dart';
 import 'package:ensemble/widget/Text.dart';
 import 'package:ensemble/widget/button.dart';

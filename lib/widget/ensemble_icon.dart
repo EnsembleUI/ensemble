@@ -1,5 +1,5 @@
 
-import 'package:ensemble/framework/Icon.dart' as ensembleLib;
+import 'package:ensemble/framework/icon.dart' as ensembleLib;
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget.dart';
 import 'package:flutter/material.dart';
