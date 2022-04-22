@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer';
 
 import 'package:ensemble/framework/context.dart';
+import 'package:ensemble/framework/library.dart';
 import 'package:ensemble/provider.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/http_utils.dart';
@@ -102,15 +103,17 @@ class Ensemble {
       );
     }
 
+    // init our context with the Page arguments
+    EnsembleContext eContext = EnsembleContext(buildContext: context, initialMap: pageArgs);
+
     // load page
     if (snapshot.data['View'] != null) {
       // fetch data remotely before loading page
       String? apiName = snapshot.data['Action']?['pageload']?['api'];
       if (apiName != null) {
-        EnsembleContext eContext = EnsembleContext(buildContext: context, initialMap: pageArgs);
+        YamlMap apiPayload = snapshot.data['API'][apiName];
         return FutureBuilder(
-            future: HttpUtils.invokeApi(
-                snapshot.data['API'][apiName], eContext: eContext),
+            future: HttpUtils.invokeApi(apiPayload, eContext),
             builder: (context, AsyncSnapshot apiSnapshot) {
               if (!apiSnapshot.hasData) {
                 return const Scaffold(
@@ -119,6 +122,7 @@ class Ensemble {
                     )
                 );
               } else if (apiSnapshot.hasError) {
+                ScreenController().onApiError(eContext, apiPayload, apiSnapshot.error);
                 return const Scaffold(
                     body: Center(
                         child: Text(
@@ -126,27 +130,21 @@ class Ensemble {
                     )
                 );
               }
-              // merge API data with page arguments, then load
-              pageArgs ??= {};
-              pageArgs?[snapshot.data['Action']?['pageload']?['api']] =
-                  apiSnapshot.data;
 
-              // itemTemplate listens for data changes, but the page has not been loaded yet,
-              // so we will dispatch the data changes AFTER screen rendering
-              WidgetsBinding.instance!.addPostFrameCallback((_) =>
-                  ScreenController().onAPIResponse(
-                      context,
-                      eContext,
-                      snapshot.data['API'][apiName],
-                      snapshot.data['Action']?['pageload']?['api'],
-                      apiSnapshot.data));
+              // update our context with API result
+              eContext.addInvokableContext(apiName, APIResponse(apiSnapshot.data));
 
-              return _renderPage(
-                  context, pageName, snapshot, args: pageArgs);
+              // render the page
+              Widget page = _renderPage(context, eContext, pageName, snapshot);
+
+              // once page has been rendered, run the onResponse code block of the API
+              ScreenController().onAPIComplete(eContext, apiPayload, apiSnapshot.data);
+
+              return page;
             }
         );
       } else {
-        return _renderPage(context, pageName, snapshot, args: pageArgs);
+        return _renderPage(context, eContext, pageName, snapshot);
       }
     }
     // else error
@@ -211,14 +209,14 @@ class Ensemble {
 
   Widget _renderPage(
       BuildContext context,
+      EnsembleContext eContext,
       String pageName,
       AsyncSnapshot<dynamic> snapshot,
       {
-        bool replace=false,
-        Map<String, dynamic>? args
+        bool replace=false
       }) {
     //log ("Screen Arguments: " + args.toString());
-    return ScreenController().renderPage(context, pageName, snapshot.data, args: args);
+    return ScreenController().renderPage(context, eContext, pageName, snapshot.data);
   }
 
 }

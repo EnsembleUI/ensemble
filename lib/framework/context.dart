@@ -15,7 +15,7 @@ class EnsembleContext {
     Map<String, dynamic>? initialMap
   }) {
     if (buildContext != null) {
-      setBuildContext(buildContext);
+      _setBuildContext(buildContext);
     }
 
     if (initialMap != null) {
@@ -24,7 +24,7 @@ class EnsembleContext {
   }
 
   /// Ensemble library requires buildContext to work
-  void setBuildContext(BuildContext buildContext) {
+  void _setBuildContext(BuildContext buildContext) {
     _buildContext = buildContext;
     _contextMap['ensemble'] = EnsembleLibrary(buildContext);
   }

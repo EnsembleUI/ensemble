@@ -17,9 +17,9 @@ class PageModel {
     'Functions'
   ];
 
+  final EnsembleContext eContext;
   String? title;
   Map<String, dynamic>? pageStyles;
-  late EnsembleContext eContext;
   Map<String, YamlMap>? subViewDefinitions;
   List<MenuItem> menuItems = [];
   late WidgetModel rootWidgetModel;
@@ -30,10 +30,7 @@ class PageModel {
   final Map<String, LayoutModel> layoutModels = {};
 
 
-
-  PageModel ({required YamlMap data, Map<String, dynamic>? pageArguments}) {
-    // build the page context from
-    eContext = EnsembleContext(initialMap: pageArguments);
+  PageModel (this.eContext, YamlMap data) {
 
     processAPI(data['API']);
     processModel(data);
