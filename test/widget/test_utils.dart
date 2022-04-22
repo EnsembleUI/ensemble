@@ -8,7 +8,7 @@ class TestUtils {
     return Builder(builder: (BuildContext context) {
       return MaterialApp(
           home: Scaffold(
-              body: widgetBuilder.buildWidget(context: context)
+              body: widgetBuilder.buildWidget()
           )
       );
     });

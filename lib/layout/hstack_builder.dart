@@ -51,7 +51,6 @@ class HStackBuilder extends BaseLayout {
 
   @override
   Widget buildWidget({
-    required BuildContext context,
     List<Widget>? children,
     ItemTemplate? itemTemplate}) {
     return HStack(builder: this, children: children, itemTemplate: itemTemplate);

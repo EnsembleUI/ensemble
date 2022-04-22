@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/context.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/layout_utils.dart';
 import 'package:flutter/cupertino.dart';
@@ -74,13 +75,15 @@ class PageData {
   PageData({
     required this.pageName,
     required this.datasourceMap,
+    required EnsembleContext eContext,
     this.subViewDefinitions,
     this.pageStyles,
     this.pageTitle,
     this.pageType,
-    this.args,
     this.apiMap
-  });
+  }) {
+    _eContext = eContext;
+  }
 
   final String? pageTitle;
 
@@ -98,20 +101,19 @@ class PageData {
   final Map<String, YamlMap>? subViewDefinitions;
 
   // arguments passed into this page
-  Map<String, dynamic>? args;
+  late final EnsembleContext _eContext;
 
   // API model mapping
   Map<String, YamlMap>? apiMap;
 
-  Map<String, dynamic> getPageData() {
-    Map<String, dynamic> dataMap = args ?? {};
-    datasourceMap.values.forEach((element) {
+  /// everytime we call this, we make sure any populated API result will have its updated values here
+  EnsembleContext getEnsembleContext() {
+    for (var element in datasourceMap.values) {
       if (element._resultData != null) {
-        dataMap.addAll(element._resultData!);
+        _eContext.addDataContext(element._resultData!);
       }
-
-    });
-    return dataMap;
+    }
+    return _eContext;
   }
 
 }

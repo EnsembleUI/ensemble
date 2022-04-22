@@ -1,8 +1,9 @@
 
-import 'package:ensemble/framework/Icon.dart' as ensemble;
+import 'package:ensemble/framework/icon.dart' as ensemble;
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/widgets.dart';
+import 'package:ensemble/widget/widget.dart';
 import 'package:flutter/material.dart';
+import 'package:sdui/invokables/invokable.dart';
 
 
 
@@ -12,16 +13,19 @@ class TextField extends BaseTextField {
 
   @override
   Map<String, Function> getters() {
-    Map<String, Function> myGetters = _controller.getters();
-    myGetters['value'] = () => textController.text;
-    return myGetters;
+    return {
+      'value': () => textController.text,
+    };
   }
-
   @override
   Map<String, Function> setters() {
-    Map<String, Function> mySetters = _controller.setters();
-    mySetters['value'] = (newValue) => textController.text = newValue;
-    return mySetters;
+    return {
+      'value': (newValue) => textController.text = newValue,
+    };
+  }
+  @override
+  Map<String, Function> methods() {
+    return {};
   }
 
   @override
@@ -37,12 +41,17 @@ class PasswordField extends BaseTextField {
 
   @override
   Map<String, Function> getters() {
-    return _controller.getters();
+    return {
+      'value': () => textController.text,
+    };
   }
-
   @override
   Map<String, Function> setters() {
-    return _controller.setters();
+    return {};
+  }
+  @override
+  Map<String, Function> methods() {
+    return {};
   }
 
   @override
@@ -52,7 +61,7 @@ class PasswordField extends BaseTextField {
 
 }
 
-abstract class BaseTextField extends StatefulWidget with UpdatableWidget<TextFieldController, TextFieldState> {
+abstract class BaseTextField extends StatefulWidget with Invokable, HasController<TextFieldController, TextFieldState> {
   BaseTextField({Key? key}) : super(key: key);
 
   // textController manages 'value', while _controller manages the rest
@@ -68,12 +77,13 @@ abstract class BaseTextField extends StatefulWidget with UpdatableWidget<TextFie
 
 }
 
+/// controller for both TextField and Password
 class TextFieldController extends FormFieldController {
   int? fontSize;
 
   @override
-  Map<String, Function> getters() {
-    Map<String, Function> myGetters = super.getters();
+  Map<String, Function> getBaseGetters() {
+    Map<String, Function> myGetters = super.getBaseGetters();
     myGetters.addAll({
       'fontSize': () => fontSize,
     });
@@ -81,8 +91,8 @@ class TextFieldController extends FormFieldController {
   }
 
   @override
-  Map<String, Function> setters() {
-    Map<String, Function> mySetters = super.setters();
+  Map<String, Function> getBaseSetters() {
+    Map<String, Function> mySetters = super.getBaseSetters();
     mySetters.addAll({
       'fontSize': (value) => fontSize = Utils.optionalInt(value),
     });
@@ -91,7 +101,7 @@ class TextFieldController extends FormFieldController {
 
 }
 
-class TextFieldState extends EnsembleWidgetState<BaseTextField> {
+class TextFieldState extends WidgetState<BaseTextField> {
   final focusNode = FocusNode();
 
   // error to show the user

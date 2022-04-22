@@ -1,11 +1,12 @@
 
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/widgets.dart';
+import 'package:ensemble/widget/widget.dart' as w;
 import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as material;
+import 'package:sdui/invokables/invokable.dart';
 
-class Text extends StatefulWidget with UpdatableWidget<TextController, TextState> {
+class Text extends StatefulWidget with Invokable, HasController<TextController, TextState> {
   static const type = 'Text';
   Text({Key? key}) : super(key: key);
 
@@ -38,11 +39,17 @@ class Text extends StatefulWidget with UpdatableWidget<TextController, TextState
   }
 
   @override
+  Map<String, Function> methods() {
+    return {};
+  }
+
+
+  @override
   TextState createState() => TextState();
 
 }
 
-class TextController extends WidgetController {
+class TextController extends w.WidgetController {
   String? text;
   String? font;
   int? fontSize;
@@ -54,7 +61,7 @@ class TextController extends WidgetController {
   String? lineHeight;
 }
 
-class TextState extends EnsembleWidgetState<Text> {
+class TextState extends WidgetState<Text> {
   @override
   Widget build(BuildContext context) {
     FontWeight? fontWeight;

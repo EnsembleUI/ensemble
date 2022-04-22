@@ -67,7 +67,6 @@ class ChartPieBuilder extends ensemble.WidgetBuilder {
 
   @override
   Widget buildWidget({
-    required BuildContext context,
     List<Widget>? children,
     ItemTemplate? itemTemplate}) {
     return EnsemblePieChart(builder: this);
