@@ -5,6 +5,7 @@ import 'package:ensemble/widget/Text.dart';
 import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/form_textfield.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sdui/invokables/invokable.dart';
 
 void main() {
 
@@ -18,7 +19,7 @@ void main() {
   };
 
   EnsembleContext getBaseContext() {
-    return EnsembleContext(dataMap);
+    return EnsembleContext(initialMap: dataMap);
   }
 
   EnsembleContext getDataAndWidgetContext() {
@@ -48,7 +49,8 @@ void main() {
 
   test('Parsing expressions', () {
     // empty context returns original
-    EnsembleContext context = EnsembleContext({});
+    EnsembleContext context = EnsembleContext(initialMap: {});
+    expect(context.eval(r'$(blah)'), r'blah');
     expect(context.eval(r'$(result.name)'), r'result.name');
 
     context = getBaseContext();
@@ -69,12 +71,14 @@ void main() {
     expect(context.evalVariable('result.age'), 25);
     expect(context.evalVariable('result').toString(), dataMap['result'].toString());
   });
+
+
   
   test("Widget getters", () {
     EnsembleContext context = getDataAndWidgetContext();
     
-    expect(context.eval(r'$(myText.text) there $(result.name)'), 'Hello there Peter Parker');
-    expect(context.eval(r'$(myTextField.value)'), 'Ronald');
+    //expect(context.eval(r'$(myText.text) there $(result.name)'), 'Hello there Peter Parker');
+    //expect(context.eval(r'$(myTextField.value)'), 'Ronald');
 
     // invalid getter
     expect(context.eval(r'$(myTextField.what)'), 'myTextField.what');
@@ -97,11 +101,64 @@ void main() {
     EnsembleContext context = getDataAndWidgetContext();
     expect(context.eval(r'$(myText.text) $(myTextField.value)'), 'Hello Ronald');
 
-    context.evalCode(
-    r' myText.text = "Goodbye"; '
-    r' myTextField.value = "Peter"; ');
-    // will fail until evalCode() implementation
+    // TODO: use AST instead of code
+    //context.evalCode('myText.text = "Goodbye"; myTextField.value = "Peter";');
     //expect(context.eval(r'$(myText.text) $(myTextField.value)'), 'Goodbye Peter');
   });
+
+  test("Recursive invokable", () {
+    EnsembleContext context = getBaseContext();
+    context.addInvokableContext("ensemble", EnsembleMockLibrary());
+    expect(context.eval(r'$(ensemble.storage.get("username"))'), 'admin');
+    expect(context.eval(r'Psst $(ensemble.storage.get("password"))'), 'Psst pass');
+  });
+
+}
+
+class EnsembleMockLibrary with Invokable {
+  @override
+  Map<String, Function> getters() {
+    return {
+      'storage': () => MockStorage()
+    };
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
+  }
+
+}
+
+class MockStorage with Invokable {
+  final Map<String, dynamic> data = {
+    'username': 'admin',
+    'password': 'pass'
+  };
+
+  @override
+  Map<String, Function> getters() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {
+      'get': (String key) {
+        return data[key];
+      },
+      'set': (String key, dynamic value) => data[key] = value
+    };
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
+  }
 
 }

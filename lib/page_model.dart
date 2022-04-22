@@ -33,7 +33,7 @@ class PageModel {
 
   PageModel ({required YamlMap data, Map<String, dynamic>? pageArguments}) {
     // build the page context from
-    eContext = EnsembleContext(dataMap: pageArguments);
+    eContext = EnsembleContext(initialMap: pageArguments);
 
     processAPI(data['API']);
     processModel(data);
@@ -153,7 +153,9 @@ class PageModel {
         // add (and potentially overwrite) parameters to our data map
         for (var param in (subViewMap['parameters'] as YamlList)) {
           if (itemMap[param] != null) {
-            localizedContext.addDataContextById(param, eContext.eval(itemMap[param]));
+            eContext.eval(itemMap[param]).then(
+                    (value) => localizedContext.addDataContextById(param, value));
+
           }
         }
         //log("LocalizedMap: " + localizedArgs.toString());
@@ -188,25 +190,30 @@ class PageModel {
         if (key == 'styles') {
           // expand the style map
           (value as YamlMap).forEach((styleKey, styleValue) {
-            styles[styleKey] = eContext.eval(styleValue);
+            eContext.eval(styleValue).then(
+                    (value) => styles[styleKey] = value);
           });
         } else if (key == "children") {
           children = buildModels(value, eContext, subViewDefinitions);
         } else if (key == "item-template") {
           // attempt to resolve the localized dataMap fed into the item template
           // we only take it if it resolves to a list
-          List<dynamic>? localizedDataList;
-          dynamic templateDataResult = eContext.eval(value['data']);
-          if (templateDataResult is List<dynamic>) {
-            localizedDataList = templateDataResult;
-          }
+          eContext.eval(value['data']).then((value) {
+            List<dynamic>? localizedDataList;
+            dynamic templateDataResult = value;
+            if (templateDataResult is List<dynamic>) {
+              localizedDataList = templateDataResult;
+            }
 
-          // item template should only have 1 root widget
-          itemTemplate = ItemTemplate(
-              value['data'],
-              value['name'],
-              value['template'],
-              localizedDataList);
+            // item template should only have 1 root widget
+            itemTemplate = ItemTemplate(
+                value['data'],
+                value['name'],
+                value['template'],
+                localizedDataList);
+          });
+
+
         }
         // actions like onTap should evaluate its expressions upon the action only
         else if (key.toString().startsWith("on")) {
@@ -215,7 +222,7 @@ class PageModel {
         // this is tricky. We only want to evaluate properties most likely, so need
         // a way to distinguish them
         else {
-          props[key] = eContext.eval(value);
+          eContext.eval(value).then((value) => props[key] = value);
         }
       }
     });

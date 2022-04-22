@@ -110,7 +110,7 @@ class PageData {
   EnsembleContext getEnsembleContext() {
     for (var element in datasourceMap.values) {
       if (element._resultData != null) {
-        _eContext.addDataContext(element._resultData);
+        _eContext.addDataContext(element._resultData!);
       }
     }
     return _eContext;
