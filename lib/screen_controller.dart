@@ -1,15 +1,19 @@
+import 'dart:convert';
+
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/context.dart';
+import 'package:ensemble/framework/library.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/http_utils.dart';
-import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/view.dart';
-import 'package:ensemble/widget/container.dart';
 import 'package:ensemble/widget/unknown_builder.dart';
 import 'package:ensemble/widget/widget_builder.dart' as ensemble;
 import 'package:ensemble/widget/widget_registry.dart';
-import 'package:ensemble/widget/widgets.dart';
+import 'package:ensemble/widget/widget.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart';
+import 'package:sdui/invokables/invokable.dart';
 import 'package:yaml/yaml.dart';
 
 
@@ -33,8 +37,8 @@ class ScreenController {
 
   // TODO: Back button will still use the curent page PageMode. Need to keep model state
   /// render the page from the definition and optional arguments (from previous pages)
-  Widget renderPage(BuildContext context, String pageName, YamlMap data, {Map<String, dynamic>? args}) {
-    PageModel pageModel = PageModel(data: data, args: args);
+  Widget renderPage(BuildContext context, EnsembleContext eContext, String pageName, YamlMap data) {
+    PageModel pageModel = PageModel(eContext, data);
 
     Map<String, YamlMap>? apiMap = {};
     if (data['API'] != null) {
@@ -50,7 +54,7 @@ class ScreenController {
       pageType: pageModel.pageType,
       datasourceMap: {},
       subViewDefinitions: pageModel.subViewDefinitions,
-      args: args,
+      eContext: pageModel.eContext,
       apiMap: apiMap
     );
 
@@ -59,7 +63,7 @@ class ScreenController {
 
   }
 
-  Widget? _buildFooter(BuildContext context, PageModel pageModel) {
+  Widget? _buildFooter(EnsembleContext eContext, PageModel pageModel) {
     // Footer can only take 1 child by our design. Ignore the rest
     if (pageModel.footer != null && pageModel.footer!.children.isNotEmpty) {
       return AnimatedOpacity(
@@ -70,7 +74,7 @@ class ScreenController {
             height: 110,
             child: Padding(
               padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 32),
-              child: _buildChildren(context, [pageModel.footer!.children.first]).first,
+              child: (_buildChildren(eContext, [pageModel.footer!.children.first])).first,
             )
           )
       );
@@ -103,27 +107,28 @@ class ScreenController {
     // save the current view to look up when populating initial API load ONLY
     initialView = View(
         pageData,
-        buildWidget(context, pageModel.rootWidgetModel),
-        footer: _buildFooter(context, pageModel),
+        buildWidget(pageData.getEnsembleContext(), pageModel.rootWidgetModel),
+        footer: _buildFooter(pageData.getEnsembleContext(), pageModel),
         navBar: _buildNavigationBar(context, pageModel));
     return initialView!;
   }
 
 
-  List<Widget> _buildChildren(BuildContext context, List<WidgetModel> models) {
+  List<Widget> _buildChildren(EnsembleContext eContext, List<WidgetModel> models) {
     List<Widget> children = [];
     for (WidgetModel model in models) {
-      children.add(buildWidget(context, model));
+      children.add(buildWidget(eContext, model));
     }
     return children;
   }
 
   /// build a widget from a given model
-  Widget buildWidget(BuildContext context, WidgetModel model) {
+  Widget buildWidget(EnsembleContext eContext, WidgetModel futureModel) {
+    WidgetModel model = futureModel;
 
     Function? widgetInstance = WidgetRegistry.widgetMap[model.type];
     if (widgetInstance != null) {
-      UpdatableWidget widget = widgetInstance.call();
+      Invokable widget = widgetInstance.call();
 
       // set props and styles on the widget. At this stage the widget
       // has not been attached, so no worries about ValueNotifier
@@ -137,17 +142,21 @@ class ScreenController {
           widget.setProperty(key, model.styles[key]);
         }
       }
+      // save a mapping to the widget ID to our context
+      if (model.props.containsKey('id')) {
+        eContext.addInvokableContext(model.props['id'], widget);
+      }
 
       // build children and pass itemTemplate for Containers
       if (widget is UpdatableContainer) {
         List<Widget>? layoutChildren;
         if (model.children != null) {
-          layoutChildren = _buildChildren(context, model.children!);
+          layoutChildren = _buildChildren(eContext, model.children!);
         }
         (widget as UpdatableContainer).initChildren(children: layoutChildren, itemTemplate: model.itemTemplate);
       }
 
-      return widget;
+      return widget as HasController;
     } else {
       WidgetBuilderFunc builderFunc = WidgetRegistry.widgetBuilders[model.type]
           ?? UnknownBuilder.fromDynamic;
@@ -159,11 +168,11 @@ class ScreenController {
       // first create the child widgets for layouts
       List<Widget>? layoutChildren;
       if (model.children != null) {
-        layoutChildren = _buildChildren(context, model.children!);
+        layoutChildren = _buildChildren(eContext, model.children!);
       }
 
       // create the widget
-      return builder.buildWidget(context: context, children: layoutChildren, itemTemplate: model.itemTemplate);
+      return builder.buildWidget(children: layoutChildren, itemTemplate: model.itemTemplate);
     }
 
   }
@@ -183,29 +192,34 @@ class ScreenController {
 
 
   /// handle Action e.g invokeAPI
-  void executeAction(BuildContext context, YamlMap payload) async {
+  void executeAction(BuildContext context, YamlMap payload) {
     ViewState? viewState = context.findRootAncestorStateOfType<ViewState>();
     if (viewState != null) {
+      EnsembleContext eContext = viewState.widget.pageData.getEnsembleContext();
 
       if (payload["action"] == ActionType.invokeAPI.name) {
         String apiName = payload['name'];
         YamlMap? api = viewState.widget.pageData.apiMap?[apiName];
         if (api != null) {
-          HttpUtils.invokeApi(api).then((result) => onActionResponse(context, apiName, result));
+          HttpUtils.invokeApi(api, eContext)
+              .then((response) => _onAPIResponse(context, eContext, api, apiName, response))
+              .onError((error, stackTrace) => onApiError(eContext, api, error));
         }
       } else if (payload['action'] == ActionType.navigateScreen.name) {
 
         Map<String, dynamic>? nextArgs = {};
         if (payload['inputs'] is YamlMap) {
-          Map<String, dynamic> tempArgs = viewState.widget.pageData.getPageData();
+          EnsembleContext localizedContext = eContext.clone();
+
           // then add localized templated data (for now just go up 1 level)
+          // this essentially add a reference to the templated data's name
           TemplatedState? templatedState = context.findRootAncestorStateOfType<TemplatedState>();
           if (templatedState != null) {
-            tempArgs.addAll(templatedState.widget.localDataMap);
+            localizedContext.addDataContext(templatedState.widget.localDataMap);
           }
 
           (payload['inputs'] as YamlMap).forEach((key, value) {
-            nextArgs[key] = Utils.evalExpression(value, tempArgs);
+            nextArgs[key] = localizedContext.eval(value);
           });
         }
         // args may be cleared out on hot reload. Check this
@@ -227,23 +241,57 @@ class ScreenController {
   }
 
   /// e.g upon return of API result
-  void onActionResponse(BuildContext context, String actionName, Map<String, dynamic> result) {
+  void _onAPIResponse(BuildContext context, EnsembleContext eContext, YamlMap apiPayload, String actionName, Response response) {
     ViewState? viewState = context.findRootAncestorStateOfType<ViewState>();
-    // when API is invoked before the page is load, we don't have the context
-    // of the page. In this case fallback to the initial View (which should
-    // always be the correct one we want to populate?)
-    viewState ??= initialView?.getState();
-
     if (viewState != null && viewState.mounted) {
-      ActionResponse? action = viewState.widget.pageData.datasourceMap[actionName];
-      if (action == null) {
-        action = ActionResponse();
-        viewState.widget.pageData.datasourceMap[actionName] = action;
+      try {
+        // only support JSON result for now
+        Map<String, dynamic> jsonBody = json.decode(response.body);
+
+        // update data source, which will dispatch changes to its listeners
+        ActionResponse? action = viewState.widget.pageData.datasourceMap[actionName];
+        if (action == null) {
+          action = ActionResponse();
+          viewState.widget.pageData.datasourceMap[actionName] = action;
+        }
+        action.resultData = jsonBody;
+
+        onAPIComplete(eContext, apiPayload, response);
+        
+      } on FormatException catch (_, e) {
+        print("Only JSON data supported");
       }
-      action.resultData = result;
+
+
     }
 
 
+  }
+
+  void onAPIComplete(EnsembleContext eContext, YamlMap apiPayload, Response response) {
+    if (apiPayload['onResponse'] != null) {
+      // add key 'response' to the local context when evaluating this code block
+      EnsembleContext codeContext = eContext.clone();
+      codeContext.addInvokableContext('response', APIResponse(response));
+
+      processCodeBlock(codeContext, apiPayload['onResponse'].toString());
+    }
+  }
+
+  void onApiError(EnsembleContext eContext, YamlMap apiPayload, Object? error) {
+    if (apiPayload['onError'] != null) {
+      processCodeBlock(eContext, apiPayload['onError'].toString());
+    }
+
+    // silently fail if error handle is not defined? or should we alert user?
+  }
+
+  void processCodeBlock(EnsembleContext eContext, String codeBlock) {
+    try {
+      eContext.evalCode(codeBlock);
+    } catch (e) {
+      print ("Code block exception: " + e.toString());
+    }
   }
 
 
@@ -252,6 +300,8 @@ class ScreenController {
   void selectNavigationIndex(BuildContext context, MenuItem menuItem) {
     Ensemble().navigateToPage(context, menuItem.page, replace: true);
   }
+
+
 
 
 

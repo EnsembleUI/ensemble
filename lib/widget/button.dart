@@ -1,10 +1,11 @@
 
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/widgets.dart';
+import 'package:ensemble/widget/widget.dart';
 import 'package:flutter/material.dart';
+import 'package:sdui/invokables/invokable.dart';
 
-class Button extends StatefulWidget with UpdatableWidget<ButtonController, ButtonState> {
+class Button extends StatefulWidget with Invokable, HasController<ButtonController, ButtonState> {
   static const type = 'Button';
   Button({Key? key}) : super(key: key);
 
@@ -16,7 +17,6 @@ class Button extends StatefulWidget with UpdatableWidget<ButtonController, Butto
   Map<String, Function> getters() {
     return {};
   }
-
   @override
   Map<String, Function> setters() {
     return {
@@ -29,6 +29,10 @@ class Button extends StatefulWidget with UpdatableWidget<ButtonController, Butto
       'borderRadius': (value) => _controller.borderRadius = Utils.optionalInt(value),
       'padding': (value) => _controller.padding = Utils.optionalInt(value),
     };
+  }
+  @override
+  Map<String, Function> methods() {
+    return {};
   }
 
   @override
@@ -48,7 +52,7 @@ class ButtonController extends WidgetController {
 }
 
 
-class ButtonState extends EnsembleWidgetState<Button> {
+class ButtonState extends WidgetState<Button> {
   @override
   Widget build(BuildContext context) {
 

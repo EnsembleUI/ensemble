@@ -1,15 +1,15 @@
 
+import 'package:ensemble/framework/context.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/layout_utils.dart';
-import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/container.dart';
-import 'package:ensemble/widget/widgets.dart';
+import 'package:ensemble/widget/widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as flutter;
+import 'package:sdui/invokables/invokable.dart';
 
-class Row extends StatefulWidget with UpdatableContainer, UpdatableWidget<BoxLayoutController, RowState> {
+class Row extends StatefulWidget with UpdatableContainer, Invokable, HasController<BoxLayoutController, RowState> {
   static const type = 'Row';
   Row({Key? key}) : super(key: key);
 
@@ -22,12 +22,15 @@ class Row extends StatefulWidget with UpdatableContainer, UpdatableWidget<BoxLay
 
   @override
   Map<String, Function> getters() {
-    return _controller.getters();
+    return {};
   }
-
   @override
   Map<String, Function> setters() {
-    return _controller.setters();
+    return {};
+  }
+  @override
+  Map<String, Function> methods() {
+    return {};
   }
 
   @override
@@ -38,9 +41,11 @@ class Row extends StatefulWidget with UpdatableContainer, UpdatableWidget<BoxLay
 
   @override
   State<StatefulWidget> createState() => RowState();
+
+
 }
 
-class RowState extends EnsembleWidgetState<Row> {
+class RowState extends WidgetState<Row> {
   // data exclusively for item template (e.g api result)
   Map<String, dynamic>? itemTemplateData;
 
@@ -74,7 +79,7 @@ class RowState extends EnsembleWidgetState<Row> {
 
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext buildContext) {
 
     List<Widget> children = widget.children ?? [];
 
@@ -99,7 +104,8 @@ class RowState extends EnsembleWidgetState<Row> {
         // we need to have at least 2+ tokens e.g apiName.key1
         if (dataTokens.length >= 2) {
           // exclude the apiName and reconstruct the variable
-          dynamic dataList = Utils.evalVariable(dataTokens.sublist(1).join('.'), itemTemplateData);
+          EnsembleContext context = EnsembleContext(buildContext: buildContext, initialMap: itemTemplateData);
+          dynamic dataList = context.evalVariable(dataTokens.sublist(1).join('.'));
           if (dataList is List) {
             rendererItems = dataList;
           }
@@ -110,20 +116,23 @@ class RowState extends EnsembleWidgetState<Row> {
       // now loop through each and render the content
       if (rendererItems != null) {
         for (Map<String, dynamic> dataMap in rendererItems) {
-          // our dataMap needs to have a prefix using item-template's name
-          Map<String, dynamic> updatedDataMap = {widget.itemTemplate!.name: dataMap};
+          // we need to build a context localized to this item template.
+          // Here we need to add a prefix using the item-template's name
+          // TODO: also need context from the current page
+          Map<String, dynamic> localizedDataMap = {widget.itemTemplate!.name: dataMap};
+          EnsembleContext localizedContext = EnsembleContext(buildContext: buildContext, initialMap: localizedDataMap);
 
           // Unfortunately we need to get the SubView as we are building the template.
           // TODO: refactor this. Widget shouldn't need to know about this
           WidgetModel model = PageModel.buildModel(
               widget.itemTemplate!.template,
-              updatedDataMap,
+              localizedContext,
               ScreenController().getSubViewDefinitionsFromRootView(context));
-          Widget templatedWidget = ScreenController().buildWidget(context, model);
+          Widget templatedWidget = ScreenController().buildWidget(localizedContext, model);
 
           // wraps each templated widget under Templated so we can
           // constraint the data scope
-          children.add(Templated(localDataMap: updatedDataMap, child: templatedWidget));
+          children.add(Templated(localDataMap: localizedDataMap, child: templatedWidget));
         }
       }
 
@@ -133,7 +142,9 @@ class RowState extends EnsembleWidgetState<Row> {
     // wrap each child with Expanded if specified
     List<Widget> updatedChildren = [];
     for (Widget child in children) {
-      if (child is UpdatableWidget && child.controller.expanded) {
+      if (child is HasController &&
+          child.controller is WidgetController &&
+          (child.controller as WidgetController).expanded) {
         updatedChildren.add(Expanded(child: child));
       } else {
         updatedChildren.add(child);

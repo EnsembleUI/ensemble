@@ -12,6 +12,6 @@ abstract class WidgetBuilder {
   }
   late final bool expanded;
 
-  Widget buildWidget({required BuildContext context, List<Widget>? children, ItemTemplate? itemTemplate});
+  Widget buildWidget({List<Widget>? children, ItemTemplate? itemTemplate});
 
 }
