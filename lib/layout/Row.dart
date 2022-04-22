@@ -104,7 +104,7 @@ class RowState extends WidgetState<Row> {
         // we need to have at least 2+ tokens e.g apiName.key1
         if (dataTokens.length >= 2) {
           // exclude the apiName and reconstruct the variable
-          EnsembleContext context = EnsembleContext(buildContext: buildContext, dataMap: itemTemplateData);
+          EnsembleContext context = EnsembleContext(buildContext: buildContext, initialMap: itemTemplateData);
           dynamic dataList = context.evalVariable(dataTokens.sublist(1).join('.'));
           if (dataList is List) {
             rendererItems = dataList;
@@ -120,7 +120,7 @@ class RowState extends WidgetState<Row> {
           // Here we need to add a prefix using the item-template's name
           // TODO: also need context from the current page
           Map<String, dynamic> localizedDataMap = {widget.itemTemplate!.name: dataMap};
-          EnsembleContext localizedContext = EnsembleContext(dataMap: localizedDataMap);
+          EnsembleContext localizedContext = EnsembleContext(buildContext: buildContext, initialMap: localizedDataMap);
 
           // Unfortunately we need to get the SubView as we are building the template.
           // TODO: refactor this. Widget shouldn't need to know about this

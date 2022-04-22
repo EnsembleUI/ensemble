@@ -58,13 +58,17 @@ class EnsembleStorage extends FlutterSecureStorage with Invokable {
   @override
   Map<String, Function> methods() {
     return {
-      'get': (String key) async => await read(key: key),
+      'get': getKey,
       'set': (String key, dynamic value) async {
         if (value != null) {
           await write(key: key, value: value);
         }
       }
     };
+  }
+
+  Future<String?> getKey(String key) async {
+    return await read(key: key);
   }
 
   @override

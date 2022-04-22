@@ -107,7 +107,7 @@ class Ensemble {
       // fetch data remotely before loading page
       String? apiName = snapshot.data['Action']?['pageload']?['api'];
       if (apiName != null) {
-        EnsembleContext eContext = EnsembleContext(buildContext: context, dataMap: pageArgs);
+        EnsembleContext eContext = EnsembleContext(buildContext: context, initialMap: pageArgs);
         return FutureBuilder(
             future: HttpUtils.invokeApi(
                 snapshot.data['API'][apiName], eContext: eContext),

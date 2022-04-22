@@ -9,22 +9,29 @@ import 'package:http/http.dart' as http;
 
 class HttpUtils {
 
-  static Future<Map<String, dynamic>> invokeApi(YamlMap api, {EnsembleContext? eContext}) async {
+  static Future<http.Response> invokeApi(YamlMap api, {EnsembleContext? eContext}) async {
     // headers
     Map<String, String> headers = {};
     if (api['headers'] is YamlMap) {
-      api['headers'].forEach((key, value) {
+      for (String key  in api['headers'].keys) {
+        String? value = api['headers'][key];
         if (value != null) {
-          headers[key.toString()] = eContext?.eval(value) ?? value;
+          headers[key] = await eContext?.eval(value);
         }
-      });
+      }
+      /*
+      await api['headers'].forEach((key, value) async {
+        if (value != null) {
+          headers[key.toString()] = await eContext?.eval(value);
+        }
+      });*/
     }
     // for now support body as JSON (or Yaml) only
     // here it's converted to YAML already
     String? bodyPayload;
     if (api['body'] is YamlMap) {
       String rawPayload = json.encode(api['body']);
-      bodyPayload = eContext != null ? eContext.eval(rawPayload) :  rawPayload;
+      bodyPayload = eContext != null ? await eContext.eval(rawPayload) :  rawPayload;
       // set Content-Type as json but don't override user's value if exists
       if (headers['Content-Type'] == null) {
         headers['Content-Type'] = 'application/json';
@@ -40,7 +47,7 @@ class HttpUtils {
       });
     }
 
-    String url = eContext?.eval(api['uri'].toString()) ?? api['uri'].toString();
+    String url = await eContext?.eval(api['uri'].toString()) ?? api['uri'].toString();
     bool isPost = api['method'] == 'POST';
 
     // GET
@@ -57,15 +64,13 @@ class HttpUtils {
       log("POST $url\nBody: $bodyPayload\nParams: "+params.toString());
     }
 
-    Completer<Map<String, dynamic>> completer = Completer();
-    final response = await (!isPost ?
+    Completer<http.Response> completer = Completer();
+    final http.Response response = await (!isPost ?
       http.get(Uri.parse(url), headers: headers) :
       http.post(Uri.parse(url), headers: headers, body: bodyPayload ?? params));
 
     if (response.statusCode == 200) {
-      // TODO: what if result is an Array json
-      Map<String, dynamic> result = json.decode(response.body);
-      completer.complete(result);
+      completer.complete(response);
     } else {
       completer.completeError("Unable to reach API");
     }

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/context.dart';
 import 'package:ensemble/layout/templated.dart';
@@ -9,6 +11,7 @@ import 'package:ensemble/widget/widget_builder.dart' as ensemble;
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble/widget/widget.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart';
 import 'package:sdui/invokables/invokable.dart';
 import 'package:yaml/yaml.dart';
 
@@ -73,7 +76,7 @@ class ScreenController {
             height: 110,
             child: Padding(
               padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 32),
-              child: _buildChildren(eContext, [pageModel.footer!.children.first]).first,
+              child: (_buildChildren(eContext, [pageModel.footer!.children.first])).first,
             )
           )
       );
@@ -122,7 +125,8 @@ class ScreenController {
   }
 
   /// build a widget from a given model
-  Widget buildWidget(EnsembleContext eContext, WidgetModel model) {
+  Widget buildWidget(EnsembleContext eContext, WidgetModel futureModel) {
+    WidgetModel model = futureModel;
 
     Function? widgetInstance = WidgetRegistry.widgetMap[model.type];
     if (widgetInstance != null) {
@@ -190,7 +194,7 @@ class ScreenController {
 
 
   /// handle Action e.g invokeAPI
-  void executeAction(BuildContext context, YamlMap payload) async {
+  void executeAction(BuildContext context, YamlMap payload) {
     ViewState? viewState = context.findRootAncestorStateOfType<ViewState>();
     if (viewState != null) {
       EnsembleContext eContext = viewState.widget.pageData.getEnsembleContext();
@@ -200,7 +204,7 @@ class ScreenController {
         YamlMap? api = viewState.widget.pageData.apiMap?[apiName];
         if (api != null) {
           HttpUtils.invokeApi(api, eContext: eContext)
-              .then((result) => onAPIResponse(context, eContext, api, apiName, result))
+              .then((response) => onAPIResponse(context, eContext, api, apiName, response))
               .onError((error, stackTrace) => onApiError(context, eContext, api, error));
         }
       } else if (payload['action'] == ActionType.navigateScreen.name) {
@@ -238,7 +242,7 @@ class ScreenController {
   }
 
   /// e.g upon return of API result
-  void onAPIResponse(BuildContext context, EnsembleContext eContext, YamlMap apiPayload, String actionName, Map<String, dynamic> result) {
+  void onAPIResponse(BuildContext context, EnsembleContext eContext, YamlMap apiPayload, String actionName, Response response) {
     ViewState? viewState = context.findRootAncestorStateOfType<ViewState>();
     // when API is invoked before the page is load, we don't have the context
     // of the page. In this case fallback to the initial View (which should
@@ -248,16 +252,34 @@ class ScreenController {
     if (viewState != null && viewState.mounted) {
       // process API response
       if (apiPayload['onResponse'] != null) {
-        processCodeBlock(eContext, apiPayload['onResponse'].toString());
+        // only support JSON result for now
+        try {
+          Map<String, dynamic> jsonBody = json.decode(response.body);
+
+          // add 'response' to the local context
+          EnsembleContext localizedContext = eContext.clone();
+          localizedContext.addDataContext({
+            'response': {
+              'body': jsonBody,
+              'headers': response.headers
+            }
+          });
+          processCodeBlock(localizedContext, apiPayload['onResponse'].toString());
+
+          // update data source, which will dispatch changes to its listeners
+          ActionResponse? action = viewState.widget.pageData.datasourceMap[actionName];
+          if (action == null) {
+            action = ActionResponse();
+            viewState.widget.pageData.datasourceMap[actionName] = action;
+          }
+          action.resultData = jsonBody;
+
+        } on FormatException catch (_, e) {
+          print("Only JSON data supported");
+        }
       }
 
-      // update data source, which will dispatch changes to its listeners
-      ActionResponse? action = viewState.widget.pageData.datasourceMap[actionName];
-      if (action == null) {
-        action = ActionResponse();
-        viewState.widget.pageData.datasourceMap[actionName] = action;
-      }
-      action.resultData = result;
+
     }
 
 
