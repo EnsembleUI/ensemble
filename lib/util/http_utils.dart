@@ -13,25 +13,23 @@ class HttpUtils {
     // headers
     Map<String, String> headers = {};
     if (api['headers'] is YamlMap) {
-      for (String key  in api['headers'].keys) {
-        String? value = api['headers'][key];
-        if (value != null) {
-          headers[key] = await eContext?.eval(value);
+      (api['headers'] as YamlMap).forEach((key, value) {
+        if (value != null && eContext != null) {
+          headers[key.toString()] = eContext.eval(value);
         }
-      }
-      /*
-      await api['headers'].forEach((key, value) async {
-        if (value != null) {
-          headers[key.toString()] = await eContext?.eval(value);
-        }
-      });*/
+      });
     }
     // for now support body as JSON (or Yaml) only
     // here it's converted to YAML already
     String? bodyPayload;
     if (api['body'] is YamlMap) {
       String rawPayload = json.encode(api['body']);
-      bodyPayload = eContext != null ? await eContext.eval(rawPayload) :  rawPayload;
+      if (eContext != null) {
+        bodyPayload = eContext.eval(rawPayload);
+      } else {
+        bodyPayload = rawPayload;
+      }
+
       // set Content-Type as json but don't override user's value if exists
       if (headers['Content-Type'] == null) {
         headers['Content-Type'] = 'application/json';
@@ -47,7 +45,7 @@ class HttpUtils {
       });
     }
 
-    String url = await eContext?.eval(api['uri'].toString()) ?? api['uri'].toString();
+    String url = eContext?.eval(api['uri'].toString()) ?? api['uri'].toString();
     bool isPost = api['method'] == 'POST';
 
     // GET

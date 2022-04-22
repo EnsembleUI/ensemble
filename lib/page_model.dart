@@ -190,30 +190,25 @@ class PageModel {
         if (key == 'styles') {
           // expand the style map
           (value as YamlMap).forEach((styleKey, styleValue) {
-            eContext.eval(styleValue).then(
-                    (value) => styles[styleKey] = value);
+            styles[styleKey] = eContext.eval(styleValue);
           });
         } else if (key == "children") {
           children = buildModels(value, eContext, subViewDefinitions);
         } else if (key == "item-template") {
           // attempt to resolve the localized dataMap fed into the item template
           // we only take it if it resolves to a list
-          eContext.eval(value['data']).then((value) {
-            List<dynamic>? localizedDataList;
-            dynamic templateDataResult = value;
-            if (templateDataResult is List<dynamic>) {
-              localizedDataList = templateDataResult;
-            }
+          List<dynamic>? localizedDataList;
+          dynamic templateDataResult = eContext.eval(value['data']);
+          if (templateDataResult is List<dynamic>) {
+            localizedDataList = templateDataResult;
+          }
 
-            // item template should only have 1 root widget
-            itemTemplate = ItemTemplate(
-                value['data'],
-                value['name'],
-                value['template'],
-                localizedDataList);
-          });
-
-
+          // item template should only have 1 root widget
+          itemTemplate = ItemTemplate(
+              value['data'],
+              value['name'],
+              value['template'],
+              localizedDataList);
         }
         // actions like onTap should evaluate its expressions upon the action only
         else if (key.toString().startsWith("on")) {
@@ -222,7 +217,7 @@ class PageModel {
         // this is tricky. We only want to evaluate properties most likely, so need
         // a way to distinguish them
         else {
-          eContext.eval(value).then((value) => props[key] = value);
+          props[key] = eContext.eval(value);
         }
       }
     });

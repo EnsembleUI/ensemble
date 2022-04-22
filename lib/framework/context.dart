@@ -66,6 +66,26 @@ class EnsembleContext {
     return expression.replaceAllMapped(RegExp(r'\$\(([a-z_-\d."\(\)\[\]]+)\)', caseSensitive: false),
             (match) => evalVariable("${match[1]}").toString());
 
+    /*return replaceAllMappedAsync(
+        expression,
+        RegExp(r'\$\(([a-z_-\d."\(\)\[\]]+)\)', caseSensitive: false),
+        (match) async => (await evalVariable("${match[1]}")).toString()
+    );*/
+
+  }
+
+  Future<String> replaceAllMappedAsync(String string, Pattern exp, Future<String> Function(Match match) replace) async {
+    StringBuffer replaced = StringBuffer();
+    int currentIndex = 0;
+    for(Match match in exp.allMatches(string)) {
+      String prefix = match.input.substring(currentIndex, match.start);
+      currentIndex = match.end;
+      replaced
+        ..write(prefix)
+        ..write(await replace(match));
+    }
+    replaced.write(string.substring(currentIndex));
+    return replaced.toString();
   }
 
   /// evaluate Typescript code block
@@ -93,7 +113,8 @@ class EnsembleContext {
           // first group is the method name, second is the argument
           Function? method = data.getMethods()[match.group(1)];
           if (method != null) {
-            return evalToken(tokens, index+1, Function.apply(method, [match.group(2)]));
+            dynamic nextData = Function.apply(method, [match.group(2)]);
+            return evalToken(tokens, index+1, nextData);
           }
         }
         // return null since we can't find any matching methods/getters on this Invokable

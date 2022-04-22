@@ -43,12 +43,14 @@ class EnsembleLibrary with Invokable {
 }
 
 /// Singleton handling user storage
-class EnsembleStorage extends FlutterSecureStorage with Invokable {
+class EnsembleStorage with Invokable {
   static final EnsembleStorage _instance = EnsembleStorage._internal();
   EnsembleStorage._internal();
   factory EnsembleStorage() {
     return _instance;
   }
+  // TODO: use async secure storage - extends FlutterSecureStorage
+  final Map<String, dynamic> userStorage = {};
 
   @override
   Map<String, Function> getters() {
@@ -58,17 +60,13 @@ class EnsembleStorage extends FlutterSecureStorage with Invokable {
   @override
   Map<String, Function> methods() {
     return {
-      'get': getKey,
-      'set': (String key, dynamic value) async {
+      'get': (String key) => userStorage[key],
+      'set': (String key, dynamic value) {
         if (value != null) {
-          await write(key: key, value: value);
+          userStorage[key] = value;
         }
       }
     };
-  }
-
-  Future<String?> getKey(String key) async {
-    return await read(key: key);
   }
 
   @override
