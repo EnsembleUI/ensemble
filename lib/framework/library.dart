@@ -7,7 +7,7 @@ import 'package:ensemble/ensemble.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart';
-import 'package:sdui/invokables/invokable.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 
 class EnsembleLibrary with Invokable {
   final BuildContext buildContext;

@@ -5,7 +5,7 @@ import 'package:ensemble/widget/Text.dart';
 import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/form_textfield.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sdui/invokables/invokable.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 
 void main() {
 
