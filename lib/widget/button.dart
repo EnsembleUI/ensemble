@@ -3,7 +3,7 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget.dart';
 import 'package:flutter/material.dart';
-import 'package:sdui/invokables/invokable.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 
 class Button extends StatefulWidget with Invokable, HasController<ButtonController, ButtonState> {
   static const type = 'Button';

@@ -13,7 +13,7 @@ import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble/widget/widget.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
-import 'package:sdui/invokables/invokable.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:yaml/yaml.dart';
 
 

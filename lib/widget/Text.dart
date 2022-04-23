@@ -4,7 +4,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget.dart' as w;
 import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as material;
-import 'package:sdui/invokables/invokable.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 
 class Text extends StatefulWidget with Invokable, HasController<TextController, TextState> {
   static const type = 'Text';

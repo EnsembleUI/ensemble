@@ -1,7 +1,7 @@
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:sdui/invokables/invokable.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 
 /// base mixin for Ensemble Container (e.g Column)
 mixin UpdatableContainer {

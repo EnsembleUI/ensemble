@@ -7,7 +7,7 @@ import 'package:ensemble/util/layout_utils.dart';
 import 'package:ensemble/widget/widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as flutter;
-import 'package:sdui/invokables/invokable.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 
 class Row extends StatefulWidget with UpdatableContainer, Invokable, HasController<BoxLayoutController, RowState> {
   static const type = 'Row';

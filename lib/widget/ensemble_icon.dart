@@ -3,7 +3,7 @@ import 'package:ensemble/framework/icon.dart' as ensembleLib;
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget.dart';
 import 'package:flutter/material.dart';
-import 'package:sdui/invokables/invokable.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 
 class EnsembleIcon extends StatefulWidget with Invokable, HasController<IconController, IconState> {
   static const type = 'Icon';

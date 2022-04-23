@@ -2,9 +2,9 @@ import 'dart:convert';
 
 import 'package:ensemble/framework/library.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:sdui/invokables/invokable.dart';
-import 'package:sdui/parser/ast.dart';
-import 'package:sdui/parser/js_interpreter.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:ensemble_ts_interpreter/parser/ast.dart';
+import 'package:ensemble_ts_interpreter/parser/js_interpreter.dart';
 
 class EnsembleContext {
   Map<String, dynamic> _contextMap = {};
