@@ -12,7 +12,8 @@ class View extends StatefulWidget {
       this.bodyWidget,
       {
         this.footer,
-        this.navBar
+        this.navBar,
+        this.drawer,
       }) : super(key: ValueKey(pageData.pageName));
 
   final ViewState currentState = ViewState();
@@ -20,6 +21,7 @@ class View extends StatefulWidget {
   final Widget bodyWidget;
   final Widget? footer;
   final BottomNavigationBar? navBar;
+  final Drawer? drawer;
 
   @override
   State<View> createState() => currentState;
@@ -60,6 +62,7 @@ class ViewState extends State<View>{
           child: widget.bodyWidget
         ),
         bottomNavigationBar: widget.navBar,
+        drawer: widget.drawer,
         bottomSheet: widget.footer,
       );
     }

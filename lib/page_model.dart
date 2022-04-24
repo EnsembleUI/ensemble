@@ -21,7 +21,7 @@ class PageModel {
   String? title;
   Map<String, dynamic>? pageStyles;
   Map<String, YamlMap>? subViewDefinitions;
-  List<MenuItem> menuItems = [];
+  Menu? menu;
   late WidgetModel rootWidgetModel;
   PageType pageType = PageType.full;
   Footer? footer;
@@ -52,9 +52,20 @@ class PageModel {
       PageType.full;
 
     if (viewMap['menu']?['items'] is YamlList) {
+
+      List<MenuItem> menuItems = [];
       for (final YamlMap item in (viewMap['menu']['items'] as YamlList)) {
-        menuItems.add(MenuItem(item['label'], item['page'], icon: item['icon'], selected: item['selected']==true || item['selected']=='true'));
+        menuItems.add(MenuItem(
+          item['label'],
+          item['page'],
+          icon: item['icon'],
+          selected: item['selected']==true || item['selected']=='true'));
       }
+      menu = Menu(
+        viewMap['menu']['display'] == MenuDisplay.drawer.name ?
+            MenuDisplay.drawer :
+            MenuDisplay.navBar,
+        menuItems);
     }
 
     if (viewMap['styles'] is YamlMap) {
@@ -258,6 +269,15 @@ class LayoutModel {
   LayoutModel(this.properties);
   final Map? properties;
 }
+
+class Menu {
+  Menu(this.display, this.menuItems);
+
+  MenuDisplay display = MenuDisplay.navBar;
+  List<MenuItem> menuItems;
+}
+enum MenuDisplay { drawer, navBar }
+
 
 class MenuItem {
   MenuItem(this.label, this.page, {this.icon, this.selected=false});
