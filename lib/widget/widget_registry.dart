@@ -2,6 +2,7 @@
 import 'package:ensemble/layout/Row.dart';
 import 'package:ensemble/layout/grid_builder.dart';
 import 'package:ensemble/layout/Column.dart';
+import 'package:ensemble/layout/stack.dart';
 import 'package:ensemble/widget/Text.dart' as ensemble;
 import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/chart_bubble_builder.dart';
@@ -39,6 +40,7 @@ class WidgetRegistry {
     // containers
     Column.type: () => Column(),
     Row.type: () => Row(),
+    Stack.type: () => Stack(),
   };
 
   @Deprecated("Use widgetMap instead")

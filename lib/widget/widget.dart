@@ -2,6 +2,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:yaml/yaml.dart';
 
 /// base mixin for Ensemble Container (e.g Column)
 mixin UpdatableContainer {
@@ -83,6 +84,7 @@ class BoxLayoutController extends WidgetController {
   bool autoFit = false;
   String? mainAxis;
   String? crossAxis;
+  String? mainAxisSize;
   int? width;
   int? maxWidth;
   int? height;
@@ -112,6 +114,7 @@ class BoxLayoutController extends WidgetController {
       'autoFit': (value) =>  autoFit = value is bool ? value : false,
       'mainAxis': (value) => mainAxis = value,
       'crossAxis': (value) => crossAxis = value,
+      'mainAxisSize': (value) => mainAxisSize = value,
       'width': (value) => width = Utils.optionalInt(value),
       'maxWidth': (value) => maxWidth = Utils.optionalInt(value),
       'height': (value) => height = Utils.optionalInt(value),
@@ -127,10 +130,21 @@ class BoxLayoutController extends WidgetController {
       'fontSize': (value) =>  fontSize = Utils.optionalInt(value),
 
       'shadowColor': (value) => shadowColor = Utils.optionalInt(value),
-      'shadowOffset': (list) => shadowOffset = list is List<int> ? list : null,
+      'shadowOffset': (list) => setShadowOffset(list),
       'shadowRadius': (value) =>  shadowRadius = Utils.optionalInt(value),
 
     });
     return setters;
+  }
+
+  void setShadowOffset(dynamic offset) {
+    if (offset is YamlList) {
+      List<dynamic> list = offset.toList();
+      if (list.length >= 2 && list[0] is int && list[1] is int) {
+        shadowOffset = [list[0], list[1]];
+      } else {
+        shadowOffset = null;
+      }
+    }
   }
 }
