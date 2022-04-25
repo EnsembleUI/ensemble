@@ -59,13 +59,27 @@ class PageModel {
           item['label'],
           item['page'],
           icon: item['icon'],
+          iconLibrary: item['iconLibrary'],
           selected: item['selected']==true || item['selected']=='true'));
       }
-      menu = Menu(
-        viewMap['menu']['display'] == MenuDisplay.drawer.name ?
-            MenuDisplay.drawer :
-            MenuDisplay.navBar,
-        menuItems);
+      MenuDisplay display = MenuDisplay.navBar;
+      if (viewMap['menu']['display'] == MenuDisplay.drawer.name) {
+        display = MenuDisplay.drawer;
+      } else if (viewMap['menu']['display'] == MenuDisplay.navBar_left.name) {
+        display = MenuDisplay.navBar_left;
+      }
+
+      // header widget
+      WidgetModel? headerModel;
+      if (viewMap['menu']['header'] != null) {
+         headerModel = buildModel(viewMap['menu']['header'], eContext, {});
+      }
+      WidgetModel? footerModel;
+      if (viewMap['menu']['footer'] != null) {
+        headerModel = buildModel(viewMap['menu']['footer'], eContext, {});
+      }
+
+      menu = Menu(display, menuItems, headerModel: headerModel, footerModel: footerModel);
     }
 
     if (viewMap['styles'] is YamlMap) {
@@ -271,20 +285,28 @@ class LayoutModel {
 }
 
 class Menu {
-  Menu(this.display, this.menuItems);
+  Menu(this.display, this.menuItems, { this.headerModel, this.footerModel });
 
   MenuDisplay display = MenuDisplay.navBar;
   List<MenuItem> menuItems;
+  WidgetModel? headerModel;
+  WidgetModel? footerModel;
 }
-enum MenuDisplay { drawer, navBar }
+enum MenuDisplay {
+  navBar,       // bottom navigation bar. Default if not specified
+  drawer,       // expansible/collapsible hamburger menu
+  navBar_left,  // fixed navigation on the left of the screen
+  navBar_right  // fixed navigation on the right of the screen
+}
 
 
 class MenuItem {
-  MenuItem(this.label, this.page, {this.icon, this.selected=false});
+  MenuItem(this.label, this.page, {this.icon, this.iconLibrary, this.selected=false});
 
-  final String label;
+  final String? label;
   final String page;
   final String? icon;
+  final String? iconLibrary;
   final bool selected;
 
 }

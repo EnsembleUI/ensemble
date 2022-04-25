@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/context.dart';
+import 'package:ensemble/framework/icon.dart' as eIcon;
 import 'package:ensemble/framework/library.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
@@ -82,56 +83,13 @@ class ScreenController {
     return null;
   }
 
-  Drawer? _buildDrawer(BuildContext context, PageModel pageModel) {
-    Menu? menu = pageModel.menu;
-    if (menu != null && menu.display == MenuDisplay.drawer && menu.menuItems.length >= 2) {
-      List<ListTile> navItems = [];
-      for (MenuItem item in menu.menuItems) {
-        navItems.add(ListTile(
-          selected: item.selected,
-          title: Text(item.label),
-          onTap: () => selectNavigationIndex(context, item),
-        ));
-      }
-      return Drawer(
-        child: ListView(
-          children: navItems,
-        ),
-      );
-    }
-
-  }
-
-  /// navigation bar
-  BottomNavigationBar? _buildNavigationBar(BuildContext context, PageModel pageModel) {
-    Menu? menu = pageModel.menu;
-    if (menu != null && menu.display == MenuDisplay.navBar && menu.menuItems.length >= 2) {
-      int selectedIndex = 0;
-      List<BottomNavigationBarItem> navItems = [];
-      for (int i=0; i<menu.menuItems.length; i++) {
-        MenuItem item = menu.menuItems[i];
-        navItems.add(BottomNavigationBarItem(
-            icon: (item.icon == 'home' ? const Icon(Icons.home) : const Icon(Icons.account_box)),
-            label: item.label));
-        if (item.selected) {
-          selectedIndex = i;
-        }
-      }
-      return BottomNavigationBar(
-          items: navItems,
-          onTap: (index) => selectNavigationIndex(context, menu.menuItems[index]),
-          currentIndex: selectedIndex);
-    }
-  }
-
   View _buildPage(BuildContext context, PageModel pageModel, PageData pageData) {
     // save the current view to look up when populating initial API load ONLY
     initialView = View(
         pageData,
         buildWidget(pageData.getEnsembleContext(), pageModel.rootWidgetModel),
-        footer: _buildFooter(pageData.getEnsembleContext(), pageModel),
-        navBar: _buildNavigationBar(context, pageModel),
-        drawer: _buildDrawer(context, pageModel));
+        menu: pageModel.menu,
+        footer: _buildFooter(pageData.getEnsembleContext(), pageModel));
     return initialView!;
   }
 
@@ -314,13 +272,6 @@ class ScreenController {
     } catch (e) {
       print ("Code block exception: " + e.toString());
     }
-  }
-
-
-
-
-  void selectNavigationIndex(BuildContext context, MenuItem menuItem) {
-    Ensemble().navigateToPage(context, menuItem.page, replace: true);
   }
 
 

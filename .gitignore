@@ -51,3 +51,4 @@ assets/ensemble/pages
 ensemble-config.yaml
 assets/fonts
 assets/ignored
+.gradle
