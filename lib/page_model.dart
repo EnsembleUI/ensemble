@@ -21,7 +21,7 @@ class PageModel {
   String? title;
   Map<String, dynamic>? pageStyles;
   Map<String, YamlMap>? subViewDefinitions;
-  List<MenuItem> menuItems = [];
+  Menu? menu;
   late WidgetModel rootWidgetModel;
   PageType pageType = PageType.full;
   Footer? footer;
@@ -52,9 +52,34 @@ class PageModel {
       PageType.full;
 
     if (viewMap['menu']?['items'] is YamlList) {
+
+      List<MenuItem> menuItems = [];
       for (final YamlMap item in (viewMap['menu']['items'] as YamlList)) {
-        menuItems.add(MenuItem(item['label'], item['page'], icon: item['icon'], selected: item['selected']==true || item['selected']=='true'));
+        menuItems.add(MenuItem(
+          item['label'],
+          item['page'],
+          icon: item['icon'],
+          iconLibrary: item['iconLibrary'],
+          selected: item['selected']==true || item['selected']=='true'));
       }
+      MenuDisplay display = MenuDisplay.navBar;
+      if (viewMap['menu']['display'] == MenuDisplay.drawer.name) {
+        display = MenuDisplay.drawer;
+      } else if (viewMap['menu']['display'] == MenuDisplay.navBar_left.name) {
+        display = MenuDisplay.navBar_left;
+      }
+
+      // header widget
+      WidgetModel? headerModel;
+      if (viewMap['menu']['header'] != null) {
+         headerModel = buildModel(viewMap['menu']['header'], eContext, {});
+      }
+      WidgetModel? footerModel;
+      if (viewMap['menu']['footer'] != null) {
+        headerModel = buildModel(viewMap['menu']['footer'], eContext, {});
+      }
+
+      menu = Menu(display, menuItems, headerModel: headerModel, footerModel: footerModel);
     }
 
     if (viewMap['styles'] is YamlMap) {
@@ -259,12 +284,29 @@ class LayoutModel {
   final Map? properties;
 }
 
-class MenuItem {
-  MenuItem(this.label, this.page, {this.icon, this.selected=false});
+class Menu {
+  Menu(this.display, this.menuItems, { this.headerModel, this.footerModel });
 
-  final String label;
+  MenuDisplay display = MenuDisplay.navBar;
+  List<MenuItem> menuItems;
+  WidgetModel? headerModel;
+  WidgetModel? footerModel;
+}
+enum MenuDisplay {
+  navBar,       // bottom navigation bar. Default if not specified
+  drawer,       // expansible/collapsible hamburger menu
+  navBar_left,  // fixed navigation on the left of the screen
+  navBar_right  // fixed navigation on the right of the screen
+}
+
+
+class MenuItem {
+  MenuItem(this.label, this.page, {this.icon, this.iconLibrary, this.selected=false});
+
+  final String? label;
   final String page;
   final String? icon;
+  final String? iconLibrary;
   final bool selected;
 
 }

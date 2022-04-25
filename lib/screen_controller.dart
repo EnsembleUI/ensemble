@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/context.dart';
+import 'package:ensemble/framework/icon.dart' as eIcon;
 import 'package:ensemble/framework/library.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
@@ -82,34 +83,13 @@ class ScreenController {
     return null;
   }
 
-  /// navigation bar
-  BottomNavigationBar? _buildNavigationBar(BuildContext context, PageModel pageModel) {
-    if (pageModel.menuItems.length >= 2) {
-      int selectedIndex = 0;
-      List<BottomNavigationBarItem> navItems = [];
-      for (int i=0; i<pageModel.menuItems.length; i++) {
-        MenuItem item = pageModel.menuItems[i];
-        navItems.add(BottomNavigationBarItem(
-            icon: (item.icon == 'home' ? const Icon(Icons.home) : const Icon(Icons.account_box)),
-            label: item.label));
-        if (item.selected) {
-          selectedIndex = i;
-        }
-      }
-      return BottomNavigationBar(
-          items: navItems,
-          onTap: (index) => selectNavigationIndex(context, pageModel.menuItems[index]),
-          currentIndex: selectedIndex);
-    }
-  }
-
   View _buildPage(BuildContext context, PageModel pageModel, PageData pageData) {
     // save the current view to look up when populating initial API load ONLY
     initialView = View(
         pageData,
         buildWidget(pageData.getEnsembleContext(), pageModel.rootWidgetModel),
-        footer: _buildFooter(pageData.getEnsembleContext(), pageModel),
-        navBar: _buildNavigationBar(context, pageModel));
+        menu: pageModel.menu,
+        footer: _buildFooter(pageData.getEnsembleContext(), pageModel));
     return initialView!;
   }
 
@@ -292,13 +272,6 @@ class ScreenController {
     } catch (e) {
       print ("Code block exception: " + e.toString());
     }
-  }
-
-
-
-
-  void selectNavigationIndex(BuildContext context, MenuItem menuItem) {
-    Ensemble().navigateToPage(context, menuItem.page, replace: true);
   }
 
 

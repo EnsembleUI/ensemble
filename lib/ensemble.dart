@@ -90,9 +90,9 @@ class Ensemble {
       }) {
 
     if (snapshot.hasError) {
-      return const Scaffold(
+      return Scaffold(
           body: Center(
-              child: Text('Error loading page')
+              child: Text('Error loading page $pageName')
           )
       );
     } else if (!snapshot.hasData) {
