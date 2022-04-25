@@ -29,27 +29,46 @@
           "$ref": "#/$defs/Widgets"
         }
       },
-      "if": {
-        "properties": {
-          "type": {
-            "const": "Column"
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "Column"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "styles": {
+                "allOf": [
+                  { "$ref": "#/$defs/rootViewStyles" },
+                  { "$ref": "#/$defs/columnStyles" }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "Row"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "styles": {
+                "allOf": [
+                  { "$ref": "#/$defs/rootViewStyles" },
+                  { "$ref": "#/$defs/rowStyles" }
+                ]
+              }
+            }
           }
         }
-      },
-      "then": {
-        "properties": {
-          "styles": {
-            "$ref": "#/$defs/columnStyles"
-          }
-        }
-      },
-      "else": {
-        "properties": {
-          "styles": {
-            "$ref": "#/$defs/rowStyles"
-          }
-        }
-      }
+      ]
     },
     "Action": {
 
@@ -374,7 +393,7 @@
           "description": "Define your menu items here (minimum 2)",
           "items": {
             "type": "object",
-            "required": ["icon", "page"],
+            "required": ["icon", "label", "page"],
             "properties": {
               "icon": {
                 "type": "string",
@@ -399,8 +418,15 @@
 
 
 
-
-
+    "rootViewStyles": {
+      "type": "object",
+      "properties": {
+        "backgroundImage": {
+          "type": "string",
+          "description": "The Image URL to fill the entire background"
+        }
+      }
+    },
     "baseStyles": {
       "type": "object",
       "properties": {

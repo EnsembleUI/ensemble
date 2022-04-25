@@ -68,14 +68,22 @@ class ViewState extends State<View>{
         showAppBar = false;
       }
 
+      Color? backgroundColor =
+        widget.pageData.pageStyles?['backgroundColor'] is int ?
+        Color(widget.pageData.pageStyles!['backgroundColor']) :
+        null;
+      // if we have a background image, set the background color to transparent
+      // since our image is outside the Scaffold
+      bool showBackgroundImage = false;
+      if (backgroundColor == null && widget.pageData.pageStyles?['backgroundImage'] != null) {
+        showBackgroundImage = true;
+        backgroundColor = Colors.transparent;
+      }
 
-      return Scaffold(
+      Widget scaffold = Scaffold(
         // slight optimization, if body background is set, let's paint
         // the entire screen including the Safe Area
-        backgroundColor:
-            widget.pageData.pageStyles?['backgroundColor'] is int ?
-            Color(widget.pageData.pageStyles!['backgroundColor']) :
-            null,
+        backgroundColor: backgroundColor,
         appBar: !showAppBar ? null : AppBar(
               title: Text(widget.pageData.pageTitle!)),
         body: getBody(),
@@ -83,6 +91,24 @@ class ViewState extends State<View>{
         drawer: drawer,
         bottomSheet: widget.footer,
       );
+
+      // if backgroundImage is set, put it outside of the Scaffold so
+      // keyboard sliding up (when entering value) won't resize the background
+      if (showBackgroundImage) {
+        return Container(
+          constraints: const BoxConstraints.expand(),
+          decoration: BoxDecoration(
+            image: DecorationImage (
+              image: NetworkImage(widget.pageData.pageStyles!['backgroundImage']!.toString()),
+              fit: BoxFit.cover
+            )
+          ),
+          child: scaffold
+        );
+      }
+      return scaffold;
+
+
     }
   }
 
@@ -166,7 +192,7 @@ class ViewState extends State<View>{
       MenuItem item = menuItems[i];
       navItems.add(BottomNavigationBarItem(
           icon: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
-          label: item.label));
+          label: item.label ?? ''));
       if (item.selected) {
         selectedIndex = i;
       }
