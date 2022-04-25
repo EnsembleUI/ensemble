@@ -198,12 +198,13 @@ class RowState extends WidgetState<Row> {
           BoxShadow(
             color: Color(widget._controller.shadowColor!),
             blurRadius: (widget._controller.shadowRadius ?? 0).toDouble(),
-            offset: (widget._controller.shadowOffset != null && widget._controller.shadowOffset!.length >= 2) ?
-            Offset(
-              widget._controller.shadowOffset![0].toDouble(),
-              widget._controller.shadowOffset![1].toDouble(),
-            ) :
-            const Offset(0, 0),
+            offset:
+              (widget._controller.shadowOffset != null && widget._controller.shadowOffset!.length >= 2) ?
+              Offset(
+                widget._controller.shadowOffset![0].toDouble(),
+                widget._controller.shadowOffset![1].toDouble(),
+              ) :
+              const Offset(0, 0),
           )
         ]
     );
@@ -213,7 +214,7 @@ class RowState extends WidgetState<Row> {
         height: widget._controller.height != null ? widget._controller.height!.toDouble() : null,
         margin: EdgeInsets.all((widget._controller.margin ?? 0).toDouble()),
 
-        clipBehavior: Clip.hardEdge,
+        //clipBehavior: Clip.hardEdge,
         decoration: boxDecoration,
 
         child: InkWell(
