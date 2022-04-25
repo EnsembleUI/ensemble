@@ -69,7 +69,11 @@ class TextState extends WidgetState<Text> {
     Color? fontColor;
 
     // built-in font
-    if (widget.controller.font == 'title') {
+    if (widget.controller.font == 'heading') {
+      fontWeight = FontWeight.w600;
+      fontSize = 24;
+      fontColor = EnsembleTheme.darkerText;
+    } else if (widget.controller.font == 'title') {
       fontWeight = FontWeight.w600;
       fontSize = 22;
       fontColor = EnsembleTheme.darkerText;

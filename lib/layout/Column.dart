@@ -156,6 +156,11 @@ class ColumnState extends WidgetState<Column> {
     LayoutUtils.getCrossAxisAlignment(widget._controller.crossAxis!) :
     CrossAxisAlignment.start;
 
+    MainAxisSize mainAxisSize =
+      widget._controller.mainAxisSize == 'min' ?
+      MainAxisSize.min :
+      MainAxisSize.max;
+
     // if gap is specified, insert SizeBox between children
     if (widget._controller.gap != null) {
       List<Widget> updatedChildren = [];
@@ -175,6 +180,7 @@ class ColumnState extends WidgetState<Column> {
         ), child: flutter.Column(
             mainAxisAlignment: mainAxis,
             crossAxisAlignment: crossAxis,
+            mainAxisSize: mainAxisSize,
             children: children)
         );
 

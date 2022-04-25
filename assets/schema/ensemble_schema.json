@@ -22,6 +22,9 @@
             "Row"
           ]
         },
+        "menu": {
+          "$ref": "#/$defs/Menu"
+        },
         "children": {
           "$ref": "#/$defs/Widgets"
         }
@@ -97,6 +100,7 @@
                   "type": "string",
                   "description": "Default built-in style for this text",
                   "enum": [
+                    "heading",
                     "title",
                     "subtitle"
                   ]
@@ -354,6 +358,44 @@
         "Row": { "$ref": "#/$defs/Row-payload" }
       }
     },
+    "Menu": {
+      "type": "object",
+      "properties": {
+        "display": {
+          "type": "string",
+          "description": "how to render the App Menu (e.g bottom navigation bar, drawer, ...)",
+          "enum": [
+            "navBar", "navBar_left", "drawer"
+          ]
+        },
+        "header": { "$ref": "#/$defs/Widget" },
+        "items": {
+          "type": "array",
+          "description": "Define your menu items here (minimum 2)",
+          "items": {
+            "type": "object",
+            "required": ["icon", "page"],
+            "properties": {
+              "icon": {
+                "type": "string",
+                "description": "Icon name from Material Icons or Font Awesome"
+              },
+              "iconLibrary": {
+                "type": "string",
+                "enum": ["default", "fontAwesome"]
+              },
+              "label": {
+                "type": "string"
+              },
+              "page": {
+                "type": "string",
+                "description": "The new page to navigate to on click"
+              }
+            }
+          }
+        }
+      }
+    },
 
 
 
@@ -445,6 +487,11 @@
               "type": "string",
               "enum": ["start", "end", "center", "stretch"]
             },
+            "mainAxisSize": {
+              "type": "string",
+              "description": "stretch to the max vertically or only fit the vertical space",
+              "enum": ["min", "max"]
+            },
             "scrollable": {
               "type": "boolean",
               "description": "content can scroll vertically as needed"
@@ -475,6 +522,11 @@
             "crossAxis": {
               "type": "string",
               "enum": ["top", "bottom", "middle", "stretch"]
+            },
+            "mainAxisSize": {
+              "type": "string",
+              "description": "stretch to the max horizontally or only fit the horizontal space",
+              "enum": ["min", "max"]
             },
             "scrollable": {
               "type": "boolean",

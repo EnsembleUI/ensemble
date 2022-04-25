@@ -83,6 +83,7 @@ class BoxLayoutController extends WidgetController {
   bool autoFit = false;
   String? mainAxis;
   String? crossAxis;
+  String? mainAxisSize;
   int? width;
   int? maxWidth;
   int? height;
@@ -112,6 +113,7 @@ class BoxLayoutController extends WidgetController {
       'autoFit': (value) =>  autoFit = value is bool ? value : false,
       'mainAxis': (value) => mainAxis = value,
       'crossAxis': (value) => crossAxis = value,
+      'mainAxisSize': (value) => mainAxisSize = value,
       'width': (value) => width = Utils.optionalInt(value),
       'maxWidth': (value) => maxWidth = Utils.optionalInt(value),
       'height': (value) => height = Utils.optionalInt(value),

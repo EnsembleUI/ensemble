@@ -1,6 +1,8 @@
+import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/context.dart';
+import 'package:ensemble/framework/icon.dart' as ensemble;
 import 'package:ensemble/page_model.dart';
-import 'package:ensemble/util/layout_utils.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
@@ -11,17 +13,15 @@ class View extends StatefulWidget {
       this.pageData,
       this.bodyWidget,
       {
-        this.footer,
-        this.navBar,
-        this.drawer,
+        this.menu,
+        this.footer
       }) : super(key: ValueKey(pageData.pageName));
 
   final ViewState currentState = ViewState();
   final PageData pageData;
   final Widget bodyWidget;
+  final Menu? menu;
   final Widget? footer;
-  final BottomNavigationBar? navBar;
-  final Drawer? drawer;
 
   @override
   State<View> createState() => currentState;
@@ -47,6 +47,28 @@ class ViewState extends State<View>{
     }
     // regular page
     else {
+
+      // navigation
+      Widget? bottomNavBar;
+      Widget? drawer;
+      if (widget.menu != null && widget.menu!.menuItems.length >= 2 ) {
+        if (widget.menu!.display == MenuDisplay.navBar) {
+          bottomNavBar = _buildBottomNavBar(context, widget.menu!.menuItems);
+        } else if (widget.menu!.display == MenuDisplay.drawer) {
+          drawer = _buildDrawer(context, widget.menu!.menuItems);
+        }
+        // left/right navBar will be rendered differently in the body
+      }
+
+      // use the AppBar if we have a title, or have a drawer (to show the menu)
+      bool showAppBar = widget.pageData.pageTitle != null || drawer != null;
+      if (widget.menu != null &&
+          (widget.menu!.display == MenuDisplay.navBar_left ||
+          widget.menu!.display == MenuDisplay.navBar_right)) {
+        showAppBar = false;
+      }
+
+
       return Scaffold(
         // slight optimization, if body background is set, let's paint
         // the entire screen including the Safe Area
@@ -54,23 +76,119 @@ class ViewState extends State<View>{
             widget.pageData.pageStyles?['backgroundColor'] is int ?
             Color(widget.pageData.pageStyles!['backgroundColor']) :
             null,
-        appBar:
-          widget.pageData.pageTitle != null ?
-          AppBar(title: Text(widget.pageData.pageTitle!)) :
-          null,
-        body: SafeArea(
-          child: widget.bodyWidget
-        ),
-        bottomNavigationBar: widget.navBar,
-        drawer: widget.drawer,
+        appBar: !showAppBar ? null : AppBar(
+              title: Text(widget.pageData.pageTitle!)),
+        body: getBody(),
+        bottomNavigationBar: bottomNavBar,
+        drawer: drawer,
         bottomSheet: widget.footer,
       );
     }
   }
 
+  Widget getBody () {
 
+    if (widget.menu != null && widget.menu!.display == MenuDisplay.navBar_left) {
+      List<MenuItem> menuItems = widget.menu!.menuItems;
+      int selectedIndex = 0;
+      List<NavigationRailDestination> navItems = [];
+      for (int i=0; i<menuItems.length; i++) {
+        MenuItem item = menuItems[i];
+        navItems.add(NavigationRailDestination(
+            icon: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
+            label: Text(item.label ?? '')));
+        if (item.selected) {
+          selectedIndex = i;
+        }
+      }
+
+      // TODO: consolidate buildWidget into 1 place
+      Widget? menuHeader;
+      if (widget.menu!.headerModel != null) {
+        menuHeader = ScreenController().buildWidget(widget.pageData._eContext, widget.menu!.headerModel!);
+      }
+      Widget? menuFooter;
+      if (widget.menu!.footerModel != null) {
+        menuFooter = ScreenController().buildWidget(widget.pageData._eContext, widget.menu!.footerModel!);
+      }
+
+
+      NavigationRail menu = NavigationRail(
+        labelType: NavigationRailLabelType.all,
+        leading: menuHeader,
+        destinations: navItems,
+        trailing: menuFooter,
+        selectedIndex: selectedIndex,
+        onDestinationSelected: (index) => selectNavigationIndex(context, menuItems[index]),
+      );
+
+      return Row(
+        children: [
+          menu,
+          const VerticalDivider(thickness: 1, width: 1),
+          Expanded(child: SafeArea(
+              child: widget.bodyWidget))
+        ],
+      );
+    }
+
+    return SafeArea(
+        child: widget.bodyWidget
+    );
+  }
+
+
+
+  Drawer? _buildDrawer(BuildContext context, List<MenuItem> menuItems) {
+    List<ListTile> navItems = [];
+    for (MenuItem item in menuItems) {
+      navItems.add(ListTile(
+        selected: item.selected,
+        title: Text(item.label ?? ''),
+        leading: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
+        horizontalTitleGap: 0,
+        onTap: () => selectNavigationIndex(context, item),
+      ));
+    }
+    return Drawer(
+      child: ListView(
+        children: navItems,
+      ),
+    );
+
+  }
+
+  /// navigation bar
+  BottomNavigationBar? _buildBottomNavBar(BuildContext context, List<MenuItem> menuItems) {
+    int selectedIndex = 0;
+    List<BottomNavigationBarItem> navItems = [];
+    for (int i=0; i<menuItems.length; i++) {
+      MenuItem item = menuItems[i];
+      navItems.add(BottomNavigationBarItem(
+          icon: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
+          label: item.label));
+      if (item.selected) {
+        selectedIndex = i;
+      }
+    }
+    return BottomNavigationBar(
+        items: navItems,
+        onTap: (index) {
+          if (!menuItems[index].selected) {
+            selectNavigationIndex(context, menuItems[index]);
+          }
+        },
+        currentIndex: selectedIndex);
+
+  }
+
+  void selectNavigationIndex(BuildContext context, MenuItem menuItem) {
+    Ensemble().navigateToPage(context, menuItem.page, replace: true);
+  }
 
 }
+
+
 
 
 /// data for the current page
