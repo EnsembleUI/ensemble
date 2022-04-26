@@ -204,6 +204,61 @@
         }
       }
     },
+    "Image-payload": {
+      "type": "object",
+      "required": ["source"],
+      "properties": {
+        "source": {
+          "type": "string",
+          "description": "URL to the image"
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "width": {
+              "type": "integer"
+            },
+            "height": {
+              "type": "integer"
+            },
+            "fit": {
+              "type": "string",
+              "description": "How to fit the image within our width/height or our parent (if dimension is not specified)",
+              "oneOf": [
+                {
+                  "const": "fill",
+                  "description": "Stretch our image to fill the dimension, and distorting the aspect ratio if needed"
+                },
+                {
+                  "const": "contain",
+                  "description": "Scale the image such that the entire image is contained within our dimension"
+                },
+                {
+                  "const": "cover",
+                  "description": "Scale the image to fill our dimension, clipping the image as needed"
+                },
+                {
+                  "const": "fitWidth",
+                  "description": "Scale the image to fit the width, and clipping the height if needed"
+                },
+                {
+                  "const": "fitHeight",
+                  "description": "Scale the image to fit the height, and clipping the width if needed"
+                },
+                {
+                  "const": "none",
+                  "description": "Center-Align the original image size, clipping the content if needed"
+                },
+                {
+                  "const": "scaleDown",
+                  "description": "Center-Align the image and only scale down to fit. Image will not be scaled up to bigger dimension."
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
     "TextInput-payload": {
       "allOf": [
         { "$ref": "#/$defs/FormInput-payload" },
@@ -370,6 +425,7 @@
       "properties": {
         "Text": { "$ref": "#/$defs/Text-payload" },
         "Icon": { "$ref": "#/$defs/Icon-payload" },
+        "Image": { "$ref": "#/$defs/Image-payload" },
         "TextInput": { "$ref": "#/$defs/TextInput-payload" },
         "Password": { "$ref": "#/$defs/Password-payload" },
         "Button": { "$ref": "#/$defs/Button-payload" },
