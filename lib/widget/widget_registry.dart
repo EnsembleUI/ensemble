@@ -10,6 +10,7 @@ import 'package:ensemble/widget/chart_highcharts_builder.dart';
 import 'package:ensemble/widget/chart_pie_builder.dart';
 import 'package:ensemble/widget/divider_builder.dart';
 import 'package:ensemble/widget/ensemble_icon.dart';
+import 'package:ensemble/widget/form_checkbox.dart';
 import 'package:ensemble/widget/form_date_input_builder.dart';
 import 'package:ensemble/widget/form_textfield.dart';
 import 'package:ensemble/widget/image_builder.dart';
@@ -35,6 +36,8 @@ class WidgetRegistry {
     // form fields
     TextField.type: () => TextField(),
     PasswordField.type: () => PasswordField(),
+    EnsembleCheckbox.type: () => EnsembleCheckbox(),
+    EnsembleSwitch.type: () => EnsembleSwitch(),
     Button.type: () => Button(),
 
     // containers
