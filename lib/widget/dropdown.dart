@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/icon.dart' as ensemble;
 import 'package:ensemble/widget/widget.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
@@ -119,6 +120,33 @@ class SelectOneController extends FormFieldController {
 }
 
 class SelectOneState extends WidgetState<SelectOne> {
+  final focusNode = FocusNode();
+  String? error;
+
+  void validate() {
+    if (widget.controller.required) {
+      setState(() {
+        error = widget.getValue() == null ? "This field is required" : null;
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    // validate on blur
+    focusNode.addListener(() {
+      if (!focusNode.hasFocus) {
+        validate();
+      }
+    });
+    super.initState();
+  }
+  @override
+  void dispose() {
+    focusNode.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.getType() == SelectOneType.dropdown) {
@@ -126,9 +154,29 @@ class SelectOneState extends WidgetState<SelectOne> {
         hint: widget._controller.hintText == null ? null : Text(widget._controller.hintText!),
         value: widget.getValue(),
         items: buildItems(widget._controller.items),
-        onChanged: (item) => widget.onSelectionChanged(item));
+        onChanged: (item) => widget.onSelectionChanged(item),
+        focusNode: focusNode,
+        decoration: getDecoration());
     }
     return const Text("Unimplemented SelectOne");
+  }
+
+  InputDecoration getDecoration() {
+    return InputDecoration(
+        floatingLabelBehavior: FloatingLabelBehavior.always,
+        labelText: widget.controller.label,
+        hintText: widget.controller.hintText,
+        errorText: error,
+        icon: widget.controller.icon == null ? null :
+          ensemble.Icon(
+            widget.controller.icon!,
+            library: widget.controller.iconLibrary,
+            size: widget.controller.iconSize,
+            color:
+              widget._controller.iconColor != null ?
+              Color(widget.controller.iconColor!) :
+              null)
+    );
   }
 
   List<DropdownMenuItem<dynamic>>? buildItems(List<SelectOneItem>? items) {
