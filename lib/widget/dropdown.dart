@@ -29,14 +29,14 @@ abstract class SelectOne extends StatefulWidget with Invokable, HasController<Se
   @override
   Map<String, Function> getters() {
     return {
-      'value': () => _controller.value,
+      'value': () => getValue(),
     };
   }
 
   @override
   Map<String, Function> setters() {
     return {
-      'value': (value) => _controller.value = value,
+      'value': (value) => _controller.maybeValue = value,
       'items': (values) => updateItems(values)
     };
   }
@@ -44,6 +44,24 @@ abstract class SelectOne extends StatefulWidget with Invokable, HasController<Se
   @override
   Map<String, Function> methods() {
     return {};
+  }
+
+  bool isValueInItems() {
+    if (_controller.maybeValue != null && _controller.items != null) {
+      for (SelectOneItem item in _controller.items!) {
+        if (_controller.maybeValue == item.value) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  dynamic getValue() {
+    if (isValueInItems()) {
+      return _controller.maybeValue;
+    }
+    return null;
   }
 
   /// each value can be an YamlMap (value/label pair) or dynamic
@@ -69,13 +87,20 @@ abstract class SelectOne extends StatefulWidget with Invokable, HasController<Se
       }
     }
     _controller.items = entries;
+
+    // ensure that the value is still correct
+    if (!isValueInItems()) {
+      _controller.maybeValue = null;
+    }
+
+
   }
 
   void onSelectionChanged(dynamic value) {
     setProperty('value', value);
-    print("new value $value");
   }
 
+  // to be implemented by subclass
   SelectOneType getType();
 
 }
@@ -86,7 +111,11 @@ enum SelectOneType {
 
 class SelectOneController extends FormFieldController {
   List<SelectOneItem>? items;
-  dynamic value;
+
+  // this is our value but it can be in an invalid state.
+  // Since user can set items/value in any order and at anytime, the value may
+  // not be one of the items, hence it could be in an incorrect state
+  dynamic maybeValue;
 }
 
 class SelectOneState extends WidgetState<SelectOne> {
@@ -95,7 +124,7 @@ class SelectOneState extends WidgetState<SelectOne> {
     if (widget.getType() == SelectOneType.dropdown) {
       return DropdownButtonFormField<dynamic>(
         hint: widget._controller.hintText == null ? null : Text(widget._controller.hintText!),
-        value: widget._controller.value,
+        value: widget.getValue(),
         items: buildItems(widget._controller.items),
         onChanged: (item) => widget.onSelectionChanged(item));
     }

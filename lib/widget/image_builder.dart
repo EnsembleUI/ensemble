@@ -85,8 +85,6 @@ class EnsembleImageState extends State<EnsembleImage> {
         fit = BoxFit.scaleDown;
         break;
     }
-
-    print("Image width: " + (widget.builder.width?.toString() ?? '') + ', height: ' + (widget.builder.height?.toString() ?? ''));
     return Image.network(
         widget.builder.source ?? '',
         width: widget.builder.width?.toDouble(),

@@ -301,6 +301,40 @@
         }
       ]
     },
+    "OnOff-payload": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/FormInput-payload"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "value": {
+              "type": "boolean"
+            }
+          }
+        }
+      ]
+    },
+    "SelectOne-payload": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/FormInput-payload"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "value": {
+              "description": "Select a value that matches one of the items. If Items are Objects, it should match the value key"
+            },
+            "items": {
+              "type": "array",
+              "description": "List of values, or Objects with value/label pairs"
+            }
+          }
+        }
+      ]
+    },
     "Button-payload": {
       "type": "object",
       "required": ["label"],
@@ -428,6 +462,9 @@
         "Image": { "$ref": "#/$defs/Image-payload" },
         "TextInput": { "$ref": "#/$defs/TextInput-payload" },
         "Password": { "$ref": "#/$defs/Password-payload" },
+        "Checkbox": { "$ref": "#/$defs/OnOff-payload" },
+        "Switch": { "$ref": "#/$defs/OnOff-payload" },
+        "Dropdown": { "$ref": "#/$defs/SelectOne-payload" },
         "Button": { "$ref": "#/$defs/Button-payload" },
         "Column": { "$ref": "#/$defs/Column-payload" },
         "Row": { "$ref": "#/$defs/Row-payload" }
