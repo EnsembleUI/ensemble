@@ -311,6 +311,12 @@
           "properties": {
             "value": {
               "type": "boolean"
+            },
+            "leadingText": {
+              "type": "string"
+            },
+            "trailingText": {
+              "type": "string"
             }
           }
         }

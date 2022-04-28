@@ -1,7 +1,8 @@
+import 'package:ensemble/framework/icon.dart' as ensemble;
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
 
 /// base mixin for Ensemble Container (e.g Column)
@@ -72,6 +73,34 @@ class FormFieldController extends WidgetController {
       'iconColor': (value) => iconColor = Utils.optionalInt(value),
     });
     return setters;
+  }
+
+}
+
+/// base widget state for FormField widgets
+abstract class FormFieldWidgetState<W extends HasController> extends WidgetState<W> {
+  // the key to validate this FormField
+  final validatorKey = GlobalKey<FormFieldState>();
+
+  /// return a default InputDecoration if the controller is a FormField
+  InputDecoration get inputDecoration {
+    if (widget.controller is FormFieldController) {
+      FormFieldController myController = widget.controller as FormFieldController;
+      return InputDecoration(
+        floatingLabelBehavior: FloatingLabelBehavior.always,
+        labelText: myController.label,
+        hintText: myController.hintText,
+        icon: myController.icon == null ? null : ensemble.Icon(
+          myController.icon!,
+          library: myController.iconLibrary,
+          size: myController.iconSize,
+          color:
+            myController.iconColor != null ?
+            Color(myController.iconColor!) :
+            null)
+      );
+    }
+    return const InputDecoration();
   }
 
 }
