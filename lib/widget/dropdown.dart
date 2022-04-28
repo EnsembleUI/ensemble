@@ -3,7 +3,7 @@ import 'package:ensemble/widget/widget.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
-//import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class Dropdown extends SelectOne {
   static const type = "Dropdown";
@@ -145,8 +145,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
         key: validatorKey,
         validator: (value) {
           if (widget._controller.required && widget.getValue() == null) {
-            //return AppLocalizations.of(context)!.widget_form_required;
-            return "This field is required";
+            return AppLocalizations.of(context)!.widget_form_required;
           }
           return null;
         },

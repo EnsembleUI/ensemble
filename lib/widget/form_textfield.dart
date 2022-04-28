@@ -3,7 +3,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-//import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 
 class TextField extends BaseTextField {
@@ -127,8 +127,7 @@ class TextFieldState extends FormFieldWidgetState<BaseTextField> {
       validator: (value) {
         if (widget._controller.required) {
           if (value == null || value.isEmpty) {
-            //eturn AppLocalizations.of(context)!.widget_form_required;
-            return "This field is required";
+            return AppLocalizations.of(context)!.widget_form_required;
           }
         }
         return null;

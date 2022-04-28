@@ -3,7 +3,7 @@ import 'package:ensemble/framework/icon.dart' as ensemble;
 import 'package:ensemble/widget/widget.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
-//import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class EnsembleCheckbox extends OnOffWidget {
   static const type = 'Checkbox';
@@ -105,8 +105,7 @@ class OnOffState extends FormFieldWidgetState<OnOffWidget> {
       key: validatorKey,
       validator: (value) {
         if (widget._controller.required && !widget._controller.value) {
-          //return AppLocalizations.of(context)!.widget_form_required;
-          return "This field is required";
+          return AppLocalizations.of(context)!.widget_form_required;
         }
         return null;
       },
