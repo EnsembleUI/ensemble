@@ -20,10 +20,10 @@ class Button extends StatefulWidget with Invokable, HasController<ButtonControll
   @override
   Map<String, Function> setters() {
     return {
-      'label': (value) => _controller.label = value,
+      'label': (value) => _controller.label = Utils.getString(value, fallback: ''),
       'onTap': (funcDefinition) => _controller.onTap = funcDefinition,
 
-      'outline': (value) => _controller.outline = value is bool ? value : null,
+      'outline': (value) => _controller.outline = Utils.optionalBool(value),
       'backgroundColor': (value) => _controller.backgroundColor = Utils.optionalInt(value),
       'color': (value) => _controller.color = Utils.optionalInt(value),
       'borderRadius': (value) => _controller.borderRadius = Utils.optionalInt(value),

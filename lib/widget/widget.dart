@@ -30,7 +30,7 @@ abstract class WidgetController extends Controller {
   @override
   Map<String, Function> getBaseSetters() {
     return {
-      'expanded': (value) => expanded = value is bool ? value : false,
+      'expanded': (value) => expanded = Utils.getBool(value, fallback: false),
       //'padding': (value) => padding = Utils.optionalInt(value),
     };
   }
@@ -63,8 +63,8 @@ class FormFieldController extends WidgetController {
   Map<String, Function> getBaseSetters() {
     Map<String, Function> setters = super.getBaseSetters();
     setters.addAll({
-      'enabled': (value) => enabled = value is bool ? value : true,
-      'required': (value) => required = value is bool ? value : false,
+      'enabled': (value) => enabled = Utils.getBool(value, fallback: true),
+      'required': (value) => required = Utils.getBool(value, fallback: false),
       'label': (value) => label = Utils.optionalString(value),
       'hintText': (value) => hintText = Utils.optionalString(value),
       'icon': (value) => icon = Utils.optionalString(value),
@@ -139,11 +139,11 @@ class BoxLayoutController extends WidgetController {
     setters.addAll({
       'onTap': (func) => onTap = func,
 
-      'scrollable': (value) => scrollable = value is bool ? value : false,
-      'autoFit': (value) =>  autoFit = value is bool ? value : false,
-      'mainAxis': (value) => mainAxis = value,
-      'crossAxis': (value) => crossAxis = value,
-      'mainAxisSize': (value) => mainAxisSize = value,
+      'scrollable': (value) => scrollable = Utils.getBool(value, fallback: false),
+      'autoFit': (value) =>  autoFit = Utils.getBool(value, fallback: false),
+      'mainAxis': (value) => mainAxis = Utils.optionalString(value),
+      'crossAxis': (value) => crossAxis = Utils.optionalString(value),
+      'mainAxisSize': (value) => mainAxisSize = Utils.optionalString(value),
       'width': (value) => width = Utils.optionalInt(value),
       'maxWidth': (value) => maxWidth = Utils.optionalInt(value),
       'height': (value) => height = Utils.optionalInt(value),
@@ -155,7 +155,7 @@ class BoxLayoutController extends WidgetController {
       'backgroundColor': (value) => backgroundColor = Utils.optionalInt(value),
       'borderColor': (value) =>  borderColor = Utils.optionalInt(value),
       'borderRadius': (value) =>  borderRadius = Utils.optionalInt(value),
-      'fontFamily': (value) => fontFamily = value,
+      'fontFamily': (value) => fontFamily = Utils.optionalString(value),
       'fontSize': (value) =>  fontSize = Utils.optionalInt(value),
 
       'shadowColor': (value) => shadowColor = Utils.optionalInt(value),

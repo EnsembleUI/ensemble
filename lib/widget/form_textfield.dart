@@ -19,7 +19,7 @@ class TextField extends BaseTextField {
   @override
   Map<String, Function> setters() {
     return {
-      'value': (newValue) => textController.text = newValue,
+      'value': (newValue) => textController.text = Utils.getString(newValue, fallback: ''),
     };
   }
   @override

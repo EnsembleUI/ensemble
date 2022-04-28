@@ -1,5 +1,6 @@
 
 import 'package:ensemble/framework/icon.dart' as ensemble;
+import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
@@ -46,9 +47,9 @@ abstract class OnOffWidget extends StatefulWidget with Invokable, HasController<
   @override
   Map<String, Function> setters() {
     return {
-      'value': (newValue) => _controller.value = newValue,
-      'leadingText': (text) => _controller.leadingText = text,
-      'trailingText': (text) => _controller.trailingText = text,
+      'value': (value) => _controller.value = Utils.getBool(value, fallback: false),
+      'leadingText': (text) => _controller.leadingText = Utils.optionalString(text),
+      'trailingText': (text) => _controller.trailingText = Utils.optionalString(text),
     };
   }
 
