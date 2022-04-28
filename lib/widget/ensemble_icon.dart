@@ -23,7 +23,7 @@ class EnsembleIcon extends StatefulWidget with Invokable, HasController<IconCont
   @override
   Map<String, Function> setters() {
     return {
-      'icon': (value) => _controller.icon = value,
+      'icon': (value) => _controller.icon = Utils.getString(value, fallback: ''),
       'library': (value) => _controller.library = Utils.optionalString(value),
       'size': (value) => _controller.size = Utils.optionalInt(value),
       'color': (value) => _controller.color = Utils.optionalInt(value),
