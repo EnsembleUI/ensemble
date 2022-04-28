@@ -1,10 +1,9 @@
 
-import 'package:ensemble/framework/icon.dart' as ensemble;
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-
+//import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 
 class TextField extends BaseTextField {
@@ -101,18 +100,15 @@ class TextFieldController extends FormFieldController {
 
 }
 
-class TextFieldState extends WidgetState<BaseTextField> {
+class TextFieldState extends FormFieldWidgetState<BaseTextField> {
   final focusNode = FocusNode();
-
-  // error to show the user
-  String? errorText;
 
   @override
   void initState() {
     // validate on blur
     focusNode.addListener(() {
-      if (!focusNode.hasFocus) {
-        validate();
+      if (!focusNode.hasFocus && validatorKey.currentState != null) {
+        validatorKey.currentState!.validate();
       }
     });
     super.initState();
@@ -124,22 +120,19 @@ class TextFieldState extends WidgetState<BaseTextField> {
     super.dispose();
   }
 
-  void validate() {
-    if (widget.controller.required) {
-      setState(() {
-        errorText =
-        widget.textController.text.isEmpty || widget.textController.text.trim().isEmpty ?
-        "This field is required" :
-        null;
-      });
-    }
-  }
-
-
-
   @override
   Widget build(BuildContext context) {
     return TextFormField(
+      key: validatorKey,
+      validator: (value) {
+        if (widget._controller.required) {
+          if (value == null || value.isEmpty) {
+            //eturn AppLocalizations.of(context)!.widget_form_required;
+            return "This field is required";
+          }
+        }
+        return null;
+      },
       obscureText: widget.isPassword(),
       enableSuggestions: !widget.isPassword(),
       autocorrect: !widget.isPassword(),
@@ -153,21 +146,7 @@ class TextFieldState extends WidgetState<BaseTextField> {
       style: widget.controller.fontSize != null ?
         TextStyle(fontSize: widget.controller.fontSize!.toDouble()) :
         null,
-      decoration: InputDecoration(
-        floatingLabelBehavior: FloatingLabelBehavior.always,
-        labelText: widget.controller.label,
-        hintText: widget.controller.hintText,
-        errorText: errorText,
-        icon: widget.controller.icon == null ? null :
-          ensemble.Icon(
-            widget.controller.icon!,
-            library: widget.controller.iconLibrary,
-            size: widget.controller.iconSize,
-            color: widget._controller.iconColor != null ?
-              Color(widget.controller.iconColor!) :
-              null)
-      ),
-    );
+      decoration: inputDecoration);
 
   }
 

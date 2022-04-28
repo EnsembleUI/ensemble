@@ -1,8 +1,9 @@
 
-import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/icon.dart' as ensemble;
 import 'package:ensemble/widget/widget.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
+//import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class EnsembleCheckbox extends OnOffWidget {
   static const type = 'Checkbox';
@@ -45,7 +46,9 @@ abstract class OnOffWidget extends StatefulWidget with Invokable, HasController<
   @override
   Map<String, Function> setters() {
     return {
-      'value': (newValue) => _controller.value = newValue
+      'value': (newValue) => _controller.value = newValue,
+      'leadingText': (text) => _controller.leadingText = text,
+      'trailingText': (text) => _controller.trailingText = text,
     };
   }
 
@@ -67,21 +70,59 @@ enum OnOffType {
 
 class OnOffController extends FormFieldController {
   bool value = false;
+  String? leadingText;
+  String? trailingText;
 }
 
-class OnOffState extends WidgetState<OnOffWidget> {
-  
+class OnOffState extends FormFieldWidgetState<OnOffWidget> {
+
+  void onToggle(bool newValue) {
+    widget.onToggle(newValue);
+    validatorKey.currentState!.validate();
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (widget.getType() == OnOffType.toggle) {
-      return Switch(
-          value: widget._controller.value,
-          onChanged: (value) => widget.onToggle(value));
-    } else {
-      return Checkbox(
-          value: widget._controller.value,
-          onChanged: (bool? value) => widget.onToggle(value ?? false));
+    // add leading/trailing text + the actual widget
+    List<Widget> children = [];
+    if (widget._controller.leadingText != null) {
+      children.add(Text(widget._controller.leadingText!));
     }
+    children.add(widget.getType() == OnOffType.toggle ?
+        Switch(
+          value: widget._controller.value,
+          onChanged: (value) => onToggle(value)) :
+        Checkbox(
+          value: widget._controller.value,
+          onChanged: (bool? value) => onToggle(value ?? false))
+    );
+    if (widget._controller.trailingText != null) {
+      children.add(Text(widget._controller.trailingText!));
+    }
+
+    // wraps around FormField to get all the form effects
+    return FormField<bool>(
+      key: validatorKey,
+      validator: (value) {
+        if (widget._controller.required && !widget._controller.value) {
+          //return AppLocalizations.of(context)!.widget_form_required;
+          return "This field is required";
+        }
+        return null;
+      },
+      builder: (FormFieldState<bool> field) {
+        return InputDecorator(
+            decoration: inputDecoration.copyWith(
+              border: InputBorder.none,
+              errorText: field.errorText),
+            child: Row (
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: children
+            ),
+
+        );
+      }
+    );
   }
 }
 
