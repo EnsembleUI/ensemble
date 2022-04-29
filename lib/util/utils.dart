@@ -1,3 +1,7 @@
+import 'package:ensemble/framework/action.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:yaml/yaml.dart';
+
 class Utils {
 
   /// return an Integer if it is, or null if not
@@ -17,6 +21,33 @@ class Utils {
       value is int ? value.toDouble() :
       value is String ? double.tryParse(value) :
       null;
+  }
+
+  static Action? getAction(dynamic payload, Invokable initiator) {
+    if (payload is YamlMap) {
+      if (payload['action'] != null) {
+        ActionType? type;
+        if (payload['action'] == ActionType.navigateScreen.name) {
+          type = ActionType.navigateScreen;
+        } else if (payload['action'] == ActionType.invokeAPI.name) {
+          type = ActionType.invokeAPI;
+        }
+
+        if (type != null) {
+          Map<String, String>? inputs;
+          if (payload['inputs'] is YamlMap) {
+            inputs = {};
+            (payload['inputs'] as YamlMap).forEach((key, value) {
+              inputs![key] = value;
+            });
+          }
+          return Action(type, actionName: payload['name'], inputs: inputs);
+        }
+      }
+    } else if (payload is String) {
+      return Action(ActionType.executeCode, codeBlock: payload, initiator: initiator);
+    }
+    return null;
   }
 
   static String getString(dynamic value, {required String fallback}) {

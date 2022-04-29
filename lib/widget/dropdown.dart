@@ -1,4 +1,7 @@
 
+import 'package:ensemble/framework/action.dart' as framework;
+import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
@@ -38,7 +41,8 @@ abstract class SelectOne extends StatefulWidget with Invokable, HasController<Se
   Map<String, Function> setters() {
     return {
       'value': (value) => _controller.maybeValue = value,
-      'items': (values) => updateItems(values)
+      'items': (values) => updateItems(values),
+      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, this)
     };
   }
 
@@ -117,6 +121,8 @@ class SelectOneController extends FormFieldController {
   // Since user can set items/value in any order and at anytime, the value may
   // not be one of the items, hence it could be in an incorrect state
   dynamic maybeValue;
+
+  framework.Action? onChange;
 }
 
 class SelectOneState extends FormFieldWidgetState<SelectOne> {
@@ -138,6 +144,15 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
     super.dispose();
   }
 
+  void onSelectionChanged(dynamic value) {
+    widget.onSelectionChanged(value);
+    if (widget._controller.onChange != null) {
+      ScreenController().executeAction(context, widget._controller.onChange!);
+    }
+  }
+
+
+
   @override
   Widget build(BuildContext context) {
     if (widget.getType() == SelectOneType.dropdown) {
@@ -153,7 +168,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
         hint: widget._controller.hintText == null ? null : Text(widget._controller.hintText!),
         value: widget.getValue(),
         items: buildItems(widget._controller.items),
-        onChanged: (item) => widget.onSelectionChanged(item),
+        onChanged: (item) => onSelectionChanged(item),
         focusNode: focusNode,
         decoration: inputDecoration);
     }

@@ -1,4 +1,6 @@
 
+import 'package:ensemble/framework/action.dart' as framework;
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget.dart';
 import 'package:flutter/material.dart';
@@ -20,6 +22,7 @@ class TextField extends BaseTextField {
   Map<String, Function> setters() {
     return {
       'value': (newValue) => textController.text = Utils.getString(newValue, fallback: ''),
+      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, this)
     };
   }
   @override
@@ -46,7 +49,9 @@ class PasswordField extends BaseTextField {
   }
   @override
   Map<String, Function> setters() {
-    return {};
+    return {
+      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, this)
+    };
   }
   @override
   Map<String, Function> methods() {
@@ -79,6 +84,7 @@ abstract class BaseTextField extends StatefulWidget with Invokable, HasControlle
 /// controller for both TextField and Password
 class TextFieldController extends FormFieldController {
   int? fontSize;
+  framework.Action? onChange;
 
   @override
   Map<String, Function> getBaseGetters() {
@@ -103,12 +109,33 @@ class TextFieldController extends FormFieldController {
 class TextFieldState extends FormFieldWidgetState<BaseTextField> {
   final focusNode = FocusNode();
 
+  // for this widget we will implement onChange if the text changes AND:
+  // 1. the field loses focus next (tabbing out, ...)
+  // 2. upon onEditingComplete (e.g click Done on keyboard)
+  // This is so we can be consistent with the other input widgets' onChange
+  String previousText = '';
+  bool didItChange = false;
+  void evaluateChanges() {
+
+    if (didItChange) {
+      if (widget._controller.onChange != null) {
+        ScreenController().executeAction(context, widget._controller.onChange!);
+      }
+      didItChange = false;
+    }
+  }
+
   @override
   void initState() {
-    // validate on blur
     focusNode.addListener(() {
-      if (!focusNode.hasFocus && validatorKey.currentState != null) {
-        validatorKey.currentState!.validate();
+      // on focus lost
+      if (!focusNode.hasFocus) {
+        evaluateChanges();
+
+        // validate
+        if (validatorKey.currentState != null) {
+          validatorKey.currentState!.validate();
+        }
       }
     });
     super.initState();
@@ -140,8 +167,13 @@ class TextFieldState extends FormFieldWidgetState<BaseTextField> {
       focusNode: focusNode,
       enabled: widget.controller.enabled,
       onChanged: (String txt) {
+        if (txt != previousText) {
+          didItChange = true;
+          previousText = txt;
+        }
       },
       onEditingComplete: () {
+        evaluateChanges();
       },
       style: widget.controller.fontSize != null ?
         TextStyle(fontSize: widget.controller.fontSize!.toDouble()) :
