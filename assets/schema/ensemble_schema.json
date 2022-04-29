@@ -352,6 +352,7 @@
           "type": "string",
           "description": "Your button label"
         },
+        "onTap": { "$ref": "#/$defs/Action-payload" },
         "styles": {
           "type": "object",
           "properties": {
@@ -443,6 +444,7 @@
           "type": "string",
           "enum": ["default", "fontAwesome"]
         },
+        "onChange": { "$ref": "#/$defs/Action-payload" },
         "styles": {
           "type": "object",
           "properties": {
@@ -454,6 +456,29 @@
             }
           }
         }
+      }
+    },
+    "Action-payload": {
+      "type": [ "string" , "object" ],
+      "description": "Call Ensemble's built-in functions or execute code on value changes",
+      "required": [ "action", "name" ],
+      "properties": {
+        "action": {
+          "type": "string",
+          "description": "invoke an Ensemble's built-in functions",
+          "enum": [
+            "invokeAPI" ,"navigateScreen"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the action (e.g API Name for invokeAPI, Screen Name for navigateScreen)"
+        },
+        "inputs": {
+          "type": "object",
+          "description": "Specify the key/value pairs to pass into the next Screen or API"
+        }
+
       }
     },
 

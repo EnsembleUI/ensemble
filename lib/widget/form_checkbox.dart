@@ -1,5 +1,7 @@
 
+import 'package:ensemble/framework/action.dart' as framework;
 import 'package:ensemble/framework/icon.dart' as ensemble;
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -50,8 +52,11 @@ abstract class OnOffWidget extends StatefulWidget with Invokable, HasController<
       'value': (value) => _controller.value = Utils.getBool(value, fallback: false),
       'leadingText': (text) => _controller.leadingText = Utils.optionalString(text),
       'trailingText': (text) => _controller.trailingText = Utils.optionalString(text),
+
+      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, this)
     };
   }
+
 
   @override
   Map<String, Function> methods() {
@@ -73,6 +78,8 @@ class OnOffController extends FormFieldController {
   bool value = false;
   String? leadingText;
   String? trailingText;
+
+  framework.Action? onChange;
 }
 
 class OnOffState extends FormFieldWidgetState<OnOffWidget> {
@@ -80,6 +87,11 @@ class OnOffState extends FormFieldWidgetState<OnOffWidget> {
   void onToggle(bool newValue) {
     widget.onToggle(newValue);
     validatorKey.currentState!.validate();
+
+    if (widget._controller.onChange != null) {
+      ScreenController().executeAction(context, widget._controller.onChange!);
+    }
+
   }
 
   @override
