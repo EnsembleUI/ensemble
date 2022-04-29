@@ -110,6 +110,7 @@ void main() {
     EnsembleContext context = getBaseContext();
     context.addInvokableContext("ensemble", EnsembleMockLibrary());
     expect(context.eval(r'$(ensemble.storage.get("username"))'), 'admin');
+    expect(context.eval(r"$(ensemble.storage.get('username'))"), 'admin');
     expect(context.eval(r'Psst $(ensemble.storage.get("password"))'), 'Psst pass');
   });
 

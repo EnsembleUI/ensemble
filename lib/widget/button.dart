@@ -1,4 +1,5 @@
 
+import 'package:ensemble/framework/action.dart' as ensemble;
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget.dart';
@@ -20,10 +21,10 @@ class Button extends StatefulWidget with Invokable, HasController<ButtonControll
   @override
   Map<String, Function> setters() {
     return {
-      'label': (value) => _controller.label = value,
-      'onTap': (funcDefinition) => _controller.onTap = funcDefinition,
+      'label': (value) => _controller.label = Utils.getString(value, fallback: ''),
+      'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, this),
 
-      'outline': (value) => _controller.outline = value is bool ? value : null,
+      'outline': (value) => _controller.outline = Utils.optionalBool(value),
       'backgroundColor': (value) => _controller.backgroundColor = Utils.optionalInt(value),
       'color': (value) => _controller.color = Utils.optionalInt(value),
       'borderRadius': (value) => _controller.borderRadius = Utils.optionalInt(value),
@@ -42,7 +43,7 @@ class Button extends StatefulWidget with Invokable, HasController<ButtonControll
 
 class ButtonController extends WidgetController {
   late String label;
-  dynamic onTap;
+  ensemble.Action? onTap;
 
   bool? outline;
   int? backgroundColor;
@@ -102,7 +103,7 @@ class ButtonState extends WidgetState<Button> {
 
   void onPressed(BuildContext context) {
     if (widget._controller.onTap != null) {
-      ScreenController().executeAction(context, widget._controller.onTap);
+      ScreenController().executeAction(context, widget._controller.onTap!);
     }
   }
 

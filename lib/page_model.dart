@@ -175,8 +175,7 @@ class PageModel {
         // add (and potentially overwrite) parameters to our data map
         for (var param in (subViewMap['parameters'] as YamlList)) {
           if (itemMap[param] != null) {
-            eContext.eval(itemMap[param]).then(
-                    (value) => localizedContext.addDataContextById(param, value));
+            localizedContext.addDataContextById(param, eContext.eval(itemMap[param]));
 
           }
         }
