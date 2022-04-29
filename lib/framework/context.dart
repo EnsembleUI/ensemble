@@ -7,7 +7,7 @@ import 'package:ensemble_ts_interpreter/parser/ast.dart';
 import 'package:ensemble_ts_interpreter/parser/js_interpreter.dart';
 
 class EnsembleContext {
-  Map<String, dynamic> _contextMap = {};
+  final Map<String, dynamic> _contextMap = {};
 
   BuildContext? _buildContext;
   EnsembleContext({
@@ -56,14 +56,14 @@ class EnsembleContext {
     }
 
     // if just have single standalone expression, return the actual type (e.g integer)
-    RegExpMatch? simpleExpression = RegExp(r'^\$\(([a-z_-\d."\(\)\[\]]+)\)$', caseSensitive: false)
+    RegExpMatch? simpleExpression = RegExp(r'''^\$\(([a-z_-\d."'\(\)\[\]]+)\)$''', caseSensitive: false)
         .firstMatch(expression);
     if (simpleExpression != null) {
       return evalVariable(simpleExpression.group(1)!);
     }
     // if we have multiple expressions, or mixing with text, return as String
     // greedy match anything inside a $() with letters, digits, period, square brackets.
-    return expression.replaceAllMapped(RegExp(r'\$\(([a-z_-\d."\(\)\[\]]+)\)', caseSensitive: false),
+    return expression.replaceAllMapped(RegExp(r'''\$\(([a-z_-\d."'\(\)\[\]]+)\)''', caseSensitive: false),
             (match) => evalVariable("${match[1]}").toString());
 
     /*return replaceAllMappedAsync(
@@ -108,7 +108,7 @@ class EnsembleContext {
         return evalToken(tokens, index+1, data.getProperty(token));
       } else {
         // only support methods with 1 argument for now
-        RegExpMatch? match = RegExp(r'([a-zA-Z_-\d]+)\s*\("([a-zA-Z_-\d]+)"\)').firstMatch(token);
+        RegExpMatch? match = RegExp(r'''([a-zA-Z_-\d]+)\s*\(["']([a-zA-Z_-\d]+)["']\)''').firstMatch(token);
         if (match != null) {
           // first group is the method name, second is the argument
           Function? method = data.getMethods()[match.group(1)];
