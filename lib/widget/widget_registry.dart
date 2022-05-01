@@ -1,5 +1,6 @@
 
 import 'package:ensemble/layout/Row.dart';
+import 'package:ensemble/layout/data_grid.dart';
 import 'package:ensemble/layout/grid_builder.dart';
 import 'package:ensemble/layout/Column.dart';
 import 'package:ensemble/layout/stack.dart';
@@ -41,6 +42,7 @@ class WidgetRegistry {
     Column.type: () => Column(),
     Row.type: () => Row(),
     Stack.type: () => Stack(),
+    DataGrid.type: () => DataGrid(),
   };
 
   @Deprecated("Use widgetMap instead")
