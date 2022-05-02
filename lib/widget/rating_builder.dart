@@ -1,5 +1,6 @@
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_builder.dart' as ensemble;
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:flutter/cupertino.dart';
@@ -22,9 +23,9 @@ class RatingBuilder extends ensemble.WidgetBuilder {
   static RatingBuilder fromDynamic(Map<String, dynamic> props, Map<String, dynamic> styles, {WidgetRegistry? registry})
   {
     return RatingBuilder(
-      value: props['value'] ?? 0,
-      count: props['count'] ?? 0,
-      display: props['display'],
+      value: Utils.optionalDouble(props['value']),
+      count: Utils.optionalInt(props['count']),
+      display: Utils.optionalString(props['display']),
 
       // styles
       styles: styles

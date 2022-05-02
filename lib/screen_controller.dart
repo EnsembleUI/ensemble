@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/action.dart' as eAction;
 import 'package:ensemble/framework/context.dart';
 import 'package:ensemble/framework/icon.dart' as eIcon;
 import 'package:ensemble/framework/library.dart';
@@ -172,23 +173,23 @@ class ScreenController {
 
 
   /// handle Action e.g invokeAPI
-  void executeAction(BuildContext context, YamlMap payload) {
+  void executeAction(BuildContext context, eAction.Action action) {
     ViewState? viewState = context.findRootAncestorStateOfType<ViewState>();
     if (viewState != null) {
       EnsembleContext eContext = viewState.widget.pageData.getEnsembleContext();
 
-      if (payload["action"] == ActionType.invokeAPI.name) {
-        String apiName = payload['name'];
+      if (action.actionType == eAction.ActionType.invokeAPI) {
+        String? apiName = action.actionName;
         YamlMap? api = viewState.widget.pageData.apiMap?[apiName];
         if (api != null) {
           HttpUtils.invokeApi(api, eContext)
-              .then((response) => _onAPIResponse(context, eContext, api, apiName, response))
+              .then((response) => _onAPIResponse(context, eContext, api, apiName!, response))
               .onError((error, stackTrace) => onApiError(eContext, api, error));
         }
-      } else if (payload['action'] == ActionType.navigateScreen.name) {
-
+      } else if (action.actionType == eAction.ActionType.navigateScreen) {
+        // build the input params
         Map<String, dynamic>? nextArgs = {};
-        if (payload['inputs'] is YamlMap) {
+        if (action.inputs != null) {
           EnsembleContext localizedContext = eContext.clone();
 
           // then add localized templated data (for now just go up 1 level)
@@ -197,13 +198,22 @@ class ScreenController {
           if (templatedState != null) {
             localizedContext.addDataContext(templatedState.widget.localDataMap);
           }
-
-          (payload['inputs'] as YamlMap).forEach((key, value) {
+          action.inputs!.forEach((key, value) {
             nextArgs[key] = localizedContext.eval(value);
           });
         }
         // args may be cleared out on hot reload. Check this
-        Ensemble().navigateToPage(context, payload['name'], pageArgs: nextArgs);
+        if (action.actionName != null) {
+          Ensemble().navigateToPage(
+              context, action.actionName!, pageArgs: nextArgs);
+        }
+      } else if (action.actionType == eAction.ActionType.executeCode) {
+        // we need the initiator to scope *this*
+        if (action.initiator != null && action.codeBlock != null) {
+          EnsembleContext localizedContext = eContext.clone();
+          localizedContext.addInvokableContext('this', action.initiator!);
+          localizedContext.evalCode(action.codeBlock!);
+        }
       }
 
     }
@@ -281,8 +291,6 @@ class ScreenController {
 
 }
 
-
-enum ActionType { invokeAPI, navigateScreen }
 
 
 //typedef ActionCallback = void Function(YamlMap inputMap);
