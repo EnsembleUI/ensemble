@@ -1,7 +1,7 @@
 
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/widget.dart' as w;
+import 'package:ensemble/framework/widget.dart' as framework;
 import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as material;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -49,7 +49,7 @@ class Text extends StatefulWidget with Invokable, HasController<TextController, 
 
 }
 
-class TextController extends w.WidgetController {
+class TextController extends framework.WidgetController {
   String? text;
   String? font;
   int? fontSize;
@@ -61,7 +61,7 @@ class TextController extends w.WidgetController {
   String? lineHeight;
 }
 
-class TextState extends WidgetState<Text> {
+class TextState extends framework.WidgetState<Text> {
   @override
   Widget build(BuildContext context) {
     FontWeight? fontWeight;

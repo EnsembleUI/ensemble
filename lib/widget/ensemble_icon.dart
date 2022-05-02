@@ -1,7 +1,7 @@
 
 import 'package:ensemble/framework/icon.dart' as ensembleLib;
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/widget.dart';
+import 'package:ensemble/framework/widget.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 
