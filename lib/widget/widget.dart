@@ -1,7 +1,9 @@
+import 'package:ensemble/framework/action.dart' as action;
+import 'package:ensemble/framework/icon.dart' as ensemble;
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
 
 /// base mixin for Ensemble Container (e.g Column)
@@ -29,7 +31,7 @@ abstract class WidgetController extends Controller {
   @override
   Map<String, Function> getBaseSetters() {
     return {
-      'expanded': (value) => expanded = value is bool ? value : false,
+      'expanded': (value) => expanded = Utils.getBool(value, fallback: false),
       //'padding': (value) => padding = Utils.optionalInt(value),
     };
   }
@@ -62,8 +64,8 @@ class FormFieldController extends WidgetController {
   Map<String, Function> getBaseSetters() {
     Map<String, Function> setters = super.getBaseSetters();
     setters.addAll({
-      'enabled': (value) => enabled = value is bool ? value : true,
-      'required': (value) => required = value is bool ? value : false,
+      'enabled': (value) => enabled = Utils.getBool(value, fallback: true),
+      'required': (value) => required = Utils.getBool(value, fallback: false),
       'label': (value) => label = Utils.optionalString(value),
       'hintText': (value) => hintText = Utils.optionalString(value),
       'icon': (value) => icon = Utils.optionalString(value),
@@ -72,6 +74,34 @@ class FormFieldController extends WidgetController {
       'iconColor': (value) => iconColor = Utils.optionalInt(value),
     });
     return setters;
+  }
+
+}
+
+/// base widget state for FormField widgets
+abstract class FormFieldWidgetState<W extends HasController> extends WidgetState<W> {
+  // the key to validate this FormField
+  final validatorKey = GlobalKey<FormFieldState>();
+
+  /// return a default InputDecoration if the controller is a FormField
+  InputDecoration get inputDecoration {
+    if (widget.controller is FormFieldController) {
+      FormFieldController myController = widget.controller as FormFieldController;
+      return InputDecoration(
+        floatingLabelBehavior: FloatingLabelBehavior.always,
+        labelText: myController.label,
+        hintText: myController.hintText,
+        icon: myController.icon == null ? null : ensemble.Icon(
+          myController.icon!,
+          library: myController.iconLibrary,
+          size: myController.iconSize,
+          color:
+            myController.iconColor != null ?
+            Color(myController.iconColor!) :
+            null)
+      );
+    }
+    return const InputDecoration();
   }
 
 }
@@ -110,11 +140,11 @@ class BoxLayoutController extends WidgetController {
     setters.addAll({
       'onTap': (func) => onTap = func,
 
-      'scrollable': (value) => scrollable = value is bool ? value : false,
-      'autoFit': (value) =>  autoFit = value is bool ? value : false,
-      'mainAxis': (value) => mainAxis = value,
-      'crossAxis': (value) => crossAxis = value,
-      'mainAxisSize': (value) => mainAxisSize = value,
+      'scrollable': (value) => scrollable = Utils.getBool(value, fallback: false),
+      'autoFit': (value) =>  autoFit = Utils.getBool(value, fallback: false),
+      'mainAxis': (value) => mainAxis = Utils.optionalString(value),
+      'crossAxis': (value) => crossAxis = Utils.optionalString(value),
+      'mainAxisSize': (value) => mainAxisSize = Utils.optionalString(value),
       'width': (value) => width = Utils.optionalInt(value),
       'maxWidth': (value) => maxWidth = Utils.optionalInt(value),
       'height': (value) => height = Utils.optionalInt(value),
@@ -126,7 +156,7 @@ class BoxLayoutController extends WidgetController {
       'backgroundColor': (value) => backgroundColor = Utils.optionalInt(value),
       'borderColor': (value) =>  borderColor = Utils.optionalInt(value),
       'borderRadius': (value) =>  borderRadius = Utils.optionalInt(value),
-      'fontFamily': (value) => fontFamily = value,
+      'fontFamily': (value) => fontFamily = Utils.optionalString(value),
       'fontSize': (value) =>  fontSize = Utils.optionalInt(value),
 
       'shadowColor': (value) => shadowColor = Utils.optionalInt(value),

@@ -26,13 +26,13 @@ class Text extends StatefulWidget with Invokable, HasController<TextController, 
     return {
       'text': (newValue) => _controller.text = Utils.optionalString(newValue),
 
-      'font': (value) => _controller.font = value,
+      'font': (value) => _controller.font = Utils.optionalString(value),
       'fontSize': (value) => _controller.fontSize = Utils.optionalInt(value),
-      'fontWeight': (value) => _controller.fontWeight = value,
+      'fontWeight': (value) => _controller.fontWeight = Utils.optionalString(value),
       'color': (value) => _controller.color = Utils.optionalInt(value),
-      'overflow': (value) => _controller.overflow = value,
-      'textAlign': (value) => _controller.textAlign = value,
-      'textStyle': (value) => _controller.textStyle = value,
+      'overflow': (value) => _controller.overflow = Utils.optionalString(value),
+      'textAlign': (value) => _controller.textAlign = Utils.optionalString(value),
+      'textStyle': (value) => _controller.textStyle = Utils.optionalString(value),
       'lineHeight': (value) => _controller.lineHeight = Utils.optionalString(value),
 
     };

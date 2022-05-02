@@ -73,6 +73,9 @@
     "Action": {
 
     },
+    "Model": {
+
+    },
     "Functions": {
 
     },
@@ -204,6 +207,61 @@
         }
       }
     },
+    "Image-payload": {
+      "type": "object",
+      "required": ["source"],
+      "properties": {
+        "source": {
+          "type": "string",
+          "description": "URL to the image"
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "width": {
+              "type": "integer"
+            },
+            "height": {
+              "type": "integer"
+            },
+            "fit": {
+              "type": "string",
+              "description": "How to fit the image within our width/height or our parent (if dimension is not specified)",
+              "oneOf": [
+                {
+                  "const": "fill",
+                  "description": "Stretch our image to fill the dimension, and distorting the aspect ratio if needed"
+                },
+                {
+                  "const": "contain",
+                  "description": "Scale the image such that the entire image is contained within our dimension"
+                },
+                {
+                  "const": "cover",
+                  "description": "Scale the image to fill our dimension, clipping the image as needed"
+                },
+                {
+                  "const": "fitWidth",
+                  "description": "Scale the image to fit the width, and clipping the height if needed"
+                },
+                {
+                  "const": "fitHeight",
+                  "description": "Scale the image to fit the height, and clipping the width if needed"
+                },
+                {
+                  "const": "none",
+                  "description": "Center-Align the original image size, clipping the content if needed"
+                },
+                {
+                  "const": "scaleDown",
+                  "description": "Center-Align the image and only scale down to fit. Image will not be scaled up to bigger dimension."
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
     "TextInput-payload": {
       "allOf": [
         { "$ref": "#/$defs/FormInput-payload" },
@@ -246,6 +304,46 @@
         }
       ]
     },
+    "OnOff-payload": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/FormInput-payload"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "value": {
+              "type": "boolean"
+            },
+            "leadingText": {
+              "type": "string"
+            },
+            "trailingText": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "SelectOne-payload": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/FormInput-payload"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "value": {
+              "description": "Select a value that matches one of the items. If Items are Objects, it should match the value key"
+            },
+            "items": {
+              "type": "array",
+              "description": "List of values, or Objects with value/label pairs"
+            }
+          }
+        }
+      ]
+    },
     "Button-payload": {
       "type": "object",
       "required": ["label"],
@@ -254,6 +352,7 @@
           "type": "string",
           "description": "Your button label"
         },
+        "onTap": { "$ref": "#/$defs/Action-payload" },
         "styles": {
           "type": "object",
           "properties": {
@@ -345,6 +444,7 @@
           "type": "string",
           "enum": ["default", "fontAwesome"]
         },
+        "onChange": { "$ref": "#/$defs/Action-payload" },
         "styles": {
           "type": "object",
           "properties": {
@@ -356,6 +456,29 @@
             }
           }
         }
+      }
+    },
+    "Action-payload": {
+      "type": [ "string" , "object" ],
+      "description": "Call Ensemble's built-in functions or execute code on value changes",
+      "required": [ "action", "name" ],
+      "properties": {
+        "action": {
+          "type": "string",
+          "description": "invoke an Ensemble's built-in functions",
+          "enum": [
+            "invokeAPI" ,"navigateScreen"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the action (e.g API Name for invokeAPI, Screen Name for navigateScreen)"
+        },
+        "inputs": {
+          "type": "object",
+          "description": "Specify the key/value pairs to pass into the next Screen or API"
+        }
+
       }
     },
 
@@ -370,8 +493,12 @@
       "properties": {
         "Text": { "$ref": "#/$defs/Text-payload" },
         "Icon": { "$ref": "#/$defs/Icon-payload" },
+        "Image": { "$ref": "#/$defs/Image-payload" },
         "TextInput": { "$ref": "#/$defs/TextInput-payload" },
         "Password": { "$ref": "#/$defs/Password-payload" },
+        "Checkbox": { "$ref": "#/$defs/OnOff-payload" },
+        "Switch": { "$ref": "#/$defs/OnOff-payload" },
+        "Dropdown": { "$ref": "#/$defs/SelectOne-payload" },
         "Button": { "$ref": "#/$defs/Button-payload" },
         "Column": { "$ref": "#/$defs/Column-payload" },
         "Row": { "$ref": "#/$defs/Row-payload" }
