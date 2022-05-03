@@ -58,6 +58,10 @@ class Utils {
     return value is bool ? value : fallback;
   }
 
+  static int getInt(dynamic value, {required int fallback}) {
+    return value is int ? value : fallback;
+  }
+
   static double getDouble(dynamic value, {required double fallback}) {
     return
       value is double ? value :
