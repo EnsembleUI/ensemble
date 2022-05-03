@@ -1,11 +1,11 @@
 
 import 'package:ensemble/framework/context.dart';
-import 'package:ensemble/layout/Column.dart';
-import 'package:ensemble/widget/Text.dart';
-import 'package:ensemble/widget/button.dart';
+import 'package:ensemble/widget/Text.dart' as widget;
 import 'package:ensemble/widget/form_textfield.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:mockito/mockito.dart';
 
 void main() {
 
@@ -18,14 +18,14 @@ void main() {
     }
   };
 
-  EnsembleContext getBaseContext() {
-    return EnsembleContext(initialMap: dataMap);
+  DataContext getBaseContext() {
+    return DataContext(buildContext: MockBuildContext(), initialMap: dataMap);
   }
 
-  EnsembleContext getDataAndWidgetContext() {
-    EnsembleContext context = getBaseContext();
+  DataContext getDataAndWidgetContext() {
+    DataContext context = getBaseContext();
 
-    Text myText = Text();
+    widget.Text myText = widget.Text();
     myText.setProperty('text', 'Hello');
     context.addInvokableContext("myText", myText);
 
@@ -41,7 +41,7 @@ void main() {
   });
 
   test('multiple matches', () {
-    EnsembleContext context = getBaseContext();
+    DataContext context = getBaseContext();
     expect(context.eval("hello \$(result.name)"), "hello Peter Parker");
     expect(context.eval("\$(result.name)'s age is \$(result.age)"), "Peter Parker's age is 25");
   });
@@ -49,7 +49,7 @@ void main() {
 
   test('Parsing expressions', () {
     // empty context returns original
-    EnsembleContext context = EnsembleContext(initialMap: {});
+    DataContext context = DataContext(buildContext: MockBuildContext(), initialMap: {});
     expect(context.eval(r'$(blah)'), r'blah');
     expect(context.eval(r'$(result.name)'), r'result.name');
 
@@ -63,7 +63,7 @@ void main() {
 
 
   test('Parsing variables', () {
-    EnsembleContext context = getBaseContext();
+    DataContext context = getBaseContext();
     expect(context.evalVariable('blah'), 'blah');
     expect(context.evalVariable('blah.blah'), 'blah.blah');
 
@@ -75,7 +75,7 @@ void main() {
 
   
   test("Widget getters", () {
-    EnsembleContext context = getDataAndWidgetContext();
+    DataContext context = getDataAndWidgetContext();
     
     //expect(context.eval(r'$(myText.text) there $(result.name)'), 'Hello there Peter Parker');
     //expect(context.eval(r'$(myTextField.value)'), 'Ronald');
@@ -98,7 +98,7 @@ void main() {
   });*/
 
   test("Code block", () {
-    EnsembleContext context = getDataAndWidgetContext();
+    DataContext context = getDataAndWidgetContext();
     expect(context.eval(r'$(myText.text) $(myTextField.value)'), 'Hello Ronald');
 
     // TODO: use AST instead of code
@@ -107,7 +107,7 @@ void main() {
   });
 
   test("Recursive invokable", () {
-    EnsembleContext context = getBaseContext();
+    DataContext context = getBaseContext();
     context.addInvokableContext("ensemble", EnsembleMockLibrary());
     expect(context.eval(r'$(ensemble.storage.get("username"))'), 'admin');
     expect(context.eval(r"$(ensemble.storage.get('username'))"), 'admin');
@@ -163,3 +163,5 @@ class MockStorage with Invokable {
   }
 
 }
+
+class MockBuildContext extends Mock implements BuildContext {}

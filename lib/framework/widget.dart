@@ -1,5 +1,6 @@
 import 'package:ensemble/framework/action.dart' as action;
 import 'package:ensemble/framework/icon.dart' as ensemble;
+import 'package:ensemble/framework/view.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -37,8 +38,16 @@ abstract class WidgetController extends Controller {
   }
 }
 
+/// base class for widgets that want to participate in Ensemble layout
 abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
-
+  @override
+  void dispose() {
+    /*ViewManager? viewManager = ViewWidget.of(context);
+    if (viewManager != null) {
+      //viewManager.dispose(widget);
+    }*/
+    super.dispose();
+  }
 }
 
 

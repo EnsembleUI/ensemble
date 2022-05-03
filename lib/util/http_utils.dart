@@ -9,7 +9,7 @@ import 'package:http/http.dart' as http;
 
 class HttpUtils {
 
-  static Future<http.Response> invokeApi(YamlMap api, EnsembleContext eContext) async {
+  static Future<http.Response> invokeApi(YamlMap api, DataContext eContext) async {
 
     // headers
     Map<String, String> headers = {};

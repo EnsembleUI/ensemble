@@ -17,10 +17,10 @@ class PageModel {
     'Functions'
   ];
 
-  final EnsembleContext eContext;
+  final DataContext eContext;
   String? title;
   Map<String, dynamic>? pageStyles;
-  Map<String, YamlMap>? subViewDefinitions;
+  Map<String, YamlMap>? customWidgetDefinitions;
   Menu? menu;
   late WidgetModel rootWidgetModel;
   PageType pageType = PageType.full;
@@ -94,7 +94,7 @@ class PageModel {
     }
 
     // build a Map of the subviews' models first
-    subViewDefinitions = createSubViewDefinitions(docMap);
+    customWidgetDefinitions = createSubViewDefinitions(docMap);
 
     if (viewMap['type'] == null ||
         ![Column.type, Row.type, HStackBuilder.type].contains(viewMap['type'])) {
@@ -109,7 +109,7 @@ class PageModel {
       'item-template': viewMap['item-template'],
       'styles': viewMap['styles']
     });
-    rootWidgetModel = PageModel.buildModelFromName(viewMap['type'], rootItemMap, eContext, subViewDefinitions!);
+    rootWidgetModel = PageModel.buildModelFromName(viewMap['type'], rootItemMap, eContext, customWidgetDefinitions!);
   }
 
   Map<String, YamlMap> createSubViewDefinitions(YamlMap docMap) {
@@ -127,7 +127,7 @@ class PageModel {
   }
 
 
-  static List<WidgetModel> buildModels(YamlList models, EnsembleContext eContext, Map<String, YamlMap> subViewDefinitions) {
+  static List<WidgetModel> buildModels(YamlList models, DataContext eContext, Map<String, YamlMap> subViewDefinitions) {
     List<WidgetModel> rtn = [];
     for (dynamic item in models) {
       rtn.add(buildModel(item, eContext, subViewDefinitions));
@@ -137,7 +137,7 @@ class PageModel {
 
 
   // each model can be dynamic (Spacer) or YamlMap (Text: ....)
-  static WidgetModel buildModel(dynamic item, EnsembleContext eContext, Map<String, YamlMap> subViewDefinitions) {
+  static WidgetModel buildModel(dynamic item, DataContext eContext, Map<String, YamlMap> subViewDefinitions) {
     String? key;
     YamlMap? itemMap;
 
@@ -168,7 +168,7 @@ class PageModel {
     if (subViewMap != null) {
       String subViewWidgetType = subViewMap['type'];
 
-      EnsembleContext localizedContext = eContext.clone();
+      DataContext localizedContext = eContext.clone();
 
       // if subview has parameters
       if (subViewMap['parameters'] is YamlList && itemMap != null) {
@@ -195,7 +195,7 @@ class PageModel {
 
   }
 
-  static WidgetModel buildModelFromName(String widgetType, YamlMap itemMap, EnsembleContext eContext, Map<String, YamlMap> subViewDefinitions, {String? widgetId}) {
+  static WidgetModel buildModelFromName(String widgetType, YamlMap itemMap, DataContext eContext, Map<String, YamlMap> subViewDefinitions, {String? widgetId}) {
     Map<String, dynamic> props = {};
     if (widgetId != null) {
       props['id'] = widgetId;
@@ -229,7 +229,7 @@ class PageModel {
               value['data'],
               value['name'],
               value['template'],
-              localizedDataList);
+              localizedDataList: localizedDataList);
         }
         // actions like onTap should evaluate its expressions upon the action only
         else if (key.toString().startsWith("on")) {
@@ -256,7 +256,6 @@ class PageModel {
 }
 
 
-
 class WidgetModel {
   final String type;
   final Map<String, dynamic> styles;
@@ -269,13 +268,29 @@ class WidgetModel {
   WidgetModel(this.type, this.styles, this.props, {this.children, this.itemTemplate});
 }
 
+class CustomWidgetModel extends WidgetModel {
+  CustomWidgetModel(
+      String type,
+      Map<String, dynamic> styles,
+      Map<String, dynamic> props, {
+        List<WidgetModel>? children,
+        ItemTemplate? itemTemplate,
+        this.parameters,
+        this.inputs
+  }) : super(type, styles, props, children: children, itemTemplate: itemTemplate);
+
+  List<String>? parameters;
+  Map<String, dynamic>? inputs;
+
+}
+
 class ItemTemplate {
   final String data;
   final String name;
   final YamlMap template;
   final List<dynamic>? localizedDataList;
 
-  ItemTemplate(this.data, this.name, this.template, this.localizedDataList);
+  ItemTemplate(this.data, this.name, this.template, {this.localizedDataList});
 }
 
 class LayoutModel {

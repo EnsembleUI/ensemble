@@ -36,15 +36,18 @@ dependencies:
   flutter_secure_storage: ^5.0.2
 
   ensemble_ts_interpreter:
-    git:
-      url: https://github.com/EnsembleUI/ensemble_ts_interpreter.git
-      ref: master
+    path: ../ensemble_ts_interpreter
+    #git:
+      #url: https://github.com/EnsembleUI/ensemble_ts_interpreter.git
+      #ref: master
   #sdui:
     #path: ../sdui
 
   # use our forked high_chart to fix iOS issue
   high_chart:
     git: https://github.com/EnsembleUI/high_chart.git
+  event_bus: ^2.0.0
+  mockito: ^5.1.0
 
 
 
@@ -58,7 +61,6 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
-
 
 
   # This section identifies your Flutter project as a module meant for

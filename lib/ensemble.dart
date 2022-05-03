@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:developer';
 
 import 'package:ensemble/framework/context.dart';
-import 'package:ensemble/framework/library.dart';
 import 'package:ensemble/provider.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/http_utils.dart';
@@ -104,7 +103,7 @@ class Ensemble {
     }
 
     // init our context with the Page arguments
-    EnsembleContext eContext = EnsembleContext(buildContext: context, initialMap: pageArgs);
+    DataContext dataContext = DataContext(buildContext: context, initialMap: pageArgs);
 
     // load page
     if (snapshot.data['View'] != null) {
@@ -113,7 +112,7 @@ class Ensemble {
       if (apiName != null) {
         YamlMap apiPayload = snapshot.data['API'][apiName];
         return FutureBuilder(
-            future: HttpUtils.invokeApi(apiPayload, eContext),
+            future: HttpUtils.invokeApi(apiPayload, dataContext),
             builder: (context, AsyncSnapshot apiSnapshot) {
               if (!apiSnapshot.hasData) {
                 return const Scaffold(
@@ -122,7 +121,7 @@ class Ensemble {
                     )
                 );
               } else if (apiSnapshot.hasError) {
-                ScreenController().onApiError(eContext, apiPayload, apiSnapshot.error);
+                ScreenController().onApiError(dataContext, apiPayload, apiSnapshot.error);
                 return const Scaffold(
                     body: Center(
                         child: Text(
@@ -132,19 +131,19 @@ class Ensemble {
               }
 
               // update our context with API result
-              eContext.addInvokableContext(apiName, APIResponse(apiSnapshot.data));
+              dataContext.addInvokableContext(apiName, APIResponse(apiSnapshot.data));
 
               // render the page
-              Widget page = _renderPage(context, eContext, pageName, snapshot);
+              Widget page = _renderPage(context, dataContext, pageName, snapshot);
 
               // once page has been rendered, run the onResponse code block of the API
-              ScreenController().onAPIComplete(eContext, apiPayload, apiSnapshot.data);
+              ScreenController().onAPIComplete(dataContext, apiPayload, apiSnapshot.data);
 
               return page;
             }
         );
       } else {
-        return _renderPage(context, eContext, pageName, snapshot);
+        return _renderPage(context, dataContext, pageName, snapshot);
       }
     }
     // else error
@@ -209,7 +208,7 @@ class Ensemble {
 
   Widget _renderPage(
       BuildContext context,
-      EnsembleContext eContext,
+      DataContext eContext,
       String pageName,
       AsyncSnapshot<dynamic> snapshot,
       {
