@@ -1,34 +1,42 @@
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/context.dart';
+import 'package:ensemble/framework/data.dart';
 import 'package:ensemble/framework/icon.dart' as ensemble;
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
 
-/// The root View. Every Ensemble page will have at least one at the root
+/// The root View. Every Ensemble page will have at least one at its root
 class View extends StatefulWidget {
   View(
+      PageModel pageModel,
       this.pageData,
       this.bodyWidget,
       {
         this.menu,
         this.footer
-      }) : super(key: ValueKey(pageData.pageName));
+      }) : super(key: ValueKey(pageData.pageName)) {
 
-  final ViewState currentState = ViewState();
+    _scopeManager = ScopeManager(pageModel.eContext, pageModel.customWidgetDefinitions);
+
+  }
+
+  // responsible for managing our current View.
+  // All widgets will have access to this
+  late final ScopeManager _scopeManager;
+
+  @Deprecated("To be moved to ViewManager")
   final PageData pageData;
+
   final Widget bodyWidget;
   final Menu? menu;
   final Widget? footer;
 
   @override
-  State<View> createState() => currentState;
-
-  ViewState getState() {
-    return currentState;
-  }
+  State<View> createState() => ViewState();
 
 
 }
@@ -42,7 +50,10 @@ class ViewState extends State<View>{
       // need a close button to go back to non-modal pages
       // also animate up and down (vs left and right)
       return Scaffold(
-          body: widget.bodyWidget,
+          body: DataScopeWidget(
+            scopeManager: widget._scopeManager,
+            child: widget.bodyWidget,
+          ),
           bottomSheet: widget.footer);
     }
     // regular page
@@ -86,7 +97,10 @@ class ViewState extends State<View>{
         backgroundColor: backgroundColor,
         appBar: !showAppBar ? null : AppBar(
               title: Text(widget.pageData.pageTitle!)),
-        body: getBody(),
+        body: DataScopeWidget(
+          scopeManager: widget._scopeManager,
+          child: getBody(),
+        ),
         bottomNavigationBar: bottomNavBar,
         drawer: drawer,
         bottomSheet: widget.footer,
@@ -217,12 +231,14 @@ class ViewState extends State<View>{
 
 
 
+
+
 /// data for the current page
 class PageData {
   PageData({
     required this.pageName,
     required this.datasourceMap,
-    required EnsembleContext eContext,
+    required DataContext eContext,
     this.subViewDefinitions,
     this.pageStyles,
     this.pageTitle,
@@ -248,13 +264,13 @@ class PageData {
   final Map<String, YamlMap>? subViewDefinitions;
 
   // arguments passed into this page
-  late final EnsembleContext _eContext;
+  late final DataContext _eContext;
 
   // API model mapping
   Map<String, YamlMap>? apiMap;
 
   /// everytime we call this, we make sure any populated API result will have its updated values here
-  EnsembleContext getEnsembleContext() {
+  DataContext getEnsembleContext() {
     for (var element in datasourceMap.values) {
       if (element._resultData != null) {
         _eContext.addDataContext(element._resultData!);
@@ -263,6 +279,34 @@ class PageData {
     return _eContext;
   }
 
+}
+
+
+
+/// a wrapper InheritedWidget to expose the ScopeManager
+/// to every widgets in our tree
+class DataScopeWidget extends InheritedWidget {
+  const DataScopeWidget({
+    Key? key,
+    required this.scopeManager,
+    required Widget child
+  }) : super(key: key, child: child);
+
+  final ScopeManager scopeManager;
+
+  @override
+  bool updateShouldNotify(covariant InheritedWidget oldWidget) {
+    return false;
+  }
+
+  /// return the ScopeManager which includes the dataContext
+  static ScopeManager? getScope(BuildContext context) {
+    DataScopeWidget? viewWidget = context.dependOnInheritedWidgetOfExactType<DataScopeWidget>();
+    if (viewWidget != null) {
+      return viewWidget.scopeManager;
+    }
+    return null;
+  }
 }
 
 

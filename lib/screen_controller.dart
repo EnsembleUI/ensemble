@@ -3,16 +3,15 @@ import 'dart:convert';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart' as eAction;
 import 'package:ensemble/framework/context.dart';
-import 'package:ensemble/framework/icon.dart' as eIcon;
-import 'package:ensemble/framework/library.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/http_utils.dart';
-import 'package:ensemble/view.dart';
+import 'package:ensemble/framework/view.dart';
 import 'package:ensemble/widget/unknown_builder.dart';
 import 'package:ensemble/widget/widget_builder.dart' as ensemble;
 import 'package:ensemble/widget/widget_registry.dart';
-import 'package:ensemble/widget/widget.dart';
+import 'package:ensemble/framework/widget.dart';
+import 'package:event_bus/event_bus.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -31,7 +30,6 @@ class ScreenController {
     return _instance;
   }
 
-
   // This is wrong as the view will NOT be updated on navigation. Refactor.
   // For now we only use it once during the initial API call before loading the page
   // It should not be used subsequently
@@ -39,7 +37,7 @@ class ScreenController {
 
   // TODO: Back button will still use the curent page PageMode. Need to keep model state
   /// render the page from the definition and optional arguments (from previous pages)
-  Widget renderPage(BuildContext context, EnsembleContext eContext, String pageName, YamlMap data) {
+  Widget renderPage(BuildContext context, DataContext eContext, String pageName, YamlMap data) {
     PageModel pageModel = PageModel(eContext, data);
 
     Map<String, YamlMap>? apiMap = {};
@@ -55,7 +53,7 @@ class ScreenController {
       pageName: pageName,
       pageType: pageModel.pageType,
       datasourceMap: {},
-      subViewDefinitions: pageModel.subViewDefinitions,
+      subViewDefinitions: pageModel.customWidgetDefinitions,
       eContext: pageModel.eContext,
       apiMap: apiMap
     );
@@ -65,7 +63,7 @@ class ScreenController {
 
   }
 
-  Widget? _buildFooter(EnsembleContext eContext, PageModel pageModel) {
+  Widget? _buildFooter(DataContext eContext, PageModel pageModel) {
     // Footer can only take 1 child by our design. Ignore the rest
     if (pageModel.footer != null && pageModel.footer!.children.isNotEmpty) {
       return AnimatedOpacity(
@@ -87,6 +85,7 @@ class ScreenController {
   View _buildPage(BuildContext context, PageModel pageModel, PageData pageData) {
     // save the current view to look up when populating initial API load ONLY
     initialView = View(
+        pageModel,
         pageData,
         buildWidget(pageData.getEnsembleContext(), pageModel.rootWidgetModel),
         menu: pageModel.menu,
@@ -95,7 +94,7 @@ class ScreenController {
   }
 
 
-  List<Widget> _buildChildren(EnsembleContext eContext, List<WidgetModel> models) {
+  List<Widget> _buildChildren(DataContext eContext, List<WidgetModel> models) {
     List<Widget> children = [];
     for (WidgetModel model in models) {
       children.add(buildWidget(eContext, model));
@@ -104,9 +103,7 @@ class ScreenController {
   }
 
   /// build a widget from a given model
-  Widget buildWidget(EnsembleContext eContext, WidgetModel futureModel) {
-    WidgetModel model = futureModel;
-
+  Widget buildWidget(DataContext eContext, WidgetModel model) {
     Function? widgetInstance = WidgetRegistry.widgetMap[model.type];
     if (widgetInstance != null) {
       Invokable widget = widgetInstance.call();
@@ -176,7 +173,7 @@ class ScreenController {
   void executeAction(BuildContext context, eAction.Action action) {
     ViewState? viewState = context.findRootAncestorStateOfType<ViewState>();
     if (viewState != null) {
-      EnsembleContext eContext = viewState.widget.pageData.getEnsembleContext();
+      DataContext eContext = viewState.widget.pageData.getEnsembleContext();
 
       if (action.actionType == eAction.ActionType.invokeAPI) {
         String? apiName = action.actionName;
@@ -190,7 +187,7 @@ class ScreenController {
         // build the input params
         Map<String, dynamic>? nextArgs = {};
         if (action.inputs != null) {
-          EnsembleContext localizedContext = eContext.clone();
+          DataContext localizedContext = eContext.clone();
 
           // then add localized templated data (for now just go up 1 level)
           // this essentially add a reference to the templated data's name
@@ -210,7 +207,7 @@ class ScreenController {
       } else if (action.actionType == eAction.ActionType.executeCode) {
         // we need the initiator to scope *this*
         if (action.initiator != null && action.codeBlock != null) {
-          EnsembleContext localizedContext = eContext.clone();
+          DataContext localizedContext = eContext.clone();
           localizedContext.addInvokableContext('this', action.initiator!);
           localizedContext.evalCode(action.codeBlock!);
         }
@@ -231,12 +228,13 @@ class ScreenController {
   }
 
   /// e.g upon return of API result
-  void _onAPIResponse(BuildContext context, EnsembleContext eContext, YamlMap apiPayload, String actionName, Response response) {
+  void _onAPIResponse(BuildContext context, DataContext eContext, YamlMap apiPayload, String actionName, Response response) {
     ViewState? viewState = context.findRootAncestorStateOfType<ViewState>();
     if (viewState != null && viewState.mounted) {
       try {
         // only support JSON result for now
         Map<String, dynamic> jsonBody = json.decode(response.body);
+
 
         // update data source, which will dispatch changes to its listeners
         ActionResponse? action = viewState.widget.pageData.datasourceMap[actionName];
@@ -258,17 +256,17 @@ class ScreenController {
 
   }
 
-  void onAPIComplete(EnsembleContext eContext, YamlMap apiPayload, Response response) {
+  void onAPIComplete(DataContext eContext, YamlMap apiPayload, Response response) {
     if (apiPayload['onResponse'] != null) {
       // add key 'response' to the local context when evaluating this code block
-      EnsembleContext codeContext = eContext.clone();
+      DataContext codeContext = eContext.clone();
       codeContext.addInvokableContext('response', APIResponse(response));
 
       processCodeBlock(codeContext, apiPayload['onResponse'].toString());
     }
   }
 
-  void onApiError(EnsembleContext eContext, YamlMap apiPayload, Object? error) {
+  void onApiError(DataContext eContext, YamlMap apiPayload, Object? error) {
     if (apiPayload['onError'] != null) {
       processCodeBlock(eContext, apiPayload['onError'].toString());
     }
@@ -276,7 +274,7 @@ class ScreenController {
     // silently fail if error handle is not defined? or should we alert user?
   }
 
-  void processCodeBlock(EnsembleContext eContext, String codeBlock) {
+  void processCodeBlock(DataContext eContext, String codeBlock) {
     try {
       eContext.evalCode(codeBlock);
     } catch (e) {
