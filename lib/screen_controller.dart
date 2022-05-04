@@ -2,15 +2,15 @@ import 'dart:convert';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart' as eAction;
-import 'package:ensemble/framework/context.dart';
-import 'package:ensemble/framework/data.dart';
+import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/http_utils.dart';
-import 'package:ensemble/framework/view.dart';
+import 'package:ensemble/framework/widget/view.dart';
 import 'package:ensemble/widget/unknown_builder.dart';
 import 'package:ensemble/widget/widget_builder.dart' as ensemble;
 import 'package:ensemble/widget/widget_registry.dart';
-import 'package:ensemble/framework/widget.dart';
+import 'package:ensemble/framework/widget/widget.dart';
 import 'package:event_bus/event_bus.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
@@ -47,7 +47,7 @@ class ScreenController {
       });
     }
 
-    ScopeManager rootScopeManager = ScopeManager(
+    ScopeManager rootScopeManager = initRootScopeManager(
         dataContext,
         PageData(
           pageTitle: pageModel.title,
@@ -63,6 +63,20 @@ class ScreenController {
     return _buildPage(rootScopeManager, pageModel);
 
 
+  }
+
+  /// init the root ScopeManager. Here we'll add all the applicable Invokables,
+  /// even though they might not have any values yet
+  ScopeManager initRootScopeManager(DataContext dataContext, PageData pageData) {
+    ScopeManager rootScopeManager = ScopeManager(dataContext, pageData);
+
+    // add all the API names to our context as Invokable, even though their result
+    // will be null. This is so we can always reference it API responses come back
+    pageData.apiMap?.forEach((key, value) {
+      rootScopeManager.dataContext.addInvokableContext(key, APIResponse());
+    });
+
+    return rootScopeManager;
   }
 
   Widget? _buildFooter(ScopeManager scopeManager, PageModel pageModel) {
@@ -209,13 +223,20 @@ class ScreenController {
   }
 
   /// e.g upon return of API result
-  void _onAPIResponse(BuildContext context, DataContext eContext, YamlMap apiPayload, String actionName, Response response) {
+  void _onAPIResponse(BuildContext context, DataContext dataContext, YamlMap apiPayload, String actionName, Response response) {
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
     if (scopeManager != null) {
       try {
+        // TODO: we need to propagate changes to all child Scopes also
+        // update the API response in our DataContext and fire changes to all listeners
+        Invokable apiResponse = APIResponse(response: response);
+        dataContext.addInvokableContext(actionName, apiResponse);
+        scopeManager.dispatch(ModelChangeEvent(actionName, apiResponse));
+
+
+        // TODO: Legacy listeners, to be removed once refactored
         // only support JSON result for now
         Map<String, dynamic> jsonBody = json.decode(response.body);
-
         // update data source, which will dispatch changes to its listeners
         ActionResponse? action = scopeManager.pageData.datasourceMap[actionName];
         if (action == null) {
@@ -224,7 +245,8 @@ class ScreenController {
         }
         action.resultData = jsonBody;
 
-        onAPIComplete(eContext, apiPayload, response);
+        // execute API's onResponse code block
+        onAPIComplete(dataContext, apiPayload, response);
         
       } on FormatException catch (_, e) {
         print("Only JSON data supported");
@@ -236,11 +258,15 @@ class ScreenController {
 
   }
 
-  void onAPIComplete(DataContext eContext, YamlMap apiPayload, Response response) {
+  /// Note that this is executed AFTER our widgets have been rendered, such that
+  /// we can reference any widgets here in the code block
+  /// TODO: don't rely on order of execution
+  void onAPIComplete(DataContext dataContext, YamlMap apiPayload, Response response) {
     if (apiPayload['onResponse'] != null) {
-      // add key 'response' to the local context when evaluating this code block
-      DataContext codeContext = eContext.clone();
-      codeContext.addInvokableContext('response', APIResponse(response));
+      // our code block can locally reference `response` as the API response.
+      // Hence make sure we create a new data context here
+      DataContext codeContext = dataContext.clone();
+      codeContext.addInvokableContext('response', APIResponse(response: response));
 
       processCodeBlock(codeContext, apiPayload['onResponse'].toString());
     }

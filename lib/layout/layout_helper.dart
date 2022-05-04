@@ -1,5 +1,5 @@
 
-import 'package:ensemble/framework/widget.dart';
+import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:yaml/yaml.dart';
 

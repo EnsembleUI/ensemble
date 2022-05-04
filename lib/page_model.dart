@@ -1,8 +1,8 @@
 import 'dart:developer';
 import 'dart:math';
 import 'package:ensemble/error_handling.dart';
-import 'package:ensemble/framework/context.dart';
-import 'package:ensemble/framework/view_util.dart';
+import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/layout/Row.dart';
 import 'package:ensemble/layout/hstack_builder.dart';
 import 'package:ensemble/util/utils.dart';
@@ -231,7 +231,7 @@ class PageModel {
               value['data'],
               value['name'],
               value['template'],
-              localizedDataList: localizedDataList);
+              initialValue: localizedDataList);
         }
         // actions like onTap should evaluate its expressions upon the action only
         else if (key.toString().startsWith("on")) {
@@ -290,9 +290,9 @@ class ItemTemplate {
   final String data;
   final String name;
   final YamlMap template;
-  final List<dynamic>? localizedDataList;
+  final List<dynamic>? initialValue;
 
-  ItemTemplate(this.data, this.name, this.template, {this.localizedDataList});
+  ItemTemplate(this.data, this.name, this.template, {this.initialValue});
 }
 
 class Menu {

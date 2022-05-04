@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 
-import 'package:ensemble/framework/context.dart';
+import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/provider.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/http_utils.dart';
@@ -130,8 +130,9 @@ class Ensemble {
                 );
               }
 
-              // update our context with API result
-              dataContext.addInvokableContext(apiName, APIResponse(apiSnapshot.data));
+              // Since our widgets have not been rendered yet, simply update our
+              // data context with API result (no need to dispatch any event)
+              dataContext.addInvokableContext(apiName, APIResponse(response: apiSnapshot.data));
 
               // render the page
               Widget page = _renderPage(context, dataContext, pageName, snapshot);
