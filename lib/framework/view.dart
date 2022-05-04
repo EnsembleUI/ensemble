@@ -12,24 +12,16 @@ import 'package:yaml/yaml.dart';
 /// The root View. Every Ensemble page will have at least one at its root
 class View extends StatefulWidget {
   View(
-      PageModel pageModel,
-      this.pageData,
+      this._scopeManager,
       this.bodyWidget,
       {
         this.menu,
         this.footer
-      }) : super(key: ValueKey(pageData.pageName)) {
+      }) : super(key: ValueKey(_scopeManager.pageData.pageName));
 
-    _scopeManager = ScopeManager(pageModel.eContext, pageModel.customWidgetDefinitions);
-
-  }
-
-  // responsible for managing our current View.
-  // All widgets will have access to this
-  late final ScopeManager _scopeManager;
-
-  @Deprecated("To be moved to ViewManager")
-  final PageData pageData;
+  // The Scope for our View, which all widgets will have access to.
+  // Note that there can be many descendant scopes under our root scope.
+  final ScopeManager _scopeManager;
 
   final Widget bodyWidget;
   final Menu? menu;
@@ -44,9 +36,10 @@ class View extends StatefulWidget {
 class ViewState extends State<View>{
   @override
   Widget build(BuildContext context) {
+    PageData pageData = widget._scopeManager.pageData;
 
     // modal page has certain criteria (no navBar, no header)
-    if (widget.pageData.pageType == PageType.modal) {
+    if (pageData.pageType == PageType.modal) {
       // need a close button to go back to non-modal pages
       // also animate up and down (vs left and right)
       return Scaffold(
@@ -72,7 +65,7 @@ class ViewState extends State<View>{
       }
 
       // use the AppBar if we have a title, or have a drawer (to show the menu)
-      bool showAppBar = widget.pageData.pageTitle != null || drawer != null;
+      bool showAppBar = pageData.pageTitle != null || drawer != null;
       if (widget.menu != null &&
           (widget.menu!.display == MenuDisplay.navBar_left ||
           widget.menu!.display == MenuDisplay.navBar_right)) {
@@ -80,13 +73,13 @@ class ViewState extends State<View>{
       }
 
       Color? backgroundColor =
-        widget.pageData.pageStyles?['backgroundColor'] is int ?
-        Color(widget.pageData.pageStyles!['backgroundColor']) :
+        pageData.pageStyles?['backgroundColor'] is int ?
+        Color(pageData.pageStyles!['backgroundColor']) :
         null;
       // if we have a background image, set the background color to transparent
       // since our image is outside the Scaffold
       bool showBackgroundImage = false;
-      if (backgroundColor == null && widget.pageData.pageStyles?['backgroundImage'] != null) {
+      if (backgroundColor == null && pageData.pageStyles?['backgroundImage'] != null) {
         showBackgroundImage = true;
         backgroundColor = Colors.transparent;
       }
@@ -96,7 +89,7 @@ class ViewState extends State<View>{
         // the entire screen including the Safe Area
         backgroundColor: backgroundColor,
         appBar: !showAppBar ? null : AppBar(
-              title: Text(widget.pageData.pageTitle!)),
+              title: Text(pageData.pageTitle!)),
         body: DataScopeWidget(
           scopeManager: widget._scopeManager,
           child: getBody(),
@@ -113,7 +106,7 @@ class ViewState extends State<View>{
           constraints: const BoxConstraints.expand(),
           decoration: BoxDecoration(
             image: DecorationImage (
-              image: NetworkImage(widget.pageData.pageStyles!['backgroundImage']!.toString()),
+              image: NetworkImage(pageData.pageStyles!['backgroundImage']!.toString()),
               fit: BoxFit.cover
             )
           ),
@@ -145,11 +138,11 @@ class ViewState extends State<View>{
       // TODO: consolidate buildWidget into 1 place
       Widget? menuHeader;
       if (widget.menu!.headerModel != null) {
-        menuHeader = ScreenController().buildWidget(widget.pageData._eContext, widget.menu!.headerModel!);
+        menuHeader = widget._scopeManager.buildWidget(widget.menu!.headerModel!);
       }
       Widget? menuFooter;
       if (widget.menu!.footerModel != null) {
-        menuFooter = ScreenController().buildWidget(widget.pageData._eContext, widget.menu!.footerModel!);
+        menuFooter = widget._scopeManager.buildWidget(widget.menu!.footerModel!);
       }
 
 
@@ -224,59 +217,6 @@ class ViewState extends State<View>{
 
   void selectNavigationIndex(BuildContext context, MenuItem menuItem) {
     Ensemble().navigateToPage(context, menuItem.page, replace: true);
-  }
-
-}
-
-
-
-
-
-
-/// data for the current page
-class PageData {
-  PageData({
-    required this.pageName,
-    required this.datasourceMap,
-    required DataContext eContext,
-    this.subViewDefinitions,
-    this.pageStyles,
-    this.pageTitle,
-    this.pageType,
-    this.apiMap
-  }) {
-    _eContext = eContext;
-  }
-
-  final String? pageTitle;
-
-  final PageType? pageType;
-
-  // unique page name
-  final String pageName;
-
-  final Map<String, dynamic>? pageStyles;
-
-  // store the data sources (e.g API result) and their callbacks
-  final Map<String, ActionResponse> datasourceMap;
-
-  // store the raw definition of the SubView (to be accessed by itemTemplates)
-  final Map<String, YamlMap>? subViewDefinitions;
-
-  // arguments passed into this page
-  late final DataContext _eContext;
-
-  // API model mapping
-  Map<String, YamlMap>? apiMap;
-
-  /// everytime we call this, we make sure any populated API result will have its updated values here
-  DataContext getEnsembleContext() {
-    for (var element in datasourceMap.values) {
-      if (element._resultData != null) {
-        _eContext.addDataContext(element._resultData!);
-      }
-    }
-    return _eContext;
   }
 
 }

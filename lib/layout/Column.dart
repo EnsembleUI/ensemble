@@ -14,8 +14,8 @@ class Column extends StatefulWidget with UpdatableContainer, Invokable, HasContr
   static const type = 'Column';
   Column({Key? key}) : super(key: key);
 
-  late final List<Widget>? children;
-  late final ItemTemplate? itemTemplate;
+  List<Widget>? children;
+  ItemTemplate? itemTemplate;
 
   final BoxLayoutController _controller = BoxLayoutController();
   @override
@@ -51,8 +51,8 @@ class ColumnState extends WidgetState<Column> {
   Map<String, dynamic>? itemTemplateData;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
 
     // register listener for item template's data changes.
     // Only work with API for now e.g. data: ${apiName.*}

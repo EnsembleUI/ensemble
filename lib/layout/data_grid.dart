@@ -1,6 +1,5 @@
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/context.dart';
-import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/layout_utils.dart';

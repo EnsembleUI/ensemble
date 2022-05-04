@@ -2,6 +2,7 @@ import 'dart:developer';
 import 'dart:math';
 import 'package:ensemble/error_handling.dart';
 import 'package:ensemble/framework/context.dart';
+import 'package:ensemble/framework/view_util.dart';
 import 'package:ensemble/layout/Row.dart';
 import 'package:ensemble/layout/hstack_builder.dart';
 import 'package:ensemble/util/utils.dart';
@@ -17,7 +18,7 @@ class PageModel {
     'Functions'
   ];
 
-  final DataContext eContext;
+  final DataContext dataContext;
   String? title;
   Map<String, dynamic>? pageStyles;
   Map<String, YamlMap>? customWidgetDefinitions;
@@ -26,17 +27,10 @@ class PageModel {
   PageType pageType = PageType.full;
   Footer? footer;
 
-  final List<String> layoutIDs = [];
-  final Map<String, LayoutModel> layoutModels = {};
-
-
-  PageModel (this.eContext, YamlMap data) {
+  PageModel (this.dataContext, YamlMap data) {
 
     processAPI(data['API']);
     processModel(data);
-
-    //processView(pageMap['View']);
-    //processLayout(pageMap['Layout']);
   }
 
   processAPI(YamlMap? apiMap) {
@@ -51,8 +45,10 @@ class PageModel {
       PageType.modal :
       PageType.full;
 
-    if (viewMap['menu']?['items'] is YamlList) {
+    // build a Map of the Custom Widgets
+    customWidgetDefinitions = createCustomWidgetDefinitions(docMap);
 
+    if (viewMap['menu']?['items'] is YamlList) {
       List<MenuItem> menuItems = [];
       for (final YamlMap item in (viewMap['menu']['items'] as YamlList)) {
         menuItems.add(MenuItem(
@@ -68,17 +64,14 @@ class PageModel {
       } else if (viewMap['menu']['display'] == MenuDisplay.navBar_left.name) {
         display = MenuDisplay.navBar_left;
       }
-
-      // header widget
       WidgetModel? headerModel;
       if (viewMap['menu']['header'] != null) {
-         headerModel = buildModel(viewMap['menu']['header'], eContext, {});
+         headerModel = ViewUtil.buildModel(viewMap['menu']['header'], customWidgetDefinitions);
       }
       WidgetModel? footerModel;
       if (viewMap['menu']['footer'] != null) {
-        headerModel = buildModel(viewMap['menu']['footer'], eContext, {});
+        headerModel = ViewUtil.buildModel(viewMap['menu']['footer'], customWidgetDefinitions);
       }
-
       menu = Menu(display, menuItems, headerModel: headerModel, footerModel: footerModel);
     }
 
@@ -90,29 +83,36 @@ class PageModel {
     }
 
     if (viewMap['footer'] != null && viewMap['footer']['children'] != null) {
-      footer = Footer(PageModel.buildModels(viewMap['footer']['children'], eContext, {}));
+      footer = Footer(ViewUtil.buildModels(viewMap['footer']['children'], customWidgetDefinitions));
     }
 
-    // build a Map of the subviews' models first
-    customWidgetDefinitions = createSubViewDefinitions(docMap);
+
 
     if (viewMap['type'] == null ||
-        ![Column.type, Row.type, HStackBuilder.type].contains(viewMap['type'])) {
+        ![Column.type, Row.type].contains(viewMap['type'])) {
       throw LanguageError('Root widget type should only be Row or Column');
     }
-    // View is special and can have many attributes,
-    // where as the root body (e.g Column) should be more restrictive
-    // (e.g the whole body shouldn't be click-enable)
-    // Let's manually select what can be specified here (really just styles/item-template/children)
-    YamlMap rootItemMap = YamlMap.wrap({
-      'children': viewMap['children'],
-      'item-template': viewMap['item-template'],
-      'styles': viewMap['styles']
-    });
-    rootWidgetModel = PageModel.buildModelFromName(viewMap['type'], rootItemMap, eContext, customWidgetDefinitions!);
+
+    rootWidgetModel = buildRootModel(viewMap, customWidgetDefinitions);
   }
 
-  Map<String, YamlMap> createSubViewDefinitions(YamlMap docMap) {
+  // Root View is special and can have many attributes,
+  // where as the root body (e.g Column) should be more restrictive
+  // (e.g the whole body shouldn't be click-enable)
+  // Let's manually select what can be specified here (really just styles/item-template/children)
+  WidgetModel buildRootModel(YamlMap viewMap, Map<String, YamlMap>? customWidgetDefinitions) {
+    YamlMap rootItem = YamlMap.wrap({
+      viewMap['type']: {
+        'children': viewMap['children'],
+        'item-template': viewMap['item-template'],
+        'styles': viewMap['styles']
+      }
+    });
+    return ViewUtil.buildModel(rootItem, customWidgetDefinitions!);
+  }
+
+  /// Create a map of Ensemble's custom widgets so WidgetModel can reference them
+  Map<String, YamlMap> createCustomWidgetDefinitions(YamlMap docMap) {
     Map<String, YamlMap> subViewDefinitions = {};
     docMap.forEach((key, value) {
       if (!reservedTokens.contains(key)) {
@@ -126,7 +126,7 @@ class PageModel {
     return subViewDefinitions;
   }
 
-
+  @Deprecated('Use ViewUtil.buildModels()')
   static List<WidgetModel> buildModels(YamlList models, DataContext eContext, Map<String, YamlMap> subViewDefinitions) {
     List<WidgetModel> rtn = [];
     for (dynamic item in models) {
@@ -137,6 +137,7 @@ class PageModel {
 
 
   // each model can be dynamic (Spacer) or YamlMap (Text: ....)
+  @Deprecated('Use ViewUtil.buildModel()')
   static WidgetModel buildModel(dynamic item, DataContext eContext, Map<String, YamlMap> subViewDefinitions) {
     String? key;
     YamlMap? itemMap;
@@ -195,6 +196,7 @@ class PageModel {
 
   }
 
+  @Deprecated('Use ViewUtil.buildModel()')
   static WidgetModel buildModelFromName(String widgetType, YamlMap itemMap, DataContext eContext, Map<String, YamlMap> subViewDefinitions, {String? widgetId}) {
     Map<String, dynamic> props = {};
     if (widgetId != null) {
@@ -291,11 +293,6 @@ class ItemTemplate {
   final List<dynamic>? localizedDataList;
 
   ItemTemplate(this.data, this.name, this.template, {this.localizedDataList});
-}
-
-class LayoutModel {
-  LayoutModel(this.properties);
-  final Map? properties;
 }
 
 class Menu {
