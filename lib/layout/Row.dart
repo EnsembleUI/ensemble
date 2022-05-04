@@ -1,7 +1,8 @@
 
 import 'package:ensemble/framework/context.dart';
+import 'package:ensemble/framework/data.dart';
+import 'package:ensemble/framework/view.dart';
 import 'package:ensemble/layout/layout_helper.dart';
-import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/layout_utils.dart';
@@ -14,8 +15,8 @@ class Row extends StatefulWidget with UpdatableContainer, Invokable, HasControll
   static const type = 'Row';
   Row({Key? key}) : super(key: key);
 
-  late final List<Widget>? children;
-  late final ItemTemplate? itemTemplate;
+  List<Widget>? children;
+  ItemTemplate? itemTemplate;
 
   final BoxLayoutController _controller = BoxLayoutController();
   @override
@@ -51,8 +52,8 @@ class RowState extends WidgetState<Row> {
   Map<String, dynamic>? itemTemplateData;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
 
     // register listener for item template's data changes.
     // Only work with API for now e.g. data: ${apiName.*}
@@ -116,24 +117,24 @@ class RowState extends WidgetState<Row> {
 
       // now loop through each and render the content
       if (rendererItems != null) {
-        for (Map<String, dynamic> dataMap in rendererItems) {
-          // we need to build a context localized to this item template.
-          // Here we need to add a prefix using the item-template's name
-          // TODO: also need context from the current page
-          Map<String, dynamic> localizedDataMap = {widget.itemTemplate!.name: dataMap};
-          DataContext localizedContext = DataContext(buildContext: buildContext, initialMap: localizedDataMap);
+        // for each templated item, we create a new scope, which is a copy of
+        // the parent scope + dataContext specific to this item
+        ScopeManager? parentScope = DataScopeWidget.getScope(context);
+        if (parentScope != null) {
+          for (Map<String, dynamic> dataMap in rendererItems) {
+            // create a new scope for each item template
+            ScopeManager itemScope = parentScope.createChildScope();
+            itemScope.dataContext.addDataContextById(
+                widget.itemTemplate!.name, dataMap);
 
-          // Unfortunately we need to get the SubView as we are building the template.
-          // TODO: refactor this. Widget shouldn't need to know about this
-          WidgetModel model = PageModel.buildModel(
-              widget.itemTemplate!.template,
-              localizedContext,
-              ScreenController().getSubViewDefinitionsFromRootView(context));
-          Widget templatedWidget = ScreenController().buildWidget(localizedContext, model);
+            Widget templatedWidget = itemScope.buildWidgetFromDefinition(
+                widget.itemTemplate!.template);
 
-          // wraps each templated widget under Templated so we can
-          // constraint the data scope
-          children.add(Templated(localDataMap: localizedDataMap, child: templatedWidget));
+            // wraps each templated widget under Templated so we can
+            // constraint the data scope
+            children.add(DataScopeWidget(
+                scopeManager: itemScope, child: templatedWidget));
+          }
         }
       }
 
