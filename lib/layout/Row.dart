@@ -1,12 +1,12 @@
 
-import 'package:ensemble/framework/context.dart';
-import 'package:ensemble/framework/data.dart';
-import 'package:ensemble/framework/view.dart';
+import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/widget/view.dart';
 import 'package:ensemble/layout/layout_helper.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/layout_utils.dart';
-import 'package:ensemble/framework/widget.dart';
+import 'package:ensemble/framework/widget/widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as flutter;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -89,8 +89,8 @@ class RowState extends WidgetState<Row> {
     if (widget.itemTemplate != null) {
       List? rendererItems;
       // if our itemTemplate's dataList has already been resolved
-      if (widget.itemTemplate!.localizedDataList != null && widget.itemTemplate!.localizedDataList!.isNotEmpty) {
-        rendererItems = widget.itemTemplate!.localizedDataList;
+      if (widget.itemTemplate!.initialValue != null && widget.itemTemplate!.initialValue!.isNotEmpty) {
+        rendererItems = widget.itemTemplate!.initialValue;
       }
       // else attempt to resolve via itemTemplate and itemTemplateData, which is updated by API response
       else if (itemTemplateData != null) {

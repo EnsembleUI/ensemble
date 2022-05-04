@@ -1,11 +1,9 @@
-import 'package:ensemble/framework/context.dart';
-import 'package:ensemble/framework/data.dart';
-import 'package:ensemble/framework/view.dart';
+import 'package:ensemble/framework/templated.dart';
 import 'package:ensemble/layout/layout_helper.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/layout_utils.dart';
-import 'package:ensemble/framework/widget.dart';
+import 'package:ensemble/framework/widget/widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as flutter;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -46,24 +44,22 @@ class Column extends StatefulWidget with UpdatableContainer, Invokable, HasContr
 
 }
 
-class ColumnState extends WidgetState<Column> {
-  // data exclusively for item template (e.g api result)
-  Map<String, dynamic>? itemTemplateData;
+class ColumnState extends WidgetState<Column> with TemplatedWidgetState {
+  List<Widget>? templatedChildren;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    // register listener for item template's data changes.
-    // Only work with API for now e.g. data: ${apiName.*}
     if (widget.itemTemplate != null) {
-      String dataVar = widget.itemTemplate!.data.substring(2, widget.itemTemplate!.data.length-1);
-      String apiName = dataVar.split('.').first;
-
-      ScreenController().registerDataListener(context, apiName, (Map<String, dynamic> data) {
-        itemTemplateData = data;
+      // initial value
+      if (widget.itemTemplate!.initialValue != null) {
+        templatedChildren = buildItemsFromTemplate(context, widget.itemTemplate!.initialValue!, widget.itemTemplate!);
+      }
+      // listen for changes
+      registerItemTemplate(context, widget.itemTemplate!, onDataChanged: (List dataList) {
         setState(() {
-
+          templatedChildren = buildItemsFromTemplate(context, dataList, widget.itemTemplate!);
         });
       });
     }
@@ -72,74 +68,16 @@ class ColumnState extends WidgetState<Column> {
   @override
   void dispose() {
     super.dispose();
-    itemTemplateData = null;
-  }
-
-
-
-  List<Widget> getChildren() {
-    List<Widget> children = widget.children ?? [];
-
-
-
-    return children;
+    templatedChildren = null;
   }
 
 
   @override
   Widget build(BuildContext buildContext) {
-
+    // children will be rendered before templated children
     List<Widget> children = widget.children ?? [];
-
-    // itemTemplate widgets will be rendered after our children
-    if (widget.itemTemplate != null) {
-      List? rendererItems;
-      // if our itemTemplate's dataList has already been resolved
-      if (widget.itemTemplate!.localizedDataList != null && widget.itemTemplate!.localizedDataList!.isNotEmpty) {
-        rendererItems = widget.itemTemplate!.localizedDataList;
-      }
-      // else attempt to resolve via itemTemplate and itemTemplateData, which is updated by API response
-      else if (itemTemplateData != null) {
-        // Example format:
-        // data: $(apiName.*)
-        // name: item
-
-        // hack for now, reconstructing the dataPath
-        String dataNode = widget.itemTemplate!.data;
-        List<String> dataTokens = dataNode
-            .substring(2, dataNode.length - 1)
-            .split(".");
-        // we need to have at least 2+ tokens e.g apiName.key1
-        if (dataTokens.length >= 2) {
-          // exclude the apiName and reconstruct the variable
-          DataContext context = DataContext(buildContext: buildContext, initialMap: itemTemplateData);
-          dynamic dataList = context.evalVariable(dataTokens.sublist(1).join('.'));
-          if (dataList is List) {
-            rendererItems = dataList;
-          }
-        }
-      }
-
-
-      // now loop through each and render the content
-      if (rendererItems != null) {
-        // for each templated item, we create a new scope, which is a copy of
-        // the parent scope + dataContext specific to this item
-        ScopeManager? parentScope = DataScopeWidget.getScope(context);
-        if (parentScope != null) {
-          for (Map<String, dynamic> dataMap in rendererItems) {
-            // create a new scope for each item template
-            ScopeManager itemScope = parentScope.createChildScope();
-            itemScope.dataContext.addDataContextById(widget.itemTemplate!.name, dataMap);
-
-            Widget templatedWidget = itemScope.buildWidgetFromDefinition(widget.itemTemplate!.template);
-
-            // wraps each templated widget under Templated so we can
-            // constraint the data scope
-            children.add(DataScopeWidget(scopeManager: itemScope, child: templatedWidget));
-          }
-        }
-      }
+    if (templatedChildren != null) {
+      children.addAll(templatedChildren!);
     }
 
     // wrap each child with Expanded if specified
