@@ -42,12 +42,11 @@ class ViewState extends State<View>{
     if (pageData.pageType == PageType.modal) {
       // need a close button to go back to non-modal pages
       // also animate up and down (vs left and right)
-      return Scaffold(
-          body: DataScopeWidget(
-            scopeManager: widget._scopeManager,
-            child: widget.bodyWidget,
-          ),
-          bottomSheet: widget.footer);
+      return DataScopeWidget(
+          scopeManager: widget._scopeManager,
+          child: Scaffold(
+            body:  widget.bodyWidget,
+            bottomSheet: widget.footer));
     }
     // regular page
     else {
@@ -84,19 +83,19 @@ class ViewState extends State<View>{
         backgroundColor = Colors.transparent;
       }
 
-      Widget scaffold = Scaffold(
-        // slight optimization, if body background is set, let's paint
-        // the entire screen including the Safe Area
-        backgroundColor: backgroundColor,
-        appBar: !showAppBar ? null : AppBar(
-              title: Text(pageData.pageTitle!)),
-        body: DataScopeWidget(
-          scopeManager: widget._scopeManager,
-          child: getBody(),
-        ),
-        bottomNavigationBar: bottomNavBar,
-        drawer: drawer,
-        bottomSheet: widget.footer,
+      Widget rtn = DataScopeWidget(
+        scopeManager: widget._scopeManager,
+        child: Scaffold(
+          // slight optimization, if body background is set, let's paint
+          // the entire screen including the Safe Area
+          backgroundColor: backgroundColor,
+          appBar: !showAppBar ? null : AppBar(
+                title: Text(pageData.pageTitle!)),
+          body: getBody(),
+          bottomNavigationBar: bottomNavBar,
+          drawer: drawer,
+          bottomSheet: widget.footer,
+        )
       );
 
       // if backgroundImage is set, put it outside of the Scaffold so
@@ -110,10 +109,10 @@ class ViewState extends State<View>{
               fit: BoxFit.cover
             )
           ),
-          child: scaffold
+          child: rtn
         );
       }
-      return scaffold;
+      return rtn;
 
 
     }

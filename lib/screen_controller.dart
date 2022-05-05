@@ -55,7 +55,7 @@ class ScreenController {
           pageName: pageName,
           pageType: pageModel.pageType,
           datasourceMap: {},
-          customWidgetDefinitions: pageModel.customWidgetDefinitions,
+          customViewDefinitions: pageModel.customViewDefinitions,
           //dataContext: pageModel.dataContext,
           apiMap: apiMap
         ));
@@ -73,7 +73,11 @@ class ScreenController {
     // add all the API names to our context as Invokable, even though their result
     // will be null. This is so we can always reference it API responses come back
     pageData.apiMap?.forEach((key, value) {
-      rootScopeManager.dataContext.addInvokableContext(key, APIResponse());
+      // have to be careful here. API response on page load may exists,
+      // don't overwrite if that is the case
+      if (!dataContext.hasContext(key)) {
+        dataContext.addInvokableContext(key, APIResponse());
+      }
     });
 
     return rootScopeManager;

@@ -3,6 +3,7 @@ import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 
 class EnsembleImage extends StatefulWidget with Invokable, HasController<ImageController, ImageState> {
   static const type = 'Image';
@@ -72,11 +73,29 @@ class ImageState extends WidgetState<EnsembleImage> {
         fit = BoxFit.scaleDown;
         break;
     }
+    // image binding is tricky. When the URL has not been resolved
+    // the image will throw exception. We have to use a permanent placeholder
+    // until the binding engages
     return Image.network(
         widget._controller.source,
         width: widget._controller.width?.toDouble(),
         height: widget._controller.height?.toDouble(),
-        fit: fit
+        fit: fit,
+        errorBuilder: (context, error, stacktrace) {
+          return Container(
+            color: Colors.white60,
+            child: const Center(
+              child: Icon(Icons.image, size: 50),
+            )
+          );
+        },
+        loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+          if (loadingProgress == null) {
+            return child;
+          }
+          return const Center(
+            child: CircularProgressIndicator());
+        }
     );
   }
 

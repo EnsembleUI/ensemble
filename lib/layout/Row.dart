@@ -7,6 +7,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/layout_utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as flutter;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -28,7 +29,9 @@ class Row extends StatefulWidget with UpdatableContainer, Invokable, HasControll
   }
   @override
   Map<String, Function> setters() {
-    return {};
+    return {
+      'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, this),
+    };
   }
   @override
   Map<String, Function> methods() {
@@ -222,7 +225,7 @@ class RowState extends WidgetState<Row> {
         child: InkWell(
             splashColor: Colors.transparent,
             onTap: widget._controller.onTap == null ? null : () =>
-                ScreenController().executeAction(context, widget._controller.onTap),
+                ScreenController().executeAction(context, widget._controller.onTap!),
             child: Padding(
                 padding: EdgeInsets.all((widget._controller.padding ?? 0).toDouble()),
                 child: widget._controller.autoFit ? IntrinsicHeight(child: row) : row
