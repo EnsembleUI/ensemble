@@ -127,6 +127,7 @@ class ViewState extends State<View>{
       for (int i=0; i<menuItems.length; i++) {
         MenuItem item = menuItems[i];
         navItems.add(NavigationRailDestination(
+          padding: const EdgeInsets.only(left: 30, right: 30) ,
             icon: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
             label: Text(item.label ?? '')));
         if (item.selected) {
@@ -135,10 +136,19 @@ class ViewState extends State<View>{
       }
 
       // TODO: consolidate buildWidget into 1 place
-      Widget? menuHeader;
+      double paddingFromSafeSpace = 15;
+      double minWidth = 155;  // approx so it doesn't overlap the safe space's iOS date
+      Widget? headerWidget;
       if (widget.menu!.headerModel != null) {
-        menuHeader = widget._scopeManager.buildWidget(widget.menu!.headerModel!);
+        headerWidget = widget._scopeManager.buildWidget(widget.menu!.headerModel!);
       }
+      Widget menuHeader = Column(children: [
+       SizedBox(width: minWidth, height: paddingFromSafeSpace),
+       Container(
+         child: headerWidget,
+       )
+      ]);
+
       Widget? menuFooter;
       if (widget.menu!.footerModel != null) {
         menuFooter = widget._scopeManager.buildWidget(widget.menu!.footerModel!);
