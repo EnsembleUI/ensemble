@@ -24,6 +24,7 @@ class Button extends StatefulWidget with Invokable, HasController<ButtonControll
       'label': (value) => _controller.label = Utils.getString(value, fallback: ''),
       'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, this),
 
+      'enabled': (value) => _controller.enabled = Utils.getBool(value, fallback: true),
       'outline': (value) => _controller.outline = Utils.optionalBool(value),
       'backgroundColor': (value) => _controller.backgroundColor = Utils.optionalInt(value),
       'color': (value) => _controller.color = Utils.optionalInt(value),
@@ -45,6 +46,7 @@ class ButtonController extends WidgetController {
   late String label;
   ensemble.Action? onTap;
 
+  bool enabled = true;
   bool? outline;
   int? backgroundColor;
   int? color;
@@ -76,8 +78,7 @@ class ButtonState extends WidgetState<Button> {
             widget._controller.borderRadius is int ?
             BorderRadius.circular((widget._controller.borderRadius as int).toDouble()) :
             BorderRadius.zero,
-          side: BorderSide(
-            color:
+          side: !widget._controller.enabled ? BorderSide.none : BorderSide(color:
               widget._controller.backgroundColor is int ?
               Color(widget._controller.backgroundColor as int) :
               Theme.of(context).colorScheme.primary)
@@ -89,12 +90,12 @@ class ButtonState extends WidgetState<Button> {
 
     if (widget._controller.outline is bool && widget._controller.outline as bool) {
       return TextButton(
-        onPressed: () => onPressed(context),
+        onPressed: widget._controller.enabled ? () => onPressed(context) : null,
         style: buttonStyle,
         child: label);
     } else {
       return ElevatedButton(
-        onPressed: () => onPressed(context),
+        onPressed: widget._controller.enabled ? () => onPressed(context) : null,
         style: buttonStyle,
         child: label);
     }
