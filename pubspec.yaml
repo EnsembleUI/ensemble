@@ -36,12 +36,10 @@ dependencies:
   flutter_secure_storage: ^5.0.2
 
   ensemble_ts_interpreter:
-    path: ../ensemble_ts_interpreter
-    #git:
-      #url: https://github.com/EnsembleUI/ensemble_ts_interpreter.git
-      #ref: master
-  #sdui:
-    #path: ../sdui
+    #path: ../ensemble_ts_interpreter
+    git:
+      url: https://github.com/EnsembleUI/ensemble_ts_interpreter.git
+      ref: master
 
   # use our forked high_chart to fix iOS issue
   high_chart:

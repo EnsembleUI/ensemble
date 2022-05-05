@@ -25,7 +25,7 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
   final PageData pageData;
 
   @override
-  Map<String, YamlMap>? get customWidgetDefinitions => pageData.customViewDefinitions;
+  Map<String, YamlMap>? get customViewDefinitions => pageData.customViewDefinitions;
 
   @override
   DataContext get dataContext => _dataContext;
@@ -38,6 +38,7 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
   Map<Invokable, Map<int, StreamSubscription>> get listenerMap => pageData.listenerMap;
 
   /// create a copy of the parent's data scope
+  @override
   ScopeManager createChildScope() {
     return ScopeManager(dataContext.clone(), pageData);
   }
@@ -47,9 +48,10 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
 
 abstract class IsScopeManager {
   DataContext get dataContext;
-  Map<String, YamlMap>? get customWidgetDefinitions;
+  Map<String, YamlMap>? get customViewDefinitions;
   EventBus get eventBus;
   Map<Invokable, Map<int, StreamSubscription>> get listenerMap;
+  ScopeManager createChildScope();
 }
 
 
@@ -59,7 +61,7 @@ mixin ViewBuilder on IsScopeManager {
 
   /// build a widget from the item YAML
   Widget buildWidgetFromDefinition(dynamic item) {
-    return buildWidget(ViewUtil.buildModel(item, customWidgetDefinitions));
+    return buildWidget(ViewUtil.buildModel(item, customViewDefinitions));
   }
 
   /// build a widget from a given model
@@ -85,6 +87,7 @@ mixin ViewBuilder on IsScopeManager {
     if (widgetInstance != null) {
       Widget widget = widgetInstance.call();
       if (widget is Invokable) {
+
         widgetMapResult[model] = widget as Invokable;
 
         // If our widget has an ID, add it to our data context

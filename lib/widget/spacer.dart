@@ -28,7 +28,7 @@ class EnsembleSpacer extends StatefulWidget with Invokable, HasController<Spacer
   @override
   Map<String, Function> setters() {
     return {
-      'size': (value) => Utils.optionalInt(value)
+      'size': (value) => _controller.size = Utils.optionalInt(value)
     };
   }
 
