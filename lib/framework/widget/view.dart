@@ -1,34 +1,34 @@
 import 'package:ensemble/ensemble.dart';
-import 'package:ensemble/framework/context.dart';
-import 'package:ensemble/framework/icon.dart' as ensemble;
+import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
 
-/// rendering our root page
+/// The root View. Every Ensemble page will have at least one at its root
 class View extends StatefulWidget {
   View(
-      this.pageData,
+      this._scopeManager,
       this.bodyWidget,
       {
         this.menu,
         this.footer
-      }) : super(key: ValueKey(pageData.pageName));
+      }) : super(key: ValueKey(_scopeManager.pageData.pageName));
 
-  final ViewState currentState = ViewState();
-  final PageData pageData;
+  // The Scope for our View, which all widgets will have access to.
+  // Note that there can be many descendant scopes under our root scope.
+  final ScopeManager _scopeManager;
+
   final Widget bodyWidget;
   final Menu? menu;
   final Widget? footer;
 
   @override
-  State<View> createState() => currentState;
-
-  ViewState getState() {
-    return currentState;
-  }
+  State<View> createState() => ViewState();
 
 
 }
@@ -36,14 +36,17 @@ class View extends StatefulWidget {
 class ViewState extends State<View>{
   @override
   Widget build(BuildContext context) {
+    PageData pageData = widget._scopeManager.pageData;
 
     // modal page has certain criteria (no navBar, no header)
-    if (widget.pageData.pageType == PageType.modal) {
+    if (pageData.pageType == PageType.modal) {
       // need a close button to go back to non-modal pages
       // also animate up and down (vs left and right)
-      return Scaffold(
-          body: widget.bodyWidget,
-          bottomSheet: widget.footer);
+      return DataScopeWidget(
+          scopeManager: widget._scopeManager,
+          child: Scaffold(
+            body:  widget.bodyWidget,
+            bottomSheet: widget.footer));
     }
     // regular page
     else {
@@ -61,7 +64,7 @@ class ViewState extends State<View>{
       }
 
       // use the AppBar if we have a title, or have a drawer (to show the menu)
-      bool showAppBar = widget.pageData.pageTitle != null || drawer != null;
+      bool showAppBar = pageData.pageTitle != null || drawer != null;
       if (widget.menu != null &&
           (widget.menu!.display == MenuDisplay.navBar_left ||
           widget.menu!.display == MenuDisplay.navBar_right)) {
@@ -69,27 +72,30 @@ class ViewState extends State<View>{
       }
 
       Color? backgroundColor =
-        widget.pageData.pageStyles?['backgroundColor'] is int ?
-        Color(widget.pageData.pageStyles!['backgroundColor']) :
+        pageData.pageStyles?['backgroundColor'] is int ?
+        Color(pageData.pageStyles!['backgroundColor']) :
         null;
       // if we have a background image, set the background color to transparent
       // since our image is outside the Scaffold
       bool showBackgroundImage = false;
-      if (backgroundColor == null && widget.pageData.pageStyles?['backgroundImage'] != null) {
+      if (backgroundColor == null && pageData.pageStyles?['backgroundImage'] != null) {
         showBackgroundImage = true;
         backgroundColor = Colors.transparent;
       }
 
-      Widget scaffold = Scaffold(
-        // slight optimization, if body background is set, let's paint
-        // the entire screen including the Safe Area
-        backgroundColor: backgroundColor,
-        appBar: !showAppBar ? null : AppBar(
-              title: Text(widget.pageData.pageTitle!)),
-        body: getBody(),
-        bottomNavigationBar: bottomNavBar,
-        drawer: drawer,
-        bottomSheet: widget.footer,
+      Widget rtn = DataScopeWidget(
+        scopeManager: widget._scopeManager,
+        child: Scaffold(
+          // slight optimization, if body background is set, let's paint
+          // the entire screen including the Safe Area
+          backgroundColor: backgroundColor,
+          appBar: !showAppBar ? null : AppBar(
+                title: Text(pageData.pageTitle!)),
+          body: getBody(),
+          bottomNavigationBar: bottomNavBar,
+          drawer: drawer,
+          bottomSheet: widget.footer,
+        )
       );
 
       // if backgroundImage is set, put it outside of the Scaffold so
@@ -99,14 +105,14 @@ class ViewState extends State<View>{
           constraints: const BoxConstraints.expand(),
           decoration: BoxDecoration(
             image: DecorationImage (
-              image: NetworkImage(widget.pageData.pageStyles!['backgroundImage']!.toString()),
+              image: NetworkImage(pageData.pageStyles!['backgroundImage']!.toString()),
               fit: BoxFit.cover
             )
           ),
-          child: scaffold
+          child: rtn
         );
       }
-      return scaffold;
+      return rtn;
 
 
     }
@@ -121,6 +127,7 @@ class ViewState extends State<View>{
       for (int i=0; i<menuItems.length; i++) {
         MenuItem item = menuItems[i];
         navItems.add(NavigationRailDestination(
+          padding: const EdgeInsets.only(left: 30, right: 30) ,
             icon: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
             label: Text(item.label ?? '')));
         if (item.selected) {
@@ -129,13 +136,22 @@ class ViewState extends State<View>{
       }
 
       // TODO: consolidate buildWidget into 1 place
-      Widget? menuHeader;
+      double paddingFromSafeSpace = 15;
+      double minWidth = 155;  // approx so it doesn't overlap the safe space's iOS date
+      Widget? headerWidget;
       if (widget.menu!.headerModel != null) {
-        menuHeader = ScreenController().buildWidget(widget.pageData._eContext, widget.menu!.headerModel!);
+        headerWidget = widget._scopeManager.buildWidget(widget.menu!.headerModel!);
       }
+      Widget menuHeader = Column(children: [
+       SizedBox(width: minWidth, height: paddingFromSafeSpace),
+       Container(
+         child: headerWidget,
+       )
+      ]);
+
       Widget? menuFooter;
       if (widget.menu!.footerModel != null) {
-        menuFooter = ScreenController().buildWidget(widget.pageData._eContext, widget.menu!.footerModel!);
+        menuFooter = widget._scopeManager.buildWidget(widget.menu!.footerModel!);
       }
 
 
@@ -216,53 +232,30 @@ class ViewState extends State<View>{
 
 
 
+/// a wrapper InheritedWidget to expose the ScopeManager
+/// to every widgets in our tree
+class DataScopeWidget extends InheritedWidget {
+  const DataScopeWidget({
+    Key? key,
+    required this.scopeManager,
+    required Widget child
+  }) : super(key: key, child: child);
 
-/// data for the current page
-class PageData {
-  PageData({
-    required this.pageName,
-    required this.datasourceMap,
-    required EnsembleContext eContext,
-    this.subViewDefinitions,
-    this.pageStyles,
-    this.pageTitle,
-    this.pageType,
-    this.apiMap
-  }) {
-    _eContext = eContext;
+  final ScopeManager scopeManager;
+
+  @override
+  bool updateShouldNotify(covariant InheritedWidget oldWidget) {
+    return false;
   }
 
-  final String? pageTitle;
-
-  final PageType? pageType;
-
-  // unique page name
-  final String pageName;
-
-  final Map<String, dynamic>? pageStyles;
-
-  // store the data sources (e.g API result) and their callbacks
-  final Map<String, ActionResponse> datasourceMap;
-
-  // store the raw definition of the SubView (to be accessed by itemTemplates)
-  final Map<String, YamlMap>? subViewDefinitions;
-
-  // arguments passed into this page
-  late final EnsembleContext _eContext;
-
-  // API model mapping
-  Map<String, YamlMap>? apiMap;
-
-  /// everytime we call this, we make sure any populated API result will have its updated values here
-  EnsembleContext getEnsembleContext() {
-    for (var element in datasourceMap.values) {
-      if (element._resultData != null) {
-        _eContext.addDataContext(element._resultData!);
-      }
+  /// return the ScopeManager which includes the dataContext
+  static ScopeManager? getScope(BuildContext context) {
+    DataScopeWidget? viewWidget = context.dependOnInheritedWidgetOfExactType<DataScopeWidget>();
+    if (viewWidget != null) {
+      return viewWidget.scopeManager;
     }
-    return _eContext;
+    return null;
   }
-
 }
 
 

@@ -262,6 +262,44 @@
         }
       }
     },
+    "Divider-payload": {
+      "type": "object",
+      "properties": {
+        "styles": {
+          "type": "object",
+          "properties": {
+            "thickness": {
+              "type": "integer"
+            },
+            "color": {
+              "type": ["number", "string"],
+              "description": "The line color starting with '0xFF' for full opacity"
+            },
+            "indent": {
+              "type": "integer",
+              "description": "The leading gap before the line starts"
+            },
+            "endIndent": {
+              "type": "integer",
+              "description": "The ending gap after the line ends"
+            }
+          }
+        }
+      }
+    },
+    "Spacer-payload": {
+      "type": "object",
+      "properties": {
+        "styles": {
+          "type": "object",
+          "properties": {
+            "size": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
     "TextInput-payload": {
       "allOf": [
         { "$ref": "#/$defs/FormInput-payload" },
@@ -494,6 +532,8 @@
         "Text": { "$ref": "#/$defs/Text-payload" },
         "Icon": { "$ref": "#/$defs/Icon-payload" },
         "Image": { "$ref": "#/$defs/Image-payload" },
+        "Divider": { "$ref": "#/$defs/Divider-payload" },
+        "Spacer": { "$ref": "#/$defs/Spacer-payload" },
         "TextInput": { "$ref": "#/$defs/TextInput-payload" },
         "Password": { "$ref": "#/$defs/Password-payload" },
         "Checkbox": { "$ref": "#/$defs/OnOff-payload" },

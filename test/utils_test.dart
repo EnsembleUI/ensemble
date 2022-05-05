@@ -27,4 +27,23 @@ void main() {
 
   });
 
+  test('expressions utility', () {
+    expect(Utils.isExpression(r'$(hi)'), true);
+    expect(Utils.isExpression(r'hello $(hi)'), false);
+    expect(Utils.isExpression(r'hi'), false);
+
+    expect(Utils.hasExpression(r'$(hi)'), true);
+    expect(Utils.hasExpression(r'Hi $(name)'), true);
+    expect(Utils.hasExpression(r'$(hi) there'), true);
+    expect(Utils.hasExpression(r'hi'), false);
+
+    expect(Utils.getExpressionsFromString(r''), []);
+    expect(Utils.getExpressionsFromString(r'hello world'), []);
+    expect(Utils.getExpressionsFromString(r'$(hi)'), [r'$(hi)']);
+    expect(Utils.getExpressionsFromString(r'hi $(name)'), [r'$(name)']);
+    expect(Utils.getExpressionsFromString(r'$(first) $(last)'), [r'$(first)', r'$(last)']);
+    expect(Utils.getExpressionsFromString(r'hi $(first) $(last)'), [r'$(first)', r'$(last)']);
+  });
+
+
 }

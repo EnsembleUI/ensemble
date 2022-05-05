@@ -1,37 +1,31 @@
 import 'dart:convert';
+import 'dart:developer';
 
-import 'package:ensemble/framework/library.dart';
+import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/parser/ast.dart';
 import 'package:ensemble_ts_interpreter/parser/js_interpreter.dart';
+import 'package:http/http.dart';
 
-class EnsembleContext {
+/// manages Data and Invokables within the current data scope.
+/// This class can evaluate expressions based on the data scope
+class DataContext {
   final Map<String, dynamic> _contextMap = {};
+  final BuildContext buildContext;
 
-  BuildContext? _buildContext;
-  EnsembleContext({
-    BuildContext? buildContext,
-    Map<String, dynamic>? initialMap
-  }) {
-    if (buildContext != null) {
-      _setBuildContext(buildContext);
-    }
-
+  DataContext({required this.buildContext, Map<String, dynamic>? initialMap}) {
     if (initialMap != null) {
       _contextMap.addAll(initialMap);
     }
+    _contextMap['ensemble'] = NativeInvokable(buildContext);
   }
 
-  /// Ensemble library requires buildContext to work
-  void _setBuildContext(BuildContext buildContext) {
-    _buildContext = buildContext;
-    _contextMap['ensemble'] = EnsembleLibrary(buildContext);
+  DataContext clone() {
+    return DataContext(buildContext: buildContext, initialMap: _contextMap);
   }
 
-  EnsembleContext clone() {
-    return EnsembleContext(initialMap: _contextMap);
-  }
 
   // raw data (data map, api result), traversable with dot and bracket notations
   void addDataContext(Map<String, dynamic> data) {
@@ -47,6 +41,15 @@ class EnsembleContext {
     _contextMap[id] = widget;
   }
 
+  bool hasContext(String id) {
+    return _contextMap[id] != null;
+  }
+
+  /// return the data context value given the ID
+  dynamic getContextById(String id) {
+    return _contextMap[id];
+  }
+
 
   /// evaluate single inline binding expression (getters only) e.g $(myVar.text).
   /// Note that this expects the variable to be surrounded by $(...)
@@ -56,14 +59,13 @@ class EnsembleContext {
     }
 
     // if just have single standalone expression, return the actual type (e.g integer)
-    RegExpMatch? simpleExpression = RegExp(r'''^\$\(([a-z_-\d."'\(\)\[\]]+)\)$''', caseSensitive: false)
-        .firstMatch(expression);
+    RegExpMatch? simpleExpression = Utils.onlyExpression.firstMatch(expression);
     if (simpleExpression != null) {
       return evalVariable(simpleExpression.group(1)!);
     }
     // if we have multiple expressions, or mixing with text, return as String
     // greedy match anything inside a $() with letters, digits, period, square brackets.
-    return expression.replaceAllMapped(RegExp(r'''\$\(([a-z_-\d."'\(\)\[\]]+)\)''', caseSensitive: false),
+    return expression.replaceAllMapped(Utils.containExpression,
             (match) => evalVariable("${match[1]}").toString());
 
     /*return replaceAllMappedAsync(
@@ -137,32 +139,6 @@ class EnsembleContext {
     // don't return null. Preferably returning the variable name
     // for debug purpose + we have something to display
     return result ?? variable;
-
-/*
-    // is invokable
-    if (data is Invokable) {
-      if (data.getGettableProperties().contains(tokens[1])) {
-        return data.getProperty(tokens[1]);
-      } else {
-        // support methods with 1 key e.g getMyValue(key)
-        RegExpMatch? match = RegExp(r'([a-zA-Z_-\d]+)\s*\("([a-zA-Z_-\d]+)"\)').firstMatch(tokens[1]);
-        if (match != null) {
-          // first group is the method name
-          Function? method = data.getMethods()[match.group(1)];
-          if (method != null) {
-            dynamic result = Function.apply(method, [match.group(2)]);
-            return result;
-          }
-        }
-      }
-    }
-    // simple data
-    else if (data != null) {
-      return _parseToken(tokens, 0, _contextMap) ?? variable;
-    }
-    // can't resolve, return the original input
-    return variable;
-    */
   }
 
   /// token format: result
@@ -176,5 +152,110 @@ class EnsembleContext {
     return _parseToken(tokens, index+1, map[tokens[index]]);
   }
 
+
+}
+
+
+/// built-in helpers/utils accessible to all DataContext
+class NativeInvokable with Invokable {
+  final BuildContext _buildContext;
+  NativeInvokable(this._buildContext);
+
+  @override
+  Map<String, Function> getters() {
+    return {
+      'storage': () => EnsembleStorage(),
+    };
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {
+      'navigateScreen': navigateToScreen,
+      'debug': (value) => log('Debug: $value'),
+    };
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
+  }
+
+  void navigateToScreen(String screenId) {
+    Ensemble().navigateToPage(_buildContext, screenId);
+  }
+
+}
+
+/// Singleton handling user storage
+class EnsembleStorage with Invokable {
+  static final EnsembleStorage _instance = EnsembleStorage._internal();
+  EnsembleStorage._internal();
+  factory EnsembleStorage() {
+    return _instance;
+  }
+  // TODO: use async secure storage - extends FlutterSecureStorage
+  final Map<String, dynamic> userStorage = {};
+
+  @override
+  Map<String, Function> getters() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {
+      'get': (String key) => userStorage[key],
+      'set': (String key, dynamic value) {
+        if (value != null) {
+          userStorage[key] = value;
+        }
+      }
+    };
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
+  }
+
+}
+
+class APIResponse with Invokable {
+  Map<String, dynamic>? _body;
+  Map<String, String>? _headers;
+
+  APIResponse({Response? response}) {
+    if (response != null) {
+      setAPIResponse(response);
+    }
+  }
+
+  setAPIResponse(Response response) {
+    try {
+      _body = json.decode(response.body);
+    } on FormatException catch (_, e) {
+      log('Supporting only JSON for API response');
+    }
+    _headers = response.headers;
+  }
+
+  @override
+  Map<String, Function> getters() {
+    return {
+      'body': () => _body,
+      'headers': () => _headers
+    };
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
+  }
 
 }
