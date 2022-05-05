@@ -1,11 +1,12 @@
 
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:yaml/yaml.dart';
 
 /// base controller for Column/Row
 class BoxLayoutController extends WidgetController {
-  dynamic onTap;
+  Action? onTap;
 
   bool scrollable = false;
   bool autoFit = false;
@@ -35,8 +36,6 @@ class BoxLayoutController extends WidgetController {
   Map<String, Function> getBaseSetters() {
     Map<String, Function> setters = super.getBaseSetters();
     setters.addAll({
-      'onTap': (func) => onTap = func,
-
       'scrollable': (value) => scrollable = Utils.getBool(value, fallback: false),
       'autoFit': (value) =>  autoFit = Utils.getBool(value, fallback: false),
       'mainAxis': (value) => mainAxis = Utils.optionalString(value),

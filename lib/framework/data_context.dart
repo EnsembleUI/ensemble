@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/parser/ast.dart';
@@ -40,6 +41,10 @@ class DataContext {
     _contextMap[id] = widget;
   }
 
+  bool hasContext(String id) {
+    return _contextMap[id] != null;
+  }
+
   /// return the data context value given the ID
   dynamic getContextById(String id) {
     return _contextMap[id];
@@ -54,14 +59,13 @@ class DataContext {
     }
 
     // if just have single standalone expression, return the actual type (e.g integer)
-    RegExpMatch? simpleExpression = RegExp(r'''^\$\(([a-z_-\d."'\(\)\[\]]+)\)$''', caseSensitive: false)
-        .firstMatch(expression);
+    RegExpMatch? simpleExpression = Utils.onlyExpression.firstMatch(expression);
     if (simpleExpression != null) {
       return evalVariable(simpleExpression.group(1)!);
     }
     // if we have multiple expressions, or mixing with text, return as String
     // greedy match anything inside a $() with letters, digits, period, square brackets.
-    return expression.replaceAllMapped(RegExp(r'''\$\(([a-z_-\d."'\(\)\[\]]+)\)''', caseSensitive: false),
+    return expression.replaceAllMapped(Utils.containExpression,
             (match) => evalVariable("${match[1]}").toString());
 
     /*return replaceAllMappedAsync(

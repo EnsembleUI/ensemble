@@ -7,40 +7,21 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 
 /// mixin for Widget that supports item-template
-mixin TemplatedWidgetState {
+mixin TemplatedWidgetState<W extends StatefulWidget> on State<W> {
 
   void registerItemTemplate(BuildContext context, ItemTemplate itemTemplate, {required Function onDataChanged}) {
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
     if (scopeManager != null) {
-      // find the source and the property to bind to
+
+      // listen to the binding from our itemTemplate
       // data: $(apiName.*)
-      String expression = itemTemplate.data.substring(2, itemTemplate.data.length-1);
-      int dotIndex = expression.indexOf('.');
-      if (dotIndex != -1) {
-        String modelId = expression.substring(0, dotIndex);
-        dynamic bindingSource = scopeManager.dataContext.getContextById(modelId);
-
-        // only Invokable is bind-able
-
-        if (bindingSource is APIResponse) {
-          scopeManager.listen(modelId, (ModelChangeEvent event) {
-            // evaluate the expression
-            dynamic dataList = scopeManager.dataContext.eval(itemTemplate.data);
-            if (dataList is List) {
-              onDataChanged(dataList);
-            }
-          });
-        } else if (bindingSource is Invokable) {
-
-          // TODO
-
+      scopeManager.listen(itemTemplate.data, me: (widget as Invokable), onDataChange:(ModelChangeEvent event) {
+        // evaluate the expression
+        dynamic dataList = scopeManager.dataContext.eval(itemTemplate.data);
+        if (dataList is List) {
+          onDataChanged(dataList);
         }
-
-
-
-      }
-
-
+      });
     }
   }
 

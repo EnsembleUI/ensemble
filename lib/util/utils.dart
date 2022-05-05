@@ -70,5 +70,27 @@ class Utils {
                 fallback;
   }
 
+  static final onlyExpression = RegExp(r'''^\$\(([a-z_-\d."'\(\)\[\]]+)\)$''', caseSensitive: false);
+  static final containExpression = RegExp(r'''\$\(([a-z_-\d."'\(\)\[\]]+)\)''', caseSensitive: false);
+
+  /// is it $(....)
+  static bool isExpression(String expression) {
+    return onlyExpression.hasMatch(expression);
+  }
+
+  /// contains one or more expression e.g Hello $(firstname) $(lastname)
+  static bool hasExpression(String expression) {
+    return containExpression.hasMatch(expression);
+  }
+
+  /// get the list of expression from the raw string
+  /// [input]: Hello $(firstname) $(lastname)
+  /// @return [ $(firstname), $(lastname) ]
+  static List<String> getExpressionsFromString(String input) {
+    return containExpression.allMatches(input)
+        .map((e) => e.group(0)!)
+        .toList();
+  }
+
 
 }

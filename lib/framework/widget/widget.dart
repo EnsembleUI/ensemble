@@ -52,8 +52,25 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
   // notify our ScopeManager that the widget is being disposed
   @override
   void dispose() {
-    _scopeManager?.disposeWidget(widget);
+    if (widget is Invokable) {
+      _scopeManager?.disposeWidget(widget as Invokable);
+    }
     super.dispose();
+  }
+
+  @override
+  void changeState() {
+    super.changeState();
+    // dispatch changes, so anything binding to this will be notified
+    if (widget.controller.lastSetterProperty != null) {
+      if (_scopeManager != null && widget is Invokable && (widget as Invokable).id != null) {
+        _scopeManager!.dispatch(ModelChangeEvent(
+            (widget as Invokable).id!,
+            widget.controller.lastSetterProperty!.value,
+            property: widget.controller.lastSetterProperty!.key));
+      }
+      widget.controller.lastSetterProperty = null;
+    }
   }
 }
 

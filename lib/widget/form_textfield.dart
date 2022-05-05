@@ -117,8 +117,11 @@ class TextFieldState extends FormFieldWidgetState<BaseTextField> {
   String previousText = '';
   bool didItChange = false;
   void evaluateChanges() {
-
     if (didItChange) {
+      // trigger binding
+      widget.setProperty('value', widget.textController.text);
+
+      // call onChange
       if (widget._controller.onChange != null) {
         ScreenController().executeAction(context, widget._controller.onChange!);
       }
@@ -168,6 +171,8 @@ class TextFieldState extends FormFieldWidgetState<BaseTextField> {
       focusNode: focusNode,
       enabled: widget.controller.enabled,
       onChanged: (String txt) {
+        // for performance reason, we dispatch onChange (as well as binding to value)
+        // upon EditingComplete (select Done on virtual keyboard) or Focus Out
         if (txt != previousText) {
           didItChange = true;
           previousText = txt;

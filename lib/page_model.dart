@@ -21,7 +21,7 @@ class PageModel {
   final DataContext dataContext;
   String? title;
   Map<String, dynamic>? pageStyles;
-  Map<String, YamlMap>? customWidgetDefinitions;
+  Map<String, YamlMap>? customViewDefinitions;
   Menu? menu;
   late WidgetModel rootWidgetModel;
   PageType pageType = PageType.full;
@@ -46,7 +46,7 @@ class PageModel {
       PageType.full;
 
     // build a Map of the Custom Widgets
-    customWidgetDefinitions = createCustomWidgetDefinitions(docMap);
+    customViewDefinitions = buildCustomViewDefinitions(docMap);
 
     if (viewMap['menu']?['items'] is YamlList) {
       List<MenuItem> menuItems = [];
@@ -66,11 +66,11 @@ class PageModel {
       }
       WidgetModel? headerModel;
       if (viewMap['menu']['header'] != null) {
-         headerModel = ViewUtil.buildModel(viewMap['menu']['header'], customWidgetDefinitions);
+         headerModel = ViewUtil.buildModel(viewMap['menu']['header'], customViewDefinitions);
       }
       WidgetModel? footerModel;
       if (viewMap['menu']['footer'] != null) {
-        headerModel = ViewUtil.buildModel(viewMap['menu']['footer'], customWidgetDefinitions);
+        headerModel = ViewUtil.buildModel(viewMap['menu']['footer'], customViewDefinitions);
       }
       menu = Menu(display, menuItems, headerModel: headerModel, footerModel: footerModel);
     }
@@ -83,7 +83,7 @@ class PageModel {
     }
 
     if (viewMap['footer'] != null && viewMap['footer']['children'] != null) {
-      footer = Footer(ViewUtil.buildModels(viewMap['footer']['children'], customWidgetDefinitions));
+      footer = Footer(ViewUtil.buildModels(viewMap['footer']['children'], customViewDefinitions));
     }
 
 
@@ -93,14 +93,14 @@ class PageModel {
       throw LanguageError('Root widget type should only be Row or Column');
     }
 
-    rootWidgetModel = buildRootModel(viewMap, customWidgetDefinitions);
+    rootWidgetModel = buildRootModel(viewMap, customViewDefinitions);
   }
 
   // Root View is special and can have many attributes,
   // where as the root body (e.g Column) should be more restrictive
   // (e.g the whole body shouldn't be click-enable)
   // Let's manually select what can be specified here (really just styles/item-template/children)
-  WidgetModel buildRootModel(YamlMap viewMap, Map<String, YamlMap>? customWidgetDefinitions) {
+  WidgetModel buildRootModel(YamlMap viewMap, Map<String, YamlMap>? customViewDefinitions) {
     YamlMap rootItem = YamlMap.wrap({
       viewMap['type']: {
         'children': viewMap['children'],
@@ -108,11 +108,11 @@ class PageModel {
         'styles': viewMap['styles']
       }
     });
-    return ViewUtil.buildModel(rootItem, customWidgetDefinitions!);
+    return ViewUtil.buildModel(rootItem, customViewDefinitions!);
   }
 
   /// Create a map of Ensemble's custom widgets so WidgetModel can reference them
-  Map<String, YamlMap> createCustomWidgetDefinitions(YamlMap docMap) {
+  Map<String, YamlMap> buildCustomViewDefinitions(YamlMap docMap) {
     Map<String, YamlMap> subViewDefinitions = {};
     docMap.forEach((key, value) {
       if (!reservedTokens.contains(key)) {
@@ -283,6 +283,10 @@ class CustomWidgetModel extends WidgetModel {
 
   List<String>? parameters;
   Map<String, dynamic>? inputs;
+
+  WidgetModel asWidgetModel() {
+    return WidgetModel(type, styles, props, children: children, itemTemplate: itemTemplate);
+  }
 
 }
 

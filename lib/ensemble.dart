@@ -209,14 +209,14 @@ class Ensemble {
 
   Widget _renderPage(
       BuildContext context,
-      DataContext eContext,
+      DataContext dataContext,
       String pageName,
       AsyncSnapshot<dynamic> snapshot,
       {
         bool replace=false
       }) {
     //log ("Screen Arguments: " + args.toString());
-    return ScreenController().renderPage(context, eContext, pageName, snapshot.data);
+    return ScreenController().renderPage(context, dataContext, pageName, snapshot.data);
   }
 
 }

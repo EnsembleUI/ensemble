@@ -5,6 +5,7 @@ import 'package:ensemble/framework/widget/view.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:event_bus/event_bus.dart';
@@ -12,21 +13,29 @@ import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
 
 
-/// ScopeManager handles all data/view relative to a Scope.
-/// A page can have multiple nested scopes, each with its own DataContext.
-/// ScopeManager also have reference to the data at the page level.
-class ScopeManager extends IsScopeManager with ViewBuilder, PageEventManager {
+/// ScopeManager handles all data/view relative to a Scope. It also has a
+/// reference to the page-level PageData.
+/// This class is a composite:
+///  - ViewBuilder: helper class with building widgets
+///  - PageBindingManager: managing event bindings at the page level
+class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
   ScopeManager(this._dataContext, this.pageData);
 
   final DataContext _dataContext;
   final PageData pageData;
 
   @override
-  Map<String, YamlMap>? get customWidgetDefinitions => pageData.customWidgetDefinitions;
+  Map<String, YamlMap>? get customWidgetDefinitions => pageData.customViewDefinitions;
 
   @override
   DataContext get dataContext => _dataContext;
 
+  @override
+  EventBus get eventBus => pageData.eventBus;
+
+  @override
+  // TODO: implement listenerMap
+  Map<Invokable, Map<int, StreamSubscription>> get listenerMap => pageData.listenerMap;
 
   /// create a copy of the parent's data scope
   ScopeManager createChildScope() {
@@ -39,6 +48,8 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageEventManager {
 abstract class IsScopeManager {
   DataContext get dataContext;
   Map<String, YamlMap>? get customWidgetDefinitions;
+  EventBus get eventBus;
+  Map<Invokable, Map<int, StreamSubscription>> get listenerMap;
 }
 
 
@@ -78,6 +89,7 @@ mixin ViewBuilder on IsScopeManager {
 
         // If our widget has an ID, add it to our data context
         if (model.props.containsKey('id')) {
+          (widget as Invokable).id = model.props['id'];
           dataContext.addInvokableContext(
               model.props['id'],
               widget as Invokable);
@@ -124,45 +136,171 @@ mixin ViewBuilder on IsScopeManager {
           if (key.startsWith('on')) {
             widget.setProperty(key, model.props[key]);
           } else {
-            widget.setProperty(key, localizedContext.eval(model.props[key]));
+            setPropertyAndRegisterBinding(localizedContext, widget, key, model.props[key]);
           }
         }
       }
       for (String key in model.styles.keys) {
         if (widget.getSettableProperties().contains(key)) {
-          widget.setProperty(key, localizedContext.eval(model.styles[key]));
+          setPropertyAndRegisterBinding(localizedContext, widget, key, model.styles[key]);
         }
       }
 
 
     });
   }
+
+  /// call widget.setProperty to update its value.
+  /// If the value is an expression of valid binding, we
+  /// will register to listen for changes
+  void setPropertyAndRegisterBinding(DataContext dataContext, Invokable widget, String key, dynamic value) {
+    if (value is String && Utils.hasExpression(value)) {
+      // listen for binding changes
+      (this as PageBindingManager).registerBindingListener(
+          BindingDestination(widget, key),
+          value);
+      // evaluate the binding as the initial value
+      value = dataContext.eval(value);
+    }
+    widget.setProperty(key, value);
+
+  }
 }
 
+/// Binding Destination represents the left predicate of a binding expression
+/// myText.text: $(myTextInput.value)
+/// myText.text: $(myAPI.body.result.status)
+class BindingDestination {
+  BindingDestination(this.widget, this.setterProperty);
 
-mixin PageEventManager on IsScopeManager {
+  Invokable widget;
+  String setterProperty;
+}
+/// Binding source represents the binding expression
+/// $(myText.text)
+/// $(myAPI.body.result.status)
+class BindingSource {
+  BindingSource(this.model, this.modelId, this.property);
 
-  // TODO: need to be unique per page
-  final EventBus _eventBus = EventBus();
+  Invokable model;
+  String modelId;
+  String property;
+}
 
-  void listen(String modelId, Function callback, {String? property}) {
-    StreamSubscription subscription = _eventBus.on<ModelChangeEvent>().listen((event) {
-      if (event.modelId == modelId) {
-        callback(event);
+/// managing binding at the Page level.
+/// It does this by tapping into the page-level's PageData
+mixin PageBindingManager on IsScopeManager {
+
+
+  /// Evaluate a binding expression and listen for changes.
+  /// Calling this multiple times is safe as we remove the matching listeners before adding.
+  /// Upon changes, execute setProperty() on the destination's Invokable
+  /// The expression can be a mix of variable and text e.g Hello $(first) $(last)
+  void registerBindingListener(BindingDestination bindingDestination, String rawBinding) {
+    List<String> expressions = Utils.getExpressionsFromString(rawBinding);
+
+    // we re-evaluate the entire raw binding upon any changes to any variables
+    for (var expression in expressions) {
+      listen(expression, me: bindingDestination.widget, onDataChange: (ModelChangeEvent event) {
+        // payload only have changes to a variable, but we have to evaluate the entire expression
+        // e.g Hello $(firstName.value) $(lastName.value)
+        dynamic updatedValue = dataContext.eval(rawBinding);
+        bindingDestination.widget.setProperty(bindingDestination.setterProperty, updatedValue);
+      });
+    }
+  }
+
+
+  /// listen for changes on the bindingExpression and invoke onDataChange() callback.
+  /// Multiple calls to this is safe as we remove the existing listeners before adding.
+  /// [bindingExpression] a valid binding expression in the form of getter e.g $(myText.text)
+  /// [me] the widget that initiated this listener. We need this to properly remove
+  /// all listeners when the widget is disposed.
+  /// @return true if we are able to bind and listen to the expression.
+  bool listen(
+      String bindingExpression, {
+      required Invokable me,
+      required Function onDataChange
+  }) {
+
+    BindingSource? bindingSource = parseExpression(bindingExpression);
+    if (bindingSource != null) {
+      // create a unique key to reference our listener. We used this to save
+      // the listeners for clean up
+      int? hash;
+      // for API we simply say notify me when API result changes, so the property
+      // after the API name won't matter here
+      if (bindingSource.model is APIResponse) {
+        hash = getHash(sourceId: bindingSource.modelId);
       }
-    });
+      // For now support Widget's getters() only e.g $(myText.value)
+      else if (bindingSource.model is HasController && !bindingSource.property.contains('.')) {
+        // clean up existing listeners
+        hash = getHash(sourceId: bindingSource.modelId, sourceProperty: bindingSource.property);
+      }
+
+      if (hash != null) {
+        // clean up existing listener with the same signature
+        if (listenerMap[me]?[hash] != null) {
+          listenerMap[me]![hash]!.cancel();
+        }
+        StreamSubscription subscription = eventBus.on<ModelChangeEvent>()
+            .listen((event) {
+          if (event.modelId == bindingSource.modelId &&
+              (event.property == null || event.property == bindingSource.property)) {
+            onDataChange(event);
+          }
+        });
+
+        // save to the listener map so we can remove later
+        if (listenerMap[me] == null) {
+          listenerMap[me] = {};
+        }
+        listenerMap[me]![hash] = subscription;
+
+        return true;
+      }
+    }
+    return false;
+
+  }
+
+  /// parse a valid expression into a BindingSource object
+  /// $(myText.text)
+  BindingSource? parseExpression(String expression) {
+    if (Utils.isExpression(expression)) {
+      String variable = expression.substring(2, expression.length - 1);
+      int dotIndex = variable.indexOf('.');
+      if (dotIndex != -1) {
+        String modelId = variable.substring(0, dotIndex);
+        String property = variable.substring(dotIndex + 1);
+        dynamic model = dataContext.getContextById(modelId);
+        if (model is Invokable) {
+          return BindingSource(model, modelId, property);
+        }
+      }
+    }
+    return null;
   }
 
   void dispatch(ModelChangeEvent event) {
-    _eventBus.fire(event);
+    eventBus.fire(event);
   }
 
-
-  void disposeWidget(HasController<Controller, WidgetStateMixin> widget) {
-    // TODO: implement dispose
+  /// upon widget being disposed, we need to remove all listeners associated with it
+  void disposeWidget(Invokable widget) {
+    if (listenerMap[widget] != null) {
+      for (StreamSubscription listener in listenerMap[widget]!.values) {
+        listener.cancel();
+      }
+      listenerMap.remove(widget);
+    }
   }
 
-
+  /// unique but repeatable hash (within the same session) of the provided keys
+  int getHash({String? destinationSetter, required String sourceId, String? sourceProperty}) {
+    return Object.hash(destinationSetter, sourceId, sourceProperty);
+  }
 
 
 
@@ -180,21 +318,17 @@ class ModelChangeEvent {
 }
 
 
-/// data for the current View. Every Ensemble page will have
-/// at least one View, each will have a PageData
+/// data for the current Page.
 class PageData {
   PageData({
     required this.pageName,
     required this.datasourceMap,
-    //required DataContext eContext,
-    this.customWidgetDefinitions,
+    this.customViewDefinitions,
     this.pageStyles,
     this.pageTitle,
     this.pageType,
     this.apiMap
-  }) {
-    //_eContext = eContext;
-  }
+  });
 
   final String? pageTitle;
 
@@ -209,10 +343,7 @@ class PageData {
   final Map<String, ActionResponse> datasourceMap;
 
   // store the raw definition of the SubView (to be accessed by itemTemplates)
-  final Map<String, YamlMap>? customWidgetDefinitions;
-
-  // arguments passed into this page
-  //late final DataContext _eContext;
+  final Map<String, YamlMap>? customViewDefinitions;
 
   // API model mapping
   Map<String, YamlMap>? apiMap;
@@ -226,5 +357,10 @@ class PageData {
     }
     return _eContext;
   }*/
+
+  // we'll have an EventBus and listenerMap for each Page
+  final EventBus eventBus = EventBus();
+  final Map<Invokable, Map<int, StreamSubscription>> listenerMap = {};
+
 
 }
