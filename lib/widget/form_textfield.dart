@@ -2,7 +2,8 @@
 import 'package:ensemble/framework/action.dart' as framework;
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/widget.dart';
+import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/widget/form_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 //import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -116,8 +117,11 @@ class TextFieldState extends FormFieldWidgetState<BaseTextField> {
   String previousText = '';
   bool didItChange = false;
   void evaluateChanges() {
-
     if (didItChange) {
+      // trigger binding
+      widget.setProperty('value', widget.textController.text);
+
+      // call onChange
       if (widget._controller.onChange != null) {
         ScreenController().executeAction(context, widget._controller.onChange!);
       }
@@ -167,6 +171,8 @@ class TextFieldState extends FormFieldWidgetState<BaseTextField> {
       focusNode: focusNode,
       enabled: widget.controller.enabled,
       onChanged: (String txt) {
+        // for performance reason, we dispatch onChange (as well as binding to value)
+        // upon EditingComplete (select Done on virtual keyboard) or Focus Out
         if (txt != previousText) {
           didItChange = true;
           previousText = txt;

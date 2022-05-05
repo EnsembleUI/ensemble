@@ -2,7 +2,7 @@
 import 'package:ensemble/framework/action.dart' as ensemble;
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/widget.dart';
+import 'package:ensemble/framework/widget/widget.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 

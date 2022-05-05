@@ -1,9 +1,10 @@
-import 'package:ensemble/framework/context.dart';
-import 'package:ensemble/layout/templated.dart';
+import 'package:ensemble/framework/templated.dart';
+import 'package:ensemble/layout/layout_helper.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/layout_utils.dart';
-import 'package:ensemble/widget/widget.dart';
+import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as flutter;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -12,8 +13,8 @@ class Column extends StatefulWidget with UpdatableContainer, Invokable, HasContr
   static const type = 'Column';
   Column({Key? key}) : super(key: key);
 
-  late final List<Widget>? children;
-  late final ItemTemplate? itemTemplate;
+  List<Widget>? children;
+  ItemTemplate? itemTemplate;
 
   final BoxLayoutController _controller = BoxLayoutController();
   @override
@@ -25,7 +26,9 @@ class Column extends StatefulWidget with UpdatableContainer, Invokable, HasContr
   }
   @override
   Map<String, Function> setters() {
-    return {};
+    return {
+      'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, this),
+    };
   }
   @override
   Map<String, Function> methods() {
@@ -44,24 +47,22 @@ class Column extends StatefulWidget with UpdatableContainer, Invokable, HasContr
 
 }
 
-class ColumnState extends WidgetState<Column> {
-  // data exclusively for item template (e.g api result)
-  Map<String, dynamic>? itemTemplateData;
+class ColumnState extends WidgetState<Column> with TemplatedWidgetState {
+  List<Widget>? templatedChildren;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
 
-    // register listener for item template's data changes.
-    // Only work with API for now e.g. data: ${apiName.*}
     if (widget.itemTemplate != null) {
-      String dataVar = widget.itemTemplate!.data.substring(2, widget.itemTemplate!.data.length-1);
-      String apiName = dataVar.split('.').first;
-
-      ScreenController().registerDataListener(context, apiName, (Map<String, dynamic> data) {
-        itemTemplateData = data;
+      // initial value
+      if (widget.itemTemplate!.initialValue != null) {
+        templatedChildren = buildItemsFromTemplate(context, widget.itemTemplate!.initialValue!, widget.itemTemplate!);
+      }
+      // listen for changes
+      registerItemTemplate(context, widget.itemTemplate!, onDataChanged: (List dataList) {
         setState(() {
-
+          templatedChildren = buildItemsFromTemplate(context, dataList, widget.itemTemplate!);
         });
       });
     }
@@ -70,67 +71,16 @@ class ColumnState extends WidgetState<Column> {
   @override
   void dispose() {
     super.dispose();
-    itemTemplateData = null;
+    templatedChildren = null;
   }
 
 
   @override
   Widget build(BuildContext buildContext) {
-
+    // children will be rendered before templated children
     List<Widget> children = widget.children ?? [];
-
-    // itemTemplate widgets will be rendered after our children
-    if (widget.itemTemplate != null) {
-      List? rendererItems;
-      // if our itemTemplate's dataList has already been resolved
-      if (widget.itemTemplate!.localizedDataList != null && widget.itemTemplate!.localizedDataList!.isNotEmpty) {
-        rendererItems = widget.itemTemplate!.localizedDataList;
-      }
-      // else attempt to resolve via itemTemplate and itemTemplateData, which is updated by API response
-      else if (itemTemplateData != null) {
-        // Example format:
-        // data: $(apiName.*)
-        // name: item
-
-        // hack for now, reconstructing the dataPath
-        String dataNode = widget.itemTemplate!.data;
-        List<String> dataTokens = dataNode
-            .substring(2, dataNode.length - 1)
-            .split(".");
-        // we need to have at least 2+ tokens e.g apiName.key1
-        if (dataTokens.length >= 2) {
-          // exclude the apiName and reconstruct the variable
-          EnsembleContext context = EnsembleContext(buildContext: buildContext, initialMap: itemTemplateData);
-          dynamic dataList = context.evalVariable(dataTokens.sublist(1).join('.'));
-          if (dataList is List) {
-            rendererItems = dataList;
-          }
-        }
-      }
-
-
-      // now loop through each and render the content
-      if (rendererItems != null) {
-        for (Map<String, dynamic> dataMap in rendererItems) {
-          // we need to build a context localized to this item template.
-          // Here we need to add a prefix using the item-template's name
-          // TODO: also need context from the current page
-          Map<String, dynamic> localizedDataMap = {widget.itemTemplate!.name: dataMap};
-          EnsembleContext localizedContext = EnsembleContext(buildContext: buildContext, initialMap: localizedDataMap);
-
-          // Unfortunately we need to get the SubView as we are building the template.
-          // TODO: refactor this. Widget shouldn't need to know about this
-          WidgetModel model = PageModel.buildModel(
-              widget.itemTemplate!.template,
-              localizedContext,
-              ScreenController().getSubViewDefinitionsFromRootView(context));
-          Widget templatedWidget = ScreenController().buildWidget(localizedContext, model);
-
-          // wraps each templated widget under Templated so we can
-          // constraint the data scope
-          children.add(Templated(localDataMap: localizedDataMap, child: templatedWidget));
-        }
-      }
+    if (templatedChildren != null) {
+      children.addAll(templatedChildren!);
     }
 
     // wrap each child with Expanded if specified
@@ -214,7 +164,7 @@ class ColumnState extends WidgetState<Column> {
         child: InkWell(
             splashColor: Colors.transparent,
             onTap: widget._controller.onTap == null ? null : () =>
-                ScreenController().executeAction(context, widget._controller.onTap),
+                ScreenController().executeAction(context, widget._controller.onTap!),
             child: Padding(
                 padding: EdgeInsets.all((widget._controller.padding ?? 0).toDouble()),
                 child: widget._controller.autoFit ? IntrinsicWidth(child: column) : column

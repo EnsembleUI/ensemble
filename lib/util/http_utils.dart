@@ -2,14 +2,14 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 
-import 'package:ensemble/framework/context.dart';
+import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:yaml/yaml.dart';
 import 'package:http/http.dart' as http;
 
 class HttpUtils {
 
-  static Future<http.Response> invokeApi(YamlMap api, EnsembleContext eContext) async {
+  static Future<http.Response> invokeApi(YamlMap api, DataContext eContext) async {
 
     // headers
     Map<String, String> headers = {};
