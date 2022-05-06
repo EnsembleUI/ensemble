@@ -1,5 +1,6 @@
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/form_helper.dart';
 import 'package:ensemble/widget/widget_util.dart' as util;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -36,12 +37,13 @@ class EnsembleForm extends StatefulWidget with UpdatableContainer, Invokable, Ha
   @override
   Map<String, Function> setters() {
     return {
-      'labelPosition': (value) => handleLabelPosition(value),
-      'labelOverflow': (value) => _controller.labelOverflow = value,
+      'labelPosition': (value) => handleLabelPosition(Utils.optionalString(value)),
+      'labelOverflow': (value) => _controller.labelOverflow = Utils.optionalString(value),
+      'enabled': (value) => _controller.enabled = Utils.optionalBool(value),
     };
   }
 
-  void handleLabelPosition(String position) {
+  void handleLabelPosition(String? position) {
     if (position == 'none') {
       _controller.labelPosition = LabelPosition.none;
     } else if (position == 'start') {
@@ -65,6 +67,7 @@ class FormController extends WidgetController {
   List<Widget>? children;
   LabelPosition labelPosition = LabelPosition.top;
   String? labelOverflow;
+  bool? enabled;
 }
 
 class FormState extends WidgetState<EnsembleForm> {
