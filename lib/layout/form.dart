@@ -40,6 +40,8 @@ class EnsembleForm extends StatefulWidget with UpdatableContainer, Invokable, Ha
       'labelPosition': (value) => handleLabelPosition(Utils.optionalString(value)),
       'labelOverflow': (value) => _controller.labelOverflow = Utils.optionalString(value),
       'enabled': (value) => _controller.enabled = Utils.optionalBool(value),
+      'width': (value) => _controller.width = Utils.optionalInt(value),
+      'height': (value) => _controller.height = Utils.optionalInt(value),
     };
   }
 
@@ -68,6 +70,9 @@ class FormController extends WidgetController {
   LabelPosition labelPosition = LabelPosition.top;
   String? labelOverflow;
   bool? enabled;
+
+  int? width;
+  int? height;
 }
 
 class FormState extends WidgetState<EnsembleForm> {
@@ -85,10 +90,11 @@ class FormState extends WidgetState<EnsembleForm> {
       body = Column(children: widget._controller.children!);
     }
     return Container(
-      width: 300,
-        child: EnsembleFormScope(
-          formState: this,
-          child: Form(child: body))
+      width: widget._controller.width?.toDouble(),
+      height: widget._controller.height?.toDouble(),
+      child: EnsembleFormScope(
+        formState: this,
+        child: Form(child: body))
     );
 
   }
