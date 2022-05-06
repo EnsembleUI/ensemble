@@ -169,7 +169,7 @@ class TextFieldState extends FormFieldWidgetState<BaseTextField> {
       autocorrect: !widget.isPassword(),
       controller: widget.textController,
       focusNode: focusNode,
-      enabled: widget.controller.enabled,
+      enabled: isEnabled(),
       onChanged: (String txt) {
         // for performance reason, we dispatch onChange (as well as binding to value)
         // upon EditingComplete (select Done on virtual keyboard) or Focus Out

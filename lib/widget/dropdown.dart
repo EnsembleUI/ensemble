@@ -169,7 +169,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
         hint: widget._controller.hintText == null ? null : Text(widget._controller.hintText!),
         value: widget.getValue(),
         items: buildItems(widget._controller.items),
-        onChanged: (item) => onSelectionChanged(item),
+        onChanged: isEnabled() ? (item) => onSelectionChanged(item) : null,
         focusNode: focusNode,
         decoration: inputDecoration);
     }

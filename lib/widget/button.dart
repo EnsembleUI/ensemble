@@ -1,5 +1,6 @@
 
 import 'package:ensemble/framework/action.dart' as ensemble;
+import 'package:ensemble/layout/form.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -24,7 +25,7 @@ class Button extends StatefulWidget with Invokable, HasController<ButtonControll
       'label': (value) => _controller.label = Utils.getString(value, fallback: ''),
       'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, this),
 
-      'enabled': (value) => _controller.enabled = Utils.getBool(value, fallback: true),
+      'enabled': (value) => _controller.enabled = Utils.optionalBool(value),
       'outline': (value) => _controller.outline = Utils.optionalBool(value),
       'backgroundColor': (value) => _controller.backgroundColor = Utils.optionalInt(value),
       'color': (value) => _controller.color = Utils.optionalInt(value),
@@ -46,7 +47,7 @@ class ButtonController extends WidgetController {
   late String label;
   ensemble.Action? onTap;
 
-  bool enabled = true;
+  bool? enabled;
   bool? outline;
   int? backgroundColor;
   int? color;
@@ -78,7 +79,7 @@ class ButtonState extends WidgetState<Button> {
             widget._controller.borderRadius is int ?
             BorderRadius.circular((widget._controller.borderRadius as int).toDouble()) :
             BorderRadius.zero,
-          side: !widget._controller.enabled ? BorderSide.none : BorderSide(color:
+          side: !isEnabled() ? BorderSide.none : BorderSide(color:
               widget._controller.backgroundColor is int ?
               Color(widget._controller.backgroundColor as int) :
               Theme.of(context).colorScheme.primary)
@@ -90,12 +91,12 @@ class ButtonState extends WidgetState<Button> {
 
     if (widget._controller.outline is bool && widget._controller.outline as bool) {
       return TextButton(
-        onPressed: widget._controller.enabled ? () => onPressed(context) : null,
+        onPressed: isEnabled() ? () => onPressed(context) : null,
         style: buttonStyle,
         child: label);
     } else {
       return ElevatedButton(
-        onPressed: widget._controller.enabled ? () => onPressed(context) : null,
+        onPressed: isEnabled() ? () => onPressed(context) : null,
         style: buttonStyle,
         child: label);
     }
@@ -108,6 +109,10 @@ class ButtonState extends WidgetState<Button> {
     }
   }
 
-
+  bool isEnabled() {
+    return widget._controller.enabled
+        ?? EnsembleForm.of(context)?.widget.controller.enabled
+        ?? true;
+  }
 
 }

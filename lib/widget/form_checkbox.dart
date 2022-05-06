@@ -105,10 +105,10 @@ class OnOffState extends FormFieldWidgetState<OnOffWidget> {
     children.add(widget.getType() == OnOffType.toggle ?
         Switch(
           value: widget._controller.value,
-          onChanged: (value) => onToggle(value)) :
+          onChanged: isEnabled() ? (value) => onToggle(value) : null) :
         Checkbox(
           value: widget._controller.value,
-          onChanged: (bool? value) => onToggle(value ?? false))
+          onChanged: isEnabled() ? (bool? value) => onToggle(value ?? false) : null)
     );
     if (widget._controller.trailingText != null) {
       children.add(Text(widget._controller.trailingText!));
