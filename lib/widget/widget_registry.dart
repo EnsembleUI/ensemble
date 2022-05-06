@@ -53,6 +53,7 @@ class WidgetRegistry {
     Row.type: () => Row(),
     Stack.type: () => Stack(),
     DataGrid.type: () => DataGrid(),
+    EnsembleDataRow.type: () => EnsembleDataRow(),
   };
 
   @Deprecated("Use widgetMap instead")

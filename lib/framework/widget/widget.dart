@@ -9,8 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
 
 /// base mixin for Ensemble Container (e.g Column)
-mixin UpdatableContainer {
-  void initChildren({List<Widget>? children, ItemTemplate? itemTemplate});
+mixin UpdatableContainer<T extends Widget> {
+  void initChildren({List<T>? children, ItemTemplate? itemTemplate});
 }
 
 
