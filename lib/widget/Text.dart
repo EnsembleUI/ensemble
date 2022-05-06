@@ -2,6 +2,7 @@
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart' as framework;
+import 'package:ensemble/widget/widget_util.dart' as util;
 import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as material;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -124,29 +125,7 @@ class TextState extends framework.WidgetState<Text> {
       fontColor = Color(widget.controller.color!);
     }
 
-    TextOverflow? textOverflow;
-    int? maxLine = 1;
-    bool? softWrap = false;
-    switch(widget.controller.overflow) {
-      case 'visible':
-        textOverflow = TextOverflow.visible;
-        break;
-      case 'clip':
-        textOverflow = TextOverflow.clip;
-        break;
-      case 'fade':
-        textOverflow = TextOverflow.fade;
-        break;
-      case 'ellipsis':
-      case 'dotdotdot':
-        textOverflow = TextOverflow.ellipsis;
-        break;
-      case 'wrap':
-      default:
-        textOverflow = null;
-        maxLine = null;
-        softWrap = null;
-    }
+    util.TextOverflow textOverflow = util.TextOverflow.from(widget._controller.overflow);
 
     TextAlign? textAlign;
     switch (widget.controller.textAlign) {
@@ -211,8 +190,9 @@ class TextState extends framework.WidgetState<Text> {
     return material.Text(
       widget.controller.text ?? '',
       textAlign: textAlign,
-      maxLines: maxLine,
-      softWrap: softWrap,
+      overflow: textOverflow.overflow,
+      maxLines: textOverflow.maxLine,
+      softWrap: textOverflow.softWrap,
       style: TextStyle(
         decorationColor: Colors.blue,
         fontWeight: fontWeight,
@@ -220,8 +200,7 @@ class TextState extends framework.WidgetState<Text> {
         decoration: textDecoration,
         fontSize: fontSize,
         color: fontColor,
-        height: lineHeight,),
-      overflow: textOverflow,
+        height: lineHeight)
     );
 
   }

@@ -145,7 +145,7 @@
                   "type": "string",
                   "description": "how to handle text longer than available space",
                   "enum": [
-                    "wrap", "visible", "clip", "fade", "ellipsis", "dotdotdot"
+                    "wrap", "visible", "clip", "fade", "ellipsis"
                   ]
                 },
                 "textAlign": {
@@ -390,6 +390,9 @@
           "type": "string",
           "description": "Your button label"
         },
+        "enabled": {
+          "type": "boolean"
+        },
         "onTap": { "$ref": "#/$defs/Action-payload" },
         "styles": {
           "type": "object",
@@ -411,6 +414,31 @@
             },
             "padding": {
               "type": "integer"
+            }
+          }
+        }
+      }
+    },
+    "Form-payload": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "labelPosition": {
+              "type": "string",
+              "description": "Where the position the FormField's label",
+              "enum": [ "top", "start", "none" ]
+            },
+            "labelOverflow": {
+              "type": "string",
+              "description": "how to handle text longer than available space",
+              "enum": [
+                "wrap", "visible", "clip", "fade", "ellipsis"
+              ]
             }
           }
         }
@@ -540,6 +568,7 @@
         "Switch": { "$ref": "#/$defs/OnOff-payload" },
         "Dropdown": { "$ref": "#/$defs/SelectOne-payload" },
         "Button": { "$ref": "#/$defs/Button-payload" },
+        "Form": { "$ref": "#/$defs/Form-payload" },
         "Column": { "$ref": "#/$defs/Column-payload" },
         "Row": { "$ref": "#/$defs/Row-payload" }
       }
