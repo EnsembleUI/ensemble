@@ -425,6 +425,7 @@
         "enabled": {
           "type": "boolean"
         },
+        "children": { "$ref": "#/$defs/Widgets" },
         "styles": {
           "type": "object",
           "properties": {
@@ -439,6 +440,14 @@
               "enum": [
                 "wrap", "visible", "clip", "fade", "ellipsis"
               ]
+            },
+            "width": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 0
             }
           }
         }
