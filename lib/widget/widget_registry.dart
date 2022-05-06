@@ -1,6 +1,7 @@
 
 import 'package:ensemble/layout/Row.dart';
 import 'package:ensemble/layout/data_grid.dart';
+import 'package:ensemble/layout/form.dart';
 import 'package:ensemble/layout/grid_builder.dart';
 import 'package:ensemble/layout/Column.dart';
 import 'package:ensemble/layout/stack.dart';
@@ -39,6 +40,7 @@ class WidgetRegistry {
     EnsembleSpacer.type: () => EnsembleSpacer(),
 
     // form fields
+    EnsembleForm.type: () => EnsembleForm(),
     TextField.type: () => TextField(),
     PasswordField.type: () => PasswordField(),
     EnsembleCheckbox.type: () => EnsembleCheckbox(),
