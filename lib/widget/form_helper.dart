@@ -1,6 +1,8 @@
 
 import 'package:ensemble/framework/widget/icon.dart' as framework;
 import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/layout/form.dart';
+import 'package:ensemble/layout/form.dart' as ensemble;
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
@@ -56,8 +58,9 @@ abstract class FormFieldWidgetState<W extends HasController> extends WidgetState
     if (widget.controller is FormFieldController) {
       FormFieldController myController = widget.controller as FormFieldController;
       return InputDecoration(
+          contentPadding: const EdgeInsets.all(0),
           floatingLabelBehavior: FloatingLabelBehavior.always,
-          labelText: myController.label,
+          labelText: shouldShowLabel() ? myController.label : null,
           hintText: myController.hintText,
           icon: myController.icon == null ? null : framework.Icon(
               myController.icon!,
@@ -70,6 +73,14 @@ abstract class FormFieldWidgetState<W extends HasController> extends WidgetState
       );
     }
     return const InputDecoration();
+  }
+
+  bool shouldShowLabel() {
+    ensemble.FormState? formState = EnsembleForm.of(context);
+    if (formState != null) {
+      return formState.widget.shouldFormFieldShowLabel;
+    }
+    return true;
   }
 
 }
