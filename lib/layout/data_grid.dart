@@ -138,12 +138,15 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
   }
   @override
   Widget build(BuildContext context) {
-    controller.children = controller.children ?? [];
+    List<Widget> children = [];
+    if (controller.children != null) {
+      children.addAll(controller.children!);
+    }
     if (templatedChildren != null) {
-      controller.children!.addAll(templatedChildren!);
+      children.addAll(templatedChildren!);
     }
     List<DataRow> rows = [];
-    for ( Widget w in controller.children! ) {
+    for ( Widget w in children ) {
       if ( w is DataScopeWidget ) {
         w = w.child;
       }
