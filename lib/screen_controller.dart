@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart' as eAction;
@@ -109,6 +110,7 @@ class ScreenController {
         scopeManager.buildWidget(pageModel.rootWidgetModel),
         menu: pageModel.menu,
         footer: _buildFooter(scopeManager, pageModel));
+    log("View created ${initialView.hashCode}");
     return initialView!;
   }
 
