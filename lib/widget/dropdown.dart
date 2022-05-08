@@ -123,7 +123,7 @@ class SelectOneController extends FormFieldController {
   // not be one of the items, hence it could be in an incorrect state
   dynamic maybeValue;
 
-  framework.Action? onChange;
+  framework.EnsembleAction? onChange;
 }
 
 class SelectOneState extends FormFieldWidgetState<SelectOne> {

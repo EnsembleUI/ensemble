@@ -80,7 +80,7 @@ class OnOffController extends FormFieldController {
   String? leadingText;
   String? trailingText;
 
-  framework.Action? onChange;
+  framework.EnsembleAction? onChange;
 }
 
 class OnOffState extends FormFieldWidgetState<OnOffWidget> {

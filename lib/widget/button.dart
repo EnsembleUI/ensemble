@@ -45,7 +45,7 @@ class Button extends StatefulWidget with Invokable, HasController<ButtonControll
 
 class ButtonController extends WidgetController {
   late String label;
-  ensemble.Action? onTap;
+  ensemble.EnsembleAction? onTap;
 
   bool? enabled;
   bool? outline;
