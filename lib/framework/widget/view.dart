@@ -6,6 +6,7 @@ import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -99,7 +100,7 @@ class ViewState extends State<View>{
           // the entire screen including the Safe Area
           backgroundColor: backgroundColor,
           appBar: !showAppBar ? null : AppBar(
-                title: Text(pageData.pageTitle!)),
+                title: Text(Utils.translate(pageData.pageTitle!, context))),
           body: getBody(),
           bottomNavigationBar: bottomNavBar,
           drawer: drawer,
@@ -138,7 +139,7 @@ class ViewState extends State<View>{
         navItems.add(NavigationRailDestination(
           padding: const EdgeInsets.only(left: 30, right: 30) ,
             icon: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
-            label: Text(item.label ?? '')));
+            label: Text(Utils.translate(item.label ?? '', context))));
         if (item.selected) {
           selectedIndex = i;
         }
@@ -195,7 +196,7 @@ class ViewState extends State<View>{
     for (MenuItem item in menuItems) {
       navItems.add(ListTile(
         selected: item.selected,
-        title: Text(item.label ?? ''),
+        title: Text(Utils.translate(item.label ?? '', context)),
         leading: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
         horizontalTitleGap: 0,
         onTap: () => selectNavigationIndex(context, item),

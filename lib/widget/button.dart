@@ -87,7 +87,7 @@ class ButtonState extends WidgetState<Button> {
       )
     );
 
-    Text label = Text(widget._controller.label);
+    Text label = Text(Utils.translate(widget._controller.label, context));
 
     if (widget._controller.outline is bool && widget._controller.outline as bool) {
       return TextButton(

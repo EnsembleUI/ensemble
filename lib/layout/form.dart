@@ -139,7 +139,7 @@ class FormState extends WidgetState<EnsembleForm> {
         Expanded(child: Align(
           alignment: Alignment.centerLeft,
           child: Text(
-            label,
+            Utils.translate(label, context),
             overflow: textOverflow.overflow,
             maxLines: textOverflow.maxLine,
             softWrap: textOverflow.softWrap,

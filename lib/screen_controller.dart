@@ -7,6 +7,7 @@ import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/framework/widget/view.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/unknown_builder.dart';
 import 'package:ensemble/widget/widget_builder.dart' as ensemble;
 import 'package:ensemble/widget/widget_registry.dart';
@@ -50,7 +51,8 @@ class ScreenController {
     ScopeManager rootScopeManager = initRootScopeManager(
         dataContext,
         PageData(
-          pageTitle: pageModel.title,
+          pageTitle: Utils.translate((pageModel.title != null)?pageModel.title!:'', context),
+          //pageTitle:pageModel.title ?? '',
           pageStyles: pageModel.pageStyles,
           pageName: pageName,
           pageType: pageModel.pageType,

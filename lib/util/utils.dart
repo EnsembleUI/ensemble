@@ -3,9 +3,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:yaml/yaml.dart';
 import 'package:ensemble/framework/action.dart';
+import 'package:flutter/foundation.dart';
 
 class Utils {
-
+  static final GlobalKey<NavigatorState> globalAppKey = GlobalKey<NavigatorState>();
   /// return an Integer if it is, or null if not
   static int? optionalInt(dynamic value) {
     return value is int ? value : null;
@@ -15,7 +16,11 @@ class Utils {
   }
   /// return anything as a string if exists, or null if not
   static String? optionalString(dynamic value) {
-    return value?.toString();
+    String? val = value?.toString();
+    if ( val != null ) {
+      return translate(val, null);
+    }
+    return val;
   }
   static double? optionalDouble(dynamic value) {
     return
@@ -74,17 +79,26 @@ class Utils {
 
   static final onlyExpression = RegExp(r'''^\$\(([a-z_-\d."'\(\)\[\]]+)\)$''', caseSensitive: false);
   static final containExpression = RegExp(r'''\$\(([a-z_-\d."'\(\)\[\]]+)\)''', caseSensitive: false);
-  static final i18nExpression = RegExp(r'@[a-zA-Z0-9.-]+',caseSensitive: false);
+  static final i18nExpression = RegExp(r'r@[a-zA-Z0-9.-_]+',caseSensitive: false);
 
   //expect @mystring or @myapp.myscreen.mystring as long as @ is there. If @ is not there, returns the string as-is
-  static String? translate(String? val,BuildContext context) {
-    String? rtn = val;
-    if ( val != null && val.trim().isNotEmpty ) {
+  static String translate(String val,BuildContext? ctx) {
+    BuildContext? context = globalAppKey.currentContext;
+    if ( context == null ) {
+      context = ctx;
+    }
+    String rtn = val;
+    if ( val.trim().isNotEmpty && context != null ) {
       rtn = val.replaceAllMapped(i18nExpression, (match) {
         String str = match.input.substring(match.start,match.end);//get rid of the @
-        if ( str.length > 1 ) {
-          str = str.substring(1);
-          str = FlutterI18n.translate(context, str);
+        if ( str.length > 2 ) {
+          String _s = str.substring(2);
+          try {
+            str = FlutterI18n.translate(context!, _s);
+          } catch (e) {//if resource is not defined
+            //log it
+            debugPrint('unable to get translated string for the '+str);
+          }
         }
         return str;
       });
