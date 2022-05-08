@@ -1,6 +1,8 @@
-import 'package:ensemble/framework/action.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:yaml/yaml.dart';
+import 'package:ensemble/framework/action.dart';
 
 class Utils {
 
@@ -23,7 +25,7 @@ class Utils {
       null;
   }
 
-  static Action? getAction(dynamic payload, Invokable initiator) {
+  static EnsembleAction? getAction(dynamic payload, Invokable initiator) {
     if (payload is YamlMap) {
       if (payload['action'] != null) {
         ActionType? type;
@@ -41,11 +43,11 @@ class Utils {
               inputs![key] = value;
             });
           }
-          return Action(type, actionName: payload['name'], inputs: inputs);
+          return EnsembleAction(type, actionName: payload['name'], inputs: inputs);
         }
       }
     } else if (payload is String) {
-      return Action(ActionType.executeCode, codeBlock: payload, initiator: initiator);
+      return EnsembleAction(ActionType.executeCode, codeBlock: payload, initiator: initiator);
     }
     return null;
   }
@@ -72,7 +74,23 @@ class Utils {
 
   static final onlyExpression = RegExp(r'''^\$\(([a-z_-\d."'\(\)\[\]]+)\)$''', caseSensitive: false);
   static final containExpression = RegExp(r'''\$\(([a-z_-\d."'\(\)\[\]]+)\)''', caseSensitive: false);
+  static final i18nExpression = RegExp(r'@[a-zA-Z0-9.-]+',caseSensitive: false);
 
+  //expect @mystring or @myapp.myscreen.mystring as long as @ is there. If @ is not there, returns the string as-is
+  static String? translate(String? val,BuildContext context) {
+    String? rtn = val;
+    if ( val != null && val.trim().isNotEmpty ) {
+      rtn = val.replaceAllMapped(i18nExpression, (match) {
+        String str = match.input.substring(match.start,match.end);//get rid of the @
+        if ( str.length > 1 ) {
+          str = str.substring(1);
+          str = FlutterI18n.translate(context, str);
+        }
+        return str;
+      });
+    }
+    return rtn;
+  }
   /// is it $(....)
   static bool isExpression(String expression) {
     return onlyExpression.hasMatch(expression);

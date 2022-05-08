@@ -85,7 +85,7 @@ abstract class BaseTextField extends StatefulWidget with Invokable, HasControlle
 /// controller for both TextField and Password
 class TextFieldController extends FormFieldController {
   int? fontSize;
-  framework.Action? onChange;
+  framework.EnsembleAction? onChange;
 
   @override
   Map<String, Function> getBaseGetters() {

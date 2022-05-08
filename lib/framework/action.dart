@@ -5,8 +5,8 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:yaml/yaml.dart';
 
 /// payload representing an Action to do (navigateToScreen, InvokeAPI, ..)
-class Action {
-  Action(this.actionType, {
+class EnsembleAction {
+  EnsembleAction(this.actionType, {
     this.actionName,
     this.inputs,
     this.codeBlock,

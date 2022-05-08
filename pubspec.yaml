@@ -47,7 +47,10 @@ dependencies:
   event_bus: ^2.0.0
   mockito: ^5.1.0
   flutter_layout_grid: ^2.0.0
-
+  flutter_i18n:
+    git:
+      url: https://github.com/ilteoood/flutter_i18n.git
+      ref: master
 
 
 dev_dependencies:

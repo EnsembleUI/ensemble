@@ -190,7 +190,7 @@ class ScreenController {
 
 
   /// handle Action e.g invokeAPI
-  void executeAction(BuildContext context, eAction.Action action) {
+  void executeAction(BuildContext context, eAction.EnsembleAction action) {
     // get the current scope of the widget that invoked this. It gives us
     // the data context to evaluate expresions
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);

@@ -6,7 +6,7 @@ import 'package:yaml/yaml.dart';
 
 /// base controller for Column/Row
 class BoxLayoutController extends WidgetController {
-  Action? onTap;
+  EnsembleAction? onTap;
 
   bool scrollable = false;
   bool autoFit = false;
