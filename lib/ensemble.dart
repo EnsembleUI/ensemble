@@ -24,6 +24,51 @@ class Ensemble {
   String? remotePath;
   String? appKey;
 
+  Future<DefinitionProvider> getConfig(BuildContext context) async {
+    try {
+      final yamlString = await DefaultAssetBundle.of(context)
+          .loadString('ensemble-config.yaml');
+      final YamlMap yamlMap = loadYaml(yamlString);
+
+      String? definitionType = yamlMap['definitions']?['from'];
+      if (definitionType == 'local') {
+        String? path = yamlMap['definitions']?['local']?['path'];
+        if (path == null) {
+          throw ConfigError(
+              "Path to page definitions is required for Local definitions");
+        }
+        return LocalDefinitionProvider(path);
+        definitionFrom = 'local';
+        localPath = path;
+      } else if (definitionType == 'remote') {
+        String? path = yamlMap['definitions']?['remote']?['path'];
+        if (path == null) {
+          throw ConfigError("Path to definitions is required for Remote definitions");
+        }
+        return RemoteDefinitionProvider(path);
+        definitionFrom = 'remote';
+        remotePath = path;
+      } else if (definitionType == 'ensemble') {
+        String? appKey = yamlMap['definitions']?['ensemble']?['appKey'];
+        if (appKey == null) {
+          throw ConfigError(
+              "App Key is required for Ensemble definitions");
+        }
+        return EnsembleDefinitionProvider(appKey);
+        definitionFrom = 'ensemble';
+        // appKey can be passed at decision time, so don't required it here
+        appKey = yamlMap['definitions']?['ensemble']?['appKey'];
+      } else {
+          throw ConfigError(
+              "Definitions needed to be defined as 'local', 'remote', or 'ensemble'");
+
+      }
+    } catch (error) {
+      log("Error loading ensemble-config.yaml.\n$error");
+      rethrow;
+    }
+  }
+
   /// initialize Ensemble configurations. This will be called
   /// automatically upon first page load. However call it in your existing
   /// code will enable faster load for the initial page.
@@ -64,6 +109,13 @@ class Ensemble {
         log("Error loading ensemble-config.yaml.\n$error");
       }
     }
+  }
+
+  FutureBuilder loadPage(BuildContext context, Future<YamlMap> pageDefinition, String pageName, {Map<String, dynamic>? pageArgs}) {
+    return FutureBuilder(
+      future: pageDefinition,
+      builder: (context, AsyncSnapshot snapshot) => processPageDefinition(context, snapshot, pageName, pageArgs: pageArgs)
+    );
   }
 
   /// return an Ensemble page as an embeddable Widget
@@ -188,21 +240,21 @@ class Ensemble {
 
 
   /// get Page Definition from local or remote
-  @protected
+  //@protected
   Future<YamlMap> getPageDefinition(BuildContext context, String pageName) async {
     if (!init) {
       await initialize(context);
     }
     if (definitionFrom == 'local') {
-      return LocalDefinitionProvider(localPath!, pageName).getDefinition();
+      return LocalDefinitionProvider(localPath!).getDefinition(pageName);
     } else if (definitionFrom == 'remote') {
-      return RemoteDefinitionProvider(remotePath!, pageName).getDefinition();
+      return RemoteDefinitionProvider(remotePath!).getDefinition(pageName);
     } else {
       // throw error here if AppKey is missing for Ensemble-hosted page
       /*if (appKey == null) {
         throw ConfigError("AppKey is required for Ensemble-hosted definitions");
       }*/
-      return EnsembleDefinitionProvider(appKey!, pageName).getDefinition();
+      return EnsembleDefinitionProvider(appKey!).getDefinition(pageName);
     }
   }
 
