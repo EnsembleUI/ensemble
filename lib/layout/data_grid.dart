@@ -162,7 +162,13 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
       }
       rows.add(DataRow(cells:cells));
     }
-    return DataTable(columns:widget.cols,rows:rows);
+    return SingleChildScrollView(
+      scrollDirection: Axis.vertical,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(columns:widget.cols,rows:rows)
+      ),
+    );
   }
 
 }

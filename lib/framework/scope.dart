@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/widget/view.dart';
@@ -222,9 +223,9 @@ mixin PageBindingManager on IsScopeManager {
   /// @return true if we are able to bind and listen to the expression.
   bool listen(
       String bindingExpression, {
-      required Invokable me,
-      required Function onDataChange
-  }) {
+        required Invokable me,
+        required Function onDataChange
+      }) {
 
     BindingSource? bindingSource = parseExpression(bindingExpression);
     if (bindingSource != null) {
@@ -245,10 +246,12 @@ mixin PageBindingManager on IsScopeManager {
       if (hash != null) {
         // clean up existing listener with the same signature
         if (listenerMap[me]?[hash] != null) {
+          log("Binding(remove duplicate): ${me.id}-${bindingSource.modelId}-${bindingSource.property}");
           listenerMap[me]![hash]!.cancel();
         }
         StreamSubscription subscription = eventBus.on<ModelChangeEvent>()
             .listen((event) {
+          log("EventBus ${eventBus.hashCode} listening: $event");
           if (event.modelId == bindingSource.modelId &&
               (event.property == null || event.property == bindingSource.property)) {
             onDataChange(event);
@@ -259,7 +262,9 @@ mixin PageBindingManager on IsScopeManager {
         if (listenerMap[me] == null) {
           listenerMap[me] = {};
         }
+        log("Binding: Adding ${me.id}-${bindingSource.modelId}-${bindingSource.property}");
         listenerMap[me]![hash] = subscription;
+        log("All Bindings:${listenerMap.toString()} ");
 
         return true;
       }
@@ -287,6 +292,7 @@ mixin PageBindingManager on IsScopeManager {
   }
 
   void dispatch(ModelChangeEvent event) {
+    log("EventBus ${eventBus.hashCode} firing $event");
     eventBus.fire(event);
   }
 
@@ -296,6 +302,7 @@ mixin PageBindingManager on IsScopeManager {
       for (StreamSubscription listener in listenerMap[widget]!.values) {
         listener.cancel();
       }
+      log("Binding -: Disposing ${widget}(${widget.id ?? ''}). Removing ${listenerMap[widget]!.length} listeners");
       listenerMap.remove(widget);
     }
   }
@@ -305,7 +312,15 @@ mixin PageBindingManager on IsScopeManager {
     return Object.hash(destinationSetter, sourceId, sourceProperty);
   }
 
+  /// print a map of the current listeners on this scope
+  void debugListenerMap() {
+    listenerMap.forEach((widget, map) {
+      log('----listeners----');
+      log('$widget has ${map.length} listeners');
+      log('----- Event bus ${eventBus.hashCode} destroyed ------');
+    });
 
+  }
 
 
 
@@ -318,6 +333,11 @@ class ModelChangeEvent {
   String? property;
   dynamic payload;
   ModelChangeEvent(this.modelId, this.payload, {this.property});
+
+  @override
+  String toString() {
+    return "ModelChangeEvent($modelId, $property)";
+  }
 }
 
 
@@ -331,7 +351,9 @@ class PageData {
     this.pageTitle,
     this.pageType,
     this.apiMap
-  });
+  }) {
+    log("EventBus ${eventBus.hashCode} created");
+  }
 
   final String? pageTitle;
 
