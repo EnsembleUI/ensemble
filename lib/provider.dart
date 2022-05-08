@@ -6,16 +6,15 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
 abstract class DefinitionProvider {
-  Future<YamlMap> getDefinition();
+  Future<YamlMap> getDefinition(String pageId);
 }
 
 class LocalDefinitionProvider extends DefinitionProvider {
-  LocalDefinitionProvider(this.path, this.pageId);
+  LocalDefinitionProvider(this.path);
   final String path;
-  final String pageId;
 
   @override
-  Future<YamlMap> getDefinition() async {
+  Future<YamlMap> getDefinition(String pageId) async {
     String formattedPath = path.endsWith('/') ? path : path + '/';
     var pageStr = await rootBundle.loadString('$formattedPath$pageId.yaml', cache: false);
     return loadYaml(pageStr);
@@ -25,12 +24,12 @@ class LocalDefinitionProvider extends DefinitionProvider {
 
 
 class RemoteDefinitionProvider extends DefinitionProvider {
-  RemoteDefinitionProvider(this.path, this.pageId);
+  // TODO: we can fetch the whole App bundle here
+  RemoteDefinitionProvider(this.path);
   final String path;
-  final String pageId;
 
   @override
-  Future<YamlMap> getDefinition() async {
+  Future<YamlMap> getDefinition(String pageId) async {
     String formattedPath = path.endsWith('/') ? path : path + '/';
     Completer<YamlMap> completer = Completer();
     http.Response response = await http.get(
@@ -45,12 +44,11 @@ class RemoteDefinitionProvider extends DefinitionProvider {
 }
 
 class EnsembleDefinitionProvider extends DefinitionProvider {
-  EnsembleDefinitionProvider(this.appKey, this.pageId);
+  EnsembleDefinitionProvider(this.appKey);
   final String appKey;
-  final String pageId;
 
   @override
-  Future<YamlMap> getDefinition() async {
+  Future<YamlMap> getDefinition(String pageId) async {
     Completer<YamlMap> completer = Completer();
     http.Response response = await http.get(
         Uri.parse('https://pz0mwfkp5m.execute-api.us-east-1.amazonaws.com/dev/app?id=$appKey'));
