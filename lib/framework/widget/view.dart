@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/scope.dart';
@@ -11,13 +13,20 @@ import 'package:yaml/yaml.dart';
 
 /// The root View. Every Ensemble page will have at least one at its root
 class View extends StatefulWidget {
+  /// Upon hot reload a new View is being created, but since the key
+  /// is the same as the previously identify View, Flutter did not
+  /// switch the View properly. Here we are just making sure every View
+  /// will always be unique.
+  /// TODO: a better way is to copy data to the new View so we don't waste time creating new one
+  static int random = 1;
+
   View(
       this._scopeManager,
       this.bodyWidget,
       {
         this.menu,
         this.footer
-      }) : super(key: ValueKey(_scopeManager.pageData.pageName));
+      }) : super(key: ValueKey(_scopeManager.pageData.pageName + (random++).toString()));
 
   // The Scope for our View, which all widgets will have access to.
   // Note that there can be many descendant scopes under our root scope.
@@ -226,6 +235,14 @@ class ViewState extends State<View>{
 
   void selectNavigationIndex(BuildContext context, MenuItem menuItem) {
     Ensemble().navigateToPage(context, menuItem.page, replace: true);
+  }
+
+  @override
+  void dispose() {
+    log('Disposing View ${widget.hashCode}');
+    widget._scopeManager.debugListenerMap();
+    widget._scopeManager.eventBus.destroy();
+    super.dispose();
   }
 
 }
