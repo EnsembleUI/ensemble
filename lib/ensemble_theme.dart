@@ -19,6 +19,13 @@ class EnsembleTheme {
   static const Color spacer = Color(0xFFF2F2F2);
 
 
+  static ThemeData get lightTheme {
+    return ThemeData(
+        disabledColor: const Color(0xffE0E0E0)
+    );
+  }
+
+
   static const TextTheme textTheme = TextTheme(
     headline4: display1,
     headline5: headline,

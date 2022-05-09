@@ -300,7 +300,7 @@ class ItemTemplate {
   final String data;
   final String name;
   final YamlMap template;
-  final List<dynamic>? initialValue;
+  List<dynamic>? initialValue;
 
   ItemTemplate(this.data, this.name, this.template, {this.initialValue});
 }
