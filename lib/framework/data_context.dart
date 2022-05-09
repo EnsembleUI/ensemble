@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/action.dart' as framework;
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -22,8 +24,8 @@ class DataContext {
     _contextMap['ensemble'] = NativeInvokable(buildContext);
   }
 
-  DataContext clone() {
-    return DataContext(buildContext: buildContext, initialMap: _contextMap);
+  DataContext clone({BuildContext? newBuildContext}) {
+    return DataContext(buildContext: newBuildContext ?? buildContext, initialMap: _contextMap);
   }
 
 
@@ -172,6 +174,7 @@ class NativeInvokable with Invokable {
   Map<String, Function> methods() {
     return {
       'navigateScreen': navigateToScreen,
+      'invokeAPI': invokeAPI,
       'debug': (value) => log('Debug: $value'),
     };
   }
@@ -183,6 +186,12 @@ class NativeInvokable with Invokable {
 
   void navigateToScreen(String screenId) {
     Ensemble().navigateToPage(_buildContext, screenId);
+  }
+  void invokeAPI(String apiName) {
+    ScreenController().executeAction(_buildContext, framework.Action(
+      framework.ActionType.invokeAPI,
+      actionName: apiName
+    ));
   }
 
 }
