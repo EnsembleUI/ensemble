@@ -310,9 +310,6 @@ class DataScopeWidget extends InheritedWidget {
 
   final ScopeManager scopeManager;
 
-  up
-
-
   @override
   bool updateShouldNotify(covariant InheritedWidget oldWidget) {
     return false;
