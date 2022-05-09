@@ -268,7 +268,7 @@ class Ensemble {
         bool replace=false
       }) {
     //log ("Screen Arguments: " + args.toString());
-    return ScreenController().renderPage(context, dataContext, pageName, snapshot.data);
+    return ScreenController().renderPage(dataContext, snapshot.data);
   }
 
 }
