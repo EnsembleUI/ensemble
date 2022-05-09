@@ -58,7 +58,7 @@ abstract class FormFieldWidgetState<W extends HasController> extends WidgetState
     if (widget.controller is FormFieldController) {
       FormFieldController myController = widget.controller as FormFieldController;
       return InputDecoration(
-          disabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Color(0xffBDBDBD))),
+          disabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Color(0xffE0E0E0))),
           contentPadding: const EdgeInsets.all(0),
           floatingLabelBehavior: FloatingLabelBehavior.always,
           labelText: shouldShowLabel() ? myController.label : null,
