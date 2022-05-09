@@ -344,27 +344,19 @@ class ModelChangeEvent {
 /// data for the current Page.
 class PageData {
   PageData({
-    required this.pageName,
     required this.datasourceMap,
     this.customViewDefinitions,
-    this.pageStyles,
-    this.pageTitle,
-    this.pageType,
     this.apiMap
   }) {
     log("EventBus ${eventBus.hashCode} created");
   }
 
-  final String? pageTitle;
-
-  final PageType? pageType;
-
-  // unique page name
-  final String pageName;
-
-  final Map<String, dynamic>? pageStyles;
+  // we'll have 1 EventBus and listenerMap for each Page
+  final EventBus eventBus = EventBus();
+  final Map<Invokable, Map<int, StreamSubscription>> listenerMap = {};
 
   // store the data sources (e.g API result) and their callbacks
+  @Deprecated('Use EventBus instead')
   final Map<String, ActionResponse> datasourceMap;
 
   // store the raw definition of the SubView (to be accessed by itemTemplates)
@@ -383,9 +375,7 @@ class PageData {
     return _eContext;
   }*/
 
-  // we'll have an EventBus and listenerMap for each Page
-  final EventBus eventBus = EventBus();
-  final Map<Invokable, Map<int, StreamSubscription>> listenerMap = {};
+
 
 
 }
