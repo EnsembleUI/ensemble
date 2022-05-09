@@ -10,7 +10,6 @@ import 'package:ensemble/framework/widget/view.dart';
 class DataGrid extends StatefulWidget with UpdatableContainer, Invokable, HasController<DataGridController,DataGridState> {
   static const type = 'DataGrid';
   DataGrid({Key? key}) : super(key: key);
-  late final String? id;
   late final ItemTemplate? itemTemplate;
   late List<EnsembleDataColumn> cols;
 
