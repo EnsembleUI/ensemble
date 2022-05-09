@@ -112,7 +112,9 @@ mixin ViewBuilder on IsScopeManager {
         // evaluate the itemTemplate data as initial value
         if (model.itemTemplate != null) {
           dynamic initialValue = dataContext.eval(model.itemTemplate!.data);
-          model.itemTemplate!.initialValue = initialValue;
+          if (initialValue is List) {
+            model.itemTemplate!.initialValue = initialValue;
+          }
         }
 
         (widget as UpdatableContainer).initChildren(children: children, itemTemplate: model.itemTemplate);
