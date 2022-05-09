@@ -18,23 +18,29 @@ class PageModel {
     'Functions'
   ];
 
-  final DataContext dataContext;
+  Map<String, YamlMap>? apiMap;
+  Map<String, YamlMap>? customViewDefinitions;
+
   String? title;
   Map<String, dynamic>? pageStyles;
-  Map<String, YamlMap>? customViewDefinitions;
   Menu? menu;
   late WidgetModel rootWidgetModel;
   PageType pageType = PageType.full;
   Footer? footer;
 
-  PageModel (this.dataContext, YamlMap data) {
+  PageModel (YamlMap data) {
 
     processAPI(data['API']);
     processModel(data);
   }
 
-  processAPI(YamlMap? apiMap) {
-
+  processAPI(YamlMap? map) {
+    if (map != null) {
+      apiMap = {};
+      map.forEach((key, value) {
+        apiMap![key] = value;
+      });
+    }
   }
 
   processModel(YamlMap docMap) {

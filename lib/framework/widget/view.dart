@@ -14,28 +14,37 @@ import 'package:yaml/yaml.dart';
 
 /// The root View. Every Ensemble page will have at least one at its root
 class View extends StatefulWidget {
-  /// Upon hot reload a new View is being created, but since the key
-  /// is the same as the previously identify View, Flutter did not
-  /// switch the View properly. Here we are just making sure every View
-  /// will always be unique.
-  /// TODO: a better way is to copy data to the new View so we don't waste time creating new one
-  static int random = 1;
+  View({
+    required Key key,
+    required DataContext dataContext,
+    required PageModel pageModel,
+  }) : super(key: key) {
+    _initialDataContext = dataContext;
+    _pageModel = pageModel;
+  }
 
-  View(
-      this._scopeManager,
-      this.bodyWidget,
-      {
-        this.menu,
-        this.footer
-      }) : super(key: ValueKey(_scopeManager.pageData.pageName + (random++).toString()));
+  late final DataContext _initialDataContext;
+  late final PageModel _pageModel;
 
-  // The Scope for our View, which all widgets will have access to.
-  // Note that there can be many descendant scopes under our root scope.
-  final ScopeManager _scopeManager;
 
-  final Widget bodyWidget;
-  final Menu? menu;
-  final Widget? footer;
+  /**
+   * PageData pageData = PageData(
+      pageTitle: pageModel.title,
+      pageStyles: pageModel.pageStyles,
+      pageName: pageName,
+      pageType: pageModel.pageType,
+      datasourceMap: {},
+      customViewDefinitions: pageModel.customViewDefinitions,
+      //dataContext: pageModel.dataContext,
+      apiMap: apiMap
+      );
+   */
+
+
+
+  //final Widget bodyWidget;
+  //final Menu? menu;
+  //final Widget? footer;
 
   @override
   State<View> createState() => ViewState();
@@ -43,20 +52,39 @@ class View extends StatefulWidget {
 
 }
 
+
 class ViewState extends State<View>{
+  late ScopeManager _scopeManager;
+
+  @override
+  void initState() {
+    // initialize our root ScopeManager, which can have many child scopes.
+    // All scopes will have access to the page-level PageData
+    _scopeManager = ScopeManager(
+      widget._initialDataContext.clone(newBuildContext: context),
+      PageData(
+          datasourceMap: {},
+          customViewDefinitions: widget._pageModel.customViewDefinitions,
+          apiMap: widget._pageModel.apiMap
+      )
+    );
+
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
-    PageData pageData = widget._scopeManager.pageData;
 
     // modal page has certain criteria (no navBar, no header)
-    if (pageData.pageType == PageType.modal) {
+    if (widget._pageModel.pageType == PageType.modal) {
       // need a close button to go back to non-modal pages
       // also animate up and down (vs left and right)
       return DataScopeWidget(
-          scopeManager: widget._scopeManager,
+          scopeManager: _scopeManager,
           child: Scaffold(
-            body:  widget.bodyWidget,
-            bottomSheet: widget.footer));
+            body:  _scopeManager.buildWidget(widget._pageModel.rootWidgetModel),
+            bottomSheet: _buildFooter(_scopeManager, widget._pageModel))
+      );
     }
     // regular page
     else {
@@ -64,47 +92,47 @@ class ViewState extends State<View>{
       // navigation
       Widget? bottomNavBar;
       Widget? drawer;
-      if (widget.menu != null && widget.menu!.menuItems.length >= 2 ) {
-        if (widget.menu!.display == MenuDisplay.navBar) {
-          bottomNavBar = _buildBottomNavBar(context, widget.menu!.menuItems);
-        } else if (widget.menu!.display == MenuDisplay.drawer) {
-          drawer = _buildDrawer(context, widget.menu!.menuItems);
+      if (widget._pageModel.menu != null && widget._pageModel.menu!.menuItems.length >= 2 ) {
+        if (widget._pageModel.menu!.display == MenuDisplay.navBar) {
+          bottomNavBar = _buildBottomNavBar(context, widget._pageModel.menu!.menuItems);
+        } else if (widget._pageModel.menu!.display == MenuDisplay.drawer) {
+          drawer = _buildDrawer(context, widget._pageModel.menu!.menuItems);
         }
         // left/right navBar will be rendered differently in the body
       }
 
       // use the AppBar if we have a title, or have a drawer (to show the menu)
-      bool showAppBar = pageData.pageTitle != null || drawer != null;
-      if (widget.menu != null &&
-          (widget.menu!.display == MenuDisplay.navBar_left ||
-          widget.menu!.display == MenuDisplay.navBar_right)) {
+      bool showAppBar = widget._pageModel.title != null || drawer != null;
+      if (widget._pageModel.menu != null &&
+          (widget._pageModel.menu!.display == MenuDisplay.navBar_left ||
+              widget._pageModel.menu!.display == MenuDisplay.navBar_right)) {
         showAppBar = false;
       }
 
       Color? backgroundColor =
-        pageData.pageStyles?['backgroundColor'] is int ?
-        Color(pageData.pageStyles!['backgroundColor']) :
+        widget._pageModel.pageStyles?['backgroundColor'] is int ?
+        Color(widget._pageModel.pageStyles!['backgroundColor']) :
         null;
       // if we have a background image, set the background color to transparent
       // since our image is outside the Scaffold
       bool showBackgroundImage = false;
-      if (backgroundColor == null && pageData.pageStyles?['backgroundImage'] != null) {
+      if (backgroundColor == null && widget._pageModel.pageStyles?['backgroundImage'] != null) {
         showBackgroundImage = true;
         backgroundColor = Colors.transparent;
       }
 
       Widget rtn = DataScopeWidget(
-        scopeManager: widget._scopeManager,
+        scopeManager: _scopeManager,
         child: Scaffold(
           // slight optimization, if body background is set, let's paint
           // the entire screen including the Safe Area
           backgroundColor: backgroundColor,
           appBar: !showAppBar ? null : AppBar(
-                title: Text(Utils.translate(pageData.pageTitle!, context))),
+                title: Text(Utils.translate(widget._pageModel.title ?? '', context))),
           body: getBody(),
           bottomNavigationBar: bottomNavBar,
           drawer: drawer,
-          bottomSheet: widget.footer,
+          bottomSheet: _buildFooter(_scopeManager, widget._pageModel),
         )
       );
 
@@ -115,7 +143,7 @@ class ViewState extends State<View>{
           constraints: const BoxConstraints.expand(),
           decoration: BoxDecoration(
             image: DecorationImage (
-              image: NetworkImage(pageData.pageStyles!['backgroundImage']!.toString()),
+              image: NetworkImage(widget._pageModel.pageStyles!['backgroundImage']!.toString()),
               fit: BoxFit.cover
             )
           ),
@@ -130,8 +158,10 @@ class ViewState extends State<View>{
 
   Widget getBody () {
 
-    if (widget.menu != null && widget.menu!.display == MenuDisplay.navBar_left) {
-      List<MenuItem> menuItems = widget.menu!.menuItems;
+    Widget bodyWidget = _scopeManager.buildWidget(widget._pageModel.rootWidgetModel);
+
+    if (widget._pageModel.menu != null && widget._pageModel.menu!.display == MenuDisplay.navBar_left) {
+      List<MenuItem> menuItems = widget._pageModel.menu!.menuItems;
       int selectedIndex = 0;
       List<NavigationRailDestination> navItems = [];
       for (int i=0; i<menuItems.length; i++) {
@@ -149,8 +179,8 @@ class ViewState extends State<View>{
       double paddingFromSafeSpace = 15;
       double minWidth = 155;  // approx so it doesn't overlap the safe space's iOS date
       Widget? headerWidget;
-      if (widget.menu!.headerModel != null) {
-        headerWidget = widget._scopeManager.buildWidget(widget.menu!.headerModel!);
+      if (widget._pageModel.menu!.headerModel != null) {
+        headerWidget = _scopeManager.buildWidget(widget._pageModel.menu!.headerModel!);
       }
       Widget menuHeader = Column(children: [
        SizedBox(width: minWidth, height: paddingFromSafeSpace),
@@ -160,8 +190,8 @@ class ViewState extends State<View>{
       ]);
 
       Widget? menuFooter;
-      if (widget.menu!.footerModel != null) {
-        menuFooter = widget._scopeManager.buildWidget(widget.menu!.footerModel!);
+      if (widget._pageModel.menu!.footerModel != null) {
+        menuFooter = _scopeManager.buildWidget(widget._pageModel.menu!.footerModel!);
       }
 
 
@@ -179,13 +209,13 @@ class ViewState extends State<View>{
           menu,
           const VerticalDivider(thickness: 1, width: 1),
           Expanded(child: SafeArea(
-              child: widget.bodyWidget))
+              child: bodyWidget))
         ],
       );
     }
 
     return SafeArea(
-        child: widget.bodyWidget
+        child: bodyWidget
     );
   }
 
@@ -238,11 +268,31 @@ class ViewState extends State<View>{
     Ensemble().navigateToPage(context, menuItem.page, replace: true);
   }
 
+
+  Widget? _buildFooter(ScopeManager scopeManager, PageModel pageModel) {
+    // Footer can only take 1 child by our design. Ignore the rest
+    if (pageModel.footer != null && pageModel.footer!.children.isNotEmpty) {
+      return AnimatedOpacity(
+          opacity: 1.0,
+          duration: const Duration(milliseconds: 500),
+          child: SizedBox(
+              width: double.infinity,
+              height: 110,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 32),
+                child: scopeManager.buildWidget(pageModel.footer!.children.first),
+              )
+          )
+      );
+    }
+    return null;
+  }
+
   @override
   void dispose() {
     log('Disposing View ${widget.hashCode}');
-    widget._scopeManager.debugListenerMap();
-    widget._scopeManager.eventBus.destroy();
+    _scopeManager.debugListenerMap();
+    _scopeManager.eventBus.destroy();
     super.dispose();
   }
 
