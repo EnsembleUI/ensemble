@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart' as eAction;
@@ -31,50 +32,14 @@ class ScreenController {
     return _instance;
   }
 
-  // This is wrong as the view will NOT be updated on navigation. Refactor.
-  // For now we only use it once during the initial API call before loading the page
-  // It should not be used subsequently
-  View? initialView;
-
   // TODO: Back button will still use the curent page PageMode. Need to keep model state
   /// render the page from the definition and optional arguments (from previous pages)
-  Widget renderPage(BuildContext context, DataContext dataContext, String pageName, YamlMap data) {
-    PageModel pageModel = PageModel(dataContext, data);
-
-    Map<String, YamlMap>? apiMap = {};
-    if (data['API'] != null) {
-      (data['API'] as YamlMap).forEach((key, value) {
-        apiMap[key] = value;
-      });
-    }
-
-    ScopeManager rootScopeManager = initRootScopeManager(
-        dataContext,
-        PageData(
-          pageTitle: Utils.translate((pageModel.title != null)?pageModel.title!:'', context),
-          //pageTitle:pageModel.title ?? '',
-          pageStyles: pageModel.pageStyles,
-          pageName: pageName,
-          pageType: pageModel.pageType,
-          datasourceMap: {},
-          customViewDefinitions: pageModel.customViewDefinitions,
-          //dataContext: pageModel.dataContext,
-          apiMap: apiMap
-        ));
-
-    return _buildPage(rootScopeManager, pageModel);
-
-
-  }
-
-  /// init the root ScopeManager. Here we'll add all the applicable Invokables,
-  /// even though they might not have any values yet
-  ScopeManager initRootScopeManager(DataContext dataContext, PageData pageData) {
-    ScopeManager rootScopeManager = ScopeManager(dataContext, pageData);
+  Widget renderPage(DataContext dataContext, YamlMap data) {
+    PageModel pageModel = PageModel(data);
 
     // add all the API names to our context as Invokable, even though their result
     // will be null. This is so we can always reference it API responses come back
-    pageData.apiMap?.forEach((key, value) {
+    pageModel.apiMap?.forEach((key, value) {
       // have to be careful here. API response on page load may exists,
       // don't overwrite if that is the case
       if (!dataContext.hasContext(key)) {
@@ -82,37 +47,28 @@ class ScreenController {
       }
     });
 
-    return rootScopeManager;
+    /// Upon hot reload a new View is being created, but since the key
+    /// is the same as the previously identify View, Flutter did not
+    /// switch the View properly. Here we are just making sure every View
+    /// will always be unique.
+    /// TODO: a better way is to copy data to the new View so we don't waste time creating new one (Use pageName as key?)
+    View initialView = View(
+        key: UniqueKey(),
+        dataContext: dataContext,
+        pageModel: pageModel);
+    log("View created ${initialView.hashCode}");
+    return initialView;
+
+
   }
 
-  Widget? _buildFooter(ScopeManager scopeManager, PageModel pageModel) {
-    // Footer can only take 1 child by our design. Ignore the rest
-    if (pageModel.footer != null && pageModel.footer!.children.isNotEmpty) {
-      return AnimatedOpacity(
-          opacity: 1.0,
-          duration: const Duration(milliseconds: 500),
-          child: SizedBox(
-            width: double.infinity,
-            height: 110,
-            child: Padding(
-              padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 32),
-              child: scopeManager.buildWidget(pageModel.footer!.children.first),
-            )
-          )
-      );
-    }
-    return null;
-  }
 
-  View _buildPage(ScopeManager scopeManager, PageModel pageModel) {
-    // save the current view to look up when populating initial API load ONLY
-    initialView = View(
-        scopeManager,
+  /*
+  pageModel.rootWidgetModel
         scopeManager.buildWidget(pageModel.rootWidgetModel),
         menu: pageModel.menu,
-        footer: _buildFooter(scopeManager, pageModel));
-    return initialView!;
-  }
+        footer: _buildFooter(scopeManager, pageModel)
+   */
 
   @Deprecated('Use ScopeManager.buildWidget()')
   List<Widget> _buildChildren(DataContext eContext, List<WidgetModel> models) {
@@ -178,6 +134,7 @@ class ScreenController {
   }
 
   /// register listeners for data changes
+  @Deprecated('Move to new EventBus')
   void registerDataListener(BuildContext context, String apiListener, Function callback) {
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
     if (scopeManager != null) {
@@ -300,7 +257,3 @@ class ScreenController {
 
 
 }
-
-
-
-//typedef ActionCallback = void Function(YamlMap inputMap);
