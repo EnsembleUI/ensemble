@@ -128,7 +128,7 @@ class ViewState extends State<View>{
           // the entire screen including the Safe Area
           backgroundColor: backgroundColor,
           appBar: !showAppBar ? null : AppBar(
-                title: Text(Utils.translate(widget._pageModel.title!, context))),
+                title: Text(Utils.translate(widget._pageModel.title ?? '', context))),
           body: getBody(),
           bottomNavigationBar: bottomNavBar,
           drawer: drawer,
