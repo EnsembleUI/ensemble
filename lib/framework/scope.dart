@@ -109,6 +109,12 @@ mixin ViewBuilder on IsScopeManager {
             children.add(_buildBareWidget(model, widgetMapResult));
           }
         }
+        // evaluate the itemTemplate data as initial value
+        if (model.itemTemplate != null) {
+          dynamic initialValue = dataContext.eval(model.itemTemplate!.data);
+          model.itemTemplate!.initialValue = initialValue;
+        }
+
         (widget as UpdatableContainer).initChildren(children: children, itemTemplate: model.itemTemplate);
       }
       return widget;
@@ -262,9 +268,9 @@ mixin PageBindingManager on IsScopeManager {
         if (listenerMap[me] == null) {
           listenerMap[me] = {};
         }
-        log("Binding: Adding ${me.id}-${bindingSource.modelId}-${bindingSource.property}");
+        //log("Binding: Adding ${me.id}-${bindingSource.modelId}-${bindingSource.property}");
         listenerMap[me]![hash] = subscription;
-        log("All Bindings:${listenerMap.toString()} ");
+        //log("All Bindings:${listenerMap.toString()} ");
 
         return true;
       }
