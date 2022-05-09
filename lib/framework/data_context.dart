@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
-import 'package:ensemble/framework/action.dart' as framework;
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/cupertino.dart';
@@ -188,8 +188,8 @@ class NativeInvokable with Invokable {
     Ensemble().navigateToPage(_buildContext, screenId);
   }
   void invokeAPI(String apiName) {
-    ScreenController().executeAction(_buildContext, framework.Action(
-      framework.ActionType.invokeAPI,
+    ScreenController().executeAction(_buildContext, EnsembleAction(
+      ActionType.invokeAPI,
       actionName: apiName
     ));
   }
