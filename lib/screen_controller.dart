@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
-import 'package:ensemble/framework/action.dart' as eAction;
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/page_model.dart';
@@ -149,37 +149,33 @@ class ScreenController {
 
 
   /// handle Action e.g invokeAPI
-  void executeAction(BuildContext context, eAction.EnsembleAction action) {
+  void executeAction(BuildContext context, EnsembleAction action) {
     // get the current scope of the widget that invoked this. It gives us
     // the data context to evaluate expresions
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
     if (scopeManager != null) {
-      if (action.actionType == eAction.ActionType.invokeAPI) {
-        String? apiName = action.actionName;
-        YamlMap? api = scopeManager.pageData.apiMap?[apiName];
+      if (action is InvokeAPIAction) {
+        YamlMap? api = scopeManager.pageData.apiMap?[action.apiName];
         if (api != null) {
           HttpUtils.invokeApi(api, scopeManager.dataContext)
-              .then((response) => _onAPIResponse(context, scopeManager.dataContext, api, apiName!, response))
+              .then((response) => _onAPIResponse(context, scopeManager.dataContext, api, action.apiName, response))
               .onError((error, stackTrace) => onApiError(scopeManager.dataContext, api, error));
         }
-      } else if (action.actionType == eAction.ActionType.navigateScreen) {
+      } else if (action is NavigateScreenAction) {
         // process input parameters
         Map<String, dynamic>? nextArgs = {};
         action.inputs?.forEach((key, value) {
           nextArgs[key] = scopeManager.dataContext.eval(value);
         });
         // args may be cleared out on hot reload. Check this
-        if (action.actionName != null) {
-          Ensemble().navigateToPage(
-              context, action.actionName!, pageArgs: nextArgs);
-        }
-      } else if (action.actionType == eAction.ActionType.executeCode) {
+        Ensemble().navigateToPage(
+            context, action.screenName, pageArgs: nextArgs);
+
+      } else if (action is ExecuteCodeAction) {
         // we need the initiator to scope *this*
-        if (action.initiator != null && action.codeBlock != null) {
-          DataContext localizedContext = scopeManager.dataContext.clone();
-          localizedContext.addInvokableContext('this', action.initiator!);
-          localizedContext.evalCode(action.codeBlock!);
-        }
+        DataContext localizedContext = scopeManager.dataContext.clone();
+        localizedContext.addInvokableContext('this', action.initiator);
+        localizedContext.evalCode(action.codeBlock);
       }
 
     }

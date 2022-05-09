@@ -1,5 +1,5 @@
 
-import 'package:ensemble/framework/action.dart' as framework;
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -85,7 +85,7 @@ abstract class BaseTextField extends StatefulWidget with Invokable, HasControlle
 /// controller for both TextField and Password
 class TextFieldController extends FormFieldController {
   int? fontSize;
-  framework.EnsembleAction? onChange;
+  EnsembleAction? onChange;
 
   @override
   Map<String, Function> getBaseGetters() {
