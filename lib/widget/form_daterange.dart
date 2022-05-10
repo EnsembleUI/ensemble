@@ -42,7 +42,7 @@ class DateRange extends StatefulWidget with Invokable, HasController<DateRangeCo
   Map<String, Function> setters() {
     return {
       'fontSize': (value) => _controller.fontSize = Utils.optionalInt(value),
-      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, this)
+      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this)
     };
   }
 

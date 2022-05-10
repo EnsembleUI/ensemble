@@ -43,7 +43,7 @@ abstract class SelectOne extends StatefulWidget with Invokable, HasController<Se
     return {
       'value': (value) => _controller.maybeValue = value,
       'items': (values) => updateItems(values),
-      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, this)
+      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this)
     };
   }
 

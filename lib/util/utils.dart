@@ -30,7 +30,8 @@ class Utils {
       null;
   }
 
-  static EnsembleAction? getAction(dynamic payload, Invokable initiator) {
+  /// initiator should be an Invokable. We use this to scope *this* variable
+  static EnsembleAction? getAction(dynamic payload, {Invokable? initiator}) {
     if (payload is YamlMap) {
 
       Map<String, String>? inputs;
@@ -42,9 +43,17 @@ class Utils {
       }
 
       if (payload['action'] == ActionType.navigateScreen.name) {
-        return NavigateScreenAction(screenName: payload['name'], inputs: inputs);
+        return NavigateScreenAction(
+          initiator: initiator,
+          screenName: payload['name'],
+          inputs: inputs);
       } else if (payload['action'] == ActionType.invokeAPI.name) {
-        return InvokeAPIAction(apiName: payload['name'], inputs: inputs);
+        return InvokeAPIAction(
+          initiator: initiator,
+          apiName: payload['name'],
+          inputs: inputs,
+          onResponse: Utils.getAction(payload['onResponse'], initiator: initiator),
+          onError: Utils.getAction(payload['onError'], initiator: initiator));
       }
     } else if (payload is String) {
       return ExecuteCodeAction(initiator: initiator, codeBlock: payload);

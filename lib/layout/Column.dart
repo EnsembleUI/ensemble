@@ -13,8 +13,7 @@ class Column extends StatefulWidget with UpdatableContainer, Invokable, HasContr
   static const type = 'Column';
   Column({Key? key}) : super(key: key);
 
-  List<Widget>? children;
-  ItemTemplate? itemTemplate;
+  late final ItemTemplate? itemTemplate;
 
   final BoxLayoutController _controller = BoxLayoutController();
   @override
@@ -27,7 +26,7 @@ class Column extends StatefulWidget with UpdatableContainer, Invokable, HasContr
   @override
   Map<String, Function> setters() {
     return {
-      'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, this),
+      'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, initiator: this),
     };
   }
   @override
@@ -37,7 +36,7 @@ class Column extends StatefulWidget with UpdatableContainer, Invokable, HasContr
 
   @override
   void initChildren({List<Widget>? children, ItemTemplate? itemTemplate}) {
-    this.children = children;
+    _controller.children = children;
     this.itemTemplate = itemTemplate;
   }
 
@@ -78,7 +77,10 @@ class ColumnState extends WidgetState<Column> with TemplatedWidgetState {
   @override
   Widget build(BuildContext buildContext) {
     // children will be rendered before templated children
-    List<Widget> children = widget.children ?? [];
+    List<Widget> children = [];
+    if (widget._controller.children != null) {
+      children.addAll(widget._controller.children!);
+    }
     if (templatedChildren != null) {
       children.addAll(templatedChildren!);
     }
