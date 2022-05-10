@@ -48,27 +48,46 @@ class HttpUtils {
     }
 
     String url = eContext.eval(api['uri'].toString());
-    bool isPost = api['method'] == 'POST';
+    String method = api['method']?.toString().toUpperCase() ?? 'GET';
 
-    // GET
-    if (!isPost) {
+    // params should be appended to the URL for GET and DELETE
+    if (method == 'GET' || method == 'DELETE') {
       if (params.isNotEmpty) {
-        String urlParams = '?';
+        StringBuffer urlParams = StringBuffer(url.contains('?') ? '' : '?');
         params.forEach((key, value) {
-          urlParams += "&$key=$value";
+          urlParams.write('&$key=$value');
         });
-        url += urlParams;
+        url += urlParams.toString();
       }
-      log("GET $url");
+      log("$method $url");
     } else {
-      log("POST $url\nBody: $bodyPayload\nParams: "+params.toString());
+      log("$method $url\nBody: $bodyPayload\nParams: "+params.toString());
     }
 
-    Completer<http.Response> completer = Completer();
-    final http.Response response = await (!isPost ?
-      http.get(Uri.parse(url), headers: headers) :
-      http.post(Uri.parse(url), headers: headers, body: bodyPayload ?? params));
+    dynamic body = bodyPayload ?? params;
 
+    Completer<http.Response> completer = Completer();
+    http.Response? response;
+    switch (method) {
+      case 'POST':
+        response = await http.post(Uri.parse(url), headers: headers, body: body);
+        break;
+      case 'PUT':
+        response = await http.put(Uri.parse(url), headers: headers, body: body);
+        break;
+      case 'PATCH':
+        response = await http.patch(Uri.parse(url), headers: headers, body: body);
+        break;
+      case 'DELETE':
+        response = await http.delete(Uri.parse(url), headers: headers);
+        break;
+      case 'GET':
+      default:
+        response = await http.get(Uri.parse(url), headers: headers);
+        break;
+    }
+
+    log('${response.statusCode}: ${response.body}');
     if (response.statusCode >= 200 && response.statusCode <= 299) {
       completer.complete(response);
     } else {

@@ -147,7 +147,10 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
     }
     List<DataRow> rows = [];
     for ( Widget w in children ) {
+      DataScopeWidget? rowScope;
+
       if ( w is DataScopeWidget ) {
+        rowScope = w;
         w = w.child;
       }
       if ( w is! EnsembleDataRow ) {
@@ -157,7 +160,12 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
       List<DataCell> cells = [];
       if ( child.children != null ) {
         for ( Widget c in child.children! ) {
-          cells.add(DataCell(c));
+          // wrap each cell widget in a DataScopeWidget, and simply use the row's datascope
+          Widget scopeWidget = DataScopeWidget(
+            scopeManager: rowScope!.scopeManager,
+            child: c);
+
+          cells.add(DataCell(scopeWidget));
         }
       }
       rows.add(DataRow(cells:cells));

@@ -38,7 +38,11 @@ class DataContext {
       _contextMap[id] = value;
     }
   }
-  // invokable widget, traversable with getters, setters & methods
+  /// invokable widget, traversable with getters, setters & methods
+  /// Note that this will change a reference to the object, meaning the
+  /// parent scope will not get the changes to this.
+  /// Make sure the scope is finalized before creating child scope, or
+  /// should we just travel up the parents and update their references??
   void addInvokableContext(String id, Invokable widget) {
     _contextMap[id] = widget;
   }
