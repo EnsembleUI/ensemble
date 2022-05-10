@@ -24,6 +24,7 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
 
   final DataContext _dataContext;
   final PageData pageData;
+  ScopeManager? _parent;
 
   @override
   Map<String, YamlMap>? get customViewDefinitions => pageData.customViewDefinitions;
@@ -41,7 +42,9 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
   /// create a copy of the parent's data scope
   @override
   ScopeManager createChildScope() {
-    return ScopeManager(dataContext.clone(), pageData);
+    ScopeManager childScope = ScopeManager(dataContext.clone(), pageData);
+    childScope._parent = this;
+    return childScope;
   }
 
 }

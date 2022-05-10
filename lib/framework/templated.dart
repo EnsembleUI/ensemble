@@ -26,6 +26,7 @@ mixin TemplatedWidgetState<W extends StatefulWidget> on State<W> {
   }
 
   /// build the list of templated widget from the given data expression
+  /// Note that each child is wrapped in DataScopeWidget for proper data scoping
   List<Widget>? buildItemsFromTemplate(BuildContext context, List dataList, ItemTemplate itemTemplate) {
     List<Widget>? widgets;
     ScopeManager? parentScope = DataScopeWidget.getScope(context);
