@@ -9,7 +9,7 @@ import 'package:http/http.dart' as http;
 
 class HttpUtils {
 
-  static Future<http.Response> invokeApi(YamlMap api, DataContext eContext) async {
+  static Future<http.Response> invokeApi(YamlMap api, DataContext eContext, {Map<String, dynamic>? inputParams}) async {
 
     // headers
     Map<String, String> headers = {};
@@ -38,12 +38,13 @@ class HttpUtils {
 
     // query parameter
     Map<String, dynamic> params = {};
-    if (api['parameters'] is YamlMap) {
-      (api['parameters'] as YamlMap).forEach((key, value) {
-        if (value != null) {
-          params[key.toString()] = eContext.eval(value);
+    dynamic test = api['parameters'];
+    if (api['parameters'] is YamlList && inputParams != null) {
+      for (var param in api['parameters']) {
+        if (inputParams[param] != null) {
+          params[param] = inputParams[param];
         }
-      });
+      }
     }
 
     String url = eContext.eval(api['uri'].toString());
@@ -68,7 +69,7 @@ class HttpUtils {
       http.get(Uri.parse(url), headers: headers) :
       http.post(Uri.parse(url), headers: headers, body: bodyPayload ?? params));
 
-    if (response.statusCode == 200) {
+    if (response.statusCode >= 200 && response.statusCode <= 299) {
       completer.complete(response);
     } else {
       completer.completeError("Unable to reach API");

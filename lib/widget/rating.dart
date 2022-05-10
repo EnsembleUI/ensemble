@@ -1,68 +1,57 @@
 import 'package:ensemble/ensemble_theme.dart';
-import 'package:ensemble/page_model.dart';
+import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/widget_builder.dart' as ensemble;
-import 'package:ensemble/widget/widget_registry.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/src/widgets/framework.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
-class RatingBuilder extends ensemble.WidgetBuilder {
+class Rating extends StatefulWidget with Invokable, HasController<RatingController, RatingState> {
   static const type = 'Rating';
-  RatingBuilder({
-    this.value,
-    this.count,
-    this.display,
-    styles
-  }): super(styles: styles);
-  double? value;
-  int? count;
-  String? display;
+  Rating({Key? key}) : super(key: key);
 
-  static RatingBuilder fromDynamic(Map<String, dynamic> props, Map<String, dynamic> styles, {WidgetRegistry? registry})
-  {
-    return RatingBuilder(
-      value: Utils.optionalDouble(props['value']),
-      count: Utils.optionalInt(props['count']),
-      display: Utils.optionalString(props['display']),
-
-      // styles
-      styles: styles
-    );
-  }
-
-
+  final RatingController _controller = RatingController();
   @override
-  Widget buildWidget({
-    List<Widget>? children,
-    ItemTemplate? itemTemplate}) {
-    return Rating(builder: this);
-  }
-
-}
-
-class Rating extends StatefulWidget {
-  const Rating({
-    required this.builder,
-    Key? key
-  }) : super(key: key);
-
-  final RatingBuilder builder;
+  get controller => _controller;
 
   @override
   State<StatefulWidget> createState() => RatingState();
+
+  @override
+  Map<String, Function> getters() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {
+      'value': (value) => _controller.value = Utils.optionalDouble(value),
+      'count': (value) => _controller.count = Utils.optionalInt(value),
+      'display': (value) => _controller.display = Utils.optionalString(value),
+    };
+  }
+
 }
 
-class RatingState extends State<Rating> {
+class RatingController extends WidgetController {
+  double? value;
+  int? count;
+  String? display;
+}
+
+class RatingState extends WidgetState<Rating> {
   @override
   Widget build(BuildContext context) {
     Widget? ratingWidget;
-    if (widget.builder.display == 'full') {
+    if (widget._controller.display == 'full') {
       ratingWidget = Row(
         children: <Widget>[
           RatingBar(
-            initialRating: (widget.builder.value ?? 0).toDouble(),
+            initialRating: (widget._controller.value ?? 0).toDouble(),
             direction: Axis.horizontal,
             allowHalfRating: true,
             itemCount: 5,
@@ -89,7 +78,7 @@ class RatingState extends State<Rating> {
             },
           ),
           Text(
-            widget.builder.count == 0 ? '' : '${widget.builder.count} Reviews',
+            widget._controller.count == 0 ? '' : '${widget._controller.count} Reviews',
             style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey
@@ -102,7 +91,7 @@ class RatingState extends State<Rating> {
         child: Row(
           children: <Widget>[
             Text(
-              widget.builder.value?.toString() ?? '',
+              widget._controller.value?.toString() ?? '',
               textAlign: TextAlign.left,
               style: const TextStyle(
                 fontWeight: FontWeight.w200,

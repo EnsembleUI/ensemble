@@ -63,7 +63,6 @@ class ViewState extends State<View>{
     _scopeManager = ScopeManager(
       widget._initialDataContext.clone(newBuildContext: context),
       PageData(
-          datasourceMap: {},
           customViewDefinitions: widget._pageModel.customViewDefinitions,
           apiMap: widget._pageModel.apiMap
       )

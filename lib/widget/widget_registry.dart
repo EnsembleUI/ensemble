@@ -14,10 +14,10 @@ import 'package:ensemble/widget/divider.dart';
 import 'package:ensemble/widget/dropdown.dart';
 import 'package:ensemble/widget/ensemble_icon.dart';
 import 'package:ensemble/widget/form_checkbox.dart';
-import 'package:ensemble/widget/form_date_input_builder.dart';
+import 'package:ensemble/widget/form_daterange.dart';
 import 'package:ensemble/widget/form_textfield.dart';
 import 'package:ensemble/widget/image.dart';
-import 'package:ensemble/widget/rating_builder.dart';
+import 'package:ensemble/widget/rating.dart';
 import 'package:ensemble/widget/spacer.dart';
 import 'package:ensemble/widget/webview_builder.dart';
 import 'package:ensemble/widget/widget_builder.dart';
@@ -39,9 +39,13 @@ class WidgetRegistry {
     EnsembleDivider.type: () => EnsembleDivider(),
     EnsembleSpacer.type: () => EnsembleSpacer(),
 
+    // misc widgets
+    Rating.type: () => Rating(),
+
     // form fields
     EnsembleForm.type: () => EnsembleForm(),
     TextField.type: () => TextField(),
+    DateRange.type: () => DateRange(),
     PasswordField.type: () => PasswordField(),
     EnsembleCheckbox.type: () => EnsembleCheckbox(),
     EnsembleSwitch.type: () => EnsembleSwitch(),
@@ -59,10 +63,6 @@ class WidgetRegistry {
   @Deprecated("Use widgetMap instead")
   static Map<String, WidgetBuilderFunc> get widgetBuilders =>
       const <String, WidgetBuilderFunc> {
-        // form fields
-        DateInputBuilder.type: DateInputBuilder.fromDynamic,
-
-        RatingBuilder.type: RatingBuilder.fromDynamic,
         WebViewBuilder.type: WebViewBuilder.fromDynamic,
 
         // charts

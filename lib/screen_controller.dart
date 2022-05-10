@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
-import 'package:ensemble/framework/action.dart' as eAction;
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/page_model.dart';
@@ -133,111 +133,116 @@ class ScreenController {
 
   }
 
-  /// register listeners for data changes
-  @Deprecated('Move to new EventBus')
-  void registerDataListener(BuildContext context, String apiListener, Function callback) {
-    ScopeManager? scopeManager = DataScopeWidget.getScope(context);
-    if (scopeManager != null) {
-      ActionResponse? action = scopeManager.pageData.datasourceMap[apiListener];
-      if (action == null) {
-        action = ActionResponse();
-        scopeManager.pageData.datasourceMap[apiListener] = action;
-      }
-      action.addListener(callback);
-    }
-  }
-
-
   /// handle Action e.g invokeAPI
-  void executeAction(BuildContext context, eAction.EnsembleAction action) {
+  void executeAction(BuildContext context, EnsembleAction action) {
     // get the current scope of the widget that invoked this. It gives us
-    // the data context to evaluate expresions
+    // the data context to evaluate expression
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
     if (scopeManager != null) {
-      if (action.actionType == eAction.ActionType.invokeAPI) {
-        String? apiName = action.actionName;
-        YamlMap? api = scopeManager.pageData.apiMap?[apiName];
-        if (api != null) {
-          HttpUtils.invokeApi(api, scopeManager.dataContext)
-              .then((response) => _onAPIResponse(context, scopeManager.dataContext, api, apiName!, response))
-              .onError((error, stackTrace) => onApiError(scopeManager.dataContext, api, error));
-        }
-      } else if (action.actionType == eAction.ActionType.navigateScreen) {
-        // process input parameters
-        Map<String, dynamic>? nextArgs = {};
-        action.inputs?.forEach((key, value) {
-          nextArgs[key] = scopeManager.dataContext.eval(value);
-        });
-        // args may be cleared out on hot reload. Check this
-        if (action.actionName != null) {
-          Ensemble().navigateToPage(
-              context, action.actionName!, pageArgs: nextArgs);
-        }
-      } else if (action.actionType == eAction.ActionType.executeCode) {
-        // we need the initiator to scope *this*
-        if (action.initiator != null && action.codeBlock != null) {
-          DataContext localizedContext = scopeManager.dataContext.clone();
-          localizedContext.addInvokableContext('this', action.initiator!);
-          localizedContext.evalCode(action.codeBlock!);
-        }
-      }
-
+      _executeAction(context, scopeManager.dataContext, action, scopeManager.pageData.apiMap);
     }
   }
+
+  /// internally execute an Action
+  void _executeAction(BuildContext context, DataContext providedDataContext, EnsembleAction action, Map<String, YamlMap>? apiMap) {
+    // scope the initiator to *this* variable
+    DataContext dataContext = providedDataContext.clone();
+    if (action.initiator != null) {
+      dataContext.addInvokableContext('this', action.initiator!);
+    }
+
+    if (action is InvokeAPIAction) {
+      YamlMap? apiDefinition = apiMap?[action.apiName];
+      if (apiDefinition != null) {
+        // input params
+        Map<String, dynamic>? params = {};
+        action.inputs?.forEach((key, value) {
+          params[key] = dataContext.eval(value);
+        });
+        HttpUtils.invokeApi(apiDefinition, dataContext, inputParams: params)
+            .then((response) => _onAPIComplete(context, dataContext, action, apiDefinition, response, apiMap))
+            .onError((error, stackTrace) => processAPIError(context, dataContext, apiDefinition, error, apiMap));
+      }
+    } else if (action is NavigateScreenAction) {
+      // process input parameters
+      Map<String, dynamic>? nextArgs = {};
+      action.inputs?.forEach((key, value) {
+        nextArgs[key] = dataContext.eval(value);
+      });
+      // args may be cleared out on hot reload. Check this
+      Ensemble().navigateToPage(
+          context, action.screenName, pageArgs: nextArgs);
+
+    } else if (action is ExecuteCodeAction) {
+      dataContext.evalCode(action.codeBlock);
+    }
+  }
+
+  /// executing a code block
+  /// also scope the Initiator to *this* variable
+  /*void executeCodeBlock(DataContext dataContext, Invokable initiator, String codeBlock) {
+    // scope the initiator to *this* variable
+    DataContext localizedContext = dataContext.clone();
+    localizedContext.addInvokableContext('this', initiator);
+    localizedContext.evalCode(codeBlock);
+  }*/
 
   /// e.g upon return of API result
-  void _onAPIResponse(BuildContext context, DataContext dataContext, YamlMap apiPayload, String actionName, Response response) {
+  void _onAPIComplete(BuildContext context, DataContext dataContext, InvokeAPIAction action, YamlMap apiDefinition, Response response, Map<String, YamlMap>? apiMap) {
+    // first execute API's onResponse code block
+    EnsembleAction? onResponse = Utils.getAction(apiDefinition['onResponse'], initiator: action.initiator);
+    if (onResponse is InvokeAPIAction) {
+      processAPIResponse(context, dataContext, onResponse, response, apiMap);
+    }
+
+    // if our Action has onResponse, invoke that next
+    if (action.onResponse is InvokeAPIAction) {
+      processAPIResponse(context, dataContext, action.onResponse as InvokeAPIAction, response, apiMap);
+    }
+
+
+    // update the API response in our DataContext and fire changes to all listeners
+    // TODO: we need to propagate changes to all child Scopes also
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
     if (scopeManager != null) {
-      try {
-        // TODO: we need to propagate changes to all child Scopes also
-        // update the API response in our DataContext and fire changes to all listeners
-        Invokable apiResponse = APIResponse(response: response);
-        dataContext.addInvokableContext(actionName, apiResponse);
-        scopeManager.dispatch(ModelChangeEvent(actionName, apiResponse));
-
-
-        // TODO: Legacy listeners, to be removed once refactored
-        // only support JSON result for now
-        Map<String, dynamic> jsonBody = json.decode(response.body);
-        // update data source, which will dispatch changes to its listeners
-        ActionResponse? action = scopeManager.pageData.datasourceMap[actionName];
-        if (action == null) {
-          action = ActionResponse();
-          scopeManager.pageData.datasourceMap[actionName] = action;
-        }
-        action.resultData = jsonBody;
-
-        // execute API's onResponse code block
-        onAPIComplete(dataContext, apiPayload, response);
-        
-      } on FormatException catch (_, e) {
-        print("Only JSON data supported");
-      }
-
-
+      Invokable apiResponse = APIResponse(response: response);
+      scopeManager.dataContext.addInvokableContext(action.apiName, apiResponse);
+      scopeManager.dispatch(ModelChangeEvent(action.apiName, apiResponse));
     }
+
+
+
+
+    // TODO: Legacy listeners, to be removed once refactored
+    // only support JSON result for now
+    /*Map<String, dynamic> jsonBody = json.decode(response.body);
+    // update data source, which will dispatch changes to its listeners
+    ActionResponse? action = scopeManager.pageData.datasourceMap[actionName];
+    if (action == null) {
+      action = ActionResponse();
+      scopeManager.pageData.datasourceMap[actionName] = action;
+    }
+    action.resultData = jsonBody;*/
 
 
   }
 
+  /// Executing the onResponse on the API definition
   /// Note that this is executed AFTER our widgets have been rendered, such that
   /// we can reference any widgets here in the code block
   /// TODO: don't rely on order of execution
-  void onAPIComplete(DataContext dataContext, YamlMap apiPayload, Response response) {
-    if (apiPayload['onResponse'] != null) {
-      // our code block can locally reference `response` as the API response.
-      // Hence make sure we create a new data context here
-      DataContext codeContext = dataContext.clone();
-      codeContext.addInvokableContext('response', APIResponse(response: response));
-
-      processCodeBlock(codeContext, apiPayload['onResponse'].toString());
-    }
+  void processAPIResponse(BuildContext context, DataContext dataContext, InvokeAPIAction apiAction, Response response, Map<String, YamlMap>? apiMap) {
+    // execute the onResponse on the API definition
+    DataContext localizedContext = dataContext.clone();
+    localizedContext.addInvokableContext('response', APIResponse(response: response));
+    _executeAction(context, localizedContext, apiAction, apiMap);
   }
 
-  void onApiError(DataContext eContext, YamlMap apiPayload, Object? error) {
-    if (apiPayload['onError'] != null) {
-      processCodeBlock(eContext, apiPayload['onError'].toString());
+  void processAPIError(BuildContext context, DataContext dataContext, YamlMap apiDefinition, Object? error, Map<String, YamlMap>? apiMap) {
+    EnsembleAction? onErrorAction = Utils.getAction(apiDefinition['onError']);
+    if (onErrorAction != null) {
+      // probably want to include the error?
+      _executeAction(context, dataContext, onErrorAction, apiMap);
     }
 
     // silently fail if error handle is not defined? or should we alert user?

@@ -188,10 +188,10 @@ class NativeInvokable with Invokable {
     Ensemble().navigateToPage(_buildContext, screenId);
   }
   void invokeAPI(String apiName) {
-    ScreenController().executeAction(_buildContext, EnsembleAction(
+    /*ScreenController().executeAction(_buildContext, EnsembleAction(
       ActionType.invokeAPI,
       actionName: apiName
-    ));
+    ));*/
   }
 
 }
