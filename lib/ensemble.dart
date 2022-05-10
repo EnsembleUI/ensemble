@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:developer';
 
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/provider.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/http_utils.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:yaml/yaml.dart';
@@ -159,12 +161,28 @@ class Ensemble {
 
     // load page
     if (snapshot.data['View'] != null) {
+      // first create the API Map
+      Map<String, YamlMap> apiMap = {};
+      if (snapshot.data['API'] is YamlMap) {
+        snapshot.data['API'].forEach((key, value) {
+          apiMap[key] = value;
+        });
+      }
+
       // fetch data remotely before loading page
-      String? apiName = snapshot.data['Action']?['pageload']?['api'];
-      if (apiName != null) {
-        YamlMap apiPayload = snapshot.data['API'][apiName];
+      EnsembleAction? action = Utils.getAction(snapshot.data['Action']?['onPageLoad']);
+      if (action is InvokeAPIAction && apiMap[action.apiName] is YamlMap) {
+        YamlMap apiPayload = apiMap[action.apiName]!;
+
+        // input params
+        Map<String, dynamic>? params = {};
+        action.inputs?.forEach((key, value) {
+          params[key] = dataContext.eval(value);
+        });
+
+
         return FutureBuilder(
-            future: HttpUtils.invokeApi(apiPayload, dataContext),
+            future: HttpUtils.invokeApi(apiPayload, dataContext, inputParams: params),
             builder: (context, AsyncSnapshot apiSnapshot) {
               if (!apiSnapshot.hasData) {
                 return const Scaffold(
@@ -173,7 +191,7 @@ class Ensemble {
                     )
                 );
               } else if (apiSnapshot.hasError) {
-                ScreenController().onApiError(dataContext, apiPayload, apiSnapshot.error);
+                ScreenController().processAPIError(context, dataContext, apiPayload, apiSnapshot.error, apiMap);
                 return const Scaffold(
                     body: Center(
                         child: Text(
@@ -184,13 +202,17 @@ class Ensemble {
 
               // Since our widgets have not been rendered yet, simply update our
               // data context with API result (no need to dispatch any event)
-              dataContext.addInvokableContext(apiName, APIResponse(response: apiSnapshot.data));
+              dataContext.addInvokableContext(action.apiName, APIResponse(response: apiSnapshot.data));
 
               // render the page
               Widget page = _renderPage(context, dataContext, pageName, snapshot);
 
               // once page has been rendered, run the onResponse code block of the API
-              ScreenController().onAPIComplete(dataContext, apiPayload, apiSnapshot.data);
+              EnsembleAction? onResponseAction = Utils.getAction(apiPayload['onResponse']);
+              if (onResponseAction is InvokeAPIAction) {
+                ScreenController().processAPIResponse(
+                    context, dataContext, onResponseAction, apiSnapshot.data, apiMap);
+              }
 
               return page;
             }

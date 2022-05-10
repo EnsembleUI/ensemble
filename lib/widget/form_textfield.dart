@@ -23,7 +23,7 @@ class TextField extends BaseTextField {
   Map<String, Function> setters() {
     return {
       'value': (newValue) => textController.text = Utils.getString(newValue, fallback: ''),
-      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, this)
+      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this)
     };
   }
   @override
@@ -51,7 +51,7 @@ class PasswordField extends BaseTextField {
   @override
   Map<String, Function> setters() {
     return {
-      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, this)
+      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this)
     };
   }
   @override

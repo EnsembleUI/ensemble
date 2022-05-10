@@ -352,7 +352,6 @@ class ModelChangeEvent {
 /// data for the current Page.
 class PageData {
   PageData({
-    required this.datasourceMap,
     this.customViewDefinitions,
     this.apiMap
   }) {
@@ -362,10 +361,6 @@ class PageData {
   // we'll have 1 EventBus and listenerMap for each Page
   final EventBus eventBus = EventBus();
   final Map<Invokable, Map<int, StreamSubscription>> listenerMap = {};
-
-  // store the data sources (e.g API result) and their callbacks
-  @Deprecated('Use EventBus instead')
-  final Map<String, ActionResponse> datasourceMap;
 
   // store the raw definition of the SubView (to be accessed by itemTemplates)
   final Map<String, YamlMap>? customViewDefinitions;

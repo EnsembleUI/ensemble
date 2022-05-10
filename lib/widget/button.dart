@@ -23,7 +23,7 @@ class Button extends StatefulWidget with Invokable, HasController<ButtonControll
   Map<String, Function> setters() {
     return {
       'label': (value) => _controller.label = Utils.getString(value, fallback: ''),
-      'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, this),
+      'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, initiator: this),
 
       'enabled': (value) => _controller.enabled = Utils.optionalBool(value),
       'outline': (value) => _controller.outline = Utils.optionalBool(value),
