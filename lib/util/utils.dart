@@ -62,7 +62,8 @@ class Utils {
   }
 
   static String getString(dynamic value, {required String fallback}) {
-    return value?.toString() ?? fallback;
+    String val = value?.toString() ?? fallback;
+    return translate(val, null);
   }
 
   static bool getBool(dynamic value, {required bool fallback}) {
@@ -85,12 +86,10 @@ class Utils {
   static final containExpression = RegExp(r'''\$\(([a-z_-\d."'\(\)\[\]]+)\)''', caseSensitive: false);
   static final i18nExpression = RegExp(r'r@[a-zA-Z0-9.-_]+',caseSensitive: false);
 
-  //expect @mystring or @myapp.myscreen.mystring as long as @ is there. If @ is not there, returns the string as-is
+  //expect r@mystring or r@myapp.myscreen.mystring as long as r@ is there. If r@ is not there, returns the string as-is
   static String translate(String val,BuildContext? ctx) {
     BuildContext? context = globalAppKey.currentContext;
-    if ( context == null ) {
-      context = ctx;
-    }
+    context ??= ctx;
     String rtn = val;
     if ( val.trim().isNotEmpty && context != null ) {
       rtn = val.replaceAllMapped(i18nExpression, (match) {
