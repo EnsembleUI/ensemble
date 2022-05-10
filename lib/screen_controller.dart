@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/scope.dart';
@@ -202,12 +203,18 @@ class ScreenController {
 
 
     // update the API response in our DataContext and fire changes to all listeners
-    // TODO: we need to propagate changes to all child Scopes also
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
     if (scopeManager != null) {
-      Invokable apiResponse = APIResponse(response: response);
-      scopeManager.dataContext.addInvokableContext(action.apiName, apiResponse);
-      scopeManager.dispatch(ModelChangeEvent(action.apiName, apiResponse));
+      // make sure we don't override the key here, as all the scopes referenced the same API
+      dynamic api = scopeManager.dataContext.getContextById(action.apiName);
+      if (api == null || api is! Invokable) {
+        throw RuntimeException("Unable to update API Binding as it doesn't exists");
+      }
+      // update the API response so all references get it
+      (api as APIResponse).setAPIResponse(response);
+
+      // dispatch changes
+      scopeManager.dispatch(ModelChangeEvent(action.apiName, api));
     }
 
 

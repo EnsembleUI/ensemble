@@ -187,6 +187,7 @@
             "fontAwesome"
           ]
         },
+        "onTap": { "$ref": "#/$defs/Action-payload" },
         "styles": {
           "allOf": [
             {
