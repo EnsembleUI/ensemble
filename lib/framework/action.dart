@@ -5,21 +5,46 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:yaml/yaml.dart';
 
 /// payload representing an Action to do (navigateToScreen, InvokeAPI, ..)
-class EnsembleAction {
-  EnsembleAction(this.actionType, {
-    this.actionName,
-    this.inputs,
-    this.codeBlock,
-    this.initiator
-  });
+abstract class EnsembleAction {
+  EnsembleAction({this.initiator});
 
-  ActionType actionType;
-  String? actionName;
-  Map<String, String>? inputs;
-  String? codeBlock;
-
-  // initiator is important when executing code, such that we can scope to *this*
+  // initiator is an Invokable so we can scope to *this* variable
   Invokable? initiator;
+}
+
+class InvokeAPIAction extends EnsembleAction {
+  InvokeAPIAction({
+    Invokable? initiator,
+    required this.apiName,
+    this.inputs,
+    this.onResponse,
+    this.onError
+  }) : super(initiator: initiator);
+
+  final String apiName;
+  final Map<String, String>? inputs;
+  EnsembleAction? onResponse;
+  EnsembleAction? onError;
+}
+
+class NavigateScreenAction extends EnsembleAction {
+  NavigateScreenAction({
+    Invokable? initiator,
+    required this.screenName,
+    this.inputs
+  }) : super(initiator: initiator);
+
+  String screenName;
+  Map<String, String>? inputs;
+}
+
+class ExecuteCodeAction extends EnsembleAction {
+  ExecuteCodeAction({
+    Invokable? initiator,
+    required this.codeBlock,
+  }) : super(initiator: initiator);
+
+  String codeBlock;
 }
 
 

@@ -30,29 +30,33 @@ class Utils {
       null;
   }
 
-  static EnsembleAction? getAction(dynamic payload, Invokable initiator) {
+  /// initiator should be an Invokable. We use this to scope *this* variable
+  static EnsembleAction? getAction(dynamic payload, {Invokable? initiator}) {
     if (payload is YamlMap) {
-      if (payload['action'] != null) {
-        ActionType? type;
-        if (payload['action'] == ActionType.navigateScreen.name) {
-          type = ActionType.navigateScreen;
-        } else if (payload['action'] == ActionType.invokeAPI.name) {
-          type = ActionType.invokeAPI;
-        }
 
-        if (type != null) {
-          Map<String, String>? inputs;
-          if (payload['inputs'] is YamlMap) {
-            inputs = {};
-            (payload['inputs'] as YamlMap).forEach((key, value) {
-              inputs![key] = value;
-            });
-          }
-          return EnsembleAction(type, actionName: payload['name'], inputs: inputs);
-        }
+      Map<String, String>? inputs;
+      if (payload['inputs'] is YamlMap) {
+        inputs = {};
+        (payload['inputs'] as YamlMap).forEach((key, value) {
+          inputs![key] = value;
+        });
+      }
+
+      if (payload['action'] == ActionType.navigateScreen.name) {
+        return NavigateScreenAction(
+          initiator: initiator,
+          screenName: payload['name'],
+          inputs: inputs);
+      } else if (payload['action'] == ActionType.invokeAPI.name) {
+        return InvokeAPIAction(
+          initiator: initiator,
+          apiName: payload['name'],
+          inputs: inputs,
+          onResponse: Utils.getAction(payload['onResponse'], initiator: initiator),
+          onError: Utils.getAction(payload['onError'], initiator: initiator));
       }
     } else if (payload is String) {
-      return EnsembleAction(ActionType.executeCode, codeBlock: payload, initiator: initiator);
+      return ExecuteCodeAction(initiator: initiator, codeBlock: payload);
     }
     return null;
   }

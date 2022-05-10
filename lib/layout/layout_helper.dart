@@ -2,6 +2,7 @@
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:yaml/yaml.dart';
 
 /// base controller for Column/Row
@@ -30,6 +31,8 @@ class BoxLayoutController extends WidgetController {
   int? shadowColor;
   List<int>? shadowOffset;
   int? shadowRadius;
+
+  List<Widget>? children;
 
 
   @override

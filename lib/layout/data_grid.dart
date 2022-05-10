@@ -1,6 +1,7 @@
 import 'package:ensemble/framework/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -61,9 +62,9 @@ class EnsembleDataColumn extends DataColumn {
 
   static EnsembleDataColumn fromYaml({required YamlMap map,Function? onSort}) {
     return EnsembleDataColumn(
-      label:map['label'],
-      type:map['type'],
-      tooltip:map['tooltip'],
+      label: Utils.getString(map['label'], fallback: ''),
+      type: map['type'],
+      tooltip: Utils.optionalString(map['tooltip']),
       onSort:onSort
     );
 
