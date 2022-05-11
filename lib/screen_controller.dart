@@ -192,13 +192,13 @@ class ScreenController {
   void _onAPIComplete(BuildContext context, DataContext dataContext, InvokeAPIAction action, YamlMap apiDefinition, Response response, Map<String, YamlMap>? apiMap) {
     // first execute API's onResponse code block
     EnsembleAction? onResponse = Utils.getAction(apiDefinition['onResponse'], initiator: action.initiator);
-    if (onResponse is InvokeAPIAction) {
+    if (onResponse != null) {
       processAPIResponse(context, dataContext, onResponse, response, apiMap);
     }
 
     // if our Action has onResponse, invoke that next
-    if (action.onResponse is InvokeAPIAction) {
-      processAPIResponse(context, dataContext, action.onResponse as InvokeAPIAction, response, apiMap);
+    if (action.onResponse != null) {
+      processAPIResponse(context, dataContext, action.onResponse!, response, apiMap);
     }
 
 
@@ -238,11 +238,11 @@ class ScreenController {
   /// Note that this is executed AFTER our widgets have been rendered, such that
   /// we can reference any widgets here in the code block
   /// TODO: don't rely on order of execution
-  void processAPIResponse(BuildContext context, DataContext dataContext, InvokeAPIAction apiAction, Response response, Map<String, YamlMap>? apiMap) {
+  void processAPIResponse(BuildContext context, DataContext dataContext, EnsembleAction onResponseAction, Response response, Map<String, YamlMap>? apiMap) {
     // execute the onResponse on the API definition
     DataContext localizedContext = dataContext.clone();
     localizedContext.addInvokableContext('response', APIResponse(response: response));
-    _executeAction(context, localizedContext, apiAction, apiMap);
+    _executeAction(context, localizedContext, onResponseAction, apiMap);
   }
 
   void processAPIError(BuildContext context, DataContext dataContext, YamlMap apiDefinition, Object? error, Map<String, YamlMap>? apiMap) {
