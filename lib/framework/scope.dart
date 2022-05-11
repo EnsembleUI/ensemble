@@ -47,6 +47,9 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
     return childScope;
   }
 
+  @override
+  ScopeManager get me => this;
+
 }
 
 
@@ -56,6 +59,7 @@ abstract class IsScopeManager {
   EventBus get eventBus;
   Map<Invokable, Map<int, StreamSubscription>> get listenerMap;
   ScopeManager createChildScope();
+  ScopeManager get me;
 }
 
 
@@ -70,6 +74,27 @@ mixin ViewBuilder on IsScopeManager {
 
   /// build a widget from a given model
   Widget buildWidget(WidgetModel model) {
+    // 1. Create a bare widget tree
+    //  - Add Widget ID as needed to our DataContext
+    //  - update the mapping of WidgetModel -> (Invokable, ScopeManager, children)
+    Map<WidgetModel, ModelPayload> modelMap = {};
+    ScopeNode rootNode = ScopeNode(me);
+    Widget rootWidget = ViewUtil.buildBareWidget(rootNode, model, modelMap);
+
+    // 2. from our rootScope, propagate all data to the child scopes
+    ViewUtil.propagateScopes(rootNode);
+
+    // 3. execute bindings
+    //  - TODO: detect circular dependencies so we don't have infinite loop
+    _updateWidgetBindings(modelMap);
+
+    return rootWidget;
+
+
+
+
+
+    /*
     // 1. create bare widget tree.
     //  - Add Widget ID as needed to our DataContext
     //  - update the mapping of WidgetModel -> Widget
@@ -80,7 +105,7 @@ mixin ViewBuilder on IsScopeManager {
     //  - TODO: detect circular dependencies so we don't have infinite loop
     _updateWidgetBindings(widgetMap);
 
-    return widget;
+    return widget;*/
   }
 
   /// Create a bare widget tree without setting any values on it.
@@ -119,7 +144,6 @@ mixin ViewBuilder on IsScopeManager {
             model.itemTemplate!.initialValue = initialValue;
           }
         }
-
         (widget as UpdatableContainer).initChildren(children: children, itemTemplate: model.itemTemplate);
       }
       return widget;
@@ -127,8 +151,61 @@ mixin ViewBuilder on IsScopeManager {
     return const Text("Unsupported Widget");
   }
 
+  void _updateWidgetBindings(Map<WidgetModel, ModelPayload> modelMap) {
+
+    modelMap.forEach((model, payload) {
+      DataContext dataContext = payload.scopeManager.dataContext;
+
+      // resolve input parameters
+      if (model is CustomWidgetModel) {
+        if (model.parameters != null && model.inputs != null) {
+          for (var param in model.parameters!) {
+            if (model.inputs![param] != null) {
+              dataContext.addDataContextById(param, dataContext.eval(model.inputs![param]));
+            }
+          }}
+      }
+
+      if (payload.widget is Invokable) {
+        Invokable widget = payload.widget as Invokable;
+        // set props and styles on the widget. At this stage the widget
+        // has not been attached, so no worries about ValueNotifier
+        for (String key in model.props.keys) {
+          if (widget.getSettableProperties().contains(key)) {
+            // actions like onTap should evaluate its expressions upon the action only
+            if (key.startsWith('on')) {
+              widget.setProperty(key, model.props[key]);
+            } else {
+              setPropertyAndRegisterBinding(
+                  dataContext, widget, key, model.props[key]);
+            }
+          }
+        }
+        for (String key in model.styles.keys) {
+          if (widget.getSettableProperties().contains(key)) {
+            setPropertyAndRegisterBinding(
+                dataContext, widget, key, model.styles[key]);
+          }
+        }
+      }
+
+      if (payload.widget is UpdatableContainer) {
+        // evaluate the itemTemplate data as initial value
+        if (model.itemTemplate != null) {
+          dynamic initialValue = dataContext.eval(model.itemTemplate!.data);
+          if (initialValue is List) {
+            model.itemTemplate!.initialValue = initialValue;
+          }
+        }
+        (payload.widget as UpdatableContainer).initChildren(
+            children: payload.children, itemTemplate: model.itemTemplate);
+      }
+
+    });
+  }
+
   /// iterate through and set/evaluate the widget's properties/styles/...
-  void _updateWidgetBindings(Map<WidgetModel, Invokable> widgetMap) {
+  /*void _updateWidgetBindings(Map<WidgetModel, Invokable> widgetMap) {
 
     widgetMap.forEach((model, widget) {
       DataContext localizedContext = dataContext.clone();
@@ -163,7 +240,7 @@ mixin ViewBuilder on IsScopeManager {
 
 
     });
-  }
+  }*/
 
   /// call widget.setProperty to update its value.
   /// If the value is an expression of valid binding, we

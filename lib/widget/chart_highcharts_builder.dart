@@ -1,63 +1,51 @@
+import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/util/utils.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:high_chart/high_chart.dart';
-import 'package:ensemble/page_model.dart';
-import 'package:ensemble/widget/widget_builder.dart' as ensemble;
-import 'package:ensemble/widget/widget_registry.dart';
 import 'package:flutter/material.dart';
 
-class ChartHighChartsBuilder extends ensemble.WidgetBuilder {
+class Highcharts extends StatefulWidget with Invokable, HasController<HighchartsController, HighchartsState> {
   static const type = 'HighCharts';
-  ChartHighChartsBuilder({
-    required this.data,
-    this.width = 200,
-    this.height = 200,
-    styles
-  }): super(styles: styles);
+  Highcharts({Key? key}) : super(key: key);
 
-  int? width;
-  int? height;
-  dynamic data;
+  static const defaultSize = 200;
 
+  final HighchartsController _controller = HighchartsController();
+  @override
+  HighchartsController get controller => _controller;
 
+  @override
+  State<StatefulWidget> createState() => HighchartsState();
 
+  @override
+  Map<String, Function> getters() {
+    return {};
+  }
 
+  @override
+  Map<String, Function> methods() {
+    return {};
+  }
 
-  static ChartHighChartsBuilder fromDynamic(Map<String, dynamic> props, Map<String, dynamic> styles, {WidgetRegistry? registry})
-  {
-    return ChartHighChartsBuilder(
-      // props
-      data: props['data'],
-
-      // styles
-      width: styles['width'],
-      height: styles['height'],
-      styles: styles
-    );
+  @override
+  Map<String, Function> setters() {
+    return {
+      'width': (value) => _controller.width = Utils.getInt(value, fallback: defaultSize),
+      'height': (value) => _controller.height = Utils.getInt(value, fallback: defaultSize),
+      'data': (value) => _controller.data = Utils.getString(value, fallback: '')
+    };
   }
 
 
-
-  @override
-  Widget buildWidget({
-    List<Widget>? children,
-    ItemTemplate? itemTemplate}) {
-    return EnsembleHighCharts(builder: this);
-  }
-
+}
+class HighchartsController extends WidgetController {
+  int width = Highcharts.defaultSize;
+  int height = Highcharts.defaultSize;
+  dynamic data = '';
 }
 
-class EnsembleHighCharts extends StatefulWidget {
-  const EnsembleHighCharts({
-    required this.builder,
-    Key? key
-  }) : super(key: key);
 
-  final ChartHighChartsBuilder builder;
-
-  @override
-  State<StatefulWidget> createState() => HighChartsState();
-}
-
-class HighChartsState extends State<EnsembleHighCharts> {
+class HighchartsState extends WidgetState<Highcharts> {
   @override
   Widget build(BuildContext context) {
     return HighCharts(
@@ -65,8 +53,8 @@ class HighChartsState extends State<EnsembleHighCharts> {
         child: LinearProgressIndicator(),
         width: 200,
       ),
-      size: Size(widget.builder.width!.toDouble(), widget.builder.height!.toDouble()),
-      data: widget.builder.data,
+      size: Size(widget._controller.width.toDouble(), widget._controller.height.toDouble()),
+      data: widget._controller.data,
       scripts: const [
         'https://code.highcharts.com/highcharts.js',
         'https://code.highcharts.com/highcharts-more.js'
