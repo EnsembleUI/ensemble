@@ -160,12 +160,16 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
       List<DataCell> cells = [];
       if ( child.children != null ) {
         for ( Widget c in child.children! ) {
-          // wrap each cell widget in a DataScopeWidget, and simply use the row's datascope
-          Widget scopeWidget = DataScopeWidget(
-            scopeManager: rowScope!.scopeManager,
-            child: c);
+          // for templated row only, wrap each cell widget in a DataScopeWidget, and simply use the row's datascope
+          if (rowScope != null) {
+            Widget scopeWidget = DataScopeWidget(
+                scopeManager: rowScope.scopeManager,
+                child: c);
 
-          cells.add(DataCell(scopeWidget));
+            cells.add(DataCell(scopeWidget));
+          } else {
+            cells.add(DataCell(c));
+          }
         }
       }
       rows.add(DataRow(cells:cells));
@@ -174,8 +178,8 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
       scrollDirection: Axis.vertical,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        child: DataTable(columns:widget.cols,rows:rows)
-      ),
+        child: DataTable(columns: widget.cols, rows: rows)
+      )
     );
   }
 
