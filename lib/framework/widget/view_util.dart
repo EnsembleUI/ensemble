@@ -1,7 +1,13 @@
 
 
 import 'package:ensemble/error_handling.dart';
+import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/widget/view.dart';
+import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/widget/widget_registry.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
 
 class ViewUtil {
@@ -113,4 +119,92 @@ class ViewUtil {
   }
 
 
+  static Widget buildBareWidget(ScopeNode scopeNode, WidgetModel model, Map<WidgetModel, ModelPayload> modelMap) {
+
+    Function? widgetInstance = WidgetRegistry.widgetMap[model.type];
+    if (widgetInstance != null) {
+      Widget w = widgetInstance.call();
+      ScopeManager currentScope = scopeNode.scope;
+
+
+
+      // save to the modelMap for later binding processing
+      if (model is CustomWidgetModel) {
+        currentScope = scopeNode.scope.createChildScope();
+        scopeNode.addChild(ScopeNode(currentScope));
+      }
+
+      modelMap[model] = ModelPayload(w, currentScope);
+
+      // If our widget has an ID, add it to our data context
+      String? id = model.props['id']?.toString();
+      if (id != null && w is Invokable) {
+        (w as Invokable).id = id;
+        currentScope.dataContext.addInvokableContext(id, (w as Invokable));
+      }
+
+
+      // build children and save the reference to the modelMap
+      if (w is UpdatableContainer) {
+        List<Widget>? children;
+        if (model.children != null) {
+          children = [];
+          for (WidgetModel model in model.children!) {
+            children.add(buildBareWidget(ScopeNode(currentScope), model, modelMap));
+          }
+          modelMap[model]!.children = children;
+        }
+      }
+      return model is CustomWidgetModel ?
+          DataScopeWidget(scopeManager: currentScope, child: w) :
+          w;
+    }
+    return const Text("Unsupported Widget");
+  }
+
+  /// traverse the scope breath-first and propagate all data from the root down
+  static void propagateScopes(ScopeNode scopeNode) {
+    _traverseScopes(scopeNode, scopeNode.children);
+  }
+
+  static void _traverseScopes(ScopeNode parent, List<ScopeNode>? children) {
+    if (children != null) {
+      // copy over the parent data context, but skip existing keys the child has
+      // the reason is child may declare the same ID, which takes precedent over
+      // the variable from the parent
+      for (ScopeNode child in children) {
+        child.scope.dataContext.copy(parent.scope.dataContext);
+      }
+      for (ScopeNode child in children) {
+        _traverseScopes(child, child.children);
+      }
+    }
+  }
+
+
+
+
+
+
+}
+
+class ModelPayload {
+  ModelPayload(this.widget, this.scopeManager);
+
+  final Widget widget;
+  final ScopeManager scopeManager;
+  List<Widget>? children;
+
+}
+
+/// wrapper ScopeManager as a tree node
+class ScopeNode {
+  ScopeNode(this.scope);
+
+  final ScopeManager scope;
+  List<ScopeNode>? children;
+
+  addChild(ScopeNode child) {
+    (children ??= []).add(child);
+  }
 }
