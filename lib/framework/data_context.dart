@@ -28,6 +28,23 @@ class DataContext {
     return DataContext(buildContext: newBuildContext ?? buildContext, initialMap: _contextMap);
   }
 
+  /// copy over the additionalContext,
+  /// skipping over duplicate keys if replaced is false
+  void copy(DataContext additionalContext, {bool replaced = false}) {
+    // copy all fields if replaced is true
+    if (replaced) {
+      _contextMap.addAll(additionalContext._contextMap);
+    }
+    // iterate and skip duplicate
+    else {
+      additionalContext._contextMap.forEach((key, value) {
+        if (_contextMap[key] == null) {
+          _contextMap[key] = value;
+        }
+      });
+    }
+  }
+
 
   // raw data (data map, api result), traversable with dot and bracket notations
   void addDataContext(Map<String, dynamic> data) {

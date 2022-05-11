@@ -58,6 +58,9 @@ class WidgetRegistry {
     Stack.type: () => Stack(),
     DataGrid.type: () => DataGrid(),
     EnsembleDataRow.type: () => EnsembleDataRow(),
+
+    // charts
+    Highcharts.type: () => Highcharts(),
   };
 
   @Deprecated("Use widgetMap instead")
@@ -66,7 +69,6 @@ class WidgetRegistry {
         WebViewBuilder.type: WebViewBuilder.fromDynamic,
 
         // charts
-        ChartHighChartsBuilder.type: ChartHighChartsBuilder.fromDynamic,
         ChartPieBuilder.type: ChartPieBuilder.fromDynamic,
         ChartBubbleBuilder.type: ChartBubbleBuilder.fromDynamic,
 
