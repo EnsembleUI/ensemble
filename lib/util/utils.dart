@@ -1,5 +1,7 @@
+import 'package:ensemble/error_handling.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:yaml/yaml.dart';
 import 'package:ensemble/framework/action.dart';
@@ -80,6 +82,51 @@ class Utils {
           value is int ? value.toDouble() :
               value is String ? double.tryParse(value) ?? fallback :
                 fallback;
+  }
+
+  static Color? getColor(dynamic value) {
+    if (value is String) {
+      switch(value) {
+        case '.transparent':
+          return Colors.transparent;
+      }
+    } else if (value is int) {
+      return Color(value);
+    }
+    return null;
+  }
+
+  /// return the padding/margin value
+  static EdgeInsets getInsets(dynamic value) {
+    if (value is int && value >= 0) {
+      return EdgeInsets.all(value.toDouble());
+    } else if (value is String) {
+      List<String> values = value.split(' ');
+      if (values.isEmpty || values.length > 4) {
+        throw LanguageError("shorthand notion top/right/bottom/left requires 1 to 4 integers");
+      }
+      double top = (parseIntFromString(values[0]) ?? 0).toDouble(),
+          right = 0,
+          bottom = 0,
+          left = 0;
+      if (values.length == 4) {
+        right = (parseIntFromString(values[1]) ?? 0).toDouble();
+        bottom = (parseIntFromString(values[2]) ?? 0).toDouble();
+        left = (parseIntFromString(values[3]) ?? 0).toDouble();
+      } else if (values.length == 3) {
+        left = right = (parseIntFromString(values[1]) ?? 0).toDouble();
+        bottom = (parseIntFromString(values[2]) ?? 0).toDouble();
+      } else if (values.length == 2) {
+        left = right = (parseIntFromString(values[1]) ?? 0).toDouble();
+        bottom = top;
+      }
+      return EdgeInsets.only(top: top, right: right, bottom: bottom, left: left);
+    }
+    return const EdgeInsets.all(0);
+  }
+
+  static int? parseIntFromString(String value) {
+    return int.tryParse(value);
   }
 
   static final onlyExpression = RegExp(r'''^\$\(([a-z_-\d."'\(\)\[\]]+)\)$''', caseSensitive: false);
