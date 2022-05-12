@@ -21,9 +21,35 @@ class EnsembleTheme {
 
   static ThemeData get lightTheme {
     return ThemeData(
-        disabledColor: const Color(0xffE0E0E0)
+        disabledColor: const Color(0xffE0E0E0),
     );
   }
+
+  static ThemeData get payAppTheme {
+    return ThemeData(
+      colorScheme: const ColorScheme(
+        brightness: Brightness.light,
+        primary: Color(0xFF08B48F),
+        onPrimary: Colors.white,
+
+        secondary: Color(0xFFED5742),
+        onSecondary: Colors.white,
+
+        error: Color(0xFFB00020),
+        onError: Colors.white,
+
+        background: Colors.white,
+        onBackground: Color(0xFF404040),
+
+        surface: Colors.white,
+        onSurface: Color(0xFF404040)
+
+
+
+      )
+    );
+  }
+
 
 
   static const TextTheme textTheme = TextTheme(

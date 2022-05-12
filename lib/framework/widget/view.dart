@@ -193,8 +193,11 @@ class ViewState extends State<View>{
         menuFooter = _scopeManager.buildWidget(widget._pageModel.menu!.footerModel!);
       }
 
+      // process menu styles
+      Color? menuBackground = Utils.getColor(widget._pageModel.menu!.styles?['backgroundColor']);
 
       NavigationRail menu = NavigationRail(
+        backgroundColor: menuBackground,
         labelType: NavigationRailLabelType.all,
         leading: menuHeader,
         destinations: navItems,
@@ -206,7 +209,7 @@ class ViewState extends State<View>{
       return Row(
         children: [
           menu,
-          const VerticalDivider(thickness: 1, width: 1),
+          //const VerticalDivider(thickness: 1, width: 1),
           Expanded(child: SafeArea(
               child: bodyWidget))
         ],
