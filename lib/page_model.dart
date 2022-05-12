@@ -64,6 +64,13 @@ class PageModel {
           iconLibrary: item['iconLibrary'],
           selected: item['selected']==true || item['selected']=='true'));
       }
+      Map<String, dynamic>? menuStyles;
+      if (viewMap['menu']['styles'] is YamlMap) {
+        menuStyles = {};
+        (viewMap['menu']['styles'] as YamlMap).forEach((key, value) {
+          menuStyles![key] = value;
+        });
+      }
       MenuDisplay display = MenuDisplay.navBar;
       if (viewMap['menu']['display'] == MenuDisplay.drawer.name) {
         display = MenuDisplay.drawer;
@@ -78,7 +85,7 @@ class PageModel {
       if (viewMap['menu']['footer'] != null) {
         headerModel = ViewUtil.buildModel(viewMap['menu']['footer'], customViewDefinitions);
       }
-      menu = Menu(display, menuItems, headerModel: headerModel, footerModel: footerModel);
+      menu = Menu(display, menuStyles, menuItems, headerModel: headerModel, footerModel: footerModel);
     }
 
     if (viewMap['styles'] is YamlMap) {
@@ -306,8 +313,9 @@ class ItemTemplate {
 }
 
 class Menu {
-  Menu(this.display, this.menuItems, { this.headerModel, this.footerModel });
+  Menu(this.display, this.styles, this.menuItems, { this.headerModel, this.footerModel });
 
+  Map<String, dynamic>? styles;
   MenuDisplay display = MenuDisplay.navBar;
   List<MenuItem> menuItems;
   WidgetModel? headerModel;

@@ -217,49 +217,56 @@
           "description": "URL to the image"
         },
         "styles": {
-          "type": "object",
-          "properties": {
-            "width": {
-              "type": "integer"
+          "allOf": [
+            {
+              "$ref": "#/$defs/boxStyles"
             },
-            "height": {
-              "type": "integer"
-            },
-            "fit": {
-              "type": "string",
-              "description": "How to fit the image within our width/height or our parent (if dimension is not specified)",
-              "oneOf": [
-                {
-                  "const": "fill",
-                  "description": "Stretch our image to fill the dimension, and distorting the aspect ratio if needed"
+            {
+              "type": "object",
+              "properties": {
+                "width": {
+                  "type": "integer"
                 },
-                {
-                  "const": "contain",
-                  "description": "Scale the image such that the entire image is contained within our dimension"
+                "height": {
+                  "type": "integer"
                 },
-                {
-                  "const": "cover",
-                  "description": "Scale the image to fill our dimension, clipping the image as needed"
-                },
-                {
-                  "const": "fitWidth",
-                  "description": "Scale the image to fit the width, and clipping the height if needed"
-                },
-                {
-                  "const": "fitHeight",
-                  "description": "Scale the image to fit the height, and clipping the width if needed"
-                },
-                {
-                  "const": "none",
-                  "description": "Center-Align the original image size, clipping the content if needed"
-                },
-                {
-                  "const": "scaleDown",
-                  "description": "Center-Align the image and only scale down to fit. Image will not be scaled up to bigger dimension."
+                "fit": {
+                  "type": "string",
+                  "description": "How to fit the image within our width/height or our parent (if dimension is not specified)",
+                  "oneOf": [
+                    {
+                      "const": "fill",
+                      "description": "Stretch our image to fill the dimension, and distorting the aspect ratio if needed"
+                    },
+                    {
+                      "const": "contain",
+                      "description": "Scale the image such that the entire image is contained within our dimension"
+                    },
+                    {
+                      "const": "cover",
+                      "description": "Scale the image to fill our dimension, clipping the image as needed"
+                    },
+                    {
+                      "const": "fitWidth",
+                      "description": "Scale the image to fit the width, and clipping the height if needed"
+                    },
+                    {
+                      "const": "fitHeight",
+                      "description": "Scale the image to fit the height, and clipping the width if needed"
+                    },
+                    {
+                      "const": "none",
+                      "description": "Center-Align the original image size, clipping the content if needed"
+                    },
+                    {
+                      "const": "scaleDown",
+                      "description": "Center-Align the image and only scale down to fit. Image will not be scaled up to bigger dimension."
+                    }
+                  ]
                 }
-              ]
+              }
             }
-          }
+          ]
         }
       }
     },
@@ -586,6 +593,14 @@
     "Menu": {
       "type": "object",
       "properties": {
+        "styles": {
+          "type": "object",
+          "allOf": [
+            {
+              "$ref": "#/$defs/styleBackgroundColor"
+            }
+          ]
+        },
         "display": {
           "type": "string",
           "description": "how to render the App Menu (e.g bottom navigation bar, drawer, ...)",
@@ -642,63 +657,111 @@
         }
       }
     },
-    "boxLayoutStyles": {
+    "styleBackgroundColor": {
       "type": "object",
       "properties": {
-        "width": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "height": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "margin": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "padding": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "gap": {
-          "type": "integer",
-          "minimum": 0
-        },
         "backgroundColor": {
           "type": ["number", "string"],
-          "description": "background color starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
-        },
-        "borderColor": {
-          "type": ["number", "string"],
-          "description": "border color starting with '0xFF' for full opacity"
-        },
-        "borderRadius": {
-          "type": "integer"
-        },
-        "fontFamily": {
-          "type": "string",
-          "description": "specify the font family applicable for all widgets inside this container"
-        },
-        "fontSize": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "shadowColor": {
-          "type": ["number", "string"],
-          "description": "box shadow color starting with '0xFF' for full opacity"
-        },
-        "shadowRadius": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "shadowOffset": {
-          "type": "array",
-          "items": {
-            "type": "integer"
-          }
+          "description": "background color starting with '0xFF' for full opacity e.g 0xFFCCCCCC",
+          "enum": [".transparent"]
         }
       }
+    },
+    "stylePadding": {
+      "type": "object",
+      "properties": {
+        "padding": {
+          "type": ["integer", "string"],
+          "description": "Padding with CSS-style value"
+        }
+      }
+    },
+    "styleMargin": {
+      "type": "object",
+      "properties": {
+        "padding": {
+          "type": ["integer", "string"],
+          "description": "Margin with CSS-style notation e.g padding: 5 20 5"
+        }
+      }
+    },
+    "boxStyles": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/styleMargin"
+        },
+        {
+          "$ref": "#/$defs/stylePadding"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "borderRadius": {
+              "type": "integer"
+            },
+            "borderColor": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "border color starting with '0xFF' for full opacity"
+            },
+            "borderWidth": {
+              "type": "integer"
+            }
+          }
+        }
+      ]
+    },
+    "boxLayoutStyles": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/boxStyles"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "width": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "gap": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "backgroundColor": {
+              "type": ["number", "string"],
+              "description": "background color starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+            },
+            "fontFamily": {
+              "type": "string",
+              "description": "specify the font family applicable for all widgets inside this container"
+            },
+            "fontSize": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "shadowColor": {
+              "type": ["number", "string"],
+              "description": "box shadow color starting with '0xFF' for full opacity"
+            },
+            "shadowRadius": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "shadowOffset": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      ]
     },
     "columnStyles": {
       "allOf": [
