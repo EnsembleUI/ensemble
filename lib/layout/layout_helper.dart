@@ -5,8 +5,39 @@ import 'package:ensemble/util/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:yaml/yaml.dart';
 
+/// Controller for anything with a Box around it (border, padding, shadow,...)
+/// This may be a widget itself (e.g Image), not necessary an actual Container with children
+class BoxController extends WidgetController {
+  dynamic margin;
+  dynamic padding;
+
+  Color? borderColor;
+  int? borderRadius;
+  int? borderWidth;
+
+  @override
+  Map<String, Function> getBaseSetters() {
+    Map<String, Function> setters = super.getBaseSetters();
+    setters.addAll({
+      // support short-hand notation margin: 10 5 10
+      'margin': (value) => margin = value,
+      'padding': (value) => padding = value,
+
+      'borderColor': (value) =>  borderColor = Utils.getColor(value),
+      'borderRadius': (value) =>  borderRadius = Utils.optionalInt(value),
+      'borderWidth': (value) =>  borderWidth = Utils.optionalInt(value),
+    });
+    return setters;
+  }
+
+  bool hasBorder() {
+    return borderColor != null || borderWidth != null;
+  }
+}
+
+
 /// base controller for Column/Row
-class BoxLayoutController extends WidgetController {
+class BoxLayoutController extends BoxController {
   EnsembleAction? onTap;
 
   bool scrollable = false;
@@ -18,13 +49,9 @@ class BoxLayoutController extends WidgetController {
   int? maxWidth;
   int? height;
   int? maxHeight;
-  int? margin;
-  int? padding;
   int? gap;
 
   int? backgroundColor;
-  int? borderColor;
-  int? borderRadius;
   String? fontFamily;
   int? fontSize;
 
@@ -48,13 +75,9 @@ class BoxLayoutController extends WidgetController {
       'maxWidth': (value) => maxWidth = Utils.optionalInt(value),
       'height': (value) => height = Utils.optionalInt(value),
       'maxHeight': (value) => maxHeight = Utils.optionalInt(value),
-      'margin': (value) => margin = Utils.optionalInt(value),
-      'padding': (value) => padding = Utils.optionalInt(value),
       'gap': (value) => gap = Utils.optionalInt(value),
 
       'backgroundColor': (value) => backgroundColor = Utils.optionalInt(value),
-      'borderColor': (value) =>  borderColor = Utils.optionalInt(value),
-      'borderRadius': (value) =>  borderRadius = Utils.optionalInt(value),
       'fontFamily': (value) => fontFamily = Utils.optionalString(value),
       'fontSize': (value) =>  fontSize = Utils.optionalInt(value),
 

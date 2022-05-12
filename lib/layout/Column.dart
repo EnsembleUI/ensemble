@@ -138,7 +138,9 @@ class ColumnState extends WidgetState<Column> with TemplatedWidgetState {
 
     BoxDecoration boxDecoration = BoxDecoration(
         color: widget._controller.backgroundColor != null ? Color(widget._controller.backgroundColor!) : null,
-        border: widget._controller.borderColor != null ? Border.all(color: Color(widget._controller.borderColor!)) : null,
+        border: !widget._controller.hasBorder() ? null : Border.all(
+            color: widget._controller.borderColor ?? Colors.black26,
+            width: (widget._controller.borderWidth ?? 1).toDouble()),
         borderRadius: widget._controller.borderRadius != null ? BorderRadius.all(Radius.circular(widget._controller.borderRadius!.toDouble())) : null,
         boxShadow: widget._controller.shadowColor == null ? null : <BoxShadow>[
           BoxShadow(
@@ -158,7 +160,7 @@ class ColumnState extends WidgetState<Column> with TemplatedWidgetState {
     Widget rtn = Container(
         width: widget._controller.width != null ? widget._controller.width!.toDouble() : null,
         height: widget._controller.height != null ? widget._controller.height!.toDouble() : null,
-        margin: EdgeInsets.all((widget._controller.margin ?? 0).toDouble()),
+        margin: Utils.getInsets(widget._controller.margin),
 
         //clipBehavior: Clip.hardEdge,
         decoration: boxDecoration,
@@ -168,7 +170,7 @@ class ColumnState extends WidgetState<Column> with TemplatedWidgetState {
             onTap: widget._controller.onTap == null ? null : () =>
                 ScreenController().executeAction(context, widget._controller.onTap!),
             child: Padding(
-                padding: EdgeInsets.all((widget._controller.padding ?? 0).toDouble()),
+                padding: Utils.getInsets(widget._controller.padding),
                 child: widget._controller.autoFit ? IntrinsicWidth(child: column) : column
             )
         )
