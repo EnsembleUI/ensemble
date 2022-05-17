@@ -1,4 +1,13 @@
-/// All Errors will be exposed on Studio
+class ConfigError extends Error {
+  ConfigError(this.error);
+  final String error;
+
+  @override
+  String toString() => 'Config Error: $error';
+}
+
+
+/// Language Error will be exposed on Studio
 class LanguageError extends Error {
   LanguageError (this.error, {this.recovery});
 
