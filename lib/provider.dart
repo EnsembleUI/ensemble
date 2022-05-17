@@ -6,17 +6,17 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
 abstract class DefinitionProvider {
-  Future<YamlMap> getDefinition(String pageId);
+  Future<YamlMap> getDefinition({String? screenId});
 }
 
 class LocalDefinitionProvider extends DefinitionProvider {
-  LocalDefinitionProvider(this.path);
+  LocalDefinitionProvider(this.path, this.appHome);
   final String path;
+  final String appHome;
 
   @override
-  Future<YamlMap> getDefinition(String pageId) async {
-    String formattedPath = path.endsWith('/') ? path : path + '/';
-    var pageStr = await rootBundle.loadString('$formattedPath$pageId.yaml', cache: false);
+  Future<YamlMap> getDefinition({String? screenId}) async {
+    var pageStr = await rootBundle.loadString('$path${screenId ?? appHome}.yaml', cache: false);
     return loadYaml(pageStr);
   }
 }
@@ -25,57 +25,58 @@ class LocalDefinitionProvider extends DefinitionProvider {
 
 class RemoteDefinitionProvider extends DefinitionProvider {
   // TODO: we can fetch the whole App bundle here
-  RemoteDefinitionProvider(this.path);
+  RemoteDefinitionProvider(this.path, this.appHome);
   final String path;
+  final String appHome;
 
   @override
-  Future<YamlMap> getDefinition(String pageId) async {
-    String formattedPath = path.endsWith('/') ? path : path + '/';
+  Future<YamlMap> getDefinition({String? screenId}) async {
+    String screen = screenId ?? appHome;
+
     Completer<YamlMap> completer = Completer();
     http.Response response = await http.get(
-        Uri.parse('$formattedPath$pageId.yaml'));
+        Uri.parse('$path$screen.yaml'));
     if (response.statusCode == 200) {
       completer.complete(loadYaml(response.body));
     } else {
-      completer.completeError("Error processing page");
+      completer.completeError("Error loading Remote screen $screen");
     }
     return completer.future;
   }
 }
 
 class EnsembleDefinitionProvider extends DefinitionProvider {
-  EnsembleDefinitionProvider(this.appKey);
-  final String appKey;
+  EnsembleDefinitionProvider(this.url, this.appId);
+  final String url;
+  final String appId;
 
   @override
-  Future<YamlMap> getDefinition(String pageId) async {
+  Future<YamlMap> getDefinition({String? screenId}) async {
     Completer<YamlMap> completer = Completer();
     http.Response response = await http.get(
-        Uri.parse('https://pz0mwfkp5m.execute-api.us-east-1.amazonaws.com/dev/app?id=$appKey'));
+        Uri.parse('$url?id=$appId'));
     if (response.statusCode == 200) {
       Map<String, dynamic> result = json.decode(response.body);
-      if (result[appKey] != null
-          && result[appKey]['screens'] is List
-          && (result[appKey]['screens'] as List).isNotEmpty) {
-        List<dynamic> screens = result[appKey]['screens'];
+      if (result[appId] != null
+          && result[appId]['screens'] is List
+          && (result[appId]['screens'] as List).isNotEmpty) {
+        List<dynamic> screens = result[appId]['screens'];
 
         for (dynamic screen in screens) {
           // if loading App without specifying page, load the root page
-          if (pageId == Ensemble.ensembleRootPagePlaceholder) {
+          if (screenId == null) {
             if (screen['is_home']) {
               completer.complete(loadYaml(screen['content']));
               return completer.future;
             }
-          } else if (screen['id'] == pageId || screen['name'] == pageId) {
+          } else if (screen['id'] == screenId || screen['name'] == screenId) {
             completer.complete(loadYaml(screen['content']));
             return completer.future;
           }
         }
       }
     }
-    // error
-    print("error processing page");
-    completer.completeError("Error processing page");
+    completer.completeError("Error loading Ensemble page: ${screenId ?? 'Home'}");
     return completer.future;
   }
 
@@ -84,10 +85,3 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
 
 
 
-class ConfigError extends Error {
-  ConfigError(this.message);
-  final String message;
-
-  @override
-  String toString() => 'Config Error: $message';
-}

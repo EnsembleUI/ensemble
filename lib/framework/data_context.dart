@@ -206,7 +206,7 @@ class NativeInvokable with Invokable {
   }
 
   void navigateToScreen(String screenId) {
-    Ensemble().navigateToPage(_buildContext, screenId);
+    Ensemble().navigateApp(_buildContext, screenName: screenId);
   }
   void invokeAPI(String apiName) {
     /*ScreenController().executeAction(_buildContext, EnsembleAction(
