@@ -171,8 +171,8 @@ class ScreenController {
         nextArgs[key] = dataContext.eval(value);
       });
       // args may be cleared out on hot reload. Check this
-      Ensemble().navigateToPage(
-          context, action.screenName, pageArgs: nextArgs);
+      Ensemble().navigateApp(
+          context, screenName: action.screenName, pageArgs: nextArgs);
 
     } else if (action is ExecuteCodeAction) {
       dataContext.evalCode(action.codeBlock);

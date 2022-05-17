@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 
+import 'package:ensemble/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/provider.dart';
@@ -17,127 +18,77 @@ class Ensemble {
   factory Ensemble() {
     return _instance;
   }
-  // Ensemble-powered App have a root page concept, so pageName is optional
-  static const String ensembleRootPagePlaceholder = 'MyAppRootPage';
 
-  bool init = false;
-  String? definitionFrom;
-  String? localPath;
-  String? remotePath;
-  String? appKey;
+  DefinitionProvider? definitionProvider;
 
-  Future<DefinitionProvider> getConfig(BuildContext context) async {
+  /// init Ensemble from the config file
+  Future<bool> initialize(BuildContext context) async {
     try {
       final yamlString = await DefaultAssetBundle.of(context)
-          .loadString('ensemble-config.yaml');
+          .loadString('ensemble/ensemble-config.yaml');
       final YamlMap yamlMap = loadYaml(yamlString);
 
       String? definitionType = yamlMap['definitions']?['from'];
-      if (definitionType == 'local') {
-        String? path = yamlMap['definitions']?['local']?['path'];
+      if (definitionType == 'ensemble') {
+        String? path = yamlMap['definitions']?['ensemble']?['path'];
+        if (path == null || !path.startsWith('https')) {
+          throw ConfigError(
+            'Invalid URL to Ensemble server. The original value should not be changed');
+        }
+        String? appId = yamlMap['definitions']?['ensemble']?['appId'];
+        if (appId == null) {
+          throw ConfigError(
+              "appId is required. Your App Key can be found on "
+              "Ensemble Studio under each application");
+        }
+        definitionProvider = EnsembleDefinitionProvider(path, appId);
+
+      } else if (definitionType == 'local' || definitionType == 'remote'){
+        String? path = yamlMap['definitions']?[definitionType]?['path'];
         if (path == null) {
           throw ConfigError(
-              "Path to page definitions is required for Local definitions");
+              "Path to the root definition directory is required.");
         }
-        return LocalDefinitionProvider(path);
-        definitionFrom = 'local';
-        localPath = path;
-      } else if (definitionType == 'remote') {
-        String? path = yamlMap['definitions']?['remote']?['path'];
-        if (path == null) {
-          throw ConfigError("Path to definitions is required for Remote definitions");
-        }
-        return RemoteDefinitionProvider(path);
-        definitionFrom = 'remote';
-        remotePath = path;
-      } else if (definitionType == 'ensemble') {
-        String? appKey = yamlMap['definitions']?['ensemble']?['appKey'];
-        if (appKey == null) {
+        String? appId = yamlMap['definitions']?[definitionType]?['appId'];
+        if (appId == null) {
           throw ConfigError(
-              "App Key is required for Ensemble definitions");
+              "appId is required. This is your App's directory under the root path.");
         }
-        return EnsembleDefinitionProvider(appKey);
-        definitionFrom = 'ensemble';
-        // appKey can be passed at decision time, so don't required it here
-        appKey = yamlMap['definitions']?['ensemble']?['appKey'];
+        String? appHome = yamlMap['definitions']?[definitionType]?['appHome'];
+        if (appHome == null) {
+          throw ConfigError(
+              "appHome is required. This is the home screen's name or ID for your App"
+          );
+        }
+
+        String fullPath = concatDirectory(path, appId);
+        definitionProvider = definitionType == 'local' ?
+          LocalDefinitionProvider(fullPath, appHome) :
+            RemoteDefinitionProvider(fullPath, appHome);
+
       } else {
           throw ConfigError(
               "Definitions needed to be defined as 'local', 'remote', or 'ensemble'");
-
       }
     } catch (error) {
       log("Error loading ensemble-config.yaml.\n$error");
       rethrow;
     }
+    return definitionProvider != null;
   }
 
-  /// initialize Ensemble configurations. This will be called
-  /// automatically upon first page load. However call it in your existing
-  /// code will enable faster load for the initial page.
-  Future<void> initialize(BuildContext context) async {
-    if (!init) {
-      init = true;
-      try {
-        final yamlString = await DefaultAssetBundle.of(context)
-            .loadString('ensemble-config.yaml');
-        final YamlMap yamlMap = loadYaml(yamlString);
-
-        String? definitionType = yamlMap['definitions']?['from'];
-        if (definitionType == null) {
-          throw ConfigError(
-              "Definitions needed to be defined as 'local', 'remote', or 'ensemble'");
-        }
-        if (definitionType == 'local') {
-          String? path = yamlMap['definitions']?['local']?['path'];
-          if (path == null) {
-            throw ConfigError(
-                "Path to page definitions is required for Local definitions");
-          }
-          definitionFrom = 'local';
-          localPath = path;
-        } else if (definitionType == 'remote') {
-          String? path = yamlMap['definitions']?['remote']?['path'];
-          if (path == null) {
-            throw ConfigError("Path to definitions is required for Remote definitions");
-          }
-          definitionFrom = 'remote';
-          remotePath = path;
-        } else if (definitionType == 'ensemble') {
-          definitionFrom = 'ensemble';
-          // appKey can be passed at decision time, so don't required it here
-          appKey = yamlMap['definitions']?['ensemble']?['appKey'];
-        }
-      } catch (error) {
-        log("Error loading ensemble-config.yaml.\n$error");
-      }
+  /// fetch the page definition
+  Future<YamlMap> getPageDefinition(BuildContext context, String? screenId) async {
+    if (definitionProvider == null) {
+      await initialize(context);
     }
+    return definitionProvider!.getDefinition(screenId: screenId);
   }
 
-  FutureBuilder loadPage(BuildContext context, Future<YamlMap> pageDefinition, String pageName, {Map<String, dynamic>? pageArgs}) {
-    return FutureBuilder(
-      future: pageDefinition,
-      builder: (context, AsyncSnapshot snapshot) => processPageDefinition(context, snapshot, pageName, pageArgs: pageArgs)
-    );
-  }
-
-  /// return an Ensemble page as an embeddable Widget
-  /// Optionally can pass in data argument to fill any value e.g hotelName = "St Regis"
-  FutureBuilder getPage(
-      BuildContext context,
-      String pageName, {
-        Map<String, dynamic>? pageArgs
-      }) {
-    return FutureBuilder(
-        future: getPageDefinition(context, pageName),
-        builder: (context, AsyncSnapshot snapshot) => processPageDefinition(context, snapshot, pageName, pageArgs: pageArgs)
-    );
-  }
-
-
+  /// process the page definition into a Widget
   Widget processPageDefinition(
       BuildContext context,
       AsyncSnapshot snapshot,
-      String pageName,
       {
         Map<String, dynamic>? pageArgs
       }) {
@@ -145,7 +96,7 @@ class Ensemble {
     if (snapshot.hasError) {
       return Scaffold(
           body: Center(
-              child: Text('Error loading page $pageName')
+              child: Text(snapshot.error!.toString())
           )
       );
     } else if (!snapshot.hasData) {
@@ -205,7 +156,7 @@ class Ensemble {
               dataContext.addInvokableContext(action.apiName, APIResponse(response: apiSnapshot.data));
 
               // render the page
-              Widget page = _renderPage(context, dataContext, pageName, snapshot);
+              Widget page = _renderPage(context, dataContext, snapshot);
 
               // once page has been rendered, run the onResponse code block of the API
               EnsembleAction? onResponseAction = Utils.getAction(apiPayload['onResponse']);
@@ -218,73 +169,50 @@ class Ensemble {
             }
         );
       } else {
-        return _renderPage(context, dataContext, pageName, snapshot);
+        return _renderPage(context, dataContext, snapshot);
       }
     }
     // else error
-    return Scaffold(
+    return const Scaffold(
         body: Center(
-            child: Text('Error loading reference page $pageName')
+            child: Text('Error loading page. Invalid definition')
         )
     );
   }
 
-
-  /// Navigate to an Ensemble-powered page
-  void navigateToPage(
-      BuildContext context,
-      String pageName,
-      {
-        bool replace = false,
-        Map<String, dynamic>? pageArgs,
-      }) {
-
-    MaterialPageRoute pageRoute = getPageRoute(pageName, pageArgs: pageArgs);
+  /// Navigate to another screen
+  /// [screenName] - navigate to screen if specified, otherwise to appHome
+  void navigateApp(BuildContext context, {
+    String? screenName,
+    bool replace = false,
+    Map<String, dynamic>? pageArgs,
+  }) {
+    MaterialPageRoute pageRoute = getAppRoute(screenName: screenName, pageArgs: pageArgs);
     if (replace) {
       Navigator.pushReplacement(context, pageRoute);
     } else {
       Navigator.push(context, pageRoute);
     }
-
   }
 
 
-  /// return an Ensemble page's PageRoute, suitable to be embedded as a PageRoute
-  MaterialPageRoute getPageRoute(
-      String pageName,
-      {
-        Map<String, dynamic>? pageArgs
-      }) {
+  /// return Ensemble App's PageRoute, suitable to be embedded as a PageRoute
+  /// [screenName] optional screen name or id to navigate to. Otherwise use the appHome
+  MaterialPageRoute getAppRoute({
+    String? screenName,
+    Map<String, dynamic>? pageArgs
+  }) {
     return EnsemblePageRoute(
-        builder: (context) => getPage(context, pageName, pageArgs: pageArgs)
+        builder: (context) => FutureBuilder(
+            future: getPageDefinition(context, screenName),
+            builder: (context, AsyncSnapshot snapshot) =>
+                processPageDefinition(context, snapshot, pageArgs: pageArgs))
     );
   }
-
-
-  /// get Page Definition from local or remote
-  //@protected
-  Future<YamlMap> getPageDefinition(BuildContext context, String pageName) async {
-    if (!init) {
-      await initialize(context);
-    }
-    if (definitionFrom == 'local') {
-      return LocalDefinitionProvider(localPath!).getDefinition(pageName);
-    } else if (definitionFrom == 'remote') {
-      return RemoteDefinitionProvider(remotePath!).getDefinition(pageName);
-    } else {
-      // throw error here if AppKey is missing for Ensemble-hosted page
-      /*if (appKey == null) {
-        throw ConfigError("AppKey is required for Ensemble-hosted definitions");
-      }*/
-      return EnsembleDefinitionProvider(appKey!).getDefinition(pageName);
-    }
-  }
-
 
   Widget _renderPage(
       BuildContext context,
       DataContext dataContext,
-      String pageName,
       AsyncSnapshot<dynamic> snapshot,
       {
         bool replace=false
@@ -292,5 +220,17 @@ class Ensemble {
     //log ("Screen Arguments: " + args.toString());
     return ScreenController().renderPage(dataContext, snapshot.data);
   }
+
+
+  /// concat into the format root/folder/
+  @visibleForTesting
+  String concatDirectory(String root, String folder) {
+    // strip out all slashes
+    RegExp slashPattern = RegExp(r'^[\/]?(.+?)[\/]?$');
+
+    return slashPattern.firstMatch(root)!.group(1)! + '/' +
+        slashPattern.firstMatch(folder)!.group(1)! + '/';
+  }
+
 
 }

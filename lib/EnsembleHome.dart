@@ -4,13 +4,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:yaml/yaml.dart';
 
 class EnsembleHome extends StatefulWidget {
-  const EnsembleHome(this.config, {
+  const EnsembleHome({
     this.initialPage,
     this.pageArgs,
     Key? key
   }) : super(key: key);
 
-  final DefinitionProvider config;
   final String? initialPage;
   final Map<String, dynamic>? pageArgs;
 
@@ -24,11 +23,7 @@ class HomeState extends State<EnsembleHome> {
 
   @override
   void initState() {
-    if (widget.initialPage == null && widget.config is! EnsembleDefinitionProvider) {
-        throw ConfigError("Please enter an initial page");
-    }
-    initialPageDefinition = widget.config.getDefinition(widget.initialPage ?? Ensemble.ensembleRootPagePlaceholder);
-
+    initialPageDefinition = Ensemble().getPageDefinition(context, widget.initialPage);
     super.initState();
   }
 
@@ -40,7 +35,6 @@ class HomeState extends State<EnsembleHome> {
       builder: (context, AsyncSnapshot snapshot) => Ensemble().processPageDefinition(
           context,
           snapshot,
-          widget.initialPage ?? Ensemble.ensembleRootPagePlaceholder,
           pageArgs: widget.pageArgs
       )
     );
