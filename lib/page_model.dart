@@ -3,10 +3,7 @@ import 'dart:math';
 import 'package:ensemble/error_handling.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
-import 'package:ensemble/layout/Row.dart';
-import 'package:ensemble/layout/hstack_builder.dart';
-import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/layout/Column.dart';
+import 'package:ensemble/layout/box_layout.dart';
 import 'package:yaml/yaml.dart';
 
 class PageModel {
@@ -102,7 +99,7 @@ class PageModel {
 
 
     if (viewMap['type'] == null ||
-        ![Column.type, Row.type].contains(viewMap['type'])) {
+        ![Column.type, Row.type, Flex.type].contains(viewMap['type'])) {
       throw LanguageError('Root widget type should only be Row or Column');
     }
 

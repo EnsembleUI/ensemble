@@ -1,4 +1,4 @@
-import 'package:ensemble/framework/templated.dart';
+import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/util/utils.dart';
