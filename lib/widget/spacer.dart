@@ -32,6 +32,8 @@ class EnsembleSpacer extends StatefulWidget with Invokable, HasController<Spacer
     };
   }
 
+  /// NOTE: Spacer should not take expanded into account
+
 }
 
 class SpacerController extends WidgetController {

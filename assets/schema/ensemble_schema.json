@@ -16,10 +16,11 @@
       "properties": {
         "type": {
           "type": "string",
-          "description": "Specifies the root widget i.e. Column, Row, Stack.",
+          "description": "Specifies the root widget i.e. Column, Row, Flex, Stack.",
           "enum": [
             "Column",
-            "Row"
+            "Row",
+            "Flex"
           ]
         },
         "menu": {
@@ -63,6 +64,25 @@
                 "allOf": [
                   { "$ref": "#/$defs/rootViewStyles" },
                   { "$ref": "#/$defs/rowStyles" }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "Flex"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "styles": {
+                "allOf": [
+                  { "$ref": "#/$defs/rootViewStyles" },
+                  { "$ref": "#/$defs/flexStyles" }
                 ]
               }
             }
@@ -219,6 +239,9 @@
         "styles": {
           "allOf": [
             {
+              "$ref": "#/$defs/baseStyles"
+            },
+            {
               "$ref": "#/$defs/boxStyles"
             },
             {
@@ -274,24 +297,34 @@
       "type": "object",
       "properties": {
         "styles": {
-          "type": "object",
-          "properties": {
-            "thickness": {
-              "type": "integer"
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
             },
-            "color": {
-              "type": ["number", "string"],
-              "description": "The line color starting with '0xFF' for full opacity"
-            },
-            "indent": {
-              "type": "integer",
-              "description": "The leading gap before the line starts"
-            },
-            "endIndent": {
-              "type": "integer",
-              "description": "The ending gap after the line ends"
+            {
+              "type": "object",
+              "properties": {
+                "thickness": {
+                  "type": "integer"
+                },
+                "color": {
+                  "type": [
+                    "number",
+                    "string"
+                  ],
+                  "description": "The line color starting with '0xFF' for full opacity"
+                },
+                "indent": {
+                  "type": "integer",
+                  "description": "The leading gap before the line starts"
+                },
+                "endIndent": {
+                  "type": "integer",
+                  "description": "The ending gap after the line ends"
+                }
+              }
             }
-          }
+          ]
         }
       }
     },
@@ -403,27 +436,32 @@
         },
         "onTap": { "$ref": "#/$defs/Action-payload" },
         "styles": {
-          "type": "object",
-          "properties": {
-            "outline": {
-              "type": "boolean",
-              "description": "Whether the button should have an outline border instead of filled background"
-            },
-            "backgroundColor": {
-              "type": ["number", "string"],
-              "description": "Button background color starting with '0xFF' for full opacity"
-            },
-            "color": {
-              "type": ["number", "string"],
-              "description": "Set the color for the button label starting with '0xFF' for full opacity"
-            },
-            "borderRadius": {
-              "type": "integer"
-            },
-            "padding": {
-              "type": "integer"
+          "allOf": [
+            { "$ref": "#/$defs/baseStyles" },
+            {
+              "type": "object",
+              "properties": {
+                "outline": {
+                  "type": "boolean",
+                  "description": "Whether the button should have an outline border instead of filled background"
+                },
+                "backgroundColor": {
+                  "type": ["number", "string"],
+                  "description": "Button background color starting with '0xFF' for full opacity"
+                },
+                "color": {
+                  "type": ["number", "string"],
+                  "description": "Set the color for the button label starting with '0xFF' for full opacity"
+                },
+                "borderRadius": {
+                  "type": "integer"
+                },
+                "padding": {
+                  "type": "integer"
+                }
+              }
             }
-          }
+          ]
         }
       }
     },
@@ -485,6 +523,18 @@
         { "$ref": "#/$defs/Templated-payload" }
       ]
     },
+    "Flex-payload": {
+      "allOf": [
+        {
+          "type": "object",
+          "properties": {
+            "styles": { "$ref": "#/$defs/flexStyles" },
+            "children": { "$ref": "#/$defs/Widgets" }
+          }
+        },
+        { "$ref": "#/$defs/Templated-payload" }
+      ]
+    },
     "Templated-payload": {
       "type": "object",
       "properties": {
@@ -529,15 +579,20 @@
         },
         "onChange": { "$ref": "#/$defs/Action-payload" },
         "styles": {
-          "type": "object",
-          "properties": {
-            "iconSize": {
-              "type": "integer"
-            },
-            "iconColor": {
-              "type": ["number", "string"]
+          "allOf": [
+            { "$ref": "#/$defs/baseStyles" },
+            {
+              "type": "object",
+              "properties": {
+                "iconSize": {
+                  "type": "integer"
+                },
+                "iconColor": {
+                  "type": ["number", "string"]
+                }
+              }
             }
-          }
+          ]
         }
       }
     },
@@ -587,7 +642,8 @@
         "Button": { "$ref": "#/$defs/Button-payload" },
         "Form": { "$ref": "#/$defs/Form-payload" },
         "Column": { "$ref": "#/$defs/Column-payload" },
-        "Row": { "$ref": "#/$defs/Row-payload" }
+        "Row": { "$ref": "#/$defs/Row-payload" },
+        "Flex": { "$ref": "#/$defs/Flex-payload" }
       }
     },
     "Menu": {
@@ -776,11 +832,13 @@
           "properties": {
             "mainAxis": {
               "type": "string",
-              "enum": ["top", "bottom", "middle", "space-between"]
+              "description": "Control our children's layout vertically",
+              "enum": ["start", "center", "end", "spaceBetween", "spaceAround", "spaceEvenly"]
             },
             "crossAxis": {
               "type": "string",
-              "enum": ["start", "end", "center", "stretch"]
+              "description": "Control the horizontal alignment of the children",
+              "enum": ["start", "center", "end", "stretch", "baseline"]
             },
             "mainAxisSize": {
               "type": "string",
@@ -812,11 +870,13 @@
           "properties": {
             "mainAxis": {
               "type": "string",
-              "enum": ["start", "end", "center", "space-between"]
+              "description": "Control our children's layout horizontally",
+              "enum": ["start", "center", "end", "spaceBetween", "spaceAround", "spaceEvenly"]
             },
             "crossAxis": {
               "type": "string",
-              "enum": ["top", "bottom", "middle", "stretch"]
+              "description": "Control the vertical alignment of the children",
+              "enum": ["start", "center", "end", "stretch", "baseline"]
             },
             "mainAxisSize": {
               "type": "string",
@@ -834,13 +894,50 @@
           }
         }
       ]
+    },
+    "flexStyles": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseStyles"
+        },
+        {
+          "$ref": "#/$defs/boxLayoutStyles"
+        },
+        {
+          "type": "object",
+          "required": [ "direction" ],
+          "properties": {
+            "direction": {
+              "type": "string",
+              "description": "Lay out the children vertically or horizontally",
+              "enum": ["vertical", "horizontal"]
+            },
+            "mainAxis": {
+              "type": "string",
+              "description": "Control how to lay out the children, in the direction specified by the 'direction' attribute",
+              "enum": ["start", "center", "end", "spaceBetween", "spaceAround", "spaceEvenly"]
+            },
+            "crossAxis": {
+              "type": "string",
+              "description": "Control the alignment of the children on the secondary axis (depending on the 'direction' attribute)",
+              "enum": ["start", "center", "end", "stretch", "baseline"]
+            },
+            "mainAxisSize": {
+              "type": "string",
+              "description": "stretch to the max or only fit the available space of the main axis (depending on the 'direction' attribute)",
+              "enum": ["min", "max"]
+            },
+            "scrollable": {
+              "type": "boolean",
+              "description": "content can scroll vertically or horizontally as needed"
+            },
+            "autoFit": {
+              "type": "boolean",
+              "description": "Explicitly match our width or height to the largest child's size, but only if our parent does not already assign us a width or height. This attribute is useful for sizing children who don't have a width or height (e.g Divider)"
+            }
+          }
+        }
+      ]
     }
-
-
-
-
-
-
-
   }
 }

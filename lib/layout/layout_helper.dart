@@ -61,6 +61,9 @@ class BoxLayoutController extends BoxController {
 
   List<Widget>? children;
 
+  // applicable to Flex container only
+  String? direction;
+
 
   @override
   Map<String, Function> getBaseSetters() {
