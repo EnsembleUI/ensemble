@@ -334,12 +334,12 @@ mixin PageBindingManager on IsScopeManager {
       if (hash != null) {
         // clean up existing listener with the same signature
         if (listenerMap[me]?[hash] != null) {
-          log("Binding(remove duplicate): ${me.id}-${bindingSource.modelId}-${bindingSource.property}");
+          //log("Binding(remove duplicate): ${me.id}-${bindingSource.modelId}-${bindingSource.property}");
           listenerMap[me]![hash]!.cancel();
         }
         StreamSubscription subscription = eventBus.on<ModelChangeEvent>()
             .listen((event) {
-          log("EventBus ${eventBus.hashCode} listening: $event");
+          //log("EventBus ${eventBus.hashCode} listening: $event");
           if (event.modelId == bindingSource.modelId &&
               (event.property == null || event.property == bindingSource.property)) {
             onDataChange(event);
@@ -380,7 +380,7 @@ mixin PageBindingManager on IsScopeManager {
   }
 
   void dispatch(ModelChangeEvent event) {
-    log("EventBus ${eventBus.hashCode} firing $event");
+    //log("EventBus ${eventBus.hashCode} firing $event");
     eventBus.fire(event);
   }
 
@@ -435,7 +435,7 @@ class PageData {
     this.customViewDefinitions,
     this.apiMap
   }) {
-    log("EventBus ${eventBus.hashCode} created");
+    //log("EventBus ${eventBus.hashCode} created");
   }
 
   // we'll have 1 EventBus and listenerMap for each Page

@@ -57,7 +57,7 @@ class ScreenController {
         key: UniqueKey(),
         dataContext: dataContext,
         pageModel: pageModel);
-    log("View created ${initialView.hashCode}");
+    //log("View created ${initialView.hashCode}");
     return initialView;
 
 
