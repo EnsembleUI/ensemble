@@ -4,6 +4,7 @@ import 'package:ensemble/ensemble.dart';
 import 'package:yaml/yaml.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart' as foundation;
 
 abstract class DefinitionProvider {
   Future<YamlMap> getDefinition({String? screenId});
@@ -16,7 +17,11 @@ class LocalDefinitionProvider extends DefinitionProvider {
 
   @override
   Future<YamlMap> getDefinition({String? screenId}) async {
-    var pageStr = await rootBundle.loadString('$path${screenId ?? appHome}.yaml', cache: false);
+    // Note: Web with local definition caches even if we disable browser cache
+    // so you may need to re-run the app on definition changes
+    var pageStr = await rootBundle.loadString(
+        '$path${screenId ?? appHome}.yaml',
+        cache: foundation.kReleaseMode);
     return loadYaml(pageStr);
   }
 }
