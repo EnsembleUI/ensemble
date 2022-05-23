@@ -61,7 +61,8 @@ class HttpUtils {
       }
       log("$method $url");
     } else {
-      log("$method $url\nBody: $bodyPayload\nParams: "+params.toString());
+      log("$method $url");
+      //log("$method $url\nBody: $bodyPayload\nParams: "+params.toString());
     }
 
     dynamic body = bodyPayload ?? params;
