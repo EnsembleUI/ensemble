@@ -6,11 +6,11 @@ import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:yaml/yaml.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart' as foundation;
 
 class HttpUtils {
 
-  static Future<http.Response> invokeApi(YamlMap api, DataContext eContext, {Map<String, dynamic>? inputParams}) async {
-
+  static Future<http.Response> invokeApi(YamlMap api, DataContext eContext) async {
     // headers
     Map<String, String> headers = {};
     if (api['headers'] is YamlMap) {
@@ -38,13 +38,10 @@ class HttpUtils {
 
     // query parameter
     Map<String, dynamic> params = {};
-    dynamic test = api['parameters'];
-    if (api['parameters'] is YamlList && inputParams != null) {
-      for (var param in api['parameters']) {
-        if (inputParams[param] != null) {
-          params[param] = inputParams[param];
-        }
-      }
+    if (api['parameters'] is YamlMap) {
+      api['parameters'].forEach((key, value) {
+        params[key] = eContext.eval(value) ?? '';
+      });
     }
 
     String url = eContext.eval(api['uri'].toString());
@@ -66,6 +63,9 @@ class HttpUtils {
     }
 
     dynamic body = bodyPayload ?? params;
+    if (foundation.kDebugMode) {
+      log("Body(debug only): $body");
+    }
 
     Completer<http.Response> completer = Completer();
     http.Response? response;

@@ -50,8 +50,8 @@ void main() {
   test('Parsing expressions', () {
     // empty context returns original
     DataContext context = DataContext(buildContext: MockBuildContext(), initialMap: {});
-    expect(context.eval(r'$(blah)'), r'blah');
-    expect(context.eval(r'$(result.name)'), r'result.name');
+    expect(context.eval(r'$(blah)'), null);
+    expect(context.eval(r'$(result.name)'), null);
 
     context = getBaseContext();
     expect(context.eval(r'$(result.first_name)'), 'Peter');
@@ -64,8 +64,8 @@ void main() {
 
   test('Parsing variables', () {
     DataContext context = getBaseContext();
-    expect(context.evalVariable('blah'), 'blah');
-    expect(context.evalVariable('blah.blah'), 'blah.blah');
+    expect(context.evalVariable('blah'), null);
+    expect(context.evalVariable('blah.blah'), null);
 
     expect(context.evalVariable('result.name'), 'Peter Parker');
     expect(context.evalVariable('result.age'), 25);
@@ -81,7 +81,7 @@ void main() {
     //expect(context.eval(r'$(myTextField.value)'), 'Ronald');
 
     // invalid getter
-    expect(context.eval(r'$(myTextField.what)'), 'myTextField.what');
+    expect(context.eval(r'$(myTextField.what)'), null);
   });
 
   /*test("Container getters", () {

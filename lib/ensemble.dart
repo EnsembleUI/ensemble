@@ -125,15 +125,20 @@ class Ensemble {
       if (action is InvokeAPIAction && apiMap[action.apiName] is YamlMap) {
         YamlMap apiPayload = apiMap[action.apiName]!;
 
-        // input params
-        Map<String, dynamic>? params = {};
-        action.inputs?.forEach((key, value) {
-          params[key] = dataContext.eval(value);
-        });
+        // evaluate input arguments and add them to context
+        if (apiPayload['inputs'] is YamlList && action.inputs != null) {
+          for (var input in apiPayload['inputs']) {
+            if (action.inputs![input] != null) {
+              dataContext.addDataContextById(
+                  input, dataContext.eval(action.inputs![input]));
+            }
+          }
+        }
+
 
 
         return FutureBuilder(
-            future: HttpUtils.invokeApi(apiPayload, dataContext, inputParams: params),
+            future: HttpUtils.invokeApi(apiPayload, dataContext),
             builder: (context, AsyncSnapshot apiSnapshot) {
               if (!apiSnapshot.hasData) {
                 return const Scaffold(

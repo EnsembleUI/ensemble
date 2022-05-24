@@ -146,8 +146,10 @@ class ScreenController {
 
   /// internally execute an Action
   void _executeAction(BuildContext context, DataContext providedDataContext, EnsembleAction action, Map<String, YamlMap>? apiMap) {
-    // scope the initiator to *this* variable
+    /// Actions are short-live so we don't need a childScope, simply create a localized context from the given context
     DataContext dataContext = providedDataContext.clone();
+
+    // scope the initiator to *this* variable
     if (action.initiator != null) {
       dataContext.addInvokableContext('this', action.initiator!);
     }
@@ -155,12 +157,17 @@ class ScreenController {
     if (action is InvokeAPIAction) {
       YamlMap? apiDefinition = apiMap?[action.apiName];
       if (apiDefinition != null) {
-        // input params
-        Map<String, dynamic>? params = {};
-        action.inputs?.forEach((key, value) {
-          params[key] = dataContext.eval(value);
-        });
-        HttpUtils.invokeApi(apiDefinition, dataContext, inputParams: params)
+        // evaluate input arguments and add them to context
+        if (apiDefinition['inputs'] is YamlList && action.inputs != null) {
+          for (var input in apiDefinition['inputs']) {
+            dynamic value = providedDataContext.eval(action.inputs![input]);
+            if (value != null) {
+              dataContext.addDataContextById(input, value);
+            }
+          }
+        }
+
+        HttpUtils.invokeApi(apiDefinition, dataContext)
             .then((response) => _onAPIComplete(context, dataContext, action, apiDefinition, response, apiMap))
             .onError((error, stackTrace) => processAPIError(context, dataContext, apiDefinition, error, apiMap));
       }
@@ -246,6 +253,8 @@ class ScreenController {
   }
 
   void processAPIError(BuildContext context, DataContext dataContext, YamlMap apiDefinition, Object? error, Map<String, YamlMap>? apiMap) {
+    log("Error: $error");
+
     EnsembleAction? onErrorAction = Utils.getAction(apiDefinition['onError']);
     if (onErrorAction != null) {
       // probably want to include the error?

@@ -1,3 +1,4 @@
+import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -45,5 +46,9 @@ void main() {
     expect(Utils.getExpressionsFromString(r'hi $(first) $(last)'), [r'$(first)', r'$(last)']);
   });
 
+
+  test("ISO date only", () {
+    expect(DateTime.parse('2022-05-24T12:00:00').toIso8601DateString(), '2022-05-24');
+  });
 
 }

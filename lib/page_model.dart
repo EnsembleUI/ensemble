@@ -12,7 +12,10 @@ class PageModel {
     'View',
     'Action',
     'API',
-    'Functions'
+    'Functions',
+    'App',
+    'Model',
+    'Variable'
   ];
 
   Map<String, YamlMap>? apiMap;
@@ -181,10 +184,10 @@ class PageModel {
 
       DataContext localizedContext = eContext.clone();
 
-      // if subview has parameters
-      if (subViewMap['parameters'] is YamlList && itemMap != null) {
+      // if subview has inputs
+      if (subViewMap['inputs'] is YamlList && itemMap != null) {
         // add (and potentially overwrite) parameters to our data map
-        for (var param in (subViewMap['parameters'] as YamlList)) {
+        for (var param in (subViewMap['inputs'] as YamlList)) {
           if (itemMap[param] != null) {
             localizedContext.addDataContextById(param, eContext.eval(itemMap[param]));
 

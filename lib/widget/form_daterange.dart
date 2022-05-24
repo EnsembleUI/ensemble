@@ -9,6 +9,7 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:ensemble/util/extensions.dart';
 
 class DateRange extends StatefulWidget with Invokable, HasController<DateRangeController, DateRangeState> {
   static const type = 'DateRange';
@@ -28,8 +29,8 @@ class DateRange extends StatefulWidget with Invokable, HasController<DateRangeCo
   @override
   Map<String, Function> getters() {
     return {
-      'startDate': () => _controller.startDate?.toString(),
-      'endDate': () => _controller.endDate?.toString(),
+      'startDate': () => _controller.startDate?.toIso8601DateString(),
+      'endDate': () => _controller.endDate?.toIso8601DateString(),
     };
   }
 
