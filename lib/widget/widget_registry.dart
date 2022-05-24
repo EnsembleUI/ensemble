@@ -17,7 +17,7 @@ import 'package:ensemble/widget/form_textfield.dart';
 import 'package:ensemble/widget/image.dart';
 import 'package:ensemble/widget/rating.dart';
 import 'package:ensemble/widget/spacer.dart';
-import 'package:ensemble/widget/webview_builder.dart';
+import 'package:ensemble/widget/webview.dart';
 import 'package:ensemble/widget/widget_builder.dart';
 
 class WidgetRegistry {
