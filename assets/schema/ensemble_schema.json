@@ -106,7 +106,28 @@
 
     },
     "API": {
-
+      "additionalProperties": {
+        "type": "object",
+        "required": ["uri", "method"],
+        "properties": {
+          "inputs": {
+            "type": "array",
+            "description": "The Input Parameters to pass into this API invocation"
+          },
+          "uri": {
+            "type": "string"
+          },
+          "method":{
+            "type": "string",
+            "description": "Set the HTTP Method",
+            "enum": ["GET", "PUT", "POST", "PATCH", "DELETE"]
+          },
+          "parameters": {
+            "type": "object",
+            "description": "Set URL Params for this API as key/value pairs"
+          }
+        }
+      }
     }
 
   },
@@ -114,12 +135,13 @@
     "type": "object",
     "required": ["type"],
     "properties": {
-      "params": {
-        "type": "array"
+      "inputs": {
+        "type": "array",
+        "description": "The Input Parameters to pass into this Custom View"
       },
       "type": {
         "type": "string",
-        "description": "The root widget of your Sub View"
+        "description": "The root widget of your Custom View"
       }
     }
 

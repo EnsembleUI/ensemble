@@ -158,10 +158,7 @@ class DataContext {
   dynamic evalVariable(String variable) {
     List<String> tokens = variable.split('.');
     dynamic result = evalToken(tokens, 1, _contextMap[tokens[0]]);
-
-    // don't return null. Preferably returning the variable name
-    // for debug purpose + we have something to display
-    return result ?? variable;
+    return result;
   }
 
   /// token format: result

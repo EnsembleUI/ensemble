@@ -47,9 +47,9 @@ class ViewUtil {
       widgetType = payload!['type'];
 
       // see if the definition declare any parameters
-      if (payload['parameters'] is YamlList) {
+      if (payload['inputs'] is YamlList) {
         customWidgetParameters = [];
-        for (dynamic param in payload['parameters']) {
+        for (dynamic param in payload['inputs']) {
           customWidgetParameters.add(param.toString());
         }
       }
