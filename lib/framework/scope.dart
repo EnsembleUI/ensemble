@@ -390,7 +390,7 @@ mixin PageBindingManager on IsScopeManager {
       for (StreamSubscription listener in listenerMap[widget]!.values) {
         listener.cancel();
       }
-      log("Binding -: Disposing ${widget}(${widget.id ?? ''}). Removing ${listenerMap[widget]!.length} listeners");
+      //log("Binding : Disposing ${widget}(${widget.id ?? ''}). Removing ${listenerMap[widget]!.length} listeners");
       listenerMap.remove(widget);
     }
   }
