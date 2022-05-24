@@ -135,7 +135,10 @@ class Utils {
 
   //expect r@mystring or r@myapp.myscreen.mystring as long as r@ is there. If r@ is not there, returns the string as-is
   static String translate(String val,BuildContext? ctx) {
-    BuildContext? context = globalAppKey.currentContext;
+    BuildContext? context;
+    if ( WidgetsBinding.instance != null ) {
+      context = globalAppKey.currentContext;
+    }
     context ??= ctx;
     String rtn = val;
     if ( val.trim().isNotEmpty && context != null ) {
