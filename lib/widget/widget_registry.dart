@@ -2,7 +2,6 @@
 import 'package:ensemble/layout/box_layout.dart';
 import 'package:ensemble/layout/data_grid.dart';
 import 'package:ensemble/layout/form.dart';
-import 'package:ensemble/layout/grid_builder.dart';
 import 'package:ensemble/layout/stack.dart';
 import 'package:ensemble/widget/Text.dart' as ensemble;
 import 'package:ensemble/widget/button.dart';
@@ -40,6 +39,7 @@ class WidgetRegistry {
 
     // misc widgets
     Rating.type: () => Rating(),
+    EnsembleWebView.type: () => EnsembleWebView(),
 
     // form fields
     EnsembleForm.type: () => EnsembleForm(),
@@ -66,16 +66,10 @@ class WidgetRegistry {
   @Deprecated("Use widgetMap instead")
   static Map<String, WidgetBuilderFunc> get widgetBuilders =>
       const <String, WidgetBuilderFunc> {
-        WebViewBuilder.type: WebViewBuilder.fromDynamic,
-
         // charts
-        ChartPieBuilder.type: ChartPieBuilder.fromDynamic,
-        ChartBubbleBuilder.type: ChartBubbleBuilder.fromDynamic,
+        //ChartPieBuilder.type: ChartPieBuilder.fromDynamic,
+        //ChartBubbleBuilder.type: ChartBubbleBuilder.fromDynamic,
 
-        // deprecated
-        //VStackBuilder.type: VStackBuilder.fromDynamic,
-        //HStackBuilder.type: HStackBuilder.fromDynamic,
-        GridBuilder.type: GridBuilder.fromDynamic,
   };
 }
 

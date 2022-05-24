@@ -88,7 +88,7 @@ class HttpUtils {
         break;
     }
 
-    log('${response.statusCode}: ${response.body}');
+    log('Response: ${response.statusCode}');
     if (response.statusCode >= 200 && response.statusCode <= 299) {
       completer.complete(response);
     } else {
