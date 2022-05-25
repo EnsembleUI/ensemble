@@ -466,6 +466,7 @@
         "styles": {
           "allOf": [
             { "$ref": "#/$defs/baseStyles" },
+            { "$ref": "#/$defs/boxStyles" },
             {
               "type": "object",
               "properties": {
@@ -480,12 +481,6 @@
                 "color": {
                   "type": ["number", "string"],
                   "description": "Set the color for the button label starting with '0xFF' for full opacity"
-                },
-                "borderRadius": {
-                  "type": "integer"
-                },
-                "padding": {
-                  "type": "integer"
                 }
               }
             }
