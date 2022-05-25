@@ -97,7 +97,10 @@ class Utils {
   }
 
   /// return the padding/margin value
-  static EdgeInsets getInsets(dynamic value) {
+  static EdgeInsets getInsets(dynamic value, {EdgeInsets? fallback}) {
+    return optionalInsets(value) ?? fallback ?? const EdgeInsets.all(0);
+  }
+  static EdgeInsets? optionalInsets(dynamic value) {
     if (value is int && value >= 0) {
       return EdgeInsets.all(value.toDouble());
     } else if (value is String) {
@@ -122,7 +125,7 @@ class Utils {
       }
       return EdgeInsets.only(top: top, right: right, bottom: bottom, left: left);
     }
-    return const EdgeInsets.all(0);
+    return null;
   }
 
   static int? parseIntFromString(String value) {
