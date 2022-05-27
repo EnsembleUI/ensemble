@@ -674,11 +674,12 @@
       "properties": {
         "styles": {
           "type": "object",
-          "allOf": [
-            {
-              "$ref": "#/$defs/styleBackgroundColor"
+          "properties": {
+            "backgroundColor": {
+              "$ref": "#/$defs/typeColors",
+              "description": "Background color for our menu starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
             }
-          ]
+          }
         },
         "display": {
           "type": "string",
@@ -736,16 +737,6 @@
         }
       }
     },
-    "styleBackgroundColor": {
-      "type": "object",
-      "properties": {
-        "backgroundColor": {
-          "type": ["number", "string"],
-          "description": "background color starting with '0xFF' for full opacity e.g 0xFFCCCCCC",
-          "enum": [".transparent"]
-        }
-      }
-    },
     "stylePadding": {
       "type": "object",
       "properties": {
@@ -764,6 +755,23 @@
         }
       }
     },
+
+    "typeColors": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "string",
+          "enum": ["transparent", "black", "blue", "white", "red", "grey", "teal", "amber", "pink", "purple", "yellow", "green", "brown", "cyan", "indigo", "lime", "orange"]
+        },
+        {
+          "type": "string",
+          "pattern": "^0x"
+        }
+      ]
+    },
+
     "boxStyles": {
       "allOf": [
         {
@@ -813,8 +821,8 @@
               "minimum": 0
             },
             "backgroundColor": {
-              "type": ["number", "string"],
-              "description": "background color starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+              "$ref": "#/$defs/typeColors",
+              "description": "backgroundColor starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
             },
             "fontFamily": {
               "type": "string",

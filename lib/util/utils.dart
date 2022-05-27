@@ -88,7 +88,40 @@ class Utils {
     if (value is String) {
       switch(value) {
         case '.transparent':
+        case 'transparent':
           return Colors.transparent;
+        case 'black':
+          return Colors.black;
+        case 'blue':
+          return Colors.blue;
+        case 'white':
+          return Colors.white;
+        case 'red':
+          return Colors.red;
+        case 'grey':
+          return Colors.grey;
+        case 'teal':
+          return Colors.teal;
+        case 'amber':
+          return Colors.amber;
+        case 'pink':
+          return Colors.pink;
+        case 'purple':
+          return Colors.purple;
+        case 'yellow':
+          return Colors.yellow;
+        case 'green':
+          return Colors.green;
+        case 'brown':
+          return Colors.brown;
+        case 'cyan':
+          return Colors.cyan;
+        case 'indigo':
+          return Colors.indigo;
+        case 'lime':
+          return Colors.lime;
+        case 'orange':
+          return Colors.orange;
       }
     } else if (value is int) {
       return Color(value);
