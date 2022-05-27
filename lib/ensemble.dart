@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'package:ensemble/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/widget/view.dart';
 import 'package:ensemble/provider.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/http_utils.dart';
@@ -156,18 +157,31 @@ class Ensemble {
                 );
               }
 
+              Response response = Response(apiSnapshot.data);
+
               // Since our widgets have not been rendered yet, simply update our
               // data context with API result (no need to dispatch any event)
-              dataContext.addInvokableContext(action.apiName, APIResponse(response: apiSnapshot.data));
+              dataContext.addInvokableContext(action.apiName, APIResponse(response: response));
 
               // render the page
-              Widget page = _renderPage(context, dataContext, snapshot);
+              View page = _renderPage(context, dataContext, snapshot);
 
               // once page has been rendered, run the onResponse code block of the API
               EnsembleAction? onResponseAction = Utils.getAction(apiPayload['onResponse']);
               if (onResponseAction is InvokeAPIAction) {
                 ScreenController().processAPIResponse(
-                    context, dataContext, onResponseAction, apiSnapshot.data, apiMap);
+                    context, dataContext, onResponseAction, response, apiMap);
+              }
+
+              // now run the onResponse block of onPageLoad. Note that here we may want to reference
+              // the widgets, so we have to wait until the page has rendered before executing
+              if (action.onResponse != null) {
+                WidgetsBinding.instance!.addPostFrameCallback((_) {
+                  // once the page rendered, we use the dataContext from the page.
+                  DataContext pageDataContext = page.rootScopeManager.dataContext;
+                  ScreenController().processAPIResponse(
+                      context, pageDataContext, action.onResponse!, response, apiMap);
+                });
               }
 
               return page;
@@ -215,7 +229,7 @@ class Ensemble {
     );
   }
 
-  Widget _renderPage(
+  View _renderPage(
       BuildContext context,
       DataContext dataContext,
       AsyncSnapshot<dynamic> snapshot,

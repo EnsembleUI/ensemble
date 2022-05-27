@@ -4,12 +4,12 @@ import 'dart:developer';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/parser/ast.dart';
 import 'package:ensemble_ts_interpreter/parser/js_interpreter.dart';
-import 'package:http/http.dart';
 
 /// manages Data and Invokables within the current data scope.
 /// This class can evaluate expressions based on the data scope
@@ -249,9 +249,7 @@ class EnsembleStorage with Invokable {
 }
 
 class APIResponse with Invokable {
-  Map<String, dynamic>? _body;
-  Map<String, String>? _headers;
-
+  Response? _response;
   APIResponse({Response? response}) {
     if (response != null) {
       setAPIResponse(response);
@@ -259,19 +257,14 @@ class APIResponse with Invokable {
   }
 
   setAPIResponse(Response response) {
-    try {
-      _body = json.decode(response.body);
-    } on FormatException catch (_, e) {
-      log('Supporting only JSON for API response');
-    }
-    _headers = response.headers;
+    _response = response;
   }
 
   @override
   Map<String, Function> getters() {
     return {
-      'body': () => _body,
-      'headers': () => _headers
+      'body': () => _response?.body,
+      'headers': () => _response?.headers
     };
   }
 

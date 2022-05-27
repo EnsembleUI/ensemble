@@ -26,6 +26,11 @@ class View extends StatefulWidget {
   late final DataContext _initialDataContext;
   late final PageModel _pageModel;
 
+  /// The reference to DataContext is needed for API invoked before
+  /// the page load. In these cases we do not have the context to travel
+  /// to the DataScopeWidget. This should only be used for this purpose.
+  late ScopeManager rootScopeManager;
+
 
   /**
    * PageData pageData = PageData(
@@ -67,6 +72,7 @@ class ViewState extends State<View>{
           apiMap: widget._pageModel.apiMap
       )
     );
+    widget.rootScopeManager = _scopeManager;
 
     super.initState();
   }
