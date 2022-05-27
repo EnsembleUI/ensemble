@@ -98,3 +98,18 @@ class HttpUtils {
   }
 
 }
+
+/// a wrapper class around the http Response
+class Response {
+  Map<String, dynamic>? body;
+  Map<String, String>? headers;
+
+  Response(http.Response response) {
+    try {
+      body = json.decode(response.body);
+    } on FormatException catch (_, e) {
+      log('Warning - Only JSON response is supported');
+    }
+    headers = response.headers;
+  }
+}

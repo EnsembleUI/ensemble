@@ -16,7 +16,7 @@ import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:event_bus/event_bus.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart';
+import 'package:http/http.dart' as http;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:yaml/yaml.dart';
 
@@ -35,7 +35,7 @@ class ScreenController {
 
   // TODO: Back button will still use the curent page PageMode. Need to keep model state
   /// render the page from the definition and optional arguments (from previous pages)
-  Widget renderPage(DataContext dataContext, YamlMap data) {
+  View renderPage(DataContext dataContext, YamlMap data) {
     PageModel pageModel = PageModel(data);
 
     // add all the API names to our context as Invokable, even though their result
@@ -168,7 +168,7 @@ class ScreenController {
         }
 
         HttpUtils.invokeApi(apiDefinition, dataContext)
-            .then((response) => _onAPIComplete(context, dataContext, action, apiDefinition, response, apiMap))
+            .then((response) => _onAPIComplete(context, dataContext, action, apiDefinition, Response(response), apiMap))
             .onError((error, stackTrace) => processAPIError(context, dataContext, apiDefinition, error, apiMap));
       }
     } else if (action is NavigateScreenAction) {
