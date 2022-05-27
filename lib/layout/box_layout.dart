@@ -252,7 +252,7 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
 
   BoxDecoration _buildBoxDecoration() {
     return BoxDecoration(
-        color: widget._controller.backgroundColor != null ? Color(widget._controller.backgroundColor!) : null,
+        color: widget._controller.backgroundColor,
         border: !widget._controller.hasBorder() ? null : Border.all(
             color: widget._controller.borderColor ?? flutter.Colors.black26,
             width: (widget._controller.borderWidth ?? 1).toDouble()),

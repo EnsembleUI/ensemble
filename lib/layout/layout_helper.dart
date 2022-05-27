@@ -51,7 +51,7 @@ class BoxLayoutController extends BoxController {
   int? maxHeight;
   int? gap;
 
-  int? backgroundColor;
+  Color? backgroundColor;
   String? fontFamily;
   int? fontSize;
 
@@ -80,7 +80,7 @@ class BoxLayoutController extends BoxController {
       'maxHeight': (value) => maxHeight = Utils.optionalInt(value),
       'gap': (value) => gap = Utils.optionalInt(value),
 
-      'backgroundColor': (value) => backgroundColor = Utils.optionalInt(value),
+      'backgroundColor': (value) => backgroundColor = Utils.getColor(value),
       'fontFamily': (value) => fontFamily = Utils.optionalString(value),
       'fontSize': (value) =>  fontSize = Utils.optionalInt(value),
 
