@@ -61,9 +61,13 @@ class EnsembleDataColumn extends DataColumn {
         super(label:Text(label),tooltip:tooltip,numeric:type == 'numeric');
 
   static EnsembleDataColumn fromYaml({required YamlMap map,Function? onSort}) {
+    String type = Utils.getString(map['type'], fallback: '');
+    if ( type == '' ) {
+      throw Exception('DataGrid column must have a type.');
+    }
     return EnsembleDataColumn(
       label: Utils.getString(map['label'], fallback: ''),
-      type: map['type'],
+      type: type,
       tooltip: Utils.optionalString(map['tooltip']),
       onSort:onSort
     );
@@ -171,6 +175,9 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
             cells.add(DataCell(c));
           }
         }
+      }
+      if ( widget.cols.length != cells.length ) {
+        throw Exception('Number of DataGrid columns must be equal to the number of cells in each row. Number of DataGrid columns is ${widget.cols.length} while number of cells in the row is ${cells.length}.');
       }
       rows.add(DataRow(cells:cells));
     }
