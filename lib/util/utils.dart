@@ -36,7 +36,7 @@ class Utils {
   static EnsembleAction? getAction(dynamic payload, {Invokable? initiator}) {
     if (payload is YamlMap) {
 
-      Map<String, dynamic>? inputs;
+      Map<String, String>? inputs;
       if (payload['inputs'] is YamlMap) {
         inputs = {};
         (payload['inputs'] as YamlMap).forEach((key, value) {

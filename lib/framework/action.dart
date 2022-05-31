@@ -22,7 +22,7 @@ class InvokeAPIAction extends EnsembleAction {
   }) : super(initiator: initiator);
 
   final String apiName;
-  final Map<String, dynamic>? inputs;
+  final Map<String, String>? inputs;
   EnsembleAction? onResponse;
   EnsembleAction? onError;
 }
@@ -35,7 +35,7 @@ class NavigateScreenAction extends EnsembleAction {
   }) : super(initiator: initiator);
 
   String screenName;
-  Map<String, dynamic>? inputs;
+  Map<String, String>? inputs;
 }
 
 class ExecuteCodeAction extends EnsembleAction {
