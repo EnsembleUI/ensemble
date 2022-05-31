@@ -11,8 +11,17 @@ import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/layout/ensemble_page_route.dart';
+import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:yaml/yaml.dart';
 
+class I18nProps {
+  String defaultLocale;
+  String fallbackLocale;
+  bool useCountryCode;
+  late String path;
+  I18nProps(this.defaultLocale,this.fallbackLocale,this.useCountryCode);
+
+}
 class Ensemble {
   static final Ensemble _instance = Ensemble._internal();
   Ensemble._internal();
@@ -28,7 +37,11 @@ class Ensemble {
       final yamlString = await DefaultAssetBundle.of(context)
           .loadString('ensemble/ensemble-config.yaml');
       final YamlMap yamlMap = loadYaml(yamlString);
-
+      I18nProps i18nProps = I18nProps(
+          yamlMap['definitions']?['i18n']?['defaultLocale']??'',
+          yamlMap['definitions']?['i18n']?['fallbackLocale']??'en',
+          yamlMap['definitions']?['i18n']?['useCountryCode']??false
+      );
       String? definitionType = yamlMap['definitions']?['from'];
       if (definitionType == 'ensemble') {
         String? path = yamlMap['definitions']?['ensemble']?['path'];
@@ -42,7 +55,13 @@ class Ensemble {
               "appId is required. Your App Key can be found on "
               "Ensemble Studio under each application");
         }
-        definitionProvider = EnsembleDefinitionProvider(path, appId);
+        String? i18nPath = yamlMap['definitions']?['ensemble']?['i18nPath'];
+        if (i18nPath == null) {
+          throw ConfigError(
+              "i18nPath is required. If you don't have any changes, just leave the default as-is.");
+        }
+        i18nProps.path = i18nPath;
+        definitionProvider = EnsembleDefinitionProvider(path, appId, i18nProps);
 
       } else if (definitionType == 'local' || definitionType == 'remote'){
         String? path = yamlMap['definitions']?[definitionType]?['path'];
@@ -61,11 +80,16 @@ class Ensemble {
               "appHome is required. This is the home screen's name or ID for your App"
           );
         }
-
+        String? i18nPath = yamlMap['definitions']?[definitionType]?['i18nPath'];
+        if (i18nPath == null) {
+          throw ConfigError(
+              "i18nPath is required. If you don't have any changes, just leave the default as-is.");
+        }
+        i18nProps.path = i18nPath;
         String fullPath = concatDirectory(path, appId);
         definitionProvider = definitionType == 'local' ?
-          LocalDefinitionProvider(fullPath, appHome) :
-            RemoteDefinitionProvider(fullPath, appHome);
+          LocalDefinitionProvider(fullPath, appHome, i18nProps) :
+            RemoteDefinitionProvider(fullPath, appHome, i18nProps);
 
       } else {
           throw ConfigError(

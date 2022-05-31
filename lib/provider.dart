@@ -1,19 +1,38 @@
 import 'dart:convert';
 import 'dart:async';
+import 'dart:ui';
 import 'package:ensemble/ensemble.dart';
+import 'package:flutter_i18n/flutter_i18n.dart';
+import 'package:flutter_i18n/loaders/decoders/yaml_decode_strategy.dart';
 import 'package:yaml/yaml.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' as foundation;
 
 abstract class DefinitionProvider {
+  final I18nProps i18nProps;
+  DefinitionProvider(this.i18nProps);
   Future<YamlMap> getDefinition({String? screenId});
+  FlutterI18nDelegate getI18NDelegate();
 }
 
 class LocalDefinitionProvider extends DefinitionProvider {
-  LocalDefinitionProvider(this.path, this.appHome);
+  LocalDefinitionProvider(this.path, this.appHome,I18nProps i18nProps): super(i18nProps);
   final String path;
   final String appHome;
+  FlutterI18nDelegate? _i18nDelegate;
+  @override
+  FlutterI18nDelegate getI18NDelegate() {
+    _i18nDelegate ??= FlutterI18nDelegate(
+        translationLoader: FileTranslationLoader(
+          useCountryCode: false,
+          fallbackFile: i18nProps.fallbackLocale,
+          basePath: i18nProps.path,
+          forcedLocale: Locale(i18nProps.defaultLocale),
+          decodeStrategies: [YamlDecodeStrategy()],)
+    );
+    return _i18nDelegate!;
+  }
 
   @override
   Future<YamlMap> getDefinition({String? screenId}) async {
@@ -30,10 +49,22 @@ class LocalDefinitionProvider extends DefinitionProvider {
 
 class RemoteDefinitionProvider extends DefinitionProvider {
   // TODO: we can fetch the whole App bundle here
-  RemoteDefinitionProvider(this.path, this.appHome);
+  RemoteDefinitionProvider(this.path, this.appHome,I18nProps i18nProps): super(i18nProps);
   final String path;
   final String appHome;
-
+  FlutterI18nDelegate? _i18nDelegate;
+  @override
+  FlutterI18nDelegate getI18NDelegate() {
+    _i18nDelegate ??= FlutterI18nDelegate(
+        translationLoader: NetworkFileTranslationLoader(
+            baseUri: Uri.parse(i18nProps.path),
+            forcedLocale: Locale(i18nProps.defaultLocale),
+            fallbackFile: i18nProps.fallbackLocale,
+            useCountryCode: i18nProps.useCountryCode,
+            decodeStrategies: [YamlDecodeStrategy()])
+    );
+    return _i18nDelegate!;
+  }
   @override
   Future<YamlMap> getDefinition({String? screenId}) async {
     String screen = screenId ?? appHome;
@@ -51,10 +82,22 @@ class RemoteDefinitionProvider extends DefinitionProvider {
 }
 
 class EnsembleDefinitionProvider extends DefinitionProvider {
-  EnsembleDefinitionProvider(this.url, this.appId);
+  EnsembleDefinitionProvider(this.url, this.appId,I18nProps i18nProps): super(i18nProps);
   final String url;
   final String appId;
-
+  FlutterI18nDelegate? _i18nDelegate;
+  @override
+  FlutterI18nDelegate getI18NDelegate() {
+    _i18nDelegate ??= FlutterI18nDelegate(
+        translationLoader: NetworkFileTranslationLoader(
+            baseUri: Uri.parse(i18nProps.path),
+            forcedLocale: Locale(i18nProps.defaultLocale),
+            fallbackFile: i18nProps.fallbackLocale,
+            useCountryCode: i18nProps.useCountryCode,
+            decodeStrategies: [YamlDecodeStrategy()])
+    );
+    return _i18nDelegate!;
+  }
   @override
   Future<YamlMap> getDefinition({String? screenId}) async {
     Completer<YamlMap> completer = Completer();
