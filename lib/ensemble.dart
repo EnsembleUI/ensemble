@@ -172,7 +172,7 @@ class Ensemble {
                     )
                 );
               } else if (apiSnapshot.hasError) {
-                ScreenController().processAPIError(dataContext, apiPayload, apiSnapshot.error, apiMap, null);
+                ScreenController().processAPIError(context, dataContext, apiPayload, apiSnapshot.error, apiMap);
                 return const Scaffold(
                     body: Center(
                         child: Text(
@@ -190,11 +190,11 @@ class Ensemble {
               // render the page
               View page = _renderPage(context, dataContext, snapshot);
 
-              // run the onResponse code block of the API. Order doesn't really matter here
+              // once page has been rendered, run the onResponse code block of the API
               EnsembleAction? onResponseAction = Utils.getAction(apiPayload['onResponse']);
               if (onResponseAction is InvokeAPIAction) {
                 ScreenController().processAPIResponse(
-                    dataContext, onResponseAction, response, apiMap, null);
+                    context, dataContext, onResponseAction, response, apiMap);
               }
 
               // now run the onResponse block of onPageLoad. Note that here we may want to reference
@@ -204,7 +204,7 @@ class Ensemble {
                   // once the page rendered, we use the dataContext from the page.
                   DataContext pageDataContext = page.rootScopeManager.dataContext;
                   ScreenController().processAPIResponse(
-                      pageDataContext, action.onResponse!, response, apiMap, page.rootScopeManager);
+                      context, pageDataContext, action.onResponse!, response, apiMap);
                 });
               }
 
