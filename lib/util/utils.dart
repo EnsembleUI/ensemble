@@ -184,9 +184,9 @@ class Utils {
           String _s = str.substring(2);
           try {
             str = FlutterI18n.translate(context!, _s);
-          } catch (e) {//if resource is not defined
+          } catch ( e) {//if resource is not defined
             //log it
-            debugPrint('unable to get translated string for the '+str);
+            debugPrint('unable to get translated string for the '+str+'; exception='+e.toString());
           }
         }
         return str;
