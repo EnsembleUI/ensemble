@@ -6,6 +6,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:mockito/mockito.dart';
+import 'package:yaml/yaml.dart';
 
 void main() {
 
@@ -13,6 +14,8 @@ void main() {
     'result': {
       'name': 'Peter Parker',
       'age': 25,
+      'skills': 'flying',
+      'superhero': true,
       'first_name': 'Peter',
       'last-name': 'Parker'
     }
@@ -35,6 +38,23 @@ void main() {
 
     return context;
   }
+
+  test('payload map', () {
+    Map<String, dynamic> processed = getBaseContext().eval(YamlMap.wrap({
+      'payload': {
+        'name': '\$(result.name)',
+        'age': '\$(result.age)',
+        'skills': ['eating', '\$(result.skills)', 'drinking'],
+        'superhero': '\$(result.superhero)'
+      }
+    }));
+    expect(processed['payload']['name'], 'Peter Parker');
+    expect(processed['payload']['age'], 25);
+    expect(processed['payload']['skills'], ['eating', 'flying', 'drinking']);
+    expect(processed['payload']['superhero'], true);
+
+  });
+
 
   test('url', () {
     expect(getBaseContext().eval("https://site.com/age/\$(result.age)/detail"), "https://site.com/age/25/detail");

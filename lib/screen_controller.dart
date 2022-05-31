@@ -160,7 +160,7 @@ class ScreenController {
         // evaluate input arguments and add them to context
         if (apiDefinition['inputs'] is YamlList && action.inputs != null) {
           for (var input in apiDefinition['inputs']) {
-            dynamic value = providedDataContext.eval(action.inputs![input]);
+            dynamic value = dataContext.eval(action.inputs![input]);
             if (value != null) {
               dataContext.addDataContextById(input, value);
             }
