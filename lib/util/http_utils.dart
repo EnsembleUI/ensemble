@@ -23,9 +23,9 @@ class HttpUtils {
     // Support JSON (or Yaml) body only.
     // Here it's converted to YAML already
     String? bodyPayload;
-    if (api['body'] is YamlMap) {
+    if (api['body'] != null) {
       try {
-        bodyPayload = eContext.eval(json.encode(api['body']));
+        bodyPayload = json.encode(eContext.eval(api['body']));
 
         // set Content-Type as json but don't override user's value if exists
         if (headers['Content-Type'] == null) {
