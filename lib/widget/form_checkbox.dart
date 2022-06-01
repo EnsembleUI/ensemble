@@ -87,7 +87,7 @@ class OnOffState extends FormFieldWidgetState<OnOffWidget> {
 
   void onToggle(bool newValue) {
     widget.onToggle(newValue);
-    validatorKey.currentState!.validate();
+    //validatorKey.currentState!.validate();
 
     if (widget._controller.onChange != null) {
       ScreenController().executeAction(context, widget._controller.onChange!);

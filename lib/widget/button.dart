@@ -6,6 +6,7 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:flutter/material.dart';
+import 'package:ensemble/layout/form.dart' as ensembleForm;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 
 class Button extends StatefulWidget with Invokable, HasController<ButtonController, ButtonState> {
@@ -25,6 +26,8 @@ class Button extends StatefulWidget with Invokable, HasController<ButtonControll
     return {
       'label': (value) => _controller.label = Utils.getString(value, fallback: ''),
       'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, initiator: this),
+      'validateForm': (value) => _controller.validateForm = Utils.optionalBool(value),
+      'validateFields': (items) => _controller.validateFields = Utils.getList(items),
 
       'enabled': (value) => _controller.enabled = Utils.optionalBool(value),
       'outline': (value) => _controller.outline = Utils.optionalBool(value),
@@ -45,6 +48,13 @@ class Button extends StatefulWidget with Invokable, HasController<ButtonControll
 class ButtonController extends BoxController {
   late String label;
   ensemble.EnsembleAction? onTap;
+
+  // whether this button will invoke form validation or not
+  // this has no effect if the button is not inside a form
+  bool? validateForm;
+
+  // a list of field IDs to validate. TODO: implement this
+  List<dynamic>? validateFields;
 
   bool? enabled;
   bool? outline;
@@ -112,6 +122,22 @@ class ButtonState extends WidgetState<Button> {
   }
 
   void onPressed(BuildContext context) {
+    // validate if we are inside a Form
+    if (widget._controller.validateForm != null && widget._controller.validateForm!) {
+      ensembleForm.FormState? formState = EnsembleForm.of(context);
+      if (formState != null) {
+        // don't continue if validation fails
+        if (!formState.validate()) {
+          return;
+        }
+      }
+    }
+    // else validate specified fields
+    else if (widget._controller.validateFields != null) {
+
+    }
+
+    // execute the onTap action
     if (widget._controller.onTap != null) {
       ScreenController().executeAction(context, widget._controller.onTap!);
     }

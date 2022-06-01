@@ -49,6 +49,8 @@ dependencies:
     git:
       url: https://github.com/ilteoood/flutter_i18n.git
       ref: master
+  email_validator: ^2.0.1
+  form_validator: ^1.0.2
 
 
 dev_dependencies:

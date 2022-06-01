@@ -4,7 +4,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/form_helper.dart';
 import 'package:ensemble/widget/widget_util.dart' as util;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/cupertino.dart' as flutter;
 import 'package:flutter/material.dart';
 import 'package:flutter_layout_grid/flutter_layout_grid.dart';
 
@@ -76,6 +76,12 @@ class FormController extends WidgetController {
 }
 
 class FormState extends WidgetState<EnsembleForm> {
+
+  final _formKey = GlobalKey<flutter.FormState>();
+  bool validate() {
+    return _formKey.currentState!.validate();
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget._controller.children == null || widget._controller.children!.isEmpty) {
@@ -94,7 +100,9 @@ class FormState extends WidgetState<EnsembleForm> {
       height: widget._controller.height?.toDouble(),
       child: EnsembleFormScope(
         formState: this,
-        child: Form(child: body))
+        child: Form(
+          key: _formKey,
+          child: body))
     );
 
   }
