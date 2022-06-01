@@ -84,6 +84,17 @@ class Utils {
                 fallback;
   }
 
+  static List<dynamic>? getList(dynamic value) {
+    if (value is YamlList) {
+      List<dynamic> results = [];
+      for (var item in value) {
+        results.add(item);
+      }
+      return results;
+    }
+    return null;
+  }
+
   static Color? getColor(dynamic value) {
     if (value is String) {
       switch(value) {

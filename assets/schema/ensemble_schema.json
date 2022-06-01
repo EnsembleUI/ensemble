@@ -467,6 +467,10 @@
         "enabled": {
           "type": "boolean"
         },
+        "validateForm": {
+          "type": "boolean",
+          "description": "If our button is inside a Form, setting this to TRUE will validate all fields within this form upon button tap"
+        },
         "onTap": { "$ref": "#/$defs/Action-payload" },
         "styles": {
           "allOf": [
