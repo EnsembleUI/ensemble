@@ -1,5 +1,6 @@
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/util/layout_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/form_helper.dart';
 import 'package:ensemble/widget/widget_util.dart' as util;
@@ -42,6 +43,7 @@ class EnsembleForm extends StatefulWidget with UpdatableContainer, Invokable, Ha
       'enabled': (value) => _controller.enabled = Utils.optionalBool(value),
       'width': (value) => _controller.width = Utils.optionalInt(value),
       'height': (value) => _controller.height = Utils.optionalInt(value),
+      'gap': (value) => _controller.gap = Utils.getInt(value, fallback: FormController._defaultGap),
     };
   }
 
@@ -66,6 +68,8 @@ class EnsembleForm extends StatefulWidget with UpdatableContainer, Invokable, Ha
 }
 
 class FormController extends WidgetController {
+  static const _defaultGap = 10;
+
   List<Widget>? children;
   LabelPosition labelPosition = LabelPosition.top;
   String? labelOverflow;
@@ -73,6 +77,7 @@ class FormController extends WidgetController {
 
   int? width;
   int? height;
+  int gap = _defaultGap;
 }
 
 class FormState extends WidgetState<EnsembleForm> {
@@ -93,9 +98,9 @@ class FormState extends WidgetState<EnsembleForm> {
     if (widget._controller.labelPosition == LabelPosition.start) {
       body = buildGrid(widget._controller.children!);
     } else {
-      body = Column(children: widget._controller.children!);
+      body = buildColumn(widget._controller.children!);
     }
-    return Container(
+    return SizedBox(
       width: widget._controller.width?.toDouble(),
       height: widget._controller.height?.toDouble(),
       child: EnsembleFormScope(
@@ -105,6 +110,12 @@ class FormState extends WidgetState<EnsembleForm> {
           child: body))
     );
 
+  }
+
+  Widget buildColumn(List<Widget> formItems) {
+    return Column(
+      crossAxisAlignment: flutter.CrossAxisAlignment.start,
+      children: LayoutUtils.withGap(formItems, widget._controller.gap));
   }
 
   Widget buildGrid(List<Widget> formItems) {
@@ -134,7 +145,7 @@ class FormState extends WidgetState<EnsembleForm> {
         children: children
       );
     }
-    return Column(children: formItems);
+    return buildColumn(formItems);
 
   }
 

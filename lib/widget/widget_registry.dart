@@ -43,9 +43,9 @@ class WidgetRegistry {
 
     // form fields
     EnsembleForm.type: () => EnsembleForm(),
-    TextField.type: () => TextField(),
+    TextInput.type: () => TextInput(),
     DateRange.type: () => DateRange(),
-    PasswordField.type: () => PasswordField(),
+    PasswordInput.type: () => PasswordInput(),
     EnsembleCheckbox.type: () => EnsembleCheckbox(),
     EnsembleSwitch.type: () => EnsembleSwitch(),
     Dropdown.type: () => Dropdown(),
