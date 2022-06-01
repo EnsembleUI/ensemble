@@ -693,11 +693,18 @@
         "styles": {
           "type": "object",
           "properties": {
+            "borderColor": {
+              "$ref": "#/$defs/typeColors"
+            },
+            "borderWidth": {
+              "type": "integer"
+            },
             "backgroundColor": {
               "$ref": "#/$defs/typeColors",
               "description": "Background color for our menu starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
             }
           }
+
         },
         "display": {
           "type": "string",
@@ -790,6 +797,24 @@
       ]
     },
 
+    "borderStyles": {
+      "type": "object",
+      "properties": {
+        "borderRadius": {
+          "type": "integer"
+        },
+        "borderColor": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "border color starting with '0xFF' for full opacity"
+        },
+        "borderWidth": {
+          "type": "integer"
+        }
+      }
+    },
     "boxStyles": {
       "allOf": [
         {
@@ -799,22 +824,7 @@
           "$ref": "#/$defs/stylePadding"
         },
         {
-          "type": "object",
-          "properties": {
-            "borderRadius": {
-              "type": "integer"
-            },
-            "borderColor": {
-              "type": [
-                "number",
-                "string"
-              ],
-              "description": "border color starting with '0xFF' for full opacity"
-            },
-            "borderWidth": {
-              "type": "integer"
-            }
-          }
+          "$ref": "#/$defs/borderStyles"
         }
       ]
     },

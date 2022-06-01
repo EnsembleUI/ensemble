@@ -199,10 +199,11 @@ class ViewState extends State<View>{
         menuFooter = _scopeManager.buildWidget(widget._pageModel.menu!.footerModel!);
       }
 
+      List<Widget> content = [];
+
       // process menu styles
       Color? menuBackground = Utils.getColor(widget._pageModel.menu!.styles?['backgroundColor']);
-
-      NavigationRail menu = NavigationRail(
+      content.add(NavigationRail(
         backgroundColor: menuBackground,
         labelType: NavigationRailLabelType.all,
         leading: menuHeader,
@@ -210,16 +211,27 @@ class ViewState extends State<View>{
         trailing: menuFooter,
         selectedIndex: selectedIndex,
         onDestinationSelected: (index) => selectNavigationIndex(context, menuItems[index]),
-      );
+      ));
+
+      // show a divider between the NavigationRail and the content
+      Color? borderColor = Utils.getColor(widget._pageModel.menu!.styles?['borderColor']);
+      int? borderWidth = Utils.optionalInt(widget._pageModel.menu!.styles?['borderWidth']);
+      if (borderColor != null || borderWidth != null) {
+        content.add(VerticalDivider(
+          thickness: (borderWidth ?? 1).toDouble(),
+          width: (borderWidth ?? 1).toDouble(),
+          color: borderColor
+        ));
+      }
+
+      // add the bodyWidget
+      content.add(Expanded(
+          child: SafeArea(
+              child: bodyWidget)));
 
       return Row(
-        children: [
-          menu,
-          //const VerticalDivider(thickness: 1, width: 1),
-          Expanded(child: SafeArea(
-              child: bodyWidget))
-        ],
-      );
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: content);
     }
 
     return SafeArea(
