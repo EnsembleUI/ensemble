@@ -11,6 +11,7 @@ import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/layout/ensemble_page_route.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:yaml/yaml.dart';
 
@@ -32,10 +33,12 @@ class Ensemble {
   DefinitionProvider? definitionProvider;
 
   /// init Ensemble from the config file
-  Future<bool> initialize(BuildContext context) async {
+  Future<bool> initialize() async {
+    if ( definitionProvider != null ) {
+      return true;
+    }
     try {
-      final yamlString = await DefaultAssetBundle.of(context)
-          .loadString('ensemble/ensemble-config.yaml');
+      final yamlString = await rootBundle.loadString('ensemble/ensemble-config.yaml');
       final YamlMap yamlMap = loadYaml(yamlString);
       I18nProps i18nProps = I18nProps(
           yamlMap['definitions']?['i18n']?['defaultLocale']??'',
@@ -105,7 +108,7 @@ class Ensemble {
   /// fetch the page definition
   Future<YamlMap> getPageDefinition(BuildContext context, String? screenId) async {
     if (definitionProvider == null) {
-      await initialize(context);
+      await initialize();
     }
     return definitionProvider!.getDefinition(screenId: screenId);
   }
