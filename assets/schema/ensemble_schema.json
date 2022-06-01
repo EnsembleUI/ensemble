@@ -379,6 +379,11 @@
               "type": "string",
               "description": "Specifying the value of your Text Input"
             },
+            "inputType": {
+              "type": "string",
+              "description": "Pick a predefined input type",
+              "enum": [ "default" ,"email", "phone", "ipAddress"]
+            },
             "styles": {
               "type": "object",
               "properties": {

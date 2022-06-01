@@ -1,11 +1,13 @@
 
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/util/input_validator.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/widget/form_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:email_validator/email_validator.dart';
 //import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 
@@ -23,7 +25,8 @@ class TextField extends BaseTextField {
   Map<String, Function> setters() {
     return {
       'value': (newValue) => textController.text = Utils.getString(newValue, fallback: ''),
-      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this)
+      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this),
+      'inputType': (type) => _controller.inputType = Utils.optionalString(type),
     };
   }
   @override
@@ -34,6 +37,17 @@ class TextField extends BaseTextField {
   @override
   bool isPassword() {
     return false;
+  }
+
+  @override
+  TextInputType? get keyboardType {
+    // set the best keyboard type based on the input type
+    if (_controller.inputType == InputType.email.name) {
+      return TextInputType.emailAddress;
+    } else if (_controller.inputType == InputType.phone.name) {
+      return TextInputType.phone;
+    }
+    return null;
   }
 
 }
@@ -64,6 +78,9 @@ class PasswordField extends BaseTextField {
     return true;
   }
 
+  @override
+  TextInputType? get keyboardType => null;
+
 }
 
 abstract class BaseTextField extends StatefulWidget with Invokable, HasController<TextFieldController, TextFieldState> {
@@ -79,6 +96,7 @@ abstract class BaseTextField extends StatefulWidget with Invokable, HasControlle
   TextFieldState createState() => TextFieldState();
 
   bool isPassword();
+  TextInputType? get keyboardType;
 
 }
 
@@ -86,6 +104,7 @@ abstract class BaseTextField extends StatefulWidget with Invokable, HasControlle
 class TextFieldController extends FormFieldController {
   int? fontSize;
   EnsembleAction? onChange;
+  String? inputType;
 
   @override
   Map<String, Function> getBaseGetters() {
@@ -153,6 +172,10 @@ class TextFieldState extends FormFieldWidgetState<BaseTextField> {
 
   @override
   Widget build(BuildContext context) {
+
+
+
+
     return TextFormField(
       key: validatorKey,
       validator: (value) {
@@ -162,8 +185,25 @@ class TextFieldState extends FormFieldWidgetState<BaseTextField> {
             return "This field is required";
           }
         }
+        // only applicable for TextInput
+        if (!widget.isPassword() && value != null) {
+          if (widget._controller.inputType == InputType.email.name) {
+            if (!EmailValidator.validate(value)) {
+              return "Please enter a valid email address";
+            }
+          } else if (widget._controller.inputType == InputType.ipAddress.name) {
+            if (!InputValidator.ipAddress(value)) {
+              return "Please enter a valid IP Address";
+            }
+          } else if (widget._controller.inputType == InputType.phone.name) {
+            if (!InputValidator.phone(value)) {
+              return "Please enter a valid Phone Number";
+            }
+          }
+        }
         return null;
       },
+      keyboardType: widget.keyboardType,
       obscureText: widget.isPassword(),
       enableSuggestions: !widget.isPassword(),
       autocorrect: !widget.isPassword(),
@@ -188,5 +228,11 @@ class TextFieldState extends FormFieldWidgetState<BaseTextField> {
 
   }
 
+}
+
+enum InputType {
+  email,
+  phone,
+  ipAddress
 }
 
