@@ -156,9 +156,9 @@ class TextFieldState extends FormFieldWidgetState<BaseTextField> {
         evaluateChanges();
 
         // validate
-        if (validatorKey.currentState != null) {
+        /*if (validatorKey.currentState != null) {
           validatorKey.currentState!.validate();
-        }
+        }*/
       }
     });
     super.initState();
