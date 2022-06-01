@@ -29,7 +29,7 @@ void main() {
     myText.setProperty('text', 'Hello');
     context.addInvokableContext("myText", myText);
 
-    TextField myTextField = TextField();
+    TextInput myTextField = TextInput();
     myTextField.setProperty('value', 'Ronald');
     context.addInvokableContext("myTextField", myTextField);
 

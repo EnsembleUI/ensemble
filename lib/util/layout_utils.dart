@@ -47,6 +47,24 @@ class LayoutUtils {
 
   }
 
+  /// insert the specified gap between the widgets
+  static List<Widget> withGap(List<Widget> widgets, int gap) {
+    if (gap > 0) {
+      List<Widget> rtn = [];
+      for (int i=0; i<widgets.length; i++) {
+        rtn.add(widgets[i]);
+        if (i != widgets.length - 1) {
+          rtn.add(SizedBox(
+            width: gap.toDouble(),
+            height: gap.toDouble(),
+          ));
+        }
+      }
+      return rtn;
+    }
+    return widgets;
+  }
+
 
 
 
