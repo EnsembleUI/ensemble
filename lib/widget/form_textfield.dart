@@ -3,35 +3,25 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/input_validator.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/widget/form_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:email_validator/email_validator.dart';
-//import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-
-class TextField extends BaseTextField {
+/// TextInput
+class TextInput extends BaseTextInput {
   static const type = 'TextInput';
-  TextField({Key? key}) : super(key: key);
+  TextInput({Key? key}) : super(key: key);
 
-  @override
-  Map<String, Function> getters() {
-    return {
-      'value': () => textController.text,
-    };
-  }
   @override
   Map<String, Function> setters() {
-    return {
+    Map<String, Function> setters = super.setters();
+    setters.addAll({
       'value': (newValue) => textController.text = Utils.getString(newValue, fallback: ''),
-      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this),
+      'obscureText': (obscure) => _controller.obscureText = Utils.optionalBool(obscure),
       'inputType': (type) => _controller.inputType = Utils.optionalString(type),
-    };
-  }
-  @override
-  Map<String, Function> methods() {
-    return {};
+    });
+    return setters;
   }
 
   @override
@@ -52,26 +42,10 @@ class TextField extends BaseTextField {
 
 }
 
-class PasswordField extends BaseTextField {
-  static const type = 'Password';
-  PasswordField({Key? key}) : super(key: key);
-
-  @override
-  Map<String, Function> getters() {
-    return {
-      'value': () => textController.text,
-    };
-  }
-  @override
-  Map<String, Function> setters() {
-    return {
-      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this)
-    };
-  }
-  @override
-  Map<String, Function> methods() {
-    return {};
-  }
+/// PasswordInput
+class PasswordInput extends BaseTextInput {
+  static const type = 'PasswordInput';
+  PasswordInput({Key? key}) : super(key: key);
 
   @override
   bool isPassword() {
@@ -83,17 +57,38 @@ class PasswordField extends BaseTextField {
 
 }
 
-abstract class BaseTextField extends StatefulWidget with Invokable, HasController<TextFieldController, TextFieldState> {
-  BaseTextField({Key? key}) : super(key: key);
+/// Base StatefulWidget for both TextInput and Password
+abstract class BaseTextInput extends StatefulWidget with Invokable, HasController<TextInputController, TextInputState> {
+  BaseTextInput({Key? key}) : super(key: key);
 
   // textController manages 'value', while _controller manages the rest
   final TextEditingController textController = TextEditingController();
-  final TextFieldController _controller = TextFieldController();
+  final TextInputController _controller = TextInputController();
   @override
-  TextFieldController get controller => _controller;
+  TextInputController get controller => _controller;
 
   @override
-  TextFieldState createState() => TextFieldState();
+  Map<String, Function> getters() {
+    return {
+      'value': () => textController.text,
+    };
+  }
+
+  @override
+  Map<String, Function> setters() {
+    // set value is not specified here for safety in case of PasswordInput
+    return {
+      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this)
+    };
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {};
+  }
+
+  @override
+  TextInputState createState() => TextInputState();
 
   bool isPassword();
   TextInputType? get keyboardType;
@@ -101,32 +96,15 @@ abstract class BaseTextField extends StatefulWidget with Invokable, HasControlle
 }
 
 /// controller for both TextField and Password
-class TextFieldController extends FormFieldController {
-  int? fontSize;
+class TextInputController extends FormFieldController {
   EnsembleAction? onChange;
+
+  // applicable only for TextInput
+  bool? obscureText;
   String? inputType;
-
-  @override
-  Map<String, Function> getBaseGetters() {
-    Map<String, Function> myGetters = super.getBaseGetters();
-    myGetters.addAll({
-      'fontSize': () => fontSize,
-    });
-    return myGetters;
-  }
-
-  @override
-  Map<String, Function> getBaseSetters() {
-    Map<String, Function> mySetters = super.getBaseSetters();
-    mySetters.addAll({
-      'fontSize': (value) => fontSize = Utils.optionalInt(value),
-    });
-    return mySetters;
-  }
-
 }
 
-class TextFieldState extends FormFieldWidgetState<BaseTextField> {
+class TextInputState extends FormFieldWidgetState<BaseTextInput> {
   final focusNode = FocusNode();
 
   // for this widget we will implement onChange if the text changes AND:
@@ -172,10 +150,6 @@ class TextFieldState extends FormFieldWidgetState<BaseTextField> {
 
   @override
   Widget build(BuildContext context) {
-
-
-
-
     return TextFormField(
       key: validatorKey,
       validator: (value) {
@@ -204,7 +178,7 @@ class TextFieldState extends FormFieldWidgetState<BaseTextField> {
         return null;
       },
       keyboardType: widget.keyboardType,
-      obscureText: widget.isPassword(),
+      obscureText: widget.isPassword() || (widget._controller.obscureText ?? false),
       enableSuggestions: !widget.isPassword(),
       autocorrect: !widget.isPassword(),
       controller: widget.textController,

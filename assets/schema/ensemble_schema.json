@@ -384,6 +384,10 @@
               "description": "Pick a predefined input type",
               "enum": [ "default" ,"email", "phone", "ipAddress"]
             },
+            "obscureText": {
+              "type": "boolean",
+              "description": "whether we should obscure the typed-in text (e.g Social Security)"
+            },
             "styles": {
               "type": "object",
               "properties": {
@@ -397,7 +401,7 @@
         }
       ]
     },
-    "Password-payload": {
+    "PasswordInput-payload": {
       "allOf": [
         { "$ref": "#/$defs/FormInput-payload" },
         {
@@ -525,6 +529,11 @@
             },
             "height": {
               "type": "integer",
+              "minimum": 0
+            },
+            "gap": {
+              "type": "integer",
+              "description": "vertical gap to insert between the children (default is 10)",
               "minimum": 0
             }
           }
@@ -667,7 +676,7 @@
         "Divider": { "$ref": "#/$defs/Divider-payload" },
         "Spacer": { "$ref": "#/$defs/Spacer-payload" },
         "TextInput": { "$ref": "#/$defs/TextInput-payload" },
-        "Password": { "$ref": "#/$defs/Password-payload" },
+        "PasswordInput": { "$ref": "#/$defs/PasswordInput-payload" },
         "Checkbox": { "$ref": "#/$defs/OnOff-payload" },
         "Switch": { "$ref": "#/$defs/OnOff-payload" },
         "Dropdown": { "$ref": "#/$defs/SelectOne-payload" },

@@ -17,6 +17,7 @@ class FormFieldController extends WidgetController {
   String? iconLibrary;
   int? iconSize;
   int? iconColor;
+  int? fontSize;
 
   @override
   Map<String, Function> getBaseGetters() {
@@ -24,8 +25,6 @@ class FormFieldController extends WidgetController {
     getters.addAll({
       'enabled': () => enabled,
       'required': () => required,
-      'label': () => label,
-      'hintText': () => hintText,
     });
     return getters;
   }
@@ -42,6 +41,7 @@ class FormFieldController extends WidgetController {
       'iconLibrary': (value) => iconLibrary = Utils.optionalString(value),
       'iconSize': (value) => iconSize = Utils.optionalInt(value),
       'iconColor': (value) => iconColor = Utils.optionalInt(value),
+      'fontSize': (value) => fontSize = Utils.optionalInt(value),
     });
     return setters;
   }
