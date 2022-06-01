@@ -379,6 +379,11 @@
               "type": "string",
               "description": "Specifying the value of your Text Input"
             },
+            "inputType": {
+              "type": "string",
+              "description": "Pick a predefined input type",
+              "enum": [ "default" ,"email", "phone", "ipAddress"]
+            },
             "styles": {
               "type": "object",
               "properties": {
@@ -461,6 +466,10 @@
         },
         "enabled": {
           "type": "boolean"
+        },
+        "validateForm": {
+          "type": "boolean",
+          "description": "If our button is inside a Form, setting this to TRUE will validate all fields within this form upon button tap"
         },
         "onTap": { "$ref": "#/$defs/Action-payload" },
         "styles": {

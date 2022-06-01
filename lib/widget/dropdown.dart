@@ -131,11 +131,11 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
   @override
   void initState() {
     // validate on blur
-    focusNode.addListener(() {
+    /*focusNode.addListener(() {
       if (!focusNode.hasFocus && validatorKey.currentState != null) {
         validatorKey.currentState!.validate();
       }
-    });
+    });*/
     super.initState();
   }
 
