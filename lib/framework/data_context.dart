@@ -10,6 +10,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/parser/ast.dart';
 import 'package:ensemble_ts_interpreter/parser/js_interpreter.dart';
+import 'package:yaml/yaml.dart';
 
 /// manages Data and Invokables within the current data scope.
 /// This class can evaluate expressions based on the data scope
@@ -77,6 +78,9 @@ class DataContext {
   /// evaluate single inline binding expression (getters only) e.g $(myVar.text).
   /// Note that this expects the variable to be surrounded by $(...)
   dynamic eval(dynamic expression) {
+    if (expression is YamlMap) {
+      return _evalMap(expression);
+    }
     if (expression is! String) {
       return expression;
     }
@@ -98,6 +102,26 @@ class DataContext {
     );*/
 
   }
+
+  Map<String, dynamic> _evalMap(YamlMap yamlMap) {
+    Map<String, dynamic> map = {};
+    yamlMap.forEach((k, v) {
+      dynamic value;
+      if (v is YamlMap) {
+        value = _evalMap(v);
+      } else if (v is YamlList) {
+        value = [];
+        for (var i in v) {
+          value.add(eval(i));
+        }
+      } else {
+        value = eval(v);
+      }
+      map[k] = value;
+    });
+    return map;
+  }
+
 
   Future<String> replaceAllMappedAsync(String string, Pattern exp, Future<String> Function(Match match) replace) async {
     StringBuffer replaced = StringBuffer();
