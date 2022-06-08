@@ -3,6 +3,7 @@ import 'package:ensemble/layout/box_layout.dart';
 import 'package:ensemble/layout/data_grid.dart';
 import 'package:ensemble/layout/form.dart';
 import 'package:ensemble/layout/stack.dart';
+import 'package:ensemble/layout/tab_bar.dart';
 import 'package:ensemble/widget/Text.dart' as ensemble;
 import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/chart_bubble_builder.dart';
@@ -58,6 +59,7 @@ class WidgetRegistry {
     Stack.type: () => Stack(),
     DataGrid.type: () => DataGrid(),
     EnsembleDataRow.type: () => EnsembleDataRow(),
+    EnsembleTabBar.type: () => EnsembleTabBar(),
 
     // charts
     Highcharts.type: () => Highcharts(),
