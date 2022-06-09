@@ -121,7 +121,8 @@ class FormState extends WidgetState<EnsembleForm> {
   Widget buildGrid(List<Widget> formItems) {
     bool hasAtLeastOneLabel = false;
     List<Widget> children = [];
-    for (Widget child in formItems) {
+    for (int i=0; i<formItems.length; i++) {
+      Widget child = formItems[i];
       // add the label
       if (child is HasController &&
           child.controller is FormFieldController &&
@@ -135,13 +136,29 @@ class FormState extends WidgetState<EnsembleForm> {
       }
       // add the widget
       children.add(GridPlacement(child: child));
+
+      // add gap
+      if (widget._controller.gap > 0 && i != formItems.length -1) {
+        for (int j=0; j<2; j++) {
+          children.add(GridPlacement(child:
+            flutter.SizedBox(
+              width: widget._controller.gap.toDouble(),
+              height: widget._controller.gap.toDouble())));
+        }
+      }
     }
 
     // we only use the Grid if there exists at least 1 label
     if (hasAtLeastOneLabel) {
+      // account for gaps
+      int rowCount = formItems.length;
+      if (widget._controller.gap > 0 && rowCount > 0) {
+        rowCount = formItems.length * 2 -1;
+      }
+
       return LayoutGrid(
         columnSizes: [1.fr, 2.fr], // ratio of form fields to its label
-        rowSizes: List.filled(formItems.length, auto), // automatic row height
+        rowSizes: List.filled(rowCount, auto), // automatic row height
         children: children
       );
     }

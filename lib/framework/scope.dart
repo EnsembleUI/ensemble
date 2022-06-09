@@ -108,49 +108,6 @@ mixin ViewBuilder on IsScopeManager {
     return widget;*/
   }
 
-  /// Create a bare widget tree without setting any values on it.
-  /// If we encounter a widget with ID, add it to the DataContext
-  /// We also update the mapping of WidgetModel -> Widget
-  Widget _buildBareWidget(WidgetModel model, Map<WidgetModel, Invokable> widgetMapResult) {
-    Function? widgetInstance = WidgetRegistry.widgetMap[model.type];
-    if (widgetInstance != null) {
-      Widget widget = widgetInstance.call();
-      if (widget is Invokable) {
-
-        widgetMapResult[model] = widget as Invokable;
-
-        // If our widget has an ID, add it to our data context
-        if (model.props.containsKey('id')) {
-          (widget as Invokable).id = model.props['id'];
-          dataContext.addInvokableContext(
-              model.props['id'],
-              widget as Invokable);
-        }
-      }
-
-      // build children and itemTemplate for Containers
-      if (widget is UpdatableContainer) {
-        List<Widget>? children;
-        if (model.children != null) {
-          children = [];
-          for (WidgetModel model in model.children!) {
-            children.add(_buildBareWidget(model, widgetMapResult));
-          }
-        }
-        // evaluate the itemTemplate data as initial value
-        if (model.itemTemplate != null) {
-          dynamic initialValue = dataContext.eval(model.itemTemplate!.data);
-          if (initialValue is List) {
-            model.itemTemplate!.initialValue = initialValue;
-          }
-        }
-        (widget as UpdatableContainer).initChildren(children: children, itemTemplate: model.itemTemplate);
-      }
-      return widget;
-    }
-    return const Text("Unsupported Widget");
-  }
-
   void _updateWidgetBindings(Map<WidgetModel, ModelPayload> modelMap) {
 
     modelMap.forEach((model, payload) {
