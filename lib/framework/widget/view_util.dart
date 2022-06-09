@@ -2,6 +2,7 @@
 
 import 'package:ensemble/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/widget/custom_view.dart';
 import 'package:ensemble/framework/widget/view.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/page_model.dart';
@@ -155,9 +156,13 @@ class ViewUtil {
           modelMap[model]!.children = children;
         }
       }
-      return model is CustomWidgetModel ?
-          DataScopeWidget(scopeManager: currentScope, child: w) :
-          w;
+      // for Custom View, we wraps it around a DataScope to separate the data context.
+      // Additionally Custom View has special behavior (e.g. onLoad) that needs to be
+      // processed, so wraps it in a CustomView widget
+      return model is! CustomWidgetModel ? w :
+          DataScopeWidget(
+              scopeManager: currentScope,
+              child: CustomView(childWidget: w, viewBehavior: model.getViewBehavior()));
     }
     return const Text("Unsupported Widget");
   }

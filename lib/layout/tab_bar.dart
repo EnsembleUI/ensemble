@@ -53,6 +53,19 @@ class TabBarController extends WidgetController {
 }
 
 class TabBarState extends WidgetState<EnsembleTabBar> with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+
+  @override
+  void initState() {
+    _tabController = TabController(length: widget._controller._items.length, vsync: this);
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +77,7 @@ class TabBarState extends WidgetState<EnsembleTabBar> with SingleTickerProviderS
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         TabBar(
-          controller: TabController(length: widget._controller._items.length, vsync: this),
+          controller: _tabController,
           isScrollable: true,         // collapse the label to the left
           indicatorSize: TabBarIndicatorSize.label,
           unselectedLabelColor: Colors.black87,
@@ -78,7 +91,7 @@ class TabBarState extends WidgetState<EnsembleTabBar> with SingleTickerProviderS
         ),
         Padding(
             padding: const EdgeInsets.only(left: 0),
-            child: Builder(builder: (_) => buildSelectedTab())
+            child: Builder(builder: (BuildContext context) => buildSelectedTab())
         )
       ],
     );
