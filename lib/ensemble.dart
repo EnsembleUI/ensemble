@@ -204,7 +204,7 @@ class Ensemble {
               // now run the onResponse block of onPageLoad. Note that here we may want to reference
               // the widgets, so we have to wait until the page has rendered before executing
               if (action.onResponse != null) {
-                WidgetsBinding.instance!.addPostFrameCallback((_) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
                   // once the page rendered, we use the dataContext from the page.
                   DataContext pageDataContext = page.rootScopeManager.dataContext;
                   ScreenController().processAPIResponse(
