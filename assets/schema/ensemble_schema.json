@@ -23,6 +23,10 @@
             "Flex"
           ]
         },
+        "onLoad": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Execute an Action when this View loads"
+        },
         "menu": {
           "$ref": "#/$defs/Menu"
         },
@@ -142,6 +146,10 @@
       "type": {
         "type": "string",
         "description": "The root widget of your Custom View"
+      },
+      "onLoad": {
+        "$ref": "#/$defs/Action-payload",
+        "description": "Execute an Action when this View loads"
       }
     }
 
@@ -639,7 +647,7 @@
     },
     "Action-payload": {
       "type": [ "string" , "object" ],
-      "description": "Call Ensemble's built-in functions or execute code on value changes",
+      "description": "Call Ensemble's built-in functions or execute code",
       "required": [ "action", "name" ],
       "properties": {
         "action": {
