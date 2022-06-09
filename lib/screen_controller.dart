@@ -54,7 +54,9 @@ class ScreenController {
     /// will always be unique.
     /// TODO: a better way is to copy data to the new View so we don't waste time creating new one (Use pageName as key?)
     View initialView = View(
-        key: UniqueKey(),
+        // remove unique key as it causes multiple rendering of the Root.
+        // Does it cause listeners to go hay-wired?
+        //key: UniqueKey(),
         dataContext: dataContext,
         pageModel: pageModel);
     //log("View created ${initialView.hashCode}");

@@ -16,7 +16,7 @@ import 'package:yaml/yaml.dart';
 /// The root View. Every Ensemble page will have at least one at its root
 class View extends StatefulWidget {
   View({
-    required Key key,
+    Key? key,
     required DataContext dataContext,
     required PageModel pageModel,
   }) : super(key: key) {
