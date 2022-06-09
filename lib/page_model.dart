@@ -1,9 +1,11 @@
 import 'dart:developer';
 import 'dart:math';
 import 'package:ensemble/error_handling.dart';
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/layout/box_layout.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:yaml/yaml.dart';
 
 class PageModel {
@@ -20,6 +22,7 @@ class PageModel {
 
   Map<String, YamlMap>? apiMap;
   Map<String, YamlMap>? customViewDefinitions;
+  ViewBehavior viewBehavior = ViewBehavior();
 
   String? title;
   Map<String, dynamic>? pageStyles;
@@ -53,6 +56,9 @@ class PageModel {
 
     // build a Map of the Custom Widgets
     customViewDefinitions = buildCustomViewDefinitions(docMap);
+
+    // set the view behavior
+    viewBehavior.onLoad = Utils.getAction(viewMap['onLoad']);
 
     if (viewMap['menu']?['items'] is YamlList) {
       List<MenuItem> menuItems = [];
@@ -301,6 +307,17 @@ class CustomWidgetModel extends WidgetModel {
     return WidgetModel(type, styles, props, children: children, itemTemplate: itemTemplate);
   }
 
+  ViewBehavior getViewBehavior() {
+    return ViewBehavior(onLoad: Utils.getAction(props['onLoad']));
+  }
+
+}
+
+/// special behaviors for RootView (View) and Custom Views
+class ViewBehavior {
+  ViewBehavior({this.onLoad});
+
+  EnsembleAction? onLoad;
 }
 
 class ItemTemplate {

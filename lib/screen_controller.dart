@@ -140,8 +140,11 @@ class ScreenController {
     // the data context to evaluate expression
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
     if (scopeManager != null) {
-      _executeAction(scopeManager.dataContext, action, scopeManager.pageData.apiMap, scopeManager);
+      executeActionWithScope(scopeManager, action);
     }
+  }
+  void executeActionWithScope(ScopeManager scopeManager, EnsembleAction action) {
+    _executeAction(scopeManager.dataContext, action, scopeManager.pageData.apiMap, scopeManager);
   }
 
   /// internally execute an Action

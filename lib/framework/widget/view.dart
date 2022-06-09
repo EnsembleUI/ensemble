@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
@@ -74,6 +75,11 @@ class ViewState extends State<View>{
     );
     widget.rootScopeManager = _scopeManager;
 
+    // execute view behavior
+    if (widget._pageModel.viewBehavior.onLoad != null) {
+      ScreenController().executeActionWithScope(_scopeManager, widget._pageModel.viewBehavior.onLoad!);
+    }
+
     super.initState();
   }
 
@@ -85,10 +91,10 @@ class ViewState extends State<View>{
       // need a close button to go back to non-modal pages
       // also animate up and down (vs left and right)
       return DataScopeWidget(
-          scopeManager: _scopeManager,
-          child: Scaffold(
-            body:  _scopeManager.buildWidget(widget._pageModel.rootWidgetModel),
-            bottomSheet: _buildFooter(_scopeManager, widget._pageModel))
+        scopeManager: _scopeManager,
+        child: Scaffold(
+          body:  _scopeManager.buildWidget(widget._pageModel.rootWidgetModel),
+          bottomSheet: _buildFooter(_scopeManager, widget._pageModel)),
       );
     }
     // regular page
@@ -138,7 +144,7 @@ class ViewState extends State<View>{
           bottomNavigationBar: bottomNavBar,
           drawer: drawer,
           bottomSheet: _buildFooter(_scopeManager, widget._pageModel),
-        )
+        ),
       );
 
       // if backgroundImage is set, put it outside of the Scaffold so
@@ -315,10 +321,7 @@ class ViewState extends State<View>{
     _scopeManager.eventBus.destroy();
     super.dispose();
   }
-
 }
-
-
 
 /// a wrapper InheritedWidget to expose the ScopeManager
 /// to every widgets in our tree
