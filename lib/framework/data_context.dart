@@ -10,6 +10,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/parser/ast.dart';
 import 'package:ensemble_ts_interpreter/parser/js_interpreter.dart';
+import 'package:intl/intl.dart';
 import 'package:yaml/yaml.dart';
 
 /// manages Data and Invokables within the current data scope.
@@ -157,7 +158,7 @@ class DataContext {
         return evalToken(tokens, index+1, data.getProperty(token));
       } else {
         // only support methods with 1 argument for now
-        RegExpMatch? match = RegExp(r'''([a-zA-Z_-\d]+)\s*\(["']([a-zA-Z_-\d]+)["']\)''').firstMatch(token);
+        RegExpMatch? match = RegExp(r'''([a-zA-Z_-\d]+)\s*\(["']?([a-zA-Z_-\d:]+)["']?\)''').firstMatch(token);
         if (match != null) {
           // first group is the method name, second is the argument
           Function? method = data.getMethods()[match.group(1)];
@@ -209,6 +210,7 @@ class NativeInvokable with Invokable {
   Map<String, Function> getters() {
     return {
       'storage': () => EnsembleStorage(),
+      'formatter': () => Formatter(),
     };
   }
 
@@ -269,6 +271,60 @@ class EnsembleStorage with Invokable {
   Map<String, Function> setters() {
     return {};
   }
+
+}
+
+class Formatter with Invokable {
+  @override
+  Map<String, Function> getters() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {
+      'prettyDate': (input) => prettyDate(input),
+      'prettyDateTime': (input) => prettyDateTime(input),
+    };
+  }
+  
+  String prettyDate(String input) {
+    try {
+       DateTime date = DateTime.parse(input);
+       return DateFormat.yMMMd().format(date);
+    } on FormatException catch (_, e) {
+      return '';
+    }
+  }
+
+  String prettyDateTime(dynamic input) {
+    DateTime? dateTime;
+    if (input is int) {
+      dateTime = DateTime.fromMillisecondsSinceEpoch(input * 1000);
+    } else if (input is String) {
+      int? intValue = int.tryParse(input);
+      if (intValue != null) {
+        dateTime = DateTime.fromMillisecondsSinceEpoch(intValue * 1000);
+      } else {
+        try {
+          dateTime = DateTime.parse(input);
+        } on FormatException catch (_, e) {}
+      }
+    }
+
+    if (dateTime != null) {
+      return DateFormat.yMMMd().format(dateTime) + ' ' + DateFormat.jm().format(dateTime);
+    }
+    return '';
+  }
+
+
+  @override
+  Map<String, Function> setters() {
+    return {};
+  }
+
+
 
 }
 
