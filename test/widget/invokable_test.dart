@@ -133,6 +133,17 @@ void main() {
     expect(context.eval(r'Psst $(ensemble.storage.get("password"))'), 'Psst pass');
   });
 
+  test('Formatter', () {
+    DataContext context = getBaseContext();
+    context.addInvokableContext("ensemble", NativeInvokable(MockBuildContext()));
+    expect(context.eval(r'$(ensemble.formatter.prettyDate("2022-06-09"))'), 'Jun 9, 2022');
+
+    expect(context.eval(r'$(ensemble.formatter.prettyDateTime("2022-06-09T09:05:00"))'), 'Jun 9, 2022 9:05 AM');
+
+    // timestamp 1654841288 is around 6/9/2022 11:09PM PST
+    expect(context.eval(r'$(ensemble.formatter.prettyDateTime(1654841398))'), 'Jun 9, 2022 11:09 PM');
+  });
+
 }
 
 class EnsembleMockLibrary with Invokable {
