@@ -44,6 +44,7 @@ class EnsembleForm extends StatefulWidget with UpdatableContainer, Invokable, Ha
       'width': (value) => _controller.width = Utils.optionalInt(value),
       'height': (value) => _controller.height = Utils.optionalInt(value),
       'gap': (value) => _controller.gap = Utils.getInt(value, fallback: FormController._defaultGap),
+      'maxWidth':  (value) => _controller.maxWidth = Utils.optionalInt(value),
     };
   }
 
@@ -75,6 +76,8 @@ class FormController extends WidgetController {
   String? labelOverflow;
   bool? enabled;
 
+  int? maxWidth;
+
   int? width;
   int? height;
   int gap = _defaultGap;
@@ -100,7 +103,7 @@ class FormState extends WidgetState<EnsembleForm> {
     } else {
       body = buildColumn(widget._controller.children!);
     }
-    return SizedBox(
+    Widget rtn = SizedBox(
       width: widget._controller.width?.toDouble(),
       height: widget._controller.height?.toDouble(),
       child: EnsembleFormScope(
@@ -109,6 +112,13 @@ class FormState extends WidgetState<EnsembleForm> {
           key: _formKey,
           child: body))
     );
+
+    if (widget._controller.maxWidth != null) {
+      return ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: widget._controller.maxWidth!.toDouble()),
+        child: rtn);
+    }
+    return rtn;
 
   }
 
