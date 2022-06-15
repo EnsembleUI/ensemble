@@ -9,6 +9,7 @@ import 'package:mockito/mockito.dart';
 import 'package:yaml/yaml.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
 
   Map<String, dynamic> dataMap = {
     'result': {
@@ -17,7 +18,12 @@ void main() {
       'skills': 'flying',
       'superhero': true,
       'first_name': 'Peter',
-      'last-name': 'Parker'
+      'last-name': 'Parker',
+      'has_power_since': 1654841398,
+      'power_for_hire': 6400.12,
+      'currency_1': 24,
+      'currency_2': "25",
+      'currency_3': "25.3",
     }
   };
 
@@ -131,6 +137,29 @@ void main() {
     expect(context.eval(r'$(ensemble.storage.get("username"))'), 'admin');
     expect(context.eval(r"$(ensemble.storage.get('username'))"), 'admin');
     expect(context.eval(r'Psst $(ensemble.storage.get("password"))'), 'Psst pass');
+  });
+
+  test('Formatter', () {
+    DataContext context = getBaseContext();
+    context.addInvokableContext("ensemble", NativeInvokable(MockBuildContext()));
+    //expect(context.eval(r'$(ensemble.formatter.prettyDate("2022-06-09"))'), 'Jun 9, 2022');
+
+    //expect(context.eval(r'$(ensemble.formatter.prettyDateTime("2022-06-09T09:05:00"))'), 'Jun 9, 2022 9:05 AM');
+
+    // timestamp 1654841288 is around 6/9/2022 11:09PM PST
+    //expect(context.eval(r'$(ensemble.formatter.prettyDateTime(1654841398))'), 'Jun 9, 2022 11:09 PM');
+    //expect(context.eval(r'$(ensemble.formatter.prettyDateTime(result.has_power_since))'), 'Jun 9, 2022 11:09 PM');
+    expect(context.eval(r'$(result.has_power_since.prettyDateTime()"))'), 'Jun 9, 2022 11:09 PM');
+  });
+
+  test('currency formatter', () {
+    DataContext context = getBaseContext();
+    context.addInvokableContext("ensemble", NativeInvokable(MockBuildContext()));
+
+    expect(context.eval(r'$(result.power_for_hire.prettyCurrency())'), '\$6,400.12');
+    expect(context.eval(r'$(result.currency_1.prettyCurrency())'), '\$24.00');
+    expect(context.eval(r'$(result.currency_2.prettyCurrency())'), '\$25.00');
+    expect(context.eval(r'$(result.currency_3.prettyCurrency())'), '\$25.30');
   });
 
 }

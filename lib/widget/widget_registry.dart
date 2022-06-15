@@ -16,6 +16,7 @@ import 'package:ensemble/widget/form_checkbox.dart';
 import 'package:ensemble/widget/form_daterange.dart';
 import 'package:ensemble/widget/form_textfield.dart';
 import 'package:ensemble/widget/image.dart';
+import 'package:ensemble/widget/qr_code.dart';
 import 'package:ensemble/widget/rating.dart';
 import 'package:ensemble/widget/spacer.dart';
 import 'package:ensemble/widget/webview.dart';
@@ -41,6 +42,7 @@ class WidgetRegistry {
     // misc widgets
     Rating.type: () => Rating(),
     EnsembleWebView.type: () => EnsembleWebView(),
+    QRCode.type: () => QRCode(),
 
     // form fields
     EnsembleForm.type: () => EnsembleForm(),

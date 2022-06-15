@@ -176,8 +176,8 @@ class Utils {
     return int.tryParse(value);
   }
 
-  static final onlyExpression = RegExp(r'''^\$\(([a-z_-\d."'\(\)\[\]]+)\)$''', caseSensitive: false);
-  static final containExpression = RegExp(r'''\$\(([a-z_-\d."'\(\)\[\]]+)\)''', caseSensitive: false);
+  static final onlyExpression = RegExp(r'''^\$\(([a-z_-\d.:"'\(\)\[\]]+)\)$''', caseSensitive: false);
+  static final containExpression = RegExp(r'''\$\(([a-z_-\d.:"'\(\)\[\]]+)\)''', caseSensitive: false);
   static final i18nExpression = RegExp(r'r@[a-zA-Z0-9.-_]+',caseSensitive: false);
 
   //expect r@mystring or r@myapp.myscreen.mystring as long as r@ is there. If r@ is not there, returns the string as-is

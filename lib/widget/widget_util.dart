@@ -1,7 +1,42 @@
 
+import 'package:ensemble/layout/layout_helper.dart';
+import 'package:ensemble/util/utils.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as flutter;
 
 /// utility for our Widgets
+class WidgetUtils {
+
+  /// wrap our widget in a Box, which supports margin, padding, border, ...
+  static Widget wrapInBox(Widget widget, BoxController boxController) {
+    BorderRadius? borderRadius = boxController.borderRadius == null ?
+      null :
+      BorderRadius.all(Radius.circular(boxController.borderRadius!.toDouble()));
+
+    return Container(
+        margin: Utils.getInsets(boxController.margin),
+        decoration: BoxDecoration(
+            border: !boxController.hasBorder() ?
+            null :
+            Border.all(
+                color: boxController.borderColor ?? Colors.black26,
+                width: (boxController.borderWidth ?? 1).toDouble()),
+            borderRadius: borderRadius
+        ),
+        padding: Utils.getInsets(boxController.padding),
+        child: ClipRRect(
+            child: widget,
+            borderRadius: borderRadius ?? const BorderRadius.all(Radius.zero)
+        )
+    );
+
+  }
+}
+
+
+
+
+
 
 class TextOverflow {
   TextOverflow(this.overflow, this.maxLine, this.softWrap);

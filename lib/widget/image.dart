@@ -2,9 +2,11 @@
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/layout_helper.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/widget_util.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 
 class EnsembleImage extends StatefulWidget with Invokable, HasController<ImageController, ImageState> {
   static const type = 'Image';
@@ -74,51 +76,50 @@ class ImageState extends WidgetState<EnsembleImage> {
         fit = BoxFit.scaleDown;
         break;
     }
-    // image binding is tricky. When the URL has not been resolved
-    // the image will throw exception. We have to use a permanent placeholder
-    // until the binding engages
-    Image image = Image.network(
-        widget._controller.source,
-        width: widget._controller.width?.toDouble(),
-        height: widget._controller.height?.toDouble(),
-        fit: fit,
-        errorBuilder: (context, error, stacktrace) {
-          return Container(
-            color: Colors.white60,
-            child: const Center(
-              child: Icon(Icons.image, size: 50),
-            )
-          );
-        },
-        loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
-          if (loadingProgress == null) {
-            return child;
-          }
-          return SizedBox(
-            width: widget._controller.width?.toDouble(),
-            height: widget._controller.height?.toDouble(),
-            child: const Center(
-              child: CircularProgressIndicator()));
-        }
-    );
 
-    BorderRadius? borderRadius = widget._controller.borderRadius == null ? null :
-      BorderRadius.all(Radius.circular(widget._controller.borderRadius!.toDouble()));
-    return Container(
-      margin: Utils.getInsets(widget._controller.margin),
-      decoration: BoxDecoration(
-        border: !widget._controller.hasBorder() ? null : Border.all(
-            color: widget._controller.borderColor ?? Colors.black26,
-            width: (widget._controller.borderWidth ?? 1).toDouble()),
-        borderRadius: borderRadius
-      ),
-      padding: Utils.getInsets(widget._controller.padding),
-      child: ClipRRect(
-        child: image,
-        borderRadius: borderRadius ?? const BorderRadius.all(Radius.zero)
-      )
+    Widget image;
+    if (isSvg()) {
+      image = SvgPicture.network(
+          widget._controller.source,
+          width: widget._controller.width?.toDouble(),
+          height: widget._controller.height?.toDouble(),
+          fit: fit ?? BoxFit.contain,
+          placeholderBuilder: (_) => placeholderImage()
+      );
+    } else {
+      // image binding is tricky. When the URL has not been resolved
+      // the image will throw exception. We have to use a permanent placeholder
+      // until the binding engages
+      image = Image.network(
+          widget._controller.source,
+          width: widget._controller.width?.toDouble(),
+          height: widget._controller.height?.toDouble(),
+          fit: fit,
+          errorBuilder: (context, error, stacktrace) => placeholderImage(),
+          loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+            if (loadingProgress == null) {
+              return child;
+            }
+            return placeholderImage();
+          }
+      );
+    }
+
+    return WidgetUtils.wrapInBox(image, widget._controller);
+  }
+
+  bool isSvg() {
+    return widget._controller.source.endsWith('svg');
+  }
+
+  Widget placeholderImage() {
+    return SizedBox(
+      width: widget._controller.width?.toDouble(),
+      height: widget._controller.height?.toDouble(),
+      child: Image.asset('assets/images/img_placeholder.png')
     );
   }
+
 
 
 
