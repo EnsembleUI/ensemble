@@ -2,6 +2,7 @@
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/layout_helper.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/widget_util.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -104,22 +105,7 @@ class ImageState extends WidgetState<EnsembleImage> {
       );
     }
 
-    BorderRadius? borderRadius = widget._controller.borderRadius == null ? null :
-      BorderRadius.all(Radius.circular(widget._controller.borderRadius!.toDouble()));
-    return Container(
-      margin: Utils.getInsets(widget._controller.margin),
-      decoration: BoxDecoration(
-        border: !widget._controller.hasBorder() ? null : Border.all(
-            color: widget._controller.borderColor ?? Colors.black26,
-            width: (widget._controller.borderWidth ?? 1).toDouble()),
-        borderRadius: borderRadius
-      ),
-      padding: Utils.getInsets(widget._controller.padding),
-      child: ClipRRect(
-        child: image,
-        borderRadius: borderRadius ?? const BorderRadius.all(Radius.zero)
-      )
-    );
+    return WidgetUtils.wrapInBox(image, widget._controller);
   }
 
   bool isSvg() {
