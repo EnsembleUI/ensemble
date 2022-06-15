@@ -6,6 +6,7 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/parser/ast.dart';
@@ -139,11 +140,22 @@ class DataContext {
   }
 
   /// evaluate Typescript code block
-  void evalCode(String codeBlock) {
+  dynamic evalCode(String codeBlock) {
     final json = jsonDecode(codeBlock);
     List<ASTNode> arr = ASTBuilder().buildArray(json['body']);
     dynamic rtnValue = Interpreter(_contextMap).evaluate(arr);
     //print(rtnValue);
+    return rtnValue;
+  }
+
+  /// eval single line Typescript surrounded by $(...)
+  dynamic evalSingleLineCode(String codeWithNotation) {
+    RegExpMatch? simpleExpression = Utils.onlyExpression.firstMatch(codeWithNotation);
+    if (simpleExpression != null) {
+      String code = evalVariable(simpleExpression.group(1)!);
+      return evalCode(code);
+    }
+    return null;
   }
 
   dynamic evalToken(List<String> tokens, int index, dynamic data) {
@@ -152,28 +164,46 @@ class DataContext {
       return data;
     }
 
-    if (data is Invokable) {
-      String token = tokens[index];
-      if (data.getGettableProperties().contains(token)) {
-        return evalToken(tokens, index+1, data.getProperty(token));
-      } else {
-        // only support methods with 1 argument for now
-        RegExpMatch? match = RegExp(r'''([a-zA-Z_-\d]+)\s*\(["']?([a-zA-Z_-\d:]+)["']?\)''').firstMatch(token);
-        if (match != null) {
-          // first group is the method name, second is the argument
-          Function? method = data.getMethods()[match.group(1)];
-          if (method != null) {
-            dynamic nextData = Function.apply(method, [match.group(2)]);
-            return evalToken(tokens, index+1, nextData);
-          }
-        }
-        // return null since we can't find any matching methods/getters on this Invokable
-        return null;
+    if (data is Map) {
+      return evalToken(tokens, index+1, data[tokens[index]]);
+    } else {
+
+      // if data is a primitive, convert them to primitive Invokables so
+      // we can operate on them further
+      dynamic primitive = InvokablePrimitive.getPrimitive(data);
+      if (primitive != null) {
+        data = primitive;
       }
 
-    } else if (data is Map) {
-      return evalToken(tokens, index+1, data[tokens[index]]);
+      if (data is Invokable) {
+        String token = tokens[index];
+        if (data.getGettableProperties().contains(token)) {
+          return evalToken(tokens, index + 1, data.getProperty(token));
+        } else {
+          // only support methods with 0 or 1 argument for now
+          RegExpMatch? match = RegExp(
+              r'''([a-zA-Z_-\d]+)\s*\(["']?([a-zA-Z_-\d:.]*)["']?\)''')
+              .firstMatch(token);
+          if (match != null) {
+            // first group is the method name, second is the argument
+            Function? method = data.getMethods()[match.group(1)];
+            if (method != null) {
+              // our match will always have 2 groups. Second group is the argument
+              // which could be empty since we use ()*
+              List<String> args = [];
+              if (match.group(2)!.isNotEmpty) {
+                args.add(match.group(2)!);
+              }
+              dynamic nextData = Function.apply(method, args);
+              return evalToken(tokens, index + 1, nextData);
+            }
+          }
+          // return null since we can't find any matching methods/getters on this Invokable
+          return null;
+        }
+      }
     }
+
     return data;
   }
 
@@ -283,48 +313,16 @@ class Formatter with Invokable {
   @override
   Map<String, Function> methods() {
     return {
-      'prettyDate': (input) => prettyDate(input),
-      'prettyDateTime': (input) => prettyDateTime(input),
+      'prettyDate': (input) => InvokablePrimitive.prettyDate(input),
+      'prettyDateTime': (input) => InvokablePrimitive.prettyDateTime(input),
+      'prettyCurrency': (input) => InvokablePrimitive.prettyCurrency(input),
     };
   }
-  
-  String prettyDate(String input) {
-    try {
-       DateTime date = DateTime.parse(input);
-       return DateFormat.yMMMd().format(date);
-    } on FormatException catch (_, e) {
-      return '';
-    }
-  }
-
-  String prettyDateTime(dynamic input) {
-    DateTime? dateTime;
-    if (input is int) {
-      dateTime = DateTime.fromMillisecondsSinceEpoch(input * 1000);
-    } else if (input is String) {
-      int? intValue = int.tryParse(input);
-      if (intValue != null) {
-        dateTime = DateTime.fromMillisecondsSinceEpoch(intValue * 1000);
-      } else {
-        try {
-          dateTime = DateTime.parse(input);
-        } on FormatException catch (_, e) {}
-      }
-    }
-
-    if (dateTime != null) {
-      return DateFormat.yMMMd().format(dateTime) + ' ' + DateFormat.jm().format(dateTime);
-    }
-    return '';
-  }
-
 
   @override
   Map<String, Function> setters() {
     return {};
   }
-
-
 
 }
 
