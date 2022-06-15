@@ -51,6 +51,8 @@ dependencies:
       ref: master
   email_validator: ^2.0.1
   form_validator: ^1.0.2
+  flutter_svg: ^1.1.0
+  qr_flutter: ^4.0.0
 
 
 dev_dependencies:
@@ -63,6 +65,9 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    - assets/images/
 
   # This section identifies your Flutter project as a module meant for
   # embedding in a native host app.  These identifiers should _not_ ordinarily

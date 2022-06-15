@@ -329,6 +329,42 @@
         }
       }
     },
+    "QRCode-payload": {
+      "type": "object",
+      "required": ["value"],
+      "properties": {
+        "value": {
+          "type": "string",
+          "description": "The data to generate the QR code"
+        },
+        "styles": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
+            },
+            {
+              "$ref": "#/$defs/boxStyles"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "size": {
+                  "type": "integer",
+                  "description": "Specify the width/height of the QR Code. Default: 160"
+                },
+                "backgroundColor": {
+                  "$ref": "#/$defs/typeColors"
+                },
+                "color": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Set the color for the QR code drawing"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
     "Divider-payload": {
       "type": "object",
       "properties": {
@@ -681,6 +717,7 @@
         "Text": { "$ref": "#/$defs/Text-payload" },
         "Icon": { "$ref": "#/$defs/Icon-payload" },
         "Image": { "$ref": "#/$defs/Image-payload" },
+        "QRCode": { "$ref": "#/$defs/QRCode-payload" },
         "Divider": { "$ref": "#/$defs/Divider-payload" },
         "Spacer": { "$ref": "#/$defs/Spacer-payload" },
         "TextInput": { "$ref": "#/$defs/TextInput-payload" },
@@ -782,7 +819,7 @@
     "styleMargin": {
       "type": "object",
       "properties": {
-        "padding": {
+        "margin": {
           "type": ["integer", "string"],
           "description": "Margin with CSS-style notation e.g padding: 5 20 5"
         }
