@@ -21,9 +21,9 @@ void main() {
 
   YamlMap yamlPayload = YamlMap.wrap({
     'payload': {
-      'name': '\$(result.name)',
-      'age': '\$(age)',
-      'superhero': '\$(is_superhero)'
+      'name': '\${result.name}',
+      'age': '\${age}',
+      'superhero': '\${is_superhero}'
     }
   });
 

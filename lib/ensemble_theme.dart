@@ -8,8 +8,8 @@ class EnsembleTheme {
   static ThemeData getAppTheme(YamlMap overrides) {
     return defaultAppTheme.copyWith(
       colorScheme: defaultColorScheme.copyWith(
-        primary: Utils.getColor(overrides['colors']?['primary']),
-        secondary: Utils.getColor(overrides['colors']['secondary']),
+        primary: Utils.getColor(overrides['Colors']?['primary']),
+        secondary: Utils.getColor(overrides['Colors']?['secondary']),
       ),
     );
 

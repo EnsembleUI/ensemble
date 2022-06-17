@@ -51,10 +51,10 @@ void main() {
   test('payload map', () {
     Map<String, dynamic> processed = getBaseContext().eval(YamlMap.wrap({
       'payload': {
-        'name': '\$(result.name)',
-        'age': '\$(result.age)',
-        'skills': ['eating', '\$(result.skills)', 'drinking'],
-        'superhero': '\$(result.superhero)'
+        'name': '\${result.name}',
+        'age': '\${result.age}',
+        'skills': ['eating', '\${result.skills}', 'drinking'],
+        'superhero': '\${result.superhero}'
       }
     }));
     expect(processed['payload']['name'], 'Peter Parker');
@@ -65,26 +65,26 @@ void main() {
   });
 
   test('url', () {
-    expect(getBaseContext().eval("https://site.com/age/\$(result.age)/detail"), "https://site.com/age/25/detail");
+    expect(getBaseContext().eval("https://site.com/age/\${result.age}/detail"), "https://site.com/age/25/detail");
   });
 
   test('multiple matches', () {
     DataContext context = getBaseContext();
-    expect(context.eval("hello \$(result.name)"), "hello Peter Parker");
-    expect(context.eval("\$(result.name)'s age is \$(result.age)"), "Peter Parker's age is 25");
+    expect(context.eval("hello \${result.name}"), "hello Peter Parker");
+    expect(context.eval("\${result.name}'s age is \${result.age}"), "Peter Parker's age is 25");
   });
 
 
   test('Parsing expressions', () {
     // empty context returns original
     DataContext context = DataContext(buildContext: MockBuildContext(), initialMap: {});
-    expect(context.eval(r'$(blah)'), null);
-    expect(context.eval(r'$(result.name)'), null);
+    expect(context.eval(r'${blah}'), null);
+    expect(context.eval(r'${result.name}'), null);
 
     context = getBaseContext();
-    expect(context.eval(r'$(result.first_name)'), 'Peter');
-    expect(context.eval(r'$(result.last-name)'), 'Parker');
-    expect(context.eval(r'$(result.name)'), 'Peter Parker');
+    expect(context.eval(r'${result.first_name}'), 'Peter');
+    expect(context.eval(r'${result.last-name}'), 'Parker');
+    expect(context.eval(r'${result.name}'), 'Peter Parker');
 
     expect(context.eval('hello'), 'hello');
   });
@@ -109,7 +109,7 @@ void main() {
     //expect(context.eval(r'$(myTextField.value)'), 'Ronald');
 
     // invalid getter
-    expect(context.eval(r'$(myTextField.what)'), null);
+    expect(context.eval(r'${myTextField.what}'), null);
   });
 
   /*test("Container getters", () {
@@ -127,7 +127,7 @@ void main() {
 
   test("Code block", () {
     DataContext context = getDataAndWidgetContext();
-    expect(context.eval(r'$(myText.text) $(myTextField.value)'), 'Hello Ronald');
+    expect(context.eval(r'${myText.text} ${myTextField.value}'), 'Hello Ronald');
 
     // TODO: use AST instead of code
     //context.evalCode('myText.text = "Goodbye"; myTextField.value = "Peter";');
@@ -137,9 +137,9 @@ void main() {
   test("Recursive invokable", () {
     DataContext context = getBaseContext();
     context.addInvokableContext("ensemble", EnsembleMockLibrary());
-    expect(context.eval(r'$(ensemble.storage.get("username"))'), 'admin');
-    expect(context.eval(r"$(ensemble.storage.get('username'))"), 'admin');
-    expect(context.eval(r'Psst $(ensemble.storage.get("password"))'), 'Psst pass');
+    expect(context.eval(r'${ensemble.storage.get("username")}'), 'admin');
+    expect(context.eval(r"${ensemble.storage.get('username')}"), 'admin');
+    expect(context.eval(r'Psst ${ensemble.storage.get("password")}'), 'Psst pass');
   });
 
   test('Date Formatter', () {
@@ -155,18 +155,18 @@ void main() {
     //expect(context.eval(r'$(ensemble.formatter.prettyDateTime(result.has_power_since))'), 'Jun 9, 2022 11:09 PM');
 
 
-    expect(context.eval(r'$(result.date_1.prettyDateTime())'), 'Jun 16, 2022 5:01 PM');
-    expect(context.eval(r'$(result.has_power_since.prettyDateTime())'), 'Jun 9, 2022 11:09 PM');
+    expect(context.eval(r'${result.date_1.prettyDateTime()}'), 'Jun 16, 2022 5:01 PM');
+    expect(context.eval(r'${result.has_power_since.prettyDateTime()}'), 'Jun 9, 2022 11:09 PM');
   });
 
   test('currency formatter', () {
     DataContext context = getBaseContext();
     context.addInvokableContext("ensemble", NativeInvokable(MockBuildContext()));
 
-    expect(context.eval(r'$(result.power_for_hire.prettyCurrency())'), '\$6,400.12');
-    expect(context.eval(r'$(result.currency_1.prettyCurrency())'), '\$24.00');
-    expect(context.eval(r'$(result.currency_2.prettyCurrency())'), '\$25.00');
-    expect(context.eval(r'$(result.currency_3.prettyCurrency())'), '\$25.30');
+    expect(context.eval(r'${result.power_for_hire.prettyCurrency()}'), '\$6,400.12');
+    expect(context.eval(r'${result.currency_1.prettyCurrency()}'), '\$24.00');
+    expect(context.eval(r'${result.currency_2.prettyCurrency()}'), '\$25.00');
+    expect(context.eval(r'${result.currency_3.prettyCurrency()}'), '\$25.30');
   });
 
 }
