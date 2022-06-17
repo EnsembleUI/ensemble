@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 
+import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
@@ -31,6 +32,7 @@ class Ensemble {
   }
 
   DefinitionProvider? definitionProvider;
+  AppBundle? _appBundle;
 
   /// init Ensemble from the config file
   Future<bool> initialize() async {
@@ -102,7 +104,31 @@ class Ensemble {
       log("Error loading ensemble-config.yaml.\n$error");
       rethrow;
     }
+    // initialize our App Bundle (theme, translation, ...)
+    await initAppBundle();
     return definitionProvider != null;
+  }
+
+  /// initialize Ensemble with params (no config file)
+  Future initializeWithParams(DefinitionProvider provider) async {
+    definitionProvider = provider;
+    await initAppBundle();
+    return;
+  }
+
+
+  /// initialize our App Bundle (theme, translations, ...)
+  Future initAppBundle() async {
+    if (definitionProvider != null) {
+      _appBundle = await definitionProvider!.getAppBundle();
+    }
+  }
+  /// pass custom Theme overrides and return the App Theme
+  ThemeData getAppTheme() {
+    if (_appBundle?.theme != null) {
+      return EnsembleTheme.getAppTheme(_appBundle!.theme!);
+    }
+    return EnsembleTheme.defaultAppTheme;
   }
 
   /// fetch the page definition
@@ -281,4 +307,11 @@ class Ensemble {
   }
 
 
+}
+
+
+class AppBundle {
+  AppBundle({this.theme});
+
+  YamlMap? theme;
 }

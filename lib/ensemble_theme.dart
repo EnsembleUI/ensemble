@@ -1,6 +1,64 @@
+import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
+import 'package:yaml/yaml.dart';
 
 class EnsembleTheme {
+
+
+  static ThemeData getAppTheme(YamlMap overrides) {
+    return defaultAppTheme.copyWith(
+      colorScheme: defaultColorScheme.copyWith(
+        primary: Utils.getColor(overrides['colors']?['primary']),
+        secondary: Utils.getColor(overrides['colors']['secondary']),
+      ),
+    );
+
+  }
+
+
+
+  static ThemeData defaultAppTheme = ThemeData(
+    colorScheme: defaultColorScheme,
+
+    /*
+    inputDecorationTheme: InputDecorationTheme(
+      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(0)))
+    ),
+    buttonTheme: ButtonThemeData(
+     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+     buttonColor: Colors.yellow,
+    ),*/
+
+
+
+  );
+
+  /// default color scheme
+  static ColorScheme defaultColorScheme = const ColorScheme(
+    brightness: Brightness.light,
+    primary: Color(0xFF08B48F),
+    onPrimary: Colors.white,
+
+    secondary: Color(0xFFED5742),
+    onSecondary: Colors.white,
+
+    error: Color(0xFFB00020),
+    onError: Colors.white,
+
+    background: Colors.white,
+    onBackground: Color(0xFF404040),
+
+    surface: Colors.white,
+    onSurface: Color(0xFF404040)
+  );
+
+
+
+
+
+
+
+
 
 
   static const Color notWhite = Color(0xFFEDF0F2);
