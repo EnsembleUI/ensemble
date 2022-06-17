@@ -1,0 +1,38 @@
+{
+  "$id": "https://ensembleui.com/theme.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Theme",
+  "type": "object",
+  "properties": {
+    "colors": {
+      "type": "object",
+      "properties": {
+        "primary": {
+          "$ref": "#/$defs/Color",
+          "description": "The Primary color of your App"
+        },
+        "secondary": {
+          "$ref": "#/$defs/Color",
+          "description": "The Secondary color of your App"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "Color": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "string",
+          "enum": ["transparent", "black", "blue", "white", "red", "grey", "teal", "amber", "pink", "purple", "yellow", "green", "brown", "cyan", "indigo", "lime", "orange"]
+        },
+        {
+          "type": "string",
+          "pattern": "^0x"
+        }
+      ]
+    }
+  }
+}

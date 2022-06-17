@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:async';
 import 'dart:ui';
 import 'package:ensemble/ensemble.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:flutter_i18n/loaders/decoders/yaml_decode_strategy.dart';
 import 'package:yaml/yaml.dart';
@@ -14,12 +15,14 @@ abstract class DefinitionProvider {
   DefinitionProvider(this.i18nProps);
   Future<YamlMap> getDefinition({String? screenId});
   FlutterI18nDelegate getI18NDelegate();
+  Future<AppBundle> getAppBundle();
 }
 
 class LocalDefinitionProvider extends DefinitionProvider {
   LocalDefinitionProvider(this.path, this.appHome,I18nProps i18nProps): super(i18nProps);
   final String path;
   final String appHome;
+
   FlutterI18nDelegate? _i18nDelegate;
   @override
   FlutterI18nDelegate getI18NDelegate() {
@@ -42,6 +45,16 @@ class LocalDefinitionProvider extends DefinitionProvider {
         '$path${screenId ?? appHome}.yaml',
         cache: foundation.kReleaseMode);
     return loadYaml(pageStr);
+  }
+
+  @override
+  Future<AppBundle> getAppBundle() async {
+    try {
+      var content = await rootBundle.loadString('${path}theme.config');
+      return AppBundle(theme: await loadYaml(content));
+    } catch (error) {
+      return AppBundle();
+    }
   }
 }
 
@@ -76,6 +89,21 @@ class RemoteDefinitionProvider extends DefinitionProvider {
       completer.complete(loadYaml(response.body));
     } else {
       completer.completeError("Error loading Remote screen $screen");
+    }
+    return completer.future;
+  }
+
+  @override
+  Future<AppBundle> getAppBundle() async {
+    // theme config is optional
+    Completer<AppBundle> completer = Completer();
+    http.Response response = await http.get(
+        Uri.parse('${path}theme.config'));
+    if (response.statusCode == 200) {
+      AppBundle appBundle = AppBundle(theme: await loadYaml(response.body));
+      completer.complete(appBundle);
+    } else {
+      completer.complete(AppBundle());
     }
     return completer.future;
   }
@@ -126,6 +154,11 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
     }
     completer.completeError("Error loading Ensemble page: ${screenId ?? 'Home'}");
     return completer.future;
+  }
+
+  @override
+  Future<AppBundle> getAppBundle() async {
+    return AppBundle();
   }
 
 }
