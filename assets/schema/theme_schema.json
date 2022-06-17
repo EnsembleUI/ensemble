@@ -4,7 +4,7 @@
   "title": "Theme",
   "type": "object",
   "properties": {
-    "colors": {
+    "Colors": {
       "type": "object",
       "properties": {
         "primary": {
