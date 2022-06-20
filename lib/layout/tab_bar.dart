@@ -32,6 +32,13 @@ class EnsembleTabBar extends StatefulWidget with Invokable, HasController<TabBar
   @override
   Map<String, Function> setters() {
     return {
+      'tabFontSize': (fontSize) => _controller.tabFontSize = Utils.optionalInt(fontSize),
+      'tabFontWeight': (fontWeight) => _controller.tabFontWeight = Utils.getFontWeight(fontWeight),
+      'activeTabColor': (color) => _controller.activeTabColor = Utils.getColor(color),
+      'inactiveTabColor': (color) => _controller.inactiveTabColor = Utils.getColor(color),
+      'indicatorColor': (color) => _controller.indicatorColor = Utils.getColor(color),
+      'indicatorThickness': (thickness) => _controller.indicatorThickness = Utils.optionalInt(thickness),
+
       'selectedIndex': (index) => _controller.selectedIndex = Utils.getInt(index, fallback: 0),
       'items': (items) => _controller.items = items,
     };
@@ -40,6 +47,13 @@ class EnsembleTabBar extends StatefulWidget with Invokable, HasController<TabBar
 }
 
 class TabBarController extends WidgetController {
+  int? tabFontSize;
+  FontWeight? tabFontWeight;
+  Color? activeTabColor;
+  Color? inactiveTabColor;
+  Color? indicatorColor;
+  int? indicatorThickness;
+
   int selectedIndex = 0;
   final List<TabItem> _items = [];
 
@@ -73,6 +87,11 @@ class TabBarState extends WidgetState<EnsembleTabBar> with SingleTickerProviderS
       return const SizedBox.shrink();
     }
 
+    TextStyle? tabStyle = TextStyle(
+      fontSize: widget._controller.tabFontSize?.toDouble(),
+      fontWeight: widget._controller.tabFontWeight
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -80,8 +99,13 @@ class TabBarState extends WidgetState<EnsembleTabBar> with SingleTickerProviderS
           controller: _tabController,
           isScrollable: true,         // collapse the label to the left
           indicatorSize: TabBarIndicatorSize.label,
-          unselectedLabelColor: Colors.black87,
-          labelColor: Theme.of(context).colorScheme.primary,
+          indicatorWeight: widget._controller.indicatorThickness?.toDouble() ?? 2,
+          indicatorColor: widget._controller.indicatorColor ?? Theme.of(context).colorScheme.primary,
+
+          labelStyle: tabStyle,
+          labelColor: widget._controller.activeTabColor ?? Theme.of(context).colorScheme.primary,
+          unselectedLabelColor: widget._controller.inactiveTabColor ?? Colors.black87,
+
           tabs: widget._controller._items.map((e) => Tab(text: e.label)).toList(),
           onTap: (index) => {
             setState(() {

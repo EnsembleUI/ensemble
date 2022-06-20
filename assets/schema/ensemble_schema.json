@@ -188,10 +188,7 @@
                   "minimum": 6
                 },
                 "fontWeight": {
-                  "type": "string",
-                  "enum": [
-                    "light", "normal", "bold", "w100", "w200", "w300", "w400", "w500", "w600", "w700", "w800", "w900"
-                  ]
+                  "$ref": "#/$defs/type-fontWeight"
                 },
                 "color": {
                   "type": ["number", "string"],
@@ -729,7 +726,8 @@
         "Form": { "$ref": "#/$defs/Form-payload" },
         "Column": { "$ref": "#/$defs/Column-payload" },
         "Row": { "$ref": "#/$defs/Row-payload" },
-        "Flex": { "$ref": "#/$defs/Flex-payload" }
+        "Flex": { "$ref": "#/$defs/Flex-payload" },
+        "TabBar": { "$ref": "#/$defs/TabBar-payload" }
       }
     },
     "Menu": {
@@ -780,6 +778,64 @@
               "page": {
                 "type": "string",
                 "description": "The new page to navigate to on click"
+              }
+            }
+          }
+        }
+      }
+    },
+    "TabBar-payload": {
+      "type": "object",
+      "properties": {
+        "styles": {
+          "type": "object",
+          "properties": {
+            "tabFontSize": {
+              "type": "integer",
+              "description": "Font size for the tab text"
+            },
+            "tabFontWeight": {
+              "$ref": "#/$defs/type-fontWeight",
+              "description": "Font weight for the tab text"
+            },
+            "activeTabColor": {
+              "$ref": "#/$defs/typeColors",
+              "description": "The color of the selected tab's text"
+            },
+            "inactiveTabColor": {
+              "$ref": "#/$defs/typeColors",
+              "description": "The color of the un-selected tabs' text"
+            },
+            "indicatorColor": {
+              "$ref": "#/$defs/typeColors",
+              "description": "The color of the selected tab's indicator"
+            },
+            "indicatorThickness": {
+              "type": "integer",
+              "description": "The thickness of the selected tab's indicator"
+            }
+          }
+
+        },
+        "selectedIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Selecting a Tab based on its index order"
+        },
+        "items": {
+          "type": "array",
+          "description": "Define each of your Tab here",
+          "items": {
+            "type": "object",
+            "required": ["label", "body"],
+            "properties": {
+              "label": {
+                "type": "string",
+                "description": "Setting the tab label"
+              },
+              "body": {
+                "$ref": "#/$defs/Widget",
+                "description": "Including a widget to be rendered as this tab's content"
               }
             }
           }
@@ -839,6 +895,12 @@
           "type": "string",
           "pattern": "^0x"
         }
+      ]
+    },
+    "type-fontWeight": {
+      "type": "string",
+      "enum": [
+        "light", "normal", "bold", "w100", "w200", "w300", "w400", "w500", "w600", "w700", "w800", "w900"
       ]
     },
 
