@@ -29,7 +29,7 @@ class Text extends StatefulWidget with Invokable, HasController<TextController, 
 
       'font': (value) => _controller.font = Utils.optionalString(value),
       'fontSize': (value) => _controller.fontSize = Utils.optionalInt(value),
-      'fontWeight': (value) => _controller.fontWeight = Utils.optionalString(value),
+      'fontWeight': (value) => _controller.fontWeight = Utils.getFontWeight(value),
       'color': (value) => _controller.color = Utils.optionalInt(value),
       'overflow': (value) => _controller.overflow = Utils.optionalString(value),
       'textAlign': (value) => _controller.textAlign = Utils.optionalString(value),
@@ -54,7 +54,7 @@ class TextController extends framework.WidgetController {
   String? text;
   String? font;
   int? fontSize;
-  String? fontWeight;
+  FontWeight? fontWeight;
   int? color;
   String? overflow;
   String? textAlign;
@@ -88,38 +88,7 @@ class TextState extends framework.WidgetState<Text> {
       fontSize = widget.controller.fontSize!.toDouble();
     }
     if (widget.controller.fontWeight != null) {
-      switch (widget.controller.fontWeight) {
-        case 'w100':
-          fontWeight = FontWeight.w100;
-          break;
-        case 'w200':
-          fontWeight = FontWeight.w200;
-          break;
-        case 'w300':
-        case 'light':
-          fontWeight = FontWeight.w300;
-          break;
-        case 'w400':
-        case 'normal':
-          fontWeight = FontWeight.w400;
-          break;
-        case 'w500':
-          fontWeight = FontWeight.w500;
-          break;
-        case 'w600':
-          fontWeight = FontWeight.w600;
-          break;
-        case 'w700':
-        case 'bold':
-          fontWeight = FontWeight.w700;
-          break;
-        case 'w800':
-          fontWeight = FontWeight.w800;
-          break;
-        case 'w900':
-          fontWeight = FontWeight.w900;
-          break;
-      }
+      fontWeight = widget.controller.fontWeight;
     }
     if (widget.controller.color != null) {
       fontColor = Color(widget.controller.color!);

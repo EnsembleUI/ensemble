@@ -36,7 +36,7 @@ class EnsembleTheme {
   /// default color scheme
   static ColorScheme defaultColorScheme = const ColorScheme(
     brightness: Brightness.light,
-    primary: Color(0xFF08B48F),
+    primary: Color(0xFF009900),
     onPrimary: Colors.white,
 
     secondary: Color(0xFFED5742),

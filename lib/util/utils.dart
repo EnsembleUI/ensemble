@@ -138,6 +138,35 @@ class Utils {
     return null;
   }
 
+  static FontWeight? getFontWeight(dynamic value) {
+    if (value is String) {
+      switch (value) {
+        case 'w100':
+          return FontWeight.w100;
+        case 'w200':
+          return FontWeight.w200;
+        case 'w300':
+        case 'light':
+        return FontWeight.w300;
+        case 'w400':
+        case 'normal':
+        return FontWeight.w400;
+        case 'w500':
+          return FontWeight.w500;
+        case 'w600':
+          return FontWeight.w600;
+        case 'w700':
+        case 'bold':
+        return FontWeight.w700;
+        case 'w800':
+          return FontWeight.w800;
+        case 'w900':
+          return FontWeight.w900;
+      }
+    }
+    return null;
+  }
+
   /// return the padding/margin value
   static EdgeInsets getInsets(dynamic value, {EdgeInsets? fallback}) {
     return optionalInsets(value) ?? fallback ?? const EdgeInsets.all(0);
