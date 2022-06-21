@@ -14,7 +14,7 @@ class WidgetUtils {
       BorderRadius.all(Radius.circular(boxController.borderRadius!.toDouble()));
 
     return Container(
-        margin: Utils.getInsets(boxController.margin),
+        margin: boxController.margin,
         decoration: BoxDecoration(
             border: !boxController.hasBorder() ?
             null :
@@ -23,7 +23,7 @@ class WidgetUtils {
                 width: (boxController.borderWidth ?? 1).toDouble()),
             borderRadius: borderRadius
         ),
-        padding: Utils.getInsets(boxController.padding),
+        padding: boxController.padding,
         child: ClipRRect(
             child: widget,
             borderRadius: borderRadius ?? const BorderRadius.all(Radius.zero)

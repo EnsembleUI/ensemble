@@ -78,7 +78,8 @@ abstract class BaseTextInput extends StatefulWidget with Invokable, HasControlle
   Map<String, Function> setters() {
     // set value is not specified here for safety in case of PasswordInput
     return {
-      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this)
+      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this),
+      'borderRadius': (value) => _controller.borderRadius = Utils.optionalInt(value),
     };
   }
 
@@ -102,6 +103,7 @@ class TextInputController extends FormFieldController {
   // applicable only for TextInput
   bool? obscureText;
   String? inputType;
+  int? borderRadius;
 }
 
 class TextInputState extends FormFieldWidgetState<BaseTextInput> {
