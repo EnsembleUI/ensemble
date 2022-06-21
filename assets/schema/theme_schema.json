@@ -16,6 +16,12 @@
           "description": "The Secondary color of your App"
         }
       }
+    },
+    "Widgets": {
+      "type": "object",
+      "properties": {
+        "Input": { "$ref": "#/$defs/Input-theme" }
+      }
     }
   },
   "$defs": {
@@ -33,6 +39,33 @@
           "pattern": "^0x"
         }
       ]
+    },
+    "Input-theme": {
+      "type": "object",
+      "properties": {
+        "variant": {
+          "type": "string",
+          "description": "Select a pre-defined look and feel for Input widgets",
+          "oneOf": [
+            {
+              "const": "Underline",
+              "description": "draw an underline below applicable input widgets (default)"
+            },
+            {
+              "const": "Box",
+              "description": "draw a Box border around applicable input widgets"
+            }
+          ]
+        },
+        "borderRadius": {
+          "type": "integer",
+          "description": "The border radius for Input widgets with Box variant"
+        },
+        "disabledColor": {
+          "$ref": "#/$defs/Color",
+          "description": "The color of the input field when disabled"
+        }
+      }
     }
   }
 }

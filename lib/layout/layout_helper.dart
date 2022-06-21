@@ -8,8 +8,8 @@ import 'package:yaml/yaml.dart';
 /// Controller for anything with a Box around it (border, padding, shadow,...)
 /// This may be a widget itself (e.g Image), not necessary an actual Container with children
 class BoxController extends WidgetController {
-  dynamic margin;
-  dynamic padding;
+  EdgeInsets? margin;
+  EdgeInsets? padding;
 
   Color? borderColor;
   int? borderRadius;
@@ -20,8 +20,8 @@ class BoxController extends WidgetController {
     Map<String, Function> setters = super.getBaseSetters();
     setters.addAll({
       // support short-hand notation margin: 10 5 10
-      'margin': (value) => margin = value,
-      'padding': (value) => padding = value,
+      'margin': (value) => margin = Utils.optionalInsets(value),
+      'padding': (value) => padding = Utils.optionalInsets(value),
 
       'borderColor': (value) =>  borderColor = Utils.getColor(value),
       'borderRadius': (value) =>  borderRadius = Utils.optionalInt(value),

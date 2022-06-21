@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:async';
+import 'dart:math';
 import 'dart:ui';
 import 'package:ensemble/ensemble.dart';
 import 'package:flutter/material.dart';
@@ -110,9 +111,10 @@ class RemoteDefinitionProvider extends DefinitionProvider {
 }
 
 class EnsembleDefinitionProvider extends DefinitionProvider {
-  EnsembleDefinitionProvider(this.url, this.appId,I18nProps i18nProps): super(i18nProps);
+  EnsembleDefinitionProvider(this.url, this.appId, I18nProps i18nProps): super(i18nProps);
   final String url;
   final String appId;
+  String? appHome;
   FlutterI18nDelegate? _i18nDelegate;
   @override
   FlutterI18nDelegate getI18NDelegate() {
@@ -128,9 +130,27 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
   }
   @override
   Future<YamlMap> getDefinition({String? screenId}) async {
+    // can't find the home screen via App bundle, iterate all screens to find out
+    //if (appHome == null) {
+      return getLegacyDefinition(screenId: screenId);
+    //}
+
+    // fetch the home screen
+    /*Completer<YamlMap> completer = Completer();
+    http.Response response = await http.get(Uri.parse('$url/screen/content?expression_to_ast=false&id=${screenId ?? appHome}'));
+    if (response.statusCode == 200) {
+      completer.complete(loadYaml(response.body));
+    } else {
+      completer.completeError("Error loading Ensemble page: Home Screen");
+    }
+    return completer.future;*/
+  }
+
+
+  Future<YamlMap> getLegacyDefinition({String? screenId}) async {
     Completer<YamlMap> completer = Completer();
     http.Response response = await http.get(
-        Uri.parse('$url?id=$appId'));
+        Uri.parse('$url/app?id=$appId'));
     if (response.statusCode == 200) {
       Map<String, dynamic> result = json.decode(response.body);
       if (result[appId] != null
@@ -158,7 +178,35 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
 
   @override
   Future<AppBundle> getAppBundle() async {
-    return AppBundle();
+    Completer<AppBundle> completer = Completer();
+    http.Response response = await http.get(Uri.parse('$url/app/def?id=$appId'));
+    if (response.statusCode == 200) {
+      Map<String, dynamic> result = json.decode(response.body);
+
+      // while awaiting server changes
+      result = result['body'];
+
+      if (result[appId] != null) {
+        // iterate and get the home screen
+        if (result[appId]['screens'] is List) {
+          for (dynamic screen in result[appId]['screens']) {
+            if (screen['is_home']) {
+              appHome = screen['id'];
+              print("appHome: $appHome");
+              break;
+            }
+          }
+        }
+        // get the App bundle
+        String? content = result[appId]['theme']?['content'];
+        if (content != null) {
+          completer.complete(AppBundle(theme: await loadYaml(content)));
+          return completer.future;
+        }
+      }
+    }
+    completer.complete(AppBundle());
+    return completer.future;
   }
 
 }

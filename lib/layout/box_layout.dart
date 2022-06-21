@@ -175,7 +175,7 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
     Widget rtn = Container(
         width: widget._controller.width != null ? widget._controller.width!.toDouble() : null,
         height: widget._controller.height != null ? widget._controller.height!.toDouble() : null,
-        margin: Utils.getInsets(widget._controller.margin),
+        margin: widget._controller.margin,
 
         //clipBehavior: Clip.hardEdge,
         decoration: _buildBoxDecoration(),
@@ -185,7 +185,7 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
             onTap: widget._controller.onTap == null ? null : () =>
                 ScreenController().executeAction(context, widget._controller.onTap!),
             child: Padding(
-                padding: Utils.getInsets(widget._controller.padding),
+                padding: widget._controller.padding ?? const EdgeInsets.all(0),
                 child: boxWidget
             )
         )

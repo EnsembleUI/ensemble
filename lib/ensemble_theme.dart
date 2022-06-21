@@ -1,3 +1,4 @@
+import 'package:ensemble/util/theme_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
@@ -7,34 +8,37 @@ class EnsembleTheme {
 
   static ThemeData getAppTheme(YamlMap overrides) {
     return defaultAppTheme.copyWith(
-      colorScheme: defaultColorScheme.copyWith(
+      colorScheme: _defaultColorScheme.copyWith(
         primary: Utils.getColor(overrides['Colors']?['primary']),
         secondary: Utils.getColor(overrides['Colors']?['secondary']),
       ),
+      inputDecorationTheme: ThemeUtils.buildFormInputTheme(overrides['Widgets']?['Input']),
+
+      textButtonTheme: TextButtonThemeData(
+          style: ThemeUtils.buildButtonTheme(overrides['Widgets']?['Button'], isOutline: true)
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ThemeUtils.buildButtonTheme(overrides['Widgets']?['Button'], isOutline: false)
+      ),
+
     );
 
   }
 
 
+  /// Ensemble default theme
+  static final ThemeData defaultAppTheme = ThemeData(
+    colorScheme: _defaultColorScheme,
+    inputDecorationTheme: ThemeUtils.getUnderlineInputDecoration(),
 
-  static ThemeData defaultAppTheme = ThemeData(
-    colorScheme: defaultColorScheme,
 
-    /*
-    inputDecorationTheme: InputDecorationTheme(
-      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(0)))
-    ),
-    buttonTheme: ButtonThemeData(
-     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
-     buttonColor: Colors.yellow,
-    ),*/
 
 
 
   );
 
-  /// default color scheme
-  static ColorScheme defaultColorScheme = const ColorScheme(
+  /// Ensemble default color scheme
+  static const ColorScheme _defaultColorScheme = ColorScheme(
     brightness: Brightness.light,
     primary: Color(0xFF009900),
     onPrimary: Colors.white,
@@ -54,6 +58,12 @@ class EnsembleTheme {
 
 
 
+  /// default Ensemble constants
+  static const Color inputDisabledColor = Color(0xffE0E0E0);
+  static const double inputBorderRadius = 3;
+  static const EdgeInsets buttonPadding = EdgeInsets.only(left: 15, top: 3, right: 15, bottom: 3);
+  static const double buttonBorderRadius = 3;
+  static const Color buttonOutlineBorderColor = Colors.black12;
 
 
 
@@ -61,6 +71,12 @@ class EnsembleTheme {
 
 
 
+
+
+
+
+
+  /// legacy stuff
   static const Color notWhite = Color(0xFFEDF0F2);
   static const Color nearlyWhite = Color(0xFFFFFFFF);
   static const Color nearlyBlue = Color(0xFF00B6F0);
