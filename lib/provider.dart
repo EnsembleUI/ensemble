@@ -183,9 +183,6 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
     if (response.statusCode == 200) {
       Map<String, dynamic> result = json.decode(response.body);
 
-      // while awaiting server changes
-      result = result['body'];
-
       if (result[appId] != null) {
         // iterate and get the home screen
         if (result[appId]['screens'] is List) {
