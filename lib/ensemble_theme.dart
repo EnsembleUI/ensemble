@@ -16,13 +16,18 @@ class EnsembleTheme {
     return ThemeData(
       // color scheme
       colorScheme: colorScheme,
+      // disabled inputs / button
       disabledColor: Utils.getColor(overrides?['Colors']?['disabled']) ?? _disabledColor,
+      // toggleable inputs e.g. switch, checkbox
+      toggleableActiveColor: colorScheme.secondary,
 
       // input theme (TextInput, Switch, Dropdown, ...)
       inputDecorationTheme: _buildInputTheme(
         overrides?['Widgets']?['Input'],
         primaryColor: colorScheme.primary
       ),
+
+      //switchTheme: buildSwitchTheme(overrides?['Widgets']?['Switch']),
 
       // button themes
       textButtonTheme: TextButtonThemeData(style: _buildButtonTheme(
@@ -42,20 +47,33 @@ class EnsembleTheme {
   /// Ensemble default color scheme
   static const ColorScheme _defaultColorScheme = ColorScheme(
     brightness: Brightness.light,
-    primary: Colors.blue,
-    onPrimary: Colors.white,
-
-    secondary: Color(0xFFED5742),
-    onSecondary: Colors.white,
-
-    error: Color(0xFFB00020),
-    onError: Colors.white,
-
-    background: Colors.white,
-    onBackground: Color(0xFF404040),
-
-    surface: Colors.white,
-    onSurface: Color(0xFF404040)
+    primary: Color(0xff1565c0),
+    onPrimary: Color(0xffffffff),
+    primaryContainer: Color(0xff90caf9),
+    onPrimaryContainer: Color(0xff192228),
+    secondary: Color(0xff039be5),
+    onSecondary: Color(0xffffffff),
+    secondaryContainer: Color(0xffcbe6ff),
+    onSecondaryContainer: Color(0xff222728),
+    tertiary: Color(0xff0277bd),
+    onTertiary: Color(0xffffffff),
+    tertiaryContainer: Color(0xffbedcff),
+    onTertiaryContainer: Color(0xff202528),
+    error: Color(0xffb00020),
+    onError: Color(0xffffffff),
+    errorContainer: Color(0xfffcd8df),
+    onErrorContainer: Color(0xff282526),
+    outline: Color(0xff5c5c62),
+    background: Color(0xffecf2fa),
+    onBackground: Color(0xff121213),
+    surface: Color(0xfff5f8fc),
+    onSurface: Color(0xff090909),
+    surfaceVariant: Color(0xffecf2fa),
+    onSurfaceVariant: Color(0xff121213),
+    inverseSurface: Color(0xff111417),
+    onInverseSurface: Color(0xfff5f5f5),
+    inversePrimary: Color(0xffaedfff),
+    shadow: Color(0xff000000),
   );
 
 
@@ -150,6 +168,10 @@ class EnsembleTheme {
       border: border,
       padding: Utils.optionalInsets(input?['padding']) ?? _buttonPadding,
     );
+  }
+
+  static SwitchThemeData buildSwitchTheme(YamlMap? input) {
+    return const SwitchThemeData();
   }
 
 
