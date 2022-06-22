@@ -3,6 +3,7 @@ import 'package:ensemble/framework/action.dart' as ensemble;
 import 'package:ensemble/layout/form.dart';
 import 'package:ensemble/layout/layout_helper.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/util/theme_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:flutter/material.dart';
@@ -66,59 +67,65 @@ class ButtonController extends BoxController {
 class ButtonState extends WidgetState<Button> {
   @override
   Widget build(BuildContext context) {
-    // keep it simple, if border color is not set, use the backgroundColor.
-    // For outline button it makes sense, for solid button it doesn't matter.
-    Color borderColor =
-        widget._controller.borderColor ??
-        widget._controller.backgroundColor ??
-        Theme.of(context).colorScheme.primary;
-
-    ButtonStyle buttonStyle = ButtonStyle(
-      padding: MaterialStateProperty.all<EdgeInsetsGeometry>(
-          Utils.getInsets(
-              widget._controller.padding,
-              fallback: const EdgeInsets.only(left: 15, top: 3, right: 15, bottom: 3))),
-      foregroundColor:
-        widget._controller.color != null ?
-        MaterialStateProperty.all<Color>(widget._controller.color!) :
-        null,
-      backgroundColor:
-        (widget._controller.outline is bool && widget._controller.outline as bool) || widget._controller.backgroundColor == null ?
-        null :
-        MaterialStateProperty.all<Color>(widget._controller.backgroundColor!),
-      shape: MaterialStateProperty.all<RoundedRectangleBorder>(
-        RoundedRectangleBorder(
-          borderRadius:
-            widget._controller.borderRadius is int ?
-            BorderRadius.circular((widget._controller.borderRadius as int).toDouble()) :
-            BorderRadius.zero,
-          side: !isEnabled() ? BorderSide.none : BorderSide(
-              color: borderColor,
-              width: (widget._controller.borderWidth ?? 1).toDouble())
-        )
-      )
-    );
-
+    bool isOutlineButton = widget._controller.outline ?? false;
+    
     Text label = Text(Utils.translate(widget._controller.label, context));
 
     Widget? rtn;
-    if (widget._controller.outline is bool && widget._controller.outline as bool) {
+    if (isOutlineButton) {
       rtn = TextButton(
         onPressed: isEnabled() ? () => onPressed(context) : null,
-        style: buttonStyle,
+        style: getButtonStyle(context, isOutlineButton),
         child: label);
     } else {
       rtn = ElevatedButton(
         onPressed: isEnabled() ? () => onPressed(context) : null,
-        style: buttonStyle,
+        style: getButtonStyle(context, isOutlineButton),
         child: label);
     }
 
     // add margin if specified
-    EdgeInsets? margin = Utils.optionalInsets(widget._controller.margin);
-    return margin != null ?
-      Padding(padding: margin, child: rtn) :
-        rtn;
+    return widget._controller.margin != null ?
+      Padding(padding: widget._controller.margin!, child: rtn) :
+      rtn;
+  }
+  
+  ButtonStyle getButtonStyle(BuildContext context, bool isOutlineButton) {
+    // we need to build a border which requires valid borderColor, borderThickness & borderRadius.
+    // Let's get the default theme so we can overwrite only necessary styles
+    RoundedRectangleBorder? border;
+    OutlinedBorder? defaultShape = isOutlineButton ?
+      Theme.of(context).textButtonTheme.style?.shape?.resolve({}) :
+        Theme.of(context).elevatedButtonTheme.style?.shape?.resolve({});
+    if (defaultShape is RoundedRectangleBorder) {
+      // if we don't specify borderColor here, and the default border is none, stick with that
+      BorderSide borderSide;
+      if (widget._controller.borderColor == null && defaultShape.side.style == BorderStyle.none) {
+        borderSide = defaultShape.side;
+      } else {
+        borderSide = BorderSide(
+            color: widget._controller.borderColor ?? defaultShape.side.color,
+            width: widget._controller.borderWidth?.toDouble() ?? defaultShape.side.width);
+      }
+
+      border = RoundedRectangleBorder(
+        borderRadius: widget._controller.borderRadius == null ?
+            defaultShape.borderRadius :
+            BorderRadius.circular(widget._controller.borderRadius!.toDouble()),
+        side: borderSide);
+    }
+        
+    // we need to get the button shape from borderRadius, borderColor & borderThickness
+    // and we do not want to override the default theme if not specified
+    //int borderRadius = widget._controller.borderRadius ?? defaultButtonStyle?.
+
+    return ThemeUtils.getButtonStyle(
+        isOutline: isOutlineButton,
+        color: widget._controller.color,
+        backgroundColor: widget._controller.backgroundColor,
+        border: border,
+        padding: widget._controller.padding
+    );
   }
 
   void onPressed(BuildContext context) {

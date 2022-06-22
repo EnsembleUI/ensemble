@@ -1,4 +1,5 @@
 
+import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/input_validator.dart';
@@ -78,7 +79,8 @@ abstract class BaseTextInput extends StatefulWidget with Invokable, HasControlle
   Map<String, Function> setters() {
     // set value is not specified here for safety in case of PasswordInput
     return {
-      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this)
+      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this),
+      'borderRadius': (value) => _controller.borderRadius = Utils.optionalInt(value),
     };
   }
 
@@ -102,6 +104,7 @@ class TextInputController extends FormFieldController {
   // applicable only for TextInput
   bool? obscureText;
   String? inputType;
+  int? borderRadius;
 }
 
 class TextInputState extends FormFieldWidgetState<BaseTextInput> {
@@ -150,6 +153,19 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
 
   @override
   Widget build(BuildContext context) {
+
+    // TextField doesn't take the global disabled color for some reason,
+    // so we have to account for it here
+    TextStyle textStyle;
+    if (isEnabled()) {
+      textStyle = TextStyle(
+          fontSize: widget.controller.fontSize?.toDouble());
+    } else {
+      textStyle = TextStyle(
+        color: Theme.of(context).disabledColor,
+        fontSize: widget.controller.fontSize?.toDouble());
+    }
+
     return TextFormField(
       key: validatorKey,
       validator: (value) {
@@ -195,9 +211,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
       onEditingComplete: () {
         evaluateChanges();
       },
-      style: widget.controller.fontSize != null ?
-        TextStyle(fontSize: widget.controller.fontSize!.toDouble()) :
-        null,
+      style: textStyle,
       decoration: inputDecoration);
 
   }
