@@ -125,10 +125,7 @@ class Ensemble {
   }
   /// pass custom Theme overrides and return the App Theme
   ThemeData getAppTheme() {
-    if (_appBundle?.theme != null) {
-      return EnsembleTheme.getAppTheme(_appBundle!.theme!);
-    }
-    return EnsembleTheme.defaultAppTheme;
+    return EnsembleTheme.getAppTheme(_appBundle?.theme);
   }
 
   /// fetch the page definition
