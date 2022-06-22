@@ -5,42 +5,44 @@ import 'package:yaml/yaml.dart';
 
 class EnsembleTheme {
 
+  static ThemeData getAppTheme(YamlMap? overrides) {
+    ColorScheme colorScheme = _defaultColorScheme.copyWith(
+        primary: Utils.getColor(overrides?['Colors']?['primary']),
+        onPrimary: Utils.getColor(overrides?['Colors']?['onPrimary']),
+        secondary: Utils.getColor(overrides?['Colors']?['secondary']),
+        onSecondary: Utils.getColor(overrides?['Colors']?['onSecondary'])
+    );
 
-  static ThemeData getAppTheme(YamlMap overrides) {
-    return defaultAppTheme.copyWith(
-      colorScheme: _defaultColorScheme.copyWith(
-        primary: Utils.getColor(overrides['Colors']?['primary']),
-        secondary: Utils.getColor(overrides['Colors']?['secondary']),
-      ),
-      inputDecorationTheme: ThemeUtils.buildFormInputTheme(overrides['Widgets']?['Input']),
+    return ThemeData(
+      // color scheme
+      colorScheme: colorScheme,
+      disabledColor: Utils.getColor(overrides?['Colors']?['disabled']) ?? _disabledColor,
 
-      textButtonTheme: TextButtonThemeData(
-          style: ThemeUtils.buildButtonTheme(overrides['Widgets']?['Button'], isOutline: true)
+      // input theme (TextInput, Switch, Dropdown, ...)
+      inputDecorationTheme: _buildInputTheme(
+        overrides?['Widgets']?['Input'],
+        primaryColor: colorScheme.primary
       ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ThemeUtils.buildButtonTheme(overrides['Widgets']?['Button'], isOutline: false)
+
+      // button themes
+      textButtonTheme: TextButtonThemeData(style: _buildButtonTheme(
+          overrides?['Widgets']?['Button'],
+          isOutline: true,
+          colorScheme: colorScheme)
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(style: _buildButtonTheme(
+          overrides?['Widgets']?['Button'],
+          isOutline: false,
+          colorScheme: colorScheme)
       ),
 
     );
-
   }
-
-
-  /// Ensemble default theme
-  static final ThemeData defaultAppTheme = ThemeData(
-    colorScheme: _defaultColorScheme,
-    inputDecorationTheme: ThemeUtils.getUnderlineInputDecoration(),
-
-
-
-
-
-  );
 
   /// Ensemble default color scheme
   static const ColorScheme _defaultColorScheme = ColorScheme(
     brightness: Brightness.light,
-    primary: Color(0xFF009900),
+    primary: Colors.blue,
     onPrimary: Colors.white,
 
     secondary: Color(0xFFED5742),
@@ -58,12 +60,99 @@ class EnsembleTheme {
 
 
 
-  /// default Ensemble constants
-  static const Color inputDisabledColor = Color(0xffE0E0E0);
-  static const double inputBorderRadius = 3;
-  static const EdgeInsets buttonPadding = EdgeInsets.only(left: 15, top: 3, right: 15, bottom: 3);
-  static const double buttonBorderRadius = 3;
-  static const Color buttonOutlineBorderColor = Colors.black12;
+  /// Ensemble's fallback default values. These will be used
+  /// if certain theme is not specified
+  static const Color _disabledColor = Colors.black38;
+  static const Color _inputBorderColor = Color(0xFFBDBDBD);
+  static const Color _inputBorderDisabledColor = Colors.black12;
+  static const int _inputBorderRadius = 3;
+  static const EdgeInsets _buttonPadding = EdgeInsets.only(left: 15, top: 5, right: 15, bottom: 5);
+  static const int _buttonBorderRadius = 3;
+  static const Color _buttonBorderOutlineColor = Colors.black12;
+
+
+
+
+
+
+
+  /// parse the FormInput's theme from the theme YAML
+  static InputDecorationTheme? _buildInputTheme(YamlMap? input, {required Color primaryColor}) {
+    Color focusColor = Utils.getColor(input?['focusColor']) ?? primaryColor;
+    Color borderColor = Utils.getColor(input?['borderColor']) ?? _inputBorderColor;
+    Color disabledColor = Utils.getColor(input?['borderDisabledColor']) ?? _inputBorderDisabledColor;
+
+    if (input?['variant'] == 'box') {
+      return _getInputBoxDecoration(
+        focusColor: focusColor,
+        borderColor: borderColor,
+        disabledColor: disabledColor,
+        borderRadius: Utils.optionalInt(input?['borderRadius']) ?? _inputBorderRadius);
+    } else {
+      return _getInputUnderlineDecoration(
+        focusColor: focusColor,
+        borderColor: borderColor,
+        disabledColor: disabledColor);
+    }
+  }
+  static InputDecorationTheme _getInputBoxDecoration({required Color focusColor, required Color borderColor, required Color disabledColor, required int borderRadius}) {
+    return InputDecorationTheme(
+      focusedBorder: ThemeUtils.getInputBoxBorder(
+        borderColor: focusColor,
+        borderRadius: borderRadius,
+      ),
+      enabledBorder: ThemeUtils.getInputBoxBorder(
+        borderColor: borderColor,
+        borderRadius: borderRadius,
+      ),
+      disabledBorder: ThemeUtils.getInputBoxBorder(
+        borderColor: disabledColor,
+        borderRadius: borderRadius,
+      ),
+      isDense: true,
+      contentPadding: const EdgeInsets.all(10),
+    );
+  }
+  static InputDecorationTheme _getInputUnderlineDecoration({required Color focusColor, required Color borderColor, required Color disabledColor}) {
+    return InputDecorationTheme(
+      focusedBorder: ThemeUtils.getInputUnderlineBorder(borderColor: focusColor),
+      enabledBorder: ThemeUtils.getInputUnderlineBorder(borderColor: borderColor),
+      disabledBorder: ThemeUtils.getInputUnderlineBorder(borderColor: disabledColor),
+      isDense: false,
+      contentPadding: EdgeInsets.zero,
+    );
+  }
+
+
+  static ButtonStyle? _buildButtonTheme(YamlMap? input, {required ColorScheme colorScheme, required bool isOutline}) {
+    // outline button can simply use backgroundColor as borderColor (if not set)
+    Color? borderColor = Utils.getColor(input?['borderColor']);
+    if (borderColor == null && isOutline) {
+      borderColor = Utils.getColor(input?['backgroundColor']) ?? _buttonBorderOutlineColor;
+    }
+
+    // outline button ignores backgroundColor
+    Color? backgroundColor = isOutline ? null : Utils.getColor(input?['backgroundColor']);
+
+    RoundedRectangleBorder border = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(
+        Utils.getInt(input?['borderRadius'], fallback: _buttonBorderRadius).toDouble()),
+      side: borderColor == null ? BorderSide.none : BorderSide(
+        color: borderColor,
+        width: Utils.getInt(input?['borderWidth'], fallback: 1).toDouble()
+      )
+    );
+
+    return ThemeUtils.getButtonStyle(
+      isOutline: isOutline,
+      backgroundColor: backgroundColor,
+      color: Utils.getColor(input?['color']),
+      border: border,
+      padding: Utils.optionalInsets(input?['padding']) ?? _buttonPadding,
+    );
+  }
+
+
 
 
 
@@ -231,11 +320,10 @@ class EnsembleTheme {
     return base.copyWith(
       colorScheme: colorScheme,
       primaryColor: primaryColor,
-      buttonColor: primaryColor,
       indicatorColor: Colors.white,
       splashColor: Colors.white24,
       splashFactory: InkRipple.splashFactory,
-      accentColor: secondaryColor,
+      //accentColor: secondaryColor,
       canvasColor: Colors.white,
       backgroundColor: const Color(0xFFFFFFFF),
       scaffoldBackgroundColor: const Color(0xFFF6F6F6),
@@ -246,7 +334,7 @@ class EnsembleTheme {
       ),
       textTheme: _buildTextTheme(base.textTheme),
       primaryTextTheme: _buildTextTheme(base.primaryTextTheme),
-      accentTextTheme: _buildTextTheme(base.accentTextTheme),
+      //accentTextTheme: _buildTextTheme(base.accentTextTheme),
       platform: TargetPlatform.iOS,
     );
   }

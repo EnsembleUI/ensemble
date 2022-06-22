@@ -9,18 +9,31 @@
       "properties": {
         "primary": {
           "$ref": "#/$defs/Color",
-          "description": "The Primary color of your App"
+          "description": "Primary color of your App (e.g button color, focus color, ...)"
+        },
+        "onPrimary": {
+          "$ref": "#/$defs/Color",
+          "description": "The color overlay on top of your primary color (e.g button text)"
         },
         "secondary": {
           "$ref": "#/$defs/Color",
           "description": "The Secondary color of your App"
+        },
+        "onSecondary": {
+          "$ref": "#/$defs/Color",
+          "description": "The color overlay on top of your secondary color"
+        },
+        "disabled": {
+          "$ref": "#/$defs/Color",
+          "description": "Color when a widget is disabled"
         }
       }
     },
     "Widgets": {
       "type": "object",
       "properties": {
-        "Input": { "$ref": "#/$defs/Input-theme" }
+        "Input": { "$ref": "#/$defs/Input-theme" },
+        "Button": { "$ref": "#/$defs/Button-theme" }
       }
     }
   },
@@ -48,24 +61,66 @@
           "description": "Select a pre-defined look and feel for Input widgets",
           "oneOf": [
             {
-              "const": "Underline",
-              "description": "draw an underline below applicable input widgets (default)"
+              "const": "underline",
+              "description": "draw an Underline below applicable input widgets (default)"
             },
             {
-              "const": "Box",
+              "const": "box",
               "description": "draw a Box border around applicable input widgets"
             }
           ]
         },
         "borderRadius": {
           "type": "integer",
+          "minimum": 0,
           "description": "The border radius for Input widgets with Box variant"
         },
-        "disabledColor": {
+        "focusColor": {
           "$ref": "#/$defs/Color",
-          "description": "The color of the input field when disabled"
+          "description": "The color of the input field when receiving focus"
+        },
+        "borderColor": {
+          "$ref": "#/$defs/Color",
+          "description": "The border color of applicable input fields"
+        },
+        "borderDisabledColor": {
+          "$ref": "#/$defs/Color",
+          "description": "The disabled border color of applicable input fields"
+        }
+      }
+    },
+    "Button-theme": {
+      "type": "object",
+      "properties": {
+        "borderRadius": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "borderWidth": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "The border thickness of the button"
+        },
+        "borderColor": {
+          "$ref": "#/$defs/Color"
+        },
+        "color": {
+          "$ref": "#/$defs/Color",
+          "description": "The text color of the button"
+        },
+        "backgroundColor": {
+          "$ref": "#/$defs/Color",
+          "description": "background color for solid button, but also acts as the border color for outline button"
+        },
+        "padding": {
+          "type": ["integer", "string"],
+          "description": "Button padding in CSS-style notation e.g. padding: 5 20 5"
+
         }
       }
     }
+
+
+
   }
 }
