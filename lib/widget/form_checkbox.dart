@@ -128,6 +128,9 @@ class OnOffState extends FormFieldWidgetState<OnOffWidget> {
         return InputDecorator(
             decoration: inputDecoration.copyWith(
               border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              disabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
               errorText: field.errorText),
             child: Row (
               mainAxisAlignment: MainAxisAlignment.start,
