@@ -1,4 +1,5 @@
 
+import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/input_validator.dart';
@@ -152,6 +153,19 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
 
   @override
   Widget build(BuildContext context) {
+
+    // TextField doesn't take the global disabled color for some reason,
+    // so we have to account for it here
+    TextStyle textStyle;
+    if (isEnabled()) {
+      textStyle = TextStyle(
+          fontSize: widget.controller.fontSize?.toDouble());
+    } else {
+      textStyle = TextStyle(
+        color: Theme.of(context).disabledColor,
+        fontSize: widget.controller.fontSize?.toDouble());
+    }
+
     return TextFormField(
       key: validatorKey,
       validator: (value) {
@@ -197,9 +211,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
       onEditingComplete: () {
         evaluateChanges();
       },
-      style: widget.controller.fontSize != null ?
-        TextStyle(fontSize: widget.controller.fontSize!.toDouble()) :
-        null,
+      style: textStyle,
       decoration: inputDecoration);
 
   }

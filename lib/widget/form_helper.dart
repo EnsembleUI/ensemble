@@ -3,6 +3,7 @@ import 'package:ensemble/framework/widget/icon.dart' as framework;
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/form.dart';
 import 'package:ensemble/layout/form.dart' as ensemble;
+import 'package:ensemble/util/theme_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
@@ -65,10 +66,7 @@ abstract class FormFieldWidgetState<W extends HasController> extends WidgetState
               myController.icon!,
               library: myController.iconLibrary,
               size: myController.iconSize,
-              color:
-              myController.iconColor != null ?
-              Color(myController.iconColor!) :
-              null)
+              color: myController.iconColor != null ? Color(myController.iconColor!) : null)
       );
     }
     return const InputDecoration();
