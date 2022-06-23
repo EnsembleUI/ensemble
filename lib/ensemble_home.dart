@@ -5,12 +5,12 @@ import 'package:yaml/yaml.dart';
 
 class EnsembleHome extends StatefulWidget {
   const EnsembleHome({
-    this.initialPage,
+    this.initialScreenId,
     this.pageArgs,
     Key? key
   }) : super(key: key);
 
-  final String? initialPage;
+  final String? initialScreenId;
   final Map<String, dynamic>? pageArgs;
 
   @override
@@ -23,7 +23,7 @@ class HomeState extends State<EnsembleHome> {
 
   @override
   void initState() {
-    initialPageDefinition = Ensemble().getPageDefinition(context, widget.initialPage);
+    initialPageDefinition = Ensemble().getPageDefinition(context, screenId: widget.initialScreenId);
     super.initState();
   }
 
