@@ -203,13 +203,16 @@ mixin ViewBuilder on IsScopeManager {
   /// If the value is an expression of valid binding, we
   /// will register to listen for changes
   void setPropertyAndRegisterBinding(DataContext dataContext, Invokable widget, String key, dynamic value) {
-    if (value is String && Utils.hasExpression(value)) {
-      // listen for binding changes
-      (this as PageBindingManager).registerBindingListener(
-          BindingDestination(widget, key),
-          value);
-      // evaluate the binding as the initial value
-      value = dataContext.eval(value);
+    if (value is String) {
+      DataExpression? expression = Utils.parseDataExpression(value);
+      if (expression != null) {
+        // listen for binding changes
+        (this as PageBindingManager).registerBindingListener(
+            BindingDestination(widget, key),
+            expression);
+        // evaluate the binding as the initial value
+        value = dataContext.eval(value);
+      }
     }
     widget.setProperty(key, value);
 
@@ -245,15 +248,14 @@ mixin PageBindingManager on IsScopeManager {
   /// Calling this multiple times is safe as we remove the matching listeners before adding.
   /// Upon changes, execute setProperty() on the destination's Invokable
   /// The expression can be a mix of variable and text e.g Hello $(first) $(last)
-  void registerBindingListener(BindingDestination bindingDestination, String rawBinding) {
-    List<String> expressions = Utils.getExpressionsFromString(rawBinding);
+  void registerBindingListener(BindingDestination bindingDestination, DataExpression dataExpression) {
 
     // we re-evaluate the entire raw binding upon any changes to any variables
-    for (var expression in expressions) {
+    for (var expression in dataExpression.expressions) {
       listen(expression, me: bindingDestination.widget, onDataChange: (ModelChangeEvent event) {
         // payload only have changes to a variable, but we have to evaluate the entire expression
         // e.g Hello $(firstName.value) $(lastName.value)
-        dynamic updatedValue = dataContext.eval(rawBinding);
+        dynamic updatedValue = dataContext.eval(dataExpression.rawExpression);
         bindingDestination.widget.setProperty(bindingDestination.setterProperty, updatedValue);
       });
     }
@@ -415,7 +417,22 @@ class PageData {
     return _eContext;
   }*/
 
+}
 
+/// representing a one-line expression that evaluates to a value
+/// e.g 'My name is ${person.first_name} ${person.last_name}'
+/// This may also contain an equivalent AST definition, which we'll use to
+/// execute by default, otherwise fallback to execute the expression directly.
+class DataExpression {
+  DataExpression({
+    required this.rawExpression,
+    required this.expressions,
+    this.astExpression});
 
-
+  // the original raw expression e.g my name is ${person.first_name} ${person.last_name}
+  String rawExpression;
+  // each expression in a list e.g [person.first_name, person.last_name]
+  List<String> expressions;
+  // the AST which we'll execute by default, and fallback to executing rawExpression
+  String? astExpression;
 }

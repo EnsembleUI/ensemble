@@ -87,6 +87,11 @@ class DataContext {
       return expression;
     }
 
+    // execute as code if expression is AST
+    if (expression.startsWith("//@code")) {
+      return evalCode(expression);
+    }
+
     // if just have single standalone expression, return the actual type (e.g integer)
     RegExpMatch? simpleExpression = Utils.onlyExpression.firstMatch(expression);
     if (simpleExpression != null) {
@@ -141,6 +146,14 @@ class DataContext {
 
   /// evaluate Typescript code block
   dynamic evalCode(String codeBlock) {
+    // code can have //@code <expression>
+    // We don't use that here but we need to strip
+    // that out before parsing the content as JSON
+    String? codeWithoutComments = Utils.codeAfterComment.firstMatch(codeBlock)?.group(1);
+    if (codeWithoutComments != null) {
+      codeBlock = codeWithoutComments;
+    }
+
     final json = jsonDecode(codeBlock);
     List<ASTNode> arr = ASTBuilder().buildArray(json['body']);
     dynamic rtnValue = Interpreter(_contextMap).evaluate(arr);
