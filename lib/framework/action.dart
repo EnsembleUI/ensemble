@@ -27,14 +27,33 @@ class InvokeAPIAction extends EnsembleAction {
   EnsembleAction? onError;
 }
 
-class NavigateScreenAction extends EnsembleAction {
+class NavigateScreenAction extends BaseNavigateScreenAction {
   NavigateScreenAction({
     Invokable? initiator,
+    required String screenName,
+    Map<String, dynamic>? inputs
+  }) : super(initiator: initiator, screenName: screenName, asModal: false, inputs: inputs);
+}
+
+class NavigateModalScreenAction extends BaseNavigateScreenAction {
+  NavigateModalScreenAction({
+    Invokable? initiator,
+    required String screenName,
+    Map<String, dynamic>? inputs
+    }) : super(initiator: initiator, screenName: screenName, asModal: true, inputs: inputs);
+
+}
+
+abstract class BaseNavigateScreenAction extends EnsembleAction {
+  BaseNavigateScreenAction({
+    Invokable? initiator,
     required this.screenName,
+    required this.asModal,
     this.inputs
   }) : super(initiator: initiator);
 
   String screenName;
+  bool asModal;
   Map<String, dynamic>? inputs;
 }
 
@@ -48,4 +67,4 @@ class ExecuteCodeAction extends EnsembleAction {
 }
 
 
-enum ActionType { invokeAPI, navigateScreen, executeCode }
+enum ActionType { invokeAPI, navigateScreen, showModalScreen, executeCode }

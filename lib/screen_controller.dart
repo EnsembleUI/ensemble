@@ -176,7 +176,7 @@ class ScreenController {
             .then((response) => _onAPIComplete(dataContext, action, apiDefinition, Response(response), apiMap, scopeManager))
             .onError((error, stackTrace) => processAPIError(dataContext, apiDefinition, error, apiMap, scopeManager));
       }
-    } else if (action is NavigateScreenAction) {
+    } else if (action is BaseNavigateScreenAction) {
       // process input parameters
       Map<String, dynamic>? nextArgs = {};
       action.inputs?.forEach((key, value) {
@@ -184,7 +184,7 @@ class ScreenController {
       });
       // args may be cleared out on hot reload. Check this
       Ensemble().navigateApp(
-          providedDataContext.buildContext, screenName: action.screenName, pageArgs: nextArgs);
+          providedDataContext.buildContext, screenName: action.screenName, asModal: action.asModal, pageArgs: nextArgs);
 
     } else if (action is ExecuteCodeAction) {
       dataContext.evalCode(action.codeBlock);

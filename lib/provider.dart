@@ -14,7 +14,7 @@ import 'package:flutter/foundation.dart' as foundation;
 abstract class DefinitionProvider {
   final I18nProps i18nProps;
   DefinitionProvider(this.i18nProps);
-  Future<YamlMap> getDefinition({String? screenId});
+  Future<YamlMap> getDefinition({String? screenId, String? screenName});
   FlutterI18nDelegate getI18NDelegate();
   Future<AppBundle> getAppBundle();
 }
@@ -39,11 +39,11 @@ class LocalDefinitionProvider extends DefinitionProvider {
   }
 
   @override
-  Future<YamlMap> getDefinition({String? screenId}) async {
+  Future<YamlMap> getDefinition({String? screenId, String? screenName}) async {
     // Note: Web with local definition caches even if we disable browser cache
     // so you may need to re-run the app on definition changes
     var pageStr = await rootBundle.loadString(
-        '$path${screenId ?? appHome}.yaml',
+        '$path${screenId ?? screenName ?? appHome}.yaml',
         cache: foundation.kReleaseMode);
     return loadYaml(pageStr);
   }
@@ -80,8 +80,8 @@ class RemoteDefinitionProvider extends DefinitionProvider {
     return _i18nDelegate!;
   }
   @override
-  Future<YamlMap> getDefinition({String? screenId}) async {
-    String screen = screenId ?? appHome;
+  Future<YamlMap> getDefinition({String? screenId, String? screenName}) async {
+    String screen = screenId ?? screenName ?? appHome;
 
     Completer<YamlMap> completer = Completer();
     http.Response response = await http.get(
@@ -129,25 +129,29 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
     return _i18nDelegate!;
   }
   @override
-  Future<YamlMap> getDefinition({String? screenId}) async {
-    // can't find the home screen via App bundle, iterate all screens to find out
-    if (appHome == null) {
-      return getLegacyDefinition(screenId: screenId);
+  Future<YamlMap> getDefinition({String? screenId, String? screenName}) async {
+    String params;
+    if (screenId != null) {
+      params = 'id=$screenId';
+    } else {
+      params = 'appId=$appId';
+      // home screen is loaded if screenName is not specified
+      if (screenName != null) {
+        params += '&name=$screenName';
+      }
     }
-
-    // fetch the home screen
     Completer<YamlMap> completer = Completer();
-    http.Response response = await http.get(Uri.parse('$url/screen/content?expression_to_ast=true&appId=$appId&name=${screenId ?? appHome}'));
+    http.Response response = await http.get(Uri.parse('$url/screen/content?$params'));
     if (response.statusCode == 200) {
       completer.complete(loadYaml(response.body));
     } else {
-      completer.completeError("Error loading Ensemble page: Home Screen");
+      completer.completeError("Error loading Ensemble page: ${screenId ?? screenName ?? 'Home'}");
     }
     return completer.future;
   }
 
-
-  Future<YamlMap> getLegacyDefinition({String? screenId}) async {
+  /// Legacy - have to loop through all the screen to match
+  /*Future<YamlMap> getLegacyDefinition({String? screenId}) async {
     Completer<YamlMap> completer = Completer();
     http.Response response = await http.get(
         Uri.parse('$url/app?id=$appId'));
@@ -174,7 +178,7 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
     }
     completer.completeError("Error loading Ensemble page: ${screenId ?? 'Home'}");
     return completer.future;
-  }
+  }*/
 
   @override
   Future<AppBundle> getAppBundle() async {
