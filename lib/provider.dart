@@ -137,7 +137,7 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
 
     // fetch the home screen
     Completer<YamlMap> completer = Completer();
-    http.Response response = await http.get(Uri.parse('$url/screen/content?expression_to_ast=false&appId=$appId&name=${screenId ?? appHome}'));
+    http.Response response = await http.get(Uri.parse('$url/screen/content?expression_to_ast=true&appId=$appId&name=${screenId ?? appHome}'));
     if (response.statusCode == 200) {
       completer.complete(loadYaml(response.body));
     } else {
