@@ -288,7 +288,7 @@ class ViewState extends State<View>{
   }
 
   void selectNavigationIndex(BuildContext context, model.MenuItem menuItem) {
-    Ensemble().navigateApp(context, screenName: menuItem.page, replace: true);
+    Ensemble().navigateApp(context, screenName: menuItem.page);
   }
 
 

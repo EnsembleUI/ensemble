@@ -48,6 +48,11 @@ class Utils {
           initiator: initiator,
           screenName: payload['name'],
           inputs: inputs);
+      } else if (payload['action'] == ActionType.showModalScreen.name) {
+        return NavigateModalScreenAction(
+          initiator: initiator,
+          screenName: payload['name'],
+          inputs: inputs);
       } else if (payload['action'] == ActionType.invokeAPI.name) {
         return InvokeAPIAction(
           initiator: initiator,
