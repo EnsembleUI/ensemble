@@ -129,11 +129,11 @@ class Ensemble {
   }
 
   /// fetch the page definition
-  Future<YamlMap> getPageDefinition(BuildContext context, String? screenId) async {
+  Future<YamlMap> getPageDefinition(BuildContext context, {String? screenId, String? screenName}) async {
     if (definitionProvider == null) {
       await initialize();
     }
-    return definitionProvider!.getDefinition(screenId: screenId);
+    return definitionProvider!.getDefinition(screenId: screenId, screenName: screenName);
   }
 
   /// process the page definition into a Widget
@@ -255,11 +255,11 @@ class Ensemble {
   /// [screenName] - navigate to screen if specified, otherwise to appHome
   void navigateApp(BuildContext context, {
     String? screenName,
-    bool replace = false,
+    bool asModal = false,
     Map<String, dynamic>? pageArgs,
   }) {
     MaterialPageRoute pageRoute = getAppRoute(screenName: screenName, pageArgs: pageArgs);
-    if (replace) {
+    if (asModal) {
       Navigator.pushReplacement(context, pageRoute);
     } else {
       Navigator.push(context, pageRoute);
@@ -275,7 +275,7 @@ class Ensemble {
   }) {
     return EnsemblePageRoute(
         builder: (context) => FutureBuilder(
-            future: getPageDefinition(context, screenName),
+            future: getPageDefinition(context, screenName: screenName),
             builder: (context, AsyncSnapshot snapshot) =>
                 processPageDefinition(context, snapshot, pageArgs: pageArgs))
     );
