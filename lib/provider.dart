@@ -131,19 +131,19 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
   @override
   Future<YamlMap> getDefinition({String? screenId}) async {
     // can't find the home screen via App bundle, iterate all screens to find out
-    //if (appHome == null) {
+    if (appHome == null) {
       return getLegacyDefinition(screenId: screenId);
-    //}
+    }
 
     // fetch the home screen
-    /*Completer<YamlMap> completer = Completer();
-    http.Response response = await http.get(Uri.parse('$url/screen/content?expression_to_ast=false&id=${screenId ?? appHome}'));
+    Completer<YamlMap> completer = Completer();
+    http.Response response = await http.get(Uri.parse('$url/screen/content?expression_to_ast=true&appId=$appId&name=${screenId ?? appHome}'));
     if (response.statusCode == 200) {
       completer.complete(loadYaml(response.body));
     } else {
       completer.completeError("Error loading Ensemble page: Home Screen");
     }
-    return completer.future;*/
+    return completer.future;
   }
 
 
@@ -188,7 +188,7 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
         if (result[appId]['screens'] is List) {
           for (dynamic screen in result[appId]['screens']) {
             if (screen['is_home']) {
-              appHome = screen['id'];
+              appHome = screen['name'];
               print("appHome: $appHome");
               break;
             }
