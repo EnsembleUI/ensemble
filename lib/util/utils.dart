@@ -1,4 +1,5 @@
 import 'package:ensemble/error_handling.dart';
+import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
@@ -207,6 +208,12 @@ class Utils {
   static final containExpression = RegExp(r'''\${([a-z_-\d.:"'\(\)\[\]]+)}''', caseSensitive: false);
   static final i18nExpression = RegExp(r'r@[a-zA-Z0-9.-_]+',caseSensitive: false);
 
+  // extract only the AST after the comment and expression e.g //code <expression>\n<AST>
+  static final codeAfterComment = RegExp(r'^//@code[^\n]*\n+((.|\n)+)', caseSensitive: false);
+
+  // match an expression and AST e.g //@code <expression>\n<AST> in group1 and group2
+  static final expressionAndAst = RegExp(r'^//@code\s+([^\n]+)\s*\n+((.|\n)+)', caseSensitive: false);
+
   //expect r@mystring or r@myapp.myscreen.mystring as long as r@ is there. If r@ is not there, returns the string as-is
   static String translate(String val,BuildContext? ctx) {
     BuildContext? context;
@@ -245,10 +252,34 @@ class Utils {
   /// get the list of expression from the raw string
   /// [input]: Hello $(firstname) $(lastname)
   /// @return [ $(firstname), $(lastname) ]
-  static List<String> getExpressionsFromString(String input) {
+  static List<String> getExpressionTokens(String input) {
     return containExpression.allMatches(input)
         .map((e) => e.group(0)!)
         .toList();
+  }
+
+  /// parse an Expression and AST into a DataExpression object.
+  /// There are two variations:
+  /// 1. <expression>
+  /// 2. //@code <expression>\n<AST>
+  static DataExpression? parseDataExpression(String input) {
+    // first match //@code <expression>\n<AST> as it is what we have
+    RegExpMatch? match = expressionAndAst.firstMatch(input);
+    if (match != null) {
+      return DataExpression(
+        rawExpression: match.group(1)!,
+        expressions: getExpressionTokens(match.group(1)!),
+        astExpression: match.group(2)!,
+      );
+    }
+    // fallback to match <expression> only. This is if we don't turn on AST
+    List<String> tokens = getExpressionTokens(input);
+    if (tokens.isNotEmpty) {
+      return DataExpression(
+        rawExpression: input,
+        expressions: tokens);
+    }
+    return null;
   }
 
 
