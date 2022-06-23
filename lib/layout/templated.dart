@@ -3,6 +3,7 @@ import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/view.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 
@@ -11,11 +12,15 @@ mixin TemplatedWidgetState<W extends StatefulWidget> on State<W> {
 
   void registerItemTemplate(BuildContext context, ItemTemplate itemTemplate, {required Function onDataChanged}) {
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
-    if (scopeManager != null) {
+    DataExpression? dataExpression = Utils.parseDataExpression(itemTemplate.data);
+    if (scopeManager != null && dataExpression != null) {
+
+
+
 
       // listen to the binding from our itemTemplate
       // data: $(apiName.*)
-      scopeManager.listen(itemTemplate.data, me: (widget as Invokable), onDataChange:(ModelChangeEvent event) {
+      scopeManager.listen(dataExpression.rawExpression, me: (widget as Invokable), onDataChange:(ModelChangeEvent event) {
         // evaluate the expression
         dynamic dataList = scopeManager.dataContext.eval(itemTemplate.data);
         if (dataList is List) {
