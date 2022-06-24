@@ -28,7 +28,7 @@ class PageModel {
   Map<String, dynamic>? pageStyles;
   Menu? menu;
   late WidgetModel rootWidgetModel;
-  PageType pageType = PageType.full;
+  PageType pageType = PageType.regular;
   Footer? footer;
 
   PageModel (YamlMap data) {
@@ -52,7 +52,7 @@ class PageModel {
     pageType =
       viewMap['type'] == PageType.modal.name ?
       PageType.modal :
-      PageType.full;
+      PageType.regular;
 
     // build a Map of the Custom Widgets
     customViewDefinitions = buildCustomViewDefinitions(docMap);
@@ -363,5 +363,5 @@ class Footer {
 }
 
 enum PageType {
-  full, modal
+  regular, modal
 }

@@ -35,8 +35,9 @@ class ScreenController {
 
   // TODO: Back button will still use the curent page PageMode. Need to keep model state
   /// render the page from the definition and optional arguments (from previous pages)
-  View renderPage(DataContext dataContext, YamlMap data) {
+  View renderPage(DataContext dataContext, YamlMap data, {bool? asModal}) {
     PageModel pageModel = PageModel(data);
+    pageModel.pageType = asModal == true ? PageType.modal : PageType.regular;
 
     // add all the API names to our context as Invokable, even though their result
     // will be null. This is so we can always reference it API responses come back
