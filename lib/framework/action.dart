@@ -39,8 +39,11 @@ class NavigateModalScreenAction extends BaseNavigateScreenAction {
   NavigateModalScreenAction({
     Invokable? initiator,
     required String screenName,
-    Map<String, dynamic>? inputs
+    Map<String, dynamic>? inputs,
+    this.onModalDismiss,
     }) : super(initiator: initiator, screenName: screenName, asModal: true, inputs: inputs);
+
+  EnsembleAction? onModalDismiss;
 
 }
 

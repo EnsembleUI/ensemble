@@ -277,6 +277,7 @@ class NativeInvokable with Invokable {
   }
   void showModalScreen(String screenId) {
     Ensemble().navigateApp(_buildContext, screenName: screenId, asModal: true);
+    // how do we handle onModalDismiss in Typescript?
   }
   void invokeAPI(String apiName) {
     /*ScreenController().executeAction(_buildContext, EnsembleAction(
