@@ -8,8 +8,6 @@ class EnsemblePageRoute extends MaterialPageRoute {
 
   final bool? asModal;
 
-
-
   /*
   @override
   Duration get transitionDuration => Duration(milliseconds: (asModal ? 0 : 300));
@@ -21,7 +19,9 @@ class EnsemblePageRouteBuilder extends PageRouteBuilder {
   EnsemblePageRouteBuilder({
     required Widget screenWidget}) : super(
       pageBuilder: (context, animation, secondaryAnimation) => screenWidget,
-      transitionDuration: const Duration(milliseconds: 200),
+
+      /*
+      transitionDuration: const Duration(milliseconds: 300),
       transitionsBuilder: (BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
         return SlideTransition(
           position: Tween<Offset>(
@@ -31,6 +31,8 @@ class EnsemblePageRouteBuilder extends PageRouteBuilder {
           child: child,
         );
       }
+
+       */
   );
 }
 
@@ -44,7 +46,7 @@ class EnsembleModalPageRouteBuilder extends PageRouteBuilder {
       barrierDismissible: true,
       opaque: false,
       barrierColor: Colors.black54,
-      transitionDuration: const Duration(milliseconds: 300),
+      transitionDuration: const Duration(milliseconds: 250),
 
   );
 }
