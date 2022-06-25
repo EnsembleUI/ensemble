@@ -19,6 +19,7 @@ import 'package:ensemble/widget/image.dart';
 import 'package:ensemble/widget/qr_code.dart';
 import 'package:ensemble/widget/rating.dart';
 import 'package:ensemble/widget/spacer.dart';
+import 'package:ensemble/widget/visualization/line_area_chart.dart';
 import 'package:ensemble/widget/webview.dart';
 import 'package:ensemble/widget/widget_builder.dart';
 
@@ -65,6 +66,7 @@ class WidgetRegistry {
 
     // charts
     Highcharts.type: () => Highcharts(),
+    EnsembleLineChart.type: () => EnsembleLineChart(),
   };
 
   @Deprecated("Use widgetMap instead")
