@@ -260,8 +260,9 @@ class NativeInvokable with Invokable {
   @override
   Map<String, Function> methods() {
     return {
-      'navigateScreen': navigateToScreen,
-      'invokeAPI': invokeAPI,
+      ActionType.navigateScreen.name: navigateToScreen,
+      ActionType.showModalScreen.name: showModalScreen,
+      ActionType.invokeAPI.name: invokeAPI,
       'debug': (value) => log('Debug: $value'),
     };
   }
@@ -272,7 +273,11 @@ class NativeInvokable with Invokable {
   }
 
   void navigateToScreen(String screenId) {
-    Ensemble().navigateApp(_buildContext, screenName: screenId);
+    Ensemble().navigateApp(_buildContext, screenName: screenId, asModal: false);
+  }
+  void showModalScreen(String screenId) {
+    Ensemble().navigateApp(_buildContext, screenName: screenId, asModal: true);
+    // how do we handle onModalDismiss in Typescript?
   }
   void invokeAPI(String apiName) {
     /*ScreenController().executeAction(_buildContext, EnsembleAction(

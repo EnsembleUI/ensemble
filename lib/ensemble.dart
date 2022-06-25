@@ -129,7 +129,7 @@ class Ensemble {
   }
 
   /// fetch the page definition
-  Future<YamlMap> getPageDefinition(BuildContext context, {String? screenId, String? screenName}) async {
+  Future<YamlMap> getPageDefinition({String? screenId, String? screenName}) async {
     if (definitionProvider == null) {
       await initialize();
     }
@@ -141,7 +141,8 @@ class Ensemble {
       BuildContext context,
       AsyncSnapshot snapshot,
       {
-        Map<String, dynamic>? pageArgs
+        Map<String, dynamic>? pageArgs,
+        bool? asModal
       }) {
 
     if (snapshot.hasError) {
@@ -214,7 +215,7 @@ class Ensemble {
               dataContext.addInvokableContext(action.apiName, APIResponse(response: response));
 
               // render the page
-              View page = _renderPage(context, dataContext, snapshot);
+              View page = _renderPage(context, dataContext, snapshot, asModal: asModal);
 
               // once page has been rendered, run the onResponse code block of the API
               EnsembleAction? onResponseAction = Utils.getAction(apiPayload['onResponse']);
@@ -240,7 +241,7 @@ class Ensemble {
             }
         );
       } else {
-        return _renderPage(context, dataContext, snapshot);
+        return _renderPage(context, dataContext, snapshot, asModal: asModal);
       }
     }
     // else error
@@ -253,32 +254,40 @@ class Ensemble {
 
   /// Navigate to another screen
   /// [screenName] - navigate to screen if specified, otherwise to appHome
-  void navigateApp(BuildContext context, {
+  PageRouteBuilder navigateApp(BuildContext context, {
     String? screenName,
-    bool asModal = false,
+    bool? asModal,
     Map<String, dynamic>? pageArgs,
   }) {
-    MaterialPageRoute pageRoute = getAppRoute(screenName: screenName, pageArgs: pageArgs);
-    if (asModal) {
-      Navigator.pushReplacement(context, pageRoute);
-    } else {
-      Navigator.push(context, pageRoute);
-    }
+    PageRouteBuilder route = getAppRoute(
+        screenName: screenName,
+        asModal: asModal,
+        pageArgs: pageArgs);
+    Navigator.push(context, route);
+
+    return route;
   }
 
 
   /// return Ensemble App's PageRoute, suitable to be embedded as a PageRoute
   /// [screenName] optional screen name or id to navigate to. Otherwise use the appHome
-  MaterialPageRoute getAppRoute({
+  PageRouteBuilder getAppRoute({
     String? screenName,
+    bool? asModal,
     Map<String, dynamic>? pageArgs
   }) {
-    return EnsemblePageRoute(
-        builder: (context) => FutureBuilder(
-            future: getPageDefinition(context, screenName: screenName),
-            builder: (context, AsyncSnapshot snapshot) =>
-                processPageDefinition(context, snapshot, pageArgs: pageArgs))
-    );
+
+    Widget screenWidget = FutureBuilder(
+        future: getPageDefinition(screenName: screenName),
+        builder: (context, AsyncSnapshot snapshot) =>
+            processPageDefinition(context, snapshot, pageArgs: pageArgs, asModal: asModal));
+
+
+    if (asModal == true) {
+      return EnsembleModalPageRouteBuilder(screenWidget: screenWidget);
+    } else {
+      return EnsemblePageRouteBuilder(screenWidget: screenWidget);
+    }
   }
 
   View _renderPage(
@@ -286,10 +295,11 @@ class Ensemble {
       DataContext dataContext,
       AsyncSnapshot<dynamic> snapshot,
       {
-        bool replace=false
+        bool replace=false,
+        bool? asModal
       }) {
     //log ("Screen Arguments: " + args.toString());
-    return ScreenController().renderPage(dataContext, snapshot.data);
+    return ScreenController().renderPage(dataContext, snapshot.data, asModal: asModal);
   }
 
 

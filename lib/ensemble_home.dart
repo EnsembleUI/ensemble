@@ -23,7 +23,7 @@ class HomeState extends State<EnsembleHome> {
 
   @override
   void initState() {
-    initialPageDefinition = Ensemble().getPageDefinition(context, screenId: widget.initialScreenId);
+    initialPageDefinition = Ensemble().getPageDefinition(screenId: widget.initialScreenId);
     super.initState();
   }
 

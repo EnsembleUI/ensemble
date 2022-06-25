@@ -679,27 +679,55 @@
       }
     },
     "Action-payload": {
-      "type": [ "string" , "object" ],
+      "type": [
+        "string",
+        "object"
+      ],
       "description": "Call Ensemble's built-in functions or execute code",
-      "required": [ "action", "name" ],
-      "properties": {
-        "action": {
-          "type": "string",
-          "description": "invoke an Ensemble's built-in functions",
-          "enum": [
-            "invokeAPI" ,"navigateScreen"
-          ]
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the action (e.g API Name for invokeAPI, Screen Name for navigateScreen)"
-        },
-        "inputs": {
-          "type": "object",
-          "description": "Specify the key/value pairs to pass into the next Screen or API"
-        }
+      "required": [
+        "action",
+        "name"
+      ],
+      "allOf": [
+        {
+          "properties": {
+            "action": {
+              "type": "string",
+              "description": "invoke an Ensemble's built-in functions",
+              "enum": [
+                "invokeAPI" ,"navigateScreen", "showModalScreen"
+              ]
+            },
+            "name": {
+              "type": "string",
+              "description": "The name of the action (e.g API Name for invokeAPI, Screen Name for navigateScreen)"
+            },
+            "inputs": {
+              "type": "object",
+              "description": "Specify the key/value pairs to pass into the next Screen or API"
+            }
 
-      }
+
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "showModalScreen"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "onModalDismiss": {
+                "$ref": "#/$defs/Action-payload",
+                "description": "Execute an Action when the modal page is dismissed"
+              }
+            }
+          }
+        }
+      ]
     },
 
 

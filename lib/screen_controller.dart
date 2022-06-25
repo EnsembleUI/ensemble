@@ -6,6 +6,7 @@ import 'package:ensemble/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/framework/widget/view.dart';
@@ -35,8 +36,9 @@ class ScreenController {
 
   // TODO: Back button will still use the curent page PageMode. Need to keep model state
   /// render the page from the definition and optional arguments (from previous pages)
-  View renderPage(DataContext dataContext, YamlMap data) {
+  View renderPage(DataContext dataContext, YamlMap data, {bool? asModal}) {
     PageModel pageModel = PageModel(data);
+    pageModel.pageType = asModal == true ? PageType.modal : PageType.regular;
 
     // add all the API names to our context as Invokable, even though their result
     // will be null. This is so we can always reference it API responses come back
@@ -182,9 +184,23 @@ class ScreenController {
       action.inputs?.forEach((key, value) {
         nextArgs[key] = dataContext.eval(value);
       });
-      // args may be cleared out on hot reload. Check this
-      Ensemble().navigateApp(
-          providedDataContext.buildContext, screenName: action.screenName, asModal: action.asModal, pageArgs: nextArgs);
+
+      PageRouteBuilder routeBuilder = Ensemble().navigateApp(
+          providedDataContext.buildContext,
+          screenName: action.screenName,
+          asModal: action.asModal,
+          pageArgs: nextArgs);
+
+      // process onModalDismiss
+      if (action is NavigateModalScreenAction &&
+          action.onModalDismiss != null &&
+          routeBuilder is EnsembleModalPageRouteBuilder &&
+          scopeManager != null) {
+        // callback on modal pop
+        routeBuilder.popped.whenComplete(() {
+          executeActionWithScope(scopeManager, action.onModalDismiss!);
+        });
+      }
 
     } else if (action is ExecuteCodeAction) {
       dataContext.evalCode(action.codeBlock);
