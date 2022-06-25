@@ -83,26 +83,19 @@ class ViewState extends State<View>{
   @override
   Widget build(BuildContext context) {
 
-    // modal page has certain criteria (no navBar, no header)
-    if (widget._pageModel.pageType == PageType.modal) {
-      // need a close button to go back to non-modal pages
-      // also animate up and down (vs left and right)
-      return DataScopeWidget(
-        scopeManager: _scopeManager,
-        child: Scaffold(
-          body:  _scopeManager.buildWidget(widget._pageModel.rootWidgetModel),
-          bottomSheet: _buildFooter(_scopeManager, widget._pageModel)),
-      );
-    }
-    // regular page
-    else {
 
+    Widget? bottomNavBar;
+    Widget? drawer;
+    bool showAppBar = false;
+
+    // modal page has certain criteria (no navBar, no header)
+    if (widget._pageModel.pageType != PageType.modal) {
       // navigation
-      Widget? bottomNavBar;
-      Widget? drawer;
-      if (widget._pageModel.menu != null && widget._pageModel.menu!.menuItems.length >= 2 ) {
+      if (widget._pageModel.menu != null &&
+          widget._pageModel.menu!.menuItems.length >= 2) {
         if (widget._pageModel.menu!.display == MenuDisplay.navBar) {
-          bottomNavBar = _buildBottomNavBar(context, widget._pageModel.menu!.menuItems);
+          bottomNavBar =
+              _buildBottomNavBar(context, widget._pageModel.menu!.menuItems);
         } else if (widget._pageModel.menu!.display == MenuDisplay.drawer) {
           drawer = _buildDrawer(context, widget._pageModel.menu!.menuItems);
         }
@@ -110,58 +103,57 @@ class ViewState extends State<View>{
       }
 
       // use the AppBar if we have a title, or have a drawer (to show the menu)
-      bool showAppBar = widget._pageModel.title != null || drawer != null;
+      showAppBar = widget._pageModel.title != null || drawer != null;
       if (widget._pageModel.menu != null &&
           (widget._pageModel.menu!.display == MenuDisplay.navBar_left ||
               widget._pageModel.menu!.display == MenuDisplay.navBar_right)) {
         showAppBar = false;
       }
-
-      Color? backgroundColor =
-        widget._pageModel.pageStyles?['backgroundColor'] is int ?
-        Color(widget._pageModel.pageStyles!['backgroundColor']) :
-        null;
-      // if we have a background image, set the background color to transparent
-      // since our image is outside the Scaffold
-      bool showBackgroundImage = false;
-      if (backgroundColor == null && widget._pageModel.pageStyles?['backgroundImage'] != null) {
-        showBackgroundImage = true;
-        backgroundColor = Colors.transparent;
-      }
-
-      Widget rtn = DataScopeWidget(
-        scopeManager: _scopeManager,
-        child: Scaffold(
-          // slight optimization, if body background is set, let's paint
-          // the entire screen including the Safe Area
-          backgroundColor: backgroundColor,
-          appBar: !showAppBar ? null : AppBar(
-                title: Text(Utils.translate(widget._pageModel.title ?? '', context))),
-          body: getBody(),
-          bottomNavigationBar: bottomNavBar,
-          drawer: drawer,
-          bottomSheet: _buildFooter(_scopeManager, widget._pageModel),
-        ),
-      );
-
-      // if backgroundImage is set, put it outside of the Scaffold so
-      // keyboard sliding up (when entering value) won't resize the background
-      if (showBackgroundImage) {
-        return Container(
-          constraints: const BoxConstraints.expand(),
-          decoration: BoxDecoration(
-            image: DecorationImage (
-              image: NetworkImage(widget._pageModel.pageStyles!['backgroundImage']!.toString()),
-              fit: BoxFit.cover
-            )
-          ),
-          child: rtn
-        );
-      }
-      return rtn;
-
-
     }
+
+    Color? backgroundColor =
+      widget._pageModel.pageStyles?['backgroundColor'] is int ?
+      Color(widget._pageModel.pageStyles!['backgroundColor']) :
+      null;
+    // if we have a background image, set the background color to transparent
+    // since our image is outside the Scaffold
+    bool showBackgroundImage = false;
+    if (backgroundColor == null && widget._pageModel.pageStyles?['backgroundImage'] != null) {
+      showBackgroundImage = true;
+      backgroundColor = Colors.transparent;
+    }
+
+    Widget rtn = DataScopeWidget(
+      scopeManager: _scopeManager,
+      child: Scaffold(
+        // slight optimization, if body background is set, let's paint
+        // the entire screen including the Safe Area
+        backgroundColor: backgroundColor,
+        appBar: !showAppBar ? null : AppBar(
+              title: Text(Utils.translate(widget._pageModel.title ?? '', context))),
+        body: getBody(),
+        bottomNavigationBar: bottomNavBar,
+        drawer: drawer,
+        bottomSheet: _buildFooter(_scopeManager, widget._pageModel),
+      ),
+    );
+
+    // if backgroundImage is set, put it outside of the Scaffold so
+    // keyboard sliding up (when entering value) won't resize the background
+    if (showBackgroundImage) {
+      return Container(
+        constraints: const BoxConstraints.expand(),
+        decoration: BoxDecoration(
+          image: DecorationImage (
+            image: NetworkImage(widget._pageModel.pageStyles!['backgroundImage']!.toString()),
+            fit: BoxFit.cover
+          )
+        ),
+        child: rtn
+      );
+    }
+    return rtn;
+
   }
 
   Widget getBody () {
@@ -230,6 +222,7 @@ class ViewState extends State<View>{
       // add the bodyWidget
       content.add(Expanded(
           child: SafeArea(
+            top: widget._pageModel.pageType == PageType.modal ? false : true,
               child: bodyWidget)));
 
       return Row(
@@ -238,6 +231,7 @@ class ViewState extends State<View>{
     }
 
     return SafeArea(
+        top: widget._pageModel.pageType == PageType.modal ? false : true,
         child: bodyWidget
     );
   }
