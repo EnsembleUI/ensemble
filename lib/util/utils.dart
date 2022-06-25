@@ -52,7 +52,8 @@ class Utils {
         return NavigateModalScreenAction(
           initiator: initiator,
           screenName: payload['name'],
-          inputs: inputs);
+          inputs: inputs,
+          onModalDismiss: Utils.getAction(payload['onModalDismiss']));
       } else if (payload['action'] == ActionType.invokeAPI.name) {
         return InvokeAPIAction(
           initiator: initiator,

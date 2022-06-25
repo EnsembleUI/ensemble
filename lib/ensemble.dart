@@ -254,22 +254,18 @@ class Ensemble {
 
   /// Navigate to another screen
   /// [screenName] - navigate to screen if specified, otherwise to appHome
-  void navigateApp(BuildContext context, {
+  PageRouteBuilder navigateApp(BuildContext context, {
     String? screenName,
     bool? asModal,
     Map<String, dynamic>? pageArgs,
   }) {
-    Navigator.push(context, getAppRoute(
+    PageRouteBuilder route = getAppRoute(
         screenName: screenName,
         asModal: asModal,
-        pageArgs: pageArgs));
+        pageArgs: pageArgs);
+    Navigator.push(context, route);
 
-    /*
-    if (asModal) {
-      Navigator.pushReplacement(context, pageRoute);
-    } else {
-      Navigator.push(context, pageRoute);
-    }*/
+    return route;
   }
 
 
