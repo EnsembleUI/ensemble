@@ -11,8 +11,29 @@ class ModalScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    double topMargin = 60;
+    double bottomMargin = 0;
+    double sideMargin = 0;
+
+    double width = MediaQuery.of(context).size.width;
+    if (width < 500) {
+      sideMargin = 0;
+    } else if (width < 900) {
+      sideMargin = 30;
+    } else {
+      sideMargin = 50;
+    }
+
+    double height = MediaQuery.of(context).size.height;
+    if (height < 900) {
+      topMargin = 60;
+      bottomMargin = 0;
+    } else {
+      topMargin = bottomMargin = 60;
+    }
+
     return Container(
-      margin: const EdgeInsets.all(50),
+      margin: EdgeInsets.fromLTRB(sideMargin, topMargin, sideMargin, bottomMargin),
       clipBehavior: Clip.hardEdge,
       decoration: const BoxDecoration(
         borderRadius: BorderRadius.all(Radius.circular(5)),
