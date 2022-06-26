@@ -94,7 +94,7 @@ class EnsembleLineChartState extends BaseWidgetState<EnsembleLineChart> {
   @override
   Widget build(BuildContext context) {
     return AspectRatio(
-      aspectRatio: 1.23,
+      aspectRatio: 1.10,
       child: Container(
         decoration: const BoxDecoration(
           borderRadius: BorderRadius.all(Radius.circular(18)),
@@ -113,7 +113,7 @@ class EnsembleLineChartState extends BaseWidgetState<EnsembleLineChart> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
                 const SizedBox(
-                  height: 37,
+                  height: 4,
                 ),
                  Text(
                   (controller.title != null)?controller.title!:"",
@@ -126,22 +126,9 @@ class EnsembleLineChartState extends BaseWidgetState<EnsembleLineChart> {
                 const SizedBox(
                   height: 4,
                 ),
-                const Text(
-                  'Monthly Sales',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(
-                  height: 37,
-                ),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.only(right: 16.0, left: 6.0),
+                    padding: const EdgeInsets.only(right: 2.0, left: 2.0),
                     child: LineChart(LineChartData(
                       lineTouchData: lineTouchData1,
                       gridData: gridData,
@@ -156,7 +143,7 @@ class EnsembleLineChartState extends BaseWidgetState<EnsembleLineChart> {
                   ),
                 ),
                 const SizedBox(
-                  height: 10,
+                  height: 4,
                 ),
               ],
             ),
@@ -301,7 +288,7 @@ class EnsembleLineChartState extends BaseWidgetState<EnsembleLineChart> {
     const style = TextStyle(
       color: Color(0xff75729e),
       fontWeight: FontWeight.bold,
-      fontSize: 14,
+      fontSize: 11,
     );
     return Text(value.toInt().toString(), style: style, textAlign: TextAlign.center);
   }
