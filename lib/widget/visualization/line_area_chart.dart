@@ -1,9 +1,7 @@
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:ensemble_ts_interpreter/invokables/invokablelist.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
-import 'package:yaml/yaml.dart';
 
 class LineChartProperties {
   bool asArea = false;
@@ -18,25 +16,25 @@ class EnsembleLineChartController extends Controller {
     _title = t;
     dispatchChanges(KeyValue('title',_title));
   }
-  late List<String> _labels;
+  List<String> _labels = [];
   List<String> get labels => _labels;
   set labels (List<String> l) {
     _labels = l;
     dispatchChanges(KeyValue('labels',_labels));
   }
-  late List metaData;
+  List metaData = [];
   bool isDirty = false;
   void setMetaData(List metaData) {
     this.metaData = metaData;
     isDirty = true;
   }
-  late List<LineChartBarData> _data;
+  List<LineChartBarData> _data = [];
   List<LineChartBarData> get data {
     if ( !isDirty ) {
       return _data;
     }
     List<LineChartBarData> chartData = [];
-    for ( YamlMap m in metaData ) {
+    for ( Map m in metaData ) {
       LineChartBarData  lineData;
       Color? color;
       List<FlSpot> spots = [];
@@ -46,7 +44,7 @@ class EnsembleLineChartController extends Controller {
           colorValue = value;
           color = Color(colorValue);
         } else if ( key == 'data' ) {
-          for ( var i=0;i<(value as YamlList).length;i++ ) {
+          for ( var i=0;i<(value as List).length;i++ ) {
             dynamic metaValue = value[i];
             double val;
             if ( metaValue is int ) {
