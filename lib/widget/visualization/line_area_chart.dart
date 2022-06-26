@@ -1,4 +1,5 @@
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokablelist.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
@@ -94,7 +95,7 @@ class EnsembleLineChartState extends BaseWidgetState<EnsembleLineChart> {
   @override
   Widget build(BuildContext context) {
     return AspectRatio(
-      aspectRatio: 1.10,
+      aspectRatio: 1.30,
       child: Container(
         decoration: const BoxDecoration(
           borderRadius: BorderRadius.all(Radius.circular(18)),
@@ -324,15 +325,23 @@ class EnsembleLineChart extends StatefulWidget with Invokable, HasController<Ens
   @override
   Map<String, Function> setters() {
     return {
-      "title": (String t)=>this.controller.title = t,
-      "labels": (List metaLabels) {
+      "title": (Object t)=>this.controller.title = getString(t),
+      "labels": (Object mLabels) {
+        List? metaLabels = getList(mLabels);
+        if ( metaLabels == null ) {
+          throw Exception('LineChart.data must be a list but is not');
+        }
         List<String> labels = [];
-        for ( String node in metaLabels ) {
-          labels.add(node);
+        for ( Object node in metaLabels ) {
+          labels.add(getString(node)!);
         }
         controller.labels = labels;
       },
-      "properties": (YamlMap metaProps) {
+      "properties": (Object mProps) {
+        Map? metaProps = getMap(mProps);
+        if ( metaProps == null ) {
+          throw Exception("Properties cannot be set ot null and must be set to a map");
+        }
         if ( metaProps['minY'] == null || metaProps['maxY'] == null ) {
           throw Exception('both minY and maxY must be specified for lincharts');
         }
@@ -345,8 +354,12 @@ class EnsembleLineChart extends StatefulWidget with Invokable, HasController<Ens
         }
         controller.properties = props;
       },
-     "data": (List data) {
-        controller.setMetaData(data);
+     "data": (Object data) {
+        List? l = getList(data);
+        if ( l == null ) {
+          throw Exception('LineChart.data must be a list but is not');
+        }
+        controller.setMetaData(l);
      }
     };
   }
