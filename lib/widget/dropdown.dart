@@ -40,13 +40,35 @@ abstract class SelectOne extends StatefulWidget with Invokable, HasController<Se
       'value': () => getValue(),
     };
   }
-
+  void setItemsFromString(dynamic strValues,[dynamic delimiter=',']) {
+    if ( strValues is InvokableString ) {
+      strValues = strValues.val;
+    }
+    if ( delimiter is InvokableString ) {
+      delimiter = delimiter.val;
+    }
+    delimiter ??= ',';
+    List<Map<String,String>> values = [];
+    setItemsFromArray(strValues.split(delimiter));
+  }
+  void setItemsFromArray(dynamic arrValues) {
+    if ( arrValues is InvokableList ) {
+      arrValues = arrValues.list;
+    }
+    List<Map<String,String>> values = [];
+    for ( String str in arrValues ) {
+      values.add({'label':str,'value':str});
+    }
+    updateItems(values);
+  }
   @override
   Map<String, Function> setters() {
     return {
       'value': (value) => _controller.maybeValue = value,
       'items': (values) => updateItems(values),
-      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this)
+      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this),
+      'itemsFromString': (dynamic strValues) => setItemsFromString(strValues),
+      'itemsFromArray': (dynamic arrValues) => setItemsFromArray(arrValues)
     };
   }
 
@@ -54,30 +76,8 @@ abstract class SelectOne extends StatefulWidget with Invokable, HasController<Se
   Map<String, Function> methods() {
     return {
       'itemsFromString': (dynamic strValues,[dynamic delimiter=',']) {
-        if ( strValues is InvokableString ) {
-          strValues = strValues.val;
-        }
-        if ( delimiter is InvokableString ) {
-          delimiter = delimiter.val;
-        }
-        delimiter ??= ',';
-        List<Map<String,String>> values = [];
-        List<String> arr = strValues.split(delimiter);
-        for ( String str in arr ) {
-          values.add({'label':str,'value':str});
-        }
-        updateItems(values);
-      },
-      'itemsFromArray': (dynamic arrValues) {
-        if ( arrValues is InvokableList ) {
-          arrValues = arrValues.list;
-        }
-        List<Map<String,String>> values = [];
-        for ( String str in arrValues ) {
-          values.add({'label':str,'value':str});
-        }
-        updateItems(values);
-      },
+        setItemsFromString(strValues,delimiter);
+      }
     };
   }
 
