@@ -5,6 +5,8 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/widget/form_helper.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokablelist.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokablemap.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
 //import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -73,8 +75,14 @@ abstract class SelectOne extends StatefulWidget with Invokable, HasController<Se
   /// each value can be an YamlMap (value/label pair) or dynamic
   void updateItems(dynamic values) {
     List<SelectOneItem> entries = [];
+    if ( values is InvokableList ) {
+      values = values.list;
+    }
     if (values is List) {
       for (var element in values) {
+        if ( element is InvokableMap ) {
+          element = element.map;
+        }
         // must be of value/label pair. Maybe let user overrides later
         if (element is Map) {
           if (element['value'] != null) {
