@@ -73,10 +73,10 @@ abstract class SelectOne extends StatefulWidget with Invokable, HasController<Se
   /// each value can be an YamlMap (value/label pair) or dynamic
   void updateItems(dynamic values) {
     List<SelectOneItem> entries = [];
-    if (values is YamlList) {
+    if (values is List) {
       for (var element in values) {
         // must be of value/label pair. Maybe let user overrides later
-        if (element is YamlMap) {
+        if (element is Map) {
           if (element['value'] != null) {
             entries.add(SelectOneItem(
                 value: element['value'],
