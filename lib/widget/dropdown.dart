@@ -46,6 +46,13 @@ abstract class SelectOne extends StatefulWidget with Invokable, HasController<Se
     return {
       'value': (value) => _controller.maybeValue = value,
       'items': (values) => updateItems(values),
+      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this)
+    };
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {
       'itemsFromString': (dynamic strValues,[dynamic delimiter=',']) {
         if ( strValues is InvokableString ) {
           strValues = strValues.val;
@@ -71,13 +78,7 @@ abstract class SelectOne extends StatefulWidget with Invokable, HasController<Se
         }
         updateItems(values);
       },
-      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this)
     };
-  }
-
-  @override
-  Map<String, Function> methods() {
-    return {};
   }
 
   bool isValueInItems() {
