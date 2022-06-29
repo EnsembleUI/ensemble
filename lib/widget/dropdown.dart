@@ -7,6 +7,7 @@ import 'package:ensemble/widget/form_helper.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablelist.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablemap.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
 //import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -45,6 +46,31 @@ abstract class SelectOne extends StatefulWidget with Invokable, HasController<Se
     return {
       'value': (value) => _controller.maybeValue = value,
       'items': (values) => updateItems(values),
+      'itemsFromString': (dynamic strValues,[dynamic delimiter=',']) {
+        if ( strValues is InvokableString ) {
+          strValues = strValues.val;
+        }
+        if ( delimiter is InvokableString ) {
+          delimiter = delimiter.val;
+        }
+        delimiter ??= ',';
+        List<Map<String,String>> values = [];
+        List<String> arr = strValues.split(delimiter);
+        for ( String str in arr ) {
+          values.add({'label':str,'value':str});
+        }
+        updateItems(values);
+      },
+      'itemsFromArray': (dynamic arrValues) {
+        if ( arrValues is InvokableList ) {
+          arrValues = arrValues.list;
+        }
+        List<Map<String,String>> values = [];
+        for ( String str in arrValues ) {
+          values.add({'label':str,'value':str});
+        }
+        updateItems(values);
+      },
       'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this)
     };
   }
