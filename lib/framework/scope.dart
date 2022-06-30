@@ -208,6 +208,7 @@ mixin ViewBuilder on IsScopeManager {
       if (expression != null) {
         // listen for binding changes
         (this as PageBindingManager).registerBindingListener(
+            dataContext,
             BindingDestination(widget, key),
             expression);
         // evaluate the binding as the initial value
@@ -248,11 +249,11 @@ mixin PageBindingManager on IsScopeManager {
   /// Calling this multiple times is safe as we remove the matching listeners before adding.
   /// Upon changes, execute setProperty() on the destination's Invokable
   /// The expression can be a mix of variable and text e.g Hello $(first) $(last)
-  void registerBindingListener(BindingDestination bindingDestination, DataExpression dataExpression) {
+  void registerBindingListener(DataContext dataContext, BindingDestination bindingDestination, DataExpression dataExpression) {
 
     // we re-evaluate the entire raw binding upon any changes to any variables
     for (var expression in dataExpression.expressions) {
-      listen(expression, me: bindingDestination.widget, onDataChange: (ModelChangeEvent event) {
+      listen(dataContext, expression, me: bindingDestination.widget, onDataChange: (ModelChangeEvent event) {
         // payload only have changes to a variable, but we have to evaluate the entire expression
         // e.g Hello $(firstName.value) $(lastName.value)
         dynamic updatedValue = dataContext.eval(dataExpression.rawExpression);
@@ -269,12 +270,13 @@ mixin PageBindingManager on IsScopeManager {
   /// all listeners when the widget is disposed.
   /// @return true if we are able to bind and listen to the expression.
   bool listen(
+      DataContext dataContext,
       String bindingExpression, {
         required Invokable me,
         required Function onDataChange
       }) {
 
-    BindingSource? bindingSource = parseExpression(bindingExpression);
+    BindingSource? bindingSource = parseExpression(bindingExpression, dataContext);
     if (bindingSource != null) {
       // create a unique key to reference our listener. We used this to save
       // the listeners for clean up
@@ -322,7 +324,7 @@ mixin PageBindingManager on IsScopeManager {
 
   /// parse a valid expression into a BindingSource object
   /// $(myText.text)
-  BindingSource? parseExpression(String expression) {
+  BindingSource? parseExpression(String expression, DataContext dataContext) {
     if (Utils.isExpression(expression)) {
       String variable = expression.substring(2, expression.length - 1);
       int dotIndex = variable.indexOf('.');
