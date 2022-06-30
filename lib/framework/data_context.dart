@@ -156,9 +156,15 @@ class DataContext {
 
     final json = jsonDecode(codeBlock);
     List<ASTNode> arr = ASTBuilder().buildArray(json['body']);
-    dynamic rtnValue = Interpreter(_contextMap).evaluate(arr);
-    //print(rtnValue);
-    return rtnValue;
+    try {
+      dynamic rtnValue = Interpreter(_contextMap).evaluate(arr);
+      return rtnValue;
+    } catch (error) {
+      // show this error? it may be considered a normal condition as
+      // binding depending on API may not resolved until later e.g myAPI.value.prettyDateTime()
+
+      return null;
+    }
   }
 
   /// eval single line Typescript surrounded by $(...)
