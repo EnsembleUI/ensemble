@@ -44,11 +44,13 @@ class EnsembleBarChartController extends Controller {
       Map m = metaData[i];
       d.add(BarChartGroupData(
         x:i,
+        barsSpace: 2,
         barRods: [
           BarChartRodData(
             toY: toDouble(m['y']),
             color: Color(m['color']),
-            width: Utils.getDouble(m['width'], fallback: properties.barWidth)
+            width: Utils.getDouble(m['width'], fallback: properties.barWidth),
+            borderRadius: BorderRadius.zero
           )
         ]
       ));
@@ -99,9 +101,9 @@ class EnsembleBarChartState extends BaseWidgetState<EnsembleBarChart>  with Char
     );
   }
   BarTouchData get barTouchData => BarTouchData(
-    enabled: false,
+    enabled: true,
     touchTooltipData: BarTouchTooltipData(
-      tooltipBgColor: Colors.transparent,
+      tooltipBgColor: Colors.orangeAccent,
       tooltipPadding: const EdgeInsets.all(0),
       tooltipMargin: 8,
       getTooltipItem: (
@@ -111,9 +113,9 @@ class EnsembleBarChartState extends BaseWidgetState<EnsembleBarChart>  with Char
           int rodIndex,
           ) {
         return BarTooltipItem(
-          rod.toY.round().toString(),
+          controller.labels[group.x]+':'+rod.toY.round().toString(),
           const TextStyle(
-            color: Colors.white,
+            color: Colors.blueGrey,
             fontWeight: FontWeight.bold,
           ),
         );
