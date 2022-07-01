@@ -1,4 +1,3 @@
-import 'package:ensemble/framework/widget/modal_screen.dart';
 import 'package:flutter/material.dart';
 
 class EnsemblePageRoute extends MaterialPageRoute {
@@ -39,9 +38,7 @@ class EnsemblePageRouteBuilder extends PageRouteBuilder {
 class EnsembleModalPageRouteBuilder extends PageRouteBuilder {
   EnsembleModalPageRouteBuilder({
     required Widget screenWidget}) : super(
-      pageBuilder: (context, animation, secondaryAnimation) => ModalScreen(
-        screenWidget: screenWidget,
-      ),
+      pageBuilder: (context, animation, secondaryAnimation) => screenWidget,
       fullscreenDialog: true,
       barrierDismissible: true,
       opaque: false,

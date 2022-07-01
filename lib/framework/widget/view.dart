@@ -122,6 +122,9 @@ class ViewState extends State<View>{
       showBackgroundImage = true;
       backgroundColor = Colors.transparent;
     }
+    if (widget._pageModel.pageType == PageType.modal) {
+      backgroundColor = Colors.transparent;
+    }
 
     Widget rtn = DataScopeWidget(
       scopeManager: _scopeManager,
@@ -158,7 +161,9 @@ class ViewState extends State<View>{
 
   Widget getBody () {
 
-    Widget bodyWidget = _scopeManager.buildWidget(widget._pageModel.rootWidgetModel);
+    Widget bodyWidget = getScreenWidget();
+
+
 
     if (widget._pageModel.menu != null && widget._pageModel.menu!.display == MenuDisplay.navBar_left) {
       List<model.MenuItem> menuItems = widget._pageModel.menu!.menuItems;
@@ -234,6 +239,59 @@ class ViewState extends State<View>{
         top: widget._pageModel.pageType == PageType.modal ? false : true,
         child: bodyWidget
     );
+  }
+
+  /// render the screen widget
+  Widget getScreenWidget() {
+    Widget screen = _scopeManager.buildWidget(widget._pageModel.rootWidgetModel);
+
+    if (widget._pageModel.pageType == PageType.modal) {
+      double topMargin = 60;
+      double bottomMargin = 0;
+      double sideMargin = 0;
+
+      double width = MediaQuery.of(context).size.width;
+      if (width < 500) {
+        sideMargin = 0;
+      } else if (width < 900) {
+        sideMargin = 30;
+      } else {
+        sideMargin = 50;
+      }
+
+      double height = MediaQuery.of(context).size.height;
+      if (height < 900) {
+        topMargin = 60;
+        bottomMargin = 0;
+      } else {
+        topMargin = bottomMargin = 60;
+      }
+
+      screen = Container(
+          margin: EdgeInsets.fromLTRB(sideMargin, topMargin, sideMargin, bottomMargin),
+          clipBehavior: Clip.hardEdge,
+          decoration: const BoxDecoration(
+              borderRadius: BorderRadius.all(Radius.circular(5)),
+              boxShadow: <BoxShadow>[
+                BoxShadow(
+                  color: Colors.white38,
+                  blurRadius: 5,
+                  offset: Offset(0, 0),
+                )
+              ]
+          ),
+          child: screen
+      );
+
+      // if size to fit, wrap our content in a scrollable and center it
+      screen = Center(
+        child: SingleChildScrollView(
+            child: screen
+        ),
+      );
+
+    }
+    return screen;
   }
 
 
