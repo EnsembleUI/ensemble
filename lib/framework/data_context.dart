@@ -157,6 +157,7 @@ class DataContext {
     final json = jsonDecode(codeBlock);
     List<ASTNode> arr = ASTBuilder().buildArray(json['body']);
     try {
+      _contextMap['getStringValue'] = Utils.optionalString;
       dynamic rtnValue = Interpreter(_contextMap).evaluate(arr);
       return rtnValue;
     } catch (error) {
