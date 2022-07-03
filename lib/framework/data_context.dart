@@ -278,18 +278,29 @@ class NativeInvokable with Invokable {
     return {};
   }
 
-  void navigateToScreen(String screenId) {
-    Ensemble().navigateApp(_buildContext, screenName: screenId, asModal: false);
+  void navigateToScreen(String screenId, [dynamic inputs]) {
+    Map<String, dynamic>? inputMap = Utils.getMap(inputs);
+    Ensemble().navigateApp(
+      _buildContext,
+      screenName: screenId,
+      pageArgs: inputMap,
+      asModal: false);
   }
-  void showModalScreen(String screenId) {
-    Ensemble().navigateApp(_buildContext, screenName: screenId, asModal: true);
+  void showModalScreen(String screenId, [dynamic inputs]) {
+    Map<String, dynamic>? inputMap = Utils.getMap(inputs);
+    Ensemble().navigateApp(
+      _buildContext,
+      screenName: screenId,
+      pageArgs: inputMap,
+      asModal: true);
     // how do we handle onModalDismiss in Typescript?
   }
-  void invokeAPI(String apiName) {
-    /*ScreenController().executeAction(_buildContext, EnsembleAction(
-      ActionType.invokeAPI,
-      actionName: apiName
-    ));*/
+  void invokeAPI(String apiName, [dynamic inputs]) {
+    Map<String, dynamic>? inputMap = Utils.getMap(inputs);
+    ScreenController().executeAction(_buildContext, InvokeAPIAction(
+      apiName: apiName,
+      inputs: inputMap
+    ));
   }
 
 }

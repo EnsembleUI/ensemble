@@ -911,7 +911,7 @@
     },
 
     "typeColors": {
-      "anyOf": [
+      "oneOf": [
         {
           "type": "integer"
         },
