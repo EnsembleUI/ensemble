@@ -100,6 +100,17 @@ class Utils {
     return null;
   }
 
+  static Map<String, dynamic>? getMap(dynamic value) {
+    if (value is Map) {
+      Map<String, dynamic> results = {};
+      value.forEach((key, value) {
+        results[key.toString()] = value;
+      });
+      return results;
+    }
+    return null;
+  }
+
   static Color? getColor(dynamic value) {
     if (value is String) {
       switch(value) {
