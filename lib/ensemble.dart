@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:developer';
+import 'dart:io';
 
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
@@ -10,6 +12,7 @@ import 'package:ensemble/provider.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:flutter/services.dart';
@@ -31,6 +34,8 @@ class Ensemble {
     return _instance;
   }
 
+  static final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
+  late DeviceInfo deviceInfo;
   DefinitionProvider? definitionProvider;
   AppBundle? _appBundle;
 
@@ -158,6 +163,9 @@ class Ensemble {
           )
       );
     }
+
+    // init device info
+    initDeviceInfo(context);
 
     // init our context with the Page arguments
     DataContext dataContext = DataContext(buildContext: context, initialMap: pageArgs);
@@ -312,6 +320,42 @@ class Ensemble {
         slashPattern.firstMatch(folder)!.group(1)! + '/';
   }
 
+  /// initialize device info
+  void initDeviceInfo(BuildContext context) async {
+    DevicePlatform? platform;
+    Map<String, dynamic> deviceData = {};
+    Size size = MediaQuery.of(context).size;
+
+
+    try {
+      if (kIsWeb) {
+        platform = DevicePlatform.web;
+      } else {
+        if (Platform.isAndroid) {
+          platform = DevicePlatform.android;
+
+        } else if (Platform.isIOS) {
+          platform = DevicePlatform.ios;
+          IosDeviceInfo iosInfo = await deviceInfoPlugin.iosInfo;
+          deviceData.addAll({
+
+          });
+        } else if (Platform.isMacOS) {
+          platform = DevicePlatform.macos;
+
+        } else if (Platform.isWindows) {
+          platform = DevicePlatform.windows;
+        }
+      }
+    } on PlatformException {
+      log("Error getting device info");
+    }
+
+    deviceInfo = DeviceInfo(platform ?? DevicePlatform.other, size, deviceData);
+    log("${deviceInfo.size.width} x ${deviceInfo.size.height}");
+
+  }
+
 
 }
 
@@ -320,4 +364,15 @@ class AppBundle {
   AppBundle({this.theme});
 
   YamlMap? theme;
+}
+
+class DeviceInfo {
+  DeviceInfo(this.platform, this.size, this.detailInfo);
+
+  DevicePlatform platform;
+  Size size;
+  Map<String, dynamic> detailInfo;
+}
+enum DevicePlatform {
+  web, android, ios, macos, windows, other
 }
