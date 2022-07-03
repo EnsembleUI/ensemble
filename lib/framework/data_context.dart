@@ -25,6 +25,7 @@ class DataContext {
       _contextMap.addAll(initialMap);
     }
     _contextMap['ensemble'] = NativeInvokable(buildContext);
+    _contextMap['device'] = DeviceInfoInvokable();
   }
 
   DataContext clone({BuildContext? newBuildContext}) {
@@ -244,6 +245,30 @@ class DataContext {
       return null;
     }
     return _parseToken(tokens, index+1, map[tokens[index]]);
+  }
+
+
+}
+
+class DeviceInfoInvokable with Invokable {
+  @override
+  Map<String, Function> getters() {
+    DeviceInfo deviceInfo = Ensemble().deviceInfo;
+    return {
+      "width": () => deviceInfo.size.width,
+      "height": () => deviceInfo.size.height,
+      "platform": () => deviceInfo.platform.name,
+    };
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
   }
 
 
