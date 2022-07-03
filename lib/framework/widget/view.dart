@@ -74,7 +74,7 @@ class ViewState extends State<View>{
 
     // execute view behavior
     if (widget._pageModel.viewBehavior.onLoad != null) {
-      ScreenController().executeActionWithScope(_scopeManager, widget._pageModel.viewBehavior.onLoad!);
+      ScreenController().executeActionWithScope(context, _scopeManager, widget._pageModel.viewBehavior.onLoad!);
     }
 
     super.initState();
