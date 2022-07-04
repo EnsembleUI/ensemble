@@ -77,11 +77,14 @@ class DataContext {
   }
 
 
-  /// evaluate single inline binding expression (getters only) e.g $(myVar.text).
-  /// Note that this expects the variable to be surrounded by $(...)
+  /// evaluate single inline binding expression (getters only) e.g ${myVar.text}.
+  /// Note that this expects the variable to be surrounded by ${...}
   dynamic eval(dynamic expression) {
     if (expression is YamlMap) {
       return _evalMap(expression);
+    }
+    if ( expression is List ) {
+      return _evalList(expression);
     }
     if (expression is! String) {
       return expression;
@@ -109,7 +112,13 @@ class DataContext {
     );*/
 
   }
-
+  List _evalList(List list) {
+    List value = [];
+    for (var i in list) {
+      value.add(eval(i));
+    }
+    return value;
+  }
   Map<String, dynamic> _evalMap(YamlMap yamlMap) {
     Map<String, dynamic> map = {};
     yamlMap.forEach((k, v) {
@@ -117,10 +126,7 @@ class DataContext {
       if (v is YamlMap) {
         value = _evalMap(v);
       } else if (v is YamlList) {
-        value = [];
-        for (var i in v) {
-          value.add(eval(i));
-        }
+        value = _evalList(v);
       } else {
         value = eval(v);
       }
