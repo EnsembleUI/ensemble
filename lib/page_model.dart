@@ -77,12 +77,6 @@ class PageModel {
           menuStyles![key] = value;
         });
       }
-      MenuDisplay display = MenuDisplay.navBar;
-      if (viewMap['menu']['display'] == MenuDisplay.drawer.name) {
-        display = MenuDisplay.drawer;
-      } else if (viewMap['menu']['display'] == MenuDisplay.navBar_left.name) {
-        display = MenuDisplay.navBar_left;
-      }
       WidgetModel? headerModel;
       if (viewMap['menu']['header'] != null) {
          headerModel = ViewUtil.buildModel(viewMap['menu']['header'], customViewDefinitions);
@@ -91,7 +85,7 @@ class PageModel {
       if (viewMap['menu']['footer'] != null) {
         headerModel = ViewUtil.buildModel(viewMap['menu']['footer'], customViewDefinitions);
       }
-      menu = Menu(display, menuStyles, menuItems, headerModel: headerModel, footerModel: footerModel);
+      menu = Menu(viewMap['menu']['display'], menuStyles, menuItems, headerModel: headerModel, footerModel: footerModel);
     }
 
     if (viewMap['styles'] is YamlMap) {
@@ -333,7 +327,7 @@ class Menu {
   Menu(this.display, this.styles, this.menuItems, { this.headerModel, this.footerModel });
 
   Map<String, dynamic>? styles;
-  MenuDisplay display = MenuDisplay.navBar;
+  String? display;
   List<MenuItem> menuItems;
   WidgetModel? headerModel;
   WidgetModel? footerModel;

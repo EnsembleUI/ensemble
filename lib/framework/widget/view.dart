@@ -58,6 +58,7 @@ class View extends StatefulWidget {
 
 class ViewState extends State<View>{
   late ScopeManager _scopeManager;
+  String menuDisplay = MenuDisplay.navBar.name;
 
   @override
   void initState() {
@@ -82,8 +83,6 @@ class ViewState extends State<View>{
 
   @override
   Widget build(BuildContext context) {
-
-
     Widget? bottomNavBar;
     Widget? drawer;
     bool showAppBar = false;
@@ -93,20 +92,22 @@ class ViewState extends State<View>{
       // navigation
       if (widget._pageModel.menu != null &&
           widget._pageModel.menu!.menuItems.length >= 2) {
-        if (widget._pageModel.menu!.display == MenuDisplay.navBar) {
-          bottomNavBar =
-              _buildBottomNavBar(context, widget._pageModel.menu!.menuItems);
-        } else if (widget._pageModel.menu!.display == MenuDisplay.drawer) {
-          drawer = _buildDrawer(context, widget._pageModel.menu!.menuItems);
+
+        if (widget._pageModel.menu!.display != null) {
+          menuDisplay = _scopeManager.dataContext.eval(widget._pageModel.menu!.display);
+          if (menuDisplay == MenuDisplay.navBar.name) {
+            bottomNavBar = _buildBottomNavBar(context, widget._pageModel.menu!.menuItems);
+          } else if (menuDisplay == MenuDisplay.drawer.name) {
+            drawer = _buildDrawer(context, widget._pageModel.menu!.menuItems);
+          }
         }
-        // left/right navBar will be rendered differently in the body
+        // left/right navBar will be rendered as part of the body
       }
 
       // use the AppBar if we have a title, or have a drawer (to show the menu)
       showAppBar = widget._pageModel.title != null || drawer != null;
-      if (widget._pageModel.menu != null &&
-          (widget._pageModel.menu!.display == MenuDisplay.navBar_left ||
-              widget._pageModel.menu!.display == MenuDisplay.navBar_right)) {
+      if (menuDisplay == MenuDisplay.navBar_left.name ||
+              menuDisplay == MenuDisplay.navBar_right.name) {
         showAppBar = false;
       }
     }
@@ -160,7 +161,7 @@ class ViewState extends State<View>{
 
     Widget bodyWidget = _scopeManager.buildWidget(widget._pageModel.rootWidgetModel);
 
-    if (widget._pageModel.menu != null && widget._pageModel.menu!.display == MenuDisplay.navBar_left) {
+    if (menuDisplay == MenuDisplay.navBar_left.name) {
       List<model.MenuItem> menuItems = widget._pageModel.menu!.menuItems;
       int selectedIndex = 0;
       List<NavigationRailDestination> navItems = [];
