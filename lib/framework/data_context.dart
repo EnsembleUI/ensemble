@@ -1,16 +1,19 @@
 import 'dart:convert';
 import 'dart:developer';
 
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokablemap.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/parser/ast.dart';
 import 'package:ensemble_ts_interpreter/parser/js_interpreter.dart';
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:yaml/yaml.dart';
 
@@ -258,6 +261,7 @@ class DeviceInfoInvokable with Invokable {
       "width": () => deviceInfo.size.width,
       "height": () => deviceInfo.size.height,
       "platform": () => deviceInfo.platform.name,
+      DevicePlatform.web.name: () => DeviceWebInfo()
     };
   }
 
@@ -272,6 +276,40 @@ class DeviceInfoInvokable with Invokable {
   }
 
 
+}
+
+class DeviceWebInfo with Invokable {
+  @override
+  Map<String, Function> getters() {
+    WebBrowserInfo? browserInfo = Ensemble().deviceInfo.browserInfo;
+    return {
+      'browserName': () => browserInfo?.browserName == null ? null : describeEnum(browserInfo!.browserName),
+      'appCodeName': () => browserInfo?.appCodeName,
+      'appName': () => browserInfo?.appName,
+      'appVersion': () => browserInfo?.appVersion,
+      'deviceMemory': () => browserInfo?.deviceMemory,
+      'language': () => browserInfo?.language,
+      'languages': () => browserInfo?.languages,
+      'platform': () => browserInfo?.platform,
+      'product': () => browserInfo?.product,
+      'productSub': () => browserInfo?.productSub,
+      'userAgent': () => browserInfo?.userAgent,
+      'vendor': () => browserInfo?.vendor,
+      'vendorSub': () => browserInfo?.vendorSub,
+      'hardwareConcurrency': () => browserInfo?.hardwareConcurrency,
+      'maxTouchPoints': () => browserInfo?.maxTouchPoints,
+    };
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
+  }
 }
 
 
