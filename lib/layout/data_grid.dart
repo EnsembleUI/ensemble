@@ -49,7 +49,7 @@ class DataGrid extends StatefulWidget with UpdatableContainer, Invokable, HasCon
     return {
       'DataColumns': (List cols) {
         this.cols = List<EnsembleDataColumn>.generate(cols.length,
-                (index) => EnsembleDataColumn.fromYaml(map:cols[index] as YamlMap)
+                (index) => EnsembleDataColumn.fromYaml(map:cols[index] as Map)
         );
       },
     };
@@ -60,7 +60,7 @@ class EnsembleDataColumn extends DataColumn {
   EnsembleDataColumn({required String label,required this.type,String? tooltip,Function? onSort}) :
         super(label:Text(label),tooltip:tooltip,numeric:type == 'numeric');
 
-  static EnsembleDataColumn fromYaml({required YamlMap map,Function? onSort}) {
+  static EnsembleDataColumn fromYaml({required Map map,Function? onSort}) {
     String type = Utils.getString(map['type'], fallback: '');
     if ( type == '' ) {
       throw Exception('DataGrid column must have a type.');
