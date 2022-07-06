@@ -78,6 +78,18 @@ class EnsembleBarChartState extends BaseWidgetState<EnsembleBarChart>  with Char
 
   @override
   Widget build(BuildContext context) {
+    if ( widget.controller.labels.isEmpty ) {
+      //widget's data has not yet been initialized, we'll skip
+      return AspectRatio(
+        aspectRatio: 1.7,
+        child: Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+          color: Colors.transparent,
+          child: const Text('No Data Yet. May be Loading...'),
+        ),
+      );
+    }
     BarChart barChart = BarChart(
       BarChartData(
         barTouchData: barTouchData,
