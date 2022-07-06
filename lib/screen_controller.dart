@@ -202,6 +202,59 @@ class ScreenController {
         });
       }
 
+    } else if (action is ShowDialogAction) {
+      if (scopeManager != null) {
+        Widget content = scopeManager.buildWidgetFromDefinition(action.content);
+
+        // get styles. TODO: make bindable
+        Map<String, dynamic> dialogStyles = {};
+        action.options?.forEach((key, value) {
+          dialogStyles[key] = dataContext.eval(value);
+        });
+
+        showGeneralDialog(
+          context: context,
+          barrierDismissible: true,
+          barrierLabel: "Barrier",
+          barrierColor: Colors.black54,
+          pageBuilder: (context, animation, secondaryAnimation) {
+            return Align(
+              alignment: Alignment(
+                Utils.getDouble(dialogStyles['horizontalOffset'], min: -1, max: 1, fallback: 0),
+                Utils.getDouble(dialogStyles['verticalOffset'], min: -1, max: 1, fallback: 0)
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minWidth: Utils.getDouble(dialogStyles['minWidth'], fallback: 0),
+                    maxWidth: Utils.getDouble(dialogStyles['maxWidth'], fallback: double.infinity),
+                    minHeight: Utils.getDouble(dialogStyles['minHeight'], fallback: 0),
+                    maxHeight: Utils.getDouble(dialogStyles['maxHeight'], fallback: double.infinity)
+                  ),
+                  child: Container(
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                          borderRadius: BorderRadius.all(Radius.circular(5)),
+                          boxShadow: <BoxShadow>[
+                            BoxShadow(
+                              color: Colors.white38,
+                              blurRadius: 5,
+                              offset: Offset(0, 0),
+                            )
+                          ]
+                      ),
+                    child: SingleChildScrollView (
+                      child: content,
+                    )
+                  )
+                )
+              )
+
+            );
+          }
+        );
+      }
     } else if (action is ExecuteCodeAction) {
       dataContext.evalCode(action.codeBlock);
     }

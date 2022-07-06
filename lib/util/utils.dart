@@ -23,12 +23,19 @@ class Utils {
     }
     return val;
   }
-  static double? optionalDouble(dynamic value) {
-    return
+  static double? optionalDouble(dynamic value, {double? min, double? max}) {
+    double? rtn =
       value is double ? value :
       value is int ? value.toDouble() :
       value is String ? double.tryParse(value) :
       null;
+    if (rtn != null && min != null && rtn < min) {
+      rtn = null;
+    }
+    if (rtn != null && max != null && rtn > max) {
+      rtn = null;
+    }
+    return rtn;
   }
 
   /// initiator should be an Invokable. We use this to scope *this* variable
@@ -48,7 +55,7 @@ class Utils {
           initiator: initiator,
           screenName: payload['name'],
           inputs: inputs);
-      } else if (payload['action'] == ActionType.showModalScreen.name) {
+      } else if (payload['action'] == ActionType.navigateModalScreen.name) {
         return NavigateModalScreenAction(
           initiator: initiator,
           screenName: payload['name'],
@@ -61,6 +68,12 @@ class Utils {
           inputs: inputs,
           onResponse: Utils.getAction(payload['onResponse'], initiator: initiator),
           onError: Utils.getAction(payload['onError'], initiator: initiator));
+      } else if (payload['action'] == ActionType.showDialog.name) {
+        return ShowDialogAction(
+            initiator: initiator,
+            content: payload['name'],
+            options: getMap(payload['options'])
+        );
       }
     } else if (payload is String) {
       return ExecuteCodeAction(initiator: initiator, codeBlock: payload);
@@ -81,12 +94,8 @@ class Utils {
     return value is int ? value : fallback;
   }
 
-  static double getDouble(dynamic value, {required double fallback}) {
-    return
-      value is double ? value :
-          value is int ? value.toDouble() :
-              value is String ? double.tryParse(value) ?? fallback :
-                fallback;
+  static double getDouble(dynamic value, {required double fallback, double? min, double? max}) {
+    return optionalDouble(value, min: min, max: max) ?? fallback;
   }
 
   static List<dynamic>? getList(dynamic value) {
