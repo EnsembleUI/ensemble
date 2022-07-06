@@ -218,7 +218,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
       for (SelectOneItem item in items) {
         results.add(DropdownMenuItem(
           value: item.value,
-          child: Text(item.label ?? item.value)));
+          child: Text(Utils.optionalString(item.label) ?? item.value)));
       }
     }
     return results;
