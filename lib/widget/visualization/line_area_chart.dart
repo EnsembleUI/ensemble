@@ -94,15 +94,16 @@ class EnsembleLineChartState extends BaseWidgetState<EnsembleLineChart> with Cha
   Widget build(BuildContext context) {
     if ( controller.labels.isEmpty ) {
       //widget's data has not yet been initialized, we'll skip
-      return AspectRatio(
-        aspectRatio: 1.30,
-        child: Card(
-          elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-          color: Colors.transparent,
-          child: const Text('No Data Yet. May be Loading...'),
-        ),
-      );
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: const <Widget>[
+          SizedBox(
+          height: 4,
+          ),Text("Loading..."),
+          SizedBox(
+            height: 4,
+          )
+        ]);
     }
     return AspectRatio(
       aspectRatio: 1.30,
