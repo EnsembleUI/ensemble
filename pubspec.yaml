@@ -54,6 +54,7 @@ dependencies:
   form_validator: ^1.0.2
   flutter_svg: ^1.1.0
   qr_flutter: ^4.0.0
+  device_info_plus: ^3.2.4
 
 
 dev_dependencies:

@@ -695,34 +695,122 @@
               "type": "string",
               "description": "invoke an Ensemble's built-in functions",
               "enum": [
-                "invokeAPI" ,"navigateScreen", "showModalScreen"
+                "invokeAPI" ,"navigateScreen", "navigateModalScreen", "showDialog"
               ]
-            },
-            "name": {
-              "type": "string",
-              "description": "The name of the action (e.g API Name for invokeAPI, Screen Name for navigateScreen)"
-            },
-            "inputs": {
-              "type": "object",
-              "description": "Specify the key/value pairs to pass into the next Screen or API"
             }
-
-
           }
         },
         {
           "if": {
             "properties": {
               "action": {
-                "const": "showModalScreen"
+                "const": "invokeAPI"
               }
             }
           },
           "then": {
             "properties": {
+              "name": {
+                "type": "string",
+                "description": "Enter the name of your defined API"
+              },
+              "inputs": {
+                "type": "object",
+                "description": "Specify the key/value pairs to pass to the API"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "navigateScreen"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Enter the Name or ID of your Screen"
+              },
+              "inputs": {
+                "type": "object",
+                "description": "Specify the key/value pairs to pass into the next Screen"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "navigateModalScreen"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Enter the Name or ID of your screen"
+              },
+              "inputs": {
+                "type": "object",
+                "description": "Specify the key/value pairs to pass into the next Screen"
+              },
               "onModalDismiss": {
                 "$ref": "#/$defs/Action-payload",
                 "description": "Execute an Action when the modal page is dismissed"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "showDialog"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "name": {
+                "$ref": "#/$defs/Widget",
+                "description": "Specifies a widget name or declare a widget to render inside the Dialog"
+              },
+              "options": {
+                "type": "object",
+                "properties": {
+                  "minWidth": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "maxWidth": {
+                    "type": "integer"
+                  },
+                  "minHeight": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "maxHeight": {
+                    "type": "integer"
+                  },
+                  "horizontalOffset": {
+                    "description": "Offset the dialog's position horizontally, with -1.0 for the screen's left and 1.0 for the screen's right. (default is 0 for centering horizontally)",
+                    "type": "number",
+                    "minimum": -1.0,
+                    "maximum": 1.0
+                  },
+                  "verticalOffset": {
+                    "description": "Offset the dialog's position vertically, with -1.0 for the screen's top and 1.0 for the screen's bottom. (default is 0 for centering vertically)",
+                    "type": "number",
+                    "minimum": -1.0,
+                    "maximum": 1.0
+                  }
+                }
               }
             }
           }
@@ -737,7 +825,7 @@
       "items": { "$ref": "#/$defs/Widget" }
     },
     "Widget": {
-      "type": "object",
+      "type": ["object", "string"],
       "properties": {
         "Text": { "$ref": "#/$defs/Text-payload" },
         "Icon": { "$ref": "#/$defs/Icon-payload" },

@@ -27,6 +27,17 @@ class InvokeAPIAction extends EnsembleAction {
   EnsembleAction? onError;
 }
 
+class ShowDialogAction extends EnsembleAction {
+  ShowDialogAction({
+    Invokable? initiator,
+    required this.content,
+    this.options
+  }) : super(initiator: initiator);
+
+  final dynamic content;
+  final Map<String, dynamic>? options;
+}
+
 class NavigateScreenAction extends BaseNavigateScreenAction {
   NavigateScreenAction({
     Invokable? initiator,
@@ -70,4 +81,4 @@ class ExecuteCodeAction extends EnsembleAction {
 }
 
 
-enum ActionType { invokeAPI, navigateScreen, showModalScreen, executeCode }
+enum ActionType { invokeAPI, navigateScreen, navigateModalScreen, showDialog, executeCode }

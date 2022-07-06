@@ -326,20 +326,19 @@ class Ensemble {
     Map<String, dynamic> deviceData = {};
     Size size = MediaQuery.of(context).size;
 
+    WebBrowserInfo? browserInfo;
 
     try {
       if (kIsWeb) {
         platform = DevicePlatform.web;
+        browserInfo = await deviceInfoPlugin.webBrowserInfo;
       } else {
         if (Platform.isAndroid) {
           platform = DevicePlatform.android;
 
         } else if (Platform.isIOS) {
           platform = DevicePlatform.ios;
-          IosDeviceInfo iosInfo = await deviceInfoPlugin.iosInfo;
-          deviceData.addAll({
 
-          });
         } else if (Platform.isMacOS) {
           platform = DevicePlatform.macos;
 
@@ -351,8 +350,7 @@ class Ensemble {
       log("Error getting device info");
     }
 
-    deviceInfo = DeviceInfo(platform ?? DevicePlatform.other, size, deviceData);
-    log("${deviceInfo.size.width} x ${deviceInfo.size.height}");
+    deviceInfo = DeviceInfo(platform ?? DevicePlatform.other, size, browserInfo: browserInfo);
 
   }
 
@@ -367,11 +365,11 @@ class AppBundle {
 }
 
 class DeviceInfo {
-  DeviceInfo(this.platform, this.size, this.detailInfo);
+  DeviceInfo(this.platform, this.size, {this.browserInfo});
 
   DevicePlatform platform;
   Size size;
-  Map<String, dynamic> detailInfo;
+  WebBrowserInfo? browserInfo;
 }
 enum DevicePlatform {
   web, android, ios, macos, windows, other
