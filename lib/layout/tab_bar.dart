@@ -60,7 +60,10 @@ class TabBarController extends WidgetController {
   set items(dynamic items) {
     if (items is YamlList) {
       for (YamlMap item in items) {
-        _items.add(TabItem(item['label'], item['body']));
+        _items.add(TabItem(
+            Utils.getString(item['label'], fallback: ''),
+            item['body'])
+        );
       }
     }
   }

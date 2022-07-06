@@ -36,7 +36,6 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
   EventBus get eventBus => pageData.eventBus;
 
   @override
-  // TODO: implement listenerMap
   Map<Invokable, Map<int, StreamSubscription>> get listenerMap => pageData.listenerMap;
 
   /// create a copy of the parent's data scope
