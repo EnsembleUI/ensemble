@@ -38,6 +38,9 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
   @override
   Map<Invokable, Map<int, StreamSubscription>> get listenerMap => pageData.listenerMap;
 
+  @override
+  Map<Invokable, Timer> get timerMap => pageData.timerMap;
+
   /// create a copy of the parent's data scope
   @override
   ScopeManager createChildScope() {
@@ -57,6 +60,7 @@ abstract class IsScopeManager {
   Map<String, YamlMap>? get customViewDefinitions;
   EventBus get eventBus;
   Map<Invokable, Map<int, StreamSubscription>> get listenerMap;
+  Map<Invokable, Timer> get timerMap;
   ScopeManager createChildScope();
   ScopeManager get me;
 }
@@ -255,7 +259,7 @@ mixin PageBindingManager on IsScopeManager {
       listen(dataContext, expression, me: bindingDestination.widget, onDataChange: (ModelChangeEvent event) {
         // payload only have changes to a variable, but we have to evaluate the entire expression
         // e.g Hello $(firstName.value) $(lastName.value)
-        dynamic updatedValue = dataContext.eval(dataExpression.rawExpression);
+        dynamic updatedValue = dataContext.eval(dataExpression.stringifyRawAndAst());
         bindingDestination.widget.setProperty(bindingDestination.setterProperty, updatedValue);
       });
     }
@@ -325,7 +329,7 @@ mixin PageBindingManager on IsScopeManager {
   /// $(myText.text)
   BindingSource? parseExpression(String expression, DataContext dataContext) {
     if (Utils.isExpression(expression)) {
-      String variable = expression.substring(2, expression.length - 1);
+      String variable = expression.substring(2, expression.length - 1).trim();
       int dotIndex = variable.indexOf('.');
       if (dotIndex != -1) {
         String modelId = variable.substring(0, dotIndex);
@@ -346,12 +350,18 @@ mixin PageBindingManager on IsScopeManager {
 
   /// upon widget being disposed, we need to remove all listeners associated with it
   void disposeWidget(Invokable widget) {
+    // remove all listeners associated with this Invokable
     if (listenerMap[widget] != null) {
       for (StreamSubscription listener in listenerMap[widget]!.values) {
         listener.cancel();
       }
       //log("Binding : Disposing ${widget}(${widget.id ?? ''}). Removing ${listenerMap[widget]!.length} listeners");
       listenerMap.remove(widget);
+    }
+    // remove all Timers associated with this Invokable
+    if (timerMap[widget] != null) {
+      timerMap[widget]!.cancel();
+      log("Cleared all Timers for widget: ${widget.id ?? widget.toString()}");
     }
   }
 
@@ -402,6 +412,10 @@ class PageData {
   final EventBus eventBus = EventBus();
   final Map<Invokable, Map<int, StreamSubscription>> listenerMap = {};
 
+  // Timer map
+  final Map<Invokable, Timer> timerMap = {};
+
+
   // store the raw definition of the SubView (to be accessed by itemTemplates)
   final Map<String, YamlMap>? customViewDefinitions;
 
@@ -436,4 +450,12 @@ class DataExpression {
   List<String> expressions;
   // the AST which we'll execute by default, and fallback to executing rawExpression
   String? astExpression;
+
+  // combine both the raw and AST as if they are coming from the server
+  String stringifyRawAndAst() {
+    if (astExpression != null) {
+      return '//@code $rawExpression\n$astExpression';
+    }
+    return rawExpression;
+  }
 }

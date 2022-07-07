@@ -71,14 +71,46 @@ abstract class BaseNavigateScreenAction extends EnsembleAction {
   Map<String, dynamic>? inputs;
 }
 
+class StartTimerAction extends EnsembleAction {
+  StartTimerAction({
+    Invokable? initiator,
+    required this.onTimer,
+    this.onTimerComplete,
+    this.payload
+  }) : super(initiator: initiator);
+
+  final EnsembleAction onTimer;
+  final EnsembleAction? onTimerComplete;
+  final TimerPayload? payload;
+}
+
 class ExecuteCodeAction extends EnsembleAction {
   ExecuteCodeAction({
     Invokable? initiator,
     required this.codeBlock,
+    this.onComplete
   }) : super(initiator: initiator);
 
   String codeBlock;
+  EnsembleAction? onComplete;
+}
+
+class TimerPayload {
+  TimerPayload({
+    this.id,
+    this.startAfter,
+    required this.repeat,
+    this.repeatInterval,
+    this.maxTimes
+  });
+
+  final String? id;
+  final int? startAfter;  // The initial delay in seconds
+
+  final bool repeat;
+  final int? repeatInterval;  // The repeat interval in seconds
+  final int? maxTimes;         // how many times to trigger onTimer
 }
 
 
-enum ActionType { invokeAPI, navigateScreen, navigateModalScreen, showDialog, executeCode }
+enum ActionType { invokeAPI, navigateScreen, navigateModalScreen, showDialog, startTimer, executeCode }
