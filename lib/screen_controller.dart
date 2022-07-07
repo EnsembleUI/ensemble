@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 
@@ -255,8 +256,74 @@ class ScreenController {
           }
         );
       }
+    } else if (action is StartTimerAction) {
+
+      // what happened if ScopeManager is null?
+      if (scopeManager != null) {
+
+        int delay = action.payload?.startAfter ??
+          (action.payload?.repeat == true ? action.payload?.repeatInterval ?? 0 : 0);
+
+        // we always execute at least once, delayed by startAfter and fallback to repeatInterval (or immediate if startAfter is 0)
+        Timer(
+          Duration(seconds: delay),
+          () {
+            // execute the action
+            executeActionWithScope(context, scopeManager, action.onTimer);
+
+            // if no repeat, execute onTimerComplete
+            if (action.payload?.repeat != true) {
+              if (action.onTimerComplete != null) {
+                executeActionWithScope(context, scopeManager, action.onTimerComplete!);
+              }
+            }
+            // else repeating timer
+            else if (action.payload?.repeatInterval != null) {
+              /// repeatCount value of null means forever by default
+              int? repeatCount;
+              if (action.payload?.maxTimes != null) {
+                repeatCount = action.payload!.maxTimes! - 1;
+              }
+              if (repeatCount != 0) {
+                int counter = 0;
+                final timer = Timer.periodic(
+                  Duration(seconds: action.payload!.repeatInterval!),
+                  (timer) {
+                    // execute the action
+                    executeActionWithScope(context, scopeManager, action.onTimer);
+
+                    // automatically cancel timer when repeatCount is reached
+                    if (repeatCount != null && ++counter == repeatCount) {
+                      timer.cancel();
+
+                      // timer terminates, call onTimerComplete
+                      if (action.onTimerComplete != null) {
+                        executeActionWithScope(context, scopeManager, action.onTimerComplete!);
+                      }
+                    }
+                  }
+                );
+
+                // save our timer to our PageData since user may want to cancel at anytime
+                // and also when we navigate away from the page
+                if (action.initiator != null) {
+                  saveTimerReference(scopeManager, action.initiator!, timer);
+                }
+
+              }
+            }
+
+          }
+        );
+      }
+
+
     } else if (action is ExecuteCodeAction) {
       dataContext.evalCode(action.codeBlock);
+
+      if (action.onComplete != null && scopeManager != null) {
+        executeActionWithScope(context, scopeManager, action.onComplete!);
+      }
     }
   }
 
@@ -327,6 +394,15 @@ class ScreenController {
     } catch (e) {
       print ("Code block exception: " + e.toString());
     }
+  }
+
+  void saveTimerReference(ScopeManager scopeManager, Invokable initiator, Timer timer) {
+    Map<Invokable, Timer> timerMap = scopeManager.timerMap;
+
+    // clean up existing duplicates first
+    timerMap[initiator]?.cancel();
+
+    timerMap[initiator] = timer;
   }
 
 

@@ -92,7 +92,7 @@ class HttpUtils {
     if (response.statusCode >= 200 && response.statusCode <= 299) {
       completer.complete(response);
       if (foundation.kDebugMode) {
-        log("Response(debug only): ${response.body}");
+        //log("Response(debug only): ${response.body}");
       }
     } else {
       completer.completeError("Unable to reach API");

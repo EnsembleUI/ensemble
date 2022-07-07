@@ -9,8 +9,15 @@ import 'package:ensemble/framework/action.dart';
 class Utils {
   static final GlobalKey<NavigatorState> globalAppKey = GlobalKey<NavigatorState>();
   /// return an Integer if it is, or null if not
-  static int? optionalInt(dynamic value) {
-    return value is int ? value : null;
+  static int? optionalInt(dynamic value, {int? min, int? max}) {
+    int? rtn = value is int ? value : null;
+    if (rtn != null && min != null && rtn < min) {
+      rtn = null;
+    }
+    if (rtn != null && max != null && rtn > max) {
+      rtn = null;
+    }
+    return rtn;
   }
   static bool? optionalBool(dynamic value) {
     return value is bool ? value : null;
@@ -41,6 +48,11 @@ class Utils {
   /// initiator should be an Invokable. We use this to scope *this* variable
   static EnsembleAction? getAction(dynamic payload, {Invokable? initiator}) {
     if (payload is YamlMap) {
+
+      // timer functionality
+      if (payload['options'] is YamlMap) {
+
+      }
 
       Map<String, dynamic>? inputs;
       if (payload['inputs'] is YamlMap) {
@@ -74,8 +86,43 @@ class Utils {
             content: payload['name'],
             options: getMap(payload['options'])
         );
+      } else if (payload['action'] == ActionType.startTimer.name) {
+        EnsembleAction? onTimer = Utils.getAction(payload['onTimer'], initiator: initiator);
+        if (onTimer == null) {
+          throw LanguageError("startTimer requires an Action for 'onTimer'");
+        }
+        EnsembleAction? onTimerComplete = Utils.getAction(payload['onTimerComplete'], initiator: initiator);
+
+        TimerPayload? timerPayload;
+        if (payload['options'] is YamlMap) {
+          timerPayload = TimerPayload(
+            id: Utils.optionalString(payload['options']['id']),
+            startAfter: Utils.optionalInt(payload['options']['startAfter'], min: 0),
+            repeat: Utils.getBool(payload['options']['repeat'], fallback: false),
+            repeatInterval: Utils.optionalInt(payload['options']['repeatInterval'], min: 1),
+            maxTimes: Utils.optionalInt(payload['options']['maxNumberOfTimes'], min: 1)
+          );
+        }
+        if (timerPayload?.repeat == true && timerPayload?.repeatInterval == null) {
+          throw LanguageError("Timer's repeatInterval needs a value when repeat is on");
+        }
+
+        return StartTimerAction(
+          initiator: initiator,
+          onTimer: onTimer,
+          onTimerComplete: onTimerComplete,
+          payload: timerPayload
+        );
+      } else if (payload['action'] == ActionType.executeCode.name) {
+        return ExecuteCodeAction(
+            initiator: initiator,
+            codeBlock: payload['body'],
+            onComplete: Utils.getAction(payload['onComplete'], initiator: initiator)
+        );
       }
-    } else if (payload is String) {
+    }
+    /// short-hand //@code string is same as ExecuteCodeAction
+    else if (payload is String) {
       return ExecuteCodeAction(initiator: initiator, codeBlock: payload);
     }
     return null;
@@ -90,8 +137,8 @@ class Utils {
     return value is bool ? value : fallback;
   }
 
-  static int getInt(dynamic value, {required int fallback}) {
-    return value is int ? value : fallback;
+  static int getInt(dynamic value, {required int fallback, int? min, int? max}) {
+    return optionalInt(value, min: min, max: max) ?? fallback;
   }
 
   static double getDouble(dynamic value, {required double fallback, double? min, double? max}) {
@@ -230,8 +277,8 @@ class Utils {
     return int.tryParse(value);
   }
 
-  static final onlyExpression = RegExp(r'''^\${([a-z_-\d.:"'\(\)\[\]]+)}$''', caseSensitive: false);
-  static final containExpression = RegExp(r'''\${([a-z_-\d.:"'\(\)\[\]]+)}''', caseSensitive: false);
+  static final onlyExpression = RegExp(r'''^\${([a-z_-\d\s.:?"'\(\)\[\]]+)}$''', caseSensitive: false);
+  static final containExpression = RegExp(r'''\${([a-z_-\d\s.:?"'\(\)\[\]]+)}''', caseSensitive: false);
   static final i18nExpression = RegExp(r'r@[a-zA-Z0-9.-_]+',caseSensitive: false);
 
   // extract only the AST after the comment and expression e.g //code <expression>\n<AST>

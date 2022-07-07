@@ -88,4 +88,13 @@ void main() {
     expect(dataExpression?.astExpression, null);
   });
 
+  test('parse short-hand ifelse', () {
+    String expr = '\${ getWifiStatus.body.data.Status ? 0xFF009900 : 0xFFE52E2E }';
+    String ast = '{"ast":"content"}';
+    DataExpression? dataExpression = Utils.parseDataExpression('//@code $expr\n$ast');
+    expect(dataExpression?.rawExpression, expr);
+    expect(dataExpression?.expressions, [expr]);
+    expect(dataExpression?.astExpression, ast);
+  });
+
 }

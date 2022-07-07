@@ -679,24 +679,16 @@
       }
     },
     "Action-payload": {
-      "type": [
-        "string",
-        "object"
-      ],
+      "type": ["string", "object"],
       "description": "Call Ensemble's built-in functions or execute code",
-      "required": [
-        "action",
-        "name"
-      ],
+      "required": ["action"],
       "allOf": [
         {
           "properties": {
             "action": {
               "type": "string",
               "description": "invoke an Ensemble's built-in functions",
-              "enum": [
-                "invokeAPI" ,"navigateScreen", "navigateModalScreen", "showDialog"
-              ]
+              "enum": ["invokeAPI" ,"navigateScreen", "navigateModalScreen", "showDialog", "startTimer", "executeCode"]
             }
           }
         },
@@ -717,6 +709,14 @@
               "inputs": {
                 "type": "object",
                 "description": "Specify the key/value pairs to pass to the API"
+              },
+              "onResponse": {
+                "$ref": "#/$defs/Action-payload",
+                "description": "Execute another Action upon API's successful response"
+              },
+              "onError": {
+                "$ref": "#/$defs/Action-payload",
+                "description": "Execute an Action when the API completes with error(s)"
               }
             }
           }
@@ -762,7 +762,7 @@
               },
               "onModalDismiss": {
                 "$ref": "#/$defs/Action-payload",
-                "description": "Execute an Action when the modal page is dismissed"
+                "description": "Execute an Action when the modal screen is dismissed"
               }
             }
           }
@@ -811,6 +811,76 @@
                     "maximum": 1.0
                   }
                 }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "startTimer"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "options": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Give this timer an ID so you can cancel it at will"
+                  },
+                  "startAfter": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Delay the timer's start by this number of seconds. If not specified and repeat is true, repeatInterval will be used. If none is specified, there will be no initial delay"
+                  },
+                  "repeat": {
+                    "type": "boolean",
+                    "description": "Whether the time should repeat and trigger at every repeatInterval seconds. This Timer will run continuously unless a maxNumberOfTimes is specified"
+                  },
+                  "repeatInterval": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Trigger the timer periodically at this repeatInterval (in seconds)"
+                  },
+                  "maxNumberOfTimes": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Specified the max number of times the timer will triggers, if repeat is true"
+                  }
+                }
+              },
+              "onTimer": {
+                "$ref": "#/$defs/Action-payload",
+                "description": "Execute an Action every time the timer triggers"
+              },
+              "onTimerComplete": {
+                "$ref": "#/$defs/Action-payload",
+                "description": "Execute an Action when the timer has completed and will terminate"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "executeCode"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "body": {
+                "type": "string",
+                "description": "Define your code block here, starting with //@code"
+              },
+              "onComplete": {
+                "$ref": "#/$defs/Action-payload",
+                "description": "Execute another Action when the code body finishes executing"
               }
             }
           }
