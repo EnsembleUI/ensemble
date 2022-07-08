@@ -191,8 +191,7 @@
                   "$ref": "#/$defs/type-fontWeight"
                 },
                 "color": {
-                  "type": ["number", "string"],
-                  "description": "Text color starting with '0xFF' for full opacity"
+                  "$ref": "#/$defs/typeColors"
                 },
                 "overflow": {
                   "type": "string",

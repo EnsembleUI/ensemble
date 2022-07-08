@@ -117,6 +117,10 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget._controller.visible) {
+      return const SizedBox.shrink();
+    }
+
     // children will be rendered before templated children
     List<Widget> children = [];
     if (widget._controller.children != null) {
@@ -196,10 +200,6 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
         SingleChildScrollView(
             scrollDirection: widget.isVertical() ? Axis.vertical : Axis.horizontal,
             child: rtn);
-
-
-
-
 
   }
 
