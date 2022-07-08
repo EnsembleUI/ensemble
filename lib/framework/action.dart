@@ -86,6 +86,10 @@ class StartTimerAction extends EnsembleAction {
   final TimerPayload? payload;
 }
 
+class CloseAllDialogsAction extends EnsembleAction {
+
+}
+
 class ExecuteCodeAction extends EnsembleAction {
   ExecuteCodeAction({
     Invokable? initiator,
@@ -115,4 +119,4 @@ class TimerPayload {
 }
 
 
-enum ActionType { invokeAPI, navigateScreen, navigateModalScreen, showDialog, startTimer, executeCode }
+enum ActionType { invokeAPI, navigateScreen, navigateModalScreen, showDialog, startTimer, closeAllDialogs, executeCode }

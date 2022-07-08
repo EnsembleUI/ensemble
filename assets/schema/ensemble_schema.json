@@ -688,7 +688,7 @@
             "action": {
               "type": "string",
               "description": "invoke an Ensemble's built-in functions",
-              "enum": ["invokeAPI" ,"navigateScreen", "navigateModalScreen", "showDialog", "startTimer", "executeCode"]
+              "enum": ["invokeAPI" ,"navigateScreen", "navigateModalScreen", "showDialog", "closeAllDialogs", "startTimer", "executeCode"]
             }
           }
         },

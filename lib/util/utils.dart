@@ -114,6 +114,8 @@ class Utils {
           onTimerComplete: onTimerComplete,
           payload: timerPayload
         );
+      } else if (payload['action'] == ActionType.closeAllDialogs.name) {
+        return CloseAllDialogsAction();
       } else if (payload['action'] == ActionType.executeCode.name) {
         return ExecuteCodeAction(
             initiator: initiator,

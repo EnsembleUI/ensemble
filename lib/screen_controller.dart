@@ -213,6 +213,8 @@ class ScreenController {
           dialogStyles[key] = dataContext.eval(value);
         });
 
+        BuildContext? dialogContext;
+
         showGeneralDialog(
           context: context,
           barrierDismissible: true,
@@ -220,6 +222,10 @@ class ScreenController {
           barrierColor: Colors.black54,
 
           pageBuilder: (context, animation, secondaryAnimation) {
+            // save a reference to the builder's context so we can close it programmatically
+            dialogContext = context;
+            scopeManager.openedDialogs.add(dialogContext!);
+
             return Align(
               alignment: Alignment(
                 Utils.getDouble(dialogStyles['horizontalOffset'], min: -1, max: 1, fallback: 0),
@@ -256,12 +262,23 @@ class ScreenController {
             );
           }
         ).then((value) {
+          // remove the dialog context since we are closing them
+          scopeManager.openedDialogs.remove(dialogContext);
+          
           // callback when dialog is dismissed
           if (action.onDialogDismiss != null) {
             executeActionWithScope(context, scopeManager, action.onDialogDismiss!);
           }
         });
       }
+    } else if (action is CloseAllDialogsAction) {
+      if (scopeManager != null) {
+        for (var dialogContext in scopeManager.openedDialogs) {
+          Navigator.pop(dialogContext);
+        }
+        scopeManager.openedDialogs.clear();
+      }
+
     } else if (action is StartTimerAction) {
 
       // what happened if ScopeManager is null?
