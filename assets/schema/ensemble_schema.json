@@ -811,6 +811,10 @@
                     "maximum": 1.0
                   }
                 }
+              },
+              "onDialogDismiss": {
+                "$ref": "#/$defs/Action-payload",
+                "description": "Execute an Action when the Dialog is dismissed"
               }
             }
           }
