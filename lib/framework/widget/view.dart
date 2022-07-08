@@ -75,7 +75,15 @@ class ViewState extends State<View>{
 
     // execute view behavior
     if (widget._pageModel.viewBehavior.onLoad != null) {
-      ScreenController().executeActionWithScope(context, _scopeManager, widget._pageModel.viewBehavior.onLoad!);
+      /// we want to wait for the View to first rendered (so all their Invokable IDs are in)
+      /// before executing API since its response can reference the IDs
+      /// Probably not ideal as we want to fire this off asap. It's the API response that
+      /// needs to make sure Invokable IDs are there (through currently our code can't
+      /// separate them out yet
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScreenController().executeActionWithScope(
+            context, _scopeManager, widget._pageModel.viewBehavior.onLoad!);
+      });
     }
 
     super.initState();
