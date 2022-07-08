@@ -37,10 +37,10 @@ class HttpUtils {
     }
 
     // query parameter
-    Map<String, dynamic> params = {};
+    Map<String, String> params = {};
     if (api['parameters'] is YamlMap) {
       api['parameters'].forEach((key, value) {
-        params[key] = eContext.eval(value) ?? '';
+        params[key] = eContext.eval(value)?.toString() ?? '';
       });
     }
 

@@ -155,7 +155,18 @@ class ScreenController {
   /// internally execute an Action
   void _executeAction(BuildContext context, DataContext providedDataContext, EnsembleAction action, Map<String, YamlMap>? apiMap, ScopeManager? scopeManager) {
     /// Actions are short-live so we don't need a childScope, simply create a localized context from the given context
+    /// Note that scopeManager may starts out without Invokable IDs (as widgets may yet to render), but at the time
+    /// of API returns, they will be populated. For this reason, always rebuild data context from scope manager.
+    /// For now we are OK as we don't send off the API until the screen has rendered.
     DataContext dataContext = providedDataContext.clone(newBuildContext: context);
+    /*DataContext dataContext;
+    if (scopeManager != null) {
+      // start with data context from scope manager but overwrite with provided data context
+      dataContext = scopeManager.dataContext.clone(newBuildContext: context);
+      dataContext.copy(providedDataContext, replaced: true);
+    } else {
+      dataContext = providedDataContext.clone(newBuildContext: context);
+    }*/
 
     // scope the initiator to *this* variable
     if (action.initiator != null) {
