@@ -218,6 +218,7 @@ class ScreenController {
           barrierDismissible: true,
           barrierLabel: "Barrier",
           barrierColor: Colors.black54,
+
           pageBuilder: (context, animation, secondaryAnimation) {
             return Align(
               alignment: Alignment(
@@ -254,7 +255,12 @@ class ScreenController {
 
             );
           }
-        );
+        ).then((value) {
+          // callback when dialog is dismissed
+          if (action.onDialogDismiss != null) {
+            executeActionWithScope(context, scopeManager, action.onDialogDismiss!);
+          }
+        });
       }
     } else if (action is StartTimerAction) {
 

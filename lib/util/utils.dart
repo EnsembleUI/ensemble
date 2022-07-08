@@ -82,9 +82,10 @@ class Utils {
           onError: Utils.getAction(payload['onError'], initiator: initiator));
       } else if (payload['action'] == ActionType.showDialog.name) {
         return ShowDialogAction(
-            initiator: initiator,
-            content: payload['name'],
-            options: getMap(payload['options'])
+          initiator: initiator,
+          content: payload['name'],
+          options: getMap(payload['options']),
+          onDialogDismiss: Utils.getAction(payload['onDialogDismiss'])
         );
       } else if (payload['action'] == ActionType.startTimer.name) {
         EnsembleAction? onTimer = Utils.getAction(payload['onTimer'], initiator: initiator);

@@ -31,11 +31,13 @@ class ShowDialogAction extends EnsembleAction {
   ShowDialogAction({
     Invokable? initiator,
     required this.content,
-    this.options
+    this.options,
+    this.onDialogDismiss
   }) : super(initiator: initiator);
 
   final dynamic content;
   final Map<String, dynamic>? options;
+  final EnsembleAction? onDialogDismiss;
 }
 
 class NavigateScreenAction extends BaseNavigateScreenAction {
