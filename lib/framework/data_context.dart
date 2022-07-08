@@ -329,7 +329,7 @@ class NativeInvokable with Invokable {
   Map<String, Function> getters() {
     return {
       'storage': () => EnsembleStorage(),
-      'formatter': () => Formatter(),
+      'formatter': () => Formatter(_buildContext),
     };
   }
 
@@ -416,6 +416,9 @@ class EnsembleStorage with Invokable {
 }
 
 class Formatter with Invokable {
+  final BuildContext _buildContext;
+  Formatter(this._buildContext);
+
   @override
   Map<String, Function> getters() {
     return {};
@@ -423,10 +426,12 @@ class Formatter with Invokable {
 
   @override
   Map<String, Function> methods() {
+    Locale locale = Localizations.localeOf(_buildContext);
     return {
       'prettyDate': (input) => InvokablePrimitive.prettyDate(input),
       'prettyDateTime': (input) => InvokablePrimitive.prettyDateTime(input),
       'prettyCurrency': (input) => InvokablePrimitive.prettyCurrency(input),
+      'prettyDuration': (input) => InvokablePrimitive.prettyDuration(input, locale: locale)
     };
   }
 
