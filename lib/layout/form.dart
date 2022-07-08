@@ -92,7 +92,7 @@ class FormState extends WidgetState<EnsembleForm> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget._controller.children == null || widget._controller.children!.isEmpty) {
+    if (!widget._controller.visible || widget._controller.children == null || widget._controller.children!.isEmpty) {
       return const SizedBox.shrink();
     }
 

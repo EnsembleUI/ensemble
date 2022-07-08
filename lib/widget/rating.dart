@@ -46,6 +46,10 @@ class RatingController extends WidgetController {
 class RatingState extends WidgetState<Rating> {
   @override
   Widget build(BuildContext context) {
+    if (!widget._controller.visible) {
+      return const SizedBox.shrink();
+    }
+
     Widget? ratingWidget;
     if (widget._controller.display == 'full') {
       ratingWidget = Row(

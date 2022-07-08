@@ -43,6 +43,10 @@ class SpacerController extends WidgetController {
 class SpacerState extends WidgetState<EnsembleSpacer> {
   @override
   Widget build(BuildContext context) {
+    if (!widget._controller.visible) {
+      return const SizedBox.shrink();
+    }
+
     if (widget._controller.size != null) {
       return SizedBox(
           width: widget._controller.size!.toDouble(),
