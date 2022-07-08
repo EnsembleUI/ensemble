@@ -98,7 +98,7 @@ class EnsembleDataRowState extends State<EnsembleDataRow> {
   
 }
 
-class DataGridController extends Controller {
+class DataGridController extends WidgetController {
   List<Widget>? children;
 
 }
@@ -143,6 +143,10 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
   }
   @override
   Widget build(BuildContext context) {
+    if (!widget._controller.visible) {
+      return const SizedBox.shrink();
+    }
+
     List<Widget> children = [];
     if (controller.children != null) {
       children.addAll(controller.children!);
