@@ -50,6 +50,10 @@ class IconState extends WidgetState<EnsembleIcon> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget._controller.visible) {
+      return const SizedBox.shrink();
+    }
+
     return InkWell(
       splashColor: Colors.transparent,
       onTap: widget._controller.onTap == null ? null : () =>

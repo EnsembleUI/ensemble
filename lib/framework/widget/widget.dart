@@ -20,13 +20,13 @@ abstract class WidgetController extends Controller {
   // Note: we manage these here so the user doesn't need to do in their widgets
   // base properties applicable to all widgets
   bool expanded = false;
-  //int? padding;
+  bool visible = true;
 
   @override
   Map<String, Function> getBaseGetters() {
     return {
       'expanded': () => expanded,
-      //'padding': () => padding,
+      'visible': () => visible,
     };
   }
 
@@ -34,7 +34,7 @@ abstract class WidgetController extends Controller {
   Map<String, Function> getBaseSetters() {
     return {
       'expanded': (value) => expanded = Utils.getBool(value, fallback: false),
-      //'padding': (value) => padding = Utils.optionalInt(value),
+      'visible': (value) => visible = Utils.getBool(value, fallback: true),
     };
   }
 }

@@ -30,12 +30,11 @@ class Text extends StatefulWidget with Invokable, HasController<TextController, 
       'font': (value) => _controller.font = Utils.optionalString(value),
       'fontSize': (value) => _controller.fontSize = Utils.optionalInt(value),
       'fontWeight': (value) => _controller.fontWeight = Utils.getFontWeight(value),
-      'color': (value) => _controller.color = Utils.optionalInt(value),
+      'color': (value) => _controller.color = Utils.getColor(value),
       'overflow': (value) => _controller.overflow = Utils.optionalString(value),
       'textAlign': (value) => _controller.textAlign = Utils.optionalString(value),
       'textStyle': (value) => _controller.textStyle = Utils.optionalString(value),
       'lineHeight': (value) => _controller.lineHeight = Utils.optionalString(value),
-
     };
   }
 
@@ -55,7 +54,7 @@ class TextController extends framework.WidgetController {
   String? font;
   int? fontSize;
   FontWeight? fontWeight;
-  int? color;
+  Color? color;
   String? overflow;
   String? textAlign;
   String? textStyle;
@@ -65,6 +64,10 @@ class TextController extends framework.WidgetController {
 class TextState extends framework.WidgetState<Text> {
   @override
   Widget build(BuildContext context) {
+    if (!widget._controller.visible) {
+      return const SizedBox.shrink();
+    }
+
     FontWeight? fontWeight;
     double? fontSize;
     Color? fontColor;
@@ -91,7 +94,7 @@ class TextState extends framework.WidgetState<Text> {
       fontWeight = widget.controller.fontWeight;
     }
     if (widget.controller.color != null) {
-      fontColor = Color(widget.controller.color!);
+      fontColor = widget.controller.color!;
     }
 
     util.TextOverflow textOverflow = util.TextOverflow.from(widget._controller.overflow);

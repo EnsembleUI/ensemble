@@ -49,6 +49,9 @@ class DividerController extends WidgetController {
 class DividerState extends WidgetState<EnsembleDivider> {
   @override
   Widget build(BuildContext context) {
+    if (!widget._controller.visible) {
+      return const SizedBox.shrink();
+    }
     return Divider(
         thickness: (widget._controller.thickness ?? 1).toDouble(),
         indent: (widget._controller.indent ?? 0).toDouble(),

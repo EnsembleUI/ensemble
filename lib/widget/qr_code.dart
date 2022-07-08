@@ -52,6 +52,10 @@ class QRCodeState extends WidgetState<QRCode> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget._controller.visible) {
+      return const SizedBox.shrink();
+    }
+
     if (widget._controller.value == null || widget._controller.value!.trim().isEmpty) {
       return Image.asset(
         'assets/images/qr_error.png',
