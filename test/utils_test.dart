@@ -97,4 +97,14 @@ void main() {
     expect(dataExpression?.astExpression, ast);
   });
 
+  test("another short-hand", () {
+    String expr = "\${getPrivWiFi.body.status.wlanvap.vap5g0priv.VAPStatus == 'Up' ? true : false }";
+    String ast = r'''{"type":"Program","body":[{"type":"ExpressionStatement","expression":{"type":"ConditionalExpression","test":{"type":"BinaryExpression","operator":"==","left":{"type":"MemberExpression","object":{"type":"MemberExpression","object":{"type":"MemberExpression","object":{"type":"MemberExpression","object":{"type":"MemberExpression","object":{"type":"Identifier","name":"getPrivWiFi"},"property":{"type":"Identifier","name":"body"},"computed":false,"optional":false},"property":{"type":"Identifier","name":"status"},"computed":false,"optional":false},"property":{"type":"Identifier","name":"wlanvap"},"computed":false,"optional":false},"property":{"type":"Identifier","name":"vap5g0priv"},"computed":false,"optional":false},"property":{"type":"Identifier","name":"VAPStatus"},"computed":false,"optional":false},"right":{"type":"Literal","value":"Up","raw":"'Up'"}},"consequent":{"type":"Literal","value":true,"raw":"true"},"alternate":{"type":"Literal","value":false,"raw":"false"}}}],"sourceType":"script"}''';
+    DataExpression? dataExpression = Utils.parseDataExpression('//@code $expr\n$ast');
+    expect(dataExpression?.rawExpression, expr);
+    expect(dataExpression?.expressions, [expr]);
+    expect(dataExpression?.astExpression, ast);
+
+  });
+
 }
