@@ -12,8 +12,10 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' as foundation;
 
 abstract class DefinitionProvider {
+  static Map<String,dynamic> cache = {};
   final I18nProps i18nProps;
-  DefinitionProvider(this.i18nProps);
+  bool cacheEnabled = false;
+  DefinitionProvider(this.i18nProps,{this.cacheEnabled=false});
   Future<YamlMap> getDefinition({String? screenId, String? screenName});
   FlutterI18nDelegate getI18NDelegate();
   Future<AppBundle> getAppBundle();
@@ -63,7 +65,7 @@ class LocalDefinitionProvider extends DefinitionProvider {
 
 class RemoteDefinitionProvider extends DefinitionProvider {
   // TODO: we can fetch the whole App bundle here
-  RemoteDefinitionProvider(this.path, this.appHome,I18nProps i18nProps): super(i18nProps);
+  RemoteDefinitionProvider(this.path, this.appHome,bool cacheEnabled,I18nProps i18nProps): super(i18nProps,cacheEnabled:cacheEnabled);
   final String path;
   final String appHome;
   FlutterI18nDelegate? _i18nDelegate;
@@ -84,10 +86,19 @@ class RemoteDefinitionProvider extends DefinitionProvider {
     String screen = screenId ?? screenName ?? appHome;
 
     Completer<YamlMap> completer = Completer();
+    dynamic res = DefinitionProvider.cache[screen];
+    if ( res != null ) {
+      completer.complete(res);
+      return completer.future;
+    }
     http.Response response = await http.get(
         Uri.parse('$path$screen.yaml'));
     if (response.statusCode == 200) {
-      completer.complete(loadYaml(response.body));
+      dynamic res = loadYaml(response.body);
+      if ( cacheEnabled ) {
+        DefinitionProvider.cache[screen] = res;
+      }
+      completer.complete(res);
     } else {
       completer.completeError("Error loading Remote screen $screen");
     }
@@ -111,11 +122,13 @@ class RemoteDefinitionProvider extends DefinitionProvider {
 }
 
 class EnsembleDefinitionProvider extends DefinitionProvider {
-  EnsembleDefinitionProvider(this.url, this.appId, I18nProps i18nProps): super(i18nProps);
+
+  EnsembleDefinitionProvider(this.url, this.appId,bool cacheEnabled,I18nProps i18nProps): super(i18nProps,cacheEnabled:cacheEnabled);
   final String url;
   final String appId;
   String? appHome;
   FlutterI18nDelegate? _i18nDelegate;
+
   @override
   FlutterI18nDelegate getI18NDelegate() {
     _i18nDelegate ??= FlutterI18nDelegate(
@@ -141,9 +154,18 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
       }
     }
     Completer<YamlMap> completer = Completer();
+    dynamic res = DefinitionProvider.cache[params];
+    if ( res != null ) {
+      completer.complete(res);
+      return completer.future;
+    }
     http.Response response = await http.get(Uri.parse('$url/screen/content?$params'));
     if (response.statusCode == 200) {
-      completer.complete(loadYaml(response.body));
+      dynamic res = loadYaml(response.body);
+      if ( cacheEnabled ) {
+        DefinitionProvider.cache[params] = res;
+      }
+      completer.complete(res);
     } else {
       completer.completeError("Error loading Ensemble page: ${screenId ?? screenName ?? 'Home'}");
     }
