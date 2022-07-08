@@ -3,6 +3,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:yaml/yaml.dart';
@@ -177,7 +178,22 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
         }
       }
       if ( widget.cols.length != cells.length ) {
-        throw Exception('Number of DataGrid columns must be equal to the number of cells in each row. Number of DataGrid columns is ${widget.cols.length} while number of cells in the row is ${cells.length}.');
+        if (kDebugMode) {
+          print('Number of DataGrid columns must be equal to the number of cells in each row. Number of DataGrid columns is ${widget.cols.length} '
+              'while number of cells in the row is ${cells.length}. We will try to match them to be the same');
+        }
+        if ( widget.cols.length > cells.length ) {
+          int diff = widget.cols.length - cells.length;
+          //more cols than cells, need to fill up cells with empty text
+          for ( int i=0;i<diff;i++ ) {
+            cells.add(const DataCell(Text('')));
+          }
+        } else {
+          int diff = cells.length - widget.cols.length;
+          for ( int i=0;i<diff;i++ ) {
+            cells.removeLast();
+          }
+        }
       }
       rows.add(DataRow(cells:cells));
     }
