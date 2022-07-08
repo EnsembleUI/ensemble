@@ -41,6 +41,9 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
   @override
   Map<Invokable, Timer> get timerMap => pageData.timerMap;
 
+  @override
+  List<BuildContext> get openedDialogs => pageData.openedDialogs;
+
   /// create a copy of the parent's data scope
   @override
   ScopeManager createChildScope() {
@@ -61,6 +64,7 @@ abstract class IsScopeManager {
   EventBus get eventBus;
   Map<Invokable, Map<int, StreamSubscription>> get listenerMap;
   Map<Invokable, Timer> get timerMap;
+  List<BuildContext> get openedDialogs;
   ScopeManager createChildScope();
   ScopeManager get me;
 }
@@ -414,6 +418,9 @@ class PageData {
 
   // Timer map
   final Map<Invokable, Timer> timerMap = {};
+
+  // list of all opened Dialogs' contexts
+  final List<BuildContext> openedDialogs = [];
 
 
   // store the raw definition of the SubView (to be accessed by itemTemplates)
