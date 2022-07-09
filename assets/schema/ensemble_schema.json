@@ -361,6 +361,43 @@
         }
       }
     },
+    "Progress-payload": {
+      "type": "object",
+      "properties": {
+        "display": {
+          "type": "string",
+          "enum": ["linear", "circular"]
+        },
+        "styles": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "size": {
+                  "type": "integer",
+                  "minimum": 10,
+                  "description": "Specifies the width (progress bar) or the diameter (circular progress indicator)"
+                },
+                "thickness": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Specifies the thickness of the indicator (for progress bar this is the height)"
+                },
+                "color": {
+                  "$ref": "#/$defs/typeColors"
+                },
+                "backgroundColor": {
+                  "$ref": "#/$defs/typeColors"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
     "Divider-payload": {
       "type": "object",
       "properties": {
@@ -904,6 +941,7 @@
         "Icon": { "$ref": "#/$defs/Icon-payload" },
         "Image": { "$ref": "#/$defs/Image-payload" },
         "QRCode": { "$ref": "#/$defs/QRCode-payload" },
+        "Progress": { "$ref": "#/$defs/Progress-payload" },
         "Divider": { "$ref": "#/$defs/Divider-payload" },
         "Spacer": { "$ref": "#/$defs/Spacer-payload" },
         "TextInput": { "$ref": "#/$defs/TextInput-payload" },
