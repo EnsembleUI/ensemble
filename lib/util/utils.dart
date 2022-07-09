@@ -7,7 +7,16 @@ import 'package:yaml/yaml.dart';
 import 'package:ensemble/framework/action.dart';
 
 class Utils {
+  /// global appKey to get the context
   static final GlobalKey<NavigatorState> globalAppKey = GlobalKey<NavigatorState>();
+
+  /// some Flutter widgets (TextInput) has no width constraint, so using them inside
+  /// Rows will cause layout exception. We'll just artificially cap them at a max width,
+  /// such that they'll overflow the UI instead of layout exception
+  static const double widgetMaxWidth = 2000;
+
+
+
   /// return an Integer if it is, or null if not
   static int? optionalInt(dynamic value, {int? min, int? max}) {
     int? rtn = value is int ? value : null;
