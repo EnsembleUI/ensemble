@@ -71,7 +71,7 @@ class Ensemble {
               "i18nPath is required. If you don't have any changes, just leave the default as-is.");
         }
         i18nProps.path = i18nPath;
-        bool cacheEnabled = (yamlMap['definitions']?['ensemble']?['enableCache'] == null)?false:true;
+        bool cacheEnabled = ( yamlMap['definitions']?['ensemble']?['enableCache'] == true )?true:false;
         definitionProvider = EnsembleDefinitionProvider(path, appId, cacheEnabled,i18nProps);
 
       } else if (definitionType == 'local' || definitionType == 'remote'){
@@ -96,7 +96,7 @@ class Ensemble {
           throw ConfigError(
               "i18nPath is required. If you don't have any changes, just leave the default as-is.");
         }
-        bool cacheEnabled = (yamlMap['definitions']?['ensemble']?['enableCache'] == null)?false:true;
+        bool cacheEnabled = ( yamlMap['definitions']?['ensemble']?['enableCache'] == true )?true:false;
         i18nProps.path = i18nPath;
         String fullPath = concatDirectory(path, appId);
         definitionProvider = definitionType == 'local' ?
