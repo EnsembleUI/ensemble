@@ -368,6 +368,15 @@
           "type": "string",
           "enum": ["linear", "circular"]
         },
+        "countdown": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Show the progress percentage based on the number of seconds specified here"
+        },
+        "onCountdownComplete": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Execute this Action when the countdown comes to 0"
+        },
         "styles": {
           "allOf": [
             {
