@@ -1,7 +1,9 @@
 import 'dart:developer';
+import 'dart:math';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/page_model.dart';
@@ -176,9 +178,9 @@ class ViewState extends State<View>{
       for (int i=0; i<menuItems.length; i++) {
         model.MenuItem item = menuItems[i];
         navItems.add(NavigationRailDestination(
-          padding: const EdgeInsets.only(left: 30, right: 30) ,
-            icon: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
-            label: Text(Utils.translate(item.label ?? '', context))));
+          padding: Utils.getInsets(widget._pageModel.menu!.styles?['itemPadding']),
+          icon: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
+          label: Text(Utils.translate(item.label ?? '', context))));
         if (item.selected) {
           selectedIndex = i;
         }
@@ -186,13 +188,12 @@ class ViewState extends State<View>{
 
       // TODO: consolidate buildWidget into 1 place
       double paddingFromSafeSpace = 15;
-      double minWidth = 155;  // approx so it doesn't overlap the safe space's iOS date
       Widget? headerWidget;
       if (widget._pageModel.menu!.headerModel != null) {
         headerWidget = _scopeManager.buildWidget(widget._pageModel.menu!.headerModel!);
       }
       Widget menuHeader = Column(children: [
-       SizedBox(width: minWidth, height: paddingFromSafeSpace),
+       SizedBox(height: paddingFromSafeSpace),
        Container(
          child: headerWidget,
        )
@@ -200,16 +201,35 @@ class ViewState extends State<View>{
 
       Widget? menuFooter;
       if (widget._pageModel.menu!.footerModel != null) {
-        menuFooter = _scopeManager.buildWidget(widget._pageModel.menu!.footerModel!);
+        // push footer to the bottom of the rail
+        menuFooter = Expanded(
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: _scopeManager.buildWidget(widget._pageModel.menu!.footerModel!)
+          ),
+        );
       }
 
-      List<Widget> content = [];
+      MenuItemDisplay itemDisplay = MenuItemDisplay.values.from(widget._pageModel.menu!.styles?['itemDisplay']) ?? MenuItemDisplay.stacked;
 
+      // stacked's min gap seems to be 72 regardless of what we set. For side by side optimal min gap is around 40
+      // we set this minGap and let user controls with itemPadding
+      int minGap = itemDisplay == MenuItemDisplay.sideBySide ? 40 : 72;
+
+      // minExtendedWidth is applicable only for side by side, and should never be below minWidth (or exception)
+      int minWidth = Utils.optionalInt(widget._pageModel.menu!.styles?['minWidth'], min: minGap) ?? 200;
+
+
+
+      List<Widget> content = [];
       // process menu styles
       Color? menuBackground = Utils.getColor(widget._pageModel.menu!.styles?['backgroundColor']);
       content.add(NavigationRail(
+        extended: itemDisplay == MenuItemDisplay.sideBySide ? true : false,
+        minExtendedWidth: minWidth.toDouble(),
+        minWidth: minGap.toDouble(),     // this is important for optimal default item spacing
+        labelType: itemDisplay != MenuItemDisplay.sideBySide ? NavigationRailLabelType.all : null,
         backgroundColor: menuBackground,
-        labelType: NavigationRailLabelType.all,
         leading: menuHeader,
         destinations: navItems,
         trailing: menuFooter,

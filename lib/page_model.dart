@@ -83,7 +83,7 @@ class PageModel {
       }
       WidgetModel? footerModel;
       if (viewMap['menu']['footer'] != null) {
-        headerModel = ViewUtil.buildModel(viewMap['menu']['footer'], customViewDefinitions);
+        footerModel = ViewUtil.buildModel(viewMap['menu']['footer'], customViewDefinitions);
       }
       menu = Menu(viewMap['menu']['display'], menuStyles, menuItems, headerModel: headerModel, footerModel: footerModel);
     }
@@ -337,6 +337,11 @@ enum MenuDisplay {
   drawer,       // expansible/collapsible hamburger menu
   navBar_left,  // fixed navigation on the left of the screen
   navBar_right  // fixed navigation on the right of the screen
+}
+
+enum MenuItemDisplay {
+  stacked,
+  sideBySide
 }
 
 
