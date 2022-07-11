@@ -1034,6 +1034,10 @@
               "$ref": "#/$defs/type-fontWeight",
               "description": "Font weight for the tab text"
             },
+            "tabBackgroundColor": {
+              "$ref": "#/$defs/typeColors",
+              "description": "The background color of the tab's navigation bar"
+            },
             "activeTabColor": {
               "$ref": "#/$defs/typeColors",
               "description": "The color of the selected tab's text"

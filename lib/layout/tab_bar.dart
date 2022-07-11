@@ -34,6 +34,7 @@ class EnsembleTabBar extends StatefulWidget with Invokable, HasController<TabBar
     return {
       'tabFontSize': (fontSize) => _controller.tabFontSize = Utils.optionalInt(fontSize),
       'tabFontWeight': (fontWeight) => _controller.tabFontWeight = Utils.getFontWeight(fontWeight),
+      'tabBackgroundColor': (bgColor) => _controller.tabBackgroundColor = Utils.getColor(bgColor),
       'activeTabColor': (color) => _controller.activeTabColor = Utils.getColor(color),
       'inactiveTabColor': (color) => _controller.inactiveTabColor = Utils.getColor(color),
       'indicatorColor': (color) => _controller.indicatorColor = Utils.getColor(color),
@@ -49,6 +50,7 @@ class EnsembleTabBar extends StatefulWidget with Invokable, HasController<TabBar
 class TabBarController extends WidgetController {
   int? tabFontSize;
   FontWeight? tabFontWeight;
+  Color? tabBackgroundColor;
   Color? activeTabColor;
   Color? inactiveTabColor;
   Color? indicatorColor;
@@ -90,32 +92,10 @@ class TabBarState extends WidgetState<EnsembleTabBar> with SingleTickerProviderS
       return const SizedBox.shrink();
     }
 
-    TextStyle? tabStyle = TextStyle(
-      fontSize: widget._controller.tabFontSize?.toDouble(),
-      fontWeight: widget._controller.tabFontWeight
-    );
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TabBar(
-          controller: _tabController,
-          isScrollable: true,         // collapse the label to the left
-          indicatorSize: TabBarIndicatorSize.label,
-          indicatorWeight: widget._controller.indicatorThickness?.toDouble() ?? 2,
-          indicatorColor: widget._controller.indicatorColor ?? Theme.of(context).colorScheme.primary,
-
-          labelStyle: tabStyle,
-          labelColor: widget._controller.activeTabColor ?? Theme.of(context).colorScheme.primary,
-          unselectedLabelColor: widget._controller.inactiveTabColor ?? Colors.black87,
-
-          tabs: widget._controller._items.map((e) => Tab(text: e.label)).toList(),
-          onTap: (index) => {
-            setState(() {
-              widget._controller.selectedIndex = index;
-            })
-          },
-        ),
+        buildTabBar(),
         Padding(
             padding: const EdgeInsets.only(left: 0),
             // builder gives us dynamic height control vs TabBarView, but
@@ -125,6 +105,41 @@ class TabBarState extends WidgetState<EnsembleTabBar> with SingleTickerProviderS
         )
       ],
     );
+  }
+
+  /// build the Tab Bar navigation part
+  Widget buildTabBar() {
+    TextStyle? tabStyle = TextStyle(
+        fontSize: widget._controller.tabFontSize?.toDouble(),
+        fontWeight: widget._controller.tabFontWeight
+    );
+
+    Widget tabBar = TabBar(
+      controller: _tabController,
+      isScrollable: true,         // collapse the label to the left
+      indicatorSize: TabBarIndicatorSize.label,
+      indicatorWeight: widget._controller.indicatorThickness?.toDouble() ?? 2,
+      indicatorColor: widget._controller.indicatorColor ?? Theme.of(context).colorScheme.primary,
+
+      labelStyle: tabStyle,
+      labelColor: widget._controller.activeTabColor ?? Theme.of(context).colorScheme.primary,
+      unselectedLabelColor: widget._controller.inactiveTabColor ?? Colors.black87,
+
+      tabs: widget._controller._items.map((e) => Tab(text: e.label)).toList(),
+      onTap: (index) => {
+        setState(() {
+          widget._controller.selectedIndex = index;
+        })
+      },
+    );
+
+    if (widget._controller.tabBackgroundColor != null) {
+      return ColoredBox(
+          color: widget._controller.tabBackgroundColor!,
+          child: tabBar
+      );
+    }
+    return tabBar;
   }
 
   Widget buildSelectedTab() {
