@@ -968,57 +968,86 @@
     },
     "Menu": {
       "type": "object",
-      "properties": {
-        "styles": {
-          "type": "object",
+      "allOf": [
+        {
           "properties": {
-            "borderColor": {
-              "$ref": "#/$defs/typeColors"
+            "display": {
+              "type": "string",
+              "description": "how to render the App Menu (e.g bottom navigation bar, drawer, ...)",
+              "enum": [
+                "navBar", "navBar_left", "drawer"
+              ]
             },
-            "borderWidth": {
-              "type": "integer"
-            },
-            "backgroundColor": {
-              "$ref": "#/$defs/typeColors",
-              "description": "Background color for our menu starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+            "header": { "$ref": "#/$defs/Widget" },
+            "footer": { "$ref": "#/$defs/Widget" },
+            "items": {
+              "type": "array",
+              "description": "Define your menu items here (minimum 2)",
+              "items": {
+                "type": "object",
+                "required": ["icon", "label", "page"],
+                "properties": {
+                  "icon": {
+                    "type": "string",
+                    "description": "Icon name from Material Icons or Font Awesome"
+                  },
+                  "iconLibrary": {
+                    "type": "string",
+                    "enum": ["default", "fontAwesome"]
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "page": {
+                    "type": "string",
+                    "description": "The new page to navigate to on click"
+                  }
+                }
+              }
             }
           }
-
         },
-        "display": {
-          "type": "string",
-          "description": "how to render the App Menu (e.g bottom navigation bar, drawer, ...)",
-          "enum": [
-            "navBar", "navBar_left", "drawer"
-          ]
-        },
-        "header": { "$ref": "#/$defs/Widget" },
-        "items": {
-          "type": "array",
-          "description": "Define your menu items here (minimum 2)",
-          "items": {
-            "type": "object",
-            "required": ["icon", "label", "page"],
+        {
+          "if": {
             "properties": {
-              "icon": {
-                "type": "string",
-                "description": "Icon name from Material Icons or Font Awesome"
-              },
-              "iconLibrary": {
-                "type": "string",
-                "enum": ["default", "fontAwesome"]
-              },
-              "label": {
-                "type": "string"
-              },
-              "page": {
-                "type": "string",
-                "description": "The new page to navigate to on click"
+              "display": {
+                "const": "navBar_left"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "styles": {
+                "properties": {
+                  "borderColor": {
+                    "$ref": "#/$defs/typeColors"
+                  },
+                  "borderWidth": {
+                    "type": "integer"
+                  },
+                  "backgroundColor": {
+                    "$ref": "#/$defs/typeColors",
+                    "description": "Background color for our menu starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+                  },
+                  "itemDisplay": {
+                    "type": "string",
+                    "description": "How to render each navigation item",
+                    "enum": ["stacked", "sideBySide"]
+                  },
+                  "itemPadding": {
+                    "type": ["integer", "string"],
+                    "description": "Padding for each navigation item with CSS-style value"
+                  },
+                  "minWidth": {
+                    "type": "integer",
+                    "description": "The minimum width for the menu (default 200)"
+                  }
+                }
               }
             }
           }
         }
-      }
+      ]
     },
     "TabBar-payload": {
       "type": "object",
