@@ -1,8 +1,9 @@
-
+import 'package:ensemble/ensemble_theme.dart';
+import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/layout_helper.dart';
-import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as flutter;
+import 'package:ensemble/util/utils.dart';
 
 /// utility for our Widgets
 class WidgetUtils {
@@ -32,8 +33,148 @@ class WidgetUtils {
 
   }
 }
+class TextController extends WidgetController {
+  String? text;
+  String? font;
+  int? fontSize;
+  FontWeight? fontWeight;
+  Color? color;
+  String? overflow;
+  String? textAlign;
+  String? textStyle;
+  String? lineHeight;
+}
+class TextUtils {
+  static void setStyles(Map styles,TextController controller) {
+    Map<String,Function> setters = styleSetters(controller);
+    styles.forEach((key, value) {
+      if ( setters.containsKey(key) ) {
+        if ( setters[key] != null ) {
+          setters[key]!.call(value);
+        }
+      }
+    });
+  }
+  static Map<String,Function> styleSetters(TextController _controller) {
+    return {
+      'font': (value) => _controller.font = Utils.optionalString(value),
+      'fontSize': (value) => _controller.fontSize = Utils.optionalInt(value),
+      'fontWeight': (value) => _controller.fontWeight = Utils.getFontWeight(value),
+      'color': (value) => _controller.color = Utils.getColor(value),
+      'lineHeight': (value) => _controller.lineHeight = Utils.optionalString(value),
+      'textStyle': (value) => _controller.textStyle = Utils.optionalString(value),
+    };
+  }
+  static flutter.Text buildText(TextController controller) {
+    FontWeight? fontWeight;
+    double? fontSize;
+    Color? fontColor;
 
+    // built-in font
+    if (controller.font == 'heading') {
+      fontWeight = FontWeight.w600;
+      fontSize = 24;
+      fontColor = EnsembleTheme.darkerText;
+    } else if (controller.font == 'title') {
+      fontWeight = FontWeight.w600;
+      fontSize = 22;
+      fontColor = EnsembleTheme.darkerText;
+    } else if (controller.font == 'subtitle') {
+      fontWeight = FontWeight.w500;
+      fontSize = 16;
+      fontColor = EnsembleTheme.grey;
+    }
 
+    if (controller.fontSize != null) {
+      fontSize = controller.fontSize!.toDouble();
+    }
+    if (controller.fontWeight != null) {
+      fontWeight = controller.fontWeight;
+    }
+    if (controller.color != null) {
+      fontColor = controller.color!;
+    }
+
+    TextOverflow textOverflow = TextOverflow.from(controller.overflow);
+
+    TextAlign? textAlign;
+    switch (controller.textAlign) {
+      case 'start':
+        textAlign = TextAlign.start;
+        break;
+      case 'end':
+        textAlign = TextAlign.end;
+        break;
+      case 'center':
+        textAlign = TextAlign.center;
+        break;
+      case 'justify':
+        textAlign = TextAlign.justify;
+        break;
+    }
+
+    FontStyle? fontStyle;
+    TextDecoration? textDecoration;
+    switch (controller.textStyle) {
+      case 'italic':
+        fontStyle = FontStyle.italic;
+        break;
+      case 'underline':
+        textDecoration = TextDecoration.underline;
+        break;
+      case 'strikethrough':
+        textDecoration = TextDecoration.lineThrough;
+        break;
+      case 'italic_underline':
+        fontStyle = FontStyle.italic;
+        textDecoration = TextDecoration.underline;
+        break;
+      case 'italic_strikethrough':
+        fontStyle = FontStyle.italic;
+        textDecoration = TextDecoration.lineThrough;
+        break;
+    }
+
+    // Note: default should be null, as it may not be 1.0 depending on fonts
+    double? lineHeight;
+    switch (controller.lineHeight) {
+      case '1.0':
+        lineHeight = 1;
+        break;
+      case '1.15':
+        lineHeight = 1.15;
+        break;
+      case '1.25':
+        lineHeight = 1.25;
+        break;
+      case '1.5':
+        lineHeight = 1.5;
+        break;
+      case '2.0':
+        lineHeight = 2;
+        break;
+      case '2.5':
+        lineHeight = 2.5;
+        break;
+    }
+    return flutter.Text(
+        controller.text ?? '',
+        textAlign: textAlign,
+        overflow: textOverflow.overflow,
+        maxLines: textOverflow.maxLine,
+        softWrap: textOverflow.softWrap,
+        style: flutter.TextStyle(
+            decorationColor: flutter.Colors.blue,
+            fontWeight: fontWeight,
+            fontStyle: fontStyle,
+            decoration: textDecoration,
+            fontSize: fontSize,
+            color: fontColor,
+            height: lineHeight)
+    );
+
+  }
+}
 
 
 
