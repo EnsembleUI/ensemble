@@ -2,11 +2,10 @@ import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:ensemble/widget/widget_util.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:yaml/yaml.dart';
 import 'package:ensemble/framework/widget/view.dart';
 //8e26249e-c08c-4b3e-8584-cc83a5c9bc29
 class DataGrid extends StatefulWidget with UpdatableContainer, Invokable, HasController<DataGridController,DataGridState> {
@@ -51,6 +50,44 @@ class DataGrid extends StatefulWidget with UpdatableContainer, Invokable, HasCon
       'DataColumns': (List cols) {
         this.cols = List<EnsembleDataColumn>.generate(cols.length,
                 (index) => EnsembleDataColumn.fromYaml(map:cols[index] as Map)
+        );
+      },
+      'headingTextStyle': (Map styles) {
+        controller.headingTextController = TextController();
+        TextUtils.setStyles(styles, controller.headingTextController!);
+      },
+      'dataTextStyle': (Map styles) {
+        controller.dataTextController = TextController();
+        TextUtils.setStyles(styles, controller.dataTextController!);
+      },
+      'horizontalMargin': (val)=> controller.horizontalMargin = Utils.optionalDouble(val),
+      'dataRowHeight': (val) => controller.dataRowHeight = Utils.optionalDouble(val),
+      'headingRowHeight': (val) => controller.headingRowHeight = Utils.optionalDouble(val),
+      'columnSpacing': (val) => controller.columnSpacing = Utils.optionalDouble(val),
+      'dividerThickness': (val) => controller.dividerThickness = Utils.optionalDouble(val),
+      'border': (Map val) {
+        Map<String,dynamic> map = {};
+        val.forEach((key, value) {
+          if ( value is Map ) {
+            Color color = Utils.getColor(value['color'])??Colors.black;
+            double width = Utils.getDouble(value['width'],fallback: 1.0);
+            map[key] = BorderSide(
+                color: color,
+                width: width
+            );
+          } else if ( key == 'borderRadius' ) {
+            double? radius = Utils.optionalDouble(value);
+            map[key] = (radius == null)?BorderRadius.zero:BorderRadius.circular(radius);
+          }
+        });
+        controller.border = TableBorder(
+          top: map['top']??BorderSide.none,
+          right: map['right']??BorderSide.none,
+          bottom: map['bottom']??BorderSide.none,
+          left: map['left']??BorderSide.none,
+          horizontalInside: map['horizontalInside']??BorderSide.none,
+          verticalInside: map['verticalInside']??BorderSide.none,
+          borderRadius: map['borderRadius']??BorderRadius.zero
         );
       },
     };
@@ -100,7 +137,14 @@ class EnsembleDataRowState extends State<EnsembleDataRow> {
 
 class DataGridController extends WidgetController {
   List<Widget>? children;
-
+  double? horizontalMargin;
+  TextController? headingTextController;
+  double? dataRowHeight;
+  double? headingRowHeight;
+  double? columnSpacing;
+  TextController? dataTextController;
+  double? dividerThickness;
+  TableBorder border = const TableBorder();
 }
 
 class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
@@ -201,11 +245,35 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
       }
       rows.add(DataRow(cells:cells));
     }
+    TextStyle? headingTextStyle;
+    if ( widget.controller.headingTextController != null ) {
+      Text headingText = TextUtils.buildText(
+          widget.controller.headingTextController!);
+      headingTextStyle = headingText.style;
+    }
+    TextStyle? dataTextStyle;
+    if ( widget.controller.dataTextController != null ) {
+      Text dataText = TextUtils.buildText(
+          widget.controller.dataTextController!);
+      dataTextStyle = dataText.style;
+    }
+
+    DataTable grid = DataTable(columns: widget.cols,
+      rows: rows,
+      horizontalMargin: widget.controller.horizontalMargin,
+      headingTextStyle: headingTextStyle,
+      dataRowHeight: widget.controller.dataRowHeight,
+      headingRowHeight: widget.controller.headingRowHeight,
+      dataTextStyle: dataTextStyle,
+      columnSpacing: widget.controller.columnSpacing,
+      dividerThickness: widget.controller.dividerThickness,
+      border: widget.controller.border,
+    );
     return SingleChildScrollView(
       scrollDirection: Axis.vertical,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        child: DataTable(columns: widget.cols, rows: rows)
+        child: grid
       )
     );
   }
