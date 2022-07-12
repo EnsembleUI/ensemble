@@ -32,6 +32,7 @@ class Rating extends StatefulWidget with Invokable, HasController<RatingControll
       'value': (value) => _controller.value = Utils.optionalDouble(value),
       'count': (value) => _controller.count = Utils.optionalInt(value),
       'display': (value) => _controller.display = Utils.optionalString(value),
+      'padding': (value) => _controller.padding = Utils.getInsets(value)
     };
   }
 
@@ -41,6 +42,7 @@ class RatingController extends WidgetController {
   double? value;
   int? count;
   String? display;
+  EdgeInsets? padding;
 }
 
 class RatingState extends WidgetState<Rating> {
@@ -114,13 +116,13 @@ class RatingState extends WidgetState<Rating> {
       );
     }
 
-
-    return Padding(
-      padding: const EdgeInsets.only(left: 16, right: 16, top: 8, bottom: 8),
-      child: ratingWidget
-    );
-
-
+    if (widget._controller.padding != null) {
+      return Padding(
+        padding: widget._controller.padding!,
+        child: ratingWidget,
+      );
+    }
+    return ratingWidget;
   }
 
 
