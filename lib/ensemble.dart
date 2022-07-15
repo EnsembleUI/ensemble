@@ -38,6 +38,7 @@ class Ensemble {
   late DeviceInfo deviceInfo;
   DefinitionProvider? definitionProvider;
   AppBundle? _appBundle;
+  Account? account;
 
   /// init Ensemble from the config file
   Future<bool> initialize() async {
@@ -107,6 +108,12 @@ class Ensemble {
           throw ConfigError(
               "Definitions needed to be defined as 'local', 'remote', or 'ensemble'");
       }
+
+      // init accounts
+      initAccount(yamlMap['accounts']);
+
+
+
     } catch (error) {
       log("Error loading ensemble-config.yaml.\n$error");
       rethrow;
@@ -114,6 +121,12 @@ class Ensemble {
     // initialize our App Bundle (theme, translation, ...)
     await initAppBundle();
     return definitionProvider != null;
+  }
+
+  initAccount(YamlMap? accountMap) {
+    if (accountMap != null) {
+      account = Account(mapAccessToken: accountMap['maps']?['mapbox_access_token']);
+    }
   }
 
   /// initialize Ensemble with params (no config file)
@@ -364,6 +377,11 @@ class AppBundle {
   AppBundle({this.theme});
 
   YamlMap? theme;
+}
+/// store the App's account info (e.g. access token for maps)
+class Account {
+  Account({this.mapAccessToken});
+  String? mapAccessToken;
 }
 
 class DeviceInfo {

@@ -46,11 +46,15 @@ class RatingController extends WidgetController {
 }
 
 class RatingState extends WidgetState<Rating> {
+  late Color primaryColor;
+
   @override
   Widget build(BuildContext context) {
     if (!widget._controller.visible) {
       return const SizedBox.shrink();
     }
+    ThemeData themeData = Theme.of(context);
+    primaryColor = themeData.colorScheme.primary;
 
     Widget? ratingWidget;
     if (widget._controller.display == 'full') {
@@ -63,24 +67,22 @@ class RatingState extends WidgetState<Rating> {
             itemCount: 5,
             itemSize: 24,
             ratingWidget: RatingWidget(
-              full: const Icon(
+              full: Icon(
                 Icons.star_rate_rounded,
-                color: Colors.blue,
+                color: primaryColor,
               ),
-              half: const Icon(
+              half: Icon(
                 Icons.star_half_rounded,
-                color: Colors.blue,
+                color: primaryColor,
               ),
-              empty: const Icon(
-                Icons
-                    .star_border_rounded,
-                color: Colors.blue,
+              empty: Icon(
+                Icons.star_border_rounded,
+                color: primaryColor,
               ),
             ),
             itemPadding:
             EdgeInsets.zero,
             onRatingUpdate: (rating) {
-              print(rating);
             },
           ),
           Text(
@@ -106,9 +108,9 @@ class RatingState extends WidgetState<Rating> {
                 color: EnsembleTheme.grey,
               ),
             ),
-            const Icon(
+            Icon(
               Icons.star,
-              color: EnsembleTheme.nearlyBlue,
+              color: primaryColor,
               size: 24,
             ),
           ],

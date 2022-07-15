@@ -10,13 +10,10 @@ import 'package:flutter/cupertino.dart';
 /// mixin for Widget that supports item-template
 mixin TemplatedWidgetState<W extends StatefulWidget> on State<W> {
 
-  void registerItemTemplate(BuildContext context, ItemTemplate itemTemplate, {required Function onDataChanged}) {
+  void registerItemTemplate(BuildContext context, ItemTemplate itemTemplate, {bool? evaluateInitialValue, required Function onDataChanged}) {
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
     DataExpression? dataExpression = Utils.parseDataExpression(itemTemplate.data);
     if (scopeManager != null && dataExpression != null) {
-
-
-
 
       // listen to the binding from our itemTemplate
       // data: $(apiName.*)
@@ -32,13 +29,22 @@ mixin TemplatedWidgetState<W extends StatefulWidget> on State<W> {
           }
         }
       );
+
+      // if specified to evaluate initial value, then evaluate the data list now
+      // and dispatch it as a data change
+      if (evaluateInitialValue == true) {
+        dynamic dataList = scopeManager.dataContext.eval(itemTemplate.data);
+        if (dataList is List) {
+          onDataChanged(dataList);
+        }
+      }
     }
   }
 
   /// build the list of templated widget from the given data expression
   /// Note that each child is wrapped in DataScopeWidget for proper data scoping
-  List<Widget>? buildItemsFromTemplate(BuildContext context, List dataList, ItemTemplate itemTemplate) {
-    List<Widget>? widgets;
+  List<DataScopeWidget>? buildWidgetsFromTemplate(BuildContext context, List dataList, ItemTemplate itemTemplate) {
+    List<DataScopeWidget>? widgets;
     ScopeManager? parentScope = DataScopeWidget.getScope(context);
     if (parentScope != null) {
       widgets = [];
