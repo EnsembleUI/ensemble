@@ -55,6 +55,9 @@ dependencies:
   flutter_svg: ^1.1.0
   qr_flutter: ^4.0.0
   device_info_plus: ^3.2.4
+  google_maps_flutter: ^2.1.8
+  flutter_map: ^2.0.0
+  carousel_slider: ^4.1.1
 
 
 dev_dependencies:
