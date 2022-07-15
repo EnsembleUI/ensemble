@@ -6,6 +6,7 @@ import 'package:ensemble/layout/stack.dart';
 import 'package:ensemble/layout/tab_bar.dart';
 import 'package:ensemble/widget/Text.dart' as ensemble;
 import 'package:ensemble/widget/button.dart';
+import 'package:ensemble/widget/carousel.dart';
 import 'package:ensemble/widget/chart_bubble_builder.dart';
 import 'package:ensemble/widget/chart_highcharts_builder.dart';
 import 'package:ensemble/widget/chart_pie_builder.dart';
@@ -49,6 +50,7 @@ class WidgetRegistry {
     QRCode.type: () => QRCode(),
     EnsembleProgressIndicator.type: () => EnsembleProgressIndicator(),
     EnsembleMap.type: () => EnsembleMap(),
+    Carousel.type: () => Carousel(),
 
     // form fields
     EnsembleForm.type: () => EnsembleForm(),
