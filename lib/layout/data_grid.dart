@@ -168,12 +168,12 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
     if (widget.itemTemplate != null) {
       // initial value
       if (widget.itemTemplate!.initialValue != null) {
-        templatedChildren = buildItemsFromTemplate(context, widget.itemTemplate!.initialValue!, widget.itemTemplate!);
+        templatedChildren = buildWidgetsFromTemplate(context, widget.itemTemplate!.initialValue!, widget.itemTemplate!);
       }
       // listen for changes
       registerItemTemplate(context, widget.itemTemplate!, onDataChanged: (List dataList) {
         setState(() {
-          templatedChildren = buildItemsFromTemplate(context, dataList, widget.itemTemplate!);
+          templatedChildren = buildWidgetsFromTemplate(context, dataList, widget.itemTemplate!);
         });
       });
     }

@@ -6,6 +6,7 @@ import 'package:ensemble/layout/stack.dart';
 import 'package:ensemble/layout/tab_bar.dart';
 import 'package:ensemble/widget/Text.dart' as ensemble;
 import 'package:ensemble/widget/button.dart';
+import 'package:ensemble/widget/carousel.dart';
 import 'package:ensemble/widget/chart_bubble_builder.dart';
 import 'package:ensemble/widget/chart_highcharts_builder.dart';
 import 'package:ensemble/widget/chart_pie_builder.dart';
@@ -16,6 +17,7 @@ import 'package:ensemble/widget/form_checkbox.dart';
 import 'package:ensemble/widget/form_daterange.dart';
 import 'package:ensemble/widget/form_textfield.dart';
 import 'package:ensemble/widget/image.dart';
+import 'package:ensemble/widget/map.dart';
 import 'package:ensemble/widget/progress_indicator.dart';
 import 'package:ensemble/widget/qr_code.dart';
 import 'package:ensemble/widget/rating.dart';
@@ -47,6 +49,8 @@ class WidgetRegistry {
     EnsembleWebView.type: () => EnsembleWebView(),
     QRCode.type: () => QRCode(),
     EnsembleProgressIndicator.type: () => EnsembleProgressIndicator(),
+    EnsembleMap.type: () => EnsembleMap(),
+    Carousel.type: () => Carousel(),
 
     // form fields
     EnsembleForm.type: () => EnsembleForm(),

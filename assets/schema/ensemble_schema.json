@@ -662,6 +662,46 @@
         { "$ref": "#/$defs/Templated-payload" }
       ]
     },
+    "Carousel-payload": {
+      "allOf": [
+        {
+          "type": "object",
+          "properties": {
+            "children": { "$ref": "#/$defs/Widgets" },
+            "styles": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/boxStyles"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "layout": {
+                      "type": "string",
+                      "description": "Show a single view, multiple views, or automatically switch between the views with autoLayoutBreakpoint",
+                      "enum": ["auto" ,"single", "multiple"]
+                    },
+                    "autoLayoutBreakpoint": {
+                      "type": "integer",
+                      "description": "Show multiple views on the carousel if the breakpoint is equal or larger than this threshold, otherwise show single view. (default 768)"
+                    },
+                    "height": {
+                      "type": "integer",
+                      "description": "The height of each view"
+                    },
+                    "gap": {
+                      "type": "integer",
+                      "description": "The gap between each views, but also act as a left-right margin in a single view"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        { "$ref": "#/$defs/Templated-payload" }
+      ]
+    },
     "Templated-payload": {
       "type": "object",
       "properties": {
@@ -963,7 +1003,9 @@
         "Column": { "$ref": "#/$defs/Column-payload" },
         "Row": { "$ref": "#/$defs/Row-payload" },
         "Flex": { "$ref": "#/$defs/Flex-payload" },
-        "TabBar": { "$ref": "#/$defs/TabBar-payload" }
+        "Carousel": { "$ref": "#/$defs/Carousel-payload" },
+        "TabBar": { "$ref": "#/$defs/TabBar-payload" },
+        "Map": { "$ref": "#/$defs/Map-payload" }
       }
     },
     "Menu": {
@@ -1111,7 +1153,46 @@
         }
       }
     },
+    "Map-payload": {
+      "type": "object",
+      "properties": {
+        "styles": {
+          "type": "object",
+          "properties": {
+          }
+        },
+        "markers": {
+          "type": "object",
+          "required": ["data", "name", "location", "marker"],
+          "properties": {
+            "data": { "type": "string" },
+            "name": { "type": "string" },
+            "marker": {
+              "$ref": "#/$defs/Widget",
+              "description": "The widget to render as each marker"
+            },
+            "selectedMarker": {
+              "$ref": "#/$defs/Widget",
+              "description": "The widget to render at the bottom of the map when a marker is selected"
+            },
+            "location": {
+              "type": "object",
+              "properties": {
+                "lat": {
+                  "type": "number",
+                  "description": "The latitude of the marker"
+                },
+                "lng": {
+                  "type": "number",
+                  "description": "The longitude of the marker"
+                }
+              }
+            }
 
+          }
+        }
+      }
+    },
 
 
     "rootViewStyles": {
