@@ -31,6 +31,8 @@ class EnsembleMap extends StatefulWidget with Invokable, HasController<MyControl
   Map<String, Function> setters() {
     return {
       'markers': (data) => _controller.markers = data,
+      'markerWidth': (width) => _controller.markerWidth = width,
+      'markerHeight': (height) => _controller.markerHeight = height,
     };
   }
 
@@ -47,6 +49,8 @@ class EnsembleMap extends StatefulWidget with Invokable, HasController<MyControl
 }
 
 class MyController extends WidgetController {
+  int? markerWidth;
+  int? markerHeight;
 
   // set the marker template
   MarkerTemplate? markerTemplate;
@@ -75,6 +79,10 @@ class MyController extends WidgetController {
 class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
   // Mapbox raster's max zoom is 18
   static const double mapboxMaxZoom = 18;
+  static const double defaultMarkerWidth = 60;
+  static const double defaultMarkerHeight = 30;
+
+
   late final MapController _mapController;
   late final String _mapAccessToken;
   List<Marker> markers = [];
@@ -131,6 +139,8 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
           // add the marker
           markers.add(Marker(
             point: LatLng(lat, lng),
+            width: widget._controller.markerWidth?.toDouble() ?? defaultMarkerWidth,
+            height: widget._controller.markerHeight?.toDouble() ?? defaultMarkerHeight,
             builder: (context) => w));
 
         }
