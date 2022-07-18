@@ -1157,9 +1157,24 @@
       "type": "object",
       "properties": {
         "styles": {
-          "type": "object",
-          "properties": {
-          }
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "markerWidth": {
+                  "type": "integer",
+                  "description": "The width of each marker. (default 60)"
+                },
+                "markerHeight": {
+                  "type": "integer",
+                  "description": "The height of each marker. (default 30)"
+                }
+              }
+            }
+          ]
         },
         "markers": {
           "type": "object",
