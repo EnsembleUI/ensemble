@@ -692,6 +692,26 @@
                     "gap": {
                       "type": "integer",
                       "description": "The gap between each views, but also act as a left-right margin in a single view"
+                    },
+                    "indicatorType": {
+                      "type": "string",
+                      "description": "How the view indicator should be displayed",
+                      "enum": [ "none", "circle", "rectangle" ]
+                    },
+                    "indicatorPosition": {
+                      "type": "string",
+                      "description": "Where to display the indicator if specified",
+                      "enum": ["bottom", "top"]
+                    },
+                    "indicatorWidth": {
+                      "type": "integer"
+                    },
+                    "indicatorHeight": {
+                      "type": "integer"
+                    },
+                    "indicatorMargin": {
+                      "type": ["integer", "string"],
+                      "description": "The margin around each indicator"
                     }
                   }
                 }

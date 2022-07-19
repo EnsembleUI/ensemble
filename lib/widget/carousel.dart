@@ -12,13 +12,13 @@ import 'package:ensemble/widget/widget_util.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 
-class Carousel extends StatefulWidget with UpdatableContainer, Invokable, HasController<CarouselController, CarouselState> {
+class Carousel extends StatefulWidget with UpdatableContainer, Invokable, HasController<MyController, CarouselState> {
   static const type = 'Carousel';
   Carousel({Key? key}) : super(key: key);
 
-  final CarouselController _controller = CarouselController();
+  final MyController _controller = MyController();
   @override
-  CarouselController get controller => _controller;
+  MyController get controller => _controller;
 
   @override
   CarouselState createState() => CarouselState();
@@ -30,6 +30,11 @@ class Carousel extends StatefulWidget with UpdatableContainer, Invokable, HasCon
       'autoLayoutBreakpoint': (value) => _controller.autoLayoutBreakpoint = Utils.optionalInt(value, min: 0),
       'height': (height) => _controller.height = Utils.optionalInt(height),
       'gap': (gap) => _controller.gap = Utils.optionalInt(gap),
+      'indicatorType': (type) => _controller.indicatorType = IndicatorType.values.from(type),
+      'indicatorPosition': (position) => _controller.indicatorPosition = IndicatorPosition.values.from(position),
+      'indicatorWidth': (w) => _controller.indicatorWidth = Utils.optionalInt(w),
+      'indicatorHeight': (h) => _controller.indicatorHeight = Utils.optionalInt(h),
+      'indicatorMargin': (value) => _controller.indicatorMargin = Utils.getInsets(value)
     };
   }
 
@@ -51,7 +56,7 @@ class Carousel extends StatefulWidget with UpdatableContainer, Invokable, HasCon
 
 }
 
-class CarouselController extends BoxController {
+class MyController extends BoxController {
   static const double defaultItemGap = 10;
 
   ItemTemplate? itemTemplate;
@@ -62,11 +67,19 @@ class CarouselController extends BoxController {
 
   CarouselLayout? layout;
   int? autoLayoutBreakpoint;    // applicable only for auto layout
+
+  IndicatorType? indicatorType;
+  IndicatorPosition? indicatorPosition;
+  int? indicatorWidth;
+  int? indicatorHeight;
+  EdgeInsets? indicatorMargin;
 }
 
 
 class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
   List<Widget>? templatedChildren;
+  final CarouselController _carouselController = CarouselController();
+  int selectedIndex = 0;
 
   @override
   void didChangeDependencies() {
@@ -95,10 +108,35 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
     // if we should display one at a time or multiple in the slider
     bool singleView = isSingleView();
 
+    List<Widget> items = buildItems();
     Widget carousel = CarouselSlider(
       options: singleView ? _getSingleViewOptions() : _getMultiViewOptions(),
-      items: buildItems()
+      items: items,
+      carouselController: _carouselController,
     );
+
+    // show indicators
+    if (widget._controller.indicatorType != null && widget._controller.indicatorType != IndicatorType.none) {
+      List<Widget> children = [
+        carousel,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: items
+              .asMap()
+              .keys
+              .map((index) {
+            return GestureDetector(
+              child: getIndicator(index == selectedIndex),
+              onTap: () => _carouselController.animateToPage(index),
+            );
+          }).toList()
+        )
+      ];
+
+      carousel = Column(
+        children: widget._controller.indicatorPosition == IndicatorPosition.top ? children.reversed.toList() : children
+      );
+    }
 
     return WidgetUtils.wrapInBox(carousel, widget._controller);
   }
@@ -126,7 +164,7 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
     }
 
     // wrap each child inside Container to add padding and gap
-    double gap = widget._controller.gap?.toDouble() ?? CarouselController.defaultItemGap;
+    double gap = widget._controller.gap?.toDouble() ?? MyController.defaultItemGap;
     List<Widget> items = [];
     for (int i=0; i<children.length; i++) {
       Widget child = children[i];
@@ -161,8 +199,30 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
   CarouselOptions _getBaseCarouselOptions() {
     return CarouselOptions(
       height: widget._controller.height?.toDouble(),
-      enableInfiniteScroll: false
+      enableInfiniteScroll: false,
+      onPageChanged: (index, _) {
+        setState(() {
+          selectedIndex = index;
+        });
+      }
     );
+  }
+
+  Widget getIndicator(bool selected) {
+    int w = widget._controller.indicatorWidth ?? widget._controller.indicatorHeight ?? 8;
+    int h = widget._controller.indicatorHeight ?? widget._controller.indicatorWidth ?? 8;
+
+    return Container(
+      width: w.toDouble(),
+      height: h.toDouble(),
+      margin: widget._controller.indicatorMargin ?? const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+      decoration: BoxDecoration(
+        shape: widget._controller.indicatorType == IndicatorType.rectangle ? BoxShape.rectangle : BoxShape.circle,
+        color: (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black)
+            .withOpacity(selected ? 0.9 : 0.4)
+      )
+    );
+
   }
 
 
@@ -172,4 +232,13 @@ enum CarouselLayout {
   auto,
   single,
   multiple,
+}
+enum IndicatorType {
+  none,
+  circle,
+  rectangle,
+}
+enum IndicatorPosition {
+  bottom,
+  top
 }
