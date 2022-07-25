@@ -350,7 +350,7 @@ class MenuItem {
 
   final String? label;
   final String page;
-  final String? icon;
+  final dynamic icon;
   final String? iconLibrary;
   final bool selected;
 
