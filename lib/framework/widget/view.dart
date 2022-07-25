@@ -156,7 +156,7 @@ class ViewState extends State<View>{
         constraints: const BoxConstraints.expand(),
         decoration: BoxDecoration(
           image: DecorationImage (
-            image: NetworkImage(widget._pageModel.pageStyles!['backgroundImage']!.toString()),
+            image: buildBackgroundImage(widget._pageModel.pageStyles!['backgroundImage']!.toString()),
             fit: BoxFit.cover
           )
         ),
@@ -165,6 +165,14 @@ class ViewState extends State<View>{
     }
     return rtn;
 
+  }
+
+  ImageProvider buildBackgroundImage(String source) {
+    if (source.startsWith('https://') || source.startsWith('http://')) {
+      return NetworkImage(source);
+    }
+    // attempt local asset
+    return AssetImage('assets/images/$source');
   }
 
   Widget getBody () {

@@ -5,7 +5,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class Icon extends flutter.Icon {
   Icon(
-      String icon,
+      dynamic icon,
       {
         Key? key,
         String? library,
@@ -13,8 +13,16 @@ class Icon extends flutter.Icon {
         Color? color,
       }) : super(_iconFromName(icon, library), key: key, size: size?.toDouble(), color: color);
 
-  static IconData? _iconFromName(String name, String? library) {
-    return library == 'fontAwesome' ? _fontAwesomeIcons[name] : _defaultIcons[name];
+  static IconData? _iconFromName(dynamic name, String? library) {
+    if (library == null || library == 'default' || library.toString().trim().isEmpty) {
+      return _defaultIcons[name];
+    } else if (library == 'fontAwesome') {
+      return _fontAwesomeIcons[name];
+    } else if (name is int){
+      // assume custom icon fonts
+      return IconData(name, fontFamily: library);
+    }
+    return null;
   }
 
   /// Flutter icons
