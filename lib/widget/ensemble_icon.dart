@@ -25,10 +25,10 @@ class EnsembleIcon extends StatefulWidget with Invokable, HasController<IconCont
   @override
   Map<String, Function> setters() {
     return {
-      'icon': (value) => _controller.icon = Utils.getString(value, fallback: ''),
+      'icon': (value) => _controller.icon = value,
       'library': (value) => _controller.library = Utils.optionalString(value),
       'size': (value) => _controller.size = Utils.optionalInt(value),
-      'color': (value) => _controller.color = Utils.optionalInt(value),
+      'color': (value) => _controller.color = Utils.getColor(value),
       'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, initiator: this),
     };
   }
@@ -39,10 +39,10 @@ class EnsembleIcon extends StatefulWidget with Invokable, HasController<IconCont
 
 }
 class IconController extends WidgetController {
-  late String icon;
+  dynamic icon;
   String? library;
   int? size;
-  int? color;
+  Color? color;
   EnsembleAction? onTap;
 }
 
@@ -62,7 +62,7 @@ class IconState extends WidgetState<EnsembleIcon> {
         widget._controller.icon,
         library: widget._controller.library,
         size: widget._controller.size,
-        color: widget._controller.color != null ? Color(widget._controller.color!) : null
+        color: widget._controller.color
       )
     );
   }
