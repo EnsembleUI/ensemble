@@ -83,33 +83,69 @@ class ImageState extends WidgetState<EnsembleImage> {
 
     Widget image;
     if (isSvg()) {
-      image = SvgPicture.network(
+      image = buildSvgImage(fit);
+    } else {
+      image = buildNonSvgImage(fit);
+    }
+
+    return WidgetUtils.wrapInBox(image, widget._controller);
+  }
+
+  Widget buildNonSvgImage(BoxFit? fit) {
+    String source = widget._controller.source.trim();
+    if (source.isNotEmpty) {
+      // if is URL
+      if (source.startsWith('https://') || source.startsWith('http://')) {
+        // image binding is tricky. When the URL has not been resolved
+        // the image will throw exception. We have to use a permanent placeholder
+        // until the binding engages
+        return Image.network(
+            widget._controller.source,
+            width: widget._controller.width?.toDouble(),
+            height: widget._controller.height?.toDouble(),
+            fit: fit,
+            errorBuilder: (context, error, stacktrace) => placeholderImage(),
+            loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+              if (loadingProgress == null) {
+                return child;
+              }
+              return placeholderImage();
+            }
+        );
+      }
+      // else attempt local asset
+      else {
+        return Image.asset(
+          'assets/images/${widget._controller.source}',
+          width: widget._controller.width?.toDouble(),
+          height: widget._controller.height?.toDouble(),
+          fit: fit,
+          errorBuilder: (context, error, stacktrace) => placeholderImage()
+        );
+      }
+    }
+    return placeholderImage();
+  }
+
+  Widget buildSvgImage(BoxFit? fit) {
+    // if is URL
+    if (widget._controller.source.startsWith('https://') || widget._controller.source.startsWith('http://')) {
+      return SvgPicture.network(
           widget._controller.source,
           width: widget._controller.width?.toDouble(),
           height: widget._controller.height?.toDouble(),
           fit: fit ?? BoxFit.contain,
           placeholderBuilder: (_) => placeholderImage()
       );
-    } else {
-      // image binding is tricky. When the URL has not been resolved
-      // the image will throw exception. We have to use a permanent placeholder
-      // until the binding engages
-      image = Image.network(
-          widget._controller.source,
-          width: widget._controller.width?.toDouble(),
-          height: widget._controller.height?.toDouble(),
-          fit: fit,
-          errorBuilder: (context, error, stacktrace) => placeholderImage(),
-          loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
-            if (loadingProgress == null) {
-              return child;
-            }
-            return placeholderImage();
-          }
-      );
     }
-
-    return WidgetUtils.wrapInBox(image, widget._controller);
+    // attempt local assets
+    return SvgPicture.asset(
+        'assets/images/${widget._controller.source}',
+        width: widget._controller.width?.toDouble(),
+        height: widget._controller.height?.toDouble(),
+        fit: fit ?? BoxFit.contain,
+        placeholderBuilder: (_) => placeholderImage()
+    );
   }
 
   bool isSvg() {
