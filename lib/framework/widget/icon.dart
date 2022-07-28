@@ -18,7 +18,9 @@ class Icon extends flutter.Icon {
       return _defaultIcons[name];
     } else if (library == 'fontAwesome') {
       return _fontAwesomeIcons[name];
-    } else if (name is int){
+    }
+    // tree shaking won't work. Need to add --no-tree-shake-icons to ignore error when building
+    else if (name is int){
       // assume custom icon fonts
       return IconData(name, fontFamily: library);
     }

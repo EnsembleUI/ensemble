@@ -117,19 +117,24 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
 
     // show indicators
     if (widget._controller.indicatorType != null && widget._controller.indicatorType != IndicatorType.none) {
+      List<Widget> indicators = [];
+      for (int i=0; i<items.length; i++) {
+        indicators.add(GestureDetector(
+          child: getIndicator(i == selectedIndex),
+          onTap: () => _carouselController.animateToPage(i),
+        ));
+      }
+      // Carousel requires a fixed height, so to make sure the indicators don't shift the UI, we'll make
+      // sure there's at least 1 invisible indicator that takes up the space
+      if (indicators.isEmpty) {
+        indicators.add(Opacity(child: getIndicator(false), opacity: 0));
+      }
+
       List<Widget> children = [
         carousel,
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: items
-              .asMap()
-              .keys
-              .map((index) {
-            return GestureDetector(
-              child: getIndicator(index == selectedIndex),
-              onTap: () => _carouselController.animateToPage(index),
-            );
-          }).toList()
+          children: indicators
         )
       ];
 
