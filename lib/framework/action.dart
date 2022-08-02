@@ -101,6 +101,30 @@ class ExecuteCodeAction extends EnsembleAction {
   EnsembleAction? onComplete;
 }
 
+class ShowToastAction extends EnsembleAction {
+  ShowToastAction({
+    Invokable? initiator,
+    required this.type,
+    this.title,
+    this.message,
+    this.content,
+    this.dismissible,
+    this.position,
+  }) : super(initiator: initiator);
+
+  ToastType type;
+
+  // applicable only for non-custom type
+  String? title;
+
+  // either message or content is provided
+  String? message;
+  dynamic content;
+
+  bool? dismissible;
+  String? position;
+}
+
 class TimerPayload {
   TimerPayload({
     this.id,
@@ -119,4 +143,6 @@ class TimerPayload {
 }
 
 
-enum ActionType { invokeAPI, navigateScreen, navigateModalScreen, showDialog, startTimer, closeAllDialogs, executeCode }
+enum ActionType { invokeAPI, navigateScreen, navigateModalScreen, showDialog, startTimer, closeAllDialogs, executeCode, showToast }
+
+enum ToastType { success, error, warning, info, custom }
