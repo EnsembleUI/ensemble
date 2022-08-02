@@ -7,6 +7,7 @@ import 'package:ensemble/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/widget/toast.dart';
 import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/http_utils.dart';
@@ -18,6 +19,7 @@ import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:event_bus/event_bus.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:yaml/yaml.dart';
@@ -358,6 +360,10 @@ class ScreenController {
       if (action.onComplete != null && scopeManager != null) {
         executeActionWithScope(context, scopeManager, action.onComplete!);
       }
+    } else if (action is ShowToastAction) {
+      ToastController().showToast(context, action);
+
+      
     }
   }
 

@@ -1,4 +1,5 @@
 import 'package:ensemble/error_handling.dart';
+import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
@@ -125,6 +126,15 @@ class Utils {
         );
       } else if (payload['action'] == ActionType.closeAllDialogs.name) {
         return CloseAllDialogsAction();
+      } else if (payload['action'] == ActionType.showToast.name) {
+        return ShowToastAction(
+          type: ToastType.values.from(payload['options']?['type']) ?? ToastType.info,
+          title: Utils.optionalString(payload['options']?['title']),
+          message: Utils.optionalString(payload['options']?['message']),
+          content: payload['options']?['content'],
+          dismissible: payload['options']?['dismissible'],
+          position: payload['options']?['position']
+        );
       } else if (payload['action'] == ActionType.executeCode.name) {
         return ExecuteCodeAction(
             initiator: initiator,
@@ -289,8 +299,8 @@ class Utils {
     return int.tryParse(value);
   }
 
-  static final onlyExpression = RegExp(r'''^\${([a-z_-\d\s.:?@="'\(\)\[\]]+)}$''', caseSensitive: false);
-  static final containExpression = RegExp(r'''\${([a-z_-\d\s.:?@="'\(\)\[\]]+)}''', caseSensitive: false);
+  static final onlyExpression = RegExp(r'''^\${([a-z_-\d\s.:?!@="'\(\)\[\]]+)}$''', caseSensitive: false);
+  static final containExpression = RegExp(r'''\${([a-z_-\d\s.:?!@="'\(\)\[\]]+)}''', caseSensitive: false);
   static final i18nExpression = RegExp(r'r@[a-zA-Z0-9.-_]+',caseSensitive: false);
 
   // extract only the AST after the comment and expression e.g //code <expression>\n<AST>

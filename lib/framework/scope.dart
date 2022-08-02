@@ -338,6 +338,14 @@ mixin PageBindingManager on IsScopeManager {
       if (dotIndex != -1) {
         String modelId = variable.substring(0, dotIndex);
         String property = variable.substring(dotIndex + 1);
+
+        // we don't know how to handle complex binding (e.g. myWidget.length > 0 ? "hi" : there"),
+        // so for now just grab the property (i.e. .length > 0 ? "hi" : there) until we reach a space
+        int spaceIndex = property.indexOf(" ");
+        if (spaceIndex != -1) {
+          property = property.substring(0, spaceIndex);
+        }
+
         dynamic model = dataContext.getContextById(modelId);
         if (model is Invokable) {
           return BindingSource(model, modelId, property);
