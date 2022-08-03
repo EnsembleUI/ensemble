@@ -2,6 +2,7 @@ import 'package:ensemble/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:yaml/yaml.dart';
@@ -53,6 +54,10 @@ class Utils {
       rtn = null;
     }
     return rtn;
+  }
+
+  static DateTime? getDate(dynamic value) {
+    return InvokablePrimitive.parseDateTime(value);
   }
 
   /// initiator should be an Invokable. We use this to scope *this* variable
