@@ -17,6 +17,7 @@ import 'package:ensemble/widget/form_checkbox.dart';
 import 'package:ensemble/widget/form_date.dart';
 import 'package:ensemble/widget/form_daterange.dart';
 import 'package:ensemble/widget/form_textfield.dart';
+import 'package:ensemble/widget/form_time.dart';
 import 'package:ensemble/widget/image.dart';
 import 'package:ensemble/widget/map.dart';
 import 'package:ensemble/widget/progress_indicator.dart';
@@ -57,6 +58,7 @@ class WidgetRegistry {
     EnsembleForm.type: () => EnsembleForm(),
     TextInput.type: () => TextInput(),
     Date.type: () => Date(),
+    Time.type: () => Time(),
     DateRange.type: () => DateRange(),
     PasswordInput.type: () => PasswordInput(),
     EnsembleCheckbox.type: () => EnsembleCheckbox(),

@@ -570,6 +570,22 @@
         }
       ]
     },
+    "Time-payload": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/FormInput-payload"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "initialValue": {
+              "type": "string",
+              "description": "The highlighted initial time in the time picker. Use format HH:MM"
+            }
+          }
+        }
+      ]
+    },
     "Button-payload": {
       "type": "object",
       "required": ["label"],
@@ -1117,6 +1133,7 @@
         "Switch": { "$ref": "#/$defs/OnOff-payload" },
         "Dropdown": { "$ref": "#/$defs/SelectOne-payload" },
         "Date": { "$ref": "#/$defs/Date-payload" },
+        "Time": { "$ref": "#/$defs/Time-payload" },
         "Button": { "$ref": "#/$defs/Button-payload" },
         "Form": { "$ref": "#/$defs/Form-payload" },
         "Column": { "$ref": "#/$defs/Column-payload" },
