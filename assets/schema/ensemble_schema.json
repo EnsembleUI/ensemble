@@ -546,6 +546,30 @@
         }
       ]
     },
+    "Date-payload": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/FormInput-payload"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "initialValue": {
+              "type": "string",
+              "description": "The highlighted initial date in the calendar picker (default is Today). Use format YYYY-MM-DD."
+            },
+            "firstDate": {
+              "type": "string",
+              "description": "The first selectable date in the calendar. Use format YYYY-MM-DD"
+            },
+            "lastDate": {
+              "type": "string",
+              "description": "The last selectable date in the calendar. Use format YYYY-MM-DD"
+            }
+          }
+        }
+      ]
+    },
     "Button-payload": {
       "type": "object",
       "required": ["label"],
@@ -1092,6 +1116,7 @@
         "Checkbox": { "$ref": "#/$defs/OnOff-payload" },
         "Switch": { "$ref": "#/$defs/OnOff-payload" },
         "Dropdown": { "$ref": "#/$defs/SelectOne-payload" },
+        "Date": { "$ref": "#/$defs/Date-payload" },
         "Button": { "$ref": "#/$defs/Button-payload" },
         "Form": { "$ref": "#/$defs/Form-payload" },
         "Column": { "$ref": "#/$defs/Column-payload" },
