@@ -60,6 +60,18 @@ class Utils {
     return InvokablePrimitive.parseDateTime(value);
   }
 
+  static TimeOfDay? getTimeOfDay(dynamic value) {
+    List<dynamic>? tokens = value?.toString().split(':');
+    if (tokens != null && (tokens.length == 2 || tokens.length == 3)) {
+      int? hour = optionalInt(int.tryParse(tokens[0]), min: 0, max: 23);
+      int? minute = optionalInt(int.tryParse(tokens[1]), min: 0, max: 59);
+      if (hour != null && minute != null) {
+        return TimeOfDay(hour: hour, minute: minute);
+      }
+    }
+    return null;
+  }
+
   /// initiator should be an Invokable. We use this to scope *this* variable
   static EnsembleAction? getAction(dynamic payload, {Invokable? initiator}) {
     if (payload is YamlMap) {

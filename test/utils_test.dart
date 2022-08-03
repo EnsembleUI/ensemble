@@ -1,6 +1,7 @@
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -107,4 +108,16 @@ void main() {
 
   });
 
+  test("date time", () {
+    TimeOfDay? timeOfDay = Utils.getTimeOfDay('8:30');
+    expect(timeOfDay!.toIso8601TimeString(), '08:30:00');
+
+    timeOfDay = Utils.getTimeOfDay('13:30');
+    expect(timeOfDay!.toIso8601TimeString(), '13:30:00');
+    expect(timeOfDay.compareTo(const TimeOfDay(hour: 13, minute: 40)), -1);
+    expect(timeOfDay.compareTo(const TimeOfDay(hour: 14, minute: 2)), -1);
+    expect(timeOfDay.compareTo(const TimeOfDay(hour: 13, minute: 30)), 0);
+    expect(timeOfDay.compareTo(const TimeOfDay(hour: 12, minute: 40)), 1);
+    expect(timeOfDay.compareTo(const TimeOfDay(hour: 1, minute: 1)), 1);
+  });
 }
