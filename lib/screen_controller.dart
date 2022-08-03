@@ -361,7 +361,11 @@ class ScreenController {
         executeActionWithScope(context, scopeManager, action.onComplete!);
       }
     } else if (action is ShowToastAction) {
-      ToastController().showToast(context, action);
+      Widget? customToastBody;
+      if (scopeManager != null && action.type == ToastType.custom && action.body != null) {
+        customToastBody = scopeManager.buildWidgetFromDefinition(action.body);
+      }
+      ToastController().showToast(context, action, customToastBody);
 
       
     }

@@ -105,24 +105,24 @@ class ShowToastAction extends EnsembleAction {
   ShowToastAction({
     Invokable? initiator,
     required this.type,
-    this.title,
     this.message,
-    this.content,
+    this.body,
     this.dismissible,
     this.position,
+    this.duration,
+    this.styles
   }) : super(initiator: initiator);
 
-  ToastType type;
+  final ToastType type;
 
-  // applicable only for non-custom type
-  String? title;
+  // either message or body is needed
+  final String? message;
+  final dynamic body;
 
-  // either message or content is provided
-  String? message;
-  dynamic content;
-
-  bool? dismissible;
-  String? position;
+  final bool? dismissible;
+  final String? position;
+  final int? duration;    // the during in seconds before toast is dismissed
+  final Map<String, dynamic>? styles;
 }
 
 class TimerPayload {
