@@ -72,6 +72,14 @@ class Utils {
         });
       }
 
+      Map<String, dynamic>? styles;
+      if (payload['styles'] is YamlMap) {
+        styles = {};
+        (payload['styles'] as YamlMap).forEach((key, value) {
+          styles![key] = value;
+        });
+      }
+
       if (payload['action'] == ActionType.navigateScreen.name) {
         return NavigateScreenAction(
           initiator: initiator,
@@ -129,11 +137,12 @@ class Utils {
       } else if (payload['action'] == ActionType.showToast.name) {
         return ShowToastAction(
           type: ToastType.values.from(payload['options']?['type']) ?? ToastType.info,
-          title: Utils.optionalString(payload['options']?['title']),
           message: Utils.optionalString(payload['options']?['message']),
-          content: payload['options']?['content'],
-          dismissible: payload['options']?['dismissible'],
-          position: payload['options']?['position']
+          body: payload['options']?['body'],
+          dismissible: Utils.optionalBool(payload['options']?['dismissible']),
+          position: Utils.optionalString(payload['options']?['position']),
+          duration: Utils.optionalInt(payload['options']?['duration'], min: 1),
+          styles: styles
         );
       } else if (payload['action'] == ActionType.executeCode.name) {
         return ExecuteCodeAction(
@@ -291,6 +300,16 @@ class Utils {
         bottom = top;
       }
       return EdgeInsets.only(top: top, right: right, bottom: bottom, left: left);
+    }
+    return null;
+  }
+
+  static Offset? getOffset(dynamic offset) {
+    if (offset is YamlList) {
+      List<dynamic> list = offset.toList();
+      if (list.length >= 2 && list[0] is int && list[1] is int) {
+        return Offset(list[0].toDouble(), list[1].toDouble());
+      }
     }
     return null;
   }

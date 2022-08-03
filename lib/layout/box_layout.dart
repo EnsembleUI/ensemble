@@ -261,13 +261,7 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
           BoxShadow(
             color: Color(widget._controller.shadowColor!),
             blurRadius: (widget._controller.shadowRadius ?? 0).toDouble(),
-            offset:
-            (widget._controller.shadowOffset != null && widget._controller.shadowOffset!.length >= 2) ?
-            Offset(
-              widget._controller.shadowOffset![0].toDouble(),
-              widget._controller.shadowOffset![1].toDouble(),
-            ) :
-            const Offset(0, 0),
+            offset: widget._controller.shadowOffset ?? const Offset(0, 0),
           )
         ]
     );

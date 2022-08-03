@@ -3,7 +3,6 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:yaml/yaml.dart';
 
 /// Controller for anything with a Box around it (border, padding, shadow,...)
 /// This may be a widget itself (e.g Image), not necessary an actual Container with children
@@ -56,7 +55,7 @@ class BoxLayoutController extends BoxController {
   int? fontSize;
 
   int? shadowColor;
-  List<int>? shadowOffset;
+  Offset? shadowOffset;
   int? shadowRadius;
 
   List<Widget>? children;
@@ -85,21 +84,10 @@ class BoxLayoutController extends BoxController {
       'fontSize': (value) =>  fontSize = Utils.optionalInt(value),
 
       'shadowColor': (value) => shadowColor = Utils.optionalInt(value),
-      'shadowOffset': (list) => setShadowOffset(list),
+      'shadowOffset': (list) => shadowOffset = Utils.getOffset(list),
       'shadowRadius': (value) =>  shadowRadius = Utils.optionalInt(value),
 
     });
     return setters;
-  }
-
-  void setShadowOffset(dynamic offset) {
-    if (offset is YamlList) {
-      List<dynamic> list = offset.toList();
-      if (list.length >= 2 && list[0] is int && list[1] is int) {
-        shadowOffset = [list[0], list[1]];
-      } else {
-        shadowOffset = null;
-      }
-    }
   }
 }

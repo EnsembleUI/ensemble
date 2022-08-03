@@ -19,7 +19,7 @@ class ToastController {
     return _instance;
   }
 
-  void showToast(BuildContext context, ShowToastAction toastAction) {
+  void showToast(BuildContext context, ShowToastAction toastAction, Widget? customToastBody) {
     _toast.init(context);
     _toast.removeQueuedCustomToasts();
 
@@ -59,19 +59,28 @@ class ToastController {
 
 
     _toast.showToast(
-        gravity: toastGravity,
-        toastDuration: Duration(days: 999),
-        child: getToastWidget(toastAction)
+      gravity: toastGravity,
+      toastDuration: toastAction.duration != null ? Duration(seconds: toastAction.duration!) : const Duration(days: 99),
+      child: getToastWidget(toastAction, customToastBody)
     );
   }
 
-  Widget getToastWidget(ShowToastAction toastAction) {
-    // background color for built-in toast types
-    Color? bgColor;
+  Widget getToastWidget(ShowToastAction toastAction, Widget? customToastBody) {
+    EdgeInsets padding = Utils.getInsets(
+        toastAction.styles?['padding'],
+        fallback: const EdgeInsets.symmetric(vertical: 5, horizontal: 10));
+    Color? bgColor = Utils.getColor(toastAction.styles?['backgroundColor']);
+    int? borderRadius = Utils.optionalInt(toastAction.styles?['borderRadius'], min: 0);
+    Color? shadowColor = Utils.getColor(toastAction.styles?['shadowColor']);
+    double? shadowRadius = Utils.optionalDouble(toastAction.styles?['shadowRadius'], min: 0);
+    Offset? shadowOffset = Utils.getOffset(toastAction.styles?['shadowOffset']);
 
     Widget content;
     if (toastAction.type == ToastType.custom) {
-      content = Text("custom widget");
+      if (customToastBody == null) {
+        throw LanguageError("Custom Toast requires a valid widget");
+      }
+      content = customToastBody;
     } else {
       if (toastAction.message == null) {
         throw LanguageError("Toast message is required !");
@@ -80,17 +89,17 @@ class ToastController {
       IconData icon;
       if (toastAction.type == ToastType.success) {
         icon = Icons.check_circle_outline;
-        bgColor = Colors.green.withOpacity(.5);
+        bgColor ??= Colors.green.withOpacity(.5);
       } else if (toastAction.type == ToastType.error) {
         icon = Icons.error_outline;
-        bgColor = Colors.red.withOpacity(.5);
+        bgColor ??= Colors.red.withOpacity(.5);
       } else if (toastAction.type == ToastType.warning) {
         icon = Icons.warning;
-        bgColor = Colors.yellow.withOpacity(.5);
+        bgColor ??= Colors.yellow.withOpacity(.5);
       } else {
         // info by default
         icon = Icons.info_outline;
-        bgColor = Colors.white.withOpacity(.9);
+        bgColor ??= Colors.white.withOpacity(.9);
       }
 
       content = Row(
@@ -105,16 +114,16 @@ class ToastController {
 
     // wrapper container for background/border...
     Widget container = Container(
-      padding: const EdgeInsets.all(10),
+      padding: padding,
       decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: const BorderRadius.all(Radius.circular(5)),
-          boxShadow: const <BoxShadow>[
+          borderRadius: BorderRadius.all(Radius.circular(borderRadius?.toDouble() ?? 5)),
+          boxShadow: <BoxShadow>[
             BoxShadow(
               blurStyle: BlurStyle.outer,
-              color: Colors.black26,
-              blurRadius: 3,
-              offset: Offset(0, 0),
+              color: shadowColor ?? Colors.black26,
+              blurRadius: shadowRadius ?? 3,
+              offset: shadowOffset ?? const Offset(0, 0),
             )
           ]
       ),
