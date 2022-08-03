@@ -143,11 +143,11 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
   }
   @override
   Future<YamlMap> getDefinition({String? screenId, String? screenName}) async {
-    String params;
+    String params = 'ast=false&expression_to_ast=false';
     if (screenId != null) {
-      params = 'id=$screenId';
+      params += '&id=$screenId';
     } else {
-      params = 'appId=$appId';
+      params += '&appId=$appId';
       // home screen is loaded if screenName is not specified
       if (screenName != null) {
         params += '&name=$screenName';
