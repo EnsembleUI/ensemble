@@ -9,6 +9,7 @@ import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablemap.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
+import 'package:ensemble_ts_interpreter/parser/newjs_interpreter.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/parser/ast.dart';
@@ -164,15 +165,23 @@ class DataContext {
       codeBlock = codeWithoutComments;
     }
 
-    final json = jsonDecode(codeBlock);
-    List<ASTNode> arr = ASTBuilder().buildArray(json['body']);
     try {
       _contextMap['getStringValue'] = Utils.optionalString;
-      dynamic rtnValue = Interpreter(_contextMap).evaluate(arr);
-      return rtnValue;
+
+      // backward compatible with AST from server
+      if (codeBlock.startsWith('{')) {
+        final json = jsonDecode(codeBlock);
+        List<ASTNode> arr = ASTBuilder().buildArray(json['body']);
+        return Interpreter(_contextMap).evaluate(arr);
+      }
+      // local Javascript
+      else {
+        return JSInterpreter.fromCode(codeBlock, _contextMap).evaluate();
+      }
     } catch (error) {
       // show this error? it may be considered a normal condition as
       // binding depending on API may not resolved until later e.g myAPI.value.prettyDateTime()
+      log("Error JS code block: $error");
 
       return null;
     }
@@ -239,11 +248,19 @@ class DataContext {
 
 
   /// evaluate a single variable expression e.g myVariable.value.
-  /// Note: use eval() if your variable are surrounded by $(...)
+  /// Note: use eval() if your variable are surrounded by ${...}
   dynamic evalVariable(String variable) {
-    List<String> tokens = variable.split('.');
+    try {
+      return JSInterpreter.fromCode(variable, _contextMap).evaluate();
+    } catch (error) {
+      log('JS Parsing Error: $error');
+    }
+    return null;
+
+    // legacy expression parsing
+    /*List<String> tokens = variable.split('.');
     dynamic result = evalToken(tokens, 1, _contextMap[tokens[0]]);
-    return result;
+    return result;*/
   }
 
   /// token format: result
