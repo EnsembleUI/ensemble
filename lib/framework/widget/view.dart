@@ -309,6 +309,7 @@ class ViewState extends State<View>{
     }
     return BottomNavigationBar(
         items: navItems,
+        type: BottomNavigationBarType.fixed,
         onTap: (index) {
           if (!menuItems[index].selected) {
             selectNavigationIndex(context, menuItems[index]);
