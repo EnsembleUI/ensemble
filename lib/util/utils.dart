@@ -72,6 +72,13 @@ class Utils {
     return null;
   }
 
+  static String? getUrl(dynamic value) {
+    if (value != null) {
+      return Uri.tryParse(value.toString())?.toString();
+    }
+    return null;
+  }
+
   /// initiator should be an Invokable. We use this to scope *this* variable
   static EnsembleAction? getAction(dynamic payload, {Invokable? initiator}) {
     if (payload is YamlMap) {
