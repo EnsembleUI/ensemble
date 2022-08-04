@@ -1141,7 +1141,8 @@
         "Flex": { "$ref": "#/$defs/Flex-payload" },
         "Carousel": { "$ref": "#/$defs/Carousel-payload" },
         "TabBar": { "$ref": "#/$defs/TabBar-payload" },
-        "Map": { "$ref": "#/$defs/Map-payload" }
+        "Map": { "$ref": "#/$defs/Map-payload" },
+        "Video": { "$ref": "#/$defs/Video-payload" }
       }
     },
     "Menu": {
@@ -1344,7 +1345,15 @@
         }
       }
     },
-
+    "Video-payload": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "description": "The URL source to the media file"
+        }
+      }
+    },
 
     "rootViewStyles": {
       "type": "object",
