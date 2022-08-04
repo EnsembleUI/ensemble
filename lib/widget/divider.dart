@@ -30,10 +30,10 @@ class EnsembleDivider extends StatefulWidget with Invokable, HasController<Divid
   @override
   Map<String, Function> setters() {
     return {
-      'thickness': (value) => Utils.optionalInt(value),
-      'color': (value) => Utils.optionalInt(value),
-      'indent': (value) => Utils.optionalInt(value),
-      'endIndent': (value) => Utils.optionalInt(value)
+      'thickness': (value) => _controller.thickness = Utils.optionalInt(value),
+      'color': (value) => _controller.color = Utils.getColor(value),
+      'indent': (value) => _controller.indent = Utils.optionalInt(value),
+      'endIndent': (value) => _controller.endIndent = Utils.optionalInt(value)
     };
   }
 
@@ -41,7 +41,7 @@ class EnsembleDivider extends StatefulWidget with Invokable, HasController<Divid
 
 class DividerController extends WidgetController {
   int? thickness;
-  int? color;
+  Color? color;
   int? indent;
   int? endIndent;
 }
@@ -56,10 +56,7 @@ class DividerState extends WidgetState<EnsembleDivider> {
         thickness: (widget._controller.thickness ?? 1).toDouble(),
         indent: (widget._controller.indent ?? 0).toDouble(),
         endIndent: (widget._controller.endIndent ?? 0).toDouble(),
-        color:
-          widget._controller.color != null ?
-          Color(widget._controller.color!) :
-          const Color(0xFFD3D3D3)
+        color: widget._controller.color ?? const Color(0xFFD3D3D3)
     );
   }
 }
