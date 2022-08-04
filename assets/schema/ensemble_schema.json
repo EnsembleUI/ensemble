@@ -416,6 +416,9 @@
               "$ref": "#/$defs/baseStyles"
             },
             {
+              "$ref": "#/$defs/styleMargin"
+            },
+            {
               "type": "object",
               "properties": {
                 "thickness": {
