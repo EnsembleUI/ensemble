@@ -30,6 +30,7 @@ class EnsembleDivider extends StatefulWidget with Invokable, HasController<Divid
   @override
   Map<String, Function> setters() {
     return {
+      'margin': (value) => _controller.margin = Utils.getInsets(value),
       'thickness': (value) => _controller.thickness = Utils.optionalInt(value),
       'color': (value) => _controller.color = Utils.getColor(value),
       'indent': (value) => _controller.indent = Utils.optionalInt(value),
@@ -40,6 +41,7 @@ class EnsembleDivider extends StatefulWidget with Invokable, HasController<Divid
 }
 
 class DividerController extends WidgetController {
+  EdgeInsets? margin;
   int? thickness;
   Color? color;
   int? indent;
@@ -52,11 +54,18 @@ class DividerState extends WidgetState<EnsembleDivider> {
     if (!widget._controller.visible) {
       return const SizedBox.shrink();
     }
-    return Divider(
-        thickness: (widget._controller.thickness ?? 1).toDouble(),
-        indent: (widget._controller.indent ?? 0).toDouble(),
-        endIndent: (widget._controller.endIndent ?? 0).toDouble(),
-        color: widget._controller.color ?? const Color(0xFFD3D3D3)
+    Widget rtn = Divider(
+      height: (widget._controller.thickness ?? 1).toDouble(),
+      thickness: (widget._controller.thickness ?? 1).toDouble(),
+      indent: (widget._controller.indent ?? 0).toDouble(),
+      endIndent: (widget._controller.endIndent ?? 0).toDouble(),
+      color: widget._controller.color ?? const Color(0xFFD3D3D3)
     );
+    if (widget._controller.margin != null) {
+      rtn = Padding(
+        padding: widget._controller.margin!,
+        child: rtn);
+    }
+    return rtn;
   }
 }
