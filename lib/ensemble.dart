@@ -165,6 +165,9 @@ class Ensemble {
         bool? asModal
       }) {
 
+    // init device info
+    initDeviceInfo(context);
+
     if (snapshot.hasError) {
       return Scaffold(
           body: Center(
@@ -178,9 +181,6 @@ class Ensemble {
           )
       );
     }
-
-    // init device info
-    initDeviceInfo(context);
 
     // init our context with the Page arguments
     DataContext dataContext = DataContext(buildContext: context, initialMap: pageArgs);
