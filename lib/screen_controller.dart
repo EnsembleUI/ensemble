@@ -201,7 +201,7 @@ class ScreenController {
 
       PageRouteBuilder routeBuilder = Ensemble().navigateApp(
           providedDataContext.buildContext,
-          screenName: action.screenName,
+          screenName: dataContext.eval(action.screenName),
           asModal: action.asModal,
           pageArgs: nextArgs);
 
