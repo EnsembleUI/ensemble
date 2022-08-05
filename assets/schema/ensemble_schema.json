@@ -421,6 +421,11 @@
             {
               "type": "object",
               "properties": {
+                "direction": {
+                  "type": "string",
+                  "description": "Whether to display a horizontal divider (default) or vertical divider.",
+                  "enum": [ "horizontal", "vertical" ]
+                },
                 "thickness": {
                   "type": "integer"
                 },

@@ -30,6 +30,7 @@ class EnsembleDivider extends StatefulWidget with Invokable, HasController<Divid
   @override
   Map<String, Function> setters() {
     return {
+      'direction': (value) => _controller.direction = Utils.optionalString(value),
       'margin': (value) => _controller.margin = Utils.getInsets(value),
       'thickness': (value) => _controller.thickness = Utils.optionalInt(value),
       'color': (value) => _controller.color = Utils.getColor(value),
@@ -41,6 +42,7 @@ class EnsembleDivider extends StatefulWidget with Invokable, HasController<Divid
 }
 
 class DividerController extends WidgetController {
+  String? direction;
   EdgeInsets? margin;
   int? thickness;
   Color? color;
@@ -54,13 +56,25 @@ class DividerState extends WidgetState<EnsembleDivider> {
     if (!widget._controller.visible) {
       return const SizedBox.shrink();
     }
-    Widget rtn = Divider(
-      height: (widget._controller.thickness ?? 1).toDouble(),
-      thickness: (widget._controller.thickness ?? 1).toDouble(),
-      indent: (widget._controller.indent ?? 0).toDouble(),
-      endIndent: (widget._controller.endIndent ?? 0).toDouble(),
-      color: widget._controller.color ?? const Color(0xFFD3D3D3)
-    );
+
+    Widget rtn;
+    if (widget._controller.direction == 'vertical') {
+      rtn = VerticalDivider(
+          width: (widget._controller.thickness ?? 1).toDouble(),
+          thickness: (widget._controller.thickness ?? 1).toDouble(),
+          indent: (widget._controller.indent ?? 0).toDouble(),
+          endIndent: (widget._controller.endIndent ?? 0).toDouble(),
+          color: widget._controller.color ?? const Color(0xFFD3D3D3)
+      );
+    } else {
+      rtn = Divider(
+          height: (widget._controller.thickness ?? 1).toDouble(),
+          thickness: (widget._controller.thickness ?? 1).toDouble(),
+          indent: (widget._controller.indent ?? 0).toDouble(),
+          endIndent: (widget._controller.endIndent ?? 0).toDouble(),
+          color: widget._controller.color ?? const Color(0xFFD3D3D3));
+    }
+
     if (widget._controller.margin != null) {
       rtn = Padding(
         padding: widget._controller.margin!,
