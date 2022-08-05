@@ -342,8 +342,8 @@ class Utils {
     return int.tryParse(value);
   }
 
-  static final onlyExpression = RegExp(r'''^\${([a-z_-\d\s.:?!@="'\(\)\[\]]+)}$''', caseSensitive: false);
-  static final containExpression = RegExp(r'''\${([a-z_-\d\s.:?!@="'\(\)\[\]]+)}''', caseSensitive: false);
+  static final onlyExpression = RegExp(r'''^\${([a-z_-\d\s.:?!@<>="'\(\)\[\]]+)}$''', caseSensitive: false);
+  static final containExpression = RegExp(r'''\${([a-z_-\d\s.:?!@<>="'\(\)\[\]]+)}''', caseSensitive: false);
   static final i18nExpression = RegExp(r'r@[a-zA-Z0-9.-_]+',caseSensitive: false);
 
   // extract only the AST after the comment and expression e.g //code <expression>\n<AST>
