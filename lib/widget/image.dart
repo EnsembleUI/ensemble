@@ -1,6 +1,8 @@
 
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/layout_helper.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_util.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -36,6 +38,7 @@ class EnsembleImage extends StatefulWidget with Invokable, HasController<ImageCo
       'width': (value) => _controller.width = Utils.optionalInt(value),
       'height': (value) => _controller.height = Utils.optionalInt(value),
       'fit': (value) => _controller.fit = Utils.optionalString(value),
+      'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, initiator: this),
     };
   }
 
@@ -46,6 +49,7 @@ class ImageController extends BoxController {
   int? width;
   int? height;
   String? fit;
+  EnsembleAction? onTap;
 }
 
 class ImageState extends WidgetState<EnsembleImage> {
@@ -88,7 +92,14 @@ class ImageState extends WidgetState<EnsembleImage> {
       image = buildNonSvgImage(fit);
     }
 
-    return WidgetUtils.wrapInBox(image, widget._controller);
+    Widget rtn = WidgetUtils.wrapInBox(image, widget._controller);
+    if (widget._controller.onTap != null) {
+      return GestureDetector(
+        child: rtn,
+        onTap: () => ScreenController().executeAction(context, widget._controller.onTap!)
+      );
+    }
+    return rtn;
   }
 
   Widget buildNonSvgImage(BoxFit? fit) {
