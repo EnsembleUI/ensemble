@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/visualization/chart_defaults.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -16,6 +17,12 @@ class EnsembleBarChartController extends Controller {
   set title (String? t) {
     _title = t;
     dispatchChanges(KeyValue('title',_title));
+  }
+  String? _tooltip;
+  String? get tooltip => _tooltip;
+  set tooltip (String? t) {
+    _tooltip = t;
+    dispatchChanges(KeyValue('tooltip',_tooltip));
   }
   List<String> _labels = [];
   List<String> get labels => _labels;
@@ -93,7 +100,7 @@ class EnsembleBarChartState extends BaseWidgetState<EnsembleBarChart>  with Char
     }
     BarChart barChart = BarChart(
       BarChartData(
-        barTouchData: barTouchData,
+        barTouchData: getBarTouchData(context),
         titlesData: titlesData(controller.labels),
         borderData: borderData,
         barGroups: controller.data,
@@ -110,6 +117,44 @@ class EnsembleBarChartState extends BaseWidgetState<EnsembleBarChart>  with Char
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
         color: Colors.transparent,
         child: barChart,
+      ),
+    );
+  }
+  BarTouchData getBarTouchData(BuildContext buildContext) {
+    return BarTouchData(
+      enabled: true,
+      touchTooltipData: BarTouchTooltipData(
+        tooltipBgColor: Colors.orangeAccent,
+        tooltipPadding: const EdgeInsets.all(0),
+        tooltipMargin: 8,
+        getTooltipItem: (
+            BarChartGroupData group,
+            int groupIndex,
+            BarChartRodData rod,
+            int rodIndex,
+            ) {
+          String? tooltip;
+          if ( controller.tooltip != null ) {
+            Map<String, dynamic> initialContext = {};
+            initialContext['x'] = group.x;
+            initialContext['label'] = controller.labels[group.x];
+            initialContext['y'] = rod.toY;
+            initialContext['this'] = this;
+            initialContext['index'] = rodIndex;
+            initialContext['title'] = controller.title;
+            DataContext dataContext = DataContext(
+                buildContext: buildContext, initialMap: initialContext);
+            tooltip = dataContext.eval(controller.tooltip);
+          }
+          tooltip ??= controller.labels[group.x]+':'+rod.toY.round().toString();
+          return BarTooltipItem(
+            tooltip,
+            const TextStyle(
+              color: Colors.blueGrey,
+              fontWeight: FontWeight.bold,
+            ),
+          );
+        },
       ),
     );
   }
@@ -162,6 +207,7 @@ class EnsembleBarChart extends StatefulWidget with Invokable, HasController<Ense
   Map<String, Function> setters() {
     return {
       "title": (Object t)=>controller.title = getString(t),
+      "tooltip": (String t)=> controller.tooltip = t,
       "labels": (Object mLabels) {
         List? metaLabels = getList(mLabels);
         if ( metaLabels == null ) {
