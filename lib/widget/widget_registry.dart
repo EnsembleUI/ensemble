@@ -19,6 +19,7 @@ import 'package:ensemble/widget/form_daterange.dart';
 import 'package:ensemble/widget/form_textfield.dart';
 import 'package:ensemble/widget/form_time.dart';
 import 'package:ensemble/widget/image.dart';
+import 'package:ensemble/widget/lottie.dart';
 import 'package:ensemble/widget/map.dart';
 import 'package:ensemble/widget/progress_indicator.dart';
 import 'package:ensemble/widget/qr_code.dart';
@@ -55,6 +56,7 @@ class WidgetRegistry {
     EnsembleMap.type: () => EnsembleMap(),
     Carousel.type: () => Carousel(),
     Video.type: () => Video(),
+    EnsembleLottie.type: () => EnsembleLottie(),
 
     // form fields
     EnsembleForm.type: () => EnsembleForm(),
