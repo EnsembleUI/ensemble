@@ -471,6 +471,10 @@ class APIResponse with Invokable {
     _response = response;
   }
 
+  Response? getAPIResponse() {
+    return _response;
+  }
+
   @override
   Map<String, Function> getters() {
     return {
@@ -489,4 +493,27 @@ class APIResponse with Invokable {
     return {};
   }
 
+}
+
+class ModifiableAPIResponse extends APIResponse {
+  ModifiableAPIResponse({required Response response}) : super (response: response);
+
+  @override
+  Map<String, Function> setters() {
+    return {
+      'body': (newBody) => _response!.body = HttpUtils.parseResponsePayload(newBody),
+      'headers': (newHeaders) => _response!.headers = HttpUtils.parseResponsePayload(newHeaders)
+    };
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {
+      'addHeader': (key, value) {
+        Map<String, dynamic> headers = (_response!.headers ?? {});
+        headers[key] = value;
+        _response!.headers = headers;
+      }
+    };
+  }
 }
