@@ -32,6 +32,34 @@ class WidgetUtils {
     );
 
   }
+
+  static BoxFit? getBoxFit(String? inputFit) {
+    BoxFit? fit;
+    switch (inputFit) {
+      case 'fill':
+        fit = BoxFit.fill;
+        break;
+      case 'contain':
+        fit = BoxFit.contain;
+        break;
+      case 'cover':
+        fit = BoxFit.cover;
+        break;
+      case 'fitWidth':
+        fit = BoxFit.fitWidth;
+        break;
+      case 'fitHeight':
+        fit = BoxFit.fitHeight;
+        break;
+      case 'none':
+        fit = BoxFit.none;
+        break;
+      case 'scaleDown':
+        fit = BoxFit.scaleDown;
+        break;
+    }
+    return fit;
+  }
 }
 class TextController extends WidgetController {
   String? text;

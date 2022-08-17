@@ -385,7 +385,11 @@ class ScreenController {
     // first execute API's onResponse code block
     EnsembleAction? onResponse = Utils.getAction(apiDefinition['onResponse'], initiator: action.initiator);
     if (onResponse != null) {
-      processAPIResponse(context, dataContext, onResponse, response, apiMap, scopeManager);
+      processAPIResponse(context, dataContext, onResponse, response, apiMap, scopeManager, apiChangeHandler: dispatchAPIChanges, action: action, modifiableAPIResponse: true);
+    }
+    // dispatch changes even if we don't have onResponse
+    else {
+      dispatchAPIChanges(scopeManager, action, APIResponse(response: response));
     }
 
     // if our Action has onResponse, invoke that next
@@ -394,6 +398,10 @@ class ScreenController {
     }
 
 
+
+  }
+
+  void dispatchAPIChanges(ScopeManager? scopeManager, InvokeAPIAction action, APIResponse apiResponse) {
     // update the API response in our DataContext and fire changes to all listeners.
     // Make sure we don't override the key here, as all the scopes referenced the same API
     if (scopeManager != null) {
@@ -402,21 +410,33 @@ class ScreenController {
         throw RuntimeException(
             "Unable to update API Binding as it doesn't exists");
       }
-      // update the API response so all references get it
-      (api as APIResponse).setAPIResponse(response);
+      Response? _response = apiResponse.getAPIResponse();
+      if (_response != null) {
+        // update the API response so all references get it
+        (api as APIResponse).setAPIResponse(_response);
 
-      // dispatch changes
-      scopeManager.dispatch(ModelChangeEvent(action.apiName, api));
+        // dispatch changes
+        scopeManager.dispatch(ModelChangeEvent(action.apiName, api));
+      }
     }
   }
 
   /// Executing the onResponse action. Note that this can be
   /// the API's onResponse or a caller's onResponse (e.g. onPageLoad's onResponse)
-  void processAPIResponse(BuildContext context, DataContext dataContext, EnsembleAction onResponseAction, Response response, Map<String, YamlMap>? apiMap, ScopeManager? scopeManager) {
+  void processAPIResponse(BuildContext context, DataContext dataContext, EnsembleAction onResponseAction, Response response, Map<String, YamlMap>? apiMap, ScopeManager? scopeManager, {Function? apiChangeHandler, InvokeAPIAction? action, bool? modifiableAPIResponse}) {
     // execute the onResponse on the API definition
+    APIResponse apiResponse = modifiableAPIResponse == true ?
+      ModifiableAPIResponse(response: response) :
+      APIResponse(response: response);
+
     DataContext localizedContext = dataContext.clone();
-    localizedContext.addInvokableContext('response', APIResponse(response: response));
+    localizedContext.addInvokableContext('response', apiResponse);
     _executeAction(context, localizedContext, onResponseAction, apiMap, scopeManager);
+
+    if (modifiableAPIResponse == true) {
+      // should be on Action's callback instead
+      apiChangeHandler?.call(scopeManager, action, apiResponse);
+    }
   }
 
   /// executing the onError action
