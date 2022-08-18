@@ -107,6 +107,10 @@
 
     },
     "Functions": {
+      "type": "string",
+      "description": "Javascript snippet for declaring variables and reusable functions, visible anywhere within this page"
+    },
+    "Global": {
 
     },
     "API": {

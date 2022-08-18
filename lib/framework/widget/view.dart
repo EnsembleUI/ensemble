@@ -61,6 +61,7 @@ class View extends StatefulWidget {
 class ViewState extends State<View>{
   late ScopeManager _scopeManager;
   String menuDisplay = MenuDisplay.navBar.name;
+  late Widget rootWidget;
 
   @override
   void initState() {
@@ -87,6 +88,8 @@ class ViewState extends State<View>{
             context, _scopeManager, widget._pageModel.viewBehavior.onLoad!);
       });
     }
+
+    buildRootWidget();
 
     super.initState();
   }
@@ -177,8 +180,6 @@ class ViewState extends State<View>{
 
   Widget getBody () {
 
-    Widget bodyWidget = _scopeManager.buildWidget(widget._pageModel.rootWidgetModel);
-
     if (menuDisplay == MenuDisplay.navBar_left.name) {
       List<model.MenuItem> menuItems = widget._pageModel.menu!.menuItems;
       int selectedIndex = 0;
@@ -260,7 +261,7 @@ class ViewState extends State<View>{
       content.add(Expanded(
           child: SafeArea(
             top: widget._pageModel.pageType == PageType.modal ? false : true,
-              child: bodyWidget)));
+              child: rootWidget)));
 
       return Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -269,7 +270,7 @@ class ViewState extends State<View>{
 
     return SafeArea(
         top: widget._pageModel.pageType == PageType.modal ? false : true,
-        child: bodyWidget
+        child: rootWidget
     );
   }
 
@@ -349,6 +350,15 @@ class ViewState extends State<View>{
     _scopeManager.debugListenerMap();
     _scopeManager.eventBus.destroy();
     super.dispose();
+  }
+
+  void buildRootWidget() {
+    rootWidget = _scopeManager.buildWidget(widget._pageModel.rootWidgetModel);
+
+    // execute Global Code
+    if (widget._pageModel.globalCode != null) {
+      _scopeManager.dataContext.evalCode(widget._pageModel.globalCode!);
+    }
   }
 }
 
