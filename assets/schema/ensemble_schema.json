@@ -47,7 +47,7 @@
             "properties": {
               "styles": {
                 "allOf": [
-                  { "$ref": "#/$defs/rootViewStyles" },
+                  { "$ref": "#/$defs/backgroundImage" },
                   { "$ref": "#/$defs/columnStyles" }
                 ]
               }
@@ -66,7 +66,7 @@
             "properties": {
               "styles": {
                 "allOf": [
-                  { "$ref": "#/$defs/rootViewStyles" },
+                  { "$ref": "#/$defs/backgroundImage" },
                   { "$ref": "#/$defs/rowStyles" }
                 ]
               }
@@ -85,7 +85,7 @@
             "properties": {
               "styles": {
                 "allOf": [
-                  { "$ref": "#/$defs/rootViewStyles" },
+                  { "$ref": "#/$defs/backgroundImage" },
                   { "$ref": "#/$defs/flexStyles" }
                 ]
               }
@@ -1433,15 +1433,6 @@
       }
     },
 
-    "rootViewStyles": {
-      "type": "object",
-      "properties": {
-        "backgroundImage": {
-          "type": "string",
-          "description": "The Image URL to fill the entire background"
-        }
-      }
-    },
     "baseStyles": {
       "type": "object",
       "properties": {
@@ -1520,6 +1511,12 @@
         },
         {
           "$ref": "#/$defs/borderStyles"
+        },
+        {
+          "$ref": "#/$defs/backgroundGradient"
+        },
+        {
+          "$ref": "#/$defs/backgroundImage"
         }
       ]
     },
@@ -1692,6 +1689,84 @@
           }
         }
       ]
+    },
+    "backgroundGradient": {
+      "type": "object",
+      "properties": {
+        "backgroundGradient": {
+          "type": "object",
+          "properties": {
+            "colors": {
+              "type": "array",
+              "description": "The list of colors used for the gradient",
+              "items": {
+                "$ref": "#/$defs/typeColors"
+              }
+            },
+            "start": {
+              "type": "string",
+              "description": "The starting position of the gradient",
+              "enum": ["topLeft", "topCenter", "topRight", "centerLeft", "center", "centerRight", "bottomLeft", "bottomCenter", "bottomRight"]
+            },
+            "end": {
+              "type": "string",
+              "description": "The ending position of the gradient",
+              "enum": ["topLeft", "topCenter", "topRight", "centerLeft", "center", "centerRight", "bottomLeft", "bottomCenter", "bottomRight"]
+            }
+          }
+        }
+      }
+    },
+    "backgroundImage": {
+      "type": "object",
+      "properties": {
+        "backgroundImage": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string",
+              "description": "The Image URL to fill the background"
+            },
+            "fit": {
+              "type": "string",
+              "description": "How to fit the image within our width/height or our parent (if dimension is not specified)",
+              "oneOf": [
+                {
+                  "const": "fill",
+                  "description": "Stretch our image to fill the dimension, and distorting the aspect ratio if needed"
+                },
+                {
+                  "const": "contain",
+                  "description": "Scale the image such that the entire image is contained within our dimension"
+                },
+                {
+                  "const": "cover",
+                  "description": "Scale the image to fill our dimension, clipping the image as needed"
+                },
+                {
+                  "const": "fitWidth",
+                  "description": "Scale the image to fit the width, and clipping the height if needed"
+                },
+                {
+                  "const": "fitHeight",
+                  "description": "Scale the image to fit the height, and clipping the width if needed"
+                },
+                {
+                  "const": "none",
+                  "description": "Center-Align the original image size, clipping the content if needed"
+                },
+                {
+                  "const": "scaleDown",
+                  "description": "Center-Align the image and only scale down to fit. Image will not be scaled up to bigger dimension."
+                }
+              ]
+            }
+          }
+        }
+      }
     }
+
+
+
   }
 }
