@@ -1,5 +1,6 @@
 
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/cupertino.dart';
@@ -9,6 +10,9 @@ import 'package:flutter/cupertino.dart';
 class BoxController extends WidgetController {
   EdgeInsets? margin;
   EdgeInsets? padding;
+
+  BackgroundImage? backgroundImage;
+  LinearGradient? backgroundGradient;
 
   Color? borderColor;
   int? borderRadius;
@@ -21,6 +25,9 @@ class BoxController extends WidgetController {
       // support short-hand notation margin: 10 5 10
       'margin': (value) => margin = Utils.optionalInsets(value),
       'padding': (value) => padding = Utils.optionalInsets(value),
+
+      'backgroundImage': (value) => backgroundImage = Utils.getBackgroundImage(value),
+      'backgroundGradient': (value) => backgroundGradient = Utils.getBackgroundGradient(value),
 
       'borderColor': (value) =>  borderColor = Utils.getColor(value),
       'borderRadius': (value) =>  borderRadius = Utils.optionalInt(value),
@@ -51,7 +58,6 @@ class BoxLayoutController extends BoxController {
   int? gap;
 
   Color? backgroundColor;
-  LinearGradient? backgroundGradient;
 
   String? fontFamily;
   int? fontSize;
@@ -82,7 +88,6 @@ class BoxLayoutController extends BoxController {
       'gap': (value) => gap = Utils.optionalInt(value),
 
       'backgroundColor': (value) => backgroundColor = Utils.getColor(value),
-      'backgroundGradient': (value) => backgroundGradient = Utils.getBackgroundGradient(value),
 
       'fontFamily': (value) => fontFamily = Utils.optionalString(value),
       'fontSize': (value) =>  fontSize = Utils.optionalInt(value),
