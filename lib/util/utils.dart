@@ -56,6 +56,52 @@ class Utils {
     return rtn;
   }
 
+  static LinearGradient? getBackgroundGradient(dynamic value) {
+    if (value is Map) {
+      if (value['colors'] is List) {
+        List<Color> colors = [];
+        for (dynamic colorEntry in value['colors']) {
+          Color? color = Utils.getColor(colorEntry);
+          if (color != null) {
+            colors.add(color);
+          }
+        }
+        // only valid if have at least 2 colors
+        if (colors.length >= 2) {
+          return LinearGradient(
+            colors: colors,
+            begin: _getAlignment(value['start']) ?? Alignment.centerLeft,
+            end: _getAlignment(value['end']) ?? Alignment.centerRight
+          );
+        }
+      }
+    }
+    return null;
+  }
+  static Alignment? _getAlignment(dynamic value) {
+    switch (value) {
+      case 'topLeft':
+        return Alignment.topLeft;
+      case 'topCenter':
+        return Alignment.topCenter;
+      case 'topRight':
+        return Alignment.topRight;
+      case 'centerLeft':
+        return Alignment.centerLeft;
+      case 'center':
+        return Alignment.center;
+      case 'centerRight':
+        return Alignment.centerRight;
+      case 'bottomLeft':
+        return Alignment.bottomLeft;
+      case 'bottomCenter':
+        return Alignment.bottomCenter;
+      case 'bottomRight':
+        return Alignment.bottomRight;
+    }
+    return null;
+  }
+
   static DateTime? getDate(dynamic value) {
     return InvokablePrimitive.parseDateTime(value);
   }

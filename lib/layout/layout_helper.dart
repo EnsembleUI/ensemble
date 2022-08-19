@@ -51,6 +51,8 @@ class BoxLayoutController extends BoxController {
   int? gap;
 
   Color? backgroundColor;
+  LinearGradient? backgroundGradient;
+
   String? fontFamily;
   int? fontSize;
 
@@ -80,6 +82,8 @@ class BoxLayoutController extends BoxController {
       'gap': (value) => gap = Utils.optionalInt(value),
 
       'backgroundColor': (value) => backgroundColor = Utils.getColor(value),
+      'backgroundGradient': (value) => backgroundGradient = Utils.getBackgroundGradient(value),
+
       'fontFamily': (value) => fontFamily = Utils.optionalString(value),
       'fontSize': (value) =>  fontSize = Utils.optionalInt(value),
 
