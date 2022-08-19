@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/page_model.dart';
@@ -131,9 +132,8 @@ class ViewState extends State<View>{
       null;
     // if we have a background image, set the background color to transparent
     // since our image is outside the Scaffold
-    bool showBackgroundImage = false;
-    if (backgroundColor == null && widget._pageModel.pageStyles?['backgroundImage'] != null) {
-      showBackgroundImage = true;
+    BackgroundImage? backgroundImage = Utils.getBackgroundImage(widget._pageModel.pageStyles?['backgroundImage']);
+    if (backgroundImage != null && backgroundColor == null) {
       backgroundColor = Colors.transparent;
     }
 
@@ -154,28 +154,17 @@ class ViewState extends State<View>{
 
     // if backgroundImage is set, put it outside of the Scaffold so
     // keyboard sliding up (when entering value) won't resize the background
-    if (showBackgroundImage) {
+    if (backgroundImage != null) {
       return Container(
         constraints: const BoxConstraints.expand(),
         decoration: BoxDecoration(
-          image: DecorationImage (
-            image: buildBackgroundImage(widget._pageModel.pageStyles!['backgroundImage']!.toString()),
-            fit: BoxFit.cover
-          )
+          image: backgroundImage.image
         ),
         child: rtn
       );
     }
     return rtn;
 
-  }
-
-  ImageProvider buildBackgroundImage(String source) {
-    if (source.startsWith('https://') || source.startsWith('http://')) {
-      return NetworkImage(source);
-    }
-    // attempt local asset
-    return AssetImage('assets/images/$source');
   }
 
   Widget getBody () {
