@@ -743,6 +743,23 @@
         }
       }
     },
+    "Flow-payload": {
+      "allOf": [
+        {
+          "type": "object",
+          "properties": {
+            "styles": { "$ref": "#/$defs/flowStyles" },
+            "children": { "$ref": "#/$defs/Widgets" },
+            "direction": {
+              "type": "string",
+              "description": "The main direction to lay out the children before wrapping",
+              "enum": ["vertical", "horizontal"]
+            }
+          }
+        },
+        { "$ref": "#/$defs/Templated-payload" }
+      ]
+    },
     "Column-payload": {
       "allOf": [
         {
@@ -1214,6 +1231,7 @@
         "Time": { "$ref": "#/$defs/Time-payload" },
         "Button": { "$ref": "#/$defs/Button-payload" },
         "Form": { "$ref": "#/$defs/Form-payload" },
+        "Flow": { "$ref": "#/$defs/Flow-payload" },
         "Column": { "$ref": "#/$defs/Column-payload" },
         "Row": { "$ref": "#/$defs/Row-payload" },
         "Flex": { "$ref": "#/$defs/Flex-payload" },
@@ -1565,6 +1583,36 @@
               "items": {
                 "type": "integer"
               }
+            }
+          }
+        }
+      ]
+    },
+    "flowStyles": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseStyles"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "gap": {
+              "type": "integer",
+              "description": "The gap between the children in the main direction",
+              "minimum": 0
+            },
+            "lineGap": {
+              "type": "integer",
+              "description": "The gap between the lines if the children start wrapping",
+              "minimum": 0
+            },
+            "maxWidth": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "maxHeight": {
+              "type": "integer",
+              "minimum": 0
             }
           }
         }
