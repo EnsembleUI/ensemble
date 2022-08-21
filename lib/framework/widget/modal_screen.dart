@@ -32,6 +32,8 @@ class ModalScreen extends StatelessWidget {
       topMargin = bottomMargin = 60;
     }
 
+    /// repurpose dialog screen with frosted background. ModalScreen for now is just simply full screen
+    /*
     return Container(
       margin: EdgeInsets.fromLTRB(sideMargin, topMargin, sideMargin, bottomMargin),
       clipBehavior: Clip.hardEdge,
@@ -46,7 +48,9 @@ class ModalScreen extends StatelessWidget {
         ]
       ),
       child: screenWidget
-    );
+    );*/
+
+    return screenWidget;
   }
 
 
