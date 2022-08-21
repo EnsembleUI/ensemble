@@ -1,6 +1,7 @@
 
 import 'package:ensemble/layout/box_layout.dart';
 import 'package:ensemble/layout/data_grid.dart';
+import 'package:ensemble/layout/flow.dart';
 import 'package:ensemble/layout/form.dart';
 import 'package:ensemble/layout/stack.dart';
 import 'package:ensemble/layout/tab_bar.dart';
@@ -75,6 +76,7 @@ class WidgetRegistry {
     Row.type: () => Row(),
     Flex.type: () => Flex(),
     Stack.type: () => Stack(),
+    Flow.type: () => Flow(),
     DataGrid.type: () => DataGrid(),
     EnsembleDataRow.type: () => EnsembleDataRow(),
     EnsembleTabBar.type: () => EnsembleTabBar(),
