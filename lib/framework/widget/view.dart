@@ -11,6 +11,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/page_model.dart' as model;
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/button.dart';
 import 'package:flutter/material.dart';
 
 /// The root View. Every Ensemble page will have at least one at its root
@@ -137,6 +138,21 @@ class ViewState extends State<View>{
       backgroundColor = Colors.transparent;
     }
 
+    // add close button for modal page
+    Widget? closeModalButton;
+    if (widget._pageModel.pageType == PageType.modal) {
+      closeModalButton = FloatingActionButton(
+        elevation: 3,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        mini: true,
+        onPressed: () {
+          Navigator.maybePop(context);
+        },
+        child: const Icon(Icons.close_rounded),
+      );
+    }
+
     Widget rtn = DataScopeWidget(
       scopeManager: _scopeManager,
       child: Scaffold(
@@ -149,6 +165,8 @@ class ViewState extends State<View>{
         bottomNavigationBar: bottomNavBar,
         drawer: drawer,
         bottomSheet: _buildFooter(_scopeManager, widget._pageModel),
+        floatingActionButton: closeModalButton,
+        floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
       ),
     );
 
