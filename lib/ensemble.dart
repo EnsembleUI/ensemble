@@ -338,11 +338,7 @@ class Ensemble {
   /// initialize device info
   void initDeviceInfo(BuildContext context) async {
     DevicePlatform? platform;
-    Map<String, dynamic> deviceData = {};
-    Size size = MediaQuery.of(context).size;
-
     WebBrowserInfo? browserInfo;
-
     try {
       if (kIsWeb) {
         platform = DevicePlatform.web;
@@ -365,8 +361,14 @@ class Ensemble {
       log("Error getting device info");
     }
 
-    deviceInfo = DeviceInfo(platform ?? DevicePlatform.other, size, browserInfo: browserInfo);
+    MediaQueryData mediaQueryData = MediaQuery.of(context);
+    deviceInfo = DeviceInfo(
+        platform ?? DevicePlatform.other,
+        size: mediaQueryData.size,
+        safeAreaSize: SafeAreaSize(mediaQueryData.padding.top.toInt(), mediaQueryData.padding.bottom.toInt()),
+        browserInfo: browserInfo);
 
+    log("Top: ${deviceInfo.safeAreaSize.top}");
   }
 
 
@@ -385,11 +387,17 @@ class Account {
 }
 
 class DeviceInfo {
-  DeviceInfo(this.platform, this.size, {this.browserInfo});
+  DeviceInfo(this.platform, { required this.size, required this.safeAreaSize, this.browserInfo});
 
   DevicePlatform platform;
   Size size;
+  SafeAreaSize safeAreaSize;
   WebBrowserInfo? browserInfo;
+}
+class SafeAreaSize {
+  SafeAreaSize(this.top, this.bottom);
+  int top;
+  int bottom;
 }
 enum DevicePlatform {
   web, android, ios, macos, windows, other
