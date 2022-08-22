@@ -24,6 +24,7 @@ import 'package:ensemble/widget/map.dart';
 import 'package:ensemble/widget/progress_indicator.dart';
 import 'package:ensemble/widget/qr_code.dart';
 import 'package:ensemble/widget/rating.dart';
+import 'package:ensemble/widget/signature.dart';
 import 'package:ensemble/widget/spacer.dart';
 import 'package:ensemble/widget/video.dart';
 import 'package:ensemble/widget/visualization/barchart.dart';
@@ -57,6 +58,7 @@ class WidgetRegistry {
     Carousel.type: () => Carousel(),
     Video.type: () => Video(),
     EnsembleLottie.type: () => EnsembleLottie(),
+    EnsembleSignature.type: () => EnsembleSignature(),
 
     // form fields
     EnsembleForm.type: () => EnsembleForm(),
