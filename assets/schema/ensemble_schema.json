@@ -1752,14 +1752,12 @@
               }
             },
             "start": {
-              "type": "string",
               "description": "The starting position of the gradient",
-              "enum": ["topLeft", "topCenter", "topRight", "centerLeft", "center", "centerRight", "bottomLeft", "bottomCenter", "bottomRight"]
+              "$ref": "#/$defs/alignment"
             },
             "end": {
-              "type": "string",
               "description": "The ending position of the gradient",
-              "enum": ["topLeft", "topCenter", "topRight", "centerLeft", "center", "centerRight", "bottomLeft", "bottomCenter", "bottomRight"]
+              "$ref": "#/$defs/alignment"
             }
           }
         }
@@ -1808,12 +1806,16 @@
                   "description": "Center-Align the image and only scale down to fit. Image will not be scaled up to bigger dimension."
                 }
               ]
-            }
+            },
+            "alignment": { "$ref": "#/$defs/alignment" }
           }
         }
       }
+    },
+    "alignment": {
+      "type": "string",
+      "enum": ["topLeft", "topCenter", "topRight", "centerLeft", "center", "centerRight", "bottomLeft", "bottomCenter", "bottomRight"]
     }
-
 
 
   }
