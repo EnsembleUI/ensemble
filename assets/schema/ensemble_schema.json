@@ -48,6 +48,7 @@
               "styles": {
                 "allOf": [
                   { "$ref": "#/$defs/backgroundImage" },
+                  { "$ref": "#/$defs/safeArea" },
                   { "$ref": "#/$defs/columnStyles" }
                 ]
               }
@@ -67,6 +68,7 @@
               "styles": {
                 "allOf": [
                   { "$ref": "#/$defs/backgroundImage" },
+                  { "$ref": "#/$defs/safeArea" },
                   { "$ref": "#/$defs/rowStyles" }
                 ]
               }
@@ -86,6 +88,7 @@
               "styles": {
                 "allOf": [
                   { "$ref": "#/$defs/backgroundImage" },
+                  { "$ref": "#/$defs/safeArea" },
                   { "$ref": "#/$defs/flexStyles" }
                 ]
               }
@@ -1809,6 +1812,15 @@
             },
             "alignment": { "$ref": "#/$defs/alignment" }
           }
+        }
+      }
+    },
+    "safeArea": {
+      "type": "object",
+      "properties": {
+        "ignoreSafeArea": {
+          "type": "boolean",
+          "description": "Whether to ignore the Safe Area (top only) and use the entire screen height. (default is false)"
         }
       }
     },
