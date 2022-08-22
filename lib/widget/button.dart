@@ -47,7 +47,6 @@ class Button extends StatefulWidget with Invokable, HasController<ButtonControll
 }
 
 class ButtonController extends BoxController {
-  late String label;
   ensemble.EnsembleAction? onTap;
 
   // whether this button will invoke form validation or not
@@ -73,7 +72,7 @@ class ButtonState extends WidgetState<Button> {
 
     bool isOutlineButton = widget._controller.outline ?? false;
     
-    Text label = Text(Utils.translate(widget._controller.label, context));
+    Text label = Text(Utils.translate(widget._controller.label ?? '', context));
 
     Widget? rtn;
     if (isOutlineButton) {

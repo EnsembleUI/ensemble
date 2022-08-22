@@ -47,7 +47,7 @@
             "properties": {
               "styles": {
                 "allOf": [
-                  { "$ref": "#/$defs/rootViewStyles" },
+                  { "$ref": "#/$defs/backgroundImage" },
                   { "$ref": "#/$defs/columnStyles" }
                 ]
               }
@@ -66,7 +66,7 @@
             "properties": {
               "styles": {
                 "allOf": [
-                  { "$ref": "#/$defs/rootViewStyles" },
+                  { "$ref": "#/$defs/backgroundImage" },
                   { "$ref": "#/$defs/rowStyles" }
                 ]
               }
@@ -85,7 +85,7 @@
             "properties": {
               "styles": {
                 "allOf": [
-                  { "$ref": "#/$defs/rootViewStyles" },
+                  { "$ref": "#/$defs/backgroundImage" },
                   { "$ref": "#/$defs/flexStyles" }
                 ]
               }
@@ -107,6 +107,10 @@
 
     },
     "Functions": {
+      "type": "string",
+      "description": "Javascript snippet for declaring variables and reusable functions, visible anywhere within this page"
+    },
+    "Global": {
 
     },
     "API": {
@@ -739,6 +743,23 @@
         }
       }
     },
+    "Flow-payload": {
+      "allOf": [
+        {
+          "type": "object",
+          "properties": {
+            "styles": { "$ref": "#/$defs/flowStyles" },
+            "children": { "$ref": "#/$defs/Widgets" },
+            "direction": {
+              "type": "string",
+              "description": "The main direction to lay out the children before wrapping",
+              "enum": ["vertical", "horizontal"]
+            }
+          }
+        },
+        { "$ref": "#/$defs/Templated-payload" }
+      ]
+    },
     "Column-payload": {
       "allOf": [
         {
@@ -1210,6 +1231,7 @@
         "Time": { "$ref": "#/$defs/Time-payload" },
         "Button": { "$ref": "#/$defs/Button-payload" },
         "Form": { "$ref": "#/$defs/Form-payload" },
+        "Flow": { "$ref": "#/$defs/Flow-payload" },
         "Column": { "$ref": "#/$defs/Column-payload" },
         "Row": { "$ref": "#/$defs/Row-payload" },
         "Flex": { "$ref": "#/$defs/Flex-payload" },
@@ -1429,15 +1451,6 @@
       }
     },
 
-    "rootViewStyles": {
-      "type": "object",
-      "properties": {
-        "backgroundImage": {
-          "type": "string",
-          "description": "The Image URL to fill the entire background"
-        }
-      }
-    },
     "baseStyles": {
       "type": "object",
       "properties": {
@@ -1516,6 +1529,12 @@
         },
         {
           "$ref": "#/$defs/borderStyles"
+        },
+        {
+          "$ref": "#/$defs/backgroundGradient"
+        },
+        {
+          "$ref": "#/$defs/backgroundImage"
         }
       ]
     },
@@ -1564,6 +1583,36 @@
               "items": {
                 "type": "integer"
               }
+            }
+          }
+        }
+      ]
+    },
+    "flowStyles": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseStyles"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "gap": {
+              "type": "integer",
+              "description": "The gap between the children in the main direction",
+              "minimum": 0
+            },
+            "lineGap": {
+              "type": "integer",
+              "description": "The gap between the lines if the children start wrapping",
+              "minimum": 0
+            },
+            "maxWidth": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "maxHeight": {
+              "type": "integer",
+              "minimum": 0
             }
           }
         }
@@ -1688,6 +1737,86 @@
           }
         }
       ]
+    },
+    "backgroundGradient": {
+      "type": "object",
+      "properties": {
+        "backgroundGradient": {
+          "type": "object",
+          "properties": {
+            "colors": {
+              "type": "array",
+              "description": "The list of colors used for the gradient",
+              "items": {
+                "$ref": "#/$defs/typeColors"
+              }
+            },
+            "start": {
+              "description": "The starting position of the gradient",
+              "$ref": "#/$defs/alignment"
+            },
+            "end": {
+              "description": "The ending position of the gradient",
+              "$ref": "#/$defs/alignment"
+            }
+          }
+        }
+      }
+    },
+    "backgroundImage": {
+      "type": "object",
+      "properties": {
+        "backgroundImage": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string",
+              "description": "The Image URL to fill the background"
+            },
+            "fit": {
+              "type": "string",
+              "description": "How to fit the image within our width/height or our parent (if dimension is not specified)",
+              "oneOf": [
+                {
+                  "const": "fill",
+                  "description": "Stretch our image to fill the dimension, and distorting the aspect ratio if needed"
+                },
+                {
+                  "const": "contain",
+                  "description": "Scale the image such that the entire image is contained within our dimension"
+                },
+                {
+                  "const": "cover",
+                  "description": "Scale the image to fill our dimension, clipping the image as needed"
+                },
+                {
+                  "const": "fitWidth",
+                  "description": "Scale the image to fit the width, and clipping the height if needed"
+                },
+                {
+                  "const": "fitHeight",
+                  "description": "Scale the image to fit the height, and clipping the width if needed"
+                },
+                {
+                  "const": "none",
+                  "description": "Center-Align the original image size, clipping the content if needed"
+                },
+                {
+                  "const": "scaleDown",
+                  "description": "Center-Align the image and only scale down to fit. Image will not be scaled up to bigger dimension."
+                }
+              ]
+            },
+            "alignment": { "$ref": "#/$defs/alignment" }
+          }
+        }
+      }
+    },
+    "alignment": {
+      "type": "string",
+      "enum": ["topLeft", "topCenter", "topRight", "centerLeft", "center", "centerRight", "bottomLeft", "bottomCenter", "bottomRight"]
     }
+
+
   }
 }
