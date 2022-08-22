@@ -22,6 +22,9 @@ abstract class WidgetController extends Controller {
   bool expanded = false;
   bool visible = true;
 
+  // optional label for use in Forms
+  String? label;
+
   @override
   Map<String, Function> getBaseGetters() {
     return {
@@ -35,6 +38,7 @@ abstract class WidgetController extends Controller {
     return {
       'expanded': (value) => expanded = Utils.getBool(value, fallback: false),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
+      'label': (value) => label = Utils.optionalString(value),
     };
   }
 }

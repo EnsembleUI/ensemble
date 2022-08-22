@@ -4,12 +4,14 @@ import 'dart:math';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/page_model.dart' as model;
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/button.dart';
 import 'package:flutter/material.dart';
 
 /// The root View. Every Ensemble page will have at least one at its root
@@ -61,6 +63,7 @@ class View extends StatefulWidget {
 class ViewState extends State<View>{
   late ScopeManager _scopeManager;
   String menuDisplay = MenuDisplay.navBar.name;
+  late Widget rootWidget;
 
   @override
   void initState() {
@@ -87,6 +90,8 @@ class ViewState extends State<View>{
             context, _scopeManager, widget._pageModel.viewBehavior.onLoad!);
       });
     }
+
+    buildRootWidget();
 
     super.initState();
   }
@@ -128,10 +133,24 @@ class ViewState extends State<View>{
       null;
     // if we have a background image, set the background color to transparent
     // since our image is outside the Scaffold
-    bool showBackgroundImage = false;
-    if (backgroundColor == null && widget._pageModel.pageStyles?['backgroundImage'] != null) {
-      showBackgroundImage = true;
+    BackgroundImage? backgroundImage = Utils.getBackgroundImage(widget._pageModel.pageStyles?['backgroundImage']);
+    if (backgroundImage != null && backgroundColor == null) {
       backgroundColor = Colors.transparent;
+    }
+
+    // add close button for modal page
+    Widget? closeModalButton;
+    if (widget._pageModel.pageType == PageType.modal) {
+      closeModalButton = FloatingActionButton(
+        elevation: 3,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        mini: true,
+        onPressed: () {
+          Navigator.maybePop(context);
+        },
+        child: const Icon(Icons.close_rounded),
+      );
     }
 
     Widget rtn = DataScopeWidget(
@@ -146,19 +165,18 @@ class ViewState extends State<View>{
         bottomNavigationBar: bottomNavBar,
         drawer: drawer,
         bottomSheet: _buildFooter(_scopeManager, widget._pageModel),
+        floatingActionButton: closeModalButton,
+        floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
       ),
     );
 
     // if backgroundImage is set, put it outside of the Scaffold so
     // keyboard sliding up (when entering value) won't resize the background
-    if (showBackgroundImage) {
+    if (backgroundImage != null) {
       return Container(
         constraints: const BoxConstraints.expand(),
         decoration: BoxDecoration(
-          image: DecorationImage (
-            image: buildBackgroundImage(widget._pageModel.pageStyles!['backgroundImage']!.toString()),
-            fit: BoxFit.cover
-          )
+          image: backgroundImage.image
         ),
         child: rtn
       );
@@ -167,17 +185,7 @@ class ViewState extends State<View>{
 
   }
 
-  ImageProvider buildBackgroundImage(String source) {
-    if (source.startsWith('https://') || source.startsWith('http://')) {
-      return NetworkImage(source);
-    }
-    // attempt local asset
-    return AssetImage('assets/images/$source');
-  }
-
   Widget getBody () {
-
-    Widget bodyWidget = _scopeManager.buildWidget(widget._pageModel.rootWidgetModel);
 
     if (menuDisplay == MenuDisplay.navBar_left.name) {
       List<model.MenuItem> menuItems = widget._pageModel.menu!.menuItems;
@@ -260,7 +268,7 @@ class ViewState extends State<View>{
       content.add(Expanded(
           child: SafeArea(
             top: widget._pageModel.pageType == PageType.modal ? false : true,
-              child: bodyWidget)));
+              child: rootWidget)));
 
       return Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -269,7 +277,7 @@ class ViewState extends State<View>{
 
     return SafeArea(
         top: widget._pageModel.pageType == PageType.modal ? false : true,
-        child: bodyWidget
+        child: rootWidget
     );
   }
 
@@ -349,6 +357,15 @@ class ViewState extends State<View>{
     _scopeManager.debugListenerMap();
     _scopeManager.eventBus.destroy();
     super.dispose();
+  }
+
+  void buildRootWidget() {
+    rootWidget = _scopeManager.buildWidget(widget._pageModel.rootWidgetModel);
+
+    // execute Global Code
+    if (widget._pageModel.globalCode != null) {
+      _scopeManager.dataContext.evalCode(widget._pageModel.globalCode!);
+    }
   }
 }
 

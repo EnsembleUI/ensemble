@@ -12,7 +12,6 @@ import 'package:flutter/material.dart';
 class FormFieldController extends WidgetController {
   bool? enabled;
   bool required = false;
-  String? label;
   String? hintText;
   String? icon;
   String? iconLibrary;
@@ -36,7 +35,6 @@ class FormFieldController extends WidgetController {
     setters.addAll({
       'enabled': (value) => enabled = Utils.optionalBool(value),
       'required': (value) => required = Utils.getBool(value, fallback: false),
-      'label': (value) => label = Utils.optionalString(value),
       'hintText': (value) => hintText = Utils.optionalString(value),
       'icon': (value) => icon = Utils.optionalString(value),
       'iconLibrary': (value) => iconLibrary = Utils.optionalString(value),
@@ -57,7 +55,8 @@ abstract class FormFieldWidgetState<W extends HasController> extends WidgetState
   /// return a default InputDecoration if the controller is a FormField
   InputDecoration get inputDecoration {
     if (widget.controller is FormFieldController) {
-      FormFieldController myController = widget.controller as FormFieldController;
+      FormFieldController myController = widget
+          .controller as FormFieldController;
       return InputDecoration(
           floatingLabelBehavior: FloatingLabelBehavior.always,
           labelText: shouldShowLabel() ? myController.label : null,
@@ -66,7 +65,9 @@ abstract class FormFieldWidgetState<W extends HasController> extends WidgetState
               myController.icon!,
               library: myController.iconLibrary,
               size: myController.iconSize,
-              color: myController.iconColor != null ? Color(myController.iconColor!) : null)
+              color: myController.iconColor != null ?
+                Color(myController.iconColor!) :
+                null)
       );
     }
     return const InputDecoration();
@@ -90,5 +91,4 @@ abstract class FormFieldWidgetState<W extends HasController> extends WidgetState
     }
     return true;
   }
-
 }

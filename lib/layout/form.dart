@@ -2,6 +2,7 @@ import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/layout_utils.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/form_helper.dart';
 import 'package:ensemble/widget/widget_util.dart' as util;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -123,9 +124,34 @@ class FormState extends WidgetState<EnsembleForm> {
   }
 
   Widget buildColumn(List<Widget> formItems) {
+    List<Widget> items = [];
+    for (Widget formItem in formItems) {
+      if (formItem is HasController && formItem.controller is FormFieldController) {
+        items.add(formItem);
+      } else if (formItem is HasController
+          && formItem.controller is WidgetController
+          && !inExcludedList(formItem.controller as WidgetController)  && (formItem.controller as WidgetController).label != null) {
+        // if widget is not a FormField but has a label, wrap it in a FormField
+        items.add(FormField(
+          builder: (FormFieldState field) {
+            return InputDecorator(
+              decoration: InputDecoration(
+                  floatingLabelBehavior: FloatingLabelBehavior.always,
+                  border: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  labelText: widget.shouldFormFieldShowLabel ? (formItem.controller as WidgetController).label : null),
+              child: formItem
+            );
+          }
+        ));
+      } else {
+        items.add(formItem);
+      }
+    }
     return Column(
       crossAxisAlignment: flutter.CrossAxisAlignment.start,
-      children: LayoutUtils.withGap(formItems, widget._controller.gap));
+      children: LayoutUtils.withGap(items, widget._controller.gap));
   }
 
   Widget buildGrid(List<Widget> formItems) {
@@ -135,10 +161,11 @@ class FormState extends WidgetState<EnsembleForm> {
       Widget child = formItems[i];
       // add the label
       if (child is HasController &&
-          child.controller is FormFieldController &&
-          (child.controller as FormFieldController).label != null) {
+          child.controller is WidgetController &&
+          !inExcludedList(child.controller as WidgetController) &&
+          (child.controller as WidgetController).label != null) {
         children.add(GridPlacement(child:
-          stretchAndVerticallyAlignLabel((child.controller as FormFieldController).label!)
+          stretchAndVerticallyAlignLabel((child.controller as WidgetController).label!)
         ));
         hasAtLeastOneLabel = true;
       } else {
@@ -193,6 +220,11 @@ class FormState extends WidgetState<EnsembleForm> {
         ))
       ]
     );
+  }
+
+  /// some widgets like Button have `label` attribute that is not meant for Form. Exclude them
+  bool inExcludedList(WidgetController widgetController) {
+    return widgetController is ButtonController;
   }
 
 }

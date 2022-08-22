@@ -17,9 +17,11 @@ class PageModel {
     'Functions',
     'App',
     'Model',
-    'Variable'
+    'Variable',
+    'Global'
   ];
 
+  String? globalCode;
   Map<String, YamlMap>? apiMap;
   Map<String, YamlMap>? customViewDefinitions;
   ViewBehavior viewBehavior = ViewBehavior();
@@ -56,6 +58,8 @@ class PageModel {
 
     // build a Map of the Custom Widgets
     customViewDefinitions = buildCustomViewDefinitions(docMap);
+
+    globalCode = Utils.optionalString(docMap['Global']);
 
     // set the view behavior
     viewBehavior.onLoad = Utils.getAction(viewMap['onLoad']);
