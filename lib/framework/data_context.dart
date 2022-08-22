@@ -284,6 +284,8 @@ class DeviceInfoInvokable with Invokable {
     return {
       "width": () => deviceInfo.size.width,
       "height": () => deviceInfo.size.height,
+      "safeAreaTop": () => deviceInfo.safeAreaSize.top,
+      "safeAreaBottom": () => deviceInfo.safeAreaSize.bottom,
       "platform": () => deviceInfo.platform.name,
       DevicePlatform.web.name: () => DeviceWebInfo()
     };

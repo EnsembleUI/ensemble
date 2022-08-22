@@ -187,6 +187,9 @@ class ViewState extends State<View>{
 
   Widget getBody () {
 
+    bool ignoreSafeArea = Utils.getBool(widget._pageModel.pageStyles?['ignoreSafeArea'], fallback: false);
+
+
     if (menuDisplay == MenuDisplay.navBar_left.name) {
       List<model.MenuItem> menuItems = widget._pageModel.menu!.menuItems;
       int selectedIndex = 0;
@@ -267,7 +270,7 @@ class ViewState extends State<View>{
       // add the bodyWidget
       content.add(Expanded(
           child: SafeArea(
-            top: widget._pageModel.pageType == PageType.modal ? false : true,
+            top: !ignoreSafeArea, //widget._pageModel.pageType == PageType.modal ? false : true,
               child: rootWidget)));
 
       return Row(
@@ -276,7 +279,7 @@ class ViewState extends State<View>{
     }
 
     return SafeArea(
-        top: widget._pageModel.pageType == PageType.modal ? false : true,
+        top: !ignoreSafeArea ,//widget._pageModel.pageType == PageType.modal ? false : true,
         child: rootWidget
     );
   }
