@@ -30,6 +30,8 @@ class Carousel extends StatefulWidget with UpdatableContainer, Invokable, HasCon
       'autoLayoutBreakpoint': (value) => _controller.autoLayoutBreakpoint = Utils.optionalInt(value, min: 0),
       'height': (height) => _controller.height = Utils.optionalInt(height),
       'gap': (gap) => _controller.gap = Utils.optionalInt(gap),
+      'singleItemWidthRatio': (value) => _controller.singleItemWidthRatio = Utils.optionalDouble(value, min: 0, max: 1),
+      'multipleItemWidthRatio': (value) => _controller.multipleItemWidthRatio = Utils.optionalDouble(value, min: 0, max: 1),
       'indicatorType': (type) => _controller.indicatorType = IndicatorType.values.from(type),
       'indicatorPosition': (position) => _controller.indicatorPosition = IndicatorPosition.values.from(position),
       'indicatorWidth': (w) => _controller.indicatorWidth = Utils.optionalInt(w),
@@ -64,6 +66,9 @@ class MyController extends BoxController {
 
   int? height;
   int? gap; // gap between the children, but also at start and end to properly center
+
+  double? singleItemWidthRatio;
+  double? multipleItemWidthRatio;
 
   CarouselLayout? layout;
   int? autoLayoutBreakpoint;    // applicable only for auto layout
@@ -187,7 +192,7 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
   CarouselOptions _getSingleViewOptions() {
     return _getBaseCarouselOptions().copyWith(
       padEnds: true,
-      viewportFraction: 1
+      viewportFraction: widget._controller.singleItemWidthRatio ?? 1
     );
   }
 
@@ -196,7 +201,7 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
       disableCenter: true,
       padEnds: false,
       pageSnapping: false,
-      viewportFraction: .6,
+      viewportFraction: widget._controller.multipleItemWidthRatio ?? 0.6,
 
     );
   }
