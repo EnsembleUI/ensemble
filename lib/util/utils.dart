@@ -62,7 +62,8 @@ class Utils {
       if (value['source'] != null) {
         return BackgroundImage(
           value['source'].toString(),
-          fit: BoxFit.values.from(value['fit'])
+          fit: BoxFit.values.from(value['fit']),
+          alignment: _getAlignment(value['alignment'])
         );
       }
     }
