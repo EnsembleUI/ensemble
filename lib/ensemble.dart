@@ -367,8 +367,6 @@ class Ensemble {
         size: mediaQueryData.size,
         safeAreaSize: SafeAreaSize(mediaQueryData.padding.top.toInt(), mediaQueryData.padding.bottom.toInt()),
         browserInfo: browserInfo);
-
-    log("Top: ${deviceInfo.safeAreaSize.top}");
   }
 
 

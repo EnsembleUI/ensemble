@@ -77,7 +77,7 @@ class WidgetRegistry {
     Column.type: () => Column(),
     Row.type: () => Row(),
     Flex.type: () => Flex(),
-    Stack.type: () => Stack(),
+    EnsembleStack.type: () => EnsembleStack(),
     Flow.type: () => Flow(),
     DataGrid.type: () => DataGrid(),
     EnsembleDataRow.type: () => EnsembleDataRow(),
