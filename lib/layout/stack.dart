@@ -4,10 +4,11 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 
-class Stack extends StatefulWidget with UpdatableContainer, Invokable, HasController<StackController, StackState> {
+class EnsembleStack extends StatefulWidget with UpdatableContainer, Invokable, HasController<StackController, StackState> {
   static const type = 'Stack';
-  Stack({Key? key}) : super(key: key);
+  EnsembleStack({Key? key}) : super(key: key);
 
   late final List<Widget>? children;
   late final ItemTemplate? itemTemplate;
@@ -28,7 +29,7 @@ class Stack extends StatefulWidget with UpdatableContainer, Invokable, HasContro
 
   @override
   void initChildren({List<Widget>? children, ItemTemplate? itemTemplate}) {
-    this.children = children;
+    _controller.children = children;
     this.itemTemplate = itemTemplate;
   }
 
@@ -40,8 +41,7 @@ class Stack extends StatefulWidget with UpdatableContainer, Invokable, HasContro
   @override
   Map<String, Function> setters() {
     return {
-      'width': (value) => _controller.width = Utils.optionalInt(value),
-      'height': (value) => _controller.height = Utils.optionalInt(value),
+      'alignment': (value) => _controller.alignment = Utils.getAlignment(value),
     };
   }
 
@@ -49,15 +49,25 @@ class Stack extends StatefulWidget with UpdatableContainer, Invokable, HasContro
 
 
 class StackController extends WidgetController {
-  int? width;
-  int? height;
+  List<Widget>? children;
+
+  Alignment? alignment;
+
 }
 
-class StackState extends WidgetState<Stack> {
+class StackState extends WidgetState<EnsembleStack> {
   @override
   Widget build(BuildContext context) {
-    // TODO: implement build
-    throw UnimplementedError();
+    if (!widget._controller.visible ||
+        widget._controller.children == null ||
+        widget._controller.children!.isEmpty ) {
+      return const SizedBox.shrink();
+    }
+
+    return Stack(
+      children: widget._controller.children!,
+      alignment: widget._controller.alignment ?? AlignmentDirectional.topStart,
+    );
   }
 
 }

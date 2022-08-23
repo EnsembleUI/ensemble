@@ -63,7 +63,7 @@ class Utils {
         return BackgroundImage(
           value['source'].toString(),
           fit: BoxFit.values.from(value['fit']),
-          alignment: _getAlignment(value['alignment'])
+          alignment: getAlignment(value['alignment'])
         );
       }
     }
@@ -88,15 +88,15 @@ class Utils {
         if (colors.length >= 2) {
           return LinearGradient(
             colors: colors,
-            begin: _getAlignment(value['start']) ?? Alignment.centerLeft,
-            end: _getAlignment(value['end']) ?? Alignment.centerRight
+            begin: getAlignment(value['start']) ?? Alignment.centerLeft,
+            end: getAlignment(value['end']) ?? Alignment.centerRight
           );
         }
       }
     }
     return null;
   }
-  static Alignment? _getAlignment(dynamic value) {
+  static Alignment? getAlignment(dynamic value) {
     switch (value) {
       case 'topLeft':
         return Alignment.topLeft;

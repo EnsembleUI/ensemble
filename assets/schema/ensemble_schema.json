@@ -799,6 +799,19 @@
         { "$ref": "#/$defs/Templated-payload" }
       ]
     },
+    "Stack-payload": {
+      "properties": {
+        "children": {
+          "$ref": "#/$defs/Widgets"
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "alignment": { "$ref": "#/$defs/alignment" }
+          }
+        }
+      }
+    },
     "Carousel-payload": {
       "allOf": [
         {
@@ -1250,6 +1263,7 @@
         "Column": { "$ref": "#/$defs/Column-payload" },
         "Row": { "$ref": "#/$defs/Row-payload" },
         "Flex": { "$ref": "#/$defs/Flex-payload" },
+        "Stack": { "$ref": "#/$defs/Stack-payload" },
         "Carousel": { "$ref": "#/$defs/Carousel-payload" },
         "TabBar": { "$ref": "#/$defs/TabBar-payload" },
         "Map": { "$ref": "#/$defs/Map-payload" },
