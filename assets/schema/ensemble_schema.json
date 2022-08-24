@@ -1267,7 +1267,8 @@
         "Carousel": { "$ref": "#/$defs/Carousel-payload" },
         "TabBar": { "$ref": "#/$defs/TabBar-payload" },
         "Map": { "$ref": "#/$defs/Map-payload" },
-        "Video": { "$ref": "#/$defs/Video-payload" }
+        "Video": { "$ref": "#/$defs/Video-payload" },
+        "WebView": { "$ref": "#/$defs/WebView-payload" }
       }
     },
     "Menu": {
@@ -1476,6 +1477,14 @@
         "source": {
           "type": "string",
           "description": "The URL source to the media file"
+        }
+      }
+    },
+    "WebView-payload": {
+      "type": "object",
+      "properties": {
+        "uri": {
+          "type": "string"
         }
       }
     },
