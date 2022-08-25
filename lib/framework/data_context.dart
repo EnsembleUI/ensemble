@@ -251,7 +251,7 @@ class DataContext {
   /// Note: use eval() if your variable are surrounded by ${...}
   dynamic evalVariable(String variable) {
     try {
-      return JSInterpreter.fromCode(variable, _contextMap).evaluate();
+      return JSInterpreter.fromCode(variable, _contextMap).evaluate() ?? '';
     } catch (error) {
       log('JS Parsing Error: $error');
     }
