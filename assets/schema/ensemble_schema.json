@@ -538,6 +538,7 @@
     "TextInput-payload": {
       "allOf": [
         { "$ref": "#/$defs/FormInput-payload" },
+        { "$ref": "#/$defs/inputValidator" },
         {
           "type": "object",
           "properties": {
@@ -570,6 +571,7 @@
     "PasswordInput-payload": {
       "allOf": [
         { "$ref": "#/$defs/FormInput-payload" },
+        { "$ref": "#/$defs/inputValidator" },
         {
           "type": "object",
           "properties": {
@@ -1862,6 +1864,34 @@
     "alignment": {
       "type": "string",
       "enum": ["topLeft", "topCenter", "topRight", "centerLeft", "center", "centerRight", "bottomLeft", "bottomCenter", "bottomRight"]
+    },
+    "inputValidator": {
+      "type": "object",
+      "properties": {
+        "validator": {
+          "type": "object",
+          "properties": {
+            "minLength": {
+              "type": "integer",
+              "description": "The minimum number of characters",
+              "minimum": 0
+            },
+            "maxLength": {
+              "type": "integer",
+              "description": "The maximum number of characters",
+              "minimum": 0
+            },
+            "regex": {
+              "type": "string",
+              "description": "The Regular Expression the input will need to match"
+            },
+            "regexError": {
+              "type": "string",
+              "description": "The customized error message to show when the input does not match the provided regex."
+            }
+          }
+        }
+      }
     }
 
 

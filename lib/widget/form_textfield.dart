@@ -8,6 +8,8 @@ import 'package:ensemble/widget/form_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:email_validator/email_validator.dart';
+import 'package:ensemble/framework/model.dart' as model;
+import 'package:form_validator/form_validator.dart';
 
 /// TextInput
 class TextInput extends BaseTextInput {
@@ -81,6 +83,7 @@ abstract class BaseTextInput extends StatefulWidget with Invokable, HasControlle
     return {
       'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this),
       'borderRadius': (value) => _controller.borderRadius = Utils.optionalInt(value),
+      'validator': (value) => _controller.validator = Utils.getValidator(value),
     };
   }
 
@@ -103,6 +106,8 @@ class TextInputController extends FormFieldController {
 
   // applicable only for TextInput
   bool? obscureText;
+
+  model.InputValidator? validator;
   String? inputType;
   int? borderRadius;
 }
@@ -169,11 +174,8 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
     return TextFormField(
       key: validatorKey,
       validator: (value) {
-        if (widget._controller.required) {
-          if (value == null || value.isEmpty) {
-            //eturn AppLocalizations.of(context)!.widget_form_required;
-            return "This field is required";
-          }
+        if (value == null || value.isEmpty) {
+          return widget._controller.required ? "This field is required" : null;
         }
         // only applicable for TextInput
         if (!widget.isPassword() && value != null) {
@@ -189,6 +191,24 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
             if (!InputValidator.phone(value)) {
               return "Please enter a valid Phone Number";
             }
+          }
+        }
+        if (widget._controller.validator != null) {
+          ValidationBuilder? builder;
+          if (widget._controller.validator?.minLength != null) {
+            builder = ValidationBuilder().minLength(widget._controller.validator!.minLength!);
+          }
+          if (widget._controller.validator?.maxLength != null) {
+            builder = (builder ?? ValidationBuilder()).maxLength(widget._controller.validator!.maxLength!);
+          }
+          if (widget._controller.validator?.regex != null) {
+            builder = (builder ?? ValidationBuilder()).regExp(
+              RegExp(widget._controller.validator!.regex!),
+              widget._controller.validator!.regexError ?? 'This field has invalid value'
+            );
+          }
+          if (builder != null) {
+            return builder.build().call(value);
           }
         }
         return null;
