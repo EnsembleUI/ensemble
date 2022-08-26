@@ -27,3 +27,13 @@ class BackgroundImage {
   }
 
 }
+
+/// validator for Input widgets
+class InputValidator {
+  InputValidator({this.minLength, this.maxLength, this.regex, this.regexError});
+
+  int? minLength;
+  int? maxLength;
+  String? regex;
+  String? regexError;
+}
