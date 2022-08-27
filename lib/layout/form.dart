@@ -3,6 +3,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/layout_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/button.dart';
+import 'package:ensemble/widget/ensemble_icon.dart';
 import 'package:ensemble/widget/form_helper.dart';
 import 'package:ensemble/widget/widget_util.dart' as util;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -165,8 +166,10 @@ class FormState extends WidgetState<EnsembleForm> {
           !inExcludedList(child.controller as WidgetController) &&
           (child.controller as WidgetController).label != null) {
         children.add(GridPlacement(child:
-          stretchAndVerticallyAlignLabel((child.controller as WidgetController).label!)
-        ));
+          stretchAndVerticallyAlignLabel(
+              (child.controller as WidgetController).label!,
+              (child.controller as WidgetController).labelHint
+        )));
         hasAtLeastOneLabel = true;
       } else {
         children.add(const GridPlacement(child: SizedBox.shrink()));
@@ -203,20 +206,44 @@ class FormState extends WidgetState<EnsembleForm> {
 
   }
 
-  Widget stretchAndVerticallyAlignLabel(String label) {
+  Widget stretchAndVerticallyAlignLabel(String label, String? labelHint) {
     util.TextOverflow textOverflow = util.TextOverflow.from(widget._controller.labelOverflow);
+
+    Widget labelWidget = Text(
+      Utils.translate(label, context),
+      overflow: textOverflow.overflow,
+      maxLines: textOverflow.maxLine,
+      softWrap: textOverflow.softWrap,
+    );
+    // if label has hint, overlay the hint icon to its right, but still
+    // keep the label sizing so all the text properties still work
+    if (labelHint != null) {
+      labelWidget = Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(right: 20),
+            child: labelWidget
+          ),
+          flutter.Positioned(
+            right: 0,
+            child: Tooltip(
+              triggerMode: TooltipTriggerMode.tap,
+              message: labelHint,
+              preferBelow: true,
+              child: const Icon(Icons.info_outline, size: 18),
+              showDuration: const Duration(seconds: 5),
+            )
+          )
+        ],
+      );
+    }
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Expanded(child: Align(
           alignment: Alignment.centerLeft,
-          child: Text(
-            Utils.translate(label, context),
-            overflow: textOverflow.overflow,
-            maxLines: textOverflow.maxLine,
-            softWrap: textOverflow.softWrap,
-          )
+          child: labelWidget
         ))
       ]
     );
