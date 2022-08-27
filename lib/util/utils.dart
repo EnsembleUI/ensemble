@@ -119,6 +119,18 @@ class Utils {
     }
     return null;
   }
+  static InputValidator? getValidator(dynamic value) {
+    if (value is Map) {
+      int? minLength = Utils.optionalInt(value['minLength']);
+      int? maxLength = Utils.optionalInt(value['maxLength']);
+      String? regex = Utils.optionalString(value['regex']);
+      String? regexError = Utils.optionalString(value['regexError']);
+      if (minLength != null || maxLength != null || regex != null) {
+        return InputValidator(minLength: minLength, maxLength: maxLength, regex: regex, regexError: regexError);
+      }
+    }
+    return null;
+  }
 
   static DateTime? getDate(dynamic value) {
     return InvokablePrimitive.parseDateTime(value);
