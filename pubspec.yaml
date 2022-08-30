@@ -62,6 +62,9 @@ dependencies:
   fluttertoast: ^8.0.9
   video_player: ^2.4.5
   lottie: ^1.4.1
+  js_widget:
+    git: https://github.com/EnsembleUI/js_widget.git
+    #path: ../js_widget
 
 
 dev_dependencies:
