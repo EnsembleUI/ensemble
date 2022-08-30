@@ -1,5 +1,5 @@
 {
-  "$id": "https://ensembleui.com/language.schema.json",
+  "$id": "https://raw.githubusercontent.com/EnsembleUI/ensemble/cb2653724e2a01320377743a3e939ea497db5a9d/assets/schema/ensemble_schema.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Ensemble",
   "type": "object",
