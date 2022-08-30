@@ -29,6 +29,7 @@ import 'package:ensemble/widget/signature.dart';
 import 'package:ensemble/widget/spacer.dart';
 import 'package:ensemble/widget/video.dart';
 import 'package:ensemble/widget/visualization/barchart.dart';
+import 'package:ensemble/widget/visualization/chart_js.dart';
 import 'package:ensemble/widget/visualization/line_area_chart.dart';
 import 'package:ensemble/widget/webview.dart';
 import 'package:ensemble/widget/widget_builder.dart';
@@ -87,6 +88,7 @@ class WidgetRegistry {
     Highcharts.type: () => Highcharts(),
     EnsembleLineChart.type: () => EnsembleLineChart(),
     EnsembleBarChart.type: () => EnsembleBarChart(),
+    ChartJs.type: () => ChartJs()
   };
 
   @Deprecated("Use widgetMap instead")
