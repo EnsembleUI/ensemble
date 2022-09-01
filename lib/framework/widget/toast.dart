@@ -1,4 +1,4 @@
-import 'package:ensemble/error_handling.dart';
+import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/ensemble_icon.dart';

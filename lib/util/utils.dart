@@ -1,4 +1,4 @@
-import 'package:ensemble/error_handling.dart';
+import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/model.dart';
