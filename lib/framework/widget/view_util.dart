@@ -1,6 +1,6 @@
 
 
-import 'package:ensemble/error_handling.dart';
+import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/custom_view.dart';
 import 'package:ensemble/framework/widget/view.dart';

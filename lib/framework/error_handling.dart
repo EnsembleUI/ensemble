@@ -1,3 +1,5 @@
+import 'package:jsparser/jsparser.dart';
+
 class ConfigError extends Error {
   ConfigError(this.error);
   final String error;
@@ -18,6 +20,24 @@ class LanguageError extends Error {
   String toString() {
     return 'Error: $error. ' + (recovery ?? '');
   }
+}
+
+class CodeError extends EnsembleError {
+  late String message;
+  CodeError(dynamic error) {
+    if (error is ParseError) {
+      message = "Code Error: ${error.message}.\n(Line ${error.line}. Position ${error.startOffset}-${error.endOffset}).";
+    } else {
+      message = "Code Error: ${error.toString()}";
+    }
+  }
+
+  @override
+  String toString() => message;
+
+}
+
+abstract class EnsembleError extends Error {
 }
 
 
