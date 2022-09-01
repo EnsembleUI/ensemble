@@ -44,6 +44,15 @@ class Flex extends BoxLayout {
   }
 
   @override
+  Map<String, Function> getters() {
+    Map<String, Function> entries = super.getters();
+    entries.addAll({
+      'direction': () => _controller.direction
+    });
+    return entries;
+  }
+
+  @override
   bool isVertical() {
     return _controller.direction != 'horizontal';
   }
