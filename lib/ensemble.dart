@@ -4,7 +4,7 @@ import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:ensemble/ensemble_theme.dart';
-import 'package:ensemble/error_handling.dart';
+import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/widget/view.dart';
@@ -130,8 +130,12 @@ class Ensemble {
   }
 
   /// initialize Ensemble with params (no config file)
-  Future initializeWithParams(DefinitionProvider provider) async {
+  Future initializeWithParams({
+    required DefinitionProvider provider,
+    Account? accountInfo
+  }) async {
     definitionProvider = provider;
+    account = accountInfo;
     await initAppBundle();
     return;
   }

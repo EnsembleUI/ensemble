@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'package:ensemble/framework/error_handling.dart';
+import 'package:jsparser/jsparser.dart';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:ensemble/ensemble.dart';
@@ -179,10 +181,14 @@ class DataContext {
         return JSInterpreter.fromCode(codeBlock, _contextMap).evaluate();
       }
     } catch (error) {
-      // show this error? it may be considered a normal condition as
-      // binding depending on API may not resolved until later e.g myAPI.value.prettyDateTime()
-      log("Error JS code block: $error");
-
+      /// not all JS errors are actual errors. API binding resolving to null
+      /// may be considered a normal condition as binding may not resolved
+      /// until later e.g myAPI.value.prettyDateTime()
+      FlutterError.reportError(FlutterErrorDetails(
+        exception: CodeError(error),
+        library: 'Javascript',
+        context: ErrorSummary('Javascript error'),
+      ));
       return null;
     }
   }
