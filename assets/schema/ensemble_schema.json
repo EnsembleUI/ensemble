@@ -1371,6 +1371,20 @@
             {
               "type": "object",
               "properties": {
+                "tabPosition": {
+                  "type": "string",
+                  "description": "How to lay out the Tab labels",
+                  "oneOf": [
+                    {
+                      "const": "start",
+                      "description": "Align the labels to the start of the container and scroll if necessary"
+                    },
+                    {
+                      "const": "stretch",
+                      "description": "Distribute the labels evenly across available container width. Labels will be cut off instead of scrolling"
+                    }
+                  ]
+                },
                 "tabPadding": {
                   "type": ["integer", "string"],
                   "description": "Padding for each tab labels with CSS-style value. Default: 0 30 0 0 (right padding only)"
