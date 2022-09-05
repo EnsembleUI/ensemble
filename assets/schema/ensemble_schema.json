@@ -1364,38 +1364,48 @@
       "type": "object",
       "properties": {
         "styles": {
-          "type": "object",
-          "properties": {
-            "tabFontSize": {
-              "type": "integer",
-              "description": "Font size for the tab text"
+          "allOf": [
+            {
+              "$ref": "#/$defs/styleMargin"
             },
-            "tabFontWeight": {
-              "$ref": "#/$defs/type-fontWeight",
-              "description": "Font weight for the tab text"
-            },
-            "tabBackgroundColor": {
-              "$ref": "#/$defs/typeColors",
-              "description": "The background color of the tab's navigation bar"
-            },
-            "activeTabColor": {
-              "$ref": "#/$defs/typeColors",
-              "description": "The color of the selected tab's text"
-            },
-            "inactiveTabColor": {
-              "$ref": "#/$defs/typeColors",
-              "description": "The color of the un-selected tabs' text"
-            },
-            "indicatorColor": {
-              "$ref": "#/$defs/typeColors",
-              "description": "The color of the selected tab's indicator"
-            },
-            "indicatorThickness": {
-              "type": "integer",
-              "description": "The thickness of the selected tab's indicator"
+            {
+              "type": "object",
+              "properties": {
+                "tabPadding": {
+                  "type": ["integer", "string"],
+                  "description": "Padding for each tab labels with CSS-style value. Default: 0 30 0 0 (right padding only)"
+                },
+                "tabFontSize": {
+                  "type": "integer",
+                  "description": "Font size for the tab text"
+                },
+                "tabFontWeight": {
+                  "$ref": "#/$defs/type-fontWeight",
+                  "description": "Font weight for the tab text"
+                },
+                "tabBackgroundColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "The background color of the tab's navigation bar"
+                },
+                "activeTabColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "The color of the selected tab's text"
+                },
+                "inactiveTabColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "The color of the un-selected tabs' text"
+                },
+                "indicatorColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "The color of the selected tab's indicator"
+                },
+                "indicatorThickness": {
+                  "type": "integer",
+                  "description": "The thickness of the selected tab's indicator"
+                }
+              }
             }
-          }
-
+          ]
         },
         "selectedIndex": {
           "type": "integer",
