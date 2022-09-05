@@ -32,6 +32,8 @@ class EnsembleTabBar extends StatefulWidget with Invokable, HasController<TabBar
   @override
   Map<String, Function> setters() {
     return {
+      'margin': (margin) => _controller.margin = Utils.optionalInsets(margin),
+      'tabPadding': (padding) => _controller.tabPadding = Utils.optionalInsets(padding),
       'tabFontSize': (fontSize) => _controller.tabFontSize = Utils.optionalInt(fontSize),
       'tabFontWeight': (fontWeight) => _controller.tabFontWeight = Utils.getFontWeight(fontWeight),
       'tabBackgroundColor': (bgColor) => _controller.tabBackgroundColor = Utils.getColor(bgColor),
@@ -48,6 +50,8 @@ class EnsembleTabBar extends StatefulWidget with Invokable, HasController<TabBar
 }
 
 class TabBarController extends WidgetController {
+  EdgeInsets? margin;
+  EdgeInsets? tabPadding;
   int? tabFontSize;
   FontWeight? tabFontWeight;
   Color? tabBackgroundColor;
@@ -92,7 +96,7 @@ class TabBarState extends WidgetState<EnsembleTabBar> with SingleTickerProviderS
       return const SizedBox.shrink();
     }
 
-    return Column(
+    Widget rtn = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         buildTabBar(),
@@ -105,6 +109,15 @@ class TabBarState extends WidgetState<EnsembleTabBar> with SingleTickerProviderS
         )
       ],
     );
+
+    if (widget._controller.margin != null) {
+      rtn = Padding(
+        padding: widget._controller.margin!,
+        child: rtn
+      );
+    }
+
+    return rtn;
   }
 
   /// build the Tab Bar navigation part
@@ -114,13 +127,22 @@ class TabBarState extends WidgetState<EnsembleTabBar> with SingleTickerProviderS
         fontWeight: widget._controller.tabFontWeight
     );
 
+    EdgeInsets labelPadding = widget._controller.tabPadding ?? const EdgeInsets.only(left: 0, right: 30, top: 0, bottom: 0);
+    // default indicator is finicky and doesn't line up when label has padding.
+    // Also we shouldn't allow vertical padding for indicator
+    EdgeInsets indicatorPadding = EdgeInsets.only(left: labelPadding.left, right: labelPadding.right);
+
     Widget tabBar = TabBar(
+      labelPadding: labelPadding,
+      indicator: UnderlineTabIndicator(
+        borderSide: BorderSide(
+            width: widget._controller.indicatorThickness?.toDouble() ?? 2,
+            color: widget._controller.indicatorColor ?? Theme.of(context).colorScheme.primary
+        ),
+        insets: indicatorPadding
+      ),
       controller: _tabController,
       isScrollable: true,         // collapse the label to the left
-      indicatorSize: TabBarIndicatorSize.label,
-      indicatorWeight: widget._controller.indicatorThickness?.toDouble() ?? 2,
-      indicatorColor: widget._controller.indicatorColor ?? Theme.of(context).colorScheme.primary,
-
       labelStyle: tabStyle,
       labelColor: widget._controller.activeTabColor ?? Theme.of(context).colorScheme.primary,
       unselectedLabelColor: widget._controller.inactiveTabColor ?? Colors.black87,
