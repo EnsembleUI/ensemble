@@ -32,6 +32,7 @@ class EnsembleTabBar extends StatefulWidget with Invokable, HasController<TabBar
   @override
   Map<String, Function> setters() {
     return {
+      'tabPosition': (position) => _controller.tabPosition = Utils.optionalString(position),
       'margin': (margin) => _controller.margin = Utils.optionalInsets(margin),
       'tabPadding': (padding) => _controller.tabPadding = Utils.optionalInsets(padding),
       'tabFontSize': (fontSize) => _controller.tabFontSize = Utils.optionalInt(fontSize),
@@ -50,6 +51,7 @@ class EnsembleTabBar extends StatefulWidget with Invokable, HasController<TabBar
 }
 
 class TabBarController extends WidgetController {
+  String? tabPosition;
   EdgeInsets? margin;
   EdgeInsets? tabPadding;
   int? tabFontSize;
@@ -132,7 +134,12 @@ class TabBarState extends WidgetState<EnsembleTabBar> with SingleTickerProviderS
     // Also we shouldn't allow vertical padding for indicator
     EdgeInsets indicatorPadding = EdgeInsets.only(left: labelPadding.left, right: labelPadding.right);
 
+    // TODO: center-align labels in its compact form
+    // Only stretch or left-align currently
+    bool labelPosition = widget._controller.tabPosition == 'stretch' ? false : true;
+
     Widget tabBar = TabBar(
+
       labelPadding: labelPadding,
       indicator: UnderlineTabIndicator(
         borderSide: BorderSide(
@@ -142,7 +149,7 @@ class TabBarState extends WidgetState<EnsembleTabBar> with SingleTickerProviderS
         insets: indicatorPadding
       ),
       controller: _tabController,
-      isScrollable: true,         // collapse the label to the left
+      isScrollable: labelPosition,
       labelStyle: tabStyle,
       labelColor: widget._controller.activeTabColor ?? Theme.of(context).colorScheme.primary,
       unselectedLabelColor: widget._controller.inactiveTabColor ?? Colors.black87,
