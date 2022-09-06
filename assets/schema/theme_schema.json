@@ -4,6 +4,26 @@
   "title": "Theme",
   "type": "object",
   "properties": {
+    "Text": {
+      "type": "object",
+      "properties": {
+        "displayLarge": { "$ref":  "#/$defs/TextStyle" },
+        "displayMedium": { "$ref":  "#/$defs/TextStyle" },
+        "displaySmall": { "$ref":  "#/$defs/TextStyle" },
+        "headlineLarge": { "$ref":  "#/$defs/TextStyle" },
+        "headlineMedium": { "$ref":  "#/$defs/TextStyle" },
+        "headlineSmall": { "$ref":  "#/$defs/TextStyle" },
+        "titleLarge": { "$ref":  "#/$defs/TextStyle" },
+        "titleMedium": { "$ref":  "#/$defs/TextStyle" },
+        "titleSmall": { "$ref":  "#/$defs/TextStyle" },
+        "bodyLarge": { "$ref":  "#/$defs/TextStyle" },
+        "bodyMedium": { "$ref":  "#/$defs/TextStyle" },
+        "bodySmall": { "$ref":  "#/$defs/TextStyle" },
+        "labelLarge": { "$ref":  "#/$defs/TextStyle" },
+        "labelMedium": { "$ref":  "#/$defs/TextStyle" },
+        "labelSmall": { "$ref":  "#/$defs/TextStyle" }
+      }
+    },
     "Colors": {
       "type": "object",
       "properties": {
@@ -38,6 +58,17 @@
     }
   },
   "$defs": {
+    "TextStyle": {
+      "type": "object",
+      "properties": {
+        "fontSize": {
+          "type": "integer"
+        },
+        "color": {
+          "$ref": "#/$defs/Color"
+        }
+      }
+    },
     "Color": {
       "anyOf": [
         {

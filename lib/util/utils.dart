@@ -372,6 +372,39 @@ class Utils {
     return null;
   }
 
+  static TextStyle? getTextStyle(dynamic textStyle) {
+    if (textStyle is YamlMap) {
+      int? fontSize = Utils.optionalInt(textStyle['fontSize'], min: 1, max: 100);
+      Color? color = Utils.getColor(textStyle['color']);
+
+      TextDecoration? decoration;
+      switch(textStyle['decoration']) {
+        case 'underline':
+          decoration = TextDecoration.underline;
+          break;
+        case 'overline':
+          decoration = TextDecoration.overline;
+          break;
+        case 'lineThrough':
+          decoration = TextDecoration.lineThrough;
+          break;
+        case 'none':
+          decoration = TextDecoration.none;
+          break;
+      }
+
+      if (fontSize != null || color != null) {
+        return TextStyle(
+          fontSize: fontSize?.toDouble(),
+          color: color,
+          decoration: decoration,
+        );
+      }
+    }
+    return null;
+  }
+
+
   /// return the padding/margin value
   static EdgeInsets getInsets(dynamic value, {EdgeInsets? fallback}) {
     return optionalInsets(value) ?? fallback ?? const EdgeInsets.all(0);

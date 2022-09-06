@@ -37,6 +37,14 @@ class CodeError extends EnsembleError {
 
 }
 
+class RuntimeError extends EnsembleError {
+  String message;
+  RuntimeError(this.message);
+
+  @override
+  String toString() => "Runtime Error: $message";
+}
+
 abstract class EnsembleError extends Error {
 }
 
