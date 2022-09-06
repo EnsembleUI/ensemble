@@ -169,6 +169,19 @@ void main() {
     expect(context.eval(r'${result.currency_3.prettyCurrency()}'), '\$25.30');
   });
 
+  test('now', ()
+  {
+    UserDateTime userDT = MockUserDateTime("2022-09-06T13:05:00");
+    expect(userDT.getMethods()['getYear']!.call(), 2022);
+    expect(userDT.getMethods()['getMonth']!.call(), 9);
+    expect(userDT.getMethods()['getDay']!.call(), 6);
+    expect(userDT.getMethods()['getDayOfWeek']!.call(), 2);   // Tuesday = 2
+    expect(userDT.getMethods()['getHour']!.call(), 13);
+    expect(userDT.getMethods()['getMinute']!.call(), 5);
+    expect(userDT.getMethods()['getSecond']!.call(), 0);
+  });
+
+
 }
 
 class EnsembleMockLibrary with Invokable {
@@ -217,6 +230,14 @@ class MockStorage with Invokable {
     return {};
   }
 
+}
+
+class MockUserDateTime extends UserDateTime {
+  String input;
+  MockUserDateTime(this.input);
+
+  @override
+  DateTime get dateTime => DateTime.parse(input);
 }
 
 class MockBuildContext extends Mock implements BuildContext {}
