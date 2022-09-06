@@ -344,7 +344,6 @@ class DeviceWebInfo with Invokable {
   }
 }
 
-
 /// built-in helpers/utils accessible to all DataContext
 class NativeInvokable with Invokable {
   final BuildContext _buildContext;
@@ -453,6 +452,7 @@ class Formatter with Invokable {
   Map<String, Function> methods() {
     Locale locale = Localizations.localeOf(_buildContext);
     return {
+      'now': () => UserDateTime(),
       'prettyDate': (input) => InvokablePrimitive.prettyDate(input),
       'prettyDateTime': (input) => InvokablePrimitive.prettyDateTime(input),
       'prettyCurrency': (input) => InvokablePrimitive.prettyCurrency(input),
@@ -463,6 +463,35 @@ class Formatter with Invokable {
   @override
   Map<String, Function> setters() {
     return {};
+  }
+
+}
+
+class UserDateTime with Invokable {
+  DateTime? _dateTime;
+  DateTime get dateTime => _dateTime ??= DateTime.now();
+
+  @override
+  Map<String, Function> getters() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {
+      'getMonth': () => dateTime.month,
+      'getDay': () => dateTime.day,
+      'getDayOfWeek': () => dateTime.weekday,
+      'getYear': () => dateTime.year,
+      'getHour': () => dateTime.hour,
+      'getMinute': () => dateTime.minute,
+      'getSecond': () => dateTime.second,
+    };
+  }
+
+  @override
+  Map<String, Function> setters() {
+  return {};
   }
 
 }
