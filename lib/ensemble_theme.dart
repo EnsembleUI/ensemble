@@ -27,6 +27,8 @@ class EnsembleTheme {
         primaryColor: colorScheme.primary
       ),
 
+      textTheme: _buildTextTheme(overrides?['Text']),
+
       //switchTheme: buildSwitchTheme(overrides?['Widgets']?['Switch']),
 
       // button themes
@@ -90,7 +92,25 @@ class EnsembleTheme {
 
 
 
-
+  static TextTheme _buildTextTheme(YamlMap? textTheme) {
+    return ThemeData.light().textTheme.copyWith(
+      displayLarge: Utils.getTextStyle(textTheme?['displayLarge']),
+      displayMedium: Utils.getTextStyle(textTheme?['displayMedium']),
+      displaySmall: Utils.getTextStyle(textTheme?['displaySmall']),
+      headlineLarge: Utils.getTextStyle(textTheme?['headlineLarge']),
+      headlineMedium: Utils.getTextStyle(textTheme?['headlineMedium']),
+      headlineSmall: Utils.getTextStyle(textTheme?['headlineSmall']),
+      titleLarge: Utils.getTextStyle(textTheme?['titleLarge']),
+      titleMedium: Utils.getTextStyle(textTheme?['titleMedium']),
+      titleSmall: Utils.getTextStyle(textTheme?['titleSmall']),
+      bodyLarge: Utils.getTextStyle(textTheme?['bodyLarge']),
+      bodyMedium: Utils.getTextStyle(textTheme?['bodyMedium']),
+      bodySmall: Utils.getTextStyle(textTheme?['bodySmall']),
+      labelLarge: Utils.getTextStyle(textTheme?['labelLarge']),
+      labelMedium: Utils.getTextStyle(textTheme?['labelMedium']),
+      labelSmall: Utils.getTextStyle(textTheme?['labelSmall']),
+    );
+  }
 
 
 
@@ -312,7 +332,7 @@ class EnsembleTheme {
   );
 
 
-  static TextTheme _buildTextTheme(TextTheme base) {
+  static TextTheme _buildTextThemeOld(TextTheme base) {
     const String fontName = 'WorkSans';
     return base.copyWith(
       headline1: base.headline1?.copyWith(fontFamily: fontName),
@@ -354,9 +374,9 @@ class EnsembleTheme {
         colorScheme: colorScheme,
         textTheme: ButtonTextTheme.primary,
       ),
-      textTheme: _buildTextTheme(base.textTheme),
-      primaryTextTheme: _buildTextTheme(base.primaryTextTheme),
-      //accentTextTheme: _buildTextTheme(base.accentTextTheme),
+      textTheme: _buildTextThemeOld(base.textTheme),
+      primaryTextTheme: _buildTextThemeOld(base.primaryTextTheme),
+      //accentTextTheme: _buildTextThemeOld(base.accentTextTheme),
       platform: TargetPlatform.iOS,
     );
   }

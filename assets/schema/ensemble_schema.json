@@ -231,6 +231,37 @@
         }
       }
     },
+    "RichText-payload": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "Your text in markdown format"
+        },
+        "styles": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "textStyle": {
+                  "type": "object",
+                  "description": "Styling for regular text. Default to theme's bodyMedium styling",
+                  "$ref": "#/$defs/TextStyle"
+                },
+                "linkStyle": {
+                  "type": "object",
+                  "description": "Styling for URL",
+                  "$ref": "#/$defs/TextStyle"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
     "Icon-payload": {
       "type": "object",
       "required": ["icon"],
@@ -1249,6 +1280,7 @@
       "type": ["object", "string"],
       "properties": {
         "Text": { "$ref": "#/$defs/Text-payload" },
+        "RichText": { "$ref": "#/$defs/RichText-payload" },
         "Icon": { "$ref": "#/$defs/Icon-payload" },
         "Image": { "$ref": "#/$defs/Image-payload" },
         "Lottie": { "$ref": "#/$defs/Lottie-payload" },
@@ -1918,6 +1950,21 @@
               "description": "The customized error message to show when the input does not match the provided regex."
             }
           }
+        }
+      }
+    },
+    "TextStyle": {
+      "type": "object",
+      "properties": {
+        "fontSize": {
+          "type": "integer"
+        },
+        "color": {
+          "$ref": "#/$defs/typeColors"
+        },
+        "decoration": {
+          "type": "string",
+          "enum": ["none", "lineThrough", "underline", "overline"]
         }
       }
     }

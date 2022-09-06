@@ -64,7 +64,8 @@ dependencies:
   lottie: ^1.4.1
   js_widget:
     git: https://github.com/EnsembleUI/js_widget.git
-    #path: ../js_widget
+  flutter_markdown: ^0.6.10+5
+  url_launcher: ^6.1.5
 
 
 dev_dependencies:
