@@ -22,10 +22,10 @@ import 'package:ensemble/widget/form_time.dart';
 import 'package:ensemble/widget/image.dart';
 import 'package:ensemble/widget/lottie.dart';
 import 'package:ensemble/widget/map.dart';
+import 'package:ensemble/widget/markdown.dart';
 import 'package:ensemble/widget/progress_indicator.dart';
 import 'package:ensemble/widget/qr_code.dart';
 import 'package:ensemble/widget/rating.dart';
-import 'package:ensemble/widget/rich_text.dart';
 import 'package:ensemble/widget/signature.dart';
 import 'package:ensemble/widget/spacer.dart';
 import 'package:ensemble/widget/video.dart';
@@ -47,7 +47,7 @@ class WidgetRegistry {
 
   static Map<String, Function> get widgetMap => <String, Function> {
     ensemble.Text.type: () => ensemble.Text(),
-    RichText.type: () => RichText(),
+    Markdown.type: () => Markdown(),
     EnsembleIcon.type: () => EnsembleIcon(),
     EnsembleImage.type: () => EnsembleImage(),
     EnsembleDivider.type: () => EnsembleDivider(),

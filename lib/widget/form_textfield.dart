@@ -81,6 +81,7 @@ abstract class BaseTextInput extends StatefulWidget with Invokable, HasControlle
   Map<String, Function> setters() {
     // set value is not specified here for safety in case of PasswordInput
     return {
+      'onKeyPress': (function) => _controller.onKeyPress = Utils.getAction(function, initiator: this),
       'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this),
       'borderRadius': (value) => _controller.borderRadius = Utils.optionalInt(value),
       'validator': (value) => _controller.validator = Utils.getValidator(value),
@@ -103,6 +104,7 @@ abstract class BaseTextInput extends StatefulWidget with Invokable, HasControlle
 /// controller for both TextField and Password
 class TextInputController extends FormFieldController {
   EnsembleAction? onChange;
+  EnsembleAction? onKeyPress;
 
   // applicable only for TextInput
   bool? obscureText;
@@ -221,11 +223,17 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
       focusNode: focusNode,
       enabled: isEnabled(),
       onChanged: (String txt) {
-        // for performance reason, we dispatch onChange (as well as binding to value)
-        // upon EditingComplete (select Done on virtual keyboard) or Focus Out
         if (txt != previousText) {
+          // for performance reason, we dispatch onChange (as well as binding to value)
+          // upon EditingComplete (select Done on virtual keyboard) or Focus Out
           didItChange = true;
           previousText = txt;
+
+          // we dispatch onKeyPress here
+          if (widget._controller.onKeyPress != null) {
+            ScreenController().executeAction(context, widget._controller.onKeyPress!);
+          }
+
         }
       },
       onEditingComplete: () {
