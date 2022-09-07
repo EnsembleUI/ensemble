@@ -231,7 +231,7 @@
         }
       }
     },
-    "RichText-payload": {
+    "Markdown-payload": {
       "type": "object",
       "properties": {
         "text": {
@@ -573,6 +573,7 @@
         {
           "type": "object",
           "properties": {
+            "onKeyPress": { "$ref": "#/$defs/Action-payload" },
             "value": {
               "type": "string",
               "description": "Specifying the value of your Text Input"
@@ -606,6 +607,7 @@
         {
           "type": "object",
           "properties": {
+            "onKeyPress": { "$ref": "#/$defs/Action-payload" },
             "styles": {
               "type": "object",
               "properties": {
@@ -1280,7 +1282,7 @@
       "type": ["object", "string"],
       "properties": {
         "Text": { "$ref": "#/$defs/Text-payload" },
-        "RichText": { "$ref": "#/$defs/RichText-payload" },
+        "Markdown": { "$ref": "#/$defs/Markdown-payload" },
         "Icon": { "$ref": "#/$defs/Icon-payload" },
         "Image": { "$ref": "#/$defs/Image-payload" },
         "Lottie": { "$ref": "#/$defs/Lottie-payload" },

@@ -8,16 +8,16 @@ import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 
-class RichText extends StatefulWidget with Invokable, HasController<RichTextController, RichTextState> {
-  static const type = 'RichText';
-  RichText({Key? key}) : super(key: key);
+class Markdown extends StatefulWidget with Invokable, HasController<MarkdownController, MarkdownState> {
+  static const type = 'Markdown';
+  Markdown({Key? key}) : super(key: key);
 
-  final RichTextController _controller = RichTextController();
+  final MarkdownController _controller = MarkdownController();
   @override
-  RichTextController get controller => _controller;
+  MarkdownController get controller => _controller;
 
   @override
-  RichTextState createState() => RichTextState();
+  MarkdownState createState() => MarkdownState();
 
 
   @override
@@ -47,7 +47,7 @@ class RichText extends StatefulWidget with Invokable, HasController<RichTextCont
 }
 
 
-class RichTextController extends framework.WidgetController {
+class MarkdownController extends framework.WidgetController {
   String? text;
 
   TextStyle? textStyle;
@@ -56,7 +56,7 @@ class RichTextController extends framework.WidgetController {
 }
 
 
-class RichTextState extends framework.WidgetState<RichText> {
+class MarkdownState extends framework.WidgetState<Markdown> {
   @override
   Widget build(BuildContext context) {
     if (!widget._controller.visible) {
