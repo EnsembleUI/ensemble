@@ -144,22 +144,24 @@
   },
   "additionalProperties": {
     "type": "object",
-    "required": ["type"],
-    "properties": {
-      "inputs": {
-        "type": "array",
-        "description": "The Input Parameters to pass into this Custom View"
+    "description": "Defining a Custom Widget",
+    "allOf": [
+      {
+        "$ref": "#/$defs/Widget"
       },
-      "type": {
-        "type": "string",
-        "description": "The root widget of your Custom View"
-      },
-      "onLoad": {
-        "$ref": "#/$defs/Action-payload",
-        "description": "Execute an Action when this View loads"
+      {
+        "properties": {
+          "inputs": {
+            "type": "array",
+            "description": "Define the list of input names that this Custom Widget accepts."
+          },
+          "onLoad": {
+            "$ref": "#/$defs/Action-payload",
+            "description": "Execute an Action when this Custom Widget loads"
+          }
+        }
       }
-    }
-
+    ]
   },
 
 
@@ -1280,36 +1282,148 @@
     },
     "Widget": {
       "type": ["object", "string"],
-      "properties": {
-        "Text": { "$ref": "#/$defs/Text-payload" },
-        "Markdown": { "$ref": "#/$defs/Markdown-payload" },
-        "Icon": { "$ref": "#/$defs/Icon-payload" },
-        "Image": { "$ref": "#/$defs/Image-payload" },
-        "Lottie": { "$ref": "#/$defs/Lottie-payload" },
-        "QRCode": { "$ref": "#/$defs/QRCode-payload" },
-        "Progress": { "$ref": "#/$defs/Progress-payload" },
-        "Divider": { "$ref": "#/$defs/Divider-payload" },
-        "Spacer": { "$ref": "#/$defs/Spacer-payload" },
-        "TextInput": { "$ref": "#/$defs/TextInput-payload" },
-        "PasswordInput": { "$ref": "#/$defs/PasswordInput-payload" },
-        "Checkbox": { "$ref": "#/$defs/OnOff-payload" },
-        "Switch": { "$ref": "#/$defs/OnOff-payload" },
-        "Dropdown": { "$ref": "#/$defs/SelectOne-payload" },
-        "Date": { "$ref": "#/$defs/Date-payload" },
-        "Time": { "$ref": "#/$defs/Time-payload" },
-        "Button": { "$ref": "#/$defs/Button-payload" },
-        "Form": { "$ref": "#/$defs/Form-payload" },
-        "Flow": { "$ref": "#/$defs/Flow-payload" },
-        "Column": { "$ref": "#/$defs/Column-payload" },
-        "Row": { "$ref": "#/$defs/Row-payload" },
-        "Flex": { "$ref": "#/$defs/Flex-payload" },
-        "Stack": { "$ref": "#/$defs/Stack-payload" },
-        "Carousel": { "$ref": "#/$defs/Carousel-payload" },
-        "TabBar": { "$ref": "#/$defs/TabBar-payload" },
-        "Map": { "$ref": "#/$defs/Map-payload" },
-        "Video": { "$ref": "#/$defs/Video-payload" },
-        "WebView": { "$ref": "#/$defs/WebView-payload" }
-      }
+      "oneOf": [
+        {
+          "properties": {
+            "Text": { "$ref": "#/$defs/Text-payload" }
+          }
+        },
+        {
+          "properties": {
+            "Markdown": { "$ref": "#/$defs/Markdown-payload" }
+          }
+        },
+        {
+          "properties": {
+            "Icon": { "$ref": "#/$defs/Icon-payload" }
+          }
+        },
+        {
+          "properties": {
+            "Image": { "$ref": "#/$defs/Image-payload" }
+          }
+        },
+        {
+          "properties": {
+            "Lottie": { "$ref": "#/$defs/Lottie-payload" }
+          }
+        },
+        {
+          "properties": {
+            "QRCode": { "$ref": "#/$defs/QRCode-payload" }
+          }
+        },
+        {
+          "properties": {
+            "Progress": { "$ref": "#/$defs/Progress-payload" }
+          }
+        },
+        {
+          "properties": {
+            "Divider": { "$ref": "#/$defs/Divider-payload" }
+          }
+        },
+        {
+          "properties": {
+            "Spacer": { "$ref": "#/$defs/Spacer-payload" }
+          }
+        },
+        {
+          "properties": {
+            "TextInput": { "$ref": "#/$defs/TextInput-payload" }
+          }
+        },
+        {
+          "properties": {
+            "PasswordInput": { "$ref": "#/$defs/PasswordInput-payload" }
+          }
+        },
+        {
+          "properties": {
+            "Checkbox": { "$ref": "#/$defs/OnOff-payload" }
+          }
+        },
+        {
+          "properties": {
+            "Switch": { "$ref": "#/$defs/OnOff-payload" }
+          }
+        },
+        {
+          "properties": {
+            "Dropdown": { "$ref": "#/$defs/SelectOne-payload" }
+          }
+        },
+        {
+          "properties": {
+            "Date": { "$ref": "#/$defs/Date-payload" }
+          }
+        },
+        {
+          "properties": {
+            "Time": { "$ref": "#/$defs/Time-payload" }
+          }
+        },
+        {
+          "properties": {
+            "Button": { "$ref": "#/$defs/Button-payload" }
+          }
+        },
+        {
+          "properties": {
+            "Form": { "$ref": "#/$defs/Form-payload" }
+          }
+        },
+        {
+          "properties": {
+            "Flow": { "$ref": "#/$defs/Flow-payload" }
+          }
+        },
+        {
+          "properties": {
+            "Column": { "$ref": "#/$defs/Column-payload" }
+          }
+        },
+        {
+          "properties": {
+            "Row": { "$ref": "#/$defs/Row-payload" }
+          }
+        },
+        {
+          "properties": {
+            "Flex": { "$ref": "#/$defs/Flex-payload" }
+          }
+        },
+        {
+          "properties": {
+            "Stack": { "$ref": "#/$defs/Stack-payload" }
+          }
+        },
+        {
+          "properties": {
+            "Carousel": { "$ref": "#/$defs/Carousel-payload" }
+          }
+        },
+        {
+          "properties": {
+            "TabBar": { "$ref": "#/$defs/TabBar-payload" }
+          }
+        },
+        {
+          "properties": {
+            "Map": { "$ref": "#/$defs/Map-payload" }
+          }
+        },
+        {
+          "properties": {
+            "Video": { "$ref": "#/$defs/Video-payload" }
+          }
+        },
+        {
+          "properties": {
+            "WebView": { "$ref": "#/$defs/WebView-payload" }
+          }
+        }
+      ]
     },
     "Menu": {
       "type": "object",
