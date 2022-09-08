@@ -10,88 +10,33 @@
     "View": {
       "type": "object",
       "description": "This is your root View",
-      "required": [
-        "type"
-      ],
-      "properties": {
-        "type": {
-          "type": "string",
-          "description": "Specifies the root widget i.e. Column, Row, Flex, Stack.",
-          "enum": [
-            "Column",
-            "Row",
-            "Flex"
-          ]
-        },
-        "onLoad": {
-          "$ref": "#/$defs/Action-payload",
-          "description": "Execute an Action when this View loads"
-        },
-        "menu": {
-          "$ref": "#/$defs/Menu"
-        },
-        "children": {
-          "$ref": "#/$defs/Widgets"
-        }
-      },
       "allOf": [
         {
-          "if": {
-            "properties": {
-              "type": {
-                "const": "Column"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "styles": {
-                "allOf": [
-                  { "$ref": "#/$defs/backgroundImage" },
-                  { "$ref": "#/$defs/safeArea" },
-                  { "$ref": "#/$defs/columnStyles" }
-                ]
-              }
-            }
-          }
+          "$ref": "#/$defs/RootWidget"
         },
         {
-          "if": {
-            "properties": {
-              "type": {
-                "const": "Row"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "styles": {
-                "allOf": [
-                  { "$ref": "#/$defs/backgroundImage" },
-                  { "$ref": "#/$defs/safeArea" },
-                  { "$ref": "#/$defs/rowStyles" }
-                ]
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "type": {
-                "const": "Flex"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "styles": {
-                "allOf": [
-                  { "$ref": "#/$defs/backgroundImage" },
-                  { "$ref": "#/$defs/safeArea" },
-                  { "$ref": "#/$defs/flexStyles" }
-                ]
-              }
+          "properties": {
+            "onLoad": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Execute an Action when the page loads"
+            },
+            "menu": {
+              "$ref": "#/$defs/Menu"
+            },
+            "styles": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/backgroundImage"
+                },
+                {
+                  "properties": {
+                    "ignoreSafeArea": {
+                      "type": "boolean",
+                      "description": "Whether to ignore the Safe Area (top only) and use the entire screen height. (default is false)"
+                    }
+                  }
+                }
+              ]
             }
           }
         }
@@ -1280,6 +1225,31 @@
       "description": "List of child widgets",
       "items": { "$ref": "#/$defs/Widget" }
     },
+    "RootWidget": {
+      "type": ["object", "string"],
+      "oneOf": [
+        {
+          "properties": {
+            "Column": { "$ref": "#/$defs/Column-payload" }
+          }
+        },
+        {
+          "properties": {
+            "Row": { "$ref": "#/$defs/Row-payload" }
+          }
+        },
+        {
+          "properties": {
+            "Flex": { "$ref": "#/$defs/Flex-payload" }
+          }
+        },
+        {
+          "properties": {
+            "Stack": { "$ref": "#/$defs/Stack-payload" }
+          }
+        }
+      ]
+    },
     "Widget": {
       "type": ["object", "string"],
       "oneOf": [
@@ -2025,15 +1995,6 @@
             },
             "alignment": { "$ref": "#/$defs/alignment" }
           }
-        }
-      }
-    },
-    "safeArea": {
-      "type": "object",
-      "properties": {
-        "ignoreSafeArea": {
-          "type": "boolean",
-          "description": "Whether to ignore the Safe Area (top only) and use the entire screen height. (default is false)"
         }
       }
     },
