@@ -450,7 +450,13 @@ class Formatter with Invokable {
 
   @override
   Map<String, Function> methods() {
-    Locale locale = Localizations.localeOf(_buildContext);
+    Locale? locale;
+    // locale might not exists if our screen has not been rendered yet
+    try {
+      locale = Localizations.localeOf(_buildContext);
+    } on Error catch (e) {
+      log("Locale does not exists yet");
+    }
     return {
       'now': () => UserDateTime(),
       'prettyDate': (input) => InvokablePrimitive.prettyDate(input),
