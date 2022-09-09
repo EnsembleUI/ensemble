@@ -1,6 +1,6 @@
 {
   "$id": "https://raw.githubusercontent.com/EnsembleUI/ensemble/cb2653724e2a01320377743a3e939ea497db5a9d/assets/schema/ensemble_schema.json",
-  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Ensemble",
   "type": "object",
   "properties": {
@@ -741,9 +741,9 @@
       }
     },
     "Flow-payload": {
+      "type": "object",
       "allOf": [
         {
-          "type": "object",
           "properties": {
             "styles": { "$ref": "#/$defs/flowStyles" },
             "children": { "$ref": "#/$defs/Widgets" },
@@ -758,9 +758,9 @@
       ]
     },
     "Column-payload": {
+      "type": "object",
       "allOf": [
         {
-          "type": "object",
           "properties": {
             "styles": { "$ref": "#/$defs/columnStyles" },
             "children": { "$ref": "#/$defs/Widgets" }
@@ -770,9 +770,9 @@
       ]
     },
     "Row-payload": {
+      "type": "object",
       "allOf": [
         {
-          "type": "object",
           "properties": {
             "styles": { "$ref": "#/$defs/rowStyles" },
             "children": { "$ref": "#/$defs/Widgets" }
@@ -782,9 +782,9 @@
       ]
     },
     "Flex-payload": {
+      "type": "object",
       "allOf": [
         {
-          "type": "object",
           "properties": {
             "styles": { "$ref": "#/$defs/flexStyles" },
             "children": { "$ref": "#/$defs/Widgets" }
@@ -794,6 +794,7 @@
       ]
     },
     "Stack-payload": {
+      "type": "object",
       "properties": {
         "children": {
           "$ref": "#/$defs/Widgets"
@@ -807,9 +808,9 @@
       }
     },
     "Carousel-payload": {
+      "type": "object",
       "allOf": [
         {
-          "type": "object",
           "properties": {
             "children": { "$ref": "#/$defs/Widgets" },
             "styles": {
@@ -944,18 +945,8 @@
       }
     },
     "Action-payload": {
+      "type": ["object", "string"],
       "description": "Call Ensemble's built-in functions or execute code",
-      "required": ["action"],
-      "defaultSnippets": [
-        {
-          "label": "Define an Action",
-          "body": "\n\taction: "
-        },
-        {
-          "label": "Write inline Javascript",
-          "body": "|-\n\t//@code\n\t"
-        }
-      ],
       "allOf": [
         {
           "properties": {
@@ -1247,7 +1238,7 @@
       "items": { "$ref": "#/$defs/Widget" }
     },
     "RootWidget": {
-      "type": ["object", "string"],
+      "type": "object",
       "oneOf": [
         {
           "properties": {
