@@ -59,6 +59,13 @@
       "description": "Javascript snippet for declaring variables and reusable functions, visible anywhere within this page"
     },
     "Global": {
+      "defaultSnippets": [
+        {
+          "label": "Define variables and functions in Javascript",
+          "body": "|-\n\t//@code\n\t"
+        }
+      ],
+      "markdownDescription": "Declare Javascript variables and functions that are visible globally within this page.  \n//@code  \n var myGlobalVar = 'hello';  \nfunction myGlobalFunc() {  \n  }"
 
     },
     "API": {
@@ -68,10 +75,11 @@
         "properties": {
           "inputs": {
             "type": "array",
-            "description": "The Input Parameters to pass into this API invocation"
+            "description": "Define the list of input names that this API accepts"
           },
           "uri": {
-            "type": "string"
+            "type": "string",
+            "description": "The URL for this API"
           },
           "method":{
             "type": "string",
@@ -80,7 +88,11 @@
           },
           "parameters": {
             "type": "object",
-            "description": "Set URL Params for this API as key/value pairs"
+            "description": "Specify the key/value pairs to pass along with the URL"
+          },
+          "body": {
+            "type": "string",
+            "description": "the request body to pass along with the URL"
           }
         }
       }
@@ -932,9 +944,18 @@
       }
     },
     "Action-payload": {
-      "type": ["string", "object"],
       "description": "Call Ensemble's built-in functions or execute code",
       "required": ["action"],
+      "defaultSnippets": [
+        {
+          "label": "Define an Action",
+          "body": "\n\taction: "
+        },
+        {
+          "label": "Write inline Javascript",
+          "body": "|-\n\t//@code\n\t"
+        }
+      ],
       "allOf": [
         {
           "properties": {
@@ -1251,7 +1272,6 @@
       ]
     },
     "Widget": {
-      "type": ["object", "string"],
       "oneOf": [
         {
           "properties": {
