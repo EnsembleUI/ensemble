@@ -27,7 +27,7 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
   ScopeManager? _parent;
 
   @override
-  Map<String, YamlMap>? get customViewDefinitions => pageData.customViewDefinitions;
+  Map<String, dynamic>? get customViewDefinitions => pageData.customViewDefinitions;
 
   @override
   DataContext get dataContext => _dataContext;
@@ -60,7 +60,7 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
 
 abstract class IsScopeManager {
   DataContext get dataContext;
-  Map<String, YamlMap>? get customViewDefinitions;
+  Map<String, dynamic>? get customViewDefinitions;
   EventBus get eventBus;
   Map<Invokable, Map<int, StreamSubscription>> get listenerMap;
   Map<Invokable, Timer> get timerMap;
@@ -117,18 +117,20 @@ mixin ViewBuilder on IsScopeManager {
 
   void _updateWidgetBindings(Map<WidgetModel, ModelPayload> modelMap) {
 
-    modelMap.forEach((model, payload) {
+    modelMap.forEach((inputModel, payload) {
       DataContext dataContext = payload.scopeManager.dataContext;
 
       // resolve input parameters
-      if (model is CustomWidgetModel) {
-        if (model.parameters != null && model.inputs != null) {
-          for (var param in model.parameters!) {
-            if (model.inputs![param] != null) {
-              dataContext.addDataContextById(param, dataContext.eval(model.inputs![param]));
+      if (inputModel is CustomWidgetModel) {
+        if (inputModel.parameters != null && inputModel.inputs != null) {
+          for (var param in inputModel.parameters!) {
+            if (inputModel.inputs![param] != null) {
+              dataContext.addDataContextById(param, dataContext.eval(inputModel.inputs![param]));
             }
           }}
       }
+
+      WidgetModel model = inputModel is CustomWidgetModel ? inputModel.getModel() : inputModel;
 
       if (payload.widget is Invokable) {
         Invokable widget = payload.widget as Invokable;
@@ -432,7 +434,7 @@ class PageData {
 
 
   // store the raw definition of the SubView (to be accessed by itemTemplates)
-  final Map<String, YamlMap>? customViewDefinitions;
+  final Map<String, dynamic>? customViewDefinitions;
 
   // API model mapping
   Map<String, YamlMap>? apiMap;

@@ -5,7 +5,9 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/layout/box_layout.dart';
+import 'package:ensemble/layout/stack.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/widget_registry.dart';
 import 'package:yaml/yaml.dart';
 
 class PageModel {
@@ -23,7 +25,7 @@ class PageModel {
 
   String? globalCode;
   Map<String, YamlMap>? apiMap;
-  Map<String, YamlMap>? customViewDefinitions;
+  Map<String, dynamic>? customViewDefinitions;
   ViewBehavior viewBehavior = ViewBehavior();
 
   String? title;
@@ -103,13 +105,6 @@ class PageModel {
       footer = Footer(ViewUtil.buildModels(viewMap['footer']['children'], customViewDefinitions));
     }
 
-
-
-    if (viewMap['type'] == null ||
-        ![Column.type, Row.type, Flex.type].contains(viewMap['type'])) {
-      throw LanguageError('Root widget type should only be Row or Column');
-    }
-
     rootWidgetModel = buildRootModel(viewMap, customViewDefinitions);
   }
 
@@ -117,159 +112,44 @@ class PageModel {
   // where as the root body (e.g Column) should be more restrictive
   // (e.g the whole body shouldn't be click-enable)
   // Let's manually select what can be specified here (really just styles/item-template/children)
-  WidgetModel buildRootModel(YamlMap viewMap, Map<String, YamlMap>? customViewDefinitions) {
-    YamlMap rootItem = YamlMap.wrap({
-      viewMap['type']: {
-        'children': viewMap['children'],
-        'item-template': viewMap['item-template'],
-        'styles': viewMap['styles']
+  WidgetModel buildRootModel(YamlMap viewMap, Map<String, dynamic>? customViewDefinitions) {
+    WidgetModel? rootModel = getRootModel(viewMap, customViewDefinitions!);
+    if (rootModel != null) {
+      if (![Column.type, Row.type, Flex.type, EnsembleStack.type].contains(rootModel.type)) {
+        throw LanguageError('Root widget type should only be Row, Column, Flex or Stack.');
       }
-    });
-    return ViewUtil.buildModel(rootItem, customViewDefinitions!);
+      return rootModel;
+    }
+    throw LanguageError("View requires a child widget !");
+  }
+
+  WidgetModel? getRootModel(YamlMap rootTree, Map<String, dynamic> customViewDefinitions) {
+    for (String key in rootTree.keys) {
+      // if a regular widget or custom widget
+      if (WidgetRegistry.widgetMap[key] != null ||
+          customViewDefinitions[key] != null) {
+        YamlMap widgetMap = YamlMap.wrap({
+          key: rootTree[key]
+        });
+        return ViewUtil.buildModel(widgetMap, customViewDefinitions);
+      }
+    }
+    return null;
   }
 
   /// Create a map of Ensemble's custom widgets so WidgetModel can reference them
-  Map<String, YamlMap> buildCustomViewDefinitions(YamlMap docMap) {
-    Map<String, YamlMap> subViewDefinitions = {};
+  Map<String, dynamic> buildCustomViewDefinitions(YamlMap docMap) {
+    Map<String, dynamic> subViewDefinitions = {};
     docMap.forEach((key, value) {
       if (!reservedTokens.contains(key)) {
-        if (value == null || value['type'] == null) {
-          throw LanguageError("SubView requires a widget 'type'");
+        if (value != null) {
+          subViewDefinitions[key] = value;
         }
-        subViewDefinitions[key] = value;
+
 
       }
     });
     return subViewDefinitions;
-  }
-
-  @Deprecated('Use ViewUtil.buildModels()')
-  static List<WidgetModel> buildModels(YamlList models, DataContext eContext, Map<String, YamlMap> subViewDefinitions) {
-    List<WidgetModel> rtn = [];
-    for (dynamic item in models) {
-      rtn.add(buildModel(item, eContext, subViewDefinitions));
-    }
-    return rtn;
-  }
-
-
-  // each model can be dynamic (Spacer) or YamlMap (Text: ....)
-  @Deprecated('Use ViewUtil.buildModel()')
-  static WidgetModel buildModel(dynamic item, DataContext eContext, Map<String, YamlMap> subViewDefinitions) {
-    String? key;
-    YamlMap? itemMap;
-
-    // e.g Spacer
-    if (item is String) {
-      key = item;
-    } else if (item is YamlMap){
-      YamlMap model = item;
-      key = model.keys.first.toString();
-      itemMap = model[key];
-    } else {
-      throw LanguageError("Invalid token '$item'", recovery: 'Please review your definition');
-    }
-
-    // widget name may have optional ID
-    List<String> keys = key.split('.');
-    if (keys.isEmpty || keys.length > 2) {
-      throw LanguageError("Too many tokens");
-    }
-    String widgetType = keys.last.trim();
-    String? widgetId;
-    if (keys.length == 2) {
-      widgetId = keys.first.trim();
-    }
-
-    // first try to handle the widget as a SubView
-    YamlMap? subViewMap = subViewDefinitions[widgetType];
-    if (subViewMap != null) {
-      String subViewWidgetType = subViewMap['type'];
-
-      DataContext localizedContext = eContext.clone();
-
-      // if subview has inputs
-      if (subViewMap['inputs'] is YamlList && itemMap != null) {
-        // add (and potentially overwrite) parameters to our data map
-        for (var param in (subViewMap['inputs'] as YamlList)) {
-          if (itemMap[param] != null) {
-            localizedContext.addDataContextById(param, eContext.eval(itemMap[param]));
-
-          }
-        }
-        //log("LocalizedMap: " + localizedArgs.toString());
-      }
-      return PageModel.buildModelFromName(subViewWidgetType, subViewMap, localizedContext, subViewDefinitions);
-    }
-    // regular widget
-    else {
-      // e.g Spacer or Spacer:
-      if (itemMap == null) {
-        return WidgetModel(widgetType, {}, {});
-      }
-      return PageModel.buildModelFromName(widgetType, itemMap, eContext, subViewDefinitions, widgetId: widgetId);
-    }
-
-
-  }
-
-  @Deprecated('Use ViewUtil.buildModel()')
-  static WidgetModel buildModelFromName(String widgetType, YamlMap itemMap, DataContext eContext, Map<String, YamlMap> subViewDefinitions, {String? widgetId}) {
-    Map<String, dynamic> props = {};
-    if (widgetId != null) {
-      props['id'] = widgetId;
-    }
-    Map<String, dynamic> styles = {};
-    List<WidgetModel>? children;
-    ItemTemplate? itemTemplate;
-
-
-    // go through each sub properties
-    itemMap.forEach((key, value) {
-      if (value != null) {
-        if (key == 'styles') {
-          // expand the style map
-          (value as YamlMap).forEach((styleKey, styleValue) {
-            styles[styleKey] = eContext.eval(styleValue);
-          });
-        } else if (key == "children") {
-          children = buildModels(value, eContext, subViewDefinitions);
-        } else if (key == "item-template") {
-          // attempt to resolve the localized dataMap fed into the item template
-          // we only take it if it resolves to a list
-          List<dynamic>? localizedDataList;
-          dynamic templateDataResult = eContext.eval(value['data']);
-          if (templateDataResult is List<dynamic>) {
-            localizedDataList = templateDataResult;
-          }
-
-          // item template should only have 1 root widget
-          itemTemplate = ItemTemplate(
-              value['data'],
-              value['name'],
-              value['template'],
-              initialValue: localizedDataList);
-        }
-        // actions like onTap should evaluate its expressions upon the action only
-        else if (key.toString().startsWith("on")) {
-          props[key] = value;
-        }
-        // this is tricky. We only want to evaluate properties most likely, so need
-        // a way to distinguish them
-        else {
-          props[key] = eContext.eval(value);
-        }
-      }
-    });
-
-    return WidgetModel(
-        widgetType,
-        styles,
-        props,
-        children: children,
-        itemTemplate: itemTemplate);
-
-
   }
 
 }
@@ -289,20 +169,19 @@ class WidgetModel {
 
 class CustomWidgetModel extends WidgetModel {
   CustomWidgetModel(
-      String type,
-      Map<String, dynamic> styles,
-      Map<String, dynamic> props, {
-        List<WidgetModel>? children,
-        ItemTemplate? itemTemplate,
+      this.widgetModel,
+      Map<String, dynamic> props,
+      {
         this.parameters,
         this.inputs
-  }) : super(type, styles, props, children: children, itemTemplate: itemTemplate);
+  }) : super('', {}, props);
 
+  WidgetModel widgetModel;
   List<String>? parameters;
   Map<String, dynamic>? inputs;
 
-  WidgetModel asWidgetModel() {
-    return WidgetModel(type, styles, props, children: children, itemTemplate: itemTemplate);
+  WidgetModel getModel() {
+    return widgetModel;
   }
 
   ViewBehavior getViewBehavior() {
