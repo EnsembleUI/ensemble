@@ -526,6 +526,7 @@
       }
     },
     "TextInput-payload": {
+      "description": "It also works in arrays",
       "allOf": [
         { "$ref": "#/$defs/FormInput-payload" },
         { "$ref": "#/$defs/inputValidator" },
