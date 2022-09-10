@@ -532,6 +532,7 @@
         {
           "type": "object",
           "properties": {
+            "description": "It also works in arrays",
             "onKeyPress": { "$ref": "#/$defs/Action-payload" },
             "value": {
               "type": "string",
