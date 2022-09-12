@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/util/extensions.dart';
 import 'package:jsparser/jsparser.dart';
 
 import 'package:device_info_plus/device_info_plus.dart';
@@ -450,13 +451,7 @@ class Formatter with Invokable {
 
   @override
   Map<String, Function> methods() {
-    Locale? locale;
-    // locale might not exists if our screen has not been rendered yet
-    try {
-      locale = Localizations.localeOf(_buildContext);
-    } on Error catch (e) {
-      log("Locale does not exists yet");
-    }
+    Locale? locale = Localizations.localeOf(Utils.globalAppKey.currentContext!);
     return {
       'now': () => UserDateTime(),
       'prettyDate': (input) => InvokablePrimitive.prettyDate(input),
@@ -485,6 +480,10 @@ class UserDateTime with Invokable {
   @override
   Map<String, Function> methods() {
     return {
+      'getDate': () => dateTime.toIso8601DateString(),
+      'getDateTime': () => dateTime.toIso8601String(),
+      'prettyDate': () => DateFormat.yMMMd().format(dateTime),
+      'prettyDateTime': () => DateFormat.yMMMd().format(dateTime) + ' ' + DateFormat.jm().format(dateTime),
       'getMonth': () => dateTime.month,
       'getDay': () => dateTime.day,
       'getDayOfWeek': () => dateTime.weekday,
