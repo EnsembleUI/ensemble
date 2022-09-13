@@ -1,5 +1,3 @@
-
-
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/layout_helper.dart';
 import 'package:ensemble/layout/templated.dart';
@@ -104,12 +102,15 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
     super.didChangeDependencies();
 
     if (widget.itemTemplate != null) {
-      // initial value
+      // initial value maybe set before the screen rendered
       if (widget.itemTemplate!.initialValue != null) {
         templatedChildren = buildWidgetsFromTemplate(context, widget.itemTemplate!.initialValue!, widget.itemTemplate!);
       }
+
       // listen for changes
-      registerItemTemplate(context, widget.itemTemplate!, onDataChanged: (List dataList) {
+      // Note that when visibility is toggled after rendering, the API may already be populated.
+      // In that case we want to evaluate the data to see if they are there
+      registerItemTemplate(context, widget.itemTemplate!, evaluateInitialValue: true, onDataChanged: (List dataList) {
         setState(() {
           templatedChildren = buildWidgetsFromTemplate(context, dataList, widget.itemTemplate!);
         });
