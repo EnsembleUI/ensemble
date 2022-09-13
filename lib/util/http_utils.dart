@@ -101,7 +101,7 @@ class HttpUtils {
   }
 
   /// parse a JSON-only response payload
-  static Map<String, dynamic>? parseResponsePayload(dynamic input) {
+  static dynamic parseResponsePayload(dynamic input) {
     // if the JSON is constructed in Javascript, we need to manually re-constructed here due to type differences
     if (input is Map) {
       Map<String, dynamic> rtn = {};
@@ -109,6 +109,8 @@ class HttpUtils {
         rtn[key] = value;
       });
       return rtn;
+    } else if (input is List) {
+      return input;
     } else if (input is String) {
       try {
         return json.decode(input);
@@ -123,7 +125,7 @@ class HttpUtils {
 
 /// a wrapper class around the http Response
 class Response {
-  Map<String, dynamic>? body;
+  dynamic body;
   Map<String, dynamic>? headers;
 
   Response(http.Response response) {
