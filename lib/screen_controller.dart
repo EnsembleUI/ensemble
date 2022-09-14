@@ -61,7 +61,7 @@ class ScreenController {
     View initialView = View(
         // remove unique key as it causes multiple rendering of the Root.
         // Does it cause listeners to go hay-wired?
-        //key: UniqueKey(),
+        key: UniqueKey(),
         dataContext: dataContext,
         pageModel: pageModel);
     //log("View created ${initialView.hashCode}");
