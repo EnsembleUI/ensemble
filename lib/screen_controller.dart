@@ -40,7 +40,7 @@ class ScreenController {
   // TODO: Back button will still use the curent page PageMode. Need to keep model state
   /// render the page from the definition and optional arguments (from previous pages)
   View renderPage(DataContext dataContext, YamlMap data, {bool? asModal}) {
-    PageModel pageModel = PageModel(data);
+    PageModel pageModel = PageModel.fromYaml(data);
     pageModel.pageType = asModal == true ? PageType.modal : PageType.regular;
 
     // add all the API names to our context as Invokable, even though their result
@@ -61,7 +61,6 @@ class ScreenController {
     View initialView = View(
         // remove unique key as it causes multiple rendering of the Root.
         // Does it cause listeners to go hay-wired?
-        key: UniqueKey(),
         dataContext: dataContext,
         pageModel: pageModel);
     //log("View created ${initialView.hashCode}");

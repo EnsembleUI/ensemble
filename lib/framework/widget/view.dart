@@ -1,5 +1,4 @@
 import 'dart:developer';
-import 'dart:math';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
@@ -98,6 +97,7 @@ class ViewState extends State<View>{
 
   @override
   Widget build(BuildContext context) {
+    log("View build() $hashCode");
     Widget? bottomNavBar;
     Widget? drawer;
     bool showAppBar = false;

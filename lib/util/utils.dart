@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
@@ -529,5 +531,13 @@ class Utils {
     return null;
   }
 
+  /// pick a string randomly from the list
+  static String randomize(List<String> strings) {
+    assert(strings.isNotEmpty);
+    if (strings.length > 1) {
+      return strings[Random().nextInt(strings.length)];
+    }
+    return strings[0];
+  }
 
 }

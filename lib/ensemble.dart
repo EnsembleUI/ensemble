@@ -8,6 +8,7 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/widget/view.dart';
+import 'package:ensemble/page_model.dart';
 import 'package:ensemble/provider.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/http_utils.dart';
@@ -19,20 +20,119 @@ import 'package:flutter/services.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:yaml/yaml.dart';
 
-class I18nProps {
-  String defaultLocale;
-  String fallbackLocale;
-  bool useCountryCode;
-  late String path;
-  I18nProps(this.defaultLocale,this.fallbackLocale,this.useCountryCode);
-
-}
+/// Singleton Controller
 class Ensemble {
   static final Ensemble _instance = Ensemble._internal();
   Ensemble._internal();
   factory Ensemble() {
     return _instance;
   }
+
+  /// the configuration required to run an App
+  EnsembleConfig? _config;
+
+  /// init an App from config file
+  /// This can be called multiple times but only initialized once.
+  /// For integrating with existing Flutter apps, this function can
+  /// be called to pre-initialize for faster loading of Ensemble app later.
+  Future<EnsembleConfig> initialize() async {
+    // only initialize once
+    if (_config != null) {
+      return Future<EnsembleConfig>.value(_config);
+    }
+
+    final yamlString = await rootBundle.loadString(
+        'ensemble/ensemble-config.yaml');
+    final YamlMap yamlMap = loadYaml(yamlString);
+
+    DefinitionProvider definitionProvider = _getDefinitionProvider(yamlMap);
+    _config = EnsembleConfig(
+      definitionProvider: definitionProvider,
+      appBundle: await definitionProvider.getAppBundle(),
+      account: Account(mapAccessToken: yamlMap['accounts']?['maps']?['mapbox_access_token'])
+    );
+    return _config!;
+  }
+
+  /// return the definition provider (local, remote, or Ensemble)
+  DefinitionProvider _getDefinitionProvider(YamlMap yamlMap) {
+    // locale
+    I18nProps i18nProps = I18nProps(
+      yamlMap['i18n']?['defaultLocale'] ?? '',
+      yamlMap['i18n']?['fallbackLocale'] ?? 'en',
+      yamlMap['i18n']?['useCountryCode'] ?? false
+    );
+
+    // Ensemble-powered apps
+    String? definitionType = yamlMap['definitions']?['from'];
+    if (definitionType == 'ensemble') {
+      String? path = yamlMap['definitions']?['ensemble']?['path'];
+      if (path == null || !path.startsWith('https')) {
+        throw ConfigError('Invalid URL to Ensemble server. The original value should not be changed');
+      }
+      String? appId = yamlMap['definitions']?['ensemble']?['appId'];
+      if (appId == null) {
+        throw ConfigError(
+            "appId is required. Your App Key can be found on "
+                "Ensemble Studio under each application");
+      }
+      String? i18nPath = yamlMap['definitions']?['ensemble']?['i18nPath'];
+      if (i18nPath == null) {
+        throw ConfigError(
+            "i18nPath is required. If you don't have any changes, just leave the default as-is.");
+      }
+      bool cacheEnabled = yamlMap['definitions']?['ensemble']?['enableCache'] == true;
+      i18nProps.path = i18nPath;
+      return EnsembleDefinitionProvider(path, appId, cacheEnabled, i18nProps);
+    }
+    // local/remote Apps
+    else if (definitionType == 'local' || definitionType == 'remote'){
+      String? path = yamlMap['definitions']?[definitionType]?['path'];
+      if (path == null) {
+        throw ConfigError(
+            "Path to the root definition directory is required.");
+      }
+      String? appId = yamlMap['definitions']?[definitionType]?['appId'];
+      if (appId == null) {
+        throw ConfigError(
+            "appId is required. This is your App's directory under the root path.");
+      }
+      String? appHome = yamlMap['definitions']?[definitionType]?['appHome'];
+      if (appHome == null) {
+        throw ConfigError(
+            "appHome is required. This is the home screen's name or ID for your App"
+        );
+      }
+      String? i18nPath = yamlMap['definitions']?[definitionType]?['i18nPath'];
+      if (i18nPath == null) {
+        throw ConfigError(
+            "i18nPath is required. If you don't have any changes, just leave the default as-is.");
+      }
+      bool cacheEnabled = yamlMap['definitions']?[definitionType]?['enableCache'] == true;
+      i18nProps.path = i18nPath;
+      String fullPath = concatDirectory(path, appId);
+      return (definitionType == 'local') ?
+        LocalDefinitionProvider(fullPath, appHome, i18nProps) :
+        RemoteDefinitionProvider(fullPath, appHome, cacheEnabled, i18nProps);
+
+    } else {
+      throw ConfigError(
+          "Definitions needed to be defined as 'local', 'remote', or 'ensemble'");
+    }
+  }
+
+
+
+
+
+
+
+  //// Legacy stuff - to be removed
+
+
+
+
+
 
   static final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
   late DeviceInfo deviceInfo;
@@ -41,7 +141,7 @@ class Ensemble {
   Account? account;
 
   /// init Ensemble from the config file
-  Future<bool> initialize() async {
+  Future<bool> initialize2() async {
     if ( definitionProvider != null ) {
       return true;
     }
@@ -129,16 +229,7 @@ class Ensemble {
     }
   }
 
-  /// initialize Ensemble with params (no config file)
-  Future initializeWithParams({
-    required DefinitionProvider provider,
-    Account? accountInfo
-  }) async {
-    definitionProvider = provider;
-    account = accountInfo;
-    await initAppBundle();
-    return;
-  }
+
 
 
   /// initialize our App Bundle (theme, translations, ...)
@@ -377,6 +468,48 @@ class Ensemble {
 }
 
 
+
+/// configuration for an App, derived from the YAML + API calls
+class EnsembleConfig {
+  EnsembleConfig({
+    required this.definitionProvider,
+    this.account,
+    this.appBundle
+  });
+  final DefinitionProvider definitionProvider;
+  Account? account;
+
+  // this can be fetched via definitionProvider, but we'll give the option
+  // to pass it in via the constructor, as Ensemble can be pre-load
+  // with initialize() which does all the async processing.
+  AppBundle? appBundle;
+
+  /// Update the appBundle using our definitionProvider
+  /// return the same EnsembleConfig once completed for convenience
+  Future<EnsembleConfig> updateAppBundle() async {
+    appBundle = await definitionProvider.getAppBundle();
+    return this;
+  }
+
+  /// pass our custom theme from the appBundle and build the App Theme
+  ThemeData getAppTheme() {
+    return EnsembleTheme.getAppTheme(appBundle?.theme);
+  }
+
+  FlutterI18nDelegate getI18NDelegate() {
+    return definitionProvider.getI18NDelegate();
+  }
+
+}
+
+class I18nProps {
+  String defaultLocale;
+  String fallbackLocale;
+  bool useCountryCode;
+  late String path;
+  I18nProps(this.defaultLocale, this.fallbackLocale, this.useCountryCode);
+}
+
 class AppBundle {
   AppBundle({this.theme});
 
@@ -388,19 +521,3 @@ class Account {
   String? mapAccessToken;
 }
 
-class DeviceInfo {
-  DeviceInfo(this.platform, { required this.size, required this.safeAreaSize, this.browserInfo});
-
-  DevicePlatform platform;
-  Size size;
-  SafeAreaSize safeAreaSize;
-  WebBrowserInfo? browserInfo;
-}
-class SafeAreaSize {
-  SafeAreaSize(this.top, this.bottom);
-  int top;
-  int bottom;
-}
-enum DevicePlatform {
-  web, android, ios, macos, windows, other
-}
