@@ -1,8 +1,7 @@
 import 'package:jsparser/jsparser.dart';
 
-class ConfigError extends Error {
-  ConfigError(this.error);
-  final String error;
+class ConfigError extends EnsembleError {
+  ConfigError(super.error);
 
   @override
   String toString() => 'Config Error: $error';
@@ -10,42 +9,46 @@ class ConfigError extends Error {
 
 
 /// Language Error will be exposed on Studio
-class LanguageError extends Error {
-  LanguageError (this.error, {this.recovery});
-
-  String error;
-  String? recovery;
+class LanguageError extends EnsembleError {
+  LanguageError (super.error, {super.recovery, super.detailError});
 
   @override
-  String toString() {
-    return 'Error: $error. ' + (recovery ?? '');
-  }
+  String toString() => 'Language Error: $error\n$recovery';
 }
 
 class CodeError extends EnsembleError {
-  late String message;
-  CodeError(dynamic error) {
-    if (error is ParseError) {
-      message = "Code Error: ${error.message}.\n(Line ${error.line}. Position ${error.startOffset}-${error.endOffset}).";
-    } else {
-      message = "Code Error: ${error.toString()}";
+  CodeError(Object input): super(
+    input is ParseError ? input.message.toString() : input.toString()
+  ) {
+    if (input is ParseError) {
+      recovery = "Line ${input.line}. Position ${input.startOffset}-${input.endOffset}.";
     }
   }
 
   @override
-  String toString() => message;
+  String toString() => "Code Error: $error\n$recovery";
 
 }
 
 class RuntimeError extends EnsembleError {
-  String message;
-  RuntimeError(this.message);
+  RuntimeError(super.error);
 
   @override
-  String toString() => "Runtime Error: $message";
+  String toString() => "Runtime Error: $error";
 }
 
 abstract class EnsembleError extends Error {
+  EnsembleError(
+    this.error, {
+    this.recovery,
+    this.detailError
+  });
+  String error;
+  String? recovery;
+  String? detailError;
+
+  @override
+  String toString() => "$error\n$recovery\n$detailError";
 }
 
 
