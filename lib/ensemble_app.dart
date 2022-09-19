@@ -25,6 +25,9 @@ class EnsembleApp extends StatelessWidget {
   Future<EnsembleConfig> initApp() async {
     // use the config if passed in
     if (ensembleConfig != null) {
+      // set the Ensemble config
+      Ensemble().setEnsembleConfig(ensembleConfig!);
+
       // if appBundle is not passed in, fetch it now
       if (ensembleConfig!.appBundle == null) {
         return ensembleConfig!.updateAppBundle();
