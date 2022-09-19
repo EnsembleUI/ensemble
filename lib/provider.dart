@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:developer';
 import 'dart:ui';
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/error_handling.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:flutter_i18n/loaders/decoders/yaml_decode_strategy.dart';
@@ -215,7 +216,6 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
           for (dynamic screen in result[appId]['screens']) {
             if (screen['is_home']) {
               appHome = screen['name'];
-              print("appHome: $appHome");
               break;
             }
           }
