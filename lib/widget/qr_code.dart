@@ -59,6 +59,7 @@ class QRCodeState extends WidgetState<QRCode> {
     if (widget._controller.value == null || widget._controller.value!.trim().isEmpty) {
       return Image.asset(
         'assets/images/qr_error.png',
+        package: 'ensemble',
         width: widget._controller.size?.toDouble() ?? defaultSize,
         semanticLabel: 'Invalid QR Code');
     }

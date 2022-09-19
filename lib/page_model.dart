@@ -1,15 +1,18 @@
 import 'dart:developer';
-import 'dart:math';
+import 'dart:ui';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/layout/box_layout.dart';
 import 'package:ensemble/layout/stack.dart';
+import 'package:ensemble/provider.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:yaml/yaml.dart';
 
+/// represents a screen translated from the YAML definition
 class PageModel {
   static final List<String> reservedTokens = [
     'Import',
@@ -35,10 +38,21 @@ class PageModel {
   PageType pageType = PageType.regular;
   Footer? footer;
 
-  PageModel (YamlMap data) {
-
+  PageModel._init (YamlMap data) {
     processAPI(data['API']);
     processModel(data);
+  }
+
+  factory PageModel.fromYaml(YamlMap data) {
+    try {
+      return PageModel._init(data);
+    } on Error catch (e) {
+      throw LanguageError(
+          "Invalid page definition.",
+          recovery: "Please double check your page syntax.",
+          detailError: e.toString() + "\n" + (e.stackTrace?.toString() ?? '')
+      );
+    }
   }
 
   processAPI(YamlMap? map) {
@@ -246,4 +260,51 @@ class Footer {
 
 enum PageType {
   regular, modal
+}
+
+/// provider that gets passed into every screen
+class AppProvider {
+  AppProvider({
+    required this.definitionProvider
+  });
+  DefinitionProvider definitionProvider;
+
+  Future<YamlMap> getDefinition({ScreenPayload? payload}) {
+    // we always look up by screenName only?
+    return definitionProvider.getDefinition(screenName: payload?.screenId);
+  }
+}
+
+/// payload to pass to the Screen
+class ScreenPayload {
+  ScreenPayload({
+    this.screenId,
+    this.arguments,
+    this.type
+  });
+
+  // screen ID is optional as the App always have a default screen
+  String? screenId;
+
+  // screen arguments to be added to the screen context
+  Map<String, dynamic>? arguments;
+
+  PageType? type;
+}
+
+class DeviceInfo {
+  DeviceInfo(this.platform, { required this.size, required this.safeAreaSize, this.browserInfo});
+
+  DevicePlatform platform;
+  Size size;
+  SafeAreaSize safeAreaSize;
+  WebBrowserInfo? browserInfo;
+}
+class SafeAreaSize {
+  SafeAreaSize(this.top, this.bottom);
+  int top;
+  int bottom;
+}
+enum DevicePlatform {
+  web, android, ios, macos, windows, other
 }

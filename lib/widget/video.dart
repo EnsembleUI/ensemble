@@ -83,7 +83,6 @@ class VideoState extends WidgetState<Video> {
   @override
   Widget build(BuildContext context) {
     if (widget._controller._playerController == null || !widget._controller._playerController!.value.isInitialized) {
-      //return Image.asset("assets/images/img_placeholder.png");
       return const SizedBox.shrink();
     }
 
