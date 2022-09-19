@@ -26,6 +26,11 @@ class Ensemble {
   /// the configuration required to run an App
   EnsembleConfig? _config;
 
+  /// initialize Ensemble with the specified config
+  void setEnsembleConfig(EnsembleConfig config) {
+    _config = config;
+  }
+
   /// init an App from config file
   /// This can be called multiple times but only initialized once.
   /// For integrating with existing Flutter apps, this function can
