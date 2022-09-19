@@ -34,7 +34,7 @@ class _ScreenState extends State<Screen> {
 
   @override
   Widget build(BuildContext context) {
-    log("Screen build() - $hashCode (${Ensemble().deviceInfo.size.width} x ${Ensemble().deviceInfo.size.height})");
+    //log("Screen build() - $hashCode (${Ensemble().deviceInfo.size.width} x ${Ensemble().deviceInfo.size.height})");
     return FutureBuilder(
       future: screenRequester,
       builder: (context, snapshot) {
