@@ -270,8 +270,7 @@ class AppProvider {
   DefinitionProvider definitionProvider;
 
   Future<YamlMap> getDefinition({ScreenPayload? payload}) {
-    // we always look up by screenName only?
-    return definitionProvider.getDefinition(screenName: payload?.screenId);
+    return definitionProvider.getDefinition(screenId: payload?.screenId, screenName: payload?.screenName);
   }
 }
 
@@ -279,12 +278,16 @@ class AppProvider {
 class ScreenPayload {
   ScreenPayload({
     this.screenId,
+    this.screenName,
     this.arguments,
     this.type
   });
 
   // screen ID is optional as the App always have a default screen
   String? screenId;
+
+  // screenName is also optional, and refer to the friendly readable name
+  String? screenName;
 
   // screen arguments to be added to the screen context
   Map<String, dynamic>? arguments;
