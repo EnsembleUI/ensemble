@@ -106,7 +106,7 @@ class LottieState extends WidgetState<EnsembleLottie> {
     return SizedBox(
       width: widget._controller.width?.toDouble(),
       height: widget._controller.height?.toDouble(),
-      child: Image.asset('assets/images/img_placeholder.png')
+      child: Image.asset('assets/images/img_placeholder.png', package: 'ensemble')
     );
   }
 
