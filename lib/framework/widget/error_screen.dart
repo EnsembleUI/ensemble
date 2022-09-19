@@ -55,7 +55,7 @@ class ErrorScreen extends StatelessWidget {
           style: const TextStyle(fontSize: 28, color: Color(0xFFF7535A), fontWeight: FontWeight.w500)
         ),
         const Image(
-          image: AssetImage("assets/images/error.png"),
+          image: AssetImage("assets/images/error.png", package: 'ensemble'),
           width: 200
         ),
         const SizedBox(height: 16),
