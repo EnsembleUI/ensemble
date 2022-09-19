@@ -7,6 +7,7 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/framework/widget/toast.dart';
 import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:ensemble/page_model.dart';
@@ -95,7 +96,7 @@ class ScreenController {
         nextArgs[key] = dataContext.eval(value);
       });
 
-      PageRouteBuilder routeBuilder = Ensemble().navigateApp(
+      PageRouteBuilder routeBuilder = navigateToScreen(
           providedDataContext.buildContext,
           screenName: dataContext.eval(action.screenName),
           asModal: action.asModal,
@@ -363,6 +364,45 @@ class ScreenController {
     timerMap[initiator]?.cancel();
 
     timerMap[initiator] = timer;
+  }
+
+
+  /// Navigate to another screen
+  /// [screenName] - navigate to the screen if specified, otherwise to appHome
+  /// [asModal] - shows the App in a regular or modal screen
+  /// [pageArgs] - Key/Value pairs to send to the screen if it takes input parameters
+  PageRouteBuilder navigateToScreen(BuildContext context, {
+    String? screenName,
+    bool? asModal,
+    Map<String, dynamic>? pageArgs,
+  }) {
+    PageType pageType = asModal == true ? PageType.modal : PageType.regular;
+
+    Widget screenWidget = Screen(
+      appProvider: AppProvider(definitionProvider: Ensemble().getConfig()!.definitionProvider),
+      screenPayload: ScreenPayload(
+        screenName: screenName,
+        type: pageType,
+        arguments: pageArgs,
+      ),
+    );
+
+    PageRouteBuilder route = getScreenBuilder(screenWidget, pageType: pageType);
+    Navigator.push(context, route);
+    return route;
+  }
+
+
+  /// return a wrapper for the screen widget
+  /// with custom animation for different pageType
+  PageRouteBuilder getScreenBuilder(Widget screenWidget, {
+    PageType? pageType
+  }) {
+    if (pageType == PageType.modal) {
+      return EnsembleModalPageRouteBuilder(screenWidget: screenWidget);
+    } else {
+      return EnsemblePageRouteBuilder(screenWidget: screenWidget);
+    }
   }
 
 
