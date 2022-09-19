@@ -167,7 +167,9 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
 
   void initMap() {
     _mapController = MapController();
-    _mapAccessToken = Ensemble().account?.mapAccessToken ?? '';
+
+    // TODO: use Provider to inject account in
+    _mapAccessToken = Ensemble().getAccount()?.mapAccessToken ?? '';
   }
 
   Widget buildMap() {
