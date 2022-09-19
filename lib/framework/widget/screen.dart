@@ -1,5 +1,6 @@
 import 'dart:developer';
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/widget/error_screen.dart';
@@ -49,9 +50,12 @@ class _ScreenState extends State<Screen> {
         }
         // show progress bar
         else if (!snapshot.hasData) {
-          return const Scaffold(
+          return Scaffold(
+            backgroundColor: Theme.of(context).extension<EnsembleThemeExtension>()?.loadingScreenBackgroundColor,
             body: Center(
-              child: CircularProgressIndicator()
+              child: CircularProgressIndicator(
+                color: Theme.of(context).extension<EnsembleThemeExtension>()?.loadingScreenIndicatorColor
+              )
             )
           );
         }
