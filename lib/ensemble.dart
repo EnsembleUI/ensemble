@@ -198,7 +198,7 @@ class Ensemble {
     Widget newScreen = Screen(
       appProvider: AppProvider(definitionProvider: _config!.definitionProvider),
       screenPayload: ScreenPayload(
-        screenId: screenName,
+        screenName: screenName,
         arguments: pageArgs,
         type: asModal == true ? PageType.modal : PageType.regular
       ),
