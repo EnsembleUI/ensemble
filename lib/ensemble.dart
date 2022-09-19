@@ -3,11 +3,13 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/provider.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/layout/ensemble_page_route.dart';
@@ -122,19 +124,42 @@ class Ensemble {
   }
 
 
-  // TODO: use Provider to inject these in for the entire App
+  // TODO: use Provider to inject Account/DefinitionProvider in for the entire App
   Account? getAccount() {
     return _config?.account;
+  }
+  EnsembleConfig? getConfig() {
+    return _config;
+  }
+
+  /// Navigate to an Ensemble App as configured in ensemble-config.yaml
+  /// [screenId] / [screenName] - navigate to the screen if specified, otherwise to the App's home
+  /// [asModal] - shows the App in a regular or modal screen
+  /// [pageArgs] - Key/Value pairs to send to the screen if it takes input parameters
+  void navigateApp(BuildContext context, {
+    String? screenId,
+    String? screenName,
+    bool? asModal,
+    Map<String, dynamic>? pageArgs,
+  }) {
+    PageType pageType = asModal == true ? PageType.modal : PageType.regular;
+
+    Widget screenWidget = EnsembleApp(
+      screenPayload: ScreenPayload(
+        screenId: screenId,
+        screenName: screenName,
+        type: pageType,
+        arguments: pageArgs
+      )
+    );
+    Navigator.push(
+        context,
+        ScreenController().getScreenBuilder(screenWidget, pageType: pageType));
   }
 
 
 
-
-
-
-
-  //// Legacy stuff - to be removed
-
+  // TODO: redo deviceInfo
   static final DeviceInfoPlugin _deviceInfoPlugin = DeviceInfoPlugin();
   late DeviceInfo deviceInfo;
   /// initialize device info
@@ -171,45 +196,7 @@ class Ensemble {
         browserInfo: browserInfo);
   }
 
-  /// Navigate to another screen
-  /// [screenName] - navigate to screen if specified, otherwise to appHome
-  PageRouteBuilder navigateApp(BuildContext context, {
-    String? screenName,
-    bool? asModal,
-    Map<String, dynamic>? pageArgs,
-  }) {
-    PageRouteBuilder route = getAppRoute(
-        screenName: screenName,
-        asModal: asModal,
-        pageArgs: pageArgs);
-    Navigator.push(context, route);
 
-    return route;
-  }
-
-
-  /// return Ensemble App's PageRoute, suitable to be embedded as a PageRoute
-  /// [screenName] optional screen name or id to navigate to. Otherwise use the appHome
-  PageRouteBuilder getAppRoute({
-    String? screenName,
-    bool? asModal,
-    Map<String, dynamic>? pageArgs
-  }) {
-    Widget newScreen = Screen(
-      appProvider: AppProvider(definitionProvider: _config!.definitionProvider),
-      screenPayload: ScreenPayload(
-        screenName: screenName,
-        arguments: pageArgs,
-        type: asModal == true ? PageType.modal : PageType.regular
-      ),
-    );
-
-    if (asModal == true) {
-      return EnsembleModalPageRouteBuilder(screenWidget: newScreen);
-    } else {
-      return EnsemblePageRouteBuilder(screenWidget: newScreen);
-    }
-  }
 
   /// concat into the format root/folder/
   @visibleForTesting
