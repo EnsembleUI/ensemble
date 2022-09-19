@@ -13,7 +13,7 @@ class EnsembleTheme {
         onSecondary: Utils.getColor(overrides?['Colors']?['onSecondary'])
     );
 
-    return ThemeData(
+    ThemeData themeData = ThemeData(
       // color scheme
       colorScheme: colorScheme,
       // disabled inputs / button
@@ -43,6 +43,16 @@ class EnsembleTheme {
           colorScheme: colorScheme)
       ),
 
+    );
+
+    // extends ThemeData
+    return themeData.copyWith(
+      extensions: [
+        EnsembleThemeExtension(
+          loadingScreenBackgroundColor: Utils.getColor(overrides?['Colors']?['loadingScreenBackgroundColor']),
+          loadingScreenIndicatorColor: Utils.getColor(overrides?['Colors']?['loadingScreenIndicatorColor']),
+        )
+      ]
     );
   }
 
@@ -378,6 +388,39 @@ class EnsembleTheme {
       primaryTextTheme: _buildTextThemeOld(base.primaryTextTheme),
       //accentTextTheme: _buildTextThemeOld(base.accentTextTheme),
       platform: TargetPlatform.iOS,
+    );
+  }
+}
+
+/// extend Theme to add our own special color parameters
+class EnsembleThemeExtension extends ThemeExtension<EnsembleThemeExtension> {
+  EnsembleThemeExtension({
+    this.loadingScreenBackgroundColor,
+    this.loadingScreenIndicatorColor
+  });
+  
+  final Color? loadingScreenBackgroundColor;
+  final Color? loadingScreenIndicatorColor;
+
+  @override
+  ThemeExtension<EnsembleThemeExtension> copyWith({
+    Color? loadingScreenBackgroundColor,
+    Color? loadingScreenIndicatorColor
+  }) {
+    return EnsembleThemeExtension(
+      loadingScreenBackgroundColor: loadingScreenBackgroundColor ?? this.loadingScreenBackgroundColor,
+      loadingScreenIndicatorColor: loadingScreenIndicatorColor ?? this.loadingScreenIndicatorColor
+    );
+  }
+
+  @override
+  ThemeExtension<EnsembleThemeExtension> lerp(ThemeExtension<EnsembleThemeExtension>? other, double t) {
+    if (other is! EnsembleThemeExtension) {
+      return this;
+    }
+    return EnsembleThemeExtension(
+      loadingScreenBackgroundColor: Color.lerp(loadingScreenBackgroundColor, other.loadingScreenBackgroundColor, t),
+      loadingScreenIndicatorColor: Color.lerp(loadingScreenIndicatorColor, other.loadingScreenIndicatorColor, t),
     );
   }
 }

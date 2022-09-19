@@ -270,7 +270,8 @@ class AppProvider {
   DefinitionProvider definitionProvider;
 
   Future<YamlMap> getDefinition({ScreenPayload? payload}) {
-    return definitionProvider.getDefinition(screenId: payload?.screenId);
+    // we always look up by screenName only?
+    return definitionProvider.getDefinition(screenName: payload?.screenId);
   }
 }
 

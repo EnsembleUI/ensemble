@@ -46,6 +46,14 @@
         "disabled": {
           "$ref": "#/$defs/Color",
           "description": "Color when a widget is disabled"
+        },
+        "loadingScreenBackgroundColor": {
+          "$ref": "#/$defs/Color",
+          "description": "The background color while a screen is loading"
+        },
+        "loadingScreenIndicatorColor": {
+          "$ref": "#/$defs/Color",
+          "description": "The progress indicator color while a screen is loading"
         }
       }
     },
