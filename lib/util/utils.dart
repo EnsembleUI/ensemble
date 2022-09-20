@@ -376,6 +376,7 @@ class Utils {
 
   static TextStyle? getTextStyle(dynamic textStyle) {
     if (textStyle is YamlMap) {
+      String? fontFamily = Utils.optionalString(textStyle['fontFamily']);
       int? fontSize = Utils.optionalInt(textStyle['fontSize'], min: 1, max: 100);
       Color? color = Utils.getColor(textStyle['color']);
 
@@ -397,6 +398,7 @@ class Utils {
 
       if (fontSize != null || color != null) {
         return TextStyle(
+          fontFamily: fontFamily,
           fontSize: fontSize?.toDouble(),
           color: color,
           decoration: decoration,
