@@ -148,7 +148,7 @@ class Ensemble {
       screenPayload: ScreenPayload(
         screenId: screenId,
         screenName: screenName,
-        type: pageType,
+        pageType: pageType,
         arguments: pageArgs
       )
     );

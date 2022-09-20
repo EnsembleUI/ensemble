@@ -74,6 +74,11 @@ class _ScreenState extends State<Screen> {
       initialMap: widget.screenPayload?.arguments
     );
 
+    // overwrite the pageType if specified in the payload
+    if (widget.screenPayload?.pageType != null) {
+      pageModel.pageType = widget.screenPayload!.pageType!;
+    }
+
     // add all the API names to our context as Invokable, even though their result
     // will be null. This is so we can always reference it API responses come back
     pageModel.apiMap?.forEach((key, value) {
