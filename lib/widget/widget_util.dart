@@ -63,7 +63,8 @@ class WidgetUtils {
 }
 class TextController extends WidgetController {
   String? text;
-  String? font;
+  String? font;   // pre-defined font styles
+  String? fontFamily;
   int? fontSize;
   FontWeight? fontWeight;
   Color? color;
@@ -86,6 +87,7 @@ class TextUtils {
   static Map<String,Function> styleSetters(TextController _controller) {
     return {
       'font': (value) => _controller.font = Utils.optionalString(value),
+      'fontFamily': (value) => _controller.fontFamily = Utils.optionalString(value),
       'fontSize': (value) => _controller.fontSize = Utils.optionalInt(value),
       'fontWeight': (value) => _controller.fontWeight = Utils.getFontWeight(value),
       'color': (value) => _controller.color = Utils.getColor(value),
@@ -193,6 +195,7 @@ class TextUtils {
         softWrap: textOverflow.softWrap,
         style: flutter.TextStyle(
             decorationColor: flutter.Colors.blue,
+            fontFamily: controller.fontFamily,
             fontWeight: fontWeight,
             fontStyle: fontStyle,
             decoration: textDecoration,
