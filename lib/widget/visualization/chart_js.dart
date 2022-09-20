@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:ensemble_ts_interpreter/parser/newjs_interpreter.dart';
 import 'package:flutter/material.dart';
 import 'package:js_widget/js_widget.dart';
 import 'dart:convert';
@@ -15,7 +16,6 @@ class ChartJsController extends WidgetController {
   String get chartDiv => 'div_$id';
   String get chartId => id;
   dynamic config = '';
-
 }
 class ChartJs extends StatefulWidget with Invokable, HasController<ChartJsController, ChartJsState> {
   static const type = 'ChartJs';
@@ -48,7 +48,7 @@ class ChartJs extends StatefulWidget with Invokable, HasController<ChartJsContro
       'height': (value) => _controller.height = Utils.getInt(value, fallback: defaultSize),
       'config': (value) {
         if ( value is Map ) {
-          _controller.config = json.encode(value);
+          _controller.config = JSInterpreter.toJSString(value);
         } else {
           _controller.config = value;
         }
@@ -68,7 +68,6 @@ class ChartJsState extends WidgetState<ChartJs> {
       scriptToInstantiate: (String c) {
         return 'if (typeof ${widget.controller.chartVar} !== "undefined") ${widget.controller.chartVar}.destroy();${widget.controller.chartVar} = new Chart(document.getElementById("${widget.controller.chartId}"), $c);${widget.controller.chartVar}.update();';
       },
-
       size: Size(widget.controller.width.toDouble(), widget.controller.height.toDouble()),
       data: widget.controller.config,
       scripts: const [
