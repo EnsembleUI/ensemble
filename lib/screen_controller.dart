@@ -382,7 +382,7 @@ class ScreenController {
       appProvider: AppProvider(definitionProvider: Ensemble().getConfig()!.definitionProvider),
       screenPayload: ScreenPayload(
         screenName: screenName,
-        type: pageType,
+        pageType: pageType,
         arguments: pageArgs,
       ),
     );

@@ -280,7 +280,7 @@ class ScreenPayload {
     this.screenId,
     this.screenName,
     this.arguments,
-    this.type
+    this.pageType
   });
 
   // screen ID is optional as the App always have a default screen
@@ -292,7 +292,7 @@ class ScreenPayload {
   // screen arguments to be added to the screen context
   Map<String, dynamic>? arguments;
 
-  PageType? type;
+  PageType? pageType;
 }
 
 class DeviceInfo {
