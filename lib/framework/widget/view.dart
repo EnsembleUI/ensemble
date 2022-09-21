@@ -313,7 +313,7 @@ class ViewState extends State<View>{
       model.MenuItem item = menuItems[i];
       navItems.add(BottomNavigationBarItem(
           icon: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
-          label: item.label ?? ''));
+          label: Utils.translate(item.label ?? '', context)));
       if (item.selected) {
         selectedIndex = i;
       }
