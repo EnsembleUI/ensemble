@@ -9,6 +9,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
 import 'package:event_bus/event_bus.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
@@ -117,20 +118,34 @@ mixin ViewBuilder on IsScopeManager {
 
   void _updateWidgetBindings(Map<WidgetModel, ModelPayload> modelMap) {
 
-    modelMap.forEach((inputModel, payload) {
-      DataContext dataContext = payload.scopeManager.dataContext;
+    modelMap.forEach((model, payload) {
+      ScopeManager scopeManager = payload.scopeManager;
+      DataContext dataContext = scopeManager.dataContext;
 
       // resolve input parameters
-      if (inputModel is CustomWidgetModel) {
-        if (inputModel.parameters != null && inputModel.inputs != null) {
-          for (var param in inputModel.parameters!) {
-            if (inputModel.inputs![param] != null) {
-              dataContext.addDataContextById(param, dataContext.eval(inputModel.inputs![param]));
+      if (model is CustomWidgetModel) {
+        if (model.parameters != null && model.inputs != null) {
+          for (var param in model.parameters!) {
+            if (model.inputs![param] != null) {
+              //dataContext.addDataContextById(param, dataContext.eval(model.inputs![param]));
+              //log("**$param: ${model.inputs![param]}**");
+
+              // have CustomView listen to changes to its input
+              // - CustomWidget:
+              //    inputs:
+              //      myVar: ${textWidget.value}
+              setPropertyAndRegisterBinding(
+                  scopeManager,
+                  payload.widget as Invokable,
+                  param,
+                  model.inputs![param]);
             }
-          }}
+          }
+        }
+        return;
       }
 
-      WidgetModel model = inputModel is CustomWidgetModel ? inputModel.getModel() : inputModel;
+      //WidgetModel model = inputModel is CustomWidgetModel ? inputModel.getModel() : inputModel;
 
       if (payload.widget is Invokable) {
         Invokable widget = payload.widget as Invokable;
@@ -143,14 +158,14 @@ mixin ViewBuilder on IsScopeManager {
               widget.setProperty(key, model.props[key]);
             } else {
               setPropertyAndRegisterBinding(
-                  dataContext, widget, key, model.props[key]);
+                  scopeManager, widget, key, model.props[key]);
             }
           }
         }
         for (String key in model.styles.keys) {
           if (widget.getSettableProperties().contains(key)) {
             setPropertyAndRegisterBinding(
-                dataContext, widget, key, model.styles[key]);
+                scopeManager, widget, key, model.styles[key]);
           }
         }
       }
@@ -211,17 +226,18 @@ mixin ViewBuilder on IsScopeManager {
   /// call widget.setProperty to update its value.
   /// If the value is an expression of valid binding, we
   /// will register to listen for changes
-  void setPropertyAndRegisterBinding(DataContext dataContext, Invokable widget, String key, dynamic value) {
+  void setPropertyAndRegisterBinding(ScopeManager scopeManager, Invokable widget, String key, dynamic value) {
     if (value is String) {
       DataExpression? expression = Utils.parseDataExpression(value);
       if (expression != null) {
         // listen for binding changes
         (this as PageBindingManager).registerBindingListener(
-            dataContext,
+            scopeManager,
             BindingDestination(widget, key),
-            expression);
+            expression
+        );
         // evaluate the binding as the initial value
-        value = dataContext.eval(value);
+        value = scopeManager.dataContext.eval(value);
       }
     }
     widget.setProperty(key, value);
@@ -242,11 +258,11 @@ class BindingDestination {
 /// $(myText.text)
 /// $(myAPI.body.result.status)
 class BindingSource {
-  BindingSource(this.model, this.modelId, this.property);
+  BindingSource(this.model, this.modelId, {this.property});
 
   Invokable model;
   String modelId;
-  String property;
+  String? property;   // property can be empty for custom widget inputs
 }
 
 /// managing binding at the Page level.
@@ -258,11 +274,21 @@ mixin PageBindingManager on IsScopeManager {
   /// Calling this multiple times is safe as we remove the matching listeners before adding.
   /// Upon changes, execute setProperty() on the destination's Invokable
   /// The expression can be a mix of variable and text e.g Hello $(first) $(last)
-  void registerBindingListener(DataContext dataContext, BindingDestination bindingDestination, DataExpression dataExpression) {
+  void registerBindingListener(ScopeManager scopeManager, BindingDestination bindingDestination, DataExpression dataExpression) {
 
     // we re-evaluate the entire raw binding upon any changes to any variables
     for (var expression in dataExpression.expressions) {
-      listen(dataContext, expression, me: bindingDestination.widget, onDataChange: (ModelChangeEvent event) {
+      listen(scopeManager, expression, me: bindingDestination.widget, onDataChange: (ModelChangeEvent event) {
+
+        DataContext dataContext = scopeManager.dataContext;
+        if (dataContext.getContextById(event.modelId) is InvokablePrimitive) {
+          updateInvokablePrimitive(
+              dataContext,
+              event.modelId,
+              dataContext.getContextById(bindingDestination.setterProperty),
+              event.payload);
+        }
+
         // payload only have changes to a variable, but we have to evaluate the entire expression
         // e.g Hello $(firstName.value) $(lastName.value)
         dynamic updatedValue = dataContext.eval(dataExpression.stringifyRawAndAst());
@@ -271,19 +297,35 @@ mixin PageBindingManager on IsScopeManager {
     }
   }
 
+  void updateInvokablePrimitive(DataContext dataContext, String key, InvokablePrimitive primitive, dynamic newValue) {
+    if (newValue == null) {
+      dataContext.addInvokableContext(key, InvokableNull());
+    } else {
+      if (primitive is InvokableString) {
+        dataContext.addInvokableContext(key, InvokableString(newValue.toString()));
+      } else if (primitive is InvokableBoolean && newValue is bool) {
+        dataContext.addInvokableContext(key, InvokableBoolean(newValue));
+      } else if (primitive is InvokableNumber && newValue is num) {
+        dataContext.addInvokableContext(key, InvokableNumber(newValue));
+      }
+    }
+  }
+
 
   /// listen for changes on the bindingExpression and invoke onDataChange() callback.
   /// Multiple calls to this is safe as we remove the existing listeners before adding.
   /// [bindingExpression] a valid binding expression in the form of getter e.g $(myText.text)
   /// [me] the widget that initiated this listener. We need this to properly remove
+  /// [bindingScope] if specified, we'll only listen to binding changes within this Scope (e.g. custom widget inputs)
   /// all listeners when the widget is disposed.
   /// @return true if we are able to bind and listen to the expression.
   bool listen(
-      DataContext dataContext,
+      ScopeManager scopeManager,
       String bindingExpression, {
         required Invokable me,
         required Function onDataChange
       }) {
+    DataContext dataContext = scopeManager.dataContext;
 
     BindingSource? bindingSource = parseExpression(bindingExpression, dataContext);
     if (bindingSource != null) {
@@ -296,9 +338,13 @@ mixin PageBindingManager on IsScopeManager {
         hash = getHash(sourceId: bindingSource.modelId);
       }
       // For now support Widget's getters() only e.g $(myText.value)
-      else if (bindingSource.model is HasController && !bindingSource.property.contains('.')) {
+      else if (bindingSource.model is HasController && bindingSource.property != null && !bindingSource.property!.contains('.')) {
         // clean up existing listeners
         hash = getHash(sourceId: bindingSource.modelId, sourceProperty: bindingSource.property);
+      }
+      // InvokablePrimitive but need to be localized to a ScopeManager (custom view's inputs)
+      else if (bindingSource.model is InvokablePrimitive) {
+        hash = getHash(sourceId: bindingSource.modelId, scopeManager: scopeManager);
       }
 
       if (hash != null) {
@@ -310,9 +356,17 @@ mixin PageBindingManager on IsScopeManager {
         StreamSubscription subscription = eventBus.on<ModelChangeEvent>()
             .listen((event) {
           //log("EventBus ${eventBus.hashCode} listening: $event");
+
+          // CustomView's binding is suboptimal. Ideally we only match the scope,
+          // but CustomView set its input in the parent scope, hence we have
+          // to check the parent also.
           if (event.modelId == bindingSource.modelId &&
               (event.property == null || event.property == bindingSource.property)) {
-            onDataChange(event);
+
+                log("${scopeManager.hashCode}==${event.bindingScope?.hashCode}");
+                //if (event.bindingScope == null || event.bindingScope == scopeManager) { // || event.bindingScope == scopeManager._parent)) {
+                  onDataChange(event);
+                //}
           }
         });
 
@@ -336,6 +390,8 @@ mixin PageBindingManager on IsScopeManager {
   BindingSource? parseExpression(String expression, DataContext dataContext) {
     if (Utils.isExpression(expression)) {
       String variable = expression.substring(2, expression.length - 1).trim();
+
+      // if syntax is ${model.property}
       int dotIndex = variable.indexOf('.');
       if (dotIndex != -1) {
         String modelId = variable.substring(0, dotIndex);
@@ -350,7 +406,14 @@ mixin PageBindingManager on IsScopeManager {
 
         dynamic model = dataContext.getContextById(modelId);
         if (model is Invokable) {
-          return BindingSource(model, modelId, property);
+          return BindingSource(model, modelId, property: property);
+        }
+      }
+      // else try to see if it's simply ${model} e.g. custom widget's inputs
+      else {
+        dynamic model = dataContext.getContextById(variable);
+        if (model is Invokable) {
+          return BindingSource(model, variable);
         }
       }
     }
@@ -380,8 +443,8 @@ mixin PageBindingManager on IsScopeManager {
   }
 
   /// unique but repeatable hash (within the same session) of the provided keys
-  int getHash({String? destinationSetter, required String sourceId, String? sourceProperty}) {
-    return Object.hash(destinationSetter, sourceId, sourceProperty);
+  int getHash({String? destinationSetter, required String sourceId, String? sourceProperty, ScopeManager? scopeManager}) {
+    return Object.hash(destinationSetter, sourceId, sourceProperty, scopeManager);
   }
 
   /// print a map of the current listeners on this scope
@@ -404,11 +467,12 @@ class ModelChangeEvent {
   String modelId;
   String? property;
   dynamic payload;
-  ModelChangeEvent(this.modelId, this.payload, {this.property});
+  ScopeManager? bindingScope;
+  ModelChangeEvent(this.modelId, this.payload, {this.property, this.bindingScope});
 
   @override
   String toString() {
-    return "ModelChangeEvent($modelId, $property)";
+    return "ModelChangeEvent($modelId, $property, scope: $bindingScope)";
   }
 }
 
