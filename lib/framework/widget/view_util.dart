@@ -137,24 +137,40 @@ class ViewUtil {
     return rtn;
   }
 
+  static Widget buildBareCustomWidget(ScopeNode scopeNode, CustomWidgetModel customModel, Map<WidgetModel, ModelPayload> modelMap) {
+    // create a new Scope (for our custom widget) and add to the parent
+    ScopeManager customScope = scopeNode.scope.createChildScope();
+    ScopeNode customScopeNode = ScopeNode(customScope);
+    scopeNode.addChild(customScopeNode);
 
-  static Widget buildBareWidget(ScopeNode scopeNode, WidgetModel inputModel, Map<WidgetModel, ModelPayload> modelMap) {
-    WidgetModel model = inputModel is CustomWidgetModel ? inputModel.getModel() : inputModel;
+    // build the root child widget
+    Widget rootWidget = buildBareWidget(customScopeNode, customModel.getModel(), modelMap);
+
+    Widget customWidget = CustomView(
+      childWidget: rootWidget,
+      parameters: customModel.parameters,
+      scopeManager: customScope,
+      viewBehavior: customModel.getViewBehavior()
+    );
+    modelMap[customModel] = ModelPayload(customWidget, customScope);
+
+    return DataScopeWidget(
+      scopeManager: customScope,
+      child: customWidget
+    );
+  }
+
+  static Widget buildBareWidget(ScopeNode scopeNode, WidgetModel model, Map<WidgetModel, ModelPayload> modelMap) {
+    if (model is CustomWidgetModel) {
+       return buildBareCustomWidget(scopeNode, model, modelMap);
+    }
 
     Function? widgetInstance = WidgetRegistry.widgetMap[model.type];
     if (widgetInstance != null) {
       Widget w = widgetInstance.call();
       ScopeManager currentScope = scopeNode.scope;
 
-
-
-      // save to the modelMap for later binding processing
-      if (inputModel is CustomWidgetModel) {
-        currentScope = scopeNode.scope.createChildScope();
-        scopeNode.addChild(ScopeNode(currentScope));
-      }
-
-      modelMap[inputModel] = ModelPayload(w, currentScope);
+      modelMap[model] = ModelPayload(w, currentScope);
 
       // If our widget has an ID, add it to our data context
       String? id = model.props['id']?.toString();
@@ -163,25 +179,22 @@ class ViewUtil {
         currentScope.dataContext.addInvokableContext(id, (w as Invokable));
       }
 
-
       // build children and save the reference to the modelMap
       if (w is UpdatableContainer) {
         List<Widget>? children;
         if (model.children != null) {
           children = [];
           for (WidgetModel model in model.children!) {
-            children.add(buildBareWidget(ScopeNode(currentScope), model, modelMap));
+            //children.add(buildBareWidget(ScopeNode(currentScope), model, modelMap));
+            children.add(buildBareWidget(scopeNode, model, modelMap));
           }
-          modelMap[inputModel]!.children = children;
+          modelMap[model]!.children = children;
         }
       }
       // for Custom View, we wraps it around a DataScope to separate the data context.
       // Additionally Custom View has special behavior (e.g. onLoad) that needs to be
       // processed, so wraps it in a CustomView widget
-      return inputModel is! CustomWidgetModel ? w :
-          DataScopeWidget(
-              scopeManager: currentScope,
-              child: CustomView(childWidget: w, viewBehavior: inputModel.getViewBehavior()));
+      return w;
     }
     return const Text("Unsupported Widget");
   }
