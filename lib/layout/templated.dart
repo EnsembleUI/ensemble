@@ -18,7 +18,7 @@ mixin TemplatedWidgetState<W extends StatefulWidget> on State<W> {
       // listen to the binding from our itemTemplate
       // data: $(apiName.*)
       scopeManager.listen(
-        scopeManager.dataContext,
+        scopeManager,
         dataExpression.rawExpression,
         me: (widget as Invokable),
         onDataChange:(ModelChangeEvent event) {
