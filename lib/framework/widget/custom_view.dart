@@ -55,16 +55,13 @@ class CustomView extends StatelessWidget with Invokable {
       } else if (val != null) {
         value = InvokableString(val.toString());
       } else {
-        throw LanguageError("Input parameters has to be a String, Number, or Boolean");
+        value = InvokableNull();
       }
       // override the key
       scopeManager.dataContext.addInvokableContext(prop, value);
-      //scopeManager.dataContext.addDataContextById(prop, val);
-      //log("--$prop: ${value.--");
 
-      // TODO: is this scoped only to the Custom Widget?
       // dispatch the changes to all inside our Custom Widget scope
-      log("Dispatching ${prop}=${val}. Scope ${scopeManager.hashCode}");
+      //log("Dispatching ${prop}=${val}. Scope ${scopeManager.hashCode}");
       scopeManager.dispatch(ModelChangeEvent(prop, val, bindingScope: scopeManager));
     }
   }

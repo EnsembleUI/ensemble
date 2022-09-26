@@ -127,15 +127,9 @@ mixin ViewBuilder on IsScopeManager {
         if (model.parameters != null && model.inputs != null) {
           for (var param in model.parameters!) {
             if (model.inputs![param] != null) {
-              //dataContext.addDataContextById(param, dataContext.eval(model.inputs![param]));
-              //log("**$param: ${model.inputs![param]}**");
-
-              // have CustomView listen to changes to its input
-              // - CustomWidget:
-              //    inputs:
-              //      myVar: ${textWidget.value}
+              // set the Custom Widget's inputs from parent scope
               setPropertyAndRegisterBinding(
-                  scopeManager,
+                  scopeManager._parent!,    // widget inputs are set in the parent's scope
                   payload.widget as Invokable,
                   param,
                   model.inputs![param]);
@@ -356,17 +350,10 @@ mixin PageBindingManager on IsScopeManager {
         StreamSubscription subscription = eventBus.on<ModelChangeEvent>()
             .listen((event) {
           //log("EventBus ${eventBus.hashCode} listening: $event");
-
-          // CustomView's binding is suboptimal. Ideally we only match the scope,
-          // but CustomView set its input in the parent scope, hence we have
-          // to check the parent also.
           if (event.modelId == bindingSource.modelId &&
-              (event.property == null || event.property == bindingSource.property)) {
-
-                log("${scopeManager.hashCode}==${event.bindingScope?.hashCode}");
-                //if (event.bindingScope == null || event.bindingScope == scopeManager) { // || event.bindingScope == scopeManager._parent)) {
+              (event.property == null || event.property == bindingSource.property) &&
+              (event.bindingScope == null || event.bindingScope == scopeManager)) {
                   onDataChange(event);
-                //}
           }
         });
 
