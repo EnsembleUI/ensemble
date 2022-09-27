@@ -47,18 +47,24 @@ class CustomView extends StatelessWidget with Invokable {
   @override
   void setProperty(dynamic prop, dynamic val) {
     if (prop != null && parameters != null && parameters!.contains(prop)) {
-      Invokable value;
-      if (val is bool) {
+      Object value;
+      if (val == null) {
+        value = InvokableNull();
+      } else if (val is bool) {
         value = InvokableBoolean(val);
       } else if (val is num) {
         value = InvokableNumber(val);
-      } else if (val != null) {
-        value = InvokableString(val.toString());
+      } else if (val is String) {
+        value = InvokableString(val);
       } else {
-        value = InvokableNull();
+        value = val;
       }
       // override the key
-      scopeManager.dataContext.addInvokableContext(prop, value);
+      if (value is Invokable) {
+        scopeManager.dataContext.addInvokableContext(prop, value);
+      } else {
+        scopeManager.dataContext.addDataContextById(prop, value);
+      }
 
       // dispatch the changes to all inside our Custom Widget scope
       //log("Dispatching ${prop}=${val}. Scope ${scopeManager.hashCode}");

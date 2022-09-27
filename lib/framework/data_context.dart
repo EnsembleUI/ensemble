@@ -33,7 +33,10 @@ class DataContext {
       _contextMap.addAll(initialMap);
     }
     _contextMap['ensemble'] = NativeInvokable(buildContext);
-    _contextMap['device'] = DeviceInfoInvokable();
+    // device is a common name. If user already uses that, don't override it
+    if (_contextMap['device'] == null) {
+      _contextMap['device'] = DeviceInfoInvokable();
+    }
   }
 
   DataContext clone({BuildContext? newBuildContext}) {
