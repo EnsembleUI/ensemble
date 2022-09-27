@@ -2,6 +2,18 @@ import 'package:flutter/material.dart';
 
 /// misc models
 
+class IconModel {
+  IconModel(this.icon, {
+    this.library,
+    this.size,
+    this.color
+  });
+  dynamic icon;
+  String? library;
+  int? size;
+  Color? color;
+}
+
 class BackgroundImage {
   BackgroundImage(this.source, {this.fit, this.alignment});
   String source;

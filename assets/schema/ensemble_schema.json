@@ -1566,6 +1566,25 @@
                 "type": "string",
                 "description": "Setting the tab label"
               },
+              "icon": {
+                "type": "object",
+                "description": "Pick the icon for each tab item. (short-hand 'iconName iconLibrary' also supported)",
+                "properties": {
+                  "name": {
+                    "type": ["integer", "string"],
+                    "description": "The name of the icon"
+                  },
+                  "library": {
+                    "$ref": "#/$defs/iconLibrary"
+                  },
+                  "color": {
+                    "$ref": "#/$defs/typeColors"
+                  },
+                  "size": {
+                    "type": "integer"
+                  }
+                }
+              },
               "body": {
                 "$ref": "#/$defs/Widget",
                 "description": "Including a widget to be rendered as this tab's content"
@@ -2008,6 +2027,11 @@
           }
         }
       }
+    },
+    "iconLibrary": {
+      "type": "string",
+      "description": "(optional) Select the icon library",
+      "enum": ["default", "fontAwesome"]
     },
     "alignment": {
       "type": "string",
