@@ -337,7 +337,7 @@ mixin PageBindingManager on IsScopeManager {
         hash = getHash(sourceId: bindingSource.modelId, sourceProperty: bindingSource.property);
       }
       // InvokablePrimitive but need to be localized to a ScopeManager (custom view's inputs)
-      else if (bindingSource.model is InvokablePrimitive) {
+      else {
         hash = getHash(sourceId: bindingSource.modelId, scopeManager: scopeManager);
       }
 
