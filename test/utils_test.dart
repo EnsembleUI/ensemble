@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
@@ -120,4 +121,47 @@ void main() {
     expect(timeOfDay.compareTo(const TimeOfDay(hour: 12, minute: 40)), 1);
     expect(timeOfDay.compareTo(const TimeOfDay(hour: 1, minute: 1)), 1);
   });
+
+  test("getIcon() short-hand", () {
+    IconModel outputModel = Utils.getIcon('home')!;
+    IconModel model = IconModel('home');
+    assertIconEquality(outputModel, model);
+
+    outputModel = Utils.getIcon('home fontAwesome')!;
+    model = IconModel('home', library: 'fontAwesome');
+    assertIconEquality(outputModel, model);
+  });
+
+  test("getIcon() key-value", () {
+    WidgetsFlutterBinding.ensureInitialized();
+
+    Map<String, dynamic> map = {
+      'name': 'home',
+      'library': 'fontAwesome'
+    };
+    IconModel outputModel = Utils.getIcon(map)!;
+    IconModel model = IconModel('home', library: 'fontAwesome');
+    assertIconEquality(outputModel, model);
+
+    map = {
+      'name': 'home',
+      'library': 'fontAwesome',
+      'color': 'green',
+      'size': 23
+    };
+    outputModel = Utils.getIcon(map)!;
+    model = IconModel('home', library: 'fontAwesome', color: Colors.green, size: 23);
+    assertIconEquality(outputModel, model);
+
+  });
+
+
+
+}
+
+void assertIconEquality(IconModel first, IconModel second) {
+  expect(first.icon, second.icon);
+  expect(first.library, second.library);
+  expect(first.size, second.size);
+  expect(first.color, second.color);
 }

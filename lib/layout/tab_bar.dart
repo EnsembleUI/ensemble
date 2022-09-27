@@ -1,8 +1,10 @@
 
 
+import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/view.dart';
 import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
@@ -70,7 +72,9 @@ class TabBarController extends WidgetController {
       for (YamlMap item in items) {
         _items.add(TabItem(
             Utils.getString(item['label'], fallback: ''),
-            item['body'])
+            item['body'],
+            icon: Utils.getIcon(item['icon']),
+          )
         );
       }
     }
@@ -139,7 +143,6 @@ class TabBarState extends WidgetState<EnsembleTabBar> with SingleTickerProviderS
     bool labelPosition = widget._controller.tabPosition == 'stretch' ? false : true;
 
     Widget tabBar = TabBar(
-
       labelPadding: labelPadding,
       indicator: UnderlineTabIndicator(
         borderSide: BorderSide(
@@ -154,7 +157,9 @@ class TabBarState extends WidgetState<EnsembleTabBar> with SingleTickerProviderS
       labelColor: widget._controller.activeTabColor ?? Theme.of(context).colorScheme.primary,
       unselectedLabelColor: widget._controller.inactiveTabColor ?? Colors.black87,
 
-      tabs: widget._controller._items.map((e) => Tab(text: e.label)).toList(),
+      tabs: widget._controller._items.map((e) => Tab(
+          text: e.label,
+          icon: e.icon != null ? ensemble.Icon.fromModel(e.icon!) : null)).toList(),
       onTap: (index) => {
         setState(() {
           widget._controller.selectedIndex = index;
@@ -183,11 +188,10 @@ class TabBarState extends WidgetState<EnsembleTabBar> with SingleTickerProviderS
 }
 
 class TabItem {
-  TabItem(this.label, this.body, {this.icon, this.iconLibrary});
+  TabItem(this.label, this.body, {this.icon});
 
   String label;
   dynamic body;
-  String? icon;
-  String? iconLibrary;
+  IconModel? icon;
 
 }

@@ -345,6 +345,32 @@ class Utils {
     return null;
   }
 
+  static IconModel? getIcon(dynamic value) {
+    dynamic icon;
+    String? fontFamily;
+
+    // short-hand e.g. 'inbox fontAwesome'
+    if (value is String) {
+      List<dynamic> tokens = value.split(RegExp(r'\s+'));
+      if (tokens.isNotEmpty) {
+        return IconModel(
+          tokens[0],
+          library: tokens.length >= 2 ? tokens[1].toString() : null
+        );
+      }
+    }
+    // key/value
+    else if (value is Map && value['name'] != null) {
+      return IconModel(
+        value['name'],
+        library: Utils.optionalString(value['library']),
+        color: Utils.getColor(value['color']),
+        size: Utils.optionalInt(value['size'])
+      );
+    }
+    return null;
+  }
+
   static FontWeight? getFontWeight(dynamic value) {
     if (value is String) {
       switch (value) {

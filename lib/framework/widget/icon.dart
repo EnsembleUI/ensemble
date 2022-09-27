@@ -1,4 +1,5 @@
 
+import 'package:ensemble/framework/model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as flutter;
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -12,6 +13,15 @@ class Icon extends flutter.Icon {
         int? size,
         Color? color,
       }) : super(_iconFromName(icon, library), key: key, size: size?.toDouble(), color: color);
+
+  factory Icon.fromModel(IconModel model) {
+    return Icon(
+      model.icon,
+      library: model.library,
+      size: model.size,
+      color: model.color
+    );
+  }
 
   static IconData? _iconFromName(dynamic name, String? library) {
     if (library == null || library == 'default' || library.toString().trim().isEmpty) {
