@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:async';
 import 'dart:developer';
 import 'dart:ui';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +12,7 @@ import 'package:yaml/yaml.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' as foundation;
+
 
 abstract class DefinitionProvider {
   static Map<String,dynamic> cache = {};
@@ -123,8 +125,91 @@ class RemoteDefinitionProvider extends DefinitionProvider {
 }
 
 class EnsembleDefinitionProvider extends DefinitionProvider {
+  EnsembleDefinitionProvider(this.appId, super.i18nProps);
+  final String appId;
+  FlutterI18nDelegate? _i18nDelegate;
 
-  EnsembleDefinitionProvider(this.url, this.appId,bool cacheEnabled,I18nProps i18nProps): super(i18nProps,cacheEnabled:cacheEnabled);
+  @override
+  Future<AppBundle> getAppBundle() {
+    // TODO: get App Bundle
+    return Future.value(AppBundle());
+  }
+
+  @override
+  Future<YamlMap> getDefinition({String? screenId, String? screenName}) async {
+
+    FirebaseFirestore db = FirebaseFirestore.instance;
+    CollectionReference screens = db.collection('apps')
+        .doc(appId)
+        .collection('artifacts');
+
+    DocumentReference? selectedScreen;
+    // search by ID
+    if (screenId != null) {
+      selectedScreen = screens.doc(screenId);
+    }
+    // search by name
+    else if (screenName != null) {
+      QuerySnapshot searchByName = await screens
+          .where("type", isEqualTo: 'screen')
+          .where('isArchived', isEqualTo: false)
+          .where('name', isEqualTo: screenName)
+          .orderBy('createdAt', descending: true)
+          .limit(1)
+          .get();
+      if (searchByName.docs.isNotEmpty) {
+        selectedScreen = searchByName.docs[0].reference;
+      }
+    }
+    // search for home screen
+    else {
+      QuerySnapshot searchByHome = await screens
+        .where('isRoot', isEqualTo: true)
+        .where('isArchived', isEqualTo: false)
+        .orderBy('createdAt', descending: true)
+        .limit(1)
+        .get();
+      if (searchByHome.docs.isNotEmpty) {
+        selectedScreen = searchByHome.docs[0].reference;
+      }
+    }
+
+    // Now get the latest screen version
+    Completer<YamlMap> completer = Completer();
+    if (selectedScreen != null) {
+      QuerySnapshot snapshot = await selectedScreen
+          .collection('history')
+          .orderBy('createdAt', descending: true)
+          .limit(1)
+          .get();
+      if (snapshot.docs.isNotEmpty) {
+        completer.complete(loadYaml(snapshot.docs[0].get('content')));
+        return completer.future;
+      }
+    }
+
+    completer.completeError("Error loading Ensemble page: ${screenId ?? screenName ?? 'Home'}");
+    return completer.future;
+  }
+
+  @override
+  FlutterI18nDelegate getI18NDelegate() {
+    _i18nDelegate ??= FlutterI18nDelegate(
+        translationLoader: NetworkFileTranslationLoader(
+            baseUri: Uri.parse(i18nProps.path),
+            forcedLocale: Locale(i18nProps.defaultLocale),
+            fallbackFile: i18nProps.fallbackLocale,
+            useCountryCode: i18nProps.useCountryCode,
+            decodeStrategies: [YamlDecodeStrategy()])
+    );
+    return _i18nDelegate!;
+  }
+  
+}
+
+class LegacyDefinitionProvider extends DefinitionProvider {
+
+  LegacyDefinitionProvider(this.url, this.appId,bool cacheEnabled,I18nProps i18nProps): super(i18nProps,cacheEnabled:cacheEnabled);
   final String url;
   final String appId;
   String? appHome;
