@@ -6,16 +6,15 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/error_handling.dart';
-import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/provider.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_i18n/flutter_i18n.dart';
+import 'package:flutter_i18n/flutter_i18n_delegate.dart';
 import 'package:yaml/yaml.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 /// Singleton Controller
 class Ensemble {
@@ -48,6 +47,19 @@ class Ensemble {
     final YamlMap yamlMap = loadYaml(yamlString);
 
     DefinitionProvider definitionProvider = _getDefinitionProvider(yamlMap);
+
+    // init Firebase once. These are not secrets so OK to include here.
+    // https://firebase.google.com/docs/projects/api-keys#api-keys-for-firebase-are-different
+    if (definitionProvider is EnsembleDefinitionProvider) {
+      await Firebase.initializeApp(
+          options: const FirebaseOptions(
+              apiKey: 'AIzaSyBAZ7wf436RSbcXvhhfg7e4TUh6A2SKve8',
+              appId: '1:326748243798:ios:30f2a4f824dc58ea94b8f7',
+              messagingSenderId: '326748243798',
+              projectId: 'ensemble-web-studio')
+      );
+    }
+
     _config = EnsembleConfig(
       definitionProvider: definitionProvider,
       appBundle: await definitionProvider.getAppBundle(),
@@ -68,10 +80,6 @@ class Ensemble {
     // Ensemble-powered apps
     String? definitionType = yamlMap['definitions']?['from'];
     if (definitionType == 'ensemble') {
-      String? path = yamlMap['definitions']?['ensemble']?['path'];
-      if (path == null || !path.startsWith('https')) {
-        throw ConfigError('Invalid URL to Ensemble server. The original value should not be changed');
-      }
       String? appId = yamlMap['definitions']?['ensemble']?['appId'];
       if (appId == null) {
         throw ConfigError(
@@ -83,9 +91,29 @@ class Ensemble {
         throw ConfigError(
             "i18nPath is required. If you don't have any changes, just leave the default as-is.");
       }
-      bool cacheEnabled = yamlMap['definitions']?['ensemble']?['enableCache'] == true;
       i18nProps.path = i18nPath;
-      return EnsembleDefinitionProvider(path, appId, cacheEnabled, i18nProps);
+      return EnsembleDefinitionProvider(appId, i18nProps);
+    }
+    // legacy Ensemble-server
+    else if (definitionType == 'legacy') {
+      String? path = yamlMap['definitions']?['legacy']?['path'];
+      if (path == null || !path.startsWith('https')) {
+        throw ConfigError('Invalid URL to Ensemble legacy server. The original value should not be changed');
+      }
+      String? appId = yamlMap['definitions']?['legacy']?['appId'];
+      if (appId == null) {
+        throw ConfigError(
+            "appId is required. Your App Key can be found on "
+                "Ensemble Studio under each application");
+      }
+      String? i18nPath = yamlMap['definitions']?['legacy']?['i18nPath'];
+      if (i18nPath == null) {
+        throw ConfigError(
+            "i18nPath is required. If you don't have any changes, just leave the default as-is.");
+      }
+      bool cacheEnabled = yamlMap['definitions']?['legacy']?['enableCache'] == true;
+      i18nProps.path = i18nPath;
+      return LegacyDefinitionProvider(path, appId, cacheEnabled, i18nProps);
     }
     // local/remote Apps
     else if (definitionType == 'local' || definitionType == 'remote'){
