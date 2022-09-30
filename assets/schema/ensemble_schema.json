@@ -762,8 +762,8 @@
       "allOf": [
         {
           "properties": {
-            "styles": { "$ref": "#/$defs/columnStyles" },
-            "children": { "$ref": "#/$defs/Widgets" }
+            "children": { "$ref": "#/$defs/Widgets" },
+            "styles": { "$ref": "#/$defs/columnStyles" }
           }
         },
         { "$ref": "#/$defs/Templated-payload" }
@@ -774,8 +774,8 @@
       "allOf": [
         {
           "properties": {
-            "styles": { "$ref": "#/$defs/rowStyles" },
-            "children": { "$ref": "#/$defs/Widgets" }
+            "children": { "$ref": "#/$defs/Widgets" },
+            "styles": { "$ref": "#/$defs/rowStyles" }
           }
         },
         { "$ref": "#/$defs/Templated-payload" }
