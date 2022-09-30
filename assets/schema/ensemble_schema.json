@@ -92,7 +92,7 @@
           },
           "body": {
             "type": "string",
-            "description": "the request body to pass along with the URL"
+            "description": "The request body to pass along with the URL"
           }
         }
       }
@@ -161,7 +161,7 @@
                 },
                 "overflow": {
                   "type": "string",
-                  "description": "how to handle text longer than available space",
+                  "description": "Set treatment of text longer than available space",
                   "enum": [
                     "wrap", "visible", "clip", "fade", "ellipsis"
                   ]
@@ -200,9 +200,6 @@
         "styles": {
           "allOf": [
             {
-              "$ref": "#/$defs/baseStyles"
-            },
-            {
               "type": "object",
               "properties": {
                 "textStyle": {
@@ -216,6 +213,9 @@
                   "$ref": "#/$defs/TextStyle"
                 }
               }
+            },
+            {
+              "$ref": "#/$defs/baseStyles"
             }
           ]
         }
@@ -263,7 +263,7 @@
       "properties": {
         "source": {
           "type": "string",
-          "description": "URL to the image"
+          "description": "URL to or asset name of the image"
         },
         "styles": {
           "allOf": [
@@ -666,14 +666,14 @@
       "properties": {
         "label": {
           "type": "string",
-          "description": "Your button label"
+          "description": "The button label"
         },
         "enabled": {
           "type": "boolean"
         },
         "validateForm": {
           "type": "boolean",
-          "description": "If our button is inside a Form, setting this to TRUE will validate all fields within this form upon button tap"
+          "description": "If the button is inside a Form, setting this to TRUE will validate all fields within this form upon button tap"
         },
         "onTap": { "$ref": "#/$defs/Action-payload" },
         "styles": {
@@ -718,7 +718,7 @@
             },
             "labelOverflow": {
               "type": "string",
-              "description": "how to handle text longer than available space",
+              "description": "Treatment of text longer than available space",
               "enum": [
                 "wrap", "visible", "clip", "fade", "ellipsis"
               ]
@@ -733,7 +733,7 @@
             },
             "gap": {
               "type": "integer",
-              "description": "vertical gap to insert between the children (default is 10)",
+              "description": "Vertical gap to insert between the children (default is 10)",
               "minimum": 0
             }
           }
@@ -745,13 +745,13 @@
       "allOf": [
         {
           "properties": {
-            "styles": { "$ref": "#/$defs/flowStyles" },
             "children": { "$ref": "#/$defs/Widgets" },
             "direction": {
               "type": "string",
               "description": "The main direction to lay out the children before wrapping",
               "enum": ["vertical", "horizontal"]
-            }
+            },
+            "styles": { "$ref": "#/$defs/flowStyles" }
           }
         },
         { "$ref": "#/$defs/Templated-payload" }
@@ -786,8 +786,8 @@
       "allOf": [
         {
           "properties": {
-            "styles": { "$ref": "#/$defs/flexStyles" },
-            "children": { "$ref": "#/$defs/Widgets" }
+            "children": { "$ref": "#/$defs/Widgets" },
+            "styles": { "$ref": "#/$defs/flexStyles" }
           }
         },
         { "$ref": "#/$defs/Templated-payload" }
@@ -885,8 +885,14 @@
         "item-template": {
           "type": "object",
           "properties": {
-            "data": { "type": "string" },
-            "name": { "type": "string" },
+            "data": { 
+              "type": "string" ,
+              "description": "Bind to an array of data from an API response or a variable"
+            },
+            "name": { 
+              "type": "string",
+              "description": "Set the name to reference as you iterate through the array of data"
+            },
             "template": { "$ref": "#/$defs/Widget" }
           }
         }
@@ -1118,7 +1124,7 @@
                   "maxNumberOfTimes": {
                     "type": "integer",
                     "minimum": 1,
-                    "description": "Specified the max number of times the timer will triggers, if repeat is true"
+                    "description": "Set the max number of times the timer will triggers, if repeat is true"
                   }
                 }
               },
@@ -1230,11 +1236,9 @@
         }
       ]
     },
-
-
     "Widgets": {
       "type": "array",
-      "description": "List of child widgets",
+      "description": "List of widgets",
       "items": { "$ref": "#/$defs/Widget" }
     },
     "RootWidget": {
@@ -1413,7 +1417,7 @@
           "properties": {
             "display": {
               "type": "string",
-              "description": "how to render the App Menu (e.g bottom navigation bar, drawer, ...)",
+              "description": "The menu display type",
               "enum": [
                 "navBar", "navBar_left", "drawer"
               ]
@@ -1422,7 +1426,7 @@
             "footer": { "$ref": "#/$defs/Widget" },
             "items": {
               "type": "array",
-              "description": "Define your menu items here (minimum 2)",
+              "description": "List of menu items (minimum 2)",
               "items": {
                 "type": "object",
                 "required": ["icon", "label", "page"],
@@ -1495,9 +1499,6 @@
         "styles": {
           "allOf": [
             {
-              "$ref": "#/$defs/styleMargin"
-            },
-            {
               "type": "object",
               "properties": {
                 "tabPosition": {
@@ -1547,6 +1548,9 @@
                   "description": "The thickness of the selected tab's indicator"
                 }
               }
+            },
+            {
+              "$ref": "#/$defs/styleMargin"
             }
           ]
         },
@@ -1568,7 +1572,7 @@
               },
               "icon": {
                 "type": "object",
-                "description": "Pick the icon for each tab item. (short-hand 'iconName iconLibrary' also supported)",
+                "description": "The icon for each tab item. (short-hand 'iconName iconLibrary' also supported)",
                 "properties": {
                   "name": {
                     "type": ["integer", "string"],
@@ -1587,7 +1591,7 @@
               },
               "body": {
                 "$ref": "#/$defs/Widget",
-                "description": "Including a widget to be rendered as this tab's content"
+                "description": "Add a widget to be rendered as this tab's content"
               }
             }
           }
@@ -1672,7 +1676,7 @@
       "properties": {
         "expanded": {
           "type": "boolean",
-          "description": "If our parent is a Row or Column, this flag will stretch our widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+          "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
         }
       }
     },
@@ -1681,7 +1685,7 @@
       "properties": {
         "padding": {
           "type": ["integer", "string"],
-          "description": "Padding with CSS-style value"
+          "description": "Padding with CSS-style value e.g. padding: 5 20 5"
         }
       }
     },
@@ -1690,7 +1694,7 @@
       "properties": {
         "margin": {
           "type": ["integer", "string"],
-          "description": "Margin with CSS-style notation e.g padding: 5 20 5"
+          "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
         }
       }
     },
@@ -1728,7 +1732,7 @@
             "number",
             "string"
           ],
-          "description": "border color starting with '0xFF' for full opacity"
+          "description": "Border color starting with '0xFF' for full opacity"
         },
         "borderWidth": {
           "type": "integer"
@@ -1776,11 +1780,11 @@
             },
             "backgroundColor": {
               "$ref": "#/$defs/typeColors",
-              "description": "backgroundColor starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+              "description": "BackgroundColor starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
             },
             "fontFamily": {
               "type": "string",
-              "description": "specify the font family applicable for all widgets inside this container"
+              "description": "Set the font family applicable for all widgets inside this container"
             },
             "fontSize": {
               "type": "integer",
@@ -1788,7 +1792,7 @@
             },
             "shadowColor": {
               "type": ["number", "string"],
-              "description": "box shadow color starting with '0xFF' for full opacity"
+              "description": "Box shadow color starting with '0xFF' for full opacity"
             },
             "shadowRadius": {
               "type": "integer",
@@ -1857,16 +1861,16 @@
             },
             "mainAxisSize": {
               "type": "string",
-              "description": "stretch to the max vertically or only fit the vertical space",
+              "description": "Stretch to the max vertically or only fit the vertical space",
               "enum": ["min", "max"]
             },
             "scrollable": {
               "type": "boolean",
-              "description": "content can scroll vertically as needed"
+              "description": "Set to true so content can scroll vertically as needed"
             },
             "autoFit": {
               "type": "boolean",
-              "description": "Explicitly make our column's width as wide as the largest child, but only if our column's parent does not already assign us a width. This attribute is useful for sizing children who don't have a width (e.g Divider)"
+              "description": "Explicitly make the column's width as wide as the largest child, but only if our column's parent does not already assign a width. This attribute is useful for sizing children who don't have a width (e.g Divider)"
             }
           }
         }
@@ -1895,16 +1899,16 @@
             },
             "mainAxisSize": {
               "type": "string",
-              "description": "stretch to the max horizontally or only fit the horizontal space",
+              "description": "Stretch to the max horizontally or only fit the horizontal space",
               "enum": ["min", "max"]
             },
             "scrollable": {
               "type": "boolean",
-              "description": "content can scroll horizontally as needed"
+              "description": "Set to true so content can scroll horizontally as needed"
             },
             "autoFit": {
               "type": "boolean",
-              "description": "Explicitly make our row's height as tall as the largest child, but only if our row's parent does not already assign us a height. This attribute is useful for sizing children who don't have a width (e.g vertical Divider)"
+              "description": "Explicitly make the row's height as tall as the largest child, but only if the row's parent does not already assign us a height. This attribute is useful for sizing children who don't have a width (e.g vertical Divider)"
             }
           }
         }
@@ -1944,11 +1948,11 @@
             },
             "scrollable": {
               "type": "boolean",
-              "description": "content can scroll vertically or horizontally as needed"
+              "description": "Set to true so content can scroll vertically or horizontally as needed"
             },
             "autoFit": {
               "type": "boolean",
-              "description": "Explicitly match our width or height to the largest child's size, but only if our parent does not already assign us a width or height. This attribute is useful for sizing children who don't have a width or height (e.g Divider)"
+              "description": "Explicitly match the width or height to the largest child's size, but only if the parent does not already assign a width or height. This attribute is useful for sizing children who don't have a width or height (e.g Divider)"
             }
           }
         }
