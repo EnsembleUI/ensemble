@@ -57,6 +57,9 @@ class EnsembleApp extends StatelessWidget {
           );
         }
 
+        // at this point we don't yet have the theme. It's best to have
+        // a blank screen to prevent any background color changing while
+        // the app is loading
         if (!snapshot.hasData) {
           // blank loading screen
           return _appPlaceholderWrapper();
@@ -68,6 +71,7 @@ class EnsembleApp extends StatelessWidget {
   }
 
   Widget renderApp(EnsembleConfig config) {
+    log("Re-render the App- $hashCode");
     return MaterialApp(
       navigatorKey: Utils.globalAppKey,
       theme: config.getAppTheme(),
