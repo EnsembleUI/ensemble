@@ -502,8 +502,13 @@ class Utils {
     if ( val.trim().isNotEmpty && context != null ) {
       rtn = val.replaceAllMapped(i18nExpression, (match) {
         String str = match.input.substring(match.start,match.end);//get rid of the @
+        String strToAppend = '';
         if ( str.length > 2 ) {
           String _s = str.substring(2);
+          if ( _s.endsWith(']') ) {
+            _s = _s.substring(0,_s.length-1);
+            strToAppend = ']';
+          }
           try {
             str = FlutterI18n.translate(context!, _s);
           } catch ( e) {//if resource is not defined
@@ -511,7 +516,7 @@ class Utils {
             debugPrint('unable to get translated string for the '+str+'; exception='+e.toString());
           }
         }
-        return str;
+        return str+strToAppend;
       });
     }
     return rtn;
