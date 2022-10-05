@@ -9,6 +9,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ensemble/provider.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 
+/// Connecting to Ensemble-hosted definitions
 class EnsembleDefinitionProvider extends DefinitionProvider {
   EnsembleDefinitionProvider(String appId, super.i18nProps) {
     appModel = AppModel(appId);
@@ -67,7 +68,7 @@ class InvalidDefinition {
 
 class AppModel {
   AppModel(this.appId) {
-    //initListeners();
+    initListeners();
   }
 
   final String appId;
@@ -92,7 +93,6 @@ class AppModel {
         .listen(
             (event) {
           for (var change in event.docChanges) {
-            // the only way this happens is move from regular to archived?
             if (change.type == DocumentChangeType.removed) {
               removeArtifact(change.doc);
             } else {
@@ -108,29 +108,40 @@ class AppModel {
   }
 
   Future<bool> updateArtifact(DocumentSnapshot<Map<String, dynamic>> doc) async {
+    // adjust the theme and home screen
+    if (doc.data()?['isRoot'] == true) {
+      if (doc.data()?['type'] == 'screen') {
+        homeMapping = doc.id;
+      } else if (doc.data()?['type'] == 'theme') {
+        themeMapping = doc.id;
+      }
+    }
+
+    // since the screen name might have changed, update our mappings
+    screenNameMappings.removeWhere((key, value) => (value == doc.id));
+    if (doc.data()?['name'] != null) {
+      screenNameMappings[doc.data()!['name']] = doc.id;
+    }
+
+    dynamic yamlContent;
     dynamic content = doc.data()?['content'];
     if (content != null && content.isNotEmpty) {
       try {
-        contentCache[doc.id] = await loadYaml(content);
-
-        // if applicable, adjust the home and screen name pointers
-        if (doc.data()?['isAppBundle'] == true) {
-          homeMapping = doc.id;
-        }
-        if (doc.data()?['name'] != null) {
-          screenNameMappings[doc.data()!['name']] = doc.id;
-        }
-        return true;
-      } on Error catch(e) {
-        log('Invalid YAML for screen ${doc.id}');
+        yamlContent = await loadYaml(content);
+      } on Exception catch(e) {
+        // invalid YAML need to be suppressed until we actually reach the page,
+        // so we'll just ignore this error here
       }
     }
-    contentCache[doc.id] = InvalidDefinition();
-    return Future<bool>.value(false);
+    contentCache[doc.id] = yamlContent ?? InvalidDefinition();
+
+    log("Cached: ${contentCache.keys}. Home: $homeMapping. Theme: $themeMapping. Names: ${screenNameMappings.keys}");
+    return Future<bool>.value(true);
   }
 
   void removeArtifact(DocumentSnapshot<Map<String, dynamic>> doc) {
     log("Removed ${doc.id}");
+    screenNameMappings.removeWhere((key, value) => (value == doc.id));
     contentCache.remove(doc.id);
   }
 
@@ -206,7 +217,7 @@ class AppModel {
   Future<AppBundle> getAppBundle() async {
     QuerySnapshot<Map<String, dynamic>> snapshot = await _getArtifacts()
         .where('isArchived', isEqualTo: false)
-        .where('isAppBundle', isEqualTo: true)
+        .where('isRoot', isEqualTo: true)
         .get();
     for (var doc in snapshot.docs) {
       await updateArtifact(doc);

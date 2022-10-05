@@ -11,28 +11,36 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 
 /// use this as the root widget for Ensemble
-class EnsembleApp extends StatelessWidget {
+class EnsembleApp extends StatefulWidget {
   const EnsembleApp({
     super.key,
     this.screenPayload,
     this.ensembleConfig
   });
+
   final ScreenPayload? screenPayload;
   final EnsembleConfig? ensembleConfig;
+
+  @override
+  State<StatefulWidget> createState() => EnsembleAppState();
+
+}
+
+class EnsembleAppState extends State<EnsembleApp> {
 
   /// initialize our App with the the passed in config or
   /// read from our ensemble-config file.
   Future<EnsembleConfig> initApp() async {
     // use the config if passed in
-    if (ensembleConfig != null) {
+    if (widget.ensembleConfig != null) {
       // set the Ensemble config
-      Ensemble().setEnsembleConfig(ensembleConfig!);
+      Ensemble().setEnsembleConfig(widget.ensembleConfig!);
 
       // if appBundle is not passed in, fetch it now
-      if (ensembleConfig!.appBundle == null) {
-        return ensembleConfig!.updateAppBundle();
+      if (widget.ensembleConfig!.appBundle == null) {
+        return widget.ensembleConfig!.updateAppBundle();
       }
-      return Future<EnsembleConfig>.value(ensembleConfig);
+      return Future<EnsembleConfig>.value(widget.ensembleConfig);
     }
     // else init from config file
     else {
@@ -40,11 +48,17 @@ class EnsembleApp extends StatelessWidget {
     }
   }
 
+  late Future<EnsembleConfig> config;
+  @override
+  void initState() {
+    super.initState();
+    config = initApp();
+  }
+
   @override
   Widget build(BuildContext context) {
-    log("EnsembleApp build() - $hashCode");
     return FutureBuilder(
-      future: initApp(),
+      future: config,
       builder: ((context, snapshot) {
 
         if (snapshot.hasError) {
@@ -71,7 +85,7 @@ class EnsembleApp extends StatelessWidget {
   }
 
   Widget renderApp(EnsembleConfig config) {
-    log("Re-render the App- $hashCode");
+    log("EnsembleApp build() - $hashCode");
     return MaterialApp(
       navigatorKey: Utils.globalAppKey,
       theme: config.getAppTheme(),
@@ -83,7 +97,7 @@ class EnsembleApp extends StatelessWidget {
       home: Scaffold(
         body: Screen(
           appProvider: AppProvider(definitionProvider: config.definitionProvider),
-          screenPayload: screenPayload,
+          screenPayload: widget.screenPayload,
         ),
       ),
       builder: (context, widget) {
@@ -112,5 +126,7 @@ class EnsembleApp extends StatelessWidget {
       )
     );
   }
+
+
 
 }
