@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:ensemble/ensemble_app.dart';
+import 'package:ensemble/ensemble_provider.dart';
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/page_model.dart';
@@ -15,6 +16,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_i18n/flutter_i18n_delegate.dart';
 import 'package:yaml/yaml.dart';
 import 'package:firebase_core/firebase_core.dart';
+
 
 /// Singleton Controller
 class Ensemble {
@@ -46,11 +48,10 @@ class Ensemble {
         'ensemble/ensemble-config.yaml');
     final YamlMap yamlMap = loadYaml(yamlString);
 
-    DefinitionProvider definitionProvider = _getDefinitionProvider(yamlMap);
-
-    // init Firebase once. These are not secrets so OK to include here.
-    // https://firebase.google.com/docs/projects/api-keys#api-keys-for-firebase-are-different
-    if (definitionProvider is EnsembleDefinitionProvider) {
+    // init Firebase
+    if (yamlMap['definitions']?['from'] == 'ensemble') {
+      // These are not secrets so OK to include here.
+      // https://firebase.google.com/docs/projects/api-keys#api-keys-for-firebase-are-different
       await Firebase.initializeApp(
           options: const FirebaseOptions(
               apiKey: 'AIzaSyBAZ7wf436RSbcXvhhfg7e4TUh6A2SKve8',
@@ -60,6 +61,7 @@ class Ensemble {
       );
     }
 
+    DefinitionProvider definitionProvider = _createDefinitionProvider(yamlMap);
     _config = EnsembleConfig(
       definitionProvider: definitionProvider,
       appBundle: await definitionProvider.getAppBundle(),
@@ -69,7 +71,7 @@ class Ensemble {
   }
 
   /// return the definition provider (local, remote, or Ensemble)
-  DefinitionProvider _getDefinitionProvider(YamlMap yamlMap) {
+  DefinitionProvider _createDefinitionProvider(YamlMap yamlMap) {
     // locale
     I18nProps i18nProps = I18nProps(
       yamlMap['i18n']?['defaultLocale'] ?? '',
