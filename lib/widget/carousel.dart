@@ -106,10 +106,7 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
 
 
   @override
-  Widget build(BuildContext context) {
-    if (!widget._controller.visible) {
-      return const SizedBox.shrink();
-    }
+  Widget buildWidget(BuildContext context) {
     // if we should display one at a time or multiple in the slider
     bool singleView = isSingleView();
 

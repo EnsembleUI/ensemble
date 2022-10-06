@@ -58,7 +58,7 @@ class ChartJs extends StatefulWidget with Invokable, HasController<ChartJsContro
 }
 class ChartJsState extends WidgetState<ChartJs> {
   @override
-  Widget build(BuildContext context) {
+  Widget buildWidget(BuildContext context) {
     if ( widget.controller.config == '')  {
       return Text("Still Loading...");
     }

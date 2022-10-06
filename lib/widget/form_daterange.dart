@@ -2,7 +2,6 @@ import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/form_field_builder.dart' as ensemble;
 import 'package:ensemble/widget/form_helper.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -66,7 +65,7 @@ class DateRangeState extends FormFieldWidgetState<DateRange> {
 
 
   @override
-  Widget build(BuildContext context) {
+  Widget buildWidget(BuildContext context) {
     return TextFormField(
       key: validatorKey,
       validator: (value) {

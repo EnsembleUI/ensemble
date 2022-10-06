@@ -55,10 +55,7 @@ class WebViewState extends WidgetState<EnsembleWebView> {
   double? height = 0;
 
   @override
-  Widget build(BuildContext context) {
-    if (!widget._controller.visible) {
-      return const SizedBox.shrink();
-    }
+  Widget buildWidget(BuildContext context) {
 
     // WebView's height will be the same as the HTML height
     Widget webView = SizedBox(

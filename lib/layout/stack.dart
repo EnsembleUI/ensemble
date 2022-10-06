@@ -57,10 +57,8 @@ class StackController extends WidgetController {
 
 class StackState extends WidgetState<EnsembleStack> {
   @override
-  Widget build(BuildContext context) {
-    if (!widget._controller.visible ||
-        widget._controller.children == null ||
-        widget._controller.children!.isEmpty ) {
+  Widget buildWidget(BuildContext context) {
+    if (widget._controller.children == null || widget._controller.children!.isEmpty ) {
       return const SizedBox.shrink();
     }
 

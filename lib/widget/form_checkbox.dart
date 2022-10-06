@@ -96,7 +96,7 @@ class OnOffState extends FormFieldWidgetState<OnOffWidget> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget buildWidget(BuildContext context) {
     // add leading/trailing text + the actual widget
     List<Widget> children = [];
     if (widget._controller.leadingText != null) {
