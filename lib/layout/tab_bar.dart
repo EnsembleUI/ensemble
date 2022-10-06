@@ -106,13 +106,16 @@ class TabBarState extends WidgetState<EnsembleTabBar> with SingleTickerProviderS
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         buildTabBar(),
-        Padding(
-            padding: const EdgeInsets.only(left: 0),
-            // builder gives us dynamic height control vs TabBarView, but
-            // is sub-optimal since it recreates the tab content on each pass.
-            // This means onLoad API may be called multiple times in debug mode
-            child: Builder(builder: (BuildContext context) => buildSelectedTab())
-        )
+        // builder gives us dynamic height control vs TabBarView, but
+        // is sub-optimal since it recreates the tab content on each pass.
+        // This means onLoad API may be called multiple times in debug mode
+        Builder(builder: (BuildContext context) => buildSelectedTab())
+
+        // This cause Expanded child to fail
+        // Padding(
+        //     padding: const EdgeInsets.only(left: 0),
+        //     child: Builder(builder: (BuildContext context) => buildSelectedTab())
+        // )
       ],
     );
 
