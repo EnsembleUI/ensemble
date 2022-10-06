@@ -49,10 +49,7 @@ class IconController extends WidgetController {
 class IconState extends WidgetState<EnsembleIcon> {
 
   @override
-  Widget build(BuildContext context) {
-    if (!widget._controller.visible) {
-      return const SizedBox.shrink();
-    }
+  Widget buildWidget(BuildContext context) {
 
     return InkWell(
       splashColor: Colors.transparent,

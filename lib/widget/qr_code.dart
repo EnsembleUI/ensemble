@@ -51,10 +51,7 @@ class QRCodeState extends WidgetState<QRCode> {
   static const double defaultSize = 160;
 
   @override
-  Widget build(BuildContext context) {
-    if (!widget._controller.visible) {
-      return const SizedBox.shrink();
-    }
+  Widget buildWidget(BuildContext context) {
 
     if (widget._controller.value == null || widget._controller.value!.trim().isEmpty) {
       return Image.asset(

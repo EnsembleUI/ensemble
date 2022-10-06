@@ -52,10 +52,7 @@ class DividerController extends WidgetController {
 
 class DividerState extends WidgetState<EnsembleDivider> {
   @override
-  Widget build(BuildContext context) {
-    if (!widget._controller.visible) {
-      return const SizedBox.shrink();
-    }
+  Widget buildWidget(BuildContext context) {
 
     Widget rtn;
     if (widget._controller.direction == 'vertical') {

@@ -47,7 +47,7 @@ class HighchartsController extends WidgetController {
 
 class HighchartsState extends WidgetState<Highcharts> {
   @override
-  Widget build(BuildContext context) {
+  Widget buildWidget(BuildContext context) {
     return HighCharts(
       loader: const SizedBox(
         child: LinearProgressIndicator(),

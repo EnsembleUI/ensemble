@@ -158,38 +158,24 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
   }
 
   @override
-  Widget build(BuildContext context) {
-    if (!widget._controller.visible) {
-      return const SizedBox.shrink();
-    }
-    return buildMap();
-  }
-
-  void initMap() {
-    _mapController = MapController();
-
-    // TODO: use Provider to inject account in
-    _mapAccessToken = Ensemble().getAccount()?.mapAccessToken ?? '';
-  }
-
-  Widget buildMap() {
+  Widget buildWidget(BuildContext context) {
     Widget map = FlutterMap(
-      mapController: _mapController,
-      options: MapOptions(
-        maxZoom: mapboxMaxZoom,
-        interactiveFlags: InteractiveFlag.all - InteractiveFlag.rotate
-      ),
-      layers: [
-        TileLayerOptions(
-          urlTemplate: "https://api.mapbox.com/styles/v1/ensembleui/cl5ladr0w002316nitdjrqj3w/tiles/512/{z}/{x}/{y}@2x?access_token=$_mapAccessToken",
-          additionalOptions: {
-            "access_token": _mapAccessToken
-          },
+        mapController: _mapController,
+        options: MapOptions(
+            maxZoom: mapboxMaxZoom,
+            interactiveFlags: InteractiveFlag.all - InteractiveFlag.rotate
         ),
-        MarkerLayerOptions(
-          markers: markers
-        )
-      ]
+        layers: [
+          TileLayerOptions(
+            urlTemplate: "https://api.mapbox.com/styles/v1/ensembleui/cl5ladr0w002316nitdjrqj3w/tiles/512/{z}/{x}/{y}@2x?access_token=$_mapAccessToken",
+            additionalOptions: {
+              "access_token": _mapAccessToken
+            },
+          ),
+          MarkerLayerOptions(
+              markers: markers
+          )
+        ]
     );
 
     // adjust the bound to fit all the markers
@@ -205,19 +191,26 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
       children: [
         map,
         overlayWidget == null ?
-          const SizedBox.shrink() :
-          Container(
+        const SizedBox.shrink() :
+        Container(
             margin: const EdgeInsets.only(bottom: 20, left: 10, right: 10),
             alignment: Alignment.bottomCenter,
             child: ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: Ensemble().deviceInfo.size.height / 2),
-              child: SingleChildScrollView(
-                child: overlayWidget,
-              )
+                constraints: BoxConstraints(maxHeight: Ensemble().deviceInfo.size.height / 2),
+                child: SingleChildScrollView(
+                  child: overlayWidget,
+                )
             )
-          )
+        )
       ],
     );
+  }
+
+  void initMap() {
+    _mapController = MapController();
+
+    // TODO: use Provider to inject account in
+    _mapAccessToken = Ensemble().getAccount()?.mapAccessToken ?? '';
   }
 
 

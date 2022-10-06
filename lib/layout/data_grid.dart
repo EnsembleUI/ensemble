@@ -186,10 +186,7 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
 
   }
   @override
-  Widget build(BuildContext context) {
-    if (!widget._controller.visible) {
-      return const SizedBox.shrink();
-    }
+  Widget buildWidget(BuildContext context) {
 
     List<Widget> children = [];
     if (controller.children != null) {

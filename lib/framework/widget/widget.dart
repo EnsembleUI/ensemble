@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/action.dart' as action;
+import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/framework/widget/view.dart';
@@ -48,6 +49,28 @@ abstract class WidgetController extends Controller {
 /// base class for widgets that want to participate in Ensemble layout
 abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
   ScopeManager? _scopeManager;
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.controller is WidgetController) {
+      if (!(widget.controller as WidgetController).visible) {
+        return const SizedBox.shrink();
+      }
+      Widget rtn = buildWidget(context);
+      if ((widget.controller as WidgetController).expanded == true) {
+        /// Important notes:
+        /// 1. If the Column/Row is scrollable, putting Expanded on the child will cause layout exception
+        /// 2. If Column/Row is inside a parent without height/width constraint, it will collapse its size.
+        ///    So if we put Expanded on the Column's child, layout exception will occur
+        rtn = Expanded(child: rtn);
+      }
+      return rtn;
+    }
+    throw LanguageError("Wrong usage of widget controller!");
+  }
+
+  /// build your widget here
+  Widget buildWidget(BuildContext context);
 
   @override
   void didChangeDependencies() {
