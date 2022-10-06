@@ -49,10 +49,7 @@ class RatingState extends WidgetState<Rating> {
   late Color primaryColor;
 
   @override
-  Widget build(BuildContext context) {
-    if (!widget._controller.visible) {
-      return const SizedBox.shrink();
-    }
+  Widget buildWidget(BuildContext context) {
     ThemeData themeData = Theme.of(context);
     primaryColor = themeData.colorScheme.primary;
 

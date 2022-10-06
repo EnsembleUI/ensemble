@@ -90,10 +90,7 @@ class FlowState extends WidgetState<Flow> with TemplatedWidgetState {
 
 
   @override
-  Widget build(BuildContext context) {
-    if (!widget._controller.visible) {
-      return const SizedBox.shrink();
-    }
+  Widget buildWidget(BuildContext context) {
 
     // children will be rendered before templated children
     List<Widget> children = [];

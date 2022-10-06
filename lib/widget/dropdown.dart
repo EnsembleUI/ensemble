@@ -190,7 +190,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
 
 
   @override
-  Widget build(BuildContext context) {
+  Widget buildWidget(BuildContext context) {
     if (widget.getType() == SelectOneType.dropdown) {
       return DropdownButtonFormField<dynamic>(
         key: validatorKey,

@@ -47,10 +47,7 @@ class Text extends StatefulWidget with Invokable, HasController<TextController, 
 
 class TextState extends framework.WidgetState<Text> {
   @override
-  Widget build(BuildContext context) {
-    if (!widget._controller.visible) {
-      return const SizedBox.shrink();
-    }
+  Widget buildWidget(BuildContext context) {
     return util.TextUtils.buildText(widget.controller);
   }
 

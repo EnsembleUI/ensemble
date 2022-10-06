@@ -97,8 +97,8 @@ class TabBarState extends WidgetState<EnsembleTabBar> with SingleTickerProviderS
   }
 
   @override
-  Widget build(BuildContext context) {
-    if (!widget._controller.visible || widget._controller._items.isEmpty) {
+  Widget buildWidget(BuildContext context) {
+    if (widget._controller._items.isEmpty) {
       return const SizedBox.shrink();
     }
 

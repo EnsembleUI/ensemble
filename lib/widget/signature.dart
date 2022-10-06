@@ -58,10 +58,7 @@ class EnsembleSignature extends StatefulWidget with Invokable,HasController<Ense
 }
 class EnsembleSignatureState extends WidgetState<EnsembleSignature> {
   @override
-  Widget build(BuildContext context) {
-    if (!widget._controller.visible) {
-      return const SizedBox.shrink();
-    }
+  Widget buildWidget(BuildContext context) {
     return Signature(controller: widget._controller.createSignatureController(),
       backgroundColor: widget.controller.backgroundColor,
       width: widget.controller.width,

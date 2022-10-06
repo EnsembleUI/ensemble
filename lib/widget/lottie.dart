@@ -55,10 +55,7 @@ class LottieController extends BoxController {
 class LottieState extends WidgetState<EnsembleLottie> {
 
   @override
-  Widget build(BuildContext context) {
-    if (!widget._controller.visible) {
-      return const SizedBox.shrink();
-    }
+  Widget buildWidget(BuildContext context) {
 
     BoxFit? fit = WidgetUtils.getBoxFit(widget._controller.fit);
 

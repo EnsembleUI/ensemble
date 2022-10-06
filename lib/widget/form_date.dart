@@ -3,7 +3,6 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/form_field_builder.dart' as ensemble;
 import 'package:ensemble/widget/form_helper.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -69,7 +68,7 @@ class DateState extends FormFieldWidgetState<Date> {
   String? validationText;
 
   @override
-  Widget build(BuildContext context) {
+  Widget buildWidget(BuildContext context) {
     return FormField<DateTime>(
       key: validatorKey,
       validator: (value) {
@@ -91,7 +90,7 @@ class DateState extends FormFieldWidgetState<Date> {
             mainAxisSize: MainAxisSize.min,
             children: [
               InkWell(
-                child: buildWidget(),
+                child: nowBuildWidget(),
                 onTap: isEnabled() ? () => _selectDate(context) : null
               )
             ]
@@ -137,7 +136,7 @@ class DateState extends FormFieldWidgetState<Date> {
   }
 
 
-  Widget buildWidget() {
+  Widget nowBuildWidget() {
     Widget rtn = Row(
       mainAxisSize: MainAxisSize.min,
       children: [

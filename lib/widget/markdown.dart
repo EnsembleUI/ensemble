@@ -58,10 +58,7 @@ class MarkdownController extends framework.WidgetController {
 
 class MarkdownState extends framework.WidgetState<Markdown> {
   @override
-  Widget build(BuildContext context) {
-    if (!widget._controller.visible) {
-      return const SizedBox.shrink();
-    }
+  Widget buildWidget(BuildContext context) {
 
     // built styles from default Material3 text styles, then apply overrides
     MarkdownStyleSheet styles = MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(

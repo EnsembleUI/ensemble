@@ -159,7 +159,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget buildWidget(BuildContext context) {
 
     // TextField doesn't take the global disabled color for some reason,
     // so we have to account for it here
