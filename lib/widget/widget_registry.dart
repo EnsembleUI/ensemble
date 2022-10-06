@@ -8,9 +8,7 @@ import 'package:ensemble/layout/tab_bar.dart';
 import 'package:ensemble/widget/Text.dart' as ensemble;
 import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/carousel.dart';
-import 'package:ensemble/widget/chart_bubble_builder.dart';
 import 'package:ensemble/widget/chart_highcharts_builder.dart';
-import 'package:ensemble/widget/chart_pie_builder.dart';
 import 'package:ensemble/widget/divider.dart';
 import 'package:ensemble/widget/dropdown.dart';
 import 'package:ensemble/widget/ensemble_icon.dart';
@@ -33,7 +31,6 @@ import 'package:ensemble/widget/visualization/barchart.dart';
 import 'package:ensemble/widget/visualization/chart_js.dart';
 import 'package:ensemble/widget/visualization/line_area_chart.dart';
 import 'package:ensemble/widget/webview.dart';
-import 'package:ensemble/widget/widget_builder.dart';
 
 class WidgetRegistry {
   WidgetRegistry({
@@ -93,17 +90,5 @@ class WidgetRegistry {
     ChartJs.type: () => ChartJs()
   };
 
-  @Deprecated("Use widgetMap instead")
-  static Map<String, WidgetBuilderFunc> get widgetBuilders =>
-      const <String, WidgetBuilderFunc> {
-        // charts
-        //ChartPieBuilder.type: ChartPieBuilder.fromDynamic,
-        //ChartBubbleBuilder.type: ChartBubbleBuilder.fromDynamic,
-
-  };
 }
 
-typedef WidgetBuilderFunc = WidgetBuilder Function(
-    Map<String, dynamic> props,
-    Map<String, dynamic> styles,
-    {WidgetRegistry? registry});

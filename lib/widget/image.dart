@@ -55,10 +55,7 @@ class ImageController extends BoxController {
 class ImageState extends WidgetState<EnsembleImage> {
 
   @override
-  Widget build(BuildContext context) {
-    if (!widget._controller.visible) {
-      return const SizedBox.shrink();
-    }
+  Widget buildWidget(BuildContext context) {
 
     BoxFit? fit = WidgetUtils.getBoxFit(widget._controller.fit);
 

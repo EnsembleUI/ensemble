@@ -126,10 +126,7 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
 
 
   @override
-  Widget build(BuildContext context) {
-    if (!widget._controller.visible) {
-      return const SizedBox.shrink();
-    }
+  Widget buildWidget(BuildContext context) {
 
     // children will be rendered before templated children
     List<Widget> children = [];
@@ -138,23 +135,6 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
     }
     if (templatedChildren != null) {
       children.addAll(templatedChildren!);
-    }
-
-    // wrap each child with Expanded if specified
-    // However if our container is scrollable (e.g. Column's height is stretched as needed),
-    // expanded children will cause a mutually exclusive condition.
-    if (!widget._controller.scrollable) {
-      List<Widget> updatedChildren = [];
-      for (Widget child in children) {
-        if (child is HasController &&
-            child.controller is WidgetController &&
-            (child.controller as WidgetController).expanded) {
-          updatedChildren.add(Expanded(child: child));
-        } else {
-          updatedChildren.add(child);
-        }
-      }
-      children = updatedChildren;
     }
 
     // if gap is specified, insert SizeBox between children

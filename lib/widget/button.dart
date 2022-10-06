@@ -64,12 +64,9 @@ class ButtonController extends BoxController {
 
 
 class ButtonState extends WidgetState<Button> {
-  @override
-  Widget build(BuildContext context) {
-    if (!widget._controller.visible) {
-      return const SizedBox.shrink();
-    }
 
+  @override
+  Widget buildWidget(BuildContext context) {
     bool isOutlineButton = widget._controller.outline ?? false;
     
     Text label = Text(Utils.translate(widget._controller.label ?? '', context));

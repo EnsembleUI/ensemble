@@ -109,10 +109,7 @@ class ProgressState extends WidgetState<EnsembleProgressIndicator> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    if (!widget._controller.visible) {
-      return const SizedBox.shrink();
-    }
+  Widget buildWidget(BuildContext context) {
 
     if (widget._controller.display == Display.linear) {
       return getLinearProgressIndicator();
