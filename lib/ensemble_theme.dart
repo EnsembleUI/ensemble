@@ -24,7 +24,7 @@ class EnsembleTheme {
       // input theme (TextInput, Switch, Dropdown, ...)
       inputDecorationTheme: _buildInputTheme(
         overrides?['Widgets']?['Input'],
-        primaryColor: colorScheme.primary
+        colorScheme: colorScheme
       ),
 
       textTheme: _buildTextTheme(overrides?['Text']),
@@ -125,25 +125,28 @@ class EnsembleTheme {
 
 
   /// parse the FormInput's theme from the theme YAML
-  static InputDecorationTheme? _buildInputTheme(YamlMap? input, {required Color primaryColor}) {
-    Color focusColor = Utils.getColor(input?['focusColor']) ?? primaryColor;
+  static InputDecorationTheme? _buildInputTheme(YamlMap? input, {required ColorScheme colorScheme}) {
+    Color focusColor = Utils.getColor(input?['focusColor']) ?? colorScheme.primary;
     Color borderColor = Utils.getColor(input?['borderColor']) ?? _inputBorderColor;
     Color disabledColor = Utils.getColor(input?['borderDisabledColor']) ?? _inputBorderDisabledColor;
+    Color errorColor = Utils.getColor(input?['borderErrorColor']) ?? colorScheme.error;
 
     if (input?['variant'] == 'box') {
       return _getInputBoxDecoration(
         focusColor: focusColor,
         borderColor: borderColor,
         disabledColor: disabledColor,
+        errorColor: errorColor,
         borderRadius: Utils.optionalInt(input?['borderRadius']) ?? _inputBorderRadius);
     } else {
       return _getInputUnderlineDecoration(
         focusColor: focusColor,
         borderColor: borderColor,
-        disabledColor: disabledColor);
+        disabledColor: disabledColor,
+        errorColor: errorColor);
     }
   }
-  static InputDecorationTheme _getInputBoxDecoration({required Color focusColor, required Color borderColor, required Color disabledColor, required int borderRadius}) {
+  static InputDecorationTheme _getInputBoxDecoration({required Color focusColor, required Color borderColor, required Color disabledColor, required Color errorColor, required int borderRadius}) {
     return InputDecorationTheme(
       focusedBorder: ThemeUtils.getInputBoxBorder(
         borderColor: focusColor,
@@ -153,6 +156,12 @@ class EnsembleTheme {
         borderColor: borderColor,
         borderRadius: borderRadius,
       ),
+      errorBorder: ThemeUtils.getInputBoxBorder(
+          borderColor: errorColor,
+          borderRadius: borderRadius),
+      focusedErrorBorder: ThemeUtils.getInputBoxBorder(
+          borderColor: errorColor,
+          borderRadius: borderRadius),
       disabledBorder: ThemeUtils.getInputBoxBorder(
         borderColor: disabledColor,
         borderRadius: borderRadius,
@@ -161,11 +170,13 @@ class EnsembleTheme {
       contentPadding: const EdgeInsets.all(10),
     );
   }
-  static InputDecorationTheme _getInputUnderlineDecoration({required Color focusColor, required Color borderColor, required Color disabledColor}) {
+  static InputDecorationTheme _getInputUnderlineDecoration({required Color focusColor, required Color borderColor, required Color errorColor, required Color disabledColor}) {
     return InputDecorationTheme(
       focusedBorder: ThemeUtils.getInputUnderlineBorder(borderColor: focusColor),
       enabledBorder: ThemeUtils.getInputUnderlineBorder(borderColor: borderColor),
       disabledBorder: ThemeUtils.getInputUnderlineBorder(borderColor: disabledColor),
+      errorBorder:  ThemeUtils.getInputUnderlineBorder(borderColor: errorColor),
+      focusedErrorBorder: ThemeUtils.getInputUnderlineBorder(borderColor: errorColor),
       isDense: false,
       contentPadding: EdgeInsets.zero,
     );
