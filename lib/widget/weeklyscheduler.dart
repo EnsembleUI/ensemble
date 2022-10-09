@@ -182,8 +182,9 @@ class DailySchedulerState extends WidgetState<DailyScheduler> {
   }
 }
 class WeeklySchedulerController extends WidgetController {
-  EdgeInsets padding = const EdgeInsets.fromLTRB(0, 0, 0, 2);
+  EdgeInsets padding = const EdgeInsets.fromLTRB(0, 0, 0, 2.0);
   List<String> dayLabels = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  bool displayDayLabels = true;
   double gapX = 2;
   Color selectedColor = Colors.green;
   Color unselectedColor = Colors.grey;
@@ -258,8 +259,8 @@ class WeeklyScheduler extends StatefulWidget with Invokable,HasController<Weekly
       'getSelectedRanges': () {
         return controller.getSelectedRanges();
       },
-      'addSelectedRange': (int startTime, int endTime) {
-        controller.selectedRanges.add(TimeRange(startTime, endTime));
+      'addSelectedRange': (num startTime, num endTime) {
+        controller.selectedRanges.add(TimeRange(startTime.toInt(), endTime.toInt()));
       },
       'refresh': () {
         controller.refresh();
@@ -283,13 +284,14 @@ class WeeklyScheduler extends StatefulWidget with Invokable,HasController<Weekly
   Map<String, Function> setters() {
     return {
       'dayLabels': (List<dynamic> dayLabels) => controller.dayLabels = getDayLabels(dayLabels),
-      'paddingBetweenDays': (double padding) => controller.padding = EdgeInsets.fromLTRB(0, 0, 0, Utils.getDouble(padding,fallback: 2)),
+      'paddingBetweenDays': (dynamic padding) => controller.padding = EdgeInsets.fromLTRB(0, 0, 0, Utils.getDouble(padding,fallback: 2.0)),
       'slotWidth': (dynamic width) => controller.slotWidth = Utils.getDouble(width, fallback: controller.slotWidth),
       'slotHeight': (dynamic height) => controller.slotHeight = Utils.getDouble(height, fallback: controller.slotHeight),
-      'gapBetweenSlots': (double gap) => controller.gapX = Utils.getDouble(gap,fallback:controller.gapX),
+      'gapBetweenSlots': (dynamic gap) => controller.gapX = Utils.getDouble(gap,fallback:controller.gapX),
       'selectedSlotColor': (dynamic color) => controller.selectedColor = Utils.getColor(color) ?? controller.selectedColor,
       'unselectedSlotColor': (dynamic color) => controller.unselectedColor = Utils.getColor(color) ?? controller.unselectedColor,
-      'slotInMinutes': (dynamic value) => controller.slotInMinutes = Utils.getInt(value, fallback: 30)
+      'slotInMinutes': (dynamic value) => controller.slotInMinutes = Utils.getInt(value, fallback: 30),
+      'displayDayLabels': (dynamic value) => controller.displayDayLabels = Utils.getBool(value, fallback: controller.displayDayLabels),
     };
   }
 
