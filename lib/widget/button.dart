@@ -6,6 +6,7 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/theme_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/widget/form_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/layout/form.dart' as ensembleForm;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -27,6 +28,7 @@ class Button extends StatefulWidget with Invokable, HasController<ButtonControll
     return {
       'label': (value) => _controller.label = Utils.getString(value, fallback: ''),
       'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, initiator: this),
+      'submitForm': (value) => _controller.submitForm = Utils.optionalBool(value),
       'validateForm': (value) => _controller.validateForm = Utils.optionalBool(value),
       'validateFields': (items) => _controller.validateFields = Utils.getList(items),
 
@@ -48,6 +50,10 @@ class Button extends StatefulWidget with Invokable, HasController<ButtonControll
 
 class ButtonController extends BoxController {
   ensemble.EnsembleAction? onTap;
+
+  /// whether to trigger a form submission.
+  /// This has no effect if the button is not inside a form
+  bool? submitForm;
 
   // whether this button will invoke form validation or not
   // this has no effect if the button is not inside a form
@@ -142,6 +148,11 @@ class ButtonState extends WidgetState<Button> {
     // else validate specified fields
     else if (widget._controller.validateFields != null) {
 
+    }
+
+    // submit the form if specified
+    if (widget._controller.submitForm == true) {
+      FormHelper.submitForm(context);
     }
 
     // execute the onTap action
