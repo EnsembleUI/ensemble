@@ -25,6 +25,22 @@ class DailySchedulerController extends WidgetController {
     }
     return false;
   }
+  void refresh() {
+    bool shouldRefresh = false;
+    int numberOfBoxes = (24 * 60 /intervalInMinutes).round();
+    for ( int i=0;i<numberOfBoxes;i++ ) {
+      TimeRange slotTime = TimeRange(startSeconds + (i * intervalInMinutes * 60),
+          startSeconds + ((i+1) * intervalInMinutes * 60));
+      bool selected = isSelected(slotTime);
+      if ( nodes[i].selected != selected ) {
+        nodes[i].toggle();
+        shouldRefresh = true;
+      }
+    }
+    if ( shouldRefresh ) {
+      notifyListeners();
+    }
+  }
   List<Node> get nodes {
     if ( _nodes.isNotEmpty ) {
       return _nodes;
@@ -105,9 +121,9 @@ class DailySchedulerController extends WidgetController {
 
 class DailyScheduler extends StatefulWidget with Invokable, HasController<DailySchedulerController,DailySchedulerState> {
   static const String type = 'DailyScheduler';
-  DailyScheduler({super.key});
+  DailyScheduler(this._controller,{super.key});
 
-  final DailySchedulerController _controller = DailySchedulerController();
+  final DailySchedulerController _controller;
   @override
   DailySchedulerController get controller => _controller;
 
@@ -156,23 +172,38 @@ class WeeklySchedulerController extends WidgetController {
   double slotWidth = 16;
   double slotHeight = 16;
   int slotInMinutes = 30;
+  List<DailySchedulerController> _dailyControllers = [];
+  List<DailySchedulerController> get dailyControllers {
+      return _dailyControllers;
+  }
   void refresh() {
-    notifyListeners();
+    for ( DailySchedulerController controller in dailyControllers ) {
+      controller.refresh();
+    }
+  }
+  void initControllers() {
+    for (int i = 0; i < dayLabels.length; i++) {
+      DailySchedulerController controller = DailySchedulerController();
+      controller.dayLabel = dayLabels[i];
+      controller.selectedColor = selectedColor;
+      controller.unselectedColor = unselectedColor;
+      controller.gapX = gapX;
+      controller.startSeconds = i * 24 * 60 * 60;
+      controller.slotWidth = slotWidth;
+      controller.slotHeight = slotHeight;
+      controller.intervalInMinutes = slotInMinutes;
+      controller.selectedRanges = selectedRanges;
+      _dailyControllers.add(controller);
+    }
   }
   List<TimeRange> selectedRanges = [];
   List<Widget> getDailySchedulers() {
     List<Widget> schedulers = [];
+    if ( _dailyControllers.isEmpty ) {
+      initControllers();
+    }
     for ( int i=0;i<dayLabels.length;i++ ) {
-      DailyScheduler scheduler = DailyScheduler();
-      scheduler.controller.dayLabel = dayLabels[i];
-      scheduler.controller.selectedColor = selectedColor;
-      scheduler.controller.unselectedColor = unselectedColor;
-      scheduler.controller.gapX = gapX;
-      scheduler.controller.startSeconds = i * 24 * 60 * 60;
-      scheduler.controller.slotWidth = slotWidth;
-      scheduler.controller.slotHeight = slotHeight;
-      scheduler.controller.intervalInMinutes = slotInMinutes;
-      scheduler.controller.selectedRanges = selectedRanges;
+      DailyScheduler scheduler = DailyScheduler(dailyControllers[i]);
       if ( i < dayLabels.length -1 ) {
         schedulers.add(Padding(padding: padding, child: scheduler));
       } else {
@@ -239,6 +270,21 @@ class WeeklyScheduler extends StatefulWidget with Invokable,HasController<Weekly
 
 }
 class WeeklySchedulerState extends WidgetState<WeeklyScheduler> {
+  void refresh() {
+    setState(() {
+
+    });
+  }
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(refresh);
+  }
+  @override
+  void dispose() {
+    widget.controller.removeListener(refresh);
+    super.dispose();
+  }
   @override
   Widget buildWidget(BuildContext context) {
     return Column(
