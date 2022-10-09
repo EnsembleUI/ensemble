@@ -5,6 +5,7 @@ import 'package:ensemble/layout/flow.dart';
 import 'package:ensemble/layout/form.dart';
 import 'package:ensemble/layout/stack.dart';
 import 'package:ensemble/layout/tab_bar.dart';
+import 'package:ensemble/widget/weeklyscheduler.dart';
 import 'package:ensemble/widget/Text.dart' as ensemble;
 import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/carousel.dart';
@@ -60,6 +61,7 @@ class WidgetRegistry {
     Video.type: () => Video(),
     EnsembleLottie.type: () => EnsembleLottie(),
     EnsembleSignature.type: () => EnsembleSignature(),
+    WeeklyScheduler.type: () => WeeklyScheduler(),
 
     // form fields
     EnsembleForm.type: () => EnsembleForm(),
