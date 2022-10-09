@@ -3,6 +3,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/form_time.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablelist.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokablemap.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
 
@@ -24,6 +25,23 @@ class DailySchedulerController extends WidgetController {
       }
     }
     return false;
+  }
+  List<TimeRange> getSelectedRanges() {
+    List<TimeRange> ranges = [];
+    TimeRange? currentRange;
+    for ( Node node in nodes ) {
+      if ( node.selected ) {
+        if ( currentRange == null ) {
+          currentRange = TimeRange(node.range.startTime, node.range.endTime);
+          ranges.add(currentRange);
+        } else {
+          currentRange.endTime = node.range.endTime;
+        }
+      } else {
+        currentRange = null;
+      }
+    }
+    return ranges;
   }
   void refresh() {
     bool shouldRefresh = false;
@@ -172,7 +190,7 @@ class WeeklySchedulerController extends WidgetController {
   double slotWidth = 16;
   double slotHeight = 16;
   int slotInMinutes = 30;
-  List<DailySchedulerController> _dailyControllers = [];
+  final List<DailySchedulerController> _dailyControllers = [];
   List<DailySchedulerController> get dailyControllers {
       return _dailyControllers;
   }
@@ -212,6 +230,13 @@ class WeeklySchedulerController extends WidgetController {
     }
     return schedulers;
   }
+  List<TimeRange> getSelectedRanges() {
+    List<TimeRange> ranges = [];
+    for ( DailySchedulerController dailySchedulerController in _dailyControllers ) {
+      ranges.addAll(dailySchedulerController.getSelectedRanges());
+    }
+    return ranges;
+  }
 }
 class WeeklyScheduler extends StatefulWidget with Invokable,HasController<WeeklySchedulerController,WeeklySchedulerState> {
   static const String type = 'WeeklyScheduler';
@@ -231,7 +256,7 @@ class WeeklyScheduler extends StatefulWidget with Invokable,HasController<Weekly
   Map<String, Function> methods() {
     return {
       'getSelectedRanges': () {
-
+        return controller.getSelectedRanges();
       },
       'addSelectedRange': (int startTime, int endTime) {
         controller.selectedRanges.add(TimeRange(startTime, endTime));
@@ -293,9 +318,12 @@ class WeeklySchedulerState extends WidgetState<WeeklyScheduler> {
   }
 
 }
-class TimeRange {
-  int startTime,endTime;
-  TimeRange(this.startTime,this.endTime);
+class TimeRange extends InvokableMap {
+  TimeRange(int startTime,int endTime): super({'startTime':startTime,'endTime':endTime});
+  set startTime(s) => map['startTime'] = s;
+  get startTime => map['startTime'];
+  set endTime(s) => map['endTime'] = s;
+  get endTime => map['endTime'];
 }
 class Node {
   String startTime;
