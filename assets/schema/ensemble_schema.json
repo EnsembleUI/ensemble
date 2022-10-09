@@ -671,9 +671,9 @@
         "enabled": {
           "type": "boolean"
         },
-        "validateForm": {
+        "submitForm": {
           "type": "boolean",
-          "description": "If the button is inside a Form, setting this to TRUE will validate all fields within this form upon button tap"
+          "description": "If the button is inside a Form and upon on tap, it will execute the form's onSubmit action if this property is TRUE"
         },
         "onTap": { "$ref": "#/$defs/Action-payload" },
         "styles": {
@@ -706,6 +706,10 @@
       "properties": {
         "enabled": {
           "type": "boolean"
+        },
+        "onSubmit": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Action to execute when the form is submitted"
         },
         "children": { "$ref": "#/$defs/Widgets" },
         "styles": {

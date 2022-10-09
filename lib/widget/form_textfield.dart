@@ -1,4 +1,6 @@
 
+import 'dart:developer';
+
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -222,6 +224,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
       controller: widget.textController,
       focusNode: focusNode,
       enabled: isEnabled(),
+      onFieldSubmitted: (value) => widget.controller.submitForm(context),
       onChanged: (String txt) {
         if (txt != previousText) {
           // for performance reason, we dispatch onChange (as well as binding to value)
