@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/layout_utils.dart';
@@ -40,6 +41,7 @@ class EnsembleForm extends StatefulWidget with UpdatableContainer, Invokable, Ha
   @override
   Map<String, Function> setters() {
     return {
+      'onSubmit': (funcDefinition) => _controller.onSubmit = Utils.getAction(funcDefinition, initiator: this),
       'labelPosition': (value) => handleLabelPosition(Utils.optionalString(value)),
       'labelOverflow': (value) => _controller.labelOverflow = Utils.optionalString(value),
       'enabled': (value) => _controller.enabled = Utils.optionalBool(value),
@@ -73,6 +75,7 @@ class EnsembleForm extends StatefulWidget with UpdatableContainer, Invokable, Ha
 class FormController extends WidgetController {
   static const _defaultGap = 10;
 
+  EnsembleAction? onSubmit;
   List<Widget>? children;
   LabelPosition labelPosition = LabelPosition.top;
   String? labelOverflow;
