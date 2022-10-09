@@ -3,6 +3,7 @@ import 'package:ensemble/framework/widget/icon.dart' as framework;
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/form.dart';
 import 'package:ensemble/layout/form.dart' as ensemble;
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/theme_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -45,6 +46,27 @@ class FormFieldController extends WidgetController {
     return setters;
   }
 
+  void submitForm(BuildContext context) {
+    FormHelper.submitForm(context);
+  }
+
+
+}
+
+class FormHelper {
+  /// submit if inside a Form
+  static void submitForm(BuildContext context) {
+    ensemble.FormState? formState = EnsembleForm.of(context);
+    if (formState != null) {
+      // don't continue if validation fails
+      if (!formState.validate()) {
+        return;
+      }
+      if (formState.widget.controller.onSubmit != null) {
+        ScreenController().executeAction(context, formState.widget.controller.onSubmit!);
+      }
+    }
+  }
 }
 
 /// base widget state for FormField widgets
