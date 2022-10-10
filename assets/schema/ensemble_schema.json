@@ -567,6 +567,10 @@
           "type": "object",
           "properties": {
             "onKeyPress": { "$ref": "#/$defs/Action-payload" },
+            "showToggle": {
+              "type": "boolean",
+              "description": "enable the toggling between plain and obscure text."
+            },
             "styles": {
               "type": "object",
               "properties": {
