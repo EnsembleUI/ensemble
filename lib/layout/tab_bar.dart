@@ -96,10 +96,19 @@ class TabBarState extends WidgetState<EnsembleTabBar> with SingleTickerProviderS
     super.dispose();
   }
 
+  /// override to handle Expanded properly
   @override
-  Widget buildWidget(BuildContext context) {
-    if (widget._controller._items.isEmpty) {
+  Widget build(BuildContext context) {
+    if (!widget._controller.visible || widget._controller._items.isEmpty) {
       return const SizedBox.shrink();
+    }
+
+    bool isExpanded = widget._controller.expanded;
+
+    // if Expanded is set, our content needs to stretch to the left-over height
+    Widget tabContent = Builder(builder: (BuildContext context) => buildSelectedTab());
+    if (isExpanded) {
+      tabContent = Expanded(child: tabContent);
     }
 
     Widget rtn = Column(
@@ -109,7 +118,7 @@ class TabBarState extends WidgetState<EnsembleTabBar> with SingleTickerProviderS
         // builder gives us dynamic height control vs TabBarView, but
         // is sub-optimal since it recreates the tab content on each pass.
         // This means onLoad API may be called multiple times in debug mode
-        Builder(builder: (BuildContext context) => buildSelectedTab())
+        tabContent
 
         // This cause Expanded child to fail
         // Padding(
@@ -118,6 +127,10 @@ class TabBarState extends WidgetState<EnsembleTabBar> with SingleTickerProviderS
         // )
       ],
     );
+    // if Expanded is set, stretch our column to left-over height
+    if (isExpanded) {
+      rtn = Expanded(child: rtn);
+    }
 
     if (widget._controller.margin != null) {
       rtn = Padding(
@@ -127,6 +140,12 @@ class TabBarState extends WidgetState<EnsembleTabBar> with SingleTickerProviderS
     }
 
     return rtn;
+  }
+
+  /// we overwrote build() so no implementation here.
+  @override
+  Widget buildWidget(BuildContext context) {
+    throw UnimplementedError();
   }
 
   /// build the Tab Bar navigation part
