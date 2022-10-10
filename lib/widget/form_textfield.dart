@@ -2,6 +2,7 @@
 import 'dart:developer';
 
 import 'package:ensemble/ensemble_theme.dart';
+import 'package:ensemble/framework/widget/icon.dart' as framework;
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/input_validator.dart';
@@ -58,6 +59,13 @@ class PasswordInput extends BaseTextInput {
   }
 
   @override
+  Map<String, Function> setters() {
+    Map<String, Function> map = super.setters();
+    map['showToggle'] = (val) => _controller.showToggle = Utils.optionalBool(val);
+    return map;
+  }
+
+  @override
   TextInputType? get keyboardType => null;
 
 }
@@ -111,6 +119,9 @@ class TextInputController extends FormFieldController {
   // applicable only for TextInput
   bool? obscureText;
 
+  // applicable only for Password
+  bool? showToggle;
+
   model.InputValidator? validator;
   String? inputType;
   int? borderRadius;
@@ -138,6 +149,9 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
     }
   }
 
+  // password is obscure by default
+  bool obscurePassword = true;
+
   @override
   void initState() {
     focusNode.addListener(() {
@@ -160,6 +174,15 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
     super.dispose();
   }
 
+  /// whether to show the content as plain text or obscure
+  bool isObscureOrPlainText() {
+    if (widget.isPassword()) {
+      return obscurePassword;
+    } else {
+      return widget._controller.obscureText ?? false;
+    }
+  }
+
   @override
   Widget buildWidget(BuildContext context) {
 
@@ -174,6 +197,23 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
         color: Theme.of(context).disabledColor,
         fontSize: widget.controller.fontSize?.toDouble());
     }
+
+    // for password, show the toggle plain text/obscure text
+    InputDecoration decoration = inputDecoration;
+    if (widget.isPassword() && widget._controller.showToggle == true) {
+      decoration = decoration.copyWith(
+        suffixIcon: IconButton(
+          icon: Icon(obscurePassword ? Icons.visibility : Icons.visibility_off),
+          onPressed: () {
+            setState(() {
+              obscurePassword = !obscurePassword;
+            });
+          },
+
+        )
+      );
+    }
+
 
     return TextFormField(
       key: validatorKey,
@@ -218,7 +258,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
         return null;
       },
       keyboardType: widget.keyboardType,
-      obscureText: widget.isPassword() || (widget._controller.obscureText ?? false),
+      obscureText: isObscureOrPlainText(),
       enableSuggestions: !widget.isPassword(),
       autocorrect: !widget.isPassword(),
       controller: widget.textController,
@@ -243,7 +283,8 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
         evaluateChanges();
       },
       style: textStyle,
-      decoration: inputDecoration);
+      decoration: decoration
+    );
 
   }
 
