@@ -106,7 +106,10 @@ class TabBarState extends WidgetState<EnsembleTabBar> with SingleTickerProviderS
     bool isExpanded = widget._controller.expanded;
 
     // if Expanded is set, our content needs to stretch to the left-over height
-    Widget tabContent = Builder(builder: (BuildContext context) => buildSelectedTab());
+    // Note we make each Builder unique, as it tends to re-use
+    // the states (down the tree) from the previous Builder
+    // https://stackoverflow.com/questions/55425804/using-builder-instead-of-statelesswidget
+    Widget tabContent = Builder(key: UniqueKey(), builder: (BuildContext context) => buildSelectedTab());
     if (isExpanded) {
       tabContent = Expanded(child: tabContent);
     }

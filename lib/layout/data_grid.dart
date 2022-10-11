@@ -18,7 +18,7 @@ class DataGrid extends StatefulWidget with UpdatableContainer, Invokable, HasCon
   @override
   DataGridController get controller => _controller;
   @override
-  State<StatefulWidget> createState() => DataGridState(controller);
+  State<StatefulWidget> createState() => DataGridState();
 
   @override
   Map<String, Function> getters() {
@@ -148,12 +148,10 @@ class DataGridController extends WidgetController {
 }
 
 class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
-  DataGridController controller;
-  DataGridState(this.controller);
   List<Widget>? templatedChildren;
   @override
   void initState() {
-    controller.addListener(refreshState);
+    widget._controller.addListener(refreshState);
     super.initState();
   }
   void refreshState() {
@@ -181,7 +179,7 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
   @override
   void dispose() {
     templatedChildren = null;
-    controller.removeListener(refreshState);
+    widget._controller.removeListener(refreshState);
     super.dispose();
 
   }
@@ -189,8 +187,8 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
   Widget buildWidget(BuildContext context) {
 
     List<Widget> children = [];
-    if (controller.children != null) {
-      children.addAll(controller.children!);
+    if (widget._controller.children != null) {
+      children.addAll(widget._controller.children!);
     }
     if (templatedChildren != null) {
       children.addAll(templatedChildren!);
