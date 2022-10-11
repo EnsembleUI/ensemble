@@ -1,6 +1,7 @@
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/form_time.dart';
+import 'package:ensemble/widget/widget_util.dart' as widget_utils;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablelist.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablemap.dart';
@@ -17,6 +18,12 @@ class DailySchedulerController extends WidgetController {
   Color unselectedColor = Colors.grey;
   double slotWidth = 16;
   double slotHeight = 16;
+  bool displayVerticalDividers = true;
+  Paint verticalDividerPaint =  Paint()
+    ..style = PaintingStyle.fill
+    ..color = Colors.grey;
+  double gapToLeaveForDivider = 4;
+  int numberOfSlotsBeforeADivider = 8;
   List<TimeRange> selectedRanges = [];
   bool isSelected(TimeRange slotTime) {
     for ( TimeRange range in selectedRanges ) {
@@ -72,21 +79,40 @@ class DailySchedulerController extends WidgetController {
       ..style = PaintingStyle.fill
       ..color = unselectedColor;
     int numberOfBoxes = (24 * 60 /intervalInMinutes).round();
+    double currentGap = 0;
     for ( int i=0;i<numberOfBoxes;i++ ) {
       String startTime = '${(i/(60/intervalInMinutes)).floor()}:${(i==0 || i*intervalInMinutes==60)?'00': intervalInMinutes}';
       String endTime = '${((i+1)/(60/intervalInMinutes)).floor()}:${((i+1)*intervalInMinutes==60)?'00': intervalInMinutes}';
       TimeRange slotTime = TimeRange(startSeconds + (i * intervalInMinutes * 60),
           startSeconds + ((i+1) * intervalInMinutes * 60));
       _nodes.add(
-          Node(Rect.fromLTWH(initialOffset.dx + (i * size.width) + (i * gapX), initialOffset.dy, size.width, size.height),
+          Node(Rect.fromLTWH(initialOffset.dx + (i * size.width) + currentGap, initialOffset.dy, size.width, size.height),
               slotTime,
               startTime,
               endTime,
               isSelected(slotTime), unselectedPaint,selectedPaint
           )
       );
+
+      if ( displayVerticalDividers && (i+1)%numberOfSlotsBeforeADivider == 0 && i != 0 && i < numberOfBoxes-1 ) {
+        currentGap += gapToLeaveForDivider;
+      } else {
+        currentGap += gapX;
+      }
     }
     return _nodes;
+  }
+  double getWidth() {
+    int numberOfBoxes = (24 * 60 /intervalInMinutes).round();
+    double width = 0;
+    if ( displayVerticalDividers ) {
+      width = numberOfBoxes * slotWidth + gapToLeaveForDivider *
+          (numberOfBoxes / numberOfSlotsBeforeADivider).floor() +
+          (numberOfBoxes - numberOfSlotsBeforeADivider) * gapX;
+    } else {
+      width = numberOfBoxes * slotWidth + numberOfBoxes * gapX;
+    }
+    return width;
   }
   Node? getNodeUnderPoint(Offset point) {
     for ( Node node in nodes ) {
@@ -172,25 +198,36 @@ class DailySchedulerState extends WidgetState<DailyScheduler> {
         onPointerMove: widget.controller.onPointerMove,
         onPointerUp: widget.controller.onPointerUp,
         child: SizedBox(
-            width: widget.controller.slotWidth * 48 + widget.controller.gapX * 47,
+            width: widget.controller.getWidth(),
             height: widget.controller.slotHeight,
             child: CustomPaint (
-              painter: SchedulerPainter(widget.controller.nodes,widget.controller),
+              painter: DailySchedulerPainter(widget.controller),
             )
         )
     );
   }
 }
 class WeeklySchedulerController extends WidgetController {
-  EdgeInsets padding = const EdgeInsets.fromLTRB(0, 0, 0, 2.0);
+  EdgeInsets padding = const EdgeInsets.fromLTRB(0, 0, 0, 8.0);
   List<String> dayLabels = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
   bool displayDayLabels = true;
+  Map dayLabelStyles = {};
+  double dayLabelBoxWidth = 50;
+  double dayLabelBoxHeight = 75;
+  bool displayVerticalDividers = true;
+  int numberOfSlotsForEachVerticalDivider = 8;
+  List<String> verticalDividerLabels = ['0','4','8','12','16','20','24'];
+  double gapToLeaveForDivider = 4;
   double gapX = 2;
   Color selectedColor = Colors.green;
   Color unselectedColor = Colors.grey;
   double slotWidth = 16;
   double slotHeight = 16;
   int slotInMinutes = 30;
+  Paint verticalDividerPaint =  Paint()
+              ..strokeWidth = 3
+              ..style = PaintingStyle.fill
+              ..color = Colors.black;
   final List<DailySchedulerController> _dailyControllers = [];
   List<DailySchedulerController> get dailyControllers {
       return _dailyControllers;
@@ -201,6 +238,7 @@ class WeeklySchedulerController extends WidgetController {
     }
   }
   void initControllers() {
+
     for (int i = 0; i < dayLabels.length; i++) {
       DailySchedulerController controller = DailySchedulerController();
       controller.dayLabel = dayLabels[i];
@@ -212,6 +250,9 @@ class WeeklySchedulerController extends WidgetController {
       controller.slotHeight = slotHeight;
       controller.intervalInMinutes = slotInMinutes;
       controller.selectedRanges = selectedRanges;
+      controller.displayVerticalDividers = displayVerticalDividers;
+      controller.gapToLeaveForDivider = gapToLeaveForDivider;
+      controller.numberOfSlotsBeforeADivider = numberOfSlotsForEachVerticalDivider;
       _dailyControllers.add(controller);
     }
   }
@@ -223,13 +264,51 @@ class WeeklySchedulerController extends WidgetController {
     }
     for ( int i=0;i<dayLabels.length;i++ ) {
       DailyScheduler scheduler = DailyScheduler(dailyControllers[i]);
-      if ( i < dayLabels.length -1 ) {
-        schedulers.add(Padding(padding: padding, child: scheduler));
+      if ( displayDayLabels ) {
+        widget_utils.TextController tc = widget_utils.TextController();
+        widget_utils.TextUtils.setStyles(dayLabelStyles, tc);
+        tc.overflow = 'ellipsis';
+        tc.text = dayLabels[i];
+        Text dayLabel = widget_utils.TextUtils.buildText(tc);
+
+        schedulers.add(Padding(padding: padding,
+              child:Row(children: [
+                SizedBox(width: dayLabelBoxWidth, height: dayLabelBoxHeight,child: dayLabel),
+                  Padding(padding: const EdgeInsets.fromLTRB(2, 0, 0, 0),
+                      child:scheduler)
+              ])));
       } else {
-        schedulers.add(scheduler);
+        schedulers.add(Padding(padding: padding, child: scheduler));
       }
+
     }
     return schedulers;
+  }
+  List<Widget> getChildren() {
+    List<Widget> children = [];
+    List<List<Offset>> coordinates = [];
+    double height = slotHeight*dayLabels.length+padding.bottom*dayLabels.length;
+    coordinates.add([const Offset(0,0),Offset(0,height)]);
+    int numberOfSlots = (24*60/slotInMinutes).floor();
+    int numberOfDividers = (numberOfSlots/numberOfSlotsForEachVerticalDivider).floor();
+    double x = 0;
+    if ( displayVerticalDividers ) {
+      for ( int i=0;i<numberOfDividers;i++ ) {
+        x += numberOfSlotsForEachVerticalDivider * slotWidth + numberOfSlotsForEachVerticalDivider * gapX;
+        //coordinates.add([Offset(x,0),Offset(x,height)]);
+
+      }
+    }
+
+    Paint p = Paint()
+      ..strokeWidth = 3
+      ..style = PaintingStyle.fill
+      ..color = Colors.black;
+
+    List<Widget> dailySchedulers = getDailySchedulers();
+
+    children.addAll(getDailySchedulers());
+    return children;
   }
   List<TimeRange> getSelectedRanges() {
     List<TimeRange> ranges = [];
@@ -292,6 +371,13 @@ class WeeklyScheduler extends StatefulWidget with Invokable,HasController<Weekly
       'unselectedSlotColor': (dynamic color) => controller.unselectedColor = Utils.getColor(color) ?? controller.unselectedColor,
       'slotInMinutes': (dynamic value) => controller.slotInMinutes = Utils.getInt(value, fallback: 30),
       'displayDayLabels': (dynamic value) => controller.displayDayLabels = Utils.getBool(value, fallback: controller.displayDayLabels),
+      'dayLabelStyles': (dynamic value) => controller.dayLabelStyles = Utils.getMap(value) == null ? {} : Utils.getMap(value)!,
+      'displayVerticalDividers': (dynamic value) => controller.displayVerticalDividers = Utils.getBool(value, fallback: controller.displayVerticalDividers),
+      'numberOfSlotsForEachVerticalDivider': (dynamic value) => controller.numberOfSlotsForEachVerticalDivider = Utils.getInt(value, fallback: controller.numberOfSlotsForEachVerticalDivider),
+      'dayLabelBoxWidth': (dynamic value) => controller.dayLabelBoxWidth = Utils.getDouble(value, fallback: controller.dayLabelBoxWidth),
+      'dayLabelBoxHeight': (dynamic value) => controller.dayLabelBoxHeight = Utils.getDouble(value, fallback: controller.dayLabelBoxHeight),
+      'gapToLeaveForDivider': (dynamic value) => controller.gapToLeaveForDivider = Utils.getDouble(value, fallback: controller.gapToLeaveForDivider),
+      'verticalDividerLabels': (dynamic value) => controller.verticalDividerLabels = (value != null ) ? Utils.getListOfStrings(value)!: controller.verticalDividerLabels,
     };
   }
 
@@ -315,7 +401,7 @@ class WeeklySchedulerState extends WidgetState<WeeklyScheduler> {
   @override
   Widget buildWidget(BuildContext context) {
     return Column(
-      children: widget.controller.getDailySchedulers(),
+      children: widget.controller.getChildren()
     );
   }
 
@@ -351,12 +437,36 @@ class Node {
     return selected;
   }
 }
-class SchedulerPainter extends CustomPainter {
-  List<Node> nodes;
-  SchedulerPainter(this.nodes,Listenable? repaint): super(repaint: repaint);
+class DividerPainter extends CustomPainter {
+  List<String> labels;
+  List<List<Offset>> coordinates;
+  Paint style;
+  DividerPainter(this.labels,this.coordinates,this.style);
   @override
   void paint(Canvas canvas, Size size) {
-    for ( Node node in nodes ) {
+    for ( List<Offset> coordinate in coordinates ) {
+      canvas.drawLine(coordinate.first, coordinate.last, style);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return false;
+  }
+}
+class DailySchedulerPainter extends CustomPainter {
+  DailySchedulerController controller;
+  DailySchedulerPainter(this.controller): super(repaint: controller);
+  @override
+  void paint(Canvas canvas, Size size) {
+    for ( int i=0;i<controller.nodes.length;i++ ) {
+      Node node = controller.nodes[i];
+      if ( controller.displayVerticalDividers && (i+1)%controller.numberOfSlotsBeforeADivider == 0 ) {
+        canvas.drawLine(
+            Offset(node.rect.right + controller.gapToLeaveForDivider/2,node.rect.top),
+            Offset(node.rect.right + controller.gapToLeaveForDivider/2,node.rect.bottom),
+            controller.verticalDividerPaint);
+      }
       canvas.drawRect(node.rect, node.paint);
     }
   }
@@ -364,12 +474,12 @@ class SchedulerPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) {
     bool repaint = false;
-    for ( Node node in nodes ) {
+    for ( Node node in controller.nodes ) {
       if ( node.shouldRepaint ) {
         repaint = true;
       }
     }
-    for ( Node node in nodes ) {
+    for ( Node node in controller.nodes ) {
       node.shouldRepaint = false;
     }
     return repaint;
