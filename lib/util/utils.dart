@@ -477,6 +477,17 @@ class Utils {
     return null;
   }
 
+  static Map<String, dynamic>? parseYamlMap(dynamic value) {
+    Map<String, dynamic>? rtn;
+    if (value is YamlMap) {
+      rtn = {};
+      value.forEach((key, value) {
+        rtn![key] = value;
+      });
+    }
+    return rtn;
+  }
+
   static int? parseIntFromString(String value) {
     return int.tryParse(value);
   }
