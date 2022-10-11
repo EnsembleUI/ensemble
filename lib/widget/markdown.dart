@@ -1,12 +1,17 @@
 
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart' as framework;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'dart:convert';
+
+import 'package:yaml/yaml.dart';
 
 class Markdown extends StatefulWidget with Invokable, HasController<MarkdownController, MarkdownState> {
   static const type = 'Markdown';
@@ -41,9 +46,6 @@ class Markdown extends StatefulWidget with Invokable, HasController<MarkdownCont
     return {};
   }
 
-
-
-
 }
 
 
@@ -75,8 +77,78 @@ class MarkdownState extends framework.WidgetState<Markdown> {
 
   void openUrl(String text, String? url, String? title) {
     if (url != null && url.isNotEmpty) {
-      launchUrl(Uri.parse(url));
+      // special handler for screen navigation
+      if (url.startsWith(ActionType.navigateScreen.name) ||
+          url.startsWith(ActionType.navigateModalScreen.name)) {
+        handleScreenNavigation(url);
+      } else {
+        launchUrl(Uri.parse(url));
+      }
     }
+  }
+
+  void handleScreenNavigation(String raw) async {
+    // very specific syntax [screen name](navigateScreen:MyScreen,inputs:{name:Peter,occupation:engineer})
+    // no spaces as Markdown don't expect any spaces in the URL
+    // We only expect 1 or 2 tokens, separated by 1 comma.
+    String? firstToken;
+    String? secondToken;
+    int index = raw.indexOf(',');
+    if (index == -1) {
+      firstToken = raw;
+    } else {
+      firstToken = raw.substring(0, index);
+      secondToken = raw.substring(index+1);
+    }
+
+    bool? asModal;
+    String? screenName;
+    Map<String, dynamic>? inputs;
+
+    // get screen name
+    List<String> keyValues = firstToken.split(':');
+    if (keyValues.length == 2) {
+      if (keyValues[0] == ActionType.navigateScreen.name) {
+        asModal = false;
+      } else if (keyValues[0] == ActionType.navigateModalScreen.name) {
+        asModal = true;
+      }
+      screenName = keyValues[1];
+    }
+
+    // get inputs
+    /*if (secondToken != null) {
+      index = secondToken.indexOf(':');
+      if (index != -1 && secondToken.substring(0, index) == 'inputs') {
+        try {
+          // can't parse YAML as markdown expects no spaces. TODO: figure out new syntax
+          inputs = Utils.parseYamlMap(await loadYaml(secondToken.substring(index+1)));
+        } on FormatException catch (e) {
+          FlutterError.reportError(FlutterErrorDetails(
+            exception: LanguageError("Invalid screen navigation syntax. Inputs is not a map"),
+            library: 'Markdown',
+            context: ErrorSummary('Markdown error'),
+          ));
+        }
+      }
+    }*/
+
+    if (asModal != null && screenName != null) {
+      ScreenController().navigateToScreen(
+        context,
+        screenName: screenName,
+        asModal: asModal,
+        //pageArgs: inputs
+      );
+    } else {
+      FlutterError.reportError(FlutterErrorDetails(
+        exception: LanguageError("Invalid screen navigation syntax in Markdown"),
+        library: 'Markdown',
+        context: ErrorSummary('Markdown error'),
+      ));
+    }
+
+
   }
 
 
