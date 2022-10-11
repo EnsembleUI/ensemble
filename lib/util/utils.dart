@@ -288,7 +288,20 @@ class Utils {
     }
     return null;
   }
-
+  static List<String>? getListOfStrings(dynamic value) {
+    if (value is YamlList) {
+      List<String> results = [];
+      for (var item in value) {
+        if ( item is String ) {
+          results.add(item);
+        } else {
+          results.add(item.toString());
+        }
+      }
+      return results;
+    }
+    return null;
+  }
   static Map<String, dynamic>? getMap(dynamic value) {
     if (value is Map) {
       Map<String, dynamic> results = {};
