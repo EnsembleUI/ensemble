@@ -1102,18 +1102,39 @@
           "if": {
             "properties": {
               "action": {
+                "const": "stopTimer"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Stop the timer with this ID if it is running"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
                 "const": "startTimer"
               }
             }
           },
           "then": {
             "properties": {
+              "id": {
+                "type": "string",
+                "description": "Give this timer an ID so it can be cancelled by a stopTimer action"
+              },
               "options": {
                 "type": "object",
                 "properties": {
-                  "id": {
-                    "type": "string",
-                    "description": "Give this timer an ID so you can cancel it at will"
+                  "isGlobal": {
+                    "type": "boolean",
+                    "description": "Marking this timer as global will ensure the timer, if repeating indefinitely, will continue to run even if the user navigates away from the screen, until explicitly stopped by the stopTimer action. Note that there can only ever be one global timer. Creating a new global timer will automatically cancel the previous global timer."
                   },
                   "startAfter": {
                     "type": "integer",

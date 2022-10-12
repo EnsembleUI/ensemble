@@ -86,6 +86,11 @@ class StartTimerAction extends EnsembleAction {
   final TimerPayload? payload;
 }
 
+class StopTimerAction extends EnsembleAction {
+  StopTimerAction(this.id);
+  String id;
+}
+
 class CloseAllDialogsAction extends EnsembleAction {
 
 }
@@ -131,7 +136,8 @@ class TimerPayload {
     this.startAfter,
     required this.repeat,
     this.repeatInterval,
-    this.maxTimes
+    this.maxTimes,
+    this.isGlobal
   });
 
   final String? id;
@@ -140,9 +146,11 @@ class TimerPayload {
   final bool repeat;
   final int? repeatInterval;  // The repeat interval in seconds
   final int? maxTimes;         // how many times to trigger onTimer
+
+  final bool? isGlobal;        // if global is marked, only 1 instance is available for the entire app
 }
 
 
-enum ActionType { invokeAPI, navigateScreen, navigateModalScreen, showDialog, startTimer, closeAllDialogs, executeCode, showToast }
+enum ActionType { invokeAPI, navigateScreen, navigateModalScreen, showDialog, startTimer, stopTimer, closeAllDialogs, executeCode, showToast }
 
 enum ToastType { success, error, warning, info, custom }

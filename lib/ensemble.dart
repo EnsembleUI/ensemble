@@ -7,6 +7,7 @@ import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/ensemble_provider.dart';
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/provider.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -238,6 +239,18 @@ class Ensemble {
         slashPattern.firstMatch(folder)!.group(1)! + '/';
   }
 
+  // TODO: rework the concept of root scope
+  RootScope? _rootScope;
+  RootScope rootScope() {
+    _rootScope ??= RootScope();
+    return _rootScope!;
+  }
+
+}
+
+class RootScope {
+  // Root scope supports 1 timer only
+  EnsembleTimer? rootTimer;
 }
 
 
