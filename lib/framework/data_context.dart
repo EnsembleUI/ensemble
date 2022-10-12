@@ -369,6 +369,7 @@ class NativeInvokable with Invokable {
       ActionType.navigateModalScreen.name: navigateToModalScreen,
       ActionType.showDialog.name: showDialog,
       ActionType.invokeAPI.name: invokeAPI,
+      ActionType.stopTimer.name: stopTimer,
       'debug': (value) => log('Debug: $value')
     };
   }
@@ -406,6 +407,9 @@ class NativeInvokable with Invokable {
       apiName: apiName,
       inputs: inputMap
     ));
+  }
+  void stopTimer(String timerId) {
+    ScreenController().executeAction(_buildContext, StopTimerAction(timerId));
   }
 
 }

@@ -41,6 +41,13 @@ class ScreenController {
     // get the current scope of the widget that invoked this. It gives us
     // the data context to evaluate expression
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
+
+    // when context is at the View, we can't reach the DataScopeWidget which is
+    // actually a child of View. Let's just get the scopeManager directly.
+    // TODO: find a better more consistent way of getting ScopeManager
+    if (scopeManager == null && context.widget is View) {
+      scopeManager = (context.widget as View).rootScopeManager;
+    }
     if (scopeManager != null) {
       executeActionWithScope(context, scopeManager, action);
     }
@@ -172,7 +179,7 @@ class ScreenController {
         ).then((value) {
           // remove the dialog context since we are closing them
           scopeManager.openedDialogs.remove(dialogContext);
-          
+
           // callback when dialog is dismissed
           if (action.onDialogDismiss != null) {
             executeActionWithScope(context, scopeManager, action.onDialogDismiss!);
@@ -237,10 +244,7 @@ class ScreenController {
 
                 // save our timer to our PageData since user may want to cancel at anytime
                 // and also when we navigate away from the page
-                if (action.initiator != null) {
-                  saveTimerReference(scopeManager, action.initiator!, timer);
-                }
-
+                scopeManager.addTimer(action, timer);
               }
             }
 
@@ -249,6 +253,10 @@ class ScreenController {
       }
 
 
+    } else if (action is StopTimerAction) {
+      if (scopeManager != null) {
+        scopeManager.removeTimer(action.id);
+      }
     } else if (action is ExecuteCodeAction) {
       dataContext.evalCode(action.codeBlock);
 
@@ -353,15 +361,6 @@ class ScreenController {
     } catch (e) {
       print ("Code block exception: " + e.toString());
     }
-  }
-
-  void saveTimerReference(ScopeManager scopeManager, Invokable initiator, Timer timer) {
-    Map<Invokable, Timer> timerMap = scopeManager.timerMap;
-
-    // clean up existing duplicates first
-    timerMap[initiator]?.cancel();
-
-    timerMap[initiator] = timer;
   }
 
 

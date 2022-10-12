@@ -217,11 +217,12 @@ class Utils {
         TimerPayload? timerPayload;
         if (payload['options'] is YamlMap) {
           timerPayload = TimerPayload(
-            id: Utils.optionalString(payload['options']['id']),
+            id: Utils.optionalString(payload['id']),
             startAfter: Utils.optionalInt(payload['options']['startAfter'], min: 0),
             repeat: Utils.getBool(payload['options']['repeat'], fallback: false),
             repeatInterval: Utils.optionalInt(payload['options']['repeatInterval'], min: 1),
-            maxTimes: Utils.optionalInt(payload['options']['maxNumberOfTimes'], min: 1)
+            maxTimes: Utils.optionalInt(payload['options']['maxNumberOfTimes'], min: 1),
+            isGlobal: Utils.optionalBool(payload['options']['isGlobal'])
           );
         }
         if (timerPayload?.repeat == true && timerPayload?.repeatInterval == null) {
@@ -234,6 +235,12 @@ class Utils {
           onTimerComplete: onTimerComplete,
           payload: timerPayload
         );
+
+      } else if (payload['action'] == ActionType.stopTimer.name) {
+        String? id = Utils.optionalString(payload['id']);
+        if (id != null) {
+          return StopTimerAction(id);
+        }
       } else if (payload['action'] == ActionType.closeAllDialogs.name) {
         return CloseAllDialogsAction();
       } else if (payload['action'] == ActionType.showToast.name) {

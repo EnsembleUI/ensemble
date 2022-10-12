@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:developer';
 
+import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/widget/view.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
@@ -26,6 +28,8 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
   final DataContext _dataContext;
   final PageData pageData;
   ScopeManager? _parent;
+  // TODO: have proper root scope
+  RootScope rootScope = Ensemble().rootScope();
 
   @override
   Map<String, dynamic>? get customViewDefinitions => pageData.customViewDefinitions;
@@ -40,10 +44,75 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
   Map<Invokable, Map<int, StreamSubscription>> get listenerMap => pageData.listenerMap;
 
   @override
-  Map<Invokable, Timer> get timerMap => pageData.timerMap;
-
-  @override
   List<BuildContext> get openedDialogs => pageData.openedDialogs;
+
+  // add repeating timer so we can manage it later.
+  void addTimer(StartTimerAction timerAction, Timer timer) {
+    EnsembleTimer newTimer = EnsembleTimer(timer, id: timerAction.payload?.id);
+
+    // if timer is global, add it to the root scope. There can only be one global Timer
+    if (timerAction.payload != null && timerAction.payload!.isGlobal == true) {
+      rootScope.rootTimer?.cancel();
+      rootScope.rootTimer = newTimer;
+    }
+    // use the current scope with the Invokable as the key (such that the timer
+    // will automatically be cancelled when the widget is disposed). This also
+    // prevents duplicate (e.g. clicking multiple times on Button that starts a timer)
+    else if (timerAction.initiator != null) {
+      pageData._timerMap[timerAction.initiator!]?.cancel();
+      pageData._timerMap[timerAction.initiator!] = newTimer;
+    }
+    // save standalone timers to a simple list
+    else {
+      // if ID is specified, prevents duplicates by removing previous one
+      if (timerAction.payload?.id != null) {
+        pageData._timers.removeWhere((item) {
+          if (item.id == timerAction.payload!.id) {
+            item.timer.cancel();
+            return true;
+          }
+          return false;
+        });
+      }
+      pageData._timers.add(newTimer);
+    }
+
+  }
+  @override
+  void removeTimerByWidget(Invokable widget) {
+    if (pageData._timerMap[widget] != null) {
+      pageData._timerMap[widget]!.cancel();
+      log("Cleared all Timers for widget: ${widget.id ?? widget.toString()}");
+    }
+  }
+  void removeTimer(String timerId) {
+    // first try to remove from root scope
+    if (rootScope.rootTimer?.id == timerId) {
+      rootScope.rootTimer?.cancel();
+      rootScope.rootTimer = null;
+    }
+    else {
+      // remove from current scope's timer map
+      pageData._timerMap.removeWhere((key, value) {
+        if (value.id == timerId) {
+          value.timer.cancel();
+          return true;
+        }
+        return false;
+      });
+      // remove from current scope's timer list
+      pageData._timers.removeWhere((item) {
+        if (item.id == timerId) {
+          item.timer.cancel();
+          return true;
+        }
+        return false;
+      });
+    }
+  }
+
+
+
 
   /// create a copy of the parent's data scope
   @override
@@ -64,7 +133,7 @@ abstract class IsScopeManager {
   Map<String, dynamic>? get customViewDefinitions;
   EventBus get eventBus;
   Map<Invokable, Map<int, StreamSubscription>> get listenerMap;
-  Map<Invokable, Timer> get timerMap;
+  void removeTimerByWidget(Invokable widget);
   List<BuildContext> get openedDialogs;
   ScopeManager createChildScope();
   ScopeManager get me;
@@ -423,10 +492,8 @@ mixin PageBindingManager on IsScopeManager {
       listenerMap.remove(widget);
     }
     // remove all Timers associated with this Invokable
-    if (timerMap[widget] != null) {
-      timerMap[widget]!.cancel();
-      log("Cleared all Timers for widget: ${widget.id ?? widget.toString()}");
-    }
+    removeTimerByWidget(widget);
+
   }
 
   /// unique but repeatable hash (within the same session) of the provided keys
@@ -477,8 +544,14 @@ class PageData {
   final EventBus eventBus = EventBus();
   final Map<Invokable, Map<int, StreamSubscription>> listenerMap = {};
 
-  // Timer map
-  final Map<Invokable, Timer> timerMap = {};
+  // When repeating timers are created at the page level, we need to manage
+  // duplicates as well as the ability to pause (navigate to new page) or
+  // cancel them (when the page is disposed).
+  // We tie the listeners to Invokable to prevent duplicates (e.g. same timer started multiple times on button click),
+  // but also a way to cancel the timer when the widget is destroyed.
+  // When a timer is not tie to a widget, we add them to a simple list.
+  final Map<Invokable, EnsembleTimer> _timerMap = {};
+  final List<EnsembleTimer> _timers = [];
 
   // list of all opened Dialogs' contexts
   final List<BuildContext> openedDialogs = [];
@@ -525,5 +598,17 @@ class DataExpression {
       return '//@code $rawExpression\n$astExpression';
     }
     return rawExpression;
+  }
+}
+
+/// a wrapper around a repeating timer with optional ID.
+/// We use this to manage Timers
+class EnsembleTimer {
+  EnsembleTimer(this.timer, {this.id});
+  Timer timer;
+  String? id;
+
+  void cancel() {
+    timer.cancel();
   }
 }
