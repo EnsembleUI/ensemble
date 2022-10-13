@@ -73,18 +73,20 @@ class MyController extends WidgetController {
     if (markerData is YamlMap) {
       String? data = markerData['data'];
       String? name = markerData['name'];
-      YamlMap? template = markerData['marker'];
+
       String? lat = markerData['location']?['lat'];
       String? lng = markerData['location']?['lng'];
-      YamlMap? selectedMarker = markerData['selectedMarker'];
-      if (data != null && name != null && template != null && lat != null && lng != null) {
+      YamlMap? widget = markerData['widget'];
+      if (data != null && name != null && widget != null && lat != null && lng != null) {
         _markerTemplate = MarkerTemplate(
           data: data,
           name: name,
-          template: template,
+          template: widget,
           lat: lat,
           lng: lng,
-          selectedMarker: selectedMarker);
+          selectedWidget: markerData['selectedWidget'],
+          selectedWidgetOverlay: markerData['selectedWidgetOverlay']
+        );
       }
     }
   }
@@ -152,6 +154,8 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
 
 
   late final String _mapAccessToken;
+  int selectedWidgetIndex = 0;
+  Marker? selectedWidget;
   Widget? overlayWidget;
 
   @override
@@ -185,30 +189,34 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
 
     List<Marker> markers = [];
     if (markerWidgets != null && widget._controller._markerTemplate != null) {
-      for (DataScopeWidget markerWidget in markerWidgets) {
+      for (int i=0; i<markerWidgets.length; i++) {
+        DataScopeWidget markerWidget = markerWidgets[i];
         ScopeManager scopeManager = markerWidget.scopeManager;
 
         // evaluate the lat/lng
         double? lat = Utils.optionalDouble(scopeManager.dataContext.eval(widget._controller._markerTemplate!.lat));
         double? lng = Utils.optionalDouble(scopeManager.dataContext.eval(widget._controller._markerTemplate!.lng));
         if (lat != null && lng != null) {
+          LatLng point = LatLng(lat, lng);
           Widget w;
-          // if selectedMarker template is specified, wrap our marker widget to listen for tap events
-          if (widget._controller._markerTemplate!.selectedMarker != null) {
+          // if either the selectedWidget or selectedWidgetOverlay is specified,
+          // wrap our marker widget to listen for tap events
+          if (widget._controller._markerTemplate!.selectedWidget != null ||
+              widget._controller._markerTemplate!.selectedWidgetOverlay != null) {
             w = InkWell(
               child: markerWidget,
-              onTap: () => selectMarker(markerWidget),
+              onTap: () => selectMarker(i, point, markerWidget),
             );
+            // if a widget is selected
+            if (selectedWidgetIndex != -1) {
+              selectMarker(i, point, markerWidget);
+            }
           } else {
             w = markerWidget;
           }
 
           // add the marker
-          markers.add(Marker(
-            point: LatLng(lat, lng),
-            width: widget._controller.markerWidth?.toDouble() ?? defaultMarkerWidth,
-            height: widget._controller.markerHeight?.toDouble() ?? defaultMarkerHeight,
-            builder: (context) => w));
+          markers.add(buildMarker(w, point));
 
         }
       }
@@ -216,19 +224,44 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
     return markers;
   }
 
+  Marker buildMarker(Widget childWidget, LatLng point) {
+    return Marker(
+        point: point,
+        width: widget._controller.markerWidth?.toDouble() ?? defaultMarkerWidth,
+        height: widget._controller.markerHeight?.toDouble() ?? defaultMarkerHeight,
+        builder: (context) => childWidget);
+  }
 
 
-  void selectMarker(DataScopeWidget markerWidget) {
-    if (widget._controller._markerTemplate!.selectedMarker != null) {
+
+  void selectMarker(int selectedIndex, LatLng point, DataScopeWidget markerScope) {
+    bool markerChanges = false;
+
+    // selected widget
+    if (widget._controller._markerTemplate!.selectedWidget != null) {
+      Widget childWidget = markerScope.scopeManager.buildWidgetFromDefinition(widget._controller._markerTemplate!.selectedWidget);
+      selectedWidget = buildMarker(childWidget, point);
+      selectedWidgetIndex = selectedIndex;
+      markerChanges = true;
+    }
+
+    // overlay widget
+    if (widget._controller._markerTemplate!.selectedWidgetOverlay != null) {
+      overlayWidget = markerScope.scopeManager.buildWidgetFromDefinition(widget._controller._markerTemplate!.selectedWidgetOverlay);
+      markerChanges = true;
+    }
+
+    if (markerChanges) {
       setState(() {
-        overlayWidget = markerWidget.scopeManager.buildWidgetFromDefinition(widget._controller._markerTemplate!.selectedMarker);
+
       });
     }
+
   }
 
   @override
   Widget buildWidget(BuildContext context) {
-    List<Marker> items = widget._controller._markers;
+    List<Marker> items = getCurrentMarkers();
 
     // render the current location widget
     if (widget._controller.currentLocation != null) {
@@ -284,7 +317,22 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
     );
   }
 
-
+  List<Marker> getCurrentMarkers() {
+    if (selectedWidgetIndex == -1) {
+      return widget._controller._markers;
+    } else {
+      List<Marker> rtn = [];
+      for (int i=0; i<widget._controller._markers.length; i++) {
+        // use the selected widget version
+        if (i == selectedWidgetIndex && selectedWidget != null) {
+          rtn.add(selectedWidget!);
+        } else {
+          rtn.add(widget._controller._markers[i]);
+        }
+      }
+      return rtn;
+    }
+  }
 
 
 
@@ -318,13 +366,15 @@ class MarkerTemplate extends ItemTemplate {
   MarkerTemplate({
     required String data,
     required String name,
-    required YamlMap template,
+    required YamlMap template,  // this is the marker widget, just piggyback on the name
     required this.lat,
     required this.lng,
-    this.selectedMarker
+    this.selectedWidget,
+    this.selectedWidgetOverlay
   }) : super(data, name, template);
 
   String lat;
   String lng;
-  YamlMap? selectedMarker;
+  YamlMap? selectedWidget;
+  YamlMap? selectedWidgetOverlay;
 }

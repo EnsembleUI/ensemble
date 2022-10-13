@@ -1668,18 +1668,10 @@
         },
         "markers": {
           "type": "object",
-          "required": ["data", "name", "location", "marker"],
+          "required": ["data", "name", "location", "widget"],
           "properties": {
             "data": { "type": "string" },
             "name": { "type": "string" },
-            "marker": {
-              "$ref": "#/$defs/Widget",
-              "description": "The widget to render as each marker"
-            },
-            "selectedMarker": {
-              "$ref": "#/$defs/Widget",
-              "description": "The widget to render at the bottom of the map when a marker is selected"
-            },
             "location": {
               "type": "object",
               "properties": {
@@ -1692,8 +1684,19 @@
                   "description": "The longitude of the marker"
                 }
               }
+            },
+            "widget": {
+              "$ref": "#/$defs/Widget",
+              "description": "The widget to render each marker"
+            },
+            "selectedWidget": {
+              "$ref": "#/$defs/Widget",
+              "description": "The widget to render a selected marker"
+            },
+            "selectedWidgetOverlay": {
+              "$ref": "#/$defs/Widget",
+              "description": "The widget to render as an overlay at the bottom of the map. Use this to convey more detail info."
             }
-
           }
         }
       }
