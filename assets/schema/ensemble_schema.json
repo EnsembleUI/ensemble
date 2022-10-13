@@ -901,7 +901,10 @@
               "type": "string",
               "description": "Set the name to reference as you iterate through the array of data"
             },
-            "template": { "$ref": "#/$defs/Widget" }
+            "template": {
+              "$ref": "#/$defs/Widget",
+              "description": "The widget to render for each item"
+            }
           }
         }
       }
@@ -1649,6 +1652,19 @@
               }
             }
           ]
+        },
+        "currentLocation": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "If enabled, this will prompt the user for location access. User location will then be shown on the map"
+            },
+            "widget": {
+              "$ref": "#/$defs/Widget",
+              "description": "The widget to render the user's location"
+            }
+          }
         },
         "markers": {
           "type": "object",

@@ -1,5 +1,6 @@
 
 import 'dart:async';
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:ensemble/ensemble.dart';
@@ -13,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map/plugin_api.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:yaml/yaml.dart';
 
@@ -30,6 +32,7 @@ class EnsembleMap extends StatefulWidget with Invokable, HasController<MyControl
   @override
   Map<String, Function> setters() {
     return {
+      'currentLocation': _controller.updateCurrentLocationStatus,
       'markers': (data) => _controller.markers = data,
       'markerWidth': (width) => _controller.markerWidth = width,
       'markerHeight': (height) => _controller.markerHeight = height,
@@ -52,6 +55,7 @@ class MyController extends WidgetController {
   int? markerWidth;
   int? markerHeight;
 
+
   // set the marker template
   MarkerTemplate? markerTemplate;
   set markers(dynamic markerData) {
@@ -73,6 +77,39 @@ class MyController extends WidgetController {
       }
     }
   }
+  
+  dynamic customLocationWidget;
+  Position? currentLocation;
+  void updateCurrentLocationStatus(dynamic locationData) {
+    if (locationData is YamlMap) {
+      if (locationData['enabled'] == true) {
+        customLocationWidget = locationData['widget'];
+        if (currentLocation == null) {
+          requestUserLocation();
+        }
+      }
+    }
+  }
+  void requestUserLocation() async {
+    currentLocation = await getLocation();
+    notifyListeners();
+  }
+  Future<Position?> getLocation() async {
+    if (await Geolocator.isLocationServiceEnabled()) {
+      LocationPermission permission = await Geolocator.checkPermission();
+      // ask for permission if not already
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      log("Location permission $permission");
+
+      if (![LocationPermission.denied, LocationPermission.deniedForever].contains(permission)) {
+        return await Geolocator.getCurrentPosition();
+      }
+    }
+    return Future.value(null);
+  }
 
 }
 
@@ -81,7 +118,6 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
   static const double mapboxMaxZoom = 18;
   static const double defaultMarkerWidth = 60;
   static const double defaultMarkerHeight = 30;
-
 
   late final MapController _mapController;
   late final String _mapAccessToken;
@@ -159,6 +195,22 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
 
   @override
   Widget buildWidget(BuildContext context) {
+    List<Marker> items = markers;
+
+    // render the current location widget
+    if (widget._controller.currentLocation != null) {
+      Widget? currentLocationWidget;
+      if (widget._controller.customLocationWidget != null) {
+        currentLocationWidget = DataScopeWidget.getScope(context)?.buildWidgetFromDefinition(widget._controller.customLocationWidget);
+      }
+      currentLocationWidget ??= const Icon(Icons.filter_tilt_shift);
+
+      items.add(Marker(
+        point: LatLng(widget._controller.currentLocation!.latitude, widget._controller.currentLocation!.longitude),
+        builder: (context) => currentLocationWidget!
+      ));
+    }
+
     Widget map = FlutterMap(
         mapController: _mapController,
         options: MapOptions(
@@ -173,16 +225,17 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
             },
           ),
           MarkerLayerOptions(
-              markers: markers
+              markers: items
           )
         ]
     );
 
     // adjust the bound to fit all the markers
     _mapController.onReady.then((value) {
-      if (markers.isNotEmpty) {
+      List<LatLng> points = items.map((item) => item.point).toList();
+      if (points.isNotEmpty) {
         _mapController.fitBounds(
-            LatLngBounds.fromPoints(markers.map((e) => e.point).toList()),
+            LatLngBounds.fromPoints(points),
             options: const FitBoundsOptions(padding: EdgeInsets.all(100)));
       }
     });
@@ -206,12 +259,13 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
     );
   }
 
-  void initMap() {
+  void initMap() async {
     _mapController = MapController();
 
     // TODO: use Provider to inject account in
     _mapAccessToken = Ensemble().getAccount()?.mapAccessToken ?? '';
   }
+
 
 
 
