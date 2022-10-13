@@ -68,6 +68,7 @@ dependencies:
   url_launcher: ^6.1.5
   provider: ^6.0.3
   cloud_firestore: ^3.4.9
+  geolocator: ^9.0.2
 
 
 dev_dependencies:
