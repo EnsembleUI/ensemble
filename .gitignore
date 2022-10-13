@@ -84,3 +84,15 @@ ensemble-config.yaml
 assets/fonts
 assets/ignored
 .gradle
+.android
+.ios/.symlinks
+Podfile.lock
+.ios/Pods
+.ios/Runner
+.ios/Runner.xcworkspace
+.ios/Flutter
+.ios/Runner.xcodeproj
+ensemble/pages
+ensemble/fonts
+generated_plugin_registrant.dart
+pubspec.lock
