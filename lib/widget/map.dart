@@ -33,7 +33,7 @@ class EnsembleMap extends StatefulWidget with Invokable, HasController<MyControl
   Map<String, Function> setters() {
     return {
       'currentLocation': _controller.updateCurrentLocationStatus,
-      'markers': (data) => _controller.markers = data,
+      'markers': _controller.updateMarkerTemplate,
       'markerWidth': (width) => _controller.markerWidth = width,
       'markerHeight': (height) => _controller.markerHeight = height,
     };
@@ -52,13 +52,24 @@ class EnsembleMap extends StatefulWidget with Invokable, HasController<MyControl
 }
 
 class MyController extends WidgetController {
+  final MapController _mapController = MapController();
+
+  // unfortunately these are needed for flutter_map
   int? markerWidth;
   int? markerHeight;
 
+  MarkerTemplate? _markerTemplate;
+  List<Marker> _markers = [];
+  set markers(List<Marker> items) {
+    _markers = items;
+    resetMapBounds();
+  }
 
-  // set the marker template
-  MarkerTemplate? markerTemplate;
-  set markers(dynamic markerData) {
+  Position? currentLocation;    // user's location if enabled & given permission
+  dynamic customLocationWidget;
+
+
+  void updateMarkerTemplate(dynamic markerData) {
     if (markerData is YamlMap) {
       String? data = markerData['data'];
       String? name = markerData['name'];
@@ -67,7 +78,7 @@ class MyController extends WidgetController {
       String? lng = markerData['location']?['lng'];
       YamlMap? selectedMarker = markerData['selectedMarker'];
       if (data != null && name != null && template != null && lat != null && lng != null) {
-        markerTemplate = MarkerTemplate(
+        _markerTemplate = MarkerTemplate(
           data: data,
           name: name,
           template: template,
@@ -77,9 +88,7 @@ class MyController extends WidgetController {
       }
     }
   }
-  
-  dynamic customLocationWidget;
-  Position? currentLocation;
+
   void updateCurrentLocationStatus(dynamic locationData) {
     if (locationData is YamlMap) {
       if (locationData['enabled'] == true) {
@@ -90,10 +99,13 @@ class MyController extends WidgetController {
       }
     }
   }
+
   void requestUserLocation() async {
     currentLocation = await getLocation();
+    resetMapBounds();
     notifyListeners();
   }
+
   Future<Position?> getLocation() async {
     if (await Geolocator.isLocationServiceEnabled()) {
       LocationPermission permission = await Geolocator.checkPermission();
@@ -111,6 +123,25 @@ class MyController extends WidgetController {
     return Future.value(null);
   }
 
+
+
+  /// zoom the map to fit our markers and current location
+  void resetMapBounds() {
+    _mapController.onReady.then((value) {
+      List<LatLng> points = [];
+      if (currentLocation != null) {
+        points.add(LatLng(currentLocation!.latitude, currentLocation!.longitude));
+      }
+      points.addAll(_markers.map((item) => item.point).toList());
+
+      if (points.isNotEmpty) {
+        _mapController.fitBounds(
+            LatLngBounds.fromPoints(points),
+            options: const FitBoundsOptions(padding: EdgeInsets.all(100)));
+      }
+    });
+  }
+
 }
 
 class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
@@ -119,15 +150,15 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
   static const double defaultMarkerWidth = 60;
   static const double defaultMarkerHeight = 30;
 
-  late final MapController _mapController;
+
   late final String _mapAccessToken;
-  List<Marker> markers = [];
   Widget? overlayWidget;
 
   @override
   void initState() {
     super.initState();
-    initMap();
+    // TODO: use Provider to inject account in
+    _mapAccessToken = Ensemble().getAccount()?.mapAccessToken ?? '';
   }
 
   @override
@@ -135,14 +166,14 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
     super.didChangeDependencies();
 
     // listen for changes
-    if (widget._controller.markerTemplate != null) {
+    if (widget._controller._markerTemplate != null) {
       registerItemTemplate(
           context,
-          widget._controller.markerTemplate!,
+          widget._controller._markerTemplate!,
           evaluateInitialValue: true,
           onDataChanged: (List dataList) {
             setState(() {
-              markers = buildMarkersFromTemplate(dataList);
+              widget._controller.markers = buildMarkersFromTemplate(dataList);
             });
           }
       );
@@ -150,20 +181,20 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
   }
   /// build the markers from our item-template data
   List<Marker> buildMarkersFromTemplate(List dataList) {
-    List<DataScopeWidget>? markerWidgets = buildWidgetsFromTemplate(context, dataList, widget._controller.markerTemplate!);
+    List<DataScopeWidget>? markerWidgets = buildWidgetsFromTemplate(context, dataList, widget._controller._markerTemplate!);
 
     List<Marker> markers = [];
-    if (markerWidgets != null && widget._controller.markerTemplate != null) {
+    if (markerWidgets != null && widget._controller._markerTemplate != null) {
       for (DataScopeWidget markerWidget in markerWidgets) {
         ScopeManager scopeManager = markerWidget.scopeManager;
 
         // evaluate the lat/lng
-        double? lat = Utils.optionalDouble(scopeManager.dataContext.eval(widget._controller.markerTemplate!.lat));
-        double? lng = Utils.optionalDouble(scopeManager.dataContext.eval(widget._controller.markerTemplate!.lng));
+        double? lat = Utils.optionalDouble(scopeManager.dataContext.eval(widget._controller._markerTemplate!.lat));
+        double? lng = Utils.optionalDouble(scopeManager.dataContext.eval(widget._controller._markerTemplate!.lng));
         if (lat != null && lng != null) {
           Widget w;
           // if selectedMarker template is specified, wrap our marker widget to listen for tap events
-          if (widget._controller.markerTemplate!.selectedMarker != null) {
+          if (widget._controller._markerTemplate!.selectedMarker != null) {
             w = InkWell(
               child: markerWidget,
               onTap: () => selectMarker(markerWidget),
@@ -185,34 +216,36 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
     return markers;
   }
 
+
+
   void selectMarker(DataScopeWidget markerWidget) {
-    if (widget._controller.markerTemplate!.selectedMarker != null) {
+    if (widget._controller._markerTemplate!.selectedMarker != null) {
       setState(() {
-        overlayWidget = markerWidget.scopeManager.buildWidgetFromDefinition(widget._controller.markerTemplate!.selectedMarker);
+        overlayWidget = markerWidget.scopeManager.buildWidgetFromDefinition(widget._controller._markerTemplate!.selectedMarker);
       });
     }
   }
 
   @override
   Widget buildWidget(BuildContext context) {
-    List<Marker> items = markers;
+    List<Marker> items = widget._controller._markers;
 
     // render the current location widget
     if (widget._controller.currentLocation != null) {
-      Widget? currentLocationWidget;
+      Widget? locationWidget;
       if (widget._controller.customLocationWidget != null) {
-        currentLocationWidget = DataScopeWidget.getScope(context)?.buildWidgetFromDefinition(widget._controller.customLocationWidget);
+        locationWidget = DataScopeWidget.getScope(context)?.buildWidgetFromDefinition(widget._controller.customLocationWidget);
       }
-      currentLocationWidget ??= const Icon(Icons.filter_tilt_shift);
+      locationWidget ??= const Icon(Icons.filter_tilt_shift);
 
       items.add(Marker(
         point: LatLng(widget._controller.currentLocation!.latitude, widget._controller.currentLocation!.longitude),
-        builder: (context) => currentLocationWidget!
+        builder: (context) => locationWidget!
       ));
     }
 
     Widget map = FlutterMap(
-        mapController: _mapController,
+        mapController: widget._controller._mapController,
         options: MapOptions(
             maxZoom: mapboxMaxZoom,
             interactiveFlags: InteractiveFlag.all - InteractiveFlag.rotate
@@ -230,15 +263,7 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
         ]
     );
 
-    // adjust the bound to fit all the markers
-    _mapController.onReady.then((value) {
-      List<LatLng> points = items.map((item) => item.point).toList();
-      if (points.isNotEmpty) {
-        _mapController.fitBounds(
-            LatLngBounds.fromPoints(points),
-            options: const FitBoundsOptions(padding: EdgeInsets.all(100)));
-      }
-    });
+
 
     return Stack(
       children: [
@@ -257,13 +282,6 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
         )
       ],
     );
-  }
-
-  void initMap() async {
-    _mapController = MapController();
-
-    // TODO: use Provider to inject account in
-    _mapAccessToken = Ensemble().getAccount()?.mapAccessToken ?? '';
   }
 
 
