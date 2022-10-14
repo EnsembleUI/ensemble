@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:ensemble/device.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/widget/error_screen.dart';
@@ -103,7 +104,7 @@ class EnsembleAppState extends State<EnsembleApp> {
       builder: (context, widget) {
         _setCustomErrorWidget();
 
-        Ensemble().initDeviceInfo(context);
+        Device().initDeviceInfo();
 
         return FlutterI18n.rootAppBuilder().call(context, widget);
       },
