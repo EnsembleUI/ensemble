@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
 
+import 'package:ensemble/device.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/view.dart';
@@ -51,7 +52,7 @@ class EnsembleMap extends StatefulWidget with Invokable, HasController<MyControl
 
 }
 
-class MyController extends WidgetController {
+class MyController extends WidgetController with LocationCapability {
   final MapController _mapController = MapController();
 
   // unfortunately these are needed for flutter_map
@@ -103,27 +104,12 @@ class MyController extends WidgetController {
   }
 
   void requestUserLocation() async {
-    currentLocation = await getLocation();
+    currentLocation = await getLocationAsync();
     resetMapBounds();
     notifyListeners();
   }
 
-  Future<Position?> getLocation() async {
-    if (await Geolocator.isLocationServiceEnabled()) {
-      LocationPermission permission = await Geolocator.checkPermission();
-      // ask for permission if not already
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
 
-      log("Location permission $permission");
-
-      if (![LocationPermission.denied, LocationPermission.deniedForever].contains(permission)) {
-        return await Geolocator.getCurrentPosition();
-      }
-    }
-    return Future.value(null);
-  }
 
 
 
@@ -307,7 +293,7 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
             margin: const EdgeInsets.only(bottom: 20, left: 10, right: 10),
             alignment: Alignment.bottomCenter,
             child: ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: Ensemble().deviceInfo.size.height / 2),
+                constraints: BoxConstraints(maxHeight: Device().screenHeight / 2),
                 child: SingleChildScrollView(
                   child: overlayWidget,
                 )

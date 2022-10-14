@@ -1,5 +1,6 @@
 
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:ensemble/device.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/layout/layout_helper.dart';
@@ -157,7 +158,7 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
     }
     // auto layout is the default
     int cutoff = widget._controller.autoLayoutBreakpoint ?? 768;
-    return Ensemble().deviceInfo.size.width < cutoff ? true : false;
+    return Device().screenWidth < cutoff ? true : false;
   }
 
   List<Widget> buildItems() {
