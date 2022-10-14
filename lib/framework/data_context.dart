@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'package:ensemble/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/extensions.dart';
@@ -35,7 +36,7 @@ class DataContext {
     _contextMap['ensemble'] = NativeInvokable(buildContext);
     // device is a common name. If user already uses that, don't override it
     if (_contextMap['device'] == null) {
-      _contextMap['device'] = DeviceInfoInvokable();
+      _contextMap['device'] = Device();
     }
   }
 
@@ -286,67 +287,6 @@ class DataContext {
   }
 
 
-}
-
-class DeviceInfoInvokable with Invokable {
-  @override
-  Map<String, Function> getters() {
-    DeviceInfo deviceInfo = Ensemble().deviceInfo;
-    return {
-      "width": () => deviceInfo.size.width,
-      "height": () => deviceInfo.size.height,
-      "safeAreaTop": () => deviceInfo.safeAreaSize.top,
-      "safeAreaBottom": () => deviceInfo.safeAreaSize.bottom,
-      "platform": () => deviceInfo.platform.name,
-      DevicePlatform.web.name: () => DeviceWebInfo()
-    };
-  }
-
-  @override
-  Map<String, Function> methods() {
-    return {};
-  }
-
-  @override
-  Map<String, Function> setters() {
-    return {};
-  }
-
-
-}
-
-class DeviceWebInfo with Invokable {
-  @override
-  Map<String, Function> getters() {
-    WebBrowserInfo? browserInfo = Ensemble().deviceInfo.browserInfo;
-    return {
-      'browserName': () => browserInfo?.browserName == null ? null : describeEnum(browserInfo!.browserName),
-      'appCodeName': () => browserInfo?.appCodeName,
-      'appName': () => browserInfo?.appName,
-      'appVersion': () => browserInfo?.appVersion,
-      'deviceMemory': () => browserInfo?.deviceMemory,
-      'language': () => browserInfo?.language,
-      'languages': () => browserInfo?.languages,
-      'platform': () => browserInfo?.platform,
-      'product': () => browserInfo?.product,
-      'productSub': () => browserInfo?.productSub,
-      'userAgent': () => browserInfo?.userAgent,
-      'vendor': () => browserInfo?.vendor,
-      'vendorSub': () => browserInfo?.vendorSub,
-      'hardwareConcurrency': () => browserInfo?.hardwareConcurrency,
-      'maxTouchPoints': () => browserInfo?.maxTouchPoints,
-    };
-  }
-
-  @override
-  Map<String, Function> methods() {
-    return {};
-  }
-
-  @override
-  Map<String, Function> setters() {
-    return {};
-  }
 }
 
 /// built-in helpers/utils accessible to all DataContext

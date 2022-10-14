@@ -294,20 +294,3 @@ class ScreenPayload {
 
   PageType? pageType;
 }
-
-class DeviceInfo {
-  DeviceInfo(this.platform, { required this.size, required this.safeAreaSize, this.browserInfo});
-
-  DevicePlatform platform;
-  Size size;
-  SafeAreaSize safeAreaSize;
-  WebBrowserInfo? browserInfo;
-}
-class SafeAreaSize {
-  SafeAreaSize(this.top, this.bottom);
-  int top;
-  int bottom;
-}
-enum DevicePlatform {
-  web, android, ios, macos, windows, other
-}
