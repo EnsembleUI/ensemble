@@ -190,45 +190,6 @@ class Ensemble {
 
 
 
-  // TODO: redo deviceInfo
-  static final DeviceInfoPlugin _deviceInfoPlugin = DeviceInfoPlugin();
-  late DeviceInfo deviceInfo;
-  /// initialize device info
-  void initDeviceInfo(BuildContext context) async {
-    DevicePlatform? platform;
-    WebBrowserInfo? browserInfo;
-    try {
-      if (kIsWeb) {
-        platform = DevicePlatform.web;
-        browserInfo = await _deviceInfoPlugin.webBrowserInfo;
-      } else {
-        if (Platform.isAndroid) {
-          platform = DevicePlatform.android;
-
-        } else if (Platform.isIOS) {
-          platform = DevicePlatform.ios;
-
-        } else if (Platform.isMacOS) {
-          platform = DevicePlatform.macos;
-
-        } else if (Platform.isWindows) {
-          platform = DevicePlatform.windows;
-        }
-      }
-    } on PlatformException {
-      log("Error getting device info");
-    }
-
-    MediaQueryData mediaQueryData = MediaQuery.of(context);
-    deviceInfo = DeviceInfo(
-        platform ?? DevicePlatform.other,
-        size: mediaQueryData.size,
-        safeAreaSize: SafeAreaSize(mediaQueryData.padding.top.toInt(), mediaQueryData.padding.bottom.toInt()),
-        browserInfo: browserInfo);
-  }
-
-
-
   /// concat into the format root/folder/
   @visibleForTesting
   String concatDirectory(String root, String folder) {
