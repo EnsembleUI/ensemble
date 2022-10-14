@@ -1,5 +1,6 @@
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/webview/webviewstate.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -29,18 +30,23 @@ class EnsembleWebView extends StatefulWidget with Invokable, HasController<Ensem
   @override
   Map<String, Function> setters() {
     return {
-      'uri': (value) => _controller.uri = Utils.getUrl(value)
+      'uri': (value) => _controller.uri = Utils.getUrl(value),
+      'height': (value) => _controller.height = Utils.getDouble(value, fallback: controller.height),
     };
   }
 }
-
+abstract class ViewController {
+  void loadUrl(String url);
+}
 class EnsembleWebViewController extends WidgetController {
   // params for each URI set
   int? loadingPercent = 0;
   String? error;
-  WebViewController? webViewController;
+
+  ViewController? webViewController;
 
   String? _uri;
+  String? get uri => _uri;
   set uri(String? url) {
     _uri = url;
 
@@ -49,65 +55,5 @@ class EnsembleWebViewController extends WidgetController {
       webViewController?.loadUrl(url);
     }
   }
-}
-
-class WebViewState extends WidgetState<EnsembleWebView> {
-  double? height = 0;
-
-  @override
-  Widget buildWidget(BuildContext context) {
-
-    // WebView's height will be the same as the HTML height
-    Widget webView = SizedBox(
-      height: height,
-      child: WebView(
-        initialUrl: widget._controller._uri,
-        javascriptMode: JavascriptMode.unrestricted,
-        onWebViewCreated: (controller) => widget._controller.webViewController = controller,
-        onWebResourceError: (WebResourceError err) {
-          setState(() {
-            widget._controller.error = "Error loading html content";
-          });
-        },
-        onProgress: (value) {
-          setState(() {
-            widget._controller.loadingPercent = value;
-          });
-        },
-        onPageFinished: (param) async {
-          height = double.parse(
-              await widget._controller.webViewController!.runJavascriptReturningResult(
-                  "document.documentElement.scrollHeight;"));
-          setState(() {
-            widget._controller.loadingPercent = 100;
-          });
-
-      })
-    );
-
-    return Stack(
-      alignment: Alignment.topLeft,
-      children: [
-        webView,
-        // loading indicator
-        Visibility(
-          visible: widget._controller.loadingPercent! > 0 && widget._controller.loadingPercent! < 100 && widget._controller.error == null,
-          child: LinearProgressIndicator(
-            minHeight: 3,
-            value: widget._controller.loadingPercent! / 100.0
-          )
-        ),
-        // error panel
-        Visibility(
-          visible: widget._controller.error != null,
-          child: Center(
-            child: Text(widget._controller.error ?? '')
-          ),
-        ),
-
-      ],
-    );
-
-  }
-
+  double height = 500;
 }
