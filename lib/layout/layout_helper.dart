@@ -15,7 +15,7 @@ class BoxController extends WidgetController {
   LinearGradient? backgroundGradient;
 
   Color? borderColor;
-  int? borderRadius;
+  EBorderRadius? borderRadius;
   int? borderWidth;
 
   @override
@@ -30,7 +30,7 @@ class BoxController extends WidgetController {
       'backgroundGradient': (value) => backgroundGradient = Utils.getBackgroundGradient(value),
 
       'borderColor': (value) =>  borderColor = Utils.getColor(value),
-      'borderRadius': (value) =>  borderRadius = Utils.optionalInt(value),
+      'borderRadius': (value) =>  borderRadius = Utils.getBorderRadius(value),
       'borderWidth': (value) =>  borderWidth = Utils.optionalInt(value),
     });
     return setters;

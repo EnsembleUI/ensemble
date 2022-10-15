@@ -4,6 +4,7 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/model.dart';
+import 'package:ensemble/framework/model.dart' as ensemble;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
 import 'package:flutter/material.dart';
@@ -487,6 +488,28 @@ class Utils {
     return null;
   }
 
+  static EBorderRadius? getBorderRadius(dynamic value) {
+    if (value is int) {
+      return EBorderRadius.all(value);
+    } else if (value is String) {
+      List<int> numbers = _stringToIntegers(value, min: 0);
+      if (numbers.length == 1) {
+        return EBorderRadius.all(numbers[0]);
+      } else if (numbers.length == 2) {
+        return EBorderRadius.two(numbers[0], numbers[1]);
+      } else if (numbers.length == 3) {
+        return EBorderRadius.three(numbers[0], numbers[1], numbers[2]);
+      } else if (numbers.length == 4) {
+        return EBorderRadius.only(numbers[0], numbers[1], numbers[2], numbers[3]);
+      } else {
+        throw LanguageError('borderRadius requires 1 to 4 integers');
+      }
+    }
+    return null;
+  }
+
+
+
   static Offset? getOffset(dynamic offset) {
     if (offset is YamlList) {
       List<dynamic> list = offset.toList();
@@ -504,6 +527,20 @@ class Utils {
       value.forEach((key, value) {
         rtn![key] = value;
       });
+    }
+    return rtn;
+  }
+
+  /// parse a string and return a list of integers
+  static List<int> _stringToIntegers(String value, {int? min}) {
+    List<int> rtn = [];
+
+    List<String> values = value.split(' ');
+    for (var val in values) {
+      int? number = int.tryParse(val);
+      if (number != null && (min == null || number >= min)) {
+        rtn.add(number);
+      }
     }
     return rtn;
   }
