@@ -698,6 +698,13 @@
                 "color": {
                   "type": ["number", "string"],
                   "description": "Set the color for the button label starting with '0xFF' for full opacity"
+                },
+                "fontSize": {
+                  "type": "integer",
+                  "minimum": 6
+                },
+                "fontWeight": {
+                  "$ref": "#/$defs/type-fontWeight"
                 }
               }
             }
