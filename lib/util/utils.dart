@@ -552,6 +552,13 @@ class Utils {
     }
     return rtn;
   }
+
+  // temporary workaround for internal translation so we dont have to duplicate the translation files in all repos
+  static String translateWithFallback(BuildContext context, String key, String fallback) {
+    String output = FlutterI18n.translate(context, key);
+    return output != key ? output : fallback;
+  }
+
   /// is it $(....)
   static bool isExpression(String expression) {
     return onlyExpression.hasMatch(expression);

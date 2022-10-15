@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:email_validator/email_validator.dart';
 import 'package:ensemble/framework/model.dart' as model;
+import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:form_validator/form_validator.dart';
 
 /// TextInput
@@ -219,7 +220,9 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
       key: validatorKey,
       validator: (value) {
         if (value == null || value.isEmpty) {
-          return widget._controller.required ? "This field is required" : null;
+          return widget._controller.required ?
+            Utils.translateWithFallback(context, 'ensemble.input.required', 'This field is required') :
+            null;
         }
         // only applicable for TextInput
         if (!widget.isPassword() && value != null) {

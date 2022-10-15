@@ -73,7 +73,7 @@ class DateState extends FormFieldWidgetState<Date> {
       key: validatorKey,
       validator: (value) {
         if (widget._controller.required && widget._controller.value == null) {
-          return "This field is required";
+          return Utils.translateWithFallback(context, 'ensemble.input.required', 'This field is required');
         }
         return null;
       },

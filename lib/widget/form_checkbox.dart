@@ -119,8 +119,7 @@ class OnOffState extends FormFieldWidgetState<OnOffWidget> {
       key: validatorKey,
       validator: (value) {
         if (widget._controller.required && !widget._controller.value) {
-          //return AppLocalizations.of(context)!.widget_form_required;
-          return "This field is required";
+          return Utils.translateWithFallback(context, 'ensemble.input.required', 'This field is required');
         }
         return null;
       },
