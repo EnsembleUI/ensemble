@@ -5,6 +5,7 @@ import 'package:ensemble/layout/flow.dart';
 import 'package:ensemble/layout/form.dart';
 import 'package:ensemble/layout/stack.dart';
 import 'package:ensemble/layout/tab_bar.dart';
+import 'package:ensemble/widget/fintech/finicityconnect.dart';
 import 'package:ensemble/widget/weeklyscheduler.dart';
 import 'package:ensemble/widget/Text.dart' as ensemble;
 import 'package:ensemble/widget/button.dart';
@@ -89,7 +90,10 @@ class WidgetRegistry {
     Highcharts.type: () => Highcharts(),
     EnsembleLineChart.type: () => EnsembleLineChart(),
     EnsembleBarChart.type: () => EnsembleBarChart(),
-    ChartJs.type: () => ChartJs()
+    ChartJs.type: () => ChartJs(),
+
+    //domain specific or custom widgets
+    FinicityConnect.type: () => FinicityConnect()
   };
 
 }
