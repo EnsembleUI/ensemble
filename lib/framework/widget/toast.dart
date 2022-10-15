@@ -1,5 +1,6 @@
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/ensemble_icon.dart';
 import 'package:flutter/cupertino.dart';
@@ -70,7 +71,7 @@ class ToastController {
         toastAction.styles?['padding'],
         fallback: const EdgeInsets.symmetric(vertical: 5, horizontal: 10));
     Color? bgColor = Utils.getColor(toastAction.styles?['backgroundColor']);
-    int? borderRadius = Utils.optionalInt(toastAction.styles?['borderRadius'], min: 0);
+    EBorderRadius? borderRadius = Utils.getBorderRadius(toastAction.styles?['borderRadius']);
     Color? shadowColor = Utils.getColor(toastAction.styles?['shadowColor']);
     double? shadowRadius = Utils.optionalDouble(toastAction.styles?['shadowRadius'], min: 0);
     Offset? shadowOffset = Utils.getOffset(toastAction.styles?['shadowOffset']);
@@ -117,7 +118,7 @@ class ToastController {
       padding: padding,
       decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.all(Radius.circular(borderRadius?.toDouble() ?? 5)),
+          borderRadius: borderRadius?.getValue() ?? const BorderRadius.all(Radius.circular(5)),
           boxShadow: <BoxShadow>[
             BoxShadow(
               blurStyle: BlurStyle.outer,

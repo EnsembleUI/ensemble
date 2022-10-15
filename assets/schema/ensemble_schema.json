@@ -1238,10 +1238,6 @@
                         "$ref": "#/$defs/typeColors",
                         "description": "Toast's background color"
                       },
-                      "borderRadius": {
-                        "type": "integer",
-                        "minimum": 0
-                      },
                       "shadowColor": {
                         "type": ["number", "string"],
                         "description": "box shadow color starting with '0xFF' for full opacity"
@@ -1260,6 +1256,9 @@
                   },
                   {
                     "$ref": "#/$defs/stylePadding"
+                  },
+                  {
+                    "$ref": "#/$defs/borderRadius"
                   }
                 ]
               }
@@ -1746,6 +1745,14 @@
         }
       }
     },
+    "borderRadius": {
+      "type": "object",
+      "properties": {
+        "type": ["integer", "string"],
+        "minimum": 0,
+        "description": "Border Radius with CSS-like notation (1 to 4 integers)"
+      }
+    },
 
     "typeColors": {
       "oneOf": [
@@ -1770,22 +1777,26 @@
     },
 
     "borderStyles": {
-      "type": "object",
-      "properties": {
-        "borderRadius": {
-          "type": "integer"
+      "allOf": [
+        {
+          "$ref": "#/$defs/borderRadius"
         },
-        "borderColor": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Border color starting with '0xFF' for full opacity"
-        },
-        "borderWidth": {
-          "type": "integer"
+        {
+          "type": "object",
+          "properties": {
+            "borderColor": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Border color starting with '0xFF' for full opacity"
+            },
+            "borderWidth": {
+              "type": "integer"
+            }
+          }
         }
-      }
+      ]
     },
     "boxStyles": {
       "allOf": [

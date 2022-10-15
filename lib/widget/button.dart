@@ -117,7 +117,7 @@ class ButtonState extends WidgetState<Button> {
       border = RoundedRectangleBorder(
         borderRadius: widget._controller.borderRadius == null ?
             defaultShape.borderRadius :
-            BorderRadius.circular(widget._controller.borderRadius!.toDouble()),
+            widget._controller.borderRadius!.getValue(),
         side: borderSide);
     }
         

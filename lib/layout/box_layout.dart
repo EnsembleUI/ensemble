@@ -248,7 +248,7 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
         border: !widget._controller.hasBorder() ? null : Border.all(
             color: widget._controller.borderColor ?? flutter.Colors.black26,
             width: (widget._controller.borderWidth ?? 1).toDouble()),
-        borderRadius: widget._controller.borderRadius != null ? BorderRadius.all(Radius.circular(widget._controller.borderRadius!.toDouble())) : null,
+        borderRadius: widget._controller.borderRadius != null ? widget._controller.borderRadius!.getValue() : null,
         boxShadow: widget._controller.shadowColor == null ? null : <BoxShadow>[
           BoxShadow(
             color: Color(widget._controller.shadowColor!),

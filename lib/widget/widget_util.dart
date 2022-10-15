@@ -12,7 +12,7 @@ class WidgetUtils {
   static Widget wrapInBox(Widget widget, BoxController boxController) {
     BorderRadius? borderRadius = boxController.borderRadius == null ?
       null :
-      BorderRadius.all(Radius.circular(boxController.borderRadius!.toDouble()));
+      boxController.borderRadius!.getValue();
 
     return Container(
         margin: boxController.margin,
