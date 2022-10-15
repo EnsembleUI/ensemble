@@ -9,8 +9,8 @@ import 'package:js_widget/js_widget.dart';
 import 'dart:convert';
 
 class FinicityConnectController extends WidgetController {
-  int width = 325;
-  int height = 755;
+  int width = 10;
+  int height = 10;
   String id = 'finicityConnect';
   String uri = '';
 }
