@@ -86,7 +86,11 @@ class TabBarState extends WidgetState<EnsembleTabBar> with SingleTickerProviderS
 
   @override
   void initState() {
-    _tabController = TabController(length: widget._controller._items.length, vsync: this);
+    _tabController = TabController(
+        initialIndex: widget._controller.selectedIndex,
+        length: widget._controller._items.length,
+        vsync: this
+    );
     super.initState();
   }
 
