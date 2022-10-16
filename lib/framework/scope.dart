@@ -145,9 +145,23 @@ abstract class IsScopeManager {
 mixin ViewBuilder on IsScopeManager {
 
   /// build a widget from the item YAML
+  /// Note that here we build the widget using the proper scope, BUT its
+  /// parent scope is not defined. This means that onAction might not
+  /// have the right data context. Use @buildWidgetWithScopeFromDefinition if
+  /// you want to wrap it around the right scope
   Widget buildWidgetFromDefinition(dynamic item) {
     return buildWidget(ViewUtil.buildModel(item, customViewDefinitions));
   }
+
+  /// build a widget from the item YAML, and wrap it inside a DataScopeWidget
+  /// This enables the widget to travel up and get its data context
+  DataScopeWidget buildWidgetWithScopeFromDefinition(dynamic item) {
+    Widget widget = buildWidget(ViewUtil.buildModel(item, customViewDefinitions));
+    return DataScopeWidget(scopeManager: createChildScope(), child: widget);
+  }
+
+
+
 
   /// build a widget from a given model
   Widget buildWidget(WidgetModel model) {

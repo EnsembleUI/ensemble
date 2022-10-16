@@ -223,9 +223,13 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
   void selectMarker(int selectedIndex, LatLng point, DataScopeWidget markerScope) {
     bool markerChanges = false;
 
+    // Note that selectedWidget and overlayWidget's parent is the map, so we need
+    // to wrap them in their proper item template DataScopeWidget. This enables
+    // the onAction to properly traverse up to the parent DataScopeWidget.
+
     // selected widget
     if (widget._controller._markerTemplate!.selectedWidget != null) {
-      Widget childWidget = markerScope.scopeManager.buildWidgetFromDefinition(widget._controller._markerTemplate!.selectedWidget);
+      Widget childWidget = markerScope.scopeManager.buildWidgetWithScopeFromDefinition(widget._controller._markerTemplate!.selectedWidget);
       selectedWidget = buildMarker(childWidget, point);
       selectedWidgetIndex = selectedIndex;
       markerChanges = true;
@@ -233,7 +237,7 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
 
     // overlay widget
     if (widget._controller._markerTemplate!.selectedWidgetOverlay != null) {
-      overlayWidget = markerScope.scopeManager.buildWidgetFromDefinition(widget._controller._markerTemplate!.selectedWidgetOverlay);
+      overlayWidget = markerScope.scopeManager.buildWidgetWithScopeFromDefinition(widget._controller._markerTemplate!.selectedWidgetOverlay);
       markerChanges = true;
     }
 
