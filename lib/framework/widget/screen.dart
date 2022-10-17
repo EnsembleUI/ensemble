@@ -76,7 +76,7 @@ class _ScreenState extends State<Screen> {
 
     // overwrite the pageType if specified in the payload
     if (widget.screenPayload?.pageType != null) {
-      pageModel.pageType = widget.screenPayload!.pageType!;
+      pageModel.screenOptions = ScreenOptions(pageType: widget.screenPayload!.pageType!);
     }
 
     // add all the API names to our context as Invokable, even though their result

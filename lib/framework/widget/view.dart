@@ -103,7 +103,7 @@ class ViewState extends State<View>{
     bool showAppBar = false;
 
     // modal page has certain criteria (no navBar, no header)
-    if (widget._pageModel.pageType != PageType.modal) {
+    if (widget._pageModel.screenOptions?.pageType != PageType.modal) {
       // navigation
       if (widget._pageModel.menu != null &&
           widget._pageModel.menu!.menuItems.length >= 2) {
@@ -140,7 +140,7 @@ class ViewState extends State<View>{
 
     // add close button for modal page
     Widget? closeModalButton;
-    if (widget._pageModel.pageType == PageType.modal) {
+    if (widget._pageModel.screenOptions?.pageType == PageType.modal) {
       closeModalButton = FloatingActionButton(
         elevation: 3,
         backgroundColor: Colors.white,
@@ -166,7 +166,10 @@ class ViewState extends State<View>{
         drawer: drawer,
         bottomSheet: _buildFooter(_scopeManager, widget._pageModel),
         floatingActionButton: closeModalButton,
-        floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
+        floatingActionButtonLocation:
+          widget._pageModel.screenOptions?.closeButtonPosition == 'start' ?
+            FloatingActionButtonLocation.startTop :
+            FloatingActionButtonLocation.endTop
       ),
     );
 
