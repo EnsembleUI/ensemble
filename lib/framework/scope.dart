@@ -355,7 +355,7 @@ mixin PageBindingManager on IsScopeManager {
 
     // we re-evaluate the entire raw binding upon any changes to any variables
     for (var expression in dataExpression.expressions) {
-      listen(scopeManager, expression, me: bindingDestination.widget, onDataChange: (ModelChangeEvent event) {
+      listen(scopeManager, expression, destination: bindingDestination, onDataChange: (ModelChangeEvent event) {
 
         DataContext dataContext = scopeManager.dataContext;
         if (dataContext.getContextById(event.modelId) is InvokablePrimitive) {
@@ -399,7 +399,7 @@ mixin PageBindingManager on IsScopeManager {
   bool listen(
       ScopeManager scopeManager,
       String bindingExpression, {
-        required Invokable me,
+        required BindingDestination destination,
         required Function onDataChange
       }) {
     DataContext dataContext = scopeManager.dataContext;
@@ -412,23 +412,29 @@ mixin PageBindingManager on IsScopeManager {
       // for API we simply say notify me when API result changes, so the property
       // after the API name won't matter here
       if (bindingSource.model is APIResponse) {
-        hash = getHash(sourceId: bindingSource.modelId);
+        hash = getHash(destinationSetter: destination.setterProperty, sourceId: bindingSource.modelId);
       }
       // For now support Widget's getters() only e.g $(myText.value)
       else if (bindingSource.model is HasController && bindingSource.property != null && !bindingSource.property!.contains('.')) {
         // clean up existing listeners
-        hash = getHash(sourceId: bindingSource.modelId, sourceProperty: bindingSource.property);
+        hash = getHash(
+            destinationSetter: destination.setterProperty,
+            sourceId: bindingSource.modelId,
+            sourceProperty: bindingSource.property);
       }
       // InvokablePrimitive but need to be localized to a ScopeManager (custom view's inputs)
       else {
-        hash = getHash(sourceId: bindingSource.modelId, scopeManager: scopeManager);
+        hash = getHash(
+            destinationSetter: destination.setterProperty,
+            sourceId: bindingSource.modelId,
+            scopeManager: scopeManager);
       }
 
       if (hash != null) {
         // clean up existing listener with the same signature
-        if (listenerMap[me]?[hash] != null) {
+        if (listenerMap[destination.widget]?[hash] != null) {
           //log("Binding(remove duplicate): ${me.id}-${bindingSource.modelId}-${bindingSource.property}");
-          listenerMap[me]![hash]!.cancel();
+          listenerMap[destination.widget]![hash]!.cancel();
         }
         StreamSubscription subscription = eventBus.on<ModelChangeEvent>()
             .listen((event) {
@@ -441,11 +447,11 @@ mixin PageBindingManager on IsScopeManager {
         });
 
         // save to the listener map so we can remove later
-        if (listenerMap[me] == null) {
-          listenerMap[me] = {};
+        if (listenerMap[destination.widget] == null) {
+          listenerMap[destination.widget] = {};
         }
         //log("Binding: Adding ${me.id}-${bindingSource.modelId}-${bindingSource.property}");
-        listenerMap[me]![hash] = subscription;
+        listenerMap[destination.widget]![hash] = subscription;
         //log("All Bindings:${listenerMap.toString()} ");
 
         return true;

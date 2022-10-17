@@ -20,7 +20,7 @@ mixin TemplatedWidgetState<W extends StatefulWidget> on State<W> {
       scopeManager.listen(
         scopeManager,
         dataExpression.rawExpression,
-        me: (widget as Invokable),
+        destination: BindingDestination(widget as Invokable, 'item-template'),
         onDataChange:(ModelChangeEvent event) {
           // evaluate the expression
           dynamic dataList = scopeManager.dataContext.eval(itemTemplate.data);
