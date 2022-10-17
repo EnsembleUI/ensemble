@@ -74,8 +74,8 @@ class _ScreenState extends State<Screen> {
       initialMap: widget.screenPayload?.arguments
     );
 
-    // overwrite the pageType if specified in the payload
-    if (widget.screenPayload?.pageType != null) {
+    // overwrite the pageType as modal only if specified in the payload
+    if (widget.screenPayload?.pageType == PageType.modal) {
       if (pageModel.screenOptions != null) {
         pageModel.screenOptions!.pageType = widget.screenPayload!.pageType!;
       } else {
