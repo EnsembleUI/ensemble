@@ -34,8 +34,8 @@ class PageModel {
   String? title;
   Map<String, dynamic>? pageStyles;
   Menu? menu;
+  ScreenOptions? screenOptions;
   late WidgetModel rootWidgetModel;
-  PageType pageType = PageType.regular;
   Footer? footer;
 
   PageModel._init (YamlMap data) {
@@ -67,10 +67,14 @@ class PageModel {
   processModel(YamlMap docMap) {
     YamlMap viewMap = docMap['View'];
     title = viewMap['title'];
-    pageType =
-      viewMap['type'] == PageType.modal.name ?
-      PageType.modal :
-      PageType.regular;
+
+    if (viewMap['options'] is YamlMap) {
+      PageType pageType =
+        viewMap['options']['type'] == PageType.modal.name ? PageType.modal : PageType.regular;
+      String? closeButtonPosition =
+        viewMap['options']?['closeButtonPosition'] == 'start' ? 'start' : 'end';
+      screenOptions = ScreenOptions(pageType: pageType, closeButtonPosition: closeButtonPosition);
+    }
 
     // build a Map of the Custom Widgets
     customViewDefinitions = buildCustomViewDefinitions(docMap);
@@ -293,4 +297,14 @@ class ScreenPayload {
   Map<String, dynamic>? arguments;
 
   PageType? pageType;
+}
+
+/// rendering options for the screenc
+class ScreenOptions {
+  ScreenOptions({this.pageType, this.closeButtonPosition});
+
+  PageType? pageType = PageType.regular;
+
+  // applicable only for modal pages (start/end)
+  String? closeButtonPosition = 'end';
 }
