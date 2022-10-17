@@ -23,6 +23,21 @@
             "menu": {
               "$ref": "#/$defs/Menu"
             },
+            "options": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "description": "Specify if this is a regular (default) or modal page",
+                  "enum": ["regular", "modal"]
+                },
+                "closeButtonPosition": {
+                  "type": "string",
+                  "description": "For modal page, position the close button at the start or end of the screen. For left-to-right languages like English, start is on the left and end is on the right.",
+                  "enum": ["start", "end"]
+                }
+              }
+            },
             "styles": {
               "allOf": [
                 {
