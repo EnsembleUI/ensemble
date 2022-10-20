@@ -4,6 +4,7 @@ import 'package:ensemble/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/extensions.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:jsparser/jsparser.dart';
 
 import 'package:device_info_plus/device_info_plus.dart';
@@ -361,8 +362,7 @@ class EnsembleStorage with Invokable {
   factory EnsembleStorage() {
     return _instance;
   }
-  // TODO: use async secure storage - extends FlutterSecureStorage
-  final Map<String, dynamic> userStorage = {};
+  final storage = GetStorage();
 
   @override
   Map<String, Function> getters() {
@@ -372,12 +372,9 @@ class EnsembleStorage with Invokable {
   @override
   Map<String, Function> methods() {
     return {
-      'get': (String key) => userStorage[key],
-      'set': (String key, dynamic value) {
-        if (value != null) {
-          userStorage[key] = value;
-        }
-      }
+      'get': (String key) => storage.read(key),
+      'set': (String key, dynamic value) => value == null ? storage.remove(key) : storage.write(key, value),
+      'delete': (key) => storage.remove(key)
     };
   }
 
