@@ -194,7 +194,7 @@ class DataContext {
       FlutterError.reportError(FlutterErrorDetails(
         exception: CodeError(error),
         library: 'Javascript',
-        context: ErrorSummary('Javascript error'),
+        context: ErrorSummary('Javascript error when running code block - $codeBlock'),
       ));
       return null;
     }
