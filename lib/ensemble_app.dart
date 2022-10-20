@@ -10,14 +10,22 @@ import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
+import 'package:get_storage/get_storage.dart';
 
 /// use this as the root widget for Ensemble
 class EnsembleApp extends StatefulWidget {
-  const EnsembleApp({
+  EnsembleApp({
     super.key,
     this.screenPayload,
     this.ensembleConfig
-  });
+  }) {
+    // initialize once
+    GetStorage.init();
+    Device().initDeviceInfo();
+    ErrorWidget.builder = (FlutterErrorDetails errorDetails) {
+      return ErrorScreen(errorDetails);
+    };
+  }
 
   final ScreenPayload? screenPayload;
   final EnsembleConfig? ensembleConfig;
@@ -101,20 +109,8 @@ class EnsembleAppState extends State<EnsembleApp> {
           screenPayload: widget.screenPayload,
         ),
       ),
-      builder: (context, widget) {
-        _setCustomErrorWidget();
-
-        Device().initDeviceInfo();
-
-        return FlutterI18n.rootAppBuilder().call(context, widget);
-      },
+      builder: (context, widget) => FlutterI18n.rootAppBuilder().call(context, widget)
     );
-  }
-
-  void _setCustomErrorWidget() {
-    ErrorWidget.builder = (FlutterErrorDetails errorDetails) {
-      return ErrorScreen(errorDetails);
-    };
   }
 
   /// we are at the root here. Error/Spinner widgets need

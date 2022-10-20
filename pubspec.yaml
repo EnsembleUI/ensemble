@@ -69,6 +69,7 @@ dependencies:
   provider: ^6.0.3
   cloud_firestore: ^3.4.9
   geolocator: ^9.0.2
+  get_storage: ^2.0.3
 
 
 dev_dependencies:
