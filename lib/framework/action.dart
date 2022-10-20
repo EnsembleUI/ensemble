@@ -6,8 +6,8 @@ import 'package:yaml/yaml.dart';
 
 /// payload representing an Action to do (navigateToScreen, InvokeAPI, ..)
 abstract class EnsembleAction {
-  EnsembleAction({this.initiator});
-
+  EnsembleAction({this.initiator,this.inputs});
+  Map<String, dynamic>? inputs;
   // initiator is an Invokable so we can scope to *this* variable
   Invokable? initiator;
 }
@@ -15,14 +15,13 @@ abstract class EnsembleAction {
 class InvokeAPIAction extends EnsembleAction {
   InvokeAPIAction({
     Invokable? initiator,
+    Map<String, dynamic>? inputs,
     required this.apiName,
-    this.inputs,
     this.onResponse,
     this.onError
-  }) : super(initiator: initiator);
+  }) : super(initiator: initiator, inputs: inputs);
 
   final String apiName;
-  final Map<String, dynamic>? inputs;
   EnsembleAction? onResponse;
   EnsembleAction? onError;
 }
@@ -32,8 +31,9 @@ class ShowDialogAction extends EnsembleAction {
     Invokable? initiator,
     required this.content,
     this.options,
-    this.onDialogDismiss
-  }) : super(initiator: initiator);
+    this.onDialogDismiss,
+    Map<String, dynamic>? inputs
+  }) : super(initiator: initiator, inputs: inputs);
 
   final dynamic content;
   final Map<String, dynamic>? options;
@@ -65,12 +65,11 @@ abstract class BaseNavigateScreenAction extends EnsembleAction {
     Invokable? initiator,
     required this.screenName,
     required this.asModal,
-    this.inputs
-  }) : super(initiator: initiator);
+    Map<String, dynamic>? inputs
+  }) : super(initiator: initiator,inputs: inputs);
 
   String screenName;
   bool asModal;
-  Map<String, dynamic>? inputs;
 }
 
 class StartTimerAction extends EnsembleAction {
@@ -98,9 +97,10 @@ class CloseAllDialogsAction extends EnsembleAction {
 class ExecuteCodeAction extends EnsembleAction {
   ExecuteCodeAction({
     Invokable? initiator,
+    Map<String, dynamic>? inputs,
     required this.codeBlock,
     this.onComplete
-  }) : super(initiator: initiator);
+  }) : super(initiator: initiator,inputs: inputs);
 
   String codeBlock;
   EnsembleAction? onComplete;

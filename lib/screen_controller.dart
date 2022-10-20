@@ -258,6 +258,12 @@ class ScreenController {
         scopeManager.removeTimer(action.id);
       }
     } else if (action is ExecuteCodeAction) {
+      action.inputs?.forEach((key, value) {
+        dynamic val = dataContext.eval(value);
+        if (val != null) {
+          dataContext.addDataContextById(key, val);
+        }
+      });
       dataContext.evalCode(action.codeBlock);
 
       if (action.onComplete != null && scopeManager != null) {
