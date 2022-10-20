@@ -206,6 +206,7 @@ class Utils {
           initiator: initiator,
           content: payload['name'],
           options: getMap(payload['options']),
+          inputs: inputs,
           onDialogDismiss: Utils.getAction(payload['onDialogDismiss'])
         );
       } else if (payload['action'] == ActionType.startTimer.name) {
@@ -257,6 +258,7 @@ class Utils {
       } else if (payload['action'] == ActionType.executeCode.name) {
         return ExecuteCodeAction(
             initiator: initiator,
+            inputs: inputs,
             codeBlock: payload['body'],
             onComplete: Utils.getAction(payload['onComplete'], initiator: initiator)
         );
