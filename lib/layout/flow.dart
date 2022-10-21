@@ -74,7 +74,7 @@ class FlowState extends WidgetState<Flow> with TemplatedWidgetState {
         templatedChildren = buildWidgetsFromTemplate(context, widget.itemTemplate!.initialValue!, widget.itemTemplate!);
       }
       // listen for changes
-      registerItemTemplate(context, widget.itemTemplate!, onDataChanged: (List dataList) {
+      registerItemTemplate(context, widget.itemTemplate!,  evaluateInitialValue: true, onDataChanged: (List dataList) {
         setState(() {
           templatedChildren = buildWidgetsFromTemplate(context, dataList, widget.itemTemplate!);
         });
