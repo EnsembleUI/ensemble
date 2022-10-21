@@ -16,7 +16,7 @@ class HttpUtils {
     if (api['headers'] is YamlMap) {
       (api['headers'] as YamlMap).forEach((key, value) {
         if (value != null) {
-          headers[key.toString()] = eContext.eval(value);
+          headers[key.toString()] = eContext.eval(value).toString();
         }
       });
     }
