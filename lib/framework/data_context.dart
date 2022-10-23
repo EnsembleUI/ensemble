@@ -4,6 +4,7 @@ import 'package:ensemble/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/extensions.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:jsparser/jsparser.dart';
 
@@ -13,13 +14,11 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble_ts_interpreter/invokables/invokablemap.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
 import 'package:ensemble_ts_interpreter/parser/newjs_interpreter.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/parser/ast.dart';
-import 'package:ensemble_ts_interpreter/parser/js_interpreter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:yaml/yaml.dart';
@@ -176,17 +175,7 @@ class DataContext {
 
     try {
       _contextMap['getStringValue'] = Utils.optionalString;
-
-      // backward compatible with AST from server
-      if (codeBlock.startsWith('{')) {
-        final json = jsonDecode(codeBlock);
-        List<ASTNode> arr = ASTBuilder().buildArray(json['body']);
-        return Interpreter(_contextMap).evaluate(arr);
-      }
-      // local Javascript
-      else {
-        return JSInterpreter.fromCode(codeBlock, _contextMap).evaluate();
-      }
+      return JSInterpreter.fromCode(codeBlock, _contextMap).evaluate();
     } catch (error) {
       /// not all JS errors are actual errors. API binding resolving to null
       /// may be considered a normal condition as binding may not resolved
@@ -219,17 +208,8 @@ class DataContext {
     if (data is Map) {
       return evalToken(tokens, index+1, data[tokens[index]]);
     } else {
-
-      // if data is a primitive, convert them to primitive Invokables so
-      // we can operate on them further
-      dynamic primitive = InvokablePrimitive.getPrimitive(data);
-      if (primitive != null) {
-        data = primitive;
-      }
-
-      if (data is Invokable) {
         String token = tokens[index];
-        if (data.getGettableProperties().contains(token)) {
+        if (InvokableController.getGettableProperties(data).contains(token)) {
           return evalToken(tokens, index + 1, data.getProperty(token));
         } else {
           // only support methods with 0 or 1 argument for now
@@ -238,7 +218,7 @@ class DataContext {
               .firstMatch(token);
           if (match != null) {
             // first group is the method name, second is the argument
-            Function? method = data.getMethods()[match.group(1)];
+            Function? method = InvokableController.getMethods(data)[match.group(1)];
             if (method != null) {
               // our match will always have 2 groups. Second group is the argument
               // which could be empty since we use ()*
@@ -254,7 +234,6 @@ class DataContext {
           return null;
         }
       }
-    }
 
     return data;
   }

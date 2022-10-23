@@ -11,6 +11,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
 import 'package:event_bus/event_bus.dart';
 import 'package:flutter/material.dart';
@@ -229,10 +230,10 @@ mixin ViewBuilder on IsScopeManager {
         // set props and styles on the widget. At this stage the widget
         // has not been attached, so no worries about ValueNotifier
         for (String key in model.props.keys) {
-          if (widget.getSettableProperties().contains(key)) {
+          if (InvokableController.getSettableProperties(widget).contains(key)) {
             // actions like onTap should evaluate its expressions upon the action only
             if (key.startsWith('on')) {
-              widget.setProperty(key, model.props[key]);
+              InvokableController.setProperty(widget, key, model.props[key]);
             } else {
               setPropertyAndRegisterBinding(
                   scopeManager, widget, key, model.props[key]);
@@ -240,7 +241,7 @@ mixin ViewBuilder on IsScopeManager {
           }
         }
         for (String key in model.styles.keys) {
-          if (widget.getSettableProperties().contains(key)) {
+          if (InvokableController.getSettableProperties(widget).contains(key)) {
             setPropertyAndRegisterBinding(
                 scopeManager, widget, key, model.styles[key]);
           }
@@ -317,7 +318,7 @@ mixin ViewBuilder on IsScopeManager {
         value = scopeManager.dataContext.eval(value);
       }
     }
-    widget.setProperty(key, value);
+    InvokableController.setProperty(widget, key, value);
 
   }
 }
@@ -358,6 +359,7 @@ mixin PageBindingManager on IsScopeManager {
       listen(scopeManager, expression, destination: bindingDestination, onDataChange: (ModelChangeEvent event) {
 
         DataContext dataContext = scopeManager.dataContext;
+        /*
         if (dataContext.getContextById(event.modelId) is InvokablePrimitive) {
           updateInvokablePrimitive(
               dataContext,
@@ -365,28 +367,28 @@ mixin PageBindingManager on IsScopeManager {
               dataContext.getContextById(bindingDestination.setterProperty),
               event.payload);
         }
-
+        */
         // payload only have changes to a variable, but we have to evaluate the entire expression
         // e.g Hello $(firstName.value) $(lastName.value)
         dynamic updatedValue = dataContext.eval(dataExpression.stringifyRawAndAst());
-        bindingDestination.widget.setProperty(bindingDestination.setterProperty, updatedValue);
+        InvokableController.setProperty(bindingDestination.widget, bindingDestination.setterProperty, updatedValue);
       });
     }
   }
 
-  void updateInvokablePrimitive(DataContext dataContext, String key, InvokablePrimitive primitive, dynamic newValue) {
-    if (newValue == null) {
-      dataContext.addInvokableContext(key, InvokableNull());
-    } else {
-      if (primitive is InvokableString) {
-        dataContext.addInvokableContext(key, InvokableString(newValue.toString()));
-      } else if (primitive is InvokableBoolean && newValue is bool) {
-        dataContext.addInvokableContext(key, InvokableBoolean(newValue));
-      } else if (primitive is InvokableNumber && newValue is num) {
-        dataContext.addInvokableContext(key, InvokableNumber(newValue));
-      }
-    }
-  }
+  // void updateInvokablePrimitive(DataContext dataContext, String key, InvokablePrimitive primitive, dynamic newValue) {
+  //   if (newValue == null) {
+  //     dataContext.addInvokableContext(key, InvokableNull());
+  //   } else {
+  //     if (primitive is InvokableString) {
+  //       dataContext.addInvokableContext(key, InvokableString(newValue.toString()));
+  //     } else if (primitive is InvokableBoolean && newValue is bool) {
+  //       dataContext.addInvokableContext(key, InvokableBoolean(newValue));
+  //     } else if (primitive is InvokableNumber && newValue is num) {
+  //       dataContext.addInvokableContext(key, InvokableNumber(newValue));
+  //     }
+  //   }
+  // }
 
 
   /// listen for changes on the bindingExpression and invoke onDataChange() callback.

@@ -3,8 +3,6 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/form_time.dart';
 import 'package:ensemble/widget/widget_util.dart' as widget_utils;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:ensemble_ts_interpreter/invokables/invokablelist.dart';
-import 'package:ensemble_ts_interpreter/invokables/invokablemap.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
 
@@ -354,8 +352,6 @@ class WeeklyScheduler extends StatefulWidget with Invokable,HasController<Weekly
         results.add(item.toString());
       }
       return results;
-    } else if ( value is InvokableList ) {
-      return (value as InvokableList).list as List<String>;
     }
     return value as List<String>;
   }
@@ -406,12 +402,30 @@ class WeeklySchedulerState extends WidgetState<WeeklyScheduler> {
   }
 
 }
-class TimeRange extends InvokableMap {
-  TimeRange(int startTime,int endTime): super({'startTime':startTime,'endTime':endTime});
-  set startTime(s) => map['startTime'] = s;
-  get startTime => map['startTime'];
-  set endTime(s) => map['endTime'] = s;
-  get endTime => map['endTime'];
+class TimeRange extends Object with Invokable {
+  int startTime,endTime;
+  TimeRange(this.startTime,this.endTime);
+
+  @override
+  Map<String, Function> getters() {
+    return {
+      'startTime': () => startTime,
+      'endTime':() => endTime
+    };
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {
+      'startTime': (v) => startTime = v,
+      'endTime': (v) => endTime = v
+    };
+  }
 }
 class Node {
   String startTime;

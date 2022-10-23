@@ -5,9 +5,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/widget/form_helper.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:ensemble_ts_interpreter/invokables/invokablelist.dart';
-import 'package:ensemble_ts_interpreter/invokables/invokablemap.dart';
-import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
 //import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -41,20 +39,11 @@ abstract class SelectOne extends StatefulWidget with Invokable, HasController<Se
     };
   }
   void setItemsFromString(dynamic strValues,[dynamic delimiter=',']) {
-    if ( strValues is InvokableString ) {
-      strValues = strValues.val;
-    }
-    if ( delimiter is InvokableString ) {
-      delimiter = delimiter.val;
-    }
     delimiter ??= ',';
     List<Map<String,String>> values = [];
     setItemsFromArray(strValues.split(delimiter));
   }
   void setItemsFromArray(dynamic arrValues) {
-    if ( arrValues is InvokableList ) {
-      arrValues = arrValues.list;
-    }
     List<Map<String,String>> values = [];
     for ( String str in arrValues ) {
       values.add({'label':str,'value':str});
@@ -102,14 +91,8 @@ abstract class SelectOne extends StatefulWidget with Invokable, HasController<Se
   /// each value can be an YamlMap (value/label pair) or dynamic
   void updateItems(dynamic values) {
     List<SelectOneItem> entries = [];
-    if ( values is InvokableList ) {
-      values = values.list;
-    }
     if (values is List) {
       for (var element in values) {
-        if ( element is InvokableMap ) {
-          element = element.map;
-        }
         // must be of value/label pair. Maybe let user overrides later
         if (element is Map) {
           if (element['value'] != null) {

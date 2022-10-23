@@ -50,12 +50,6 @@ class CustomView extends StatelessWidget with Invokable {
       Object value;
       if (val == null) {
         value = InvokableNull();
-      } else if (val is bool) {
-        value = InvokableBoolean(val);
-      } else if (val is num) {
-        value = InvokableNumber(val);
-      } else if (val is String) {
-        value = InvokableString(val);
       } else {
         value = val;
       }

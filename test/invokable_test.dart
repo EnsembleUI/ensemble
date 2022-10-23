@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/widget/Text.dart' as widget;
 import 'package:ensemble/widget/form_textfield.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -172,13 +173,13 @@ void main() {
   test('now', ()
   {
     UserDateTime userDT = MockUserDateTime("2022-09-06T13:05:00");
-    expect(userDT.getMethods()['getYear']!.call(), 2022);
-    expect(userDT.getMethods()['getMonth']!.call(), 9);
-    expect(userDT.getMethods()['getDay']!.call(), 6);
-    expect(userDT.getMethods()['getDayOfWeek']!.call(), 2);   // Tuesday = 2
-    expect(userDT.getMethods()['getHour']!.call(), 13);
-    expect(userDT.getMethods()['getMinute']!.call(), 5);
-    expect(userDT.getMethods()['getSecond']!.call(), 0);
+    expect(InvokableController.getMethods(userDT)['getYear']!.call(), 2022);
+    expect(InvokableController.getMethods(userDT)['getMonth']!.call(), 9);
+    expect(InvokableController.getMethods(userDT)['getDay']!.call(), 6);
+    expect(InvokableController.getMethods(userDT)['getDayOfWeek']!.call(), 2);   // Tuesday = 2
+    expect(InvokableController.getMethods(userDT)['getHour']!.call(), 13);
+    expect(InvokableController.getMethods(userDT)['getMinute']!.call(), 5);
+    expect(InvokableController.getMethods(userDT)['getSecond']!.call(), 0);
   });
 
 
