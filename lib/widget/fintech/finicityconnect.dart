@@ -16,6 +16,7 @@ class FinicityConnectController extends WidgetController {
   String id = 'finicityConnect';
   String uri = '';
   EnsembleAction? onSuccess, onCancel, onError, onRoute, onLoaded, onUser;
+  String? overlay;
 }
 class FinicityConnect extends StatefulWidget with Invokable, HasController<FinicityConnectController, FinicityConnectState> {
   static const type = 'FinicityConnect';
@@ -54,6 +55,7 @@ class FinicityConnect extends StatefulWidget with Invokable, HasController<Finic
       'onRoute': (funcDefinition) => _controller.onRoute = Utils.getAction(funcDefinition, initiator: this),
       'onUser': (funcDefinition) => _controller.onUser = Utils.getAction(funcDefinition, initiator: this),
       'onLoaded': (funcDefinition) => _controller.onLoaded = Utils.getAction(funcDefinition, initiator: this),
+      'overlay': (value) => _controller.overlay = value,
     };
   }
 }
@@ -85,6 +87,10 @@ class FinicityConnectState extends WidgetState<FinicityConnect> {
     if ( widget.controller.uri == '')  {
       return Text("Still Loading...");
     }
+    String overlay = '';
+    if ( widget.controller.overlay != null ) {
+      overlay = 'overlay: ${widget.controller.overlay!},';
+    }
     return JsWidget(
       id: widget.controller.id,
       createHtmlTag: () => '<div></div>',
@@ -96,8 +102,7 @@ class FinicityConnectState extends WidgetState<FinicityConnect> {
       scriptToInstantiate: (String c) {
 
         return '''window.finicityConnect.launch("$c", {
-        selector: '#connect-container',
-        overlay: 'rgba(255,255,255, 0)',
+        $overlay
         success: (event) => {
           console.log('Yay! User went through Connect', event);
           event = {type:'success',data:event};
