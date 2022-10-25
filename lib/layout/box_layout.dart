@@ -208,6 +208,18 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
 
     Widget boxWidget;
     if (widget is Column) {
+      // wrapping SingleChildScrollView around a Column has performance issue in HTML renderer.
+      // Now if we nested a non-scrollable ListView (render all items) inside the Column inside
+      // the scrollable, then performance is better.
+      if (widget._controller.scrollable) {
+        children = [
+          ListView(
+            physics: const NeverScrollableScrollPhysics(),
+            shrinkWrap: true,
+            children: children,
+          )
+        ];
+      }
       boxWidget = flutter.Column(
           mainAxisAlignment: mainAxis,
           crossAxisAlignment: crossAxis,
