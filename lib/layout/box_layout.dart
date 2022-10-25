@@ -7,6 +7,7 @@ import 'package:ensemble/util/layout_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' as flutter;
 import 'package:flutter/rendering.dart';
 
@@ -211,7 +212,7 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
       // wrapping SingleChildScrollView around a Column has performance issue in HTML renderer.
       // Now if we nested a non-scrollable ListView (render all items) inside the Column inside
       // the scrollable, then performance is better.
-      if (widget._controller.scrollable) {
+      if (widget._controller.scrollable && kIsWeb) {
         children = [
           ListView(
             physics: const NeverScrollableScrollPhysics(),
