@@ -52,8 +52,14 @@ abstract class BindingSource {
             return APIBindingSource(modelId);
           } else if (model is Invokable) {
             // for now we only know how to bind to widget's direct property (e.g. myText.text)
-            if (model is HasController && !property.contains('.')) {
+            if (model is HasController) {
               return WidgetBindingSource(modelId, property: property);
+            }
+            // if not a widget, we are binding to a simple data (e.g. myInput.hotel).
+            // That is we can bind to a Map or List. In this case, property doesn't
+            // matter as we'll dispatch changes the moment the object changes
+            else {
+              return SimpleBindingSource(modelId);
             }
           }
         }
@@ -93,6 +99,7 @@ class APIBindingSource extends BindingSource {
 class SimpleBindingSource extends BindingSource {
   SimpleBindingSource(super.modelId);
 }
+// for source that are widgets (e.g. myText.value )
 class WidgetBindingSource extends BindingSource {
   WidgetBindingSource(super.modelId, {super.property});
 }
