@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/action.dart' as action;
+import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
@@ -94,9 +95,12 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
     if (widget.controller.lastSetterProperty != null) {
       if (_scopeManager != null && widget is Invokable && (widget as Invokable).id != null) {
         _scopeManager!.dispatch(ModelChangeEvent(
-            (widget as Invokable).id!,
-            widget.controller.lastSetterProperty!.value,
-            property: widget.controller.lastSetterProperty!.key));
+            WidgetBindingSource(
+                (widget as Invokable).id!,
+                property: widget.controller.lastSetterProperty!.key
+            ),
+            widget.controller.lastSetterProperty!.value
+        ));
       }
       widget.controller.lastSetterProperty = null;
     }

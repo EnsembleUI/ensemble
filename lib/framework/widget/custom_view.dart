@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/page_model.dart';
@@ -62,7 +63,7 @@ class CustomView extends StatelessWidget with Invokable {
 
       // dispatch the changes to all inside our Custom Widget scope
       //log("Dispatching ${prop}=${val}. Scope ${scopeManager.hashCode}");
-      scopeManager.dispatch(ModelChangeEvent(prop, val, bindingScope: scopeManager));
+      scopeManager.dispatch(ModelChangeEvent(SimpleBindingSource(prop), val, bindingScope: scopeManager));
     }
   }
 

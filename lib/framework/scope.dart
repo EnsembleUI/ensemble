@@ -3,6 +3,7 @@ import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/widget/view.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
@@ -323,25 +324,7 @@ mixin ViewBuilder on IsScopeManager {
   }
 }
 
-/// Binding Destination represents the left predicate of a binding expression
-/// myText.text: $(myTextInput.value)
-/// myText.text: $(myAPI.body.result.status)
-class BindingDestination {
-  BindingDestination(this.widget, this.setterProperty);
 
-  Invokable widget;
-  String setterProperty;
-}
-/// Binding source represents the binding expression
-/// $(myText.text)
-/// $(myAPI.body.result.status)
-class BindingSource {
-  BindingSource(this.model, this.modelId, {this.property});
-
-  Invokable model;
-  String modelId;
-  String? property;   // property can be empty for custom widget inputs
-}
 
 /// managing binding at the Page level.
 /// It does this by tapping into the page-level's PageData
@@ -406,96 +389,48 @@ mixin PageBindingManager on IsScopeManager {
       }) {
     DataContext dataContext = scopeManager.dataContext;
 
-    BindingSource? bindingSource = parseExpression(bindingExpression, dataContext);
+    BindingSource? bindingSource = BindingSource.from(bindingExpression, dataContext);
     if (bindingSource != null) {
       // create a unique key to reference our listener. We used this to save
       // the listeners for clean up
-      int? hash;
-      // for API we simply say notify me when API result changes, so the property
-      // after the API name won't matter here
-      if (bindingSource.model is APIResponse) {
-        hash = getHash(destinationSetter: destination.setterProperty, sourceId: bindingSource.modelId);
-      }
-      // For now support Widget's getters() only e.g $(myText.value)
-      else if (bindingSource.model is HasController && bindingSource.property != null && !bindingSource.property!.contains('.')) {
-        // clean up existing listeners
-        hash = getHash(
-            destinationSetter: destination.setterProperty,
-            sourceId: bindingSource.modelId,
-            sourceProperty: bindingSource.property);
-      }
-      // InvokablePrimitive but need to be localized to a ScopeManager (custom view's inputs)
-      else {
-        hash = getHash(
-            destinationSetter: destination.setterProperty,
-            sourceId: bindingSource.modelId,
-            scopeManager: scopeManager);
-      }
+      // Note that simple binding (i.e. custom widget's input variable) needs
+      // scopeManager to uniquely identify them (since multiple custom widgets
+      // can be created.
+      int hash = getHash(
+          destinationSetter: destination.setterProperty,
+          source: bindingSource,
+          scopeManager: bindingSource is SimpleBindingSource ? scopeManager : null
+      );
 
-      if (hash != null) {
-        // clean up existing listener with the same signature
-        if (listenerMap[destination.widget]?[hash] != null) {
-          //log("Binding(remove duplicate): ${me.id}-${bindingSource.modelId}-${bindingSource.property}");
-          listenerMap[destination.widget]![hash]!.cancel();
+      // clean up existing listener with the same signature
+      if (listenerMap[destination.widget]?[hash] != null) {
+        //log("Binding(remove duplicate): ${me.id}-${bindingSource.modelId}-${bindingSource.property}");
+        listenerMap[destination.widget]![hash]!.cancel();
+      }
+      StreamSubscription subscription = eventBus.on<ModelChangeEvent>()
+          .listen((event) {
+        //log("EventBus ${eventBus.hashCode} listening: $event");
+        if (event.source.runtimeType == bindingSource.runtimeType &&
+            event.source.modelId == bindingSource.modelId &&
+            (event.source.property == null || event.source.property == bindingSource.property) &&
+            (event.bindingScope == null || event.bindingScope == scopeManager)) {
+                onDataChange(event);
         }
-        StreamSubscription subscription = eventBus.on<ModelChangeEvent>()
-            .listen((event) {
-          //log("EventBus ${eventBus.hashCode} listening: $event");
-          if (event.modelId == bindingSource.modelId &&
-              (event.property == null || event.property == bindingSource.property) &&
-              (event.bindingScope == null || event.bindingScope == scopeManager)) {
-                  onDataChange(event);
-          }
-        });
+      });
 
-        // save to the listener map so we can remove later
-        if (listenerMap[destination.widget] == null) {
-          listenerMap[destination.widget] = {};
-        }
-        //log("Binding: Adding ${me.id}-${bindingSource.modelId}-${bindingSource.property}");
-        listenerMap[destination.widget]![hash] = subscription;
-        //log("All Bindings:${listenerMap.toString()} ");
-
-        return true;
+      // save to the listener map so we can remove later
+      if (listenerMap[destination.widget] == null) {
+        listenerMap[destination.widget] = {};
       }
+      //log("Binding: Adding ${me.id}-${bindingSource.modelId}-${bindingSource.property}");
+      listenerMap[destination.widget]![hash] = subscription;
+      //log("All Bindings:${listenerMap.toString()} ");
+
+      return true;
+
     }
     return false;
 
-  }
-
-  /// parse a valid expression into a BindingSource object
-  /// $(myText.text)
-  BindingSource? parseExpression(String expression, DataContext dataContext) {
-    if (Utils.isExpression(expression)) {
-      String variable = expression.substring(2, expression.length - 1).trim();
-
-      // if syntax is ${model.property}
-      int dotIndex = variable.indexOf('.');
-      if (dotIndex != -1) {
-        String modelId = variable.substring(0, dotIndex);
-        String property = variable.substring(dotIndex + 1);
-
-        // we don't know how to handle complex binding (e.g. myWidget.length > 0 ? "hi" : there"),
-        // so for now just grab the property (i.e. .length > 0 ? "hi" : there) until we reach a space
-        int spaceIndex = property.indexOf(" ");
-        if (spaceIndex != -1) {
-          property = property.substring(0, spaceIndex);
-        }
-
-        dynamic model = dataContext.getContextById(modelId);
-        if (model is Invokable) {
-          return BindingSource(model, modelId, property: property);
-        }
-      }
-      // else try to see if it's simply ${model} e.g. custom widget's inputs
-      else {
-        dynamic model = dataContext.getContextById(variable);
-        if (model is Invokable) {
-          return BindingSource(model, variable);
-        }
-      }
-    }
-    return null;
   }
 
   void dispatch(ModelChangeEvent event) {
@@ -519,8 +454,8 @@ mixin PageBindingManager on IsScopeManager {
   }
 
   /// unique but repeatable hash (within the same session) of the provided keys
-  int getHash({String? destinationSetter, required String sourceId, String? sourceProperty, ScopeManager? scopeManager}) {
-    return Object.hash(destinationSetter, sourceId, sourceProperty, scopeManager);
+  int getHash({String? destinationSetter, required BindingSource source, ScopeManager? scopeManager}) {
+    return Object.hash(destinationSetter, source.modelId, source.property, source.runtimeType, scopeManager);
   }
 
   /// print a map of the current listeners on this scope
@@ -539,18 +474,7 @@ mixin PageBindingManager on IsScopeManager {
 }
 
 
-class ModelChangeEvent {
-  String modelId;
-  String? property;
-  dynamic payload;
-  ScopeManager? bindingScope;
-  ModelChangeEvent(this.modelId, this.payload, {this.property, this.bindingScope});
 
-  @override
-  String toString() {
-    return "ModelChangeEvent($modelId, $property, scope: $bindingScope)";
-  }
-}
 
 
 /// data for the current Page.

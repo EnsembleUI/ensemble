@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
@@ -36,18 +37,24 @@ class ScreenController {
     return _instance;
   }
 
-  /// handle Action e.g invokeAPI
-  void executeAction(BuildContext context, EnsembleAction action) {
+  /// get the ScopeManager given the context
+  ScopeManager? _getScopeManager(BuildContext context) {
     // get the current scope of the widget that invoked this. It gives us
     // the data context to evaluate expression
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
 
-    // when context is at the View, we can't reach the DataScopeWidget which is
+    // when context is at the root View, we can't reach the DataScopeWidget which is
     // actually a child of View. Let's just get the scopeManager directly.
     // TODO: find a better more consistent way of getting ScopeManager
     if (scopeManager == null && context.widget is View) {
       scopeManager = (context.widget as View).rootScopeManager;
     }
+    return scopeManager;
+  }
+
+  /// handle Action e.g invokeAPI
+  void executeAction(BuildContext context, EnsembleAction action) {
+    ScopeManager? scopeManager = _getScopeManager(context);
     if (scopeManager != null) {
       executeActionWithScope(context, scopeManager, action);
     }
@@ -306,8 +313,13 @@ class ScreenController {
       processAPIResponse(context, dataContext, action.onResponse!, response, apiMap, scopeManager);
     }
 
+  }
 
-
+  void dispatchStorageChanges(BuildContext context, String key, dynamic value) {
+    ScopeManager? scopeManager = _getScopeManager(context);
+    if (scopeManager != null) {
+      scopeManager.dispatch(ModelChangeEvent(StorageBindingSource(key), value));
+    }
   }
 
   void dispatchAPIChanges(ScopeManager? scopeManager, InvokeAPIAction action, APIResponse apiResponse) {
@@ -325,7 +337,7 @@ class ScreenController {
         (api as APIResponse).setAPIResponse(_response);
 
         // dispatch changes
-        scopeManager.dispatch(ModelChangeEvent(action.apiName, api));
+        scopeManager.dispatch(ModelChangeEvent(APIBindingSource(action.apiName), api));
       }
     }
   }
