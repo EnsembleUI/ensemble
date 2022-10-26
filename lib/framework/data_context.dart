@@ -277,7 +277,7 @@ class NativeInvokable with Invokable {
   @override
   Map<String, Function> getters() {
     return {
-      'storage': () => EnsembleStorage(),
+      'storage': () => EnsembleStorage(_buildContext),
       'formatter': () => Formatter(_buildContext),
     };
   }
@@ -338,14 +338,35 @@ class NativeInvokable with Invokable {
 class EnsembleStorage with Invokable {
   static final EnsembleStorage _instance = EnsembleStorage._internal();
   EnsembleStorage._internal();
-  factory EnsembleStorage() {
+  factory EnsembleStorage(BuildContext buildContext) {
+    context = buildContext;
     return _instance;
   }
+  static late BuildContext context;
   final storage = GetStorage();
 
   @override
+  void setProperty(prop, val) {
+    if (prop is String) {
+      if (val == null) {
+        storage.remove(prop);
+      } else {
+        storage.write(prop, val);
+      }
+      // dispatch changes
+      ScreenController().dispatchStorageChanges(context, prop, val);
+    }
+  }
+
+  @override
+  getProperty(prop) {
+    return prop is String ? storage.read(prop) : null;
+  }
+
+
+  @override
   Map<String, Function> getters() {
-    return {};
+    throw UnimplementedError();
   }
 
   @override
@@ -359,7 +380,7 @@ class EnsembleStorage with Invokable {
 
   @override
   Map<String, Function> setters() {
-    return {};
+    throw UnimplementedError();
   }
 
 }
