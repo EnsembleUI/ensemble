@@ -561,6 +561,10 @@
               "type": "boolean",
               "description": "whether we should obscure the typed-in text (e.g Social Security)"
             },
+            "obscureToggle": {
+              "type": "boolean",
+              "description": "enable the toggling between plain and obscure text."
+            },
             "styles": {
               "type": "object",
               "properties": {
@@ -582,7 +586,7 @@
           "type": "object",
           "properties": {
             "onKeyPress": { "$ref": "#/$defs/Action-payload" },
-            "showToggle": {
+            "obscureToggle": {
               "type": "boolean",
               "description": "enable the toggling between plain and obscure text."
             },

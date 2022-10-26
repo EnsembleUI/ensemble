@@ -61,13 +61,6 @@ class PasswordInput extends BaseTextInput {
   }
 
   @override
-  Map<String, Function> setters() {
-    Map<String, Function> map = super.setters();
-    map['showToggle'] = (val) => _controller.showToggle = Utils.optionalBool(val);
-    return map;
-  }
-
-  @override
   TextInputType? get keyboardType => null;
 
 }
@@ -97,6 +90,7 @@ abstract class BaseTextInput extends StatefulWidget with Invokable, HasControlle
       'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this),
       'borderRadius': (value) => _controller.borderRadius = Utils.optionalInt(value),
       'validator': (value) => _controller.validator = Utils.getValidator(value),
+      'obscureToggle': (value) => _controller.obscureToggle = Utils.optionalBool(value),
     };
   }
 
@@ -121,8 +115,8 @@ class TextInputController extends FormFieldController {
   // applicable only for TextInput
   bool? obscureText;
 
-  // applicable only for Password
-  bool? showToggle;
+  // applicable only for Password or obscure TextInput, to toggle between plain and secure text
+  bool? obscureToggle;
 
   model.InputValidator? validator;
   String? inputType;
@@ -152,10 +146,12 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
   }
 
   // password is obscure by default
-  bool obscurePassword = true;
+  late bool currentlyObscured;
 
   @override
   void initState() {
+    currentlyObscured = widget.isPassword() || widget._controller.obscureText == true;
+
     focusNode.addListener(() {
       // on focus lost
       if (!focusNode.hasFocus) {
@@ -179,9 +175,9 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
   /// whether to show the content as plain text or obscure
   bool isObscureOrPlainText() {
     if (widget.isPassword()) {
-      return obscurePassword;
+      return currentlyObscured;
     } else {
-      return widget._controller.obscureText ?? false;
+      return widget._controller.obscureText == true && currentlyObscured;
     }
   }
 
@@ -202,13 +198,13 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
 
     // for password, show the toggle plain text/obscure text
     InputDecoration decoration = inputDecoration;
-    if (widget.isPassword() && widget._controller.showToggle == true) {
+    if ((widget.isPassword() || widget._controller.obscureText == true) && widget._controller.obscureToggle == true) {
       decoration = decoration.copyWith(
         suffixIcon: IconButton(
-          icon: Icon(obscurePassword ? Icons.visibility : Icons.visibility_off),
+          icon: Icon(currentlyObscured ? Icons.visibility : Icons.visibility_off),
           onPressed: () {
             setState(() {
-              obscurePassword = !obscurePassword;
+              currentlyObscured = !currentlyObscured;
             });
           },
 
