@@ -2,7 +2,7 @@ import 'dart:html';
 import 'dart:ui' as ui;
 
 import 'package:ensemble/framework/widget/widget.dart';
-import 'package:ensemble/widget/webview.dart';
+import 'package:ensemble/widget/webview/webview.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
