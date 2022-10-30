@@ -133,7 +133,11 @@ class AppModel {
         // so we'll just ignore this error here
       }
     }
-    contentCache[doc.id] = yamlContent ?? InvalidDefinition();
+    // non-screen (i.e. theme is perfectly fine to be null)
+    if (yamlContent == null && doc.data()?['type'] == 'screen') {
+      yamlContent = InvalidDefinition();
+    }
+    contentCache[doc.id] = yamlContent;
 
     log("Cached: ${contentCache.keys}. Home: $homeMapping. Theme: $themeMapping. Names: ${screenNameMappings.keys}");
     return Future<bool>.value(true);
