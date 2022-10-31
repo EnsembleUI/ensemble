@@ -140,7 +140,7 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
 
 
   late final String _mapAccessToken;
-  int selectedWidgetIndex = 0;
+  int selectedWidgetIndex = -1;
   Marker? selectedWidget;
   Widget? overlayWidget;
 
