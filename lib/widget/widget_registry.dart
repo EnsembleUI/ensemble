@@ -20,7 +20,7 @@ import 'package:ensemble/widget/form_daterange.dart';
 import 'package:ensemble/widget/form_textfield.dart';
 import 'package:ensemble/widget/form_time.dart';
 import 'package:ensemble/widget/image.dart';
-import 'package:ensemble/widget/lottie.dart';
+import 'package:ensemble/widget/lottie/lottie.dart';
 import 'package:ensemble/widget/map.dart';
 import 'package:ensemble/widget/markdown.dart';
 import 'package:ensemble/widget/progress_indicator.dart';

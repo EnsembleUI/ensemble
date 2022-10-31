@@ -4,7 +4,6 @@ import 'dart:ui' as ui;
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/widget/webview/webview.dart';
 import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 
 class ControllerImpl extends ViewController {
   final IFrameElement _iframeElement;
