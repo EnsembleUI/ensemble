@@ -310,8 +310,7 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
     return Stack(
       children: [
         map,
-        overlayWidget == null ?
-        const SizedBox.shrink() :
+        overlayWidget != null && widget._controller.selectedMarker != null ?
         Container(
             margin: const EdgeInsets.only(bottom: 83, left: 10, right: 10),
             alignment: Alignment.bottomCenter,
@@ -321,7 +320,8 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
                   child: overlayWidget,
                 )
             )
-        )
+        ) :
+        const SizedBox.shrink()
       ],
     );
   }
