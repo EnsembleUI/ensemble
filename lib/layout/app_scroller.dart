@@ -73,6 +73,7 @@ class AppScrollerController extends WidgetController {
   dynamic body;
 
   // others
+  ScrollController? scrollController;
   Color? headerBackgroundColor;
   EnsembleAction? onHeaderStretch;
   EnsembleAction? onExpandedHeightReset;
@@ -81,6 +82,12 @@ class AppScrollerController extends WidgetController {
   void stretchExpandedHeight(int offset) {
     int newMaxExpandedHeight = Device().screenHeight - offset;
     if (_maxExpandedHeight == null || _maxExpandedHeight != newMaxExpandedHeight) {
+      // scroll to the top
+      if (scrollController != null) {
+        scrollController?.jumpTo(0);
+      }
+
+      // set expanded height
       _maxExpandedHeight = newMaxExpandedHeight;
       //log("stretch expanded height to $_maxExpandedHeight");
       notifyListeners();
@@ -90,15 +97,16 @@ class AppScrollerController extends WidgetController {
 }
 
 class _AppScrollerState extends WidgetState<AppScroller> {
-  late ScrollController _scrollController;
 
   @override
   void initState() {
     super.initState();
-    _scrollController = ScrollController();
-    _scrollController.addListener(() {
+    widget._controller.scrollController = ScrollController();
+    widget._controller.scrollController!.addListener(() {
       // if we are at the max expanded height and we scroll backward, reset to the normal expanded height
-      if (widget._controller._maxExpandedHeight != null && _scrollController.offset > 50 && _scrollController.position.userScrollDirection == ScrollDirection.reverse) {
+      if (widget._controller._maxExpandedHeight != null &&
+          widget._controller.scrollController!.offset > 50 &&
+          widget._controller.scrollController!.position.userScrollDirection == ScrollDirection.reverse) {
         setState(() {
           widget._controller._maxExpandedHeight = null;
         });
@@ -125,7 +133,7 @@ class _AppScrollerState extends WidgetState<AppScroller> {
 
     return CustomScrollView(
       slivers: slivers,
-      controller: _scrollController,
+      controller: widget._controller.scrollController,
     );
   }
 
