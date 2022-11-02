@@ -1,12 +1,16 @@
 import 'dart:developer';
 
+import 'package:ensemble/device.dart';
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/view.dart';
 import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 
 class AppScroller extends StatefulWidget with Invokable, HasController<AppScrollerController, _AppScrollerState>{
@@ -27,7 +31,9 @@ class AppScroller extends StatefulWidget with Invokable, HasController<AppScroll
 
   @override
   Map<String, Function> methods() {
-    return {};
+    return {
+      'stretchExpandedHeight': (offset) => _controller.stretchExpandedHeight(offset),
+    };
   }
 
   @override
@@ -43,6 +49,13 @@ class AppScroller extends StatefulWidget with Invokable, HasController<AppScroll
       'flexibleHeader': (widget) => _controller.flexibleHeader = widget,
       'flexibleBackground': (widget) => _controller.flexibleBackground = widget,
       'body': (widget) => _controller.body = widget,
+
+      // others
+      'headerBackgroundColor': (color) => _controller.headerBackgroundColor = Utils.getColor(color),
+      'onHeaderStretch': (action) => _controller.onHeaderStretch = Utils.getAction(action, initiator: this),
+
+      // temp
+      'onExpandedHeightReset': (action) => _controller.onExpandedHeightReset = Utils.getAction(action, initiator: this),
     };
   }
 }
@@ -58,9 +71,43 @@ class AppScrollerController extends WidgetController {
   dynamic flexibleHeader;
   dynamic flexibleBackground;
   dynamic body;
+
+  // others
+  Color? headerBackgroundColor;
+  EnsembleAction? onHeaderStretch;
+  EnsembleAction? onExpandedHeightReset;
+
+  int? _maxExpandedHeight;
+  void stretchExpandedHeight(int offset) {
+    int newMaxExpandedHeight = Device().screenHeight - offset;
+    if (_maxExpandedHeight == null || _maxExpandedHeight != newMaxExpandedHeight) {
+      _maxExpandedHeight = newMaxExpandedHeight;
+      //log("stretch expanded height to $_maxExpandedHeight");
+      notifyListeners();
+    }
+  }
+
 }
 
 class _AppScrollerState extends WidgetState<AppScroller> {
+  late ScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(() {
+      // if we are at the max expanded height and we scroll backward, reset to the normal expanded height
+      if (widget._controller._maxExpandedHeight != null && _scrollController.offset > 50 && _scrollController.position.userScrollDirection == ScrollDirection.reverse) {
+        setState(() {
+          widget._controller._maxExpandedHeight = null;
+        });
+        if (widget._controller.onExpandedHeightReset != null) {
+          ScreenController().executeAction(context, widget._controller.onExpandedHeightReset!);
+        }
+      }
+    });
+  }
 
   @override
   Widget buildWidget(BuildContext context) {
@@ -77,7 +124,8 @@ class _AppScrollerState extends WidgetState<AppScroller> {
     }
 
     return CustomScrollView(
-      slivers: slivers
+      slivers: slivers,
+      controller: _scrollController,
     );
   }
 
@@ -94,25 +142,24 @@ class _AppScrollerState extends WidgetState<AppScroller> {
 
       // flexible header widget
       flexibleSpace: buildFlexibleHeader(scopeManager),
-      expandedHeight: widget._controller.expandedHeight?.toDouble(),
+      expandedHeight: widget._controller._maxExpandedHeight?.toDouble() ?? widget._controller.expandedHeight?.toDouble(),
       collapsedHeight: widget._controller.collapsedHeight?.toDouble(), // toolbar height + the flexible title height
       elevation: 0,
 
       // others
-      backgroundColor: Colors.white,
+      backgroundColor: widget._controller.headerBackgroundColor,
       automaticallyImplyLeading: false,
 
-      stretch: true,
+      stretch: widget._controller.onHeaderStretch != null,
       //stretchTriggerOffset: 50,
-      // onStretchTrigger: () async {
-      //   log("onstretch");
-      //   SchedulerBinding.instance?.addPostFrameCallback((_) {
-      //     setState(() {
-      //       _expandedHeight = 900;
-      //     });
-      //   });
-      //
-      // },
+      onStretchTrigger: widget._controller.onHeaderStretch == null ? null : () async {
+        // async function so make sure we wait for screen to render
+        SchedulerBinding.instance.addPostFrameCallback((_) {
+          ScreenController().executeAction(context, widget._controller.onHeaderStretch!);
+        });
+
+      },
+
 
       //bottom: buildBottomHeader(scopeManager),
     );
@@ -125,10 +172,14 @@ class _AppScrollerState extends WidgetState<AppScroller> {
     return null;
   }
 
+  /// TODO: background widget are re-rendered on changging expandedHeight, and that
+  /// messes up the data. Fix this problem. For now just render it once and re-use
+  Widget? backgroundWidget;
+
   Widget? buildFlexibleHeader(ScopeManager scopeManager) {
-    Widget? backgroundWidget;
     if (widget._controller.flexibleBackground != null) {
-      backgroundWidget = scopeManager.buildWidgetFromDefinition(widget._controller.flexibleBackground);
+      backgroundWidget ??= scopeManager.buildWidgetFromDefinition(
+            widget._controller.flexibleBackground);
     }
     Widget? flexibleHeader;
     if (widget._controller.flexibleHeader != null) {
