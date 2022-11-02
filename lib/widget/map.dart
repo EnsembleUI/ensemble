@@ -5,10 +5,12 @@ import 'dart:io';
 
 import 'package:ensemble/device.dart';
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/view.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:flutter/material.dart';
@@ -37,23 +39,36 @@ class EnsembleMap extends StatefulWidget with Invokable, HasController<MyControl
       'markers': _controller.updateMarkerTemplate,
       'markerWidth': (width) => _controller.markerWidth = width,
       'markerHeight': (height) => _controller.markerHeight = height,
+      'selectedMarker': (index) => _controller.updateSelectedMarker(Utils.optionalInt(index)),
+      'onMarkerTap': (action) => _controller.onMarkerTap = Utils.getAction(action, initiator: this),
     };
   }
 
   @override
   Map<String, Function> getters() {
-    return {};
+    return {
+      'selectedMarker': () => _controller.selectedMarker,
+    };
   }
 
   @override
   Map<String, Function> methods() {
-    return {};
+    return {
+    };
   }
 
 }
 
 class MyController extends WidgetController with LocationCapability {
   final MapController _mapController = MapController();
+  EnsembleAction? onMarkerTap;
+
+  int? selectedMarker;
+  void updateSelectedMarker(int? markerIndex) {
+    log("selected marker is $markerIndex");
+    selectedMarker = markerIndex;
+    notifyListeners();
+  }
 
   // unfortunately these are needed for flutter_map
   int? markerWidth;
@@ -140,7 +155,6 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
 
 
   late final String _mapAccessToken;
-  int selectedWidgetIndex = -1;
   Marker? selectedWidget;
   Widget? overlayWidget;
 
@@ -194,7 +208,7 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
               onTap: () => selectMarker(i, point, markerWidget),
             );
             // if a widget is selected
-            if (selectedWidgetIndex != -1) {
+            if (widget._controller.selectedMarker != null) {
               selectMarker(i, point, markerWidget);
             }
           } else {
@@ -231,7 +245,7 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
     if (widget._controller._markerTemplate!.selectedWidget != null) {
       Widget childWidget = markerScope.scopeManager.buildWidgetWithScopeFromDefinition(widget._controller._markerTemplate!.selectedWidget);
       selectedWidget = buildMarker(childWidget, point);
-      selectedWidgetIndex = selectedIndex;
+      widget._controller.selectedMarker = selectedIndex;
       markerChanges = true;
     }
 
@@ -245,6 +259,11 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
       setState(() {
 
       });
+    }
+
+    // send the event
+    if (widget._controller.onMarkerTap != null) {
+      ScreenController().executeAction(context, widget._controller.onMarkerTap!);
     }
 
   }
@@ -294,7 +313,7 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
         overlayWidget == null ?
         const SizedBox.shrink() :
         Container(
-            margin: const EdgeInsets.only(bottom: 20, left: 10, right: 10),
+            margin: const EdgeInsets.only(bottom: 83, left: 10, right: 10),
             alignment: Alignment.bottomCenter,
             child: ConstrainedBox(
                 constraints: BoxConstraints(maxHeight: Device().screenHeight / 2),
@@ -308,13 +327,13 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
   }
 
   List<Marker> getCurrentMarkers() {
-    if (selectedWidgetIndex == -1) {
+    if (widget._controller.selectedMarker == null) {
       return widget._controller._markers;
     } else {
       List<Marker> rtn = [];
       for (int i=0; i<widget._controller._markers.length; i++) {
         // use the selected widget version
-        if (i == selectedWidgetIndex && selectedWidget != null) {
+        if (i == widget._controller.selectedMarker && selectedWidget != null) {
           rtn.add(selectedWidget!);
         } else {
           rtn.add(widget._controller._markers[i]);
