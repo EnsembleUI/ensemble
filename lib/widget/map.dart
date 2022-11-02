@@ -39,8 +39,10 @@ class EnsembleMap extends StatefulWidget with Invokable, HasController<MyControl
       'markers': _controller.updateMarkerTemplate,
       'markerWidth': (width) => _controller.markerWidth = width,
       'markerHeight': (height) => _controller.markerHeight = height,
+      'boundaryPadding': (padding) => _controller.boundaryPadding = Utils.optionalInsets(padding),
       'selectedMarker': (index) => _controller.updateSelectedMarker(Utils.optionalInt(index)),
       'onMarkerTap': (action) => _controller.onMarkerTap = Utils.getAction(action, initiator: this),
+
     };
   }
 
@@ -54,6 +56,7 @@ class EnsembleMap extends StatefulWidget with Invokable, HasController<MyControl
   @override
   Map<String, Function> methods() {
     return {
+      'fitBoundary': (padding) => _controller.refitBoundary(paddingOverride: Utils.optionalInsets(padding)),
     };
   }
 
@@ -61,6 +64,7 @@ class EnsembleMap extends StatefulWidget with Invokable, HasController<MyControl
 
 class MyController extends WidgetController with LocationCapability {
   final MapController _mapController = MapController();
+  EdgeInsets? boundaryPadding;
   EnsembleAction? onMarkerTap;
 
   int? selectedMarker;
@@ -78,7 +82,7 @@ class MyController extends WidgetController with LocationCapability {
   List<Marker> _markers = [];
   set markers(List<Marker> items) {
     _markers = items;
-    resetMapBounds();
+    fitBoundary();
   }
 
   Position? currentLocation;    // user's location if enabled & given permission
@@ -105,6 +109,7 @@ class MyController extends WidgetController with LocationCapability {
         );
       }
     }
+
   }
 
   void updateCurrentLocationStatus(dynamic locationData) {
@@ -120,16 +125,20 @@ class MyController extends WidgetController with LocationCapability {
 
   void requestUserLocation() async {
     currentLocation = await getLocationAsync();
-    resetMapBounds();
+    fitBoundary();
     notifyListeners();
   }
 
 
-
+  void refitBoundary({EdgeInsets? paddingOverride}) {
+    log("refitting boundary");
+    fitBoundary(paddingOverride: paddingOverride);
+    notifyListeners();
+  }
 
 
   /// zoom the map to fit our markers and current location
-  void resetMapBounds() {
+  void fitBoundary({EdgeInsets? paddingOverride}) {
     _mapController.onReady.then((value) {
       List<LatLng> points = [];
       if (currentLocation != null) {
@@ -138,10 +147,12 @@ class MyController extends WidgetController with LocationCapability {
       points.addAll(_markers.map((item) => item.point).toList());
 
       if (points.isNotEmpty) {
+        EdgeInsets? padding = paddingOverride ?? boundaryPadding;
         _mapController.fitBounds(
             LatLngBounds.fromPoints(points),
-            options: const FitBoundsOptions(padding: EdgeInsets.all(100)));
-      }
+            options: FitBoundsOptions(padding: padding ?? EdgeInsets.zero)
+        );
+      }//170 115
     });
   }
 
@@ -312,7 +323,7 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
         map,
         overlayWidget != null && widget._controller.selectedMarker != null ?
         Container(
-            margin: const EdgeInsets.only(bottom: 83, left: 10, right: 10),
+            margin: const EdgeInsets.only(bottom: 105, left: 10, right: 10),
             alignment: Alignment.bottomCenter,
             child: ConstrainedBox(
                 constraints: BoxConstraints(maxHeight: Device().screenHeight / 2),
@@ -331,13 +342,18 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
       return widget._controller._markers;
     } else {
       List<Marker> rtn = [];
+      Marker? selected;
       for (int i=0; i<widget._controller._markers.length; i++) {
         // use the selected widget version
         if (i == widget._controller.selectedMarker && selectedWidget != null) {
-          rtn.add(selectedWidget!);
+          selected = selectedWidget!;
         } else {
           rtn.add(widget._controller._markers[i]);
         }
+      }
+      // add selected widget to the end so its z-index is on top
+      if (selected != null) {
+        rtn.add(selected);
       }
       return rtn;
     }
