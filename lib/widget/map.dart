@@ -323,7 +323,7 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
         map,
         overlayWidget != null && widget._controller.selectedMarker != null ?
         Container(
-            margin: const EdgeInsets.only(bottom: 105, left: 10, right: 10),
+            margin: const EdgeInsets.only(bottom: 110, left: 10, right: 10),
             alignment: Alignment.bottomCenter,
             child: ConstrainedBox(
                 constraints: BoxConstraints(maxHeight: Device().screenHeight / 2),
