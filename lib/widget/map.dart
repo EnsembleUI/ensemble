@@ -305,7 +305,7 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
         ),
         layers: [
           TileLayerOptions(
-            urlTemplate: "https://api.mapbox.com/styles/v1/ensembleui/cl5ladr0w002316nitdjrqj3w/tiles/512/{z}/{x}/{y}@2x?access_token=$_mapAccessToken",
+            urlTemplate: "https://api.mapbox.com/styles/v1/ensembleui/cla1963q0000e15p00zuejxwu/tiles/512/{z}/{x}/{y}@2x?access_token=$_mapAccessToken",
             additionalOptions: {
               "access_token": _mapAccessToken
             },
