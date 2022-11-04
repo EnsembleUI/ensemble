@@ -111,9 +111,9 @@ class ViewState extends State<View>{
         if (widget._pageModel.menu!.display != null) {
           menuDisplay = _scopeManager.dataContext.eval(widget._pageModel.menu!.display);
           if (menuDisplay == MenuDisplay.navBar.name) {
-            bottomNavBar = _buildBottomNavBar(context, widget._pageModel.menu!.menuItems);
+            bottomNavBar = _buildBottomNavBar(context, widget._pageModel.menu!);
           } else if (menuDisplay == MenuDisplay.drawer.name) {
-            drawer = _buildDrawer(context, widget._pageModel.menu!.menuItems);
+            drawer = _buildDrawer(context, widget._pageModel.menu!);
           }
         }
         // left/right navBar will be rendered as part of the body
@@ -289,9 +289,9 @@ class ViewState extends State<View>{
 
 
 
-  Drawer? _buildDrawer(BuildContext context, List<model.MenuItem> menuItems) {
+  Drawer? _buildDrawer(BuildContext context, Menu menu) {
     List<ListTile> navItems = [];
-    for (model.MenuItem item in menuItems) {
+    for (model.MenuItem item in menu.menuItems) {
       navItems.add(ListTile(
         selected: item.selected,
         title: Text(Utils.translate(item.label ?? '', context)),
@@ -301,6 +301,7 @@ class ViewState extends State<View>{
       ));
     }
     return Drawer(
+      backgroundColor: Utils.getColor(menu.styles?['backgroundColor']),
       child: ListView(
         children: navItems,
       ),
@@ -309,11 +310,11 @@ class ViewState extends State<View>{
   }
 
   /// navigation bar
-  BottomNavigationBar? _buildBottomNavBar(BuildContext context, List<model.MenuItem> menuItems) {
+  BottomNavigationBar? _buildBottomNavBar(BuildContext context, Menu menu) {
     int selectedIndex = 0;
     List<BottomNavigationBarItem> navItems = [];
-    for (int i=0; i<menuItems.length; i++) {
-      model.MenuItem item = menuItems[i];
+    for (int i=0; i<menu.menuItems.length; i++) {
+      model.MenuItem item = menu.menuItems[i];
       navItems.add(BottomNavigationBarItem(
           icon: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
           label: Utils.translate(item.label ?? '', context)));
@@ -323,10 +324,11 @@ class ViewState extends State<View>{
     }
     return BottomNavigationBar(
         items: navItems,
+        backgroundColor: Utils.getColor(menu.styles?['backgroundColor']),
         type: BottomNavigationBarType.fixed,
         onTap: (index) {
-          if (!menuItems[index].selected) {
-            selectNavigationIndex(context, menuItems[index]);
+          if (!menu.menuItems[index].selected) {
+            selectNavigationIndex(context, menu.menuItems[index]);
           }
         },
         currentIndex: selectedIndex);

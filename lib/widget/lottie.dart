@@ -38,6 +38,7 @@ class EnsembleLottie extends StatefulWidget with Invokable, HasController<Lottie
       'width': (value) => _controller.width = Utils.optionalInt(value),
       'height': (value) => _controller.height = Utils.optionalInt(value),
       'fit': (value) => _controller.fit = Utils.optionalString(value),
+      'repeat': (value) => _controller.repeat = Utils.optionalBool(value),
       'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, initiator: this),
     };
   }
@@ -48,6 +49,7 @@ class LottieController extends BoxController {
   String source = '';
   int? width;
   int? height;
+  bool? repeat;
   String? fit;
   EnsembleAction? onTap;
 }
@@ -74,13 +76,11 @@ class LottieState extends WidgetState<EnsembleLottie> {
     if (source.isNotEmpty) {
       // if is URL
       if (source.startsWith('https://') || source.startsWith('http://')) {
-        // image binding is tricky. When the URL has not been resolved
-        // the image will throw exception. We have to use a permanent placeholder
-        // until the binding engages
         return Lottie.network(
             widget._controller.source,
             width: widget._controller.width?.toDouble(),
             height: widget._controller.height?.toDouble(),
+            repeat: widget._controller.repeat ?? true,
             fit: fit,
             errorBuilder: (context, error, stacktrace) => placeholderImage(),
         );
@@ -91,6 +91,7 @@ class LottieState extends WidgetState<EnsembleLottie> {
           'assets/images/${widget._controller.source}',
           width: widget._controller.width?.toDouble(),
           height: widget._controller.height?.toDouble(),
+          repeat: widget._controller.repeat ?? true,
           fit: fit,
           errorBuilder: (context, error, stacktrace) => placeholderImage()
         );

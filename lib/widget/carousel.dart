@@ -31,6 +31,8 @@ class Carousel extends StatefulWidget with UpdatableContainer, Invokable, HasCon
       'autoLayoutBreakpoint': (value) => _controller.autoLayoutBreakpoint = Utils.optionalInt(value, min: 0),
       'height': (height) => _controller.height = Utils.optionalInt(height),
       'gap': (gap) => _controller.gap = Utils.optionalInt(gap),
+      'leadingGap': (gap) => _controller.leadingGap = Utils.optionalInt(gap),
+      'trailingGap': (gap) => _controller.trailingGap = Utils.optionalInt(gap),
       'singleItemWidthRatio': (value) => _controller.singleItemWidthRatio = Utils.optionalDouble(value, min: 0, max: 1),
       'multipleItemWidthRatio': (value) => _controller.multipleItemWidthRatio = Utils.optionalDouble(value, min: 0, max: 1),
       'indicatorType': (type) => _controller.indicatorType = IndicatorType.values.from(type),
@@ -66,7 +68,14 @@ class MyController extends BoxController {
   List<Widget>? children;
 
   int? height;
-  int? gap; // gap between the children, but also at start and end to properly center
+  int? gap; // gap between the children
+
+  // empty spaces at the start and end. Note that this is different
+  // than the container's padding, which always maintain spaces around the container.
+  // leadingGap and trailingGap maybe the same visually on load, but on scrolling
+  // the content will scroll to the container's edge
+  int? leadingGap;
+  int? trailingGap;
 
   double? singleItemWidthRatio;
   double? multipleItemWidthRatio;
@@ -173,6 +182,8 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
 
     // wrap each child inside Container to add padding and gap
     double gap = widget._controller.gap?.toDouble() ?? MyController.defaultItemGap;
+    double leadingGap = widget._controller.leadingGap?.toDouble() ?? 0;
+    double trailingGap = widget._controller.trailingGap?.toDouble() ?? 0;
     List<Widget> items = [];
     for (int i=0; i<children.length; i++) {
       Widget child = children[i];
@@ -180,7 +191,9 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
       //double rightGap = i == children.length-1 ? gap : gap / 2;
 
       items.add(Container(
-        margin: EdgeInsets.only(left: gap / 2, right: gap / 2),
+        margin: EdgeInsets.only(
+            left: i==0 ? leadingGap : gap / 2,
+            right: i==children.length-1 ? trailingGap : gap / 2),
         child: child,
       ));
     }
