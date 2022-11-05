@@ -5,6 +5,7 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
+import 'package:ensemble/layout/app_scroller.dart';
 import 'package:ensemble/layout/box_layout.dart';
 import 'package:ensemble/layout/stack.dart';
 import 'package:ensemble/provider.dart';
@@ -133,7 +134,7 @@ class PageModel {
   WidgetModel buildRootModel(YamlMap viewMap, Map<String, dynamic>? customViewDefinitions) {
     WidgetModel? rootModel = getRootModel(viewMap, customViewDefinitions!);
     if (rootModel != null) {
-      if (![Column.type, Row.type, Flex.type, EnsembleStack.type].contains(rootModel.type)) {
+      if (![Column.type, Row.type, Flex.type, EnsembleStack.type, AppScroller.type].contains(rootModel.type)) {
         throw LanguageError('Root widget type should only be Row, Column, Flex or Stack.');
       }
       return rootModel;

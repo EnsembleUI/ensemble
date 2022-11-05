@@ -362,6 +362,10 @@
                 "height": {
                   "type": "integer"
                 },
+                "repeat": {
+                  "type": "boolean",
+                  "description": "Whether we should repeat the animation (default true)"
+                },
                 "fit": {
                   "type": "string",
                   "description": "How to fit the Lottie animation within our width/height or our parent (if dimension is not specified)",
@@ -871,6 +875,14 @@
                     "gap": {
                       "type": "integer",
                       "description": "The gap between each views, but also act as a left-right margin in a single view"
+                    },
+                    "leadingGap": {
+                      "type": "integer",
+                      "description": "The space before the first item. Note that the left edge of the scroll area is still controlled by padding or margin."
+                    },
+                    "trailingGap": {
+                      "type": "integer",
+                      "description": "The space after the last item. Note that the right edge of the scroll area is still controlled by padding or margin."
                     },
                     "singleItemWidthRatio": {
                       "type": "number",
@@ -1481,6 +1493,15 @@
             },
             "header": { "$ref": "#/$defs/Widget" },
             "footer": { "$ref": "#/$defs/Widget" },
+            "styles": {
+              "type": "object",
+              "properties": {
+                "backgroundColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Background color for our menu starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+                }
+              }
+            },
             "items": {
               "type": "array",
               "description": "List of menu items (minimum 2)",
@@ -1525,10 +1546,6 @@
                   },
                   "borderWidth": {
                     "type": "integer"
-                  },
-                  "backgroundColor": {
-                    "$ref": "#/$defs/typeColors",
-                    "description": "Background color for our menu starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
                   },
                   "itemDisplay": {
                     "type": "string",
