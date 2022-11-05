@@ -1,18 +1,34 @@
 
 
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/view.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
 
-class EnsembleTabBar extends StatefulWidget with Invokable, HasController<TabBarController, TabBarState> {
+/// TabBar navigation only
+class TabBarOnly extends BaseTabBar {
+  static const type = 'TabBarOnly';
+  TabBarOnly({super.key});
+
+}
+
+/// full TabBar container
+class TabBarContainer extends BaseTabBar {
   static const type = 'TabBar';
-  EnsembleTabBar({Key? key}) : super(key: key);
+  TabBarContainer({super.key});
+}
+
+
+
+abstract class BaseTabBar extends StatefulWidget with Invokable, HasController<TabBarController, TabBarState> {
+  BaseTabBar({Key? key}) : super(key: key);
 
   final TabBarController _controller = TabBarController();
   @override
@@ -23,7 +39,9 @@ class EnsembleTabBar extends StatefulWidget with Invokable, HasController<TabBar
 
   @override
   Map<String, Function> getters() {
-    return {};
+    return {
+      'selectedIndex': () => _controller.selectedIndex,
+    };
   }
 
   @override
@@ -46,6 +64,7 @@ class EnsembleTabBar extends StatefulWidget with Invokable, HasController<TabBar
       'indicatorThickness': (thickness) => _controller.indicatorThickness = Utils.optionalInt(thickness),
 
       'selectedIndex': (index) => _controller.selectedIndex = Utils.getInt(index, fallback: 0),
+      'onTabSelection': (action) => _controller.onTabSelection = Utils.getAction(action, initiator: this),
       'items': (items) => _controller.items = items,
     };
   }
@@ -64,6 +83,9 @@ class TabBarController extends WidgetController {
   Color? indicatorColor;
   int? indicatorThickness;
 
+  EnsembleAction? onTabSelection;
+
+
   int selectedIndex = 0;
   final List<TabItem> _items = [];
 
@@ -81,7 +103,7 @@ class TabBarController extends WidgetController {
   }
 }
 
-class TabBarState extends WidgetState<EnsembleTabBar> with SingleTickerProviderStateMixin {
+class TabBarState extends WidgetState<BaseTabBar> with SingleTickerProviderStateMixin {
   late final TabController _tabController;
 
   @override
@@ -107,46 +129,61 @@ class TabBarState extends WidgetState<EnsembleTabBar> with SingleTickerProviderS
       return const SizedBox.shrink();
     }
 
-    bool isExpanded = widget._controller.expanded;
+    Widget tabWidget;
+    // only the TabBar
+    if (widget is TabBarOnly) {
+      tabWidget = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            buildTabBar()
+          ]
+      );
+    }
+    // TabBar + body container
+    else {
+      bool isExpanded = widget._controller.expanded;
 
-    // if Expanded is set, our content needs to stretch to the left-over height
-    // Note we make each Builder unique, as it tends to re-use
-    // the states (down the tree) from the previous Builder
-    // https://stackoverflow.com/questions/55425804/using-builder-instead-of-statelesswidget
-    Widget tabContent = Builder(key: UniqueKey(), builder: (BuildContext context) => buildSelectedTab());
-    if (isExpanded) {
-      tabContent = Expanded(child: tabContent);
+      // if Expanded is set, our content needs to stretch to the left-over height
+      // Note we make each Builder unique, as it tends to re-use
+      // the states (down the tree) from the previous Builder
+      // https://stackoverflow.com/questions/55425804/using-builder-instead-of-statelesswidget
+      Widget tabContent = Builder(key: UniqueKey(), builder: (BuildContext context) => buildSelectedTab());
+      if (isExpanded) {
+        tabContent = Expanded(child: tabContent);
+      }
+
+      tabWidget = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          buildTabBar(),
+          // builder gives us dynamic height control vs TabBarView, but
+          // is sub-optimal since it recreates the tab content on each pass.
+          // This means onLoad API may be called multiple times in debug mode
+          tabContent
+
+          // This cause Expanded child to fail
+          // Padding(
+          //     padding: const EdgeInsets.only(left: 0),
+          //     child: Builder(builder: (BuildContext context) => buildSelectedTab())
+          // )
+        ],
+      );
+      // if Expanded is set, stretch our column to left-over height
+      if (isExpanded) {
+        tabWidget = Expanded(child: tabWidget);
+      }
     }
 
-    Widget rtn = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        buildTabBar(),
-        // builder gives us dynamic height control vs TabBarView, but
-        // is sub-optimal since it recreates the tab content on each pass.
-        // This means onLoad API may be called multiple times in debug mode
-        tabContent
 
-        // This cause Expanded child to fail
-        // Padding(
-        //     padding: const EdgeInsets.only(left: 0),
-        //     child: Builder(builder: (BuildContext context) => buildSelectedTab())
-        // )
-      ],
-    );
-    // if Expanded is set, stretch our column to left-over height
-    if (isExpanded) {
-      rtn = Expanded(child: rtn);
-    }
 
     if (widget._controller.margin != null) {
-      rtn = Padding(
+      tabWidget = Padding(
         padding: widget._controller.margin!,
-        child: rtn
+        child: tabWidget
       );
     }
 
-    return rtn;
+    return tabWidget;
   }
 
   /// we overwrote build() so no implementation here.
@@ -189,10 +226,13 @@ class TabBarState extends WidgetState<EnsembleTabBar> with SingleTickerProviderS
       tabs: widget._controller._items.map((e) => Tab(
           text: e.label,
           icon: e.icon != null ? ensemble.Icon.fromModel(e.icon!) : null)).toList(),
-      onTap: (index) => {
+      onTap: (index) {
         setState(() {
           widget._controller.selectedIndex = index;
-        })
+        });
+        if (widget._controller.onTabSelection != null) {
+          ScreenController().executeAction(context, widget._controller.onTabSelection!);
+        }
       },
     );
 

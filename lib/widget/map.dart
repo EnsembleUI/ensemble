@@ -5,10 +5,12 @@ import 'dart:io';
 
 import 'package:ensemble/device.dart';
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/view.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:flutter/material.dart';
@@ -37,23 +39,40 @@ class EnsembleMap extends StatefulWidget with Invokable, HasController<MyControl
       'markers': _controller.updateMarkerTemplate,
       'markerWidth': (width) => _controller.markerWidth = width,
       'markerHeight': (height) => _controller.markerHeight = height,
+      'boundaryPadding': (padding) => _controller.boundaryPadding = Utils.optionalInsets(padding),
+      'selectedMarker': (index) => _controller.updateSelectedMarker(Utils.optionalInt(index)),
+      'onMarkerTap': (action) => _controller.onMarkerTap = Utils.getAction(action, initiator: this),
+
     };
   }
 
   @override
   Map<String, Function> getters() {
-    return {};
+    return {
+      'selectedMarker': () => _controller.selectedMarker,
+    };
   }
 
   @override
   Map<String, Function> methods() {
-    return {};
+    return {
+      'fitBoundary': (padding) => _controller.refitBoundary(paddingOverride: Utils.optionalInsets(padding)),
+    };
   }
 
 }
 
 class MyController extends WidgetController with LocationCapability {
   final MapController _mapController = MapController();
+  EdgeInsets? boundaryPadding;
+  EnsembleAction? onMarkerTap;
+
+  int? selectedMarker;
+  void updateSelectedMarker(int? markerIndex) {
+    log("selected marker is $markerIndex");
+    selectedMarker = markerIndex;
+    notifyListeners();
+  }
 
   // unfortunately these are needed for flutter_map
   int? markerWidth;
@@ -63,7 +82,7 @@ class MyController extends WidgetController with LocationCapability {
   List<Marker> _markers = [];
   set markers(List<Marker> items) {
     _markers = items;
-    resetMapBounds();
+    fitBoundary();
   }
 
   Position? currentLocation;    // user's location if enabled & given permission
@@ -90,6 +109,7 @@ class MyController extends WidgetController with LocationCapability {
         );
       }
     }
+
   }
 
   void updateCurrentLocationStatus(dynamic locationData) {
@@ -105,16 +125,20 @@ class MyController extends WidgetController with LocationCapability {
 
   void requestUserLocation() async {
     currentLocation = await getLocationAsync();
-    resetMapBounds();
+    fitBoundary();
     notifyListeners();
   }
 
 
-
+  void refitBoundary({EdgeInsets? paddingOverride}) {
+    log("refitting boundary");
+    fitBoundary(paddingOverride: paddingOverride);
+    notifyListeners();
+  }
 
 
   /// zoom the map to fit our markers and current location
-  void resetMapBounds() {
+  void fitBoundary({EdgeInsets? paddingOverride}) {
     _mapController.onReady.then((value) {
       List<LatLng> points = [];
       if (currentLocation != null) {
@@ -123,10 +147,12 @@ class MyController extends WidgetController with LocationCapability {
       points.addAll(_markers.map((item) => item.point).toList());
 
       if (points.isNotEmpty) {
+        EdgeInsets? padding = paddingOverride ?? boundaryPadding;
         _mapController.fitBounds(
             LatLngBounds.fromPoints(points),
-            options: const FitBoundsOptions(padding: EdgeInsets.all(100)));
-      }
+            options: FitBoundsOptions(padding: padding ?? EdgeInsets.zero)
+        );
+      }//170 115
     });
   }
 
@@ -140,7 +166,6 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
 
 
   late final String _mapAccessToken;
-  int selectedWidgetIndex = 0;
   Marker? selectedWidget;
   Widget? overlayWidget;
 
@@ -194,7 +219,7 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
               onTap: () => selectMarker(i, point, markerWidget),
             );
             // if a widget is selected
-            if (selectedWidgetIndex != -1) {
+            if (widget._controller.selectedMarker != null) {
               selectMarker(i, point, markerWidget);
             }
           } else {
@@ -231,7 +256,7 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
     if (widget._controller._markerTemplate!.selectedWidget != null) {
       Widget childWidget = markerScope.scopeManager.buildWidgetWithScopeFromDefinition(widget._controller._markerTemplate!.selectedWidget);
       selectedWidget = buildMarker(childWidget, point);
-      selectedWidgetIndex = selectedIndex;
+      widget._controller.selectedMarker = selectedIndex;
       markerChanges = true;
     }
 
@@ -245,6 +270,11 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
       setState(() {
 
       });
+    }
+
+    // send the event
+    if (widget._controller.onMarkerTap != null) {
+      ScreenController().executeAction(context, widget._controller.onMarkerTap!);
     }
 
   }
@@ -275,7 +305,7 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
         ),
         layers: [
           TileLayerOptions(
-            urlTemplate: "https://api.mapbox.com/styles/v1/ensembleui/cl5ladr0w002316nitdjrqj3w/tiles/512/{z}/{x}/{y}@2x?access_token=$_mapAccessToken",
+            urlTemplate: "https://api.mapbox.com/styles/v1/ensembleui/cla1963q0000e15p00zuejxwu/tiles/512/{z}/{x}/{y}@2x?access_token=$_mapAccessToken",
             additionalOptions: {
               "access_token": _mapAccessToken
             },
@@ -291,10 +321,9 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
     return Stack(
       children: [
         map,
-        overlayWidget == null ?
-        const SizedBox.shrink() :
+        overlayWidget != null && widget._controller.selectedMarker != null ?
         Container(
-            margin: const EdgeInsets.only(bottom: 20, left: 10, right: 10),
+            margin: const EdgeInsets.only(bottom: 110, left: 10, right: 10),
             alignment: Alignment.bottomCenter,
             child: ConstrainedBox(
                 constraints: BoxConstraints(maxHeight: Device().screenHeight / 2),
@@ -302,23 +331,29 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
                   child: overlayWidget,
                 )
             )
-        )
+        ) :
+        const SizedBox.shrink()
       ],
     );
   }
 
   List<Marker> getCurrentMarkers() {
-    if (selectedWidgetIndex == -1) {
+    if (widget._controller.selectedMarker == null) {
       return widget._controller._markers;
     } else {
       List<Marker> rtn = [];
+      Marker? selected;
       for (int i=0; i<widget._controller._markers.length; i++) {
         // use the selected widget version
-        if (i == selectedWidgetIndex && selectedWidget != null) {
-          rtn.add(selectedWidget!);
+        if (i == widget._controller.selectedMarker && selectedWidget != null) {
+          selected = selectedWidget!;
         } else {
           rtn.add(widget._controller._markers[i]);
         }
+      }
+      // add selected widget to the end so its z-index is on top
+      if (selected != null) {
+        rtn.add(selected);
       }
       return rtn;
     }

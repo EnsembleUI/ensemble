@@ -1,4 +1,5 @@
 
+import 'package:ensemble/layout/app_scroller.dart';
 import 'package:ensemble/layout/box_layout.dart';
 import 'package:ensemble/layout/data_grid.dart';
 import 'package:ensemble/layout/flow.dart';
@@ -84,7 +85,9 @@ class WidgetRegistry {
     Flow.type: () => Flow(),
     DataGrid.type: () => DataGrid(),
     EnsembleDataRow.type: () => EnsembleDataRow(),
-    EnsembleTabBar.type: () => EnsembleTabBar(),
+    TabBarOnly.type: () => TabBarOnly(),
+    TabBarContainer.type: () => TabBarContainer(),
+    AppScroller.type: () => AppScroller(),
 
     // charts
     Highcharts.type: () => Highcharts(),
