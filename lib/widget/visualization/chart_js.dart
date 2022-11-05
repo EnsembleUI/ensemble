@@ -9,12 +9,14 @@ import 'package:js_widget/js_widget.dart';
 import 'dart:convert';
 
 class ChartJsController extends WidgetController {
+  ChartJsController() {
+    id = 'chartJs_'+(Random().nextInt(900000) + 100000).toString();
+  }
   int width = ChartJs.defaultSize;
   int height = ChartJs.defaultSize;
-  String id = 'chartJs_'+(Random().nextInt(900000) + 100000).toString();
   String get chartVar => 'myChart$id';
   String get chartDiv => 'div_$id';
-  String get chartId => id;
+  String get chartId => id!;
   dynamic config = '';
 }
 class ChartJs extends StatefulWidget with Invokable, HasController<ChartJsController, ChartJsState> {
@@ -43,7 +45,7 @@ class ChartJs extends StatefulWidget with Invokable, HasController<ChartJsContro
   @override
   Map<String, Function> setters() {
     return {
-      'id': (value) => _controller.id = Utils.getString(value, fallback: _controller.id),
+      'id': (value) => _controller.id = Utils.getString(value, fallback: _controller.id!),
       'width': (value) => _controller.width = Utils.getInt(value, fallback: defaultSize),
       'height': (value) => _controller.height = Utils.getInt(value, fallback: defaultSize),
       'config': (value) {
@@ -63,7 +65,7 @@ class ChartJsState extends WidgetState<ChartJs> {
       return Text("Still Loading...");
     }
     return JsWidget(
-      id: widget.controller.id,
+      id: widget.controller.id!,
       createHtmlTag: () => '<div id="${widget.controller.chartDiv}"><canvas id="${widget.controller.chartId}"></canvas></div>',
       scriptToInstantiate: (String c) {
         return 'if (typeof ${widget.controller.chartVar} !== "undefined") ${widget.controller.chartVar}.destroy();${widget.controller.chartVar} = new Chart(document.getElementById("${widget.controller.chartId}"), $c);${widget.controller.chartVar}.update();';
