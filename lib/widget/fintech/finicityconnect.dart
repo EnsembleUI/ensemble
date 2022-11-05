@@ -11,9 +11,11 @@ import 'package:js_widget/js_widget.dart';
 import 'dart:convert';
 
 class FinicityConnectController extends WidgetController {
+  FinicityConnectController() {
+    id = 'finicityConnect';
+  }
   int width = 10;
   int height = 10;
-  String id = 'finicityConnect';
   String uri = '';
   EnsembleAction? onSuccess, onCancel, onError, onRoute, onLoaded, onUser;
   String? overlay;
@@ -45,7 +47,7 @@ class FinicityConnect extends StatefulWidget with Invokable, HasController<Finic
   @override
   Map<String, Function> setters() {
     return {
-      'id': (value) => _controller.id = Utils.getString(value, fallback: _controller.id),
+      'id': (value) => _controller.id = Utils.getString(value, fallback: _controller.id!),
       'width': (value) => _controller.width = Utils.getInt(value, fallback: defaultSize),
       'height': (value) => _controller.height = Utils.getInt(value, fallback: defaultSize),
       'uri': (value) => _controller.uri = Utils.getString(value, fallback: _controller.uri),
@@ -92,7 +94,7 @@ class FinicityConnectState extends WidgetState<FinicityConnect> {
       overlay = 'overlay: ${widget.controller.overlay!},';
     }
     return JsWidget(
-      id: widget.controller.id,
+      id: widget.controller.id!,
       createHtmlTag: () => '<div></div>',
       listener: (String msg) {
         print('I got the message inside finicity!!!!');

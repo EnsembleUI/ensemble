@@ -27,13 +27,11 @@ class LottieState extends WidgetState<EnsembleLottie> {
     if (source.isNotEmpty) {
       // if is URL
       if (source.startsWith('https://') || source.startsWith('http://')) {
-        // image binding is tricky. When the URL has not been resolved
-        // the image will throw exception. We have to use a permanent placeholder
-        // until the binding engages
         return Lottie.network(
           widget.controller.source,
           width: widget.controller.width?.toDouble(),
           height: widget.controller.height?.toDouble(),
+          repeat: widget.controller.repeat ?? true,
           fit: fit,
           errorBuilder: (context, error, stacktrace) => placeholderImage(),
         );
@@ -44,6 +42,7 @@ class LottieState extends WidgetState<EnsembleLottie> {
             'assets/images/${widget.controller.source}',
             width: widget.controller.width?.toDouble(),
             height: widget.controller.height?.toDouble(),
+            repeat: widget.controller.repeat ?? true,
             fit: fit,
             errorBuilder: (context, error, stacktrace) => placeholderImage()
         );
