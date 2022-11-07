@@ -96,3 +96,4 @@ ensemble/pages
 ensemble/fonts
 generated_plugin_registrant.dart
 pubspec.lock
+.ios/Config
