@@ -23,7 +23,7 @@ abstract class WidgetController extends Controller {
   // base properties applicable to all widgets
   bool expanded = false;
   bool visible = true;
-
+  String? id;
   // optional label/labelHint for use in Forms
   String? label;
   String? labelHint;
