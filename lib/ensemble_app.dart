@@ -109,7 +109,8 @@ class EnsembleAppState extends State<EnsembleApp> {
           screenPayload: widget.screenPayload,
         ),
       ),
-      builder: (context, widget) => FlutterI18n.rootAppBuilder().call(context, widget)
+      // TODO: this case translation issue on hot loading. Address this for RTL support
+      //builder: (context, widget) => FlutterI18n.rootAppBuilder().call(context, widget)
     );
   }
 
