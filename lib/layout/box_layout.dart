@@ -172,7 +172,7 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
         height: widget._controller.height != null ? widget._controller.height!.toDouble() : null,
         margin: widget._controller.margin,
 
-        //clipBehavior: Clip.hardEdge,
+        clipBehavior: Clip.hardEdge,
         decoration: _buildBoxDecoration(),
 
         child: flutter.InkWell(
