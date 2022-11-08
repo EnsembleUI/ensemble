@@ -96,13 +96,15 @@ class EnsembleAppState extends State<EnsembleApp> {
   Widget renderApp(EnsembleConfig config) {
     //log("EnsembleApp build() - $hashCode");
     return MaterialApp(
-      navigatorKey: Utils.globalAppKey,
       theme: config.getAppTheme(),
-      localizationsDelegates: [
-        config.getI18NDelegate(),
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate
-      ],
+
+      // Move these to the outer MaterialApp to resolve the intermittent translation issue
+      //navigatorKey: Utils.globalAppKey,
+      // localizationsDelegates: [
+      //   config.getI18NDelegate(),
+      //   GlobalMaterialLocalizations.delegate,
+      //   GlobalWidgetsLocalizations.delegate
+      // ],
       home: Scaffold(
         body: Screen(
           appProvider: AppProvider(definitionProvider: config.definitionProvider),
