@@ -428,6 +428,7 @@ class Utils {
       String? fontFamily = Utils.optionalString(textStyle['fontFamily']);
       int? fontSize = Utils.optionalInt(textStyle['fontSize'], min: 1, max: 100);
       Color? color = Utils.getColor(textStyle['color']);
+      FontWeight? fontWeight = getFontWeight(textStyle['fontWeight']);
 
       TextDecoration? decoration;
       switch(textStyle['decoration']) {
@@ -451,6 +452,7 @@ class Utils {
           fontSize: fontSize?.toDouble(),
           color: color,
           decoration: decoration,
+          fontWeight: fontWeight
         );
       }
     }
