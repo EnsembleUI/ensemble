@@ -245,8 +245,8 @@ class EnsembleConfig {
 
   UserAppConfig? getUserAppConfig() {
     return UserAppConfig(
-      baseUrl: appBundle?.config?['baseUrl'],
-      useBrowserUrl: appBundle?.config?['useBrowserUrl']
+      baseUrl: appBundle?.config?['app']?['baseUrl'],
+      useBrowserUrl: appBundle?.config?['app']?['useBrowserUrl']
     );
   }
 
