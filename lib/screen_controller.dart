@@ -100,6 +100,8 @@ class ScreenController {
         HttpUtils.invokeApi(apiDefinition, dataContext)
             .then((response) => _onAPIComplete(context, dataContext, action, apiDefinition, Response(response), apiMap, scopeManager))
             .onError((error, stackTrace) => processAPIError(context, dataContext, apiDefinition, error, apiMap, scopeManager));
+      } else {
+        throw RuntimeError("Unable to find api definition for ${action.apiName}");
       }
     } else if (action is BaseNavigateScreenAction) {
       // process input parameters
