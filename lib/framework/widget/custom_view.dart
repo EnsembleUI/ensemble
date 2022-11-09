@@ -24,6 +24,7 @@ class CustomView extends StatelessWidget with Invokable {
         scopeManager.dataContext.addInvokableContext(param, InvokableNull());
       }
     }
+    log("Custom View created $hashCode");
 
   }
 
@@ -31,14 +32,15 @@ class CustomView extends StatelessWidget with Invokable {
   final Widget childWidget;
   final ScopeManager scopeManager;
   final ViewBehavior viewBehavior;
-
+  bool onLoadExecuted = false;
 
 
   @override
   Widget build(BuildContext context) {
-    // execute onLoad if applicable
-    if (viewBehavior.onLoad != null) {
+    // execute onLoad once if applicable
+    if (viewBehavior.onLoad != null && !onLoadExecuted) {
       ScreenController().executeAction(context, viewBehavior.onLoad!);
+      onLoadExecuted = true;
     }
     return childWidget;
   }
