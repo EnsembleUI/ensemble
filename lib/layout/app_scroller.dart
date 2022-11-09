@@ -1,6 +1,6 @@
 import 'dart:developer';
 
-import 'package:ensemble/device.dart';
+import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/view.dart';
