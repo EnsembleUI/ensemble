@@ -1,11 +1,15 @@
 
+import 'dart:developer';
+
 import 'package:carousel_slider/carousel_slider.dart';
-import 'package:ensemble/device.dart';
+import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/layout/layout_helper.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/widget/widget_util.dart';
@@ -39,7 +43,8 @@ class Carousel extends StatefulWidget with UpdatableContainer, Invokable, HasCon
       'indicatorPosition': (position) => _controller.indicatorPosition = IndicatorPosition.values.from(position),
       'indicatorWidth': (w) => _controller.indicatorWidth = Utils.optionalInt(w),
       'indicatorHeight': (h) => _controller.indicatorHeight = Utils.optionalInt(h),
-      'indicatorMargin': (value) => _controller.indicatorMargin = Utils.getInsets(value)
+      'indicatorMargin': (value) => _controller.indicatorMargin = Utils.getInsets(value),
+      'onItemChange': (action) => _controller.onItemChange =  Utils.getAction(action),
     };
   }
 
@@ -88,6 +93,10 @@ class MyController extends BoxController {
   int? indicatorWidth;
   int? indicatorHeight;
   EdgeInsets? indicatorMargin;
+
+  // for single view the current item index is dispatched,
+  // for multi view this dispatch when clicking on a card
+  EnsembleAction? onItemChange;
 }
 
 
@@ -112,6 +121,7 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
           });
       });
     }
+
   }
 
 
@@ -187,8 +197,6 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
     List<Widget> items = [];
     for (int i=0; i<children.length; i++) {
       Widget child = children[i];
-      //double leftGap = i == 0 ? gap : gap / 2;
-      //double rightGap = i == children.length-1 ? gap : gap / 2;
 
       items.add(Container(
         margin: EdgeInsets.only(
@@ -200,10 +208,19 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
     return items;
   }
 
+  _onItemChange(int index) {
+    if (widget._controller.onItemChange != null) {
+      ScreenController().executeAction(context, widget._controller.onItemChange!);
+    }
+  }
+
   CarouselOptions _getSingleViewOptions() {
     return _getBaseCarouselOptions().copyWith(
       padEnds: true,
-      viewportFraction: widget._controller.singleItemWidthRatio ?? 1
+      viewportFraction: widget._controller.singleItemWidthRatio ?? 1,
+      onPageChanged: (index, reason) {
+        log("index $index. Reason $reason");
+      },
     );
   }
 

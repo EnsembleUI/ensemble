@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:developer';
-import 'package:ensemble/device.dart';
+import 'package:ensemble/framework/app_config.dart';
+import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/extensions.dart';
@@ -33,6 +34,7 @@ class DataContext {
     if (initialMap != null) {
       _contextMap.addAll(initialMap);
     }
+    _contextMap['app'] = AppConfig();
     _contextMap['ensemble'] = NativeInvokable(buildContext);
     // device is a common name. If user already uses that, don't override it
     if (_contextMap['device'] == null) {
