@@ -1,6 +1,6 @@
 import 'dart:developer';
 
-import 'package:ensemble/device.dart';
+import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/widget/error_screen.dart';
@@ -94,7 +94,7 @@ class EnsembleAppState extends State<EnsembleApp> {
   }
 
   Widget renderApp(EnsembleConfig config) {
-    log("EnsembleApp build() - $hashCode");
+    //log("EnsembleApp build() - $hashCode");
     return MaterialApp(
       navigatorKey: Utils.globalAppKey,
       theme: config.getAppTheme(),

@@ -1,0 +1,21 @@
+{
+  "$id": "https://ensembleui.com/config.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Config",
+  "type": "object",
+  "properties": {
+    "app": {
+      "type": "object",
+      "properties": {
+        "baseUrl": {
+          "type": "string",
+          "description": "Define your app's baseUrl. This can be accessed in your screens as ${app.baseUrl}"
+        },
+        "useBrowserUrl": {
+          "type": "boolean",
+          "description": "When applicable (i.e. on Web), read the base Url from the browser instead and ignore the user's baseUrl"
+        }
+      }
+    }
+  }
+}

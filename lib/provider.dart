@@ -56,12 +56,22 @@ class LocalDefinitionProvider extends DefinitionProvider {
 
   @override
   Future<AppBundle> getAppBundle() async {
+    YamlMap? theme;
     try {
-      var content = await rootBundle.loadString('${path}theme.config');
-      return AppBundle(theme: await loadYaml(content));
+      var value = await rootBundle.loadString('${path}theme.ensemble');
+      theme = await loadYaml(value);
     } catch (error) {
-      return AppBundle();
+      // ignore error
     }
+
+    YamlMap? config;
+    try {
+      var value = await rootBundle.loadString('${path}config.ensemble');
+      config = await loadYaml(value);
+    } catch (error) {
+      // ignore error
+    }
+    return AppBundle(theme: theme, config: config);
   }
 }
 
