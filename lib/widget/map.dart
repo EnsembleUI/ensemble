@@ -3,7 +3,7 @@ import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
 
-import 'package:ensemble/device.dart';
+import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/scope.dart';
