@@ -14,11 +14,14 @@ class FinicityConnectController extends WidgetController {
   FinicityConnectController() {
     id = 'finicityConnect';
   }
-  int width = 10;
-  int height = 10;
+  int width = 0;
+  int height = 0;
   String uri = '';
   EnsembleAction? onSuccess, onCancel, onError, onRoute, onLoaded, onUser;
   String? overlay;
+  int left = 0;
+  int top = 0;
+  String position = 'absolute';
 }
 class FinicityConnect extends StatefulWidget with Invokable, HasController<FinicityConnectController, FinicityConnectState> {
   static const type = 'FinicityConnect';
@@ -50,6 +53,9 @@ class FinicityConnect extends StatefulWidget with Invokable, HasController<Finic
       'id': (value) => _controller.id = Utils.getString(value, fallback: _controller.id!),
       'width': (value) => _controller.width = Utils.getInt(value, fallback: defaultSize),
       'height': (value) => _controller.height = Utils.getInt(value, fallback: defaultSize),
+      'left': (value) => _controller.left = Utils.getInt(value, fallback: _controller.left),
+      'top': (value) => _controller.top = Utils.getInt(value, fallback: _controller.top),
+      'position': (value) => _controller.position = Utils.getString(value, fallback: _controller.position),
       'uri': (value) => _controller.uri = Utils.getString(value, fallback: _controller.uri),
       'onSuccess': (funcDefinition) => _controller.onSuccess = Utils.getAction(funcDefinition, initiator: this),
       'onCancel': (funcDefinition) => _controller.onCancel = Utils.getAction(funcDefinition, initiator: this),
@@ -93,6 +99,14 @@ class FinicityConnectState extends WidgetState<FinicityConnect> {
     if ( widget.controller.overlay != null ) {
       overlay = 'overlay: ${widget.controller.overlay!},';
     }
+    String width = '100%';
+    if ( widget.controller.width != 0 ) {
+      width = '${widget.controller.width}px';
+    }
+    String height = '100%';
+    if ( widget.controller.height != 0 ) {
+      height = '${widget.controller.height}px';
+    }
     return JsWidget(
       id: widget.controller.id!,
       createHtmlTag: () => '<div></div>',
@@ -103,7 +117,8 @@ class FinicityConnectState extends WidgetState<FinicityConnect> {
       },
       scriptToInstantiate: (String c) {
 
-        return '''window.finicityConnect.launch("$c", {
+        return '''
+        window.finicityConnect.launch("$c", {
         $overlay
         success: (event) => {
           console.log('Yay! User went through Connect', event);
@@ -135,9 +150,15 @@ class FinicityConnectState extends WidgetState<FinicityConnect> {
           event = {type:'user',data:event};
           handleMessage('${widget.controller.id}',JSON.stringify(event));
          }
-        
-        
         });
+        const finIFrame = document.getElementById("finicityConnectIframe");
+        if ( finIFrame ) {
+          finIFrame.style.left = '${widget.controller.left}px';
+          finIFrame.style.top = '${widget.controller.top}px';
+          finIFrame.style.position = '${widget.controller.position}';
+          finIFrame.style.width = '$width';
+          finIFrame.style.height = '$height';
+        }
         ''';
         //return 'if (typeof ${widget.controller.chartVar} !== "undefined") ${widget.controller.chartVar}.destroy();${widget.controller.chartVar} = new Chart(document.getElementById("${widget.controller.chartId}"), $c);${widget.controller.chartVar}.update();';
       },
