@@ -251,7 +251,10 @@
             "fontAwesome"
           ]
         },
-        "onTap": { "$ref": "#/$defs/Action-payload" },
+        "onTap": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Call Ensemble's built-in functions or execute code"
+        },
         "styles": {
           "allOf": [
             {
@@ -551,7 +554,10 @@
         {
           "type": "object",
           "properties": {
-            "onKeyPress": { "$ref": "#/$defs/Action-payload" },
+            "onKeyPress": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "On every keystroke, call Ensemble's built-in functions or execute code"
+            },
             "value": {
               "type": "string",
               "description": "Specifying the value of your Text Input"
@@ -589,7 +595,10 @@
         {
           "type": "object",
           "properties": {
-            "onKeyPress": { "$ref": "#/$defs/Action-payload" },
+            "onKeyPress": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "On every keystroke, call Ensemble's built-in functions or execute code"
+            },
             "obscureToggle": {
               "type": "boolean",
               "description": "enable the toggling between plain and obscure text."
@@ -702,7 +711,10 @@
           "type": "boolean",
           "description": "If the button is inside a Form and upon on tap, it will execute the form's onSubmit action if this property is TRUE"
         },
-        "onTap": { "$ref": "#/$defs/Action-payload" },
+        "onTap": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Call Ensemble's built-in functions or execute code"
+        },
         "styles": {
           "allOf": [
             { "$ref": "#/$defs/baseStyles" },
@@ -849,14 +861,12 @@
       "type": "object",
       "allOf": [
         {
-          "onItemChange": {
-            "$ref": "#/$defs/Action-payload",
-            "description": "Dispatch when an carousel item is in focus. For SingleView, this happens when the item is scroll into view. For scrolling MultiView, the event dispatches only when you tap on the item. The index of the item can be retrieved using 'selectedIndex'."
-          }
-        },
-        {
           "properties": {
             "children": { "$ref": "#/$defs/Widgets" },
+            "onItemChange": {
+              "description": "Dispatch when an carousel item is in focus. For SingleView, this happens when the item is scroll into view. For scrolling MultiView, the event dispatches only when you tap on the item. The index of the item can be retrieved using 'selectedIndex'.",
+              "$ref": "#/$defs/Action-payload"
+            },
             "styles": {
               "allOf": [
                 {
@@ -937,11 +947,11 @@
         "item-template": {
           "type": "object",
           "properties": {
-            "data": { 
+            "data": {
               "type": "string" ,
               "description": "Bind to an array of data from an API response or a variable"
             },
-            "name": { 
+            "name": {
               "type": "string",
               "description": "Set the name to reference as you iterate through the array of data"
             },
@@ -986,7 +996,10 @@
           "type": "string",
           "enum": ["default", "fontAwesome"]
         },
-        "onChange": { "$ref": "#/$defs/Action-payload" },
+        "onChange": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Call Ensemble's built-in functions or execute code when the input changes. Note for free-form text input, this event only dispatches if the text changes AND the focus is lost (e.g. clicking on button)"
+        },
         "styles": {
           "allOf": [
             { "$ref": "#/$defs/baseStyles" },
@@ -1007,7 +1020,6 @@
     },
     "Action-payload": {
       "type": ["object", "string"],
-      "description": "Call Ensemble's built-in functions or execute code",
       "allOf": [
         {
           "properties": {
