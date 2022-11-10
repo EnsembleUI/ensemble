@@ -44,13 +44,15 @@ class Carousel extends StatefulWidget with UpdatableContainer, Invokable, HasCon
       'indicatorWidth': (w) => _controller.indicatorWidth = Utils.optionalInt(w),
       'indicatorHeight': (h) => _controller.indicatorHeight = Utils.optionalInt(h),
       'indicatorMargin': (value) => _controller.indicatorMargin = Utils.getInsets(value),
-      'onItemChange': (action) => _controller.onItemChange =  Utils.getAction(action),
+      'onItemChange': (action) => _controller.onItemChange =  Utils.getAction(action, initiator: this),
     };
   }
 
   @override
   Map<String, Function> getters() {
-    return {};
+    return {
+      'selectedIndex': () => _controller.selectedIndex,
+    };
   }
 
   @override
@@ -97,13 +99,15 @@ class MyController extends BoxController {
   // for single view the current item index is dispatched,
   // for multi view this dispatch when clicking on a card
   EnsembleAction? onItemChange;
+  int selectedIndex = 0;
 }
 
 
 class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
   List<Widget>? templatedChildren;
   final CarouselController _carouselController = CarouselController();
-  int selectedIndex = 0;
+  // this is used to highlight the correct indicator index
+  int focusIndex = 0;
 
   @override
   void didChangeDependencies() {
@@ -142,8 +146,18 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
       List<Widget> indicators = [];
       for (int i=0; i<items.length; i++) {
         indicators.add(GestureDetector(
-          child: getIndicator(i == selectedIndex),
-          onTap: () => _carouselController.animateToPage(i),
+          child: getIndicator(i == focusIndex),
+          onTap: () {
+
+            // MultiView only dispatch itemChange when explicitly clicking on the item
+            // But here since we are selecting the indicator, this should be the
+            // same as if you are selecting the item, hence dispatch the item here
+            if (!singleView) {
+              _onItemChange(i);
+            }
+
+            _carouselController.animateToPage(i);
+          },
         ));
       }
       // Carousel requires a fixed height, so to make sure the indicators don't shift the UI, we'll make
@@ -192,34 +206,44 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
 
     // wrap each child inside Container to add padding and gap
     double gap = widget._controller.gap?.toDouble() ?? MyController.defaultItemGap;
-    double leadingGap = widget._controller.leadingGap?.toDouble() ?? 0;
-    double trailingGap = widget._controller.trailingGap?.toDouble() ?? 0;
+    double leadingGap = widget._controller.leadingGap?.toDouble() ?? gap / 2;
+    double trailingGap = widget._controller.trailingGap?.toDouble() ?? gap / 2;
     List<Widget> items = [];
     for (int i=0; i<children.length; i++) {
       Widget child = children[i];
 
-      items.add(Container(
-        margin: EdgeInsets.only(
+      items.add(GestureDetector(
+        child: Container(
+          padding: EdgeInsets.only(
             left: i==0 ? leadingGap : gap / 2,
-            right: i==children.length-1 ? trailingGap : gap / 2),
-        child: child,
+            right: i==children.length-1 ? trailingGap : gap / 2
+          ),
+          child: child,
+        ),
+        onTap: (() => _onItemChange(i))
       ));
+
     }
     return items;
   }
 
   _onItemChange(int index) {
-    if (widget._controller.onItemChange != null) {
+    if (index != widget._controller.selectedIndex && widget._controller.onItemChange != null) {
+      widget._controller.selectedIndex = index;
+      //log("Changed to index $index");
       ScreenController().executeAction(context, widget._controller.onItemChange!);
     }
   }
 
   CarouselOptions _getSingleViewOptions() {
     return _getBaseCarouselOptions().copyWith(
-      padEnds: true,
+      padEnds: false,
       viewportFraction: widget._controller.singleItemWidthRatio ?? 1,
       onPageChanged: (index, reason) {
-        log("index $index. Reason $reason");
+        _onItemChange(index);
+        setState(() {
+          focusIndex = index;
+        });
       },
     );
   }
@@ -230,7 +254,11 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
       padEnds: false,
       pageSnapping: false,
       viewportFraction: widget._controller.multipleItemWidthRatio ?? 0.6,
-
+      onPageChanged: (index, _) {
+        setState(() {
+          focusIndex = index;
+        });
+      }
     );
   }
 
@@ -238,11 +266,6 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
     return CarouselOptions(
       height: widget._controller.height?.toDouble(),
       enableInfiniteScroll: false,
-      onPageChanged: (index, _) {
-        setState(() {
-          selectedIndex = index;
-        });
-      }
     );
   }
 
