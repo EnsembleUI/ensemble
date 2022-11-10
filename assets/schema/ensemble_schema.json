@@ -178,7 +178,7 @@
                   "type": "string",
                   "description": "Set treatment of text longer than available space",
                   "enum": [
-                    "wrap", "visible", "clip", "fade", "ellipsis"
+                    "wrap", "visible", "clip", "ellipsis"
                   ]
                 },
                 "textAlign": {
@@ -758,7 +758,7 @@
               "type": "string",
               "description": "Treatment of text longer than available space",
               "enum": [
-                "wrap", "visible", "clip", "fade", "ellipsis"
+                "wrap", "visible", "clip", "ellipsis"
               ]
             },
             "width": {
@@ -849,6 +849,12 @@
       "type": "object",
       "allOf": [
         {
+          "onItemChange": {
+            "$ref": "#/$defs/Action-payload",
+            "description": "Dispatch when an carousel item is in focus. For SingleView, this happens when the item is scroll into view. For scrolling MultiView, the event dispatches only when you tap on the item. The index of the item can be retrieved using 'selectedIndex'."
+          }
+        },
+        {
           "properties": {
             "children": { "$ref": "#/$defs/Widgets" },
             "styles": {
@@ -861,7 +867,7 @@
                   "properties": {
                     "layout": {
                       "type": "string",
-                      "description": "Show a single view, multiple views, or automatically switch between the views with autoLayoutBreakpoint",
+                      "description": "Show a SingleView (on screen one at a time), MultiView (scrolling items), or automatically switch between the views with autoLayoutBreakpoint",
                       "enum": ["auto" ,"single", "multiple"]
                     },
                     "autoLayoutBreakpoint": {
