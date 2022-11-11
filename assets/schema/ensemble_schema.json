@@ -1330,7 +1330,7 @@
     },
     "RootWidget": {
       "type": "object",
-      "oneOf": [
+      "allOf": [
         {
           "properties": {
             "Column": { "$ref": "#/$defs/Column-payload" }
@@ -1354,7 +1354,7 @@
       ]
     },
     "Widget": {
-      "oneOf": [
+      "allOf": [
         {
           "properties": {
             "Text": { "$ref": "#/$defs/Text-payload" }
