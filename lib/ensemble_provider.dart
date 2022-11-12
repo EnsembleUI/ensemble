@@ -21,7 +21,32 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
   Future<AppBundle> getAppBundle() async {
     return appModel.getAppBundle();
   }
-
+  static void getAppDefinition(String appId, Function callback, Function onError) {
+    FirebaseFirestore db = FirebaseFirestore.instance;
+    db.collection('apps')
+        .doc(appId).get().then(
+            (doc) => callback(doc.id,doc.data()),
+            onError: (error) => onError(error)
+    );
+  }
+  //each item in the list is <appid>:<appname> format
+  static void getListOfDemoApps(Function callback,Function onError) {
+    List<Map<String,dynamic>> apps = [];
+    FirebaseFirestore db = FirebaseFirestore.instance;
+    db.collection('apps')
+        .where("category", isEqualTo: "Demo")
+        .where("isPublic", isEqualTo: true)
+        .where("isArchived", isEqualTo: false)
+        //.orderBy("name")
+        .get().then((querySnapshot) {
+          List<dynamic> allData = querySnapshot.docs.map((doc) => {'id':doc.id,'props':doc.data()})
+              .toList();
+          for (Map<String,dynamic> doc in allData) {
+            apps.add(doc);
+          }
+          callback(apps);
+        },onError: (error, stackTrace) => onError(error));
+  }
   @override
   Future<YamlMap> getDefinition({String? screenId, String? screenName}) async {
     YamlMap? content;
