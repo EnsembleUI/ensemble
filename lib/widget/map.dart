@@ -124,7 +124,7 @@ class MyController extends WidgetController with LocationCapability {
   }
 
   void requestUserLocation() async {
-    currentLocation = await getLocationAsync();
+    currentLocation = (await getLocationAsync()).location;
     fitBoundary();
     notifyListeners();
   }

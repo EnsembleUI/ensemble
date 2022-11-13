@@ -4,6 +4,7 @@ import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/bindings.dart';
+import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
@@ -265,6 +266,21 @@ class ScreenController {
     } else if (action is StopTimerAction) {
       if (scopeManager != null) {
         scopeManager.removeTimer(action.id);
+      }
+    } else if (action is GetLocationAction) {
+      if (action.onLocationReceived != null) {
+        Device().getLocationAsync().then((value) {
+          if (value.location != null) {
+            DataContext localizedContext = dataContext.clone();
+            localizedContext.addDataContextById('latitude', value.location!.latitude);
+            localizedContext.addDataContextById('longitude', value.location!.longitude);
+            _executeAction(context, localizedContext, action.onLocationReceived!, null, scopeManager);
+          } else if (action.onError != null) {
+            DataContext localizedContext = dataContext.clone();
+            localizedContext.addDataContextById('reason', value.error ?? 'unknown');
+            _executeAction(context, localizedContext, action.onError!, null, scopeManager);
+          }
+        });
       }
     } else if (action is ExecuteCodeAction) {
       action.inputs?.forEach((key, value) {

@@ -130,6 +130,15 @@ class ShowToastAction extends EnsembleAction {
   final Map<String, dynamic>? styles;
 }
 
+class GetLocationAction extends EnsembleAction {
+  GetLocationAction({
+    this.onLocationReceived,
+    this.onError
+  });
+  EnsembleAction? onLocationReceived;
+  EnsembleAction? onError;
+}
+
 class TimerPayload {
   TimerPayload({
     this.id,
@@ -151,6 +160,6 @@ class TimerPayload {
 }
 
 
-enum ActionType { invokeAPI, navigateScreen, navigateModalScreen, showDialog, startTimer, stopTimer, closeAllDialogs, executeCode, showToast }
+enum ActionType { invokeAPI, navigateScreen, navigateModalScreen, showDialog, startTimer, stopTimer, closeAllDialogs, executeCode, showToast, getLocation }
 
 enum ToastType { success, error, warning, info, custom }
