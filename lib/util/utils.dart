@@ -267,6 +267,11 @@ class Utils {
             codeBlock: payload['body'],
             onComplete: Utils.getAction(payload['onComplete'], initiator: initiator)
         );
+      } else if ( payload['action'] == ActionType.openUrl.name ) {
+        return OpenUrlAction(
+          payload['url'],
+          openInExternalApp: Utils.getBool(payload['openInExternalApp'], fallback: false)
+        );
       }
     }
     /// short-hand //@code string is same as ExecuteCodeAction
