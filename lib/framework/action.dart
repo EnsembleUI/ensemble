@@ -105,7 +105,11 @@ class ExecuteCodeAction extends EnsembleAction {
   String codeBlock;
   EnsembleAction? onComplete;
 }
-
+class OpenUrlAction extends EnsembleAction {
+  String url;
+  bool openInExternalApp;
+  OpenUrlAction(this.url, {this.openInExternalApp=false});
+}
 class ShowToastAction extends EnsembleAction {
   ShowToastAction({
     Invokable? initiator,
@@ -160,6 +164,6 @@ class TimerPayload {
 }
 
 
-enum ActionType { invokeAPI, navigateScreen, navigateModalScreen, showDialog, startTimer, stopTimer, closeAllDialogs, executeCode, showToast, getLocation }
+enum ActionType { invokeAPI, navigateScreen, navigateModalScreen, showDialog, startTimer, stopTimer, closeAllDialogs, executeCode, showToast, getLocation, openUrl }
 
 enum ToastType { success, error, warning, info, custom }

@@ -23,7 +23,10 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 import 'package:yaml/yaml.dart';
+import 'package:url_launcher/link.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 
 /// Singleton that holds the page model definition
@@ -300,8 +303,10 @@ class ScreenController {
         customToastBody = scopeManager.buildWidgetFromDefinition(action.body);
       }
       ToastController().showToast(context, action, customToastBody);
-
-      
+    } else if ( action is OpenUrlAction ) {
+      dynamic value = dataContext.eval(action.url);
+      value ??= '';
+      launchUrl(Uri.parse(value),mode: (action.openInExternalApp)?LaunchMode.externalApplication:LaunchMode.platformDefault );
     }
   }
 
