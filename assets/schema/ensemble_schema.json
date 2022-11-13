@@ -1026,7 +1026,7 @@
             "action": {
               "type": "string",
               "description": "invoke an Ensemble's built-in functions",
-              "enum": ["invokeAPI" ,"navigateScreen", "navigateModalScreen", "showDialog", "closeAllDialogs", "startTimer", "showToast", "executeCode"]
+              "enum": ["invokeAPI" ,"navigateScreen", "navigateModalScreen", "showDialog", "closeAllDialogs", "startTimer", "showToast", "executeCode", "getLocation"]
             }
           }
         },
@@ -1317,6 +1317,27 @@
                     "$ref": "#/$defs/borderRadius"
                   }
                 ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "getLocation"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "onLocationReceived": {
+                "$ref": "#/$defs/Action-payload",
+                "description": "Callback Action once we get the device location"
+              },
+              "onError": {
+                "$ref": "#/$defs/Action-payload",
+                "description": "Callback Action if we are unable to get the device location. Reason is available under 'reason' field"
               }
             }
           }

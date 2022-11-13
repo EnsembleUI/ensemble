@@ -81,7 +81,8 @@ mixin LocationCapability {
     return location;
   }
   
-  Future<Position?> getLocationAsync() async {
+  Future<DeviceLocation> getLocationAsync() async {
+    String? error;
     if (await Geolocator.isLocationServiceEnabled()) {
       LocationPermission permission = await Geolocator.checkPermission();
       // ask for permission if not already
@@ -91,9 +92,13 @@ mixin LocationCapability {
 
       if (![LocationPermission.denied, LocationPermission.deniedForever].contains(permission)) {
         location = await Geolocator.getCurrentPosition();
+      } else {
+        error = 'denied';
       }
+    } else {
+      error = 'disabled';
     }
-    return Future.value(location);
+    return Future.value(DeviceLocation(location: location, error: error));
   }
 }
 
@@ -213,4 +218,11 @@ class Location with Invokable {
 
 enum DevicePlatform {
   web, android, ios, macos, windows, other
+}
+
+// the wrapper class for location request that includes other info
+class DeviceLocation {
+  DeviceLocation({this.location, this.error});
+  Position? location;
+  String? error;
 }

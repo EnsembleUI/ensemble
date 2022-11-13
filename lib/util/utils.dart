@@ -255,6 +255,11 @@ class Utils {
           duration: Utils.optionalInt(payload['options']?['duration'], min: 1),
           styles: styles
         );
+      } else if (payload['action'] == ActionType.getLocation.name) {
+        return GetLocationAction(
+          onLocationReceived: Utils.getAction(payload['onLocationReceived']),
+          onError: Utils.getAction(payload['onError'])
+        );
       } else if (payload['action'] == ActionType.executeCode.name) {
         return ExecuteCodeAction(
             initiator: initiator,
