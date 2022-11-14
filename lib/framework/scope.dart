@@ -16,6 +16,7 @@ import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
 import 'package:event_bus/event_bus.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:yaml/yaml.dart';
 
 
@@ -47,6 +48,20 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
 
   @override
   List<BuildContext> get openedDialogs => pageData.openedDialogs;
+
+  /// call when the screen is being disposed
+  /// TODO: consolidate listeners, location, eventBus, ...
+  void dispose() {
+    // cancel the screen's location listener
+    pageData.locationListener?.cancel();
+  }
+
+  /// only 1 location listener per screen
+  void addLocationListener(StreamSubscription<Position> streamSubscription) {
+    // first cancel the previous one
+    pageData.locationListener?.cancel();
+    pageData.locationListener = streamSubscription;
+  }
 
   // add repeating timer so we can manage it later.
   void addTimer(StartTimerAction timerAction, Timer timer) {
@@ -498,6 +513,9 @@ class PageData {
   // When a timer is not tie to a widget, we add them to a simple list.
   final Map<Invokable, EnsembleTimer> _timerMap = {};
   final List<EnsembleTimer> _timers = [];
+
+  /// 1 recurring location listener per page
+  StreamSubscription<Position>? locationListener;
 
   // list of all opened Dialogs' contexts
   final List<BuildContext> openedDialogs = [];

@@ -362,6 +362,8 @@ class ViewState extends State<View>{
   @override
   void dispose() {
     //log('Disposing View ${widget.hashCode}');
+    _scopeManager.dispose();
+
     _scopeManager.debugListenerMap();
     _scopeManager.eventBus.destroy();
     super.dispose();
