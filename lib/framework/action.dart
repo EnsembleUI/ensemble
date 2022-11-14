@@ -137,10 +137,15 @@ class ShowToastAction extends EnsembleAction {
 class GetLocationAction extends EnsembleAction {
   GetLocationAction({
     this.onLocationReceived,
-    this.onError
+    this.onError,
+    this.recurring,
+    this.recurringDistanceFilter
   });
   EnsembleAction? onLocationReceived;
   EnsembleAction? onError;
+
+  bool? recurring;
+  int? recurringDistanceFilter;
 }
 
 class TimerPayload {

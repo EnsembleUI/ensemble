@@ -21,6 +21,7 @@ import 'package:ensemble/framework/widget/widget.dart';
 import 'package:event_bus/event_bus.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:url_launcher/url_launcher_string.dart';
@@ -271,20 +272,7 @@ class ScreenController {
         scopeManager.removeTimer(action.id);
       }
     } else if (action is GetLocationAction) {
-      if (action.onLocationReceived != null) {
-        Device().getLocationAsync().then((value) {
-          if (value.location != null) {
-            DataContext localizedContext = dataContext.clone();
-            localizedContext.addDataContextById('latitude', value.location!.latitude);
-            localizedContext.addDataContextById('longitude', value.location!.longitude);
-            _executeAction(context, localizedContext, action.onLocationReceived!, null, scopeManager);
-          } else if (action.onError != null) {
-            DataContext localizedContext = dataContext.clone();
-            localizedContext.addDataContextById('reason', value.error ?? 'unknown');
-            _executeAction(context, localizedContext, action.onError!, null, scopeManager);
-          }
-        });
-      }
+      executeGetLocationAction(scopeManager!, dataContext, context, action);
     } else if (action is ExecuteCodeAction) {
       action.inputs?.forEach((key, value) {
         dynamic val = dataContext.eval(value);
@@ -428,6 +416,51 @@ class ScreenController {
     PageRouteBuilder route = getScreenBuilder(screenWidget, pageType: pageType);
     Navigator.push(context, route);
     return route;
+  }
+
+  void executeGetLocationAction(ScopeManager scopeManager, DataContext dataContext, BuildContext context, GetLocationAction action) {
+    if (action.onLocationReceived != null) {
+      Device().getLocationStatus().then((LocationStatus status) async {
+        if (status == LocationStatus.ready) {
+          // if recurring
+          if (action.recurring == true) {
+            StreamSubscription<Position> streamSubscription = Geolocator.getPositionStream(
+                locationSettings: LocationSettings(
+                    accuracy: LocationAccuracy.high,
+                    distanceFilter: action.recurringDistanceFilter ?? 1000
+                )
+            ).listen((Position? location) {
+              if (location != null) {
+                log("on location updates");
+                _onLocationReceived(scopeManager, dataContext, context, action.onLocationReceived!, location);
+              }
+              else if (action.onError != null){
+                DataContext localizedContext = dataContext.clone();
+                localizedContext.addDataContextById('reason', 'unknown');
+                _executeAction(context, localizedContext, action.onError!, null, scopeManager);
+              }
+            });
+            scopeManager.addLocationListener(streamSubscription);
+          }
+          // one-time get location
+          else {
+            log("get location");
+            _onLocationReceived(scopeManager, dataContext, context, action.onLocationReceived!, await Device().simplyGetLocation());
+          }
+        } else if (action.onError != null){
+          DataContext localizedContext = dataContext.clone();
+          localizedContext.addDataContextById('reason', status.name);
+          _executeAction(context, localizedContext, action.onError!, null, scopeManager);
+        }
+      });
+    }
+  }
+
+  void _onLocationReceived(ScopeManager scopeManager, DataContext dataContext, BuildContext context, EnsembleAction onLocationReceived, Position location) {
+    DataContext localizedContext = dataContext.clone();
+    localizedContext.addDataContextById('latitude', location.latitude);
+    localizedContext.addDataContextById('longitude', location.longitude);
+    _executeAction(context, localizedContext, onLocationReceived, null, scopeManager);
   }
 
 
