@@ -23,7 +23,7 @@ class Device with Invokable, MediaQueryCapability, LocationCapability, DeviceInf
   Map<String, Function> getters() {
     return {
       // Capabilities
-      'location': () => Location(getLocation()),
+      'lastLocation': () => Location(getLastLocation()),
 
       // Media Query
       "width": () => screenWidth,
@@ -75,14 +75,13 @@ mixin MediaQueryCapability {
 
 /// This mixin can access user's location
 mixin LocationCapability {
-  static Position? location;
+  static Position? lastLocation;
 
-  Position? getLocation() {
-    return location;
+  Position? getLastLocation() {
+    return lastLocation;
   }
-  
-  Future<DeviceLocation> getLocationAsync() async {
-    String? error;
+
+  Future<LocationStatus> getLocationStatus() async {
     if (await Geolocator.isLocationServiceEnabled()) {
       LocationPermission permission = await Geolocator.checkPermission();
       // ask for permission if not already
@@ -91,15 +90,31 @@ mixin LocationCapability {
       }
 
       if (![LocationPermission.denied, LocationPermission.deniedForever].contains(permission)) {
-        location = await Geolocator.getCurrentPosition();
+        return LocationStatus.ready;
       } else {
-        error = 'denied';
+        return LocationStatus.denied;
       }
-    } else {
-      error = 'disabled';
     }
-    return Future.value(DeviceLocation(location: location, error: error));
+    return LocationStatus.disabled;
   }
+
+  Future<DeviceLocation> getLocation() async {
+    Position? location;
+    LocationStatus status = await getLocationStatus();
+    if (status == LocationStatus.ready) {
+      location = await simplyGetLocation();
+    }
+    return DeviceLocation(status: status, location: location);
+  }
+
+  /// return the location without any permission checks. Use this only
+  /// if you already check for permission with getLocationStatus()
+  Future<Position> simplyGetLocation() async {
+    lastLocation = await Geolocator.getCurrentPosition();
+    return lastLocation!;
+  }
+  
+
 }
 
 /// retrieve basic device info
@@ -222,7 +237,14 @@ enum DevicePlatform {
 
 // the wrapper class for location request that includes other info
 class DeviceLocation {
-  DeviceLocation({this.location, this.error});
+  DeviceLocation({required this.status, this.location});
   Position? location;
-  String? error;
+  LocationStatus status;
+}
+
+enum LocationStatus {
+  ready,    // ready to fetch location
+  disabled,
+  denied,
+  unknown
 }

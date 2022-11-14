@@ -258,7 +258,9 @@ class Utils {
       } else if (payload['action'] == ActionType.getLocation.name) {
         return GetLocationAction(
           onLocationReceived: Utils.getAction(payload['onLocationReceived']),
-          onError: Utils.getAction(payload['onError'])
+          onError: Utils.getAction(payload['onError']),
+          recurring: Utils.optionalBool(payload['options']?['recurring']),
+          recurringDistanceFilter: Utils.optionalInt(payload['options']?['recurringDistanceFilter'], min: 50)
         );
       } else if (payload['action'] == ActionType.executeCode.name) {
         return ExecuteCodeAction(
