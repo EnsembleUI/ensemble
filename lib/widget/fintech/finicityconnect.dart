@@ -93,7 +93,7 @@ class FinicityConnectState extends WidgetState<FinicityConnect> {
   @override
   Widget buildWidget(BuildContext context) {
     if ( widget.controller.uri == '')  {
-      return Text("Still Loading...");
+      return const Text("");
     }
     String overlay = '';
     if ( widget.controller.overlay != null ) {
