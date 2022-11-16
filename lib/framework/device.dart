@@ -81,6 +81,11 @@ mixin LocationCapability {
     return lastLocation;
   }
 
+  // TODO: shouldn't set this from outside.
+  void updateLastLocation(Position location) {
+    lastLocation = location;
+  }
+
   Future<LocationStatus> getLocationStatus() async {
     if (await Geolocator.isLocationServiceEnabled()) {
       LocationPermission permission = await Geolocator.checkPermission();

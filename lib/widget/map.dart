@@ -35,6 +35,8 @@ class EnsembleMap extends StatefulWidget with Invokable, HasController<MyControl
   @override
   Map<String, Function> setters() {
     return {
+      'width': (value) => _controller.width = Utils.optionalInt(value),
+      'height': (value) => _controller.height = Utils.optionalInt(value),
       'currentLocation': _controller.updateCurrentLocationStatus,
       'markers': _controller.updateMarkerTemplate,
       'markerWidth': (width) => _controller.markerWidth = width,
@@ -63,6 +65,11 @@ class EnsembleMap extends StatefulWidget with Invokable, HasController<MyControl
 }
 
 class MyController extends WidgetController with LocationCapability {
+  // Map needs to be constrained by the parent, or required a size when inside Flex
+  int? height;
+  int? width;
+
+
   final MapController _mapController = MapController();
   EdgeInsets? boundaryPadding;
   EnsembleAction? onMarkerTap;
@@ -316,9 +323,7 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
         ]
     );
 
-
-
-    return Stack(
+    Widget rtn = Stack(
       children: [
         map,
         overlayWidget != null && widget._controller.selectedMarker != null ?
@@ -335,6 +340,14 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
         const SizedBox.shrink()
       ],
     );
+
+    if (widget._controller.width != null || widget._controller.height != null) {
+      rtn = SizedBox(
+        width: widget._controller.width?.toDouble(),
+        height: widget._controller.height?.toDouble(),
+        child: rtn);
+    }
+    return rtn;
   }
 
   List<Marker> getCurrentMarkers() {

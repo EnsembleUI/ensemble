@@ -432,6 +432,9 @@ class ScreenController {
             ).listen((Position? location) {
               if (location != null) {
                 log("on location updates");
+                // update last location. TODO: consolidate this
+                Device().updateLastLocation(location);
+                
                 _onLocationReceived(scopeManager, dataContext, context, action.onLocationReceived!, location);
               }
               else if (action.onError != null){
