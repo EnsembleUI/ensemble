@@ -255,12 +255,24 @@ class Utils {
           duration: Utils.optionalInt(payload['options']?['duration'], min: 1),
           styles: styles
         );
+      } else if (payload['action'] == ActionType.getLocation.name) {
+        return GetLocationAction(
+          onLocationReceived: Utils.getAction(payload['onLocationReceived']),
+          onError: Utils.getAction(payload['onError']),
+          recurring: Utils.optionalBool(payload['options']?['recurring']),
+          recurringDistanceFilter: Utils.optionalInt(payload['options']?['recurringDistanceFilter'], min: 50)
+        );
       } else if (payload['action'] == ActionType.executeCode.name) {
         return ExecuteCodeAction(
             initiator: initiator,
             inputs: inputs,
             codeBlock: payload['body'],
             onComplete: Utils.getAction(payload['onComplete'], initiator: initiator)
+        );
+      } else if ( payload['action'] == ActionType.openUrl.name ) {
+        return OpenUrlAction(
+          payload['url'],
+          openInExternalApp: Utils.getBool(payload['openInExternalApp'], fallback: false)
         );
       }
     }

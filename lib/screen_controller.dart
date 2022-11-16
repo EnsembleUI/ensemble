@@ -4,6 +4,7 @@ import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/bindings.dart';
+import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
@@ -20,9 +21,13 @@ import 'package:ensemble/framework/widget/widget.dart';
 import 'package:event_bus/event_bus.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 import 'package:yaml/yaml.dart';
+import 'package:url_launcher/link.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 
 /// Singleton that holds the page model definition
@@ -100,6 +105,8 @@ class ScreenController {
         HttpUtils.invokeApi(apiDefinition, dataContext)
             .then((response) => _onAPIComplete(context, dataContext, action, apiDefinition, Response(response), apiMap, scopeManager))
             .onError((error, stackTrace) => processAPIError(context, dataContext, apiDefinition, error, apiMap, scopeManager));
+      } else {
+        throw RuntimeError("Unable to find api definition for ${action.apiName}");
       }
     } else if (action is BaseNavigateScreenAction) {
       // process input parameters
@@ -264,6 +271,8 @@ class ScreenController {
       if (scopeManager != null) {
         scopeManager.removeTimer(action.id);
       }
+    } else if (action is GetLocationAction) {
+      executeGetLocationAction(scopeManager!, dataContext, context, action);
     } else if (action is ExecuteCodeAction) {
       action.inputs?.forEach((key, value) {
         dynamic val = dataContext.eval(value);
@@ -282,8 +291,10 @@ class ScreenController {
         customToastBody = scopeManager.buildWidgetFromDefinition(action.body);
       }
       ToastController().showToast(context, action, customToastBody);
-
-      
+    } else if ( action is OpenUrlAction ) {
+      dynamic value = dataContext.eval(action.url);
+      value ??= '';
+      launchUrl(Uri.parse(value),mode: (action.openInExternalApp)?LaunchMode.externalApplication:LaunchMode.platformDefault );
     }
   }
 
@@ -405,6 +416,54 @@ class ScreenController {
     PageRouteBuilder route = getScreenBuilder(screenWidget, pageType: pageType);
     Navigator.push(context, route);
     return route;
+  }
+
+  void executeGetLocationAction(ScopeManager scopeManager, DataContext dataContext, BuildContext context, GetLocationAction action) {
+    if (action.onLocationReceived != null) {
+      Device().getLocationStatus().then((LocationStatus status) async {
+        if (status == LocationStatus.ready) {
+          // if recurring
+          if (action.recurring == true) {
+            StreamSubscription<Position> streamSubscription = Geolocator.getPositionStream(
+                locationSettings: LocationSettings(
+                    accuracy: LocationAccuracy.high,
+                    distanceFilter: action.recurringDistanceFilter ?? 1000
+                )
+            ).listen((Position? location) {
+              if (location != null) {
+                log("on location updates");
+                // update last location. TODO: consolidate this
+                Device().updateLastLocation(location);
+                
+                _onLocationReceived(scopeManager, dataContext, context, action.onLocationReceived!, location);
+              }
+              else if (action.onError != null){
+                DataContext localizedContext = dataContext.clone();
+                localizedContext.addDataContextById('reason', 'unknown');
+                _executeAction(context, localizedContext, action.onError!, null, scopeManager);
+              }
+            });
+            scopeManager.addLocationListener(streamSubscription);
+          }
+          // one-time get location
+          else {
+            log("get location");
+            _onLocationReceived(scopeManager, dataContext, context, action.onLocationReceived!, await Device().simplyGetLocation());
+          }
+        } else if (action.onError != null){
+          DataContext localizedContext = dataContext.clone();
+          localizedContext.addDataContextById('reason', status.name);
+          _executeAction(context, localizedContext, action.onError!, null, scopeManager);
+        }
+      });
+    }
+  }
+
+  void _onLocationReceived(ScopeManager scopeManager, DataContext dataContext, BuildContext context, EnsembleAction onLocationReceived, Position location) {
+    DataContext localizedContext = dataContext.clone();
+    localizedContext.addDataContextById('latitude', location.latitude);
+    localizedContext.addDataContextById('longitude', location.longitude);
+    _executeAction(context, localizedContext, onLocationReceived, null, scopeManager);
   }
 
 

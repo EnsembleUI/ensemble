@@ -47,8 +47,19 @@ class LottieState extends WidgetState<EnsembleLottie> {
       return JsWidget(id: _id,
           createHtmlTag: () => tag,
           data: source,
+          listener: (String msg) {
+            if ( widget.controller.onTap != null ) {
+              ScreenController().executeAction(
+                  context, widget.controller.onTap!);
+            }
+          },
           scriptToInstantiate: (String c) {
-            return 'bodymovin.loadAnimation({container: document.getElementById("$_id"),renderer: "svg",loop: $repeat,autoplay: true,path: "$c"});';
+            String script =  'bodymovin.loadAnimation({container: document.getElementById("$_id"),renderer: "svg",loop: $repeat,autoplay: true,path: "$c"});';
+            if ( widget.controller.onTap != null ) {
+              script +=
+              'document.getElementById("$_id").addEventListener("click",() => handleMessage("$_id",""));';
+            }
+            return script;
           },
           size: Size(width,height)
       );

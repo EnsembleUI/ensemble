@@ -105,7 +105,11 @@ class ExecuteCodeAction extends EnsembleAction {
   String codeBlock;
   EnsembleAction? onComplete;
 }
-
+class OpenUrlAction extends EnsembleAction {
+  String url;
+  bool openInExternalApp;
+  OpenUrlAction(this.url, {this.openInExternalApp=false});
+}
 class ShowToastAction extends EnsembleAction {
   ShowToastAction({
     Invokable? initiator,
@@ -130,6 +134,20 @@ class ShowToastAction extends EnsembleAction {
   final Map<String, dynamic>? styles;
 }
 
+class GetLocationAction extends EnsembleAction {
+  GetLocationAction({
+    this.onLocationReceived,
+    this.onError,
+    this.recurring,
+    this.recurringDistanceFilter
+  });
+  EnsembleAction? onLocationReceived;
+  EnsembleAction? onError;
+
+  bool? recurring;
+  int? recurringDistanceFilter;
+}
+
 class TimerPayload {
   TimerPayload({
     this.id,
@@ -151,6 +169,6 @@ class TimerPayload {
 }
 
 
-enum ActionType { invokeAPI, navigateScreen, navigateModalScreen, showDialog, startTimer, stopTimer, closeAllDialogs, executeCode, showToast }
+enum ActionType { invokeAPI, navigateScreen, navigateModalScreen, showDialog, startTimer, stopTimer, closeAllDialogs, executeCode, showToast, getLocation, openUrl }
 
 enum ToastType { success, error, warning, info, custom }

@@ -112,10 +112,11 @@ class EnsembleDataColumn extends DataColumn {
 
   }
 }
-class EnsembleDataRow extends StatefulWidget with UpdatableContainer{
+class EnsembleDataRow extends StatefulWidget with UpdatableContainer, Invokable{
   static const type = 'DataRow';
   List<Widget>? children;
   ItemTemplate? itemTemplate;
+  bool visible = true;
 
   @override
   State<StatefulWidget> createState() => EnsembleDataRowState();
@@ -124,6 +125,23 @@ class EnsembleDataRow extends StatefulWidget with UpdatableContainer{
   void initChildren({List<Widget>? children, ItemTemplate? itemTemplate}) {
     this.children = children;
     this.itemTemplate = itemTemplate;
+  }
+
+  @override
+  Map<String, Function> getters() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {
+      'visible': (dynamic v) => visible = Utils.getBool(v, fallback: visible)
+    };
   }
 }
 class EnsembleDataRowState extends State<EnsembleDataRow> {
@@ -205,6 +223,9 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
         throw Exception("Direct children of DataGrid must be of type DataRow");
       }
       EnsembleDataRow child = w;
+      if ( !child.visible ) {
+        continue;
+      }
       List<DataCell> cells = [];
       if ( child.children != null ) {
         for ( Widget c in child.children! ) {

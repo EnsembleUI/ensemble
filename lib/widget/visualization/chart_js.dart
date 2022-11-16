@@ -62,7 +62,7 @@ class ChartJsState extends WidgetState<ChartJs> {
   @override
   Widget buildWidget(BuildContext context) {
     if ( widget.controller.config == '')  {
-      return Text("Still Loading...");
+      return const Text("");
     }
     return JsWidget(
       id: widget.controller.id!,

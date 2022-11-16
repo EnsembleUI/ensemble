@@ -178,7 +178,7 @@
                   "type": "string",
                   "description": "Set treatment of text longer than available space",
                   "enum": [
-                    "wrap", "visible", "clip", "fade", "ellipsis"
+                    "wrap", "visible", "clip", "ellipsis"
                   ]
                 },
                 "textAlign": {
@@ -251,7 +251,10 @@
             "fontAwesome"
           ]
         },
-        "onTap": { "$ref": "#/$defs/Action-payload" },
+        "onTap": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Call Ensemble's built-in functions or execute code"
+        },
         "styles": {
           "allOf": [
             {
@@ -551,7 +554,10 @@
         {
           "type": "object",
           "properties": {
-            "onKeyPress": { "$ref": "#/$defs/Action-payload" },
+            "onKeyPress": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "On every keystroke, call Ensemble's built-in functions or execute code"
+            },
             "value": {
               "type": "string",
               "description": "Specifying the value of your Text Input"
@@ -589,7 +595,10 @@
         {
           "type": "object",
           "properties": {
-            "onKeyPress": { "$ref": "#/$defs/Action-payload" },
+            "onKeyPress": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "On every keystroke, call Ensemble's built-in functions or execute code"
+            },
             "obscureToggle": {
               "type": "boolean",
               "description": "enable the toggling between plain and obscure text."
@@ -702,7 +711,10 @@
           "type": "boolean",
           "description": "If the button is inside a Form and upon on tap, it will execute the form's onSubmit action if this property is TRUE"
         },
-        "onTap": { "$ref": "#/$defs/Action-payload" },
+        "onTap": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Call Ensemble's built-in functions or execute code"
+        },
         "styles": {
           "allOf": [
             { "$ref": "#/$defs/baseStyles" },
@@ -758,7 +770,7 @@
               "type": "string",
               "description": "Treatment of text longer than available space",
               "enum": [
-                "wrap", "visible", "clip", "fade", "ellipsis"
+                "wrap", "visible", "clip", "ellipsis"
               ]
             },
             "width": {
@@ -851,6 +863,10 @@
         {
           "properties": {
             "children": { "$ref": "#/$defs/Widgets" },
+            "onItemChange": {
+              "description": "Dispatch when an carousel item is in focus. For SingleView, this happens when the item is scroll into view. For scrolling MultiView, the event dispatches only when you tap on the item. The index of the item can be retrieved using 'selectedIndex'.",
+              "$ref": "#/$defs/Action-payload"
+            },
             "styles": {
               "allOf": [
                 {
@@ -861,7 +877,7 @@
                   "properties": {
                     "layout": {
                       "type": "string",
-                      "description": "Show a single view, multiple views, or automatically switch between the views with autoLayoutBreakpoint",
+                      "description": "Show a SingleView (on screen one at a time), MultiView (scrolling items), or automatically switch between the views with autoLayoutBreakpoint",
                       "enum": ["auto" ,"single", "multiple"]
                     },
                     "autoLayoutBreakpoint": {
@@ -931,11 +947,11 @@
         "item-template": {
           "type": "object",
           "properties": {
-            "data": { 
+            "data": {
               "type": "string" ,
               "description": "Bind to an array of data from an API response or a variable"
             },
-            "name": { 
+            "name": {
               "type": "string",
               "description": "Set the name to reference as you iterate through the array of data"
             },
@@ -980,7 +996,10 @@
           "type": "string",
           "enum": ["default", "fontAwesome"]
         },
-        "onChange": { "$ref": "#/$defs/Action-payload" },
+        "onChange": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Call Ensemble's built-in functions or execute code when the input changes. Note for free-form text input, this event only dispatches if the text changes AND the focus is lost (e.g. clicking on button)"
+        },
         "styles": {
           "allOf": [
             { "$ref": "#/$defs/baseStyles" },
@@ -1001,14 +1020,13 @@
     },
     "Action-payload": {
       "type": ["object", "string"],
-      "description": "Call Ensemble's built-in functions or execute code",
       "allOf": [
         {
           "properties": {
             "action": {
               "type": "string",
               "description": "invoke an Ensemble's built-in functions",
-              "enum": ["invokeAPI" ,"navigateScreen", "navigateModalScreen", "showDialog", "closeAllDialogs", "startTimer", "showToast", "executeCode"]
+              "enum": ["invokeAPI" ,"navigateScreen", "navigateModalScreen", "showDialog", "closeAllDialogs", "startTimer", "showToast", "executeCode", "getLocation"]
             }
           }
         },
@@ -1302,6 +1320,41 @@
               }
             }
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "getLocation"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "options": {
+                "type": "object",
+                "properties": {
+                  "recurring": {
+                    "type": "boolean",
+                    "description": "Whether to continuously get the device location on this screen. Note that a screen can only have one recurring location listener. Adding multiple recurring location listeners will cancel the previous one."
+                  },
+                  "recurringDistanceFilter": {
+                    "type": "integer",
+                    "minimum": 50,
+                    "description": "If recurring, the minimum distance (in meters) the device has moved before new location is returned. (default: 1000 meters, minimum: 50 meters)"
+                  }
+                }
+              },
+              "onLocationReceived": {
+                "$ref": "#/$defs/Action-payload",
+                "description": "Callback Action once we get the device location"
+              },
+              "onError": {
+                "$ref": "#/$defs/Action-payload",
+                "description": "Callback Action if we are unable to get the device location. Reason is available under 'reason' field"
+              }
+            }
+          }
         }
       ]
     },
@@ -1312,7 +1365,7 @@
     },
     "RootWidget": {
       "type": "object",
-      "oneOf": [
+      "allOf": [
         {
           "properties": {
             "Column": { "$ref": "#/$defs/Column-payload" }
@@ -1336,7 +1389,7 @@
       ]
     },
     "Widget": {
-      "oneOf": [
+      "allOf": [
         {
           "properties": {
             "Text": { "$ref": "#/$defs/Text-payload" }
