@@ -95,12 +95,35 @@ class ViewState extends State<View>{
     super.initState();
   }
 
+  PreferredSizeWidget? buildAppBar(HeaderModel? headerModel, Widget? drawer) {
+    if (headerModel != null) {
+      Widget? titleWidget;
+      if (headerModel.titleWidget != null) {
+        titleWidget = _scopeManager.buildWidget(headerModel.titleWidget!);
+      }
+      if (headerModel.titleText != null) {
+        titleWidget ??= Text(Utils.translate(headerModel.titleText!, context));
+      }
+
+      return AppBar(
+        title: titleWidget,
+        automaticallyImplyLeading: Utils.getBool(headerModel.styles?['showNavigationIcon'], fallback: true),
+        backgroundColor: Utils.getColor(headerModel.styles?['backgroundColor']),
+        foregroundColor: Utils.getColor(headerModel.styles?['color']),
+      );
+    }
+    /// we need the Appbar to show our menu drawer icon
+    if (drawer != null) {
+      return AppBar();
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     log("View build() $hashCode");
     Widget? bottomNavBar;
     Widget? drawer;
-    bool showAppBar = false;
 
     // modal page has certain criteria (no navBar, no header)
     if (widget._pageModel.screenOptions?.pageType != PageType.modal) {
@@ -119,12 +142,7 @@ class ViewState extends State<View>{
         // left/right navBar will be rendered as part of the body
       }
 
-      // use the AppBar if we have a title, or have a drawer (to show the menu)
-      showAppBar = widget._pageModel.title != null || drawer != null;
-      if (menuDisplay == MenuDisplay.navBar_left.name ||
-              menuDisplay == MenuDisplay.navBar_right.name) {
-        showAppBar = false;
-      }
+
     }
 
     Color? backgroundColor =
@@ -159,8 +177,7 @@ class ViewState extends State<View>{
         // slight optimization, if body background is set, let's paint
         // the entire screen including the Safe Area
         backgroundColor: backgroundColor,
-        appBar: !showAppBar ? null : AppBar(
-              title: Text(Utils.translate(widget._pageModel.title ?? '', context))),
+        appBar: buildAppBar(widget._pageModel.headerModel, drawer),
         body: getBody(),
         bottomNavigationBar: bottomNavBar,
         drawer: drawer,

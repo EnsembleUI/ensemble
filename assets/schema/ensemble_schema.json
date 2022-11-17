@@ -16,6 +16,34 @@
         },
         {
           "properties": {
+            "header": {
+              "type": "object",
+              "description": "Configure the application header",
+              "properties": {
+                "title": {
+                  "type": ["string", "object"],
+                  "description": "A simple text or a custom widget for the App's title",
+                  "$ref": "#/$defs/Widget"
+                },
+                "styles": {
+                  "type": "object",
+                  "properties": {
+                    "showNavigationIcon": {
+                      "type": "boolean",
+                      "description": "By default the App automatically injects the Menu or Back icon (if applicable) before the title. You may hide these icons by setting this to false."
+                    },
+                    "backgroundColor": {
+                      "$ref": "#/$defs/typeColors",
+                      "description": "By default the background color uses the theme's 'primary' color. You can override the header's background color here."
+                    },
+                    "color": {
+                      "$ref": "#/$defs/typeColors",
+                      "description": "By default the navigation icon, title, and action icons uses the theme's 'onPrimary' color. You can override their colors here."
+                    }
+                  }
+                }
+              }
+            },
             "onLoad": {
               "$ref": "#/$defs/Action-payload",
               "description": "Execute an Action when the page loads"
