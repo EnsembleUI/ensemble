@@ -18,6 +18,7 @@ class ChartJsController extends WidgetController {
   String get chartDiv => 'div_$id';
   String get chartId => id!;
   dynamic config = '';
+  JsWidget? jsWidget;
 }
 class ChartJs extends StatefulWidget with Invokable, HasController<ChartJsController, ChartJsState> {
   static const type = 'ChartJs';
@@ -39,7 +40,41 @@ class ChartJs extends StatefulWidget with Invokable, HasController<ChartJsContro
 
   @override
   Map<String, Function> methods() {
-    return {};
+    return {
+      'addLabels': (List labels) {
+        String labelsArr = jsonEncode(labels);
+        String script = '''
+        if ( !${controller.chartVar} ) {
+          alert('chart var ${controller.chartVar} for chart with id=$id does not exist');
+        }
+        ${controller.chartVar}.data.labels.push(...$labelsArr);
+        ''';
+        controller.jsWidget!.evalScript(script);
+      },
+      'addData': (int dataSet, List data) {
+        String dataArr = jsonEncode(data);
+        String script = '''
+          
+          if ( !${controller.chartVar} ) {
+            alert('chart var ${controller.chartVar} for chart with id=$id does not exist');
+          } else if ( $dataSet >= ${controller.chartVar}.data.datasets.length ) {
+            alert('chart with id=$id only has '+${controller.chartVar}.data.datasets.length+' datasets.');
+          } else {
+            ${controller.chartVar}.data.datasets[$dataSet].data.push(...$dataArr);
+          }
+        ''';
+        controller.jsWidget!.evalScript(script);
+      },
+      'update': () {
+          String script = '''
+            if ( !${controller.chartVar} ) {
+              alert('chart var ${controller.chartVar} for chart with id=$id does not exist');
+            }
+            ${controller.chartVar}.update();
+          ''';
+          controller.jsWidget!.evalScript(script);
+      }
+    };
   }
 
   @override
@@ -64,7 +99,7 @@ class ChartJsState extends WidgetState<ChartJs> {
     if ( widget.controller.config == '')  {
       return const Text("");
     }
-    return JsWidget(
+    widget._controller.jsWidget = JsWidget(
       id: widget.controller.id!,
       createHtmlTag: () => '<div id="${widget.controller.chartDiv}"><canvas id="${widget.controller.chartId}"></canvas></div>',
       scriptToInstantiate: (String c) {
@@ -76,5 +111,6 @@ class ChartJsState extends WidgetState<ChartJs> {
         "https://cdn.jsdelivr.net/npm/chart.js",
       ],
     );
+    return widget._controller.jsWidget!;
   }
 }
