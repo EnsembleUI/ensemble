@@ -33,8 +33,6 @@ class PageModel {
   ViewBehavior viewBehavior = ViewBehavior();
 
   HeaderModel? headerModel;
-  // @deprecated legacy header title
-  String? title;
 
   Map<String, dynamic>? pageStyles;
   Menu? menu;
@@ -70,7 +68,6 @@ class PageModel {
 
   processModel(YamlMap docMap) {
     YamlMap viewMap = docMap['View'];
-    title = viewMap['title'];
 
     if (viewMap['options'] is YamlMap) {
       PageType pageType =
@@ -88,9 +85,8 @@ class PageModel {
     // set the view behavior
     viewBehavior.onLoad = Utils.getAction(viewMap['onLoad']);
 
-    if (viewMap['header'] != null) {
-      processHeader(viewMap['header'], viewMap['title']);
-    }
+    processHeader(viewMap['header'], viewMap['title']);
+
 
     if (viewMap['menu'] != null) {
       processMenu(viewMap['menu']);
@@ -110,24 +106,29 @@ class PageModel {
     rootWidgetModel = buildRootModel(viewMap, customViewDefinitions);
   }
 
-  void processHeader(YamlMap headerData, String? legacyTitle) {
-    // title
+  void processHeader(YamlMap? headerData, String? legacyTitle) {
     WidgetModel? titleWidget;
-    String? titleText;
-    if (ViewUtil.isViewModel(headerData['title'], customViewDefinitions)) {
-      titleWidget = ViewUtil.buildModel(headerData['title'], customViewDefinitions);
-    } else {
-      titleText = headerData['title']?.toString() ?? legacyTitle;
-    }
-
-    // background
+    String? titleText = legacyTitle;
     WidgetModel? background;
-    if (headerData['flexibleBackground'] != null) {
-      background = ViewUtil.buildModel(headerData['flexibleBackground'], customViewDefinitions);
+    Map<String, dynamic>? styles;
+
+    if (headerData != null) {
+      if (ViewUtil.isViewModel(headerData['title'], customViewDefinitions)) {
+        titleWidget =
+            ViewUtil.buildModel(headerData['title'], customViewDefinitions);
+      } else {
+        titleText = headerData['title']?.toString() ?? legacyTitle;
+      }
+
+      if (headerData['flexibleBackground'] != null) {
+        background = ViewUtil.buildModel(
+            headerData['flexibleBackground'], customViewDefinitions);
+      }
+
+      styles = ViewUtil.getMap(headerData['styles']);
     }
 
-    Map<String, dynamic>? styles = ViewUtil.getMap(headerData['styles']);
-    if (titleWidget != null || titleText != null || styles != null) {
+    if (titleWidget != null || titleText != null || background != null || styles != null) {
       headerModel = HeaderModel(titleText: titleText, titleWidget: titleWidget, flexibleBackground: background, styles: styles);
     }
   }
