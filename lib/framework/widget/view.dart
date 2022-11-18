@@ -103,8 +103,8 @@ class ViewState extends State<View>{
       if (headerModel.titleWidget != null) {
         titleWidget = _scopeManager.buildWidget(headerModel.titleWidget!);
       }
-      if (headerModel.titleText != null) {
-        titleWidget ??= Text(Utils.translate(headerModel.titleText!, context));
+      if (titleWidget == null && headerModel.titleText != null) {
+        titleWidget = Text(Utils.translate(headerModel.titleText!, context));
       }
       // wraps the title inside a Container (takes up the same height as the title bar)
       // so we can expose flexible alignment
@@ -112,7 +112,7 @@ class ViewState extends State<View>{
         titleWidget = Container(
           height: titleBarHeight,
           child: titleWidget,
-          alignment: Utils.getAlignment(headerModel.styles?['titleAlignment']) ?? Alignment.center,
+          alignment: Utils.getAlignment(headerModel.styles?['titleAlignment']) ?? Alignment.centerLeft,
         );
       }
 

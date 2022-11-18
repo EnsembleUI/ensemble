@@ -60,7 +60,7 @@
                     },
                     "titleAlignment": {
                       "$ref": "#/$defs/alignment",
-                      "description": "How to align the title within the title bar (default: center vertically and horizontally"
+                      "description": "How to align the title within the title bar (default: center vertically and left horizontally)"
                     }
                   }
                 }
