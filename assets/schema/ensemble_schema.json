@@ -58,9 +58,9 @@
                       "description": "For consistency, the header's title bar has the default fixed height of 56 regardless of its content. You may adjust its height here.",
                       "minimum": 0
                     },
-                    "titleAlignment": {
-                      "$ref": "#/$defs/alignment",
-                      "description": "How to align the title within the title bar (default: center vertically and left horizontally)"
+                    "centerTitle": {
+                      "type": "boolean",
+                      "description": "Whether to align the title in the title bar's center horizontally (default: true)"
                     }
                   }
                 }
