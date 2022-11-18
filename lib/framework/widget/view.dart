@@ -97,12 +97,23 @@ class ViewState extends State<View>{
 
   PreferredSizeWidget? buildAppBar(HeaderModel? headerModel, Widget? drawer) {
     if (headerModel != null) {
+      final titleBarHeight = Utils.optionalInt(headerModel.styles?['titleBarHeight'], min: 0)?.toDouble() ?? kToolbarHeight;
+
       Widget? titleWidget;
       if (headerModel.titleWidget != null) {
         titleWidget = _scopeManager.buildWidget(headerModel.titleWidget!);
       }
       if (headerModel.titleText != null) {
         titleWidget ??= Text(Utils.translate(headerModel.titleText!, context));
+      }
+      // wraps the title inside a Container (takes up the same height as the title bar)
+      // so we can expose flexible alignment
+      if (titleWidget != null) {
+        titleWidget = Container(
+          height: titleBarHeight,
+          child: titleWidget,
+          alignment: Utils.getAlignment(headerModel.styles?['titleAlignment']) ?? Alignment.center,
+        );
       }
 
       Widget? backgroundWidget;
@@ -117,7 +128,7 @@ class ViewState extends State<View>{
         elevation: Utils.optionalInt(headerModel.styles?['elevation'], min: 0)?.toDouble(),
         shadowColor: Utils.getColor(headerModel.styles?['shadowColor']),
         automaticallyImplyLeading: Utils.getBool(headerModel.styles?['showNavigationIcon'], fallback: true),
-        toolbarHeight: Utils.optionalInt(headerModel.styles?['titleBarHeight'], min: 0)?.toDouble(),
+        toolbarHeight: titleBarHeight,
 
         flexibleSpace: backgroundWidget,
       );
