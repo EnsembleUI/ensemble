@@ -111,6 +111,7 @@ class PageModel {
   }
 
   void processHeader(YamlMap headerData, String? legacyTitle) {
+    // title
     WidgetModel? titleWidget;
     String? titleText;
     if (ViewUtil.isViewModel(headerData['title'], customViewDefinitions)) {
@@ -118,9 +119,16 @@ class PageModel {
     } else {
       titleText = headerData['title']?.toString() ?? legacyTitle;
     }
+
+    // background
+    WidgetModel? background;
+    if (headerData['flexibleBackground'] != null) {
+      background = ViewUtil.buildModel(headerData['flexibleBackground'], customViewDefinitions);
+    }
+
     Map<String, dynamic>? styles = ViewUtil.getMap(headerData['styles']);
     if (titleWidget != null || titleText != null || styles != null) {
-      headerModel = HeaderModel(titleText: titleText, titleWidget: titleWidget, styles: styles);
+      headerModel = HeaderModel(titleText: titleText, titleWidget: titleWidget, flexibleBackground: background, styles: styles);
     }
   }
 
@@ -248,12 +256,14 @@ class ItemTemplate {
 }
 
 class HeaderModel {
-  HeaderModel({this.titleText, this.titleWidget, this.styles});
-  
-  Map<String, dynamic>? styles;
+  HeaderModel({this.titleText, this.titleWidget, this.flexibleBackground, this.styles});
+
   // header title can be text or a widget
   String? titleText;
   WidgetModel? titleWidget;
+
+  WidgetModel? flexibleBackground;
+  Map<String, dynamic>? styles;
 }
 
 class Menu {
