@@ -25,13 +25,13 @@
                   "description": "A simple text or a custom widget for the App's title",
                   "$ref": "#/$defs/Widget"
                 },
+                "flexibleBackground": {
+                  "$ref": "#/$defs/Widget",
+                  "description": "This widget (typically used as an background image) acts as the header's background, with the title bar and the bottom widget overlaid on top. On non-scrollable screen, its dimensions is dictated by the header's width and height."
+                },
                 "styles": {
                   "type": "object",
                   "properties": {
-                    "showNavigationIcon": {
-                      "type": "boolean",
-                      "description": "By default the App automatically injects the Menu or Back icon (if applicable) before the title. You may hide these icons by setting this to false."
-                    },
                     "backgroundColor": {
                       "$ref": "#/$defs/typeColors",
                       "description": "By default the background color uses the theme's 'primary' color. You can override the header's background color here."
@@ -39,6 +39,24 @@
                     "color": {
                       "$ref": "#/$defs/typeColors",
                       "description": "By default the navigation icon, title, and action icons uses the theme's 'onPrimary' color. You can override their colors here."
+                    },
+                    "elevation": {
+                      "type": "integer",
+                      "description": "Raise the header on its z-coordinates relative to the body. This effectively creates a drop shadow on the header's bottom edge.",
+                      "minimum": 0
+                    },
+                    "shadowColor": {
+                      "$ref": "#/$defs/typeColors",
+                      "description": "If elevation is non-zero, this will override the drop shadow color of the header's bottom edge."
+                    },
+                    "showNavigationIcon": {
+                      "type": "boolean",
+                      "description": "By default the App automatically injects the Menu or Back icon (if applicable) before the title. You may hide these icons by setting this to false."
+                    },
+                    "titleBarHeight": {
+                      "type": "integer",
+                      "description": "For consistency, the header's title bar has the default fixed height of 56 regardless of its content. You may adjust its height here.",
+                      "minimum": 0
                     }
                   }
                 }

@@ -105,11 +105,21 @@ class ViewState extends State<View>{
         titleWidget ??= Text(Utils.translate(headerModel.titleText!, context));
       }
 
+      Widget? backgroundWidget;
+      if (headerModel.flexibleBackground != null) {
+        backgroundWidget = _scopeManager.buildWidget(headerModel.flexibleBackground!);
+      }
+
       return AppBar(
         title: titleWidget,
-        automaticallyImplyLeading: Utils.getBool(headerModel.styles?['showNavigationIcon'], fallback: true),
         backgroundColor: Utils.getColor(headerModel.styles?['backgroundColor']),
         foregroundColor: Utils.getColor(headerModel.styles?['color']),
+        elevation: Utils.optionalInt(headerModel.styles?['elevation'], min: 0)?.toDouble(),
+        shadowColor: Utils.getColor(headerModel.styles?['shadowColor']),
+        automaticallyImplyLeading: Utils.getBool(headerModel.styles?['showNavigationIcon'], fallback: true),
+        toolbarHeight: Utils.optionalInt(headerModel.styles?['titleBarHeight'], min: 0)?.toDouble(),
+
+        flexibleSpace: backgroundWidget,
       );
     }
     /// we need the Appbar to show our menu drawer icon
