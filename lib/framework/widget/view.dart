@@ -106,15 +106,6 @@ class ViewState extends State<View>{
       if (titleWidget == null && headerModel.titleText != null) {
         titleWidget = Text(Utils.translate(headerModel.titleText!, context));
       }
-      // wraps the title inside a Container (takes up the same height as the title bar)
-      // so we can expose flexible alignment
-      if (titleWidget != null) {
-        titleWidget = Container(
-          height: titleBarHeight,
-          child: titleWidget,
-          alignment: Utils.getAlignment(headerModel.styles?['titleAlignment']) ?? Alignment.centerLeft,
-        );
-      }
 
       Widget? backgroundWidget;
       if (headerModel.flexibleBackground != null) {
@@ -123,6 +114,7 @@ class ViewState extends State<View>{
 
       return AppBar(
         title: titleWidget,
+        centerTitle: Utils.getBool(headerModel.styles?['centerTitle'], fallback: true),
         backgroundColor: Utils.getColor(headerModel.styles?['backgroundColor']),
         foregroundColor: Utils.getColor(headerModel.styles?['color']),
         elevation: Utils.optionalInt(headerModel.styles?['elevation'], min: 0)?.toDouble(),
