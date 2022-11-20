@@ -18,7 +18,7 @@ class ChartJsController extends WidgetController {
   String get chartDiv => 'div_$id';
   String get chartId => id!;
   dynamic config = '';
-  JsWidget? jsWidget;
+  Function? evalScript;
 }
 class ChartJs extends StatefulWidget with Invokable, HasController<ChartJsController, ChartJsState> {
   static const type = 'ChartJs';
@@ -49,7 +49,10 @@ class ChartJs extends StatefulWidget with Invokable, HasController<ChartJsContro
         }
         ${controller.chartVar}.data.labels.push(...$labelsArr);
         ''';
-        controller.jsWidget!.evalScript(script);
+        if ( controller.evalScript == null ) {
+          throw Exception('Chartjs.addLabels: evalScript is being called on null as it has not yet been set by the state. ');
+        }
+        controller.evalScript!(script);
       },
       'addData': (int dataSet, List data) {
         String dataArr = jsonEncode(data);
@@ -63,7 +66,10 @@ class ChartJs extends StatefulWidget with Invokable, HasController<ChartJsContro
             ${controller.chartVar}.data.datasets[$dataSet].data.push(...$dataArr);
           }
         ''';
-        controller.jsWidget!.evalScript(script);
+        if ( controller.evalScript == null ) {
+          throw Exception('Chartjs.addData: evalScript is being called on null as it has not yet been set by the state. ');
+        }
+        controller.evalScript!(script);
       },
       'update': () {
           String script = '''
@@ -72,7 +78,10 @@ class ChartJs extends StatefulWidget with Invokable, HasController<ChartJsContro
             }
             ${controller.chartVar}.update();
           ''';
-          controller.jsWidget!.evalScript(script);
+          if ( controller.evalScript == null ) {
+            throw Exception('Chartjs.update: evalScript is being called on null as it has not yet been set by the state. ');
+          }
+          controller.evalScript!(script);
       }
     };
   }
@@ -94,12 +103,30 @@ class ChartJs extends StatefulWidget with Invokable, HasController<ChartJsContro
   }
 }
 class ChartJsState extends WidgetState<ChartJs> {
+  JsWidget? jsWidget;
+  void evalScript(String script) {
+    if ( jsWidget == null ) {
+      print('evalScript is being called on a jsWidget which is null');
+    } else {
+      jsWidget!.evalScript(script);
+    }
+  }
+  @override
+  void initState() {
+    widget.controller.evalScript = evalScript;
+    super.initState();
+  }
+  @override
+  void dispose() {
+    widget.controller.evalScript = null;
+    super.dispose();
+  }
   @override
   Widget buildWidget(BuildContext context) {
     if ( widget.controller.config == '')  {
       return const Text("");
     }
-    widget._controller.jsWidget = JsWidget(
+    jsWidget = JsWidget(
       id: widget.controller.id!,
       createHtmlTag: () => '<div id="${widget.controller.chartDiv}"><canvas id="${widget.controller.chartId}"></canvas></div>',
       scriptToInstantiate: (String c) {
@@ -111,6 +138,6 @@ class ChartJsState extends WidgetState<ChartJs> {
         "https://cdn.jsdelivr.net/npm/chart.js",
       ],
     );
-    return widget._controller.jsWidget!;
+    return jsWidget!;
   }
 }
