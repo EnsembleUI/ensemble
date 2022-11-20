@@ -32,7 +32,8 @@ class PageModel {
   Map<String, dynamic>? customViewDefinitions;
   ViewBehavior viewBehavior = ViewBehavior();
 
-  String? title;
+  HeaderModel? headerModel;
+
   Map<String, dynamic>? pageStyles;
   Menu? menu;
   ScreenOptions? screenOptions;
@@ -67,7 +68,6 @@ class PageModel {
 
   processModel(YamlMap docMap) {
     YamlMap viewMap = docMap['View'];
-    title = viewMap['title'];
 
     if (viewMap['options'] is YamlMap) {
       PageType pageType =
@@ -85,32 +85,11 @@ class PageModel {
     // set the view behavior
     viewBehavior.onLoad = Utils.getAction(viewMap['onLoad']);
 
-    if (viewMap['menu']?['items'] is YamlList) {
-      List<MenuItem> menuItems = [];
-      for (final YamlMap item in (viewMap['menu']['items'] as YamlList)) {
-        menuItems.add(MenuItem(
-          item['label'],
-          item['page'],
-          icon: item['icon'],
-          iconLibrary: item['iconLibrary'],
-          selected: item['selected']==true || item['selected']=='true'));
-      }
-      Map<String, dynamic>? menuStyles;
-      if (viewMap['menu']['styles'] is YamlMap) {
-        menuStyles = {};
-        (viewMap['menu']['styles'] as YamlMap).forEach((key, value) {
-          menuStyles![key] = value;
-        });
-      }
-      WidgetModel? headerModel;
-      if (viewMap['menu']['header'] != null) {
-         headerModel = ViewUtil.buildModel(viewMap['menu']['header'], customViewDefinitions);
-      }
-      WidgetModel? footerModel;
-      if (viewMap['menu']['footer'] != null) {
-        footerModel = ViewUtil.buildModel(viewMap['menu']['footer'], customViewDefinitions);
-      }
-      menu = Menu(viewMap['menu']['display'], menuStyles, menuItems, headerModel: headerModel, footerModel: footerModel);
+    processHeader(viewMap['header'], viewMap['title']);
+
+
+    if (viewMap['menu'] != null) {
+      processMenu(viewMap['menu']);
     }
 
     if (viewMap['styles'] is YamlMap) {
@@ -125,6 +104,58 @@ class PageModel {
     }
 
     rootWidgetModel = buildRootModel(viewMap, customViewDefinitions);
+  }
+
+  void processHeader(YamlMap? headerData, String? legacyTitle) {
+    WidgetModel? titleWidget;
+    String? titleText = legacyTitle;
+    WidgetModel? background;
+    Map<String, dynamic>? styles;
+
+    if (headerData != null) {
+      if (ViewUtil.isViewModel(headerData['title'], customViewDefinitions)) {
+        titleWidget =
+            ViewUtil.buildModel(headerData['title'], customViewDefinitions);
+      } else {
+        titleText = headerData['title']?.toString() ?? legacyTitle;
+      }
+
+      if (headerData['flexibleBackground'] != null) {
+        background = ViewUtil.buildModel(
+            headerData['flexibleBackground'], customViewDefinitions);
+      }
+
+      styles = ViewUtil.getMap(headerData['styles']);
+    }
+
+    if (titleWidget != null || titleText != null || background != null || styles != null) {
+      headerModel = HeaderModel(titleText: titleText, titleWidget: titleWidget, flexibleBackground: background, styles: styles);
+    }
+  }
+
+  void processMenu(YamlMap menuData) {
+    if (menuData['items'] is YamlList) {
+      List<MenuItem> menuItems = [];
+      for (final YamlMap item in (menuData['items'] as YamlList)) {
+        menuItems.add(MenuItem(
+            item['label'],
+            item['page'],
+            icon: item['icon'],
+            iconLibrary: item['iconLibrary'],
+            selected: item['selected']==true || item['selected']=='true'));
+      }
+      Map<String, dynamic>? menuStyles = ViewUtil.getMap(menuData['styles']);
+
+      WidgetModel? menuHeaderModel;
+      if (menuData['header'] != null) {
+        menuHeaderModel = ViewUtil.buildModel(menuData['header'], customViewDefinitions);
+      }
+      WidgetModel? menuFooterModel;
+      if (menuData['footer'] != null) {
+        menuFooterModel = ViewUtil.buildModel(menuData['footer'], customViewDefinitions);
+      }
+      menu = Menu(menuData['display'], menuStyles, menuItems, headerModel: menuHeaderModel, footerModel: menuFooterModel);
+    }
   }
 
   // Root View is special and can have many attributes,
@@ -223,6 +254,17 @@ class ItemTemplate {
   List<dynamic>? initialValue;
 
   ItemTemplate(this.data, this.name, this.template, {this.initialValue});
+}
+
+class HeaderModel {
+  HeaderModel({this.titleText, this.titleWidget, this.flexibleBackground, this.styles});
+
+  // header title can be text or a widget
+  String? titleText;
+  WidgetModel? titleWidget;
+
+  WidgetModel? flexibleBackground;
+  Map<String, dynamic>? styles;
 }
 
 class Menu {

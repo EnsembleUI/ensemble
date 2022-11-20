@@ -13,6 +13,25 @@ import 'package:yaml/yaml.dart';
 
 class ViewUtil {
 
+  static bool isViewModel(dynamic item, Map<String, dynamic>? customWidgetMap) {
+    if (item != null) {
+      return customWidgetMap?[item.toString()] != null || item is YamlMap;
+    }
+    return false;
+  }
+
+  /// convert a YamlMap to Map
+  static Map<String, dynamic>? getMap(dynamic rawMap) {
+    Map<String, dynamic>? rtn;
+    if (rawMap is YamlMap) {
+      rtn = {};
+      rawMap.forEach((key, value) {
+        rtn![key] = value;
+      });
+    }
+    return rtn;
+  }
+
   ///convert a YAML representing a widget to a WidgetModel
   static WidgetModel buildModel(dynamic item, Map<String, dynamic>? customWidgetMap) {
     String? widgetType;
