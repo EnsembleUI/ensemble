@@ -20,8 +20,10 @@ abstract class BindingSource {
   /// TODO: use AST to get all bindable sources
   static BindingSource? from(String expression, DataContext dataContext) {
     if (Utils.isExpression(expression)) {
-      String variable = expression.substring(2, expression.length - 1).trim();
+      // save the model id as we go along so we can resolve unknown model afterward
+      String? unknownModelId;
 
+      String variable = expression.substring(2, expression.length - 1).trim();
       RegExp variableNameRegex = RegExp('^[0-9a-z_]+', caseSensitive: false);
 
       // storage bindable
@@ -38,6 +40,7 @@ abstract class BindingSource {
         int dotIndex = variable.indexOf('.');
         if (dotIndex != -1) {
           String modelId = variable.substring(0, dotIndex);
+          unknownModelId = modelId;
           String property = variable.substring(dotIndex + 1);
 
           // we don't know how to handle complex binding (e.g. myWidget.length > 0 ? "hi" : there"),
@@ -69,6 +72,7 @@ abstract class BindingSource {
           RegExpMatch? match = variableNameRegex.firstMatch(variable);
           if (match != null) {
             String firstVariable = match.group(0)!;
+            unknownModelId = firstVariable;
             dynamic model = dataContext.getContextById(firstVariable);
             if (model is Invokable) {
               return SimpleBindingSource(firstVariable);
@@ -77,6 +81,11 @@ abstract class BindingSource {
 
 
         }
+      }
+      // we have a binding expression but not able to look up the model
+      // create a deferred binding source. This is when the Invokable are created after the binding.
+      if (unknownModelId != null) {
+        return DeferredBindingSource(unknownModelId);
       }
     }
     return null;
@@ -102,6 +111,10 @@ class SimpleBindingSource extends BindingSource {
 // for source that are widgets (e.g. myText.value )
 class WidgetBindingSource extends BindingSource {
   WidgetBindingSource(super.modelId, {super.property});
+}
+
+class DeferredBindingSource extends BindingSource {
+  DeferredBindingSource(super.modelId);
 }
 
 
