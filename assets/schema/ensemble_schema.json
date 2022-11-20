@@ -1090,6 +1090,10 @@
           },
           "then": {
             "properties": {
+              "id": {
+                "type": "string",
+                "description": "Give the API an ID allows you to bind to its result. e.g. ${apiId.body...}"
+              },
               "name": {
                 "type": "string",
                 "description": "Enter the name of your defined API"
