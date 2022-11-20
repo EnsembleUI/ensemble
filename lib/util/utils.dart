@@ -199,6 +199,7 @@ class Utils {
           initiator: initiator,
           apiName: payload['name'],
           inputs: inputs,
+          id: Utils.optionalString(payload['id']),
           onResponse: Utils.getAction(payload['onResponse'], initiator: initiator),
           onError: Utils.getAction(payload['onError'], initiator: initiator));
       } else if (payload['action'] == ActionType.showDialog.name) {

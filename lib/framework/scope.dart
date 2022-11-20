@@ -414,7 +414,7 @@ mixin PageBindingManager on IsScopeManager {
       int hash = getHash(
           destinationSetter: destination.setterProperty,
           source: bindingSource,
-          scopeManager: bindingSource is SimpleBindingSource ? scopeManager : null
+          scopeManager: (bindingSource is SimpleBindingSource || bindingSource is DeferredBindingSource) ? scopeManager : null
       );
 
       // clean up existing listener with the same signature
@@ -425,7 +425,7 @@ mixin PageBindingManager on IsScopeManager {
       StreamSubscription subscription = eventBus.on<ModelChangeEvent>()
           .listen((event) {
         //log("EventBus ${eventBus.hashCode} listening: $event");
-        if (event.source.runtimeType == bindingSource.runtimeType &&
+        if ((bindingSource is DeferredBindingSource || event.source.runtimeType == bindingSource.runtimeType) &&
             event.source.modelId == bindingSource.modelId &&
             (event.source.property == null || event.source.property == bindingSource.property) &&
             (event.bindingScope == null || event.bindingScope == scopeManager)) {

@@ -17,10 +17,12 @@ class InvokeAPIAction extends EnsembleAction {
     Invokable? initiator,
     Map<String, dynamic>? inputs,
     required this.apiName,
+    this.id,
     this.onResponse,
     this.onError
   }) : super(initiator: initiator, inputs: inputs);
 
+  String? id;
   final String apiName;
   EnsembleAction? onResponse;
   EnsembleAction? onError;
