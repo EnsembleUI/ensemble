@@ -102,6 +102,12 @@ class ScreenController {
           }
         }
 
+        // if invokeAPI has an ID, add it to context so we can bind to it
+        // This is useful when the API is called in a loop, so binding to its API name won't work properly
+        if (action.id != null && !dataContext.hasContext(action.id!)) {
+          scopeManager!.dataContext.addInvokableContext(action.id!, APIResponse());
+        }
+
         HttpUtils.invokeApi(apiDefinition, dataContext)
             .then((response) => _onAPIComplete(context, dataContext, action, apiDefinition, Response(response), apiMap, scopeManager))
             .onError((error, stackTrace) => processAPIError(context, dataContext, apiDefinition, error, apiMap, scopeManager));
@@ -344,11 +350,26 @@ class ScreenController {
       }
       Response? _response = apiResponse.getAPIResponse();
       if (_response != null) {
-        // update the API response so all references get it
-        (api as APIResponse).setAPIResponse(_response);
+        // for convenience, the result of the API contain the API response
+        // so it can be referenced from anywhere.
+        // Here we set the response and dispatch changes
+        if (api is APIResponse) {
+          api.setAPIResponse(_response);
+          scopeManager.dispatch(
+              ModelChangeEvent(APIBindingSource(action.apiName), api));
+        }
 
-        // dispatch changes
-        scopeManager.dispatch(ModelChangeEvent(APIBindingSource(action.apiName), api));
+        // if the API has an ID, update its reference and se
+        if (action.id != null) {
+          dynamic apiById = scopeManager.dataContext.getContextById(action.id!);
+          if (apiById is APIResponse) {
+            apiById.setAPIResponse(_response);
+            scopeManager.dispatch(ModelChangeEvent(APIBindingSource(action.id!), apiById));
+          }
+        }
+
+
+
       }
     }
   }
