@@ -1,3 +1,5 @@
+import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -12,7 +14,8 @@ class DataGrid extends StatefulWidget with UpdatableContainer, Invokable, HasCon
   static const type = 'DataGrid';
   DataGrid({Key? key}) : super(key: key);
   late final ItemTemplate? itemTemplate;
-  late List<EnsembleDataColumn> cols;
+  late List cols;
+  //late List<EnsembleDataColumn> cols;
 
   final DataGridController _controller = DataGridController();
   @override
@@ -48,9 +51,7 @@ class DataGrid extends StatefulWidget with UpdatableContainer, Invokable, HasCon
   Map<String, Function> setters() {
     return {
       'DataColumns': (List cols) {
-        this.cols = List<EnsembleDataColumn>.generate(cols.length,
-                (index) => EnsembleDataColumn.fromYaml(map:cols[index] as Map)
-        );
+        this.cols = cols;
       },
       'headingTextStyle': (Map styles) {
         controller.headingTextController = TextController();
@@ -98,18 +99,18 @@ class EnsembleDataColumn extends DataColumn {
   EnsembleDataColumn({required String label,required this.type,String? tooltip,Function? onSort}) :
         super(label:Text(label),tooltip:tooltip,numeric:type == 'numeric');
 
-  static EnsembleDataColumn fromYaml({required Map map,Function? onSort}) {
+  static EnsembleDataColumn fromYaml({required Map map,Function? onSort,required DataContext context}) {
     String type = Utils.getString(map['type'], fallback: '');
     if ( type == '' ) {
       throw Exception('DataGrid column must have a type.');
     }
+
     return EnsembleDataColumn(
-      label: Utils.getString(map['label'], fallback: ''),
+      label: Utils.getString(context.eval(map['label']), fallback: ''),
       type: type,
-      tooltip: Utils.optionalString(map['tooltip']),
+      tooltip: Utils.optionalString(context.eval(map['tooltip'])),
       onSort:onSort
     );
-
   }
 }
 class EnsembleDataRow extends StatefulWidget with UpdatableContainer, Invokable{
@@ -203,7 +204,12 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
   }
   @override
   Widget buildWidget(BuildContext context) {
-
+    ScopeManager? scopeManager = DataScopeWidget.getScope(context);
+    if ( scopeManager == null ) {
+      throw Exception('scopeManager is null in the DataGrid.buildWidget method. This is unexpected. DataGrid.id=${widget.id}');
+    }
+    List<EnsembleDataColumn> columns = List<EnsembleDataColumn>.generate(widget.cols.length,
+            (index) => EnsembleDataColumn.fromYaml(map:widget.cols[index] as Map,context:scopeManager!.dataContext));
     List<Widget> children = [];
     if (widget._controller.children != null) {
       children.addAll(widget._controller.children!);
@@ -241,19 +247,19 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
           }
         }
       }
-      if ( widget.cols.length != cells.length ) {
+      if ( columns.length != cells.length ) {
         if (kDebugMode) {
-          print('Number of DataGrid columns must be equal to the number of cells in each row. Number of DataGrid columns is ${widget.cols.length} '
+          print('Number of DataGrid columns must be equal to the number of cells in each row. Number of DataGrid columns is ${columns.length} '
               'while number of cells in the row is ${cells.length}. We will try to match them to be the same');
         }
-        if ( widget.cols.length > cells.length ) {
-          int diff = widget.cols.length - cells.length;
+        if ( columns.length > cells.length ) {
+          int diff = columns.length - cells.length;
           //more cols than cells, need to fill up cells with empty text
           for ( int i=0;i<diff;i++ ) {
             cells.add(const DataCell(Text('')));
           }
         } else {
-          int diff = cells.length - widget.cols.length;
+          int diff = cells.length - columns.length;
           for ( int i=0;i<diff;i++ ) {
             cells.removeLast();
           }
@@ -274,7 +280,7 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
       dataTextStyle = dataText.style;
     }
 
-    DataTable grid = DataTable(columns: widget.cols,
+    DataTable grid = DataTable(columns: columns,
       rows: rows,
       horizontalMargin: widget.controller.horizontalMargin,
       headingTextStyle: headingTextStyle,
