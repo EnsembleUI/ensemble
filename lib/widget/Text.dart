@@ -1,8 +1,7 @@
 
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart' as framework;
-import 'package:ensemble/widget/widget_util.dart';
-import 'package:ensemble/widget/widget_util.dart' as util;
+import 'package:ensemble/util/widget_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 
@@ -48,7 +47,7 @@ class Text extends StatefulWidget with Invokable, HasController<TextController, 
 class TextState extends framework.WidgetState<Text> {
   @override
   Widget buildWidget(BuildContext context) {
-    return util.TextUtils.buildText(widget.controller);
+    return TextUtils.buildText(widget.controller);
   }
 
 

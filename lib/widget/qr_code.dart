@@ -2,7 +2,7 @@
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/layout_helper.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/widget_util.dart';
+import 'package:ensemble/util/widget_utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';

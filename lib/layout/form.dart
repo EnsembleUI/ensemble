@@ -6,7 +6,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/ensemble_icon.dart';
 import 'package:ensemble/widget/form_helper.dart';
-import 'package:ensemble/widget/widget_util.dart' as util;
+import 'package:ensemble/util/widget_utils.dart' as util;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart' as flutter;
 import 'package:flutter/material.dart';

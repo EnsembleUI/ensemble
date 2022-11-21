@@ -1,7 +1,7 @@
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/widget/lottie/lottie.dart';
-import 'package:ensemble/widget/widget_util.dart';
+import 'package:ensemble/util/widget_utils.dart';
 import 'package:flutter/widgets.dart';
 import 'package:lottie/lottie.dart';
 
