@@ -218,7 +218,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
       validator: (value) {
         if (value == null || value.isEmpty) {
           return widget._controller.required ?
-            Utils.translateWithFallback(context, 'ensemble.input.required', 'This field is required') :
+            Utils.translateWithFallback('ensemble.input.required', 'This field is required') :
             null;
         }
         // only applicable for TextInput

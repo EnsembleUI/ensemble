@@ -179,7 +179,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
         key: validatorKey,
         validator: (value) {
           if (widget._controller.required && widget.getValue() == null) {
-            return Utils.translateWithFallback(context, 'ensemble.input.required', 'This field is required');
+            return Utils.translateWithFallback('ensemble.input.required', 'This field is required');
           }
           return null;
         },
