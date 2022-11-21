@@ -151,6 +151,7 @@ class ScreenController {
         BuildContext? dialogContext;
 
         showGeneralDialog(
+          useRootNavigator: false,  // use inner-most MaterialApp (our App) as root so theming is ours
           context: context,
           barrierDismissible: true,
           barrierLabel: "Barrier",
