@@ -71,7 +71,7 @@ class DateRangeState extends FormFieldWidgetState<DateRange> {
       validator: (value) {
         if (widget._controller.required) {
           if (value == null || value.isEmpty) {
-            return Utils.translateWithFallback(context, 'ensemble.input.required', 'This field is required');
+            return Utils.translateWithFallback('ensemble.input.required', 'This field is required');
           }
         }
         return null;

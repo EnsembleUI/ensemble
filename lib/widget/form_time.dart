@@ -64,7 +64,7 @@ class TimeState extends FormFieldWidgetState<Time> {
       key: validatorKey,
       validator: (value) {
         if (widget._controller.required && widget._controller.value == null) {
-          return Utils.translateWithFallback(context, 'ensemble.input.required', 'This field is required');
+          return Utils.translateWithFallback('ensemble.input.required', 'This field is required');
         }
         return null;
       },
