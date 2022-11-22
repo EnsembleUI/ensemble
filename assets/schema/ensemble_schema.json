@@ -69,8 +69,7 @@
                     "flexibleMaxHeight": {
                       "type": "integer",
                       "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's max height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). This attribute will be ignored if smaller than the flexibleMinHeight"
-                    },
-
+                    }
                   }
                 }
               }
