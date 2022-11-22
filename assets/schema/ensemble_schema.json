@@ -53,15 +53,24 @@
                       "type": "boolean",
                       "description": "By default the App automatically injects the Menu or Back icon (if applicable) before the title. You may hide these icons by setting this to false."
                     },
+                    "centerTitle": {
+                      "type": "boolean",
+                      "description": "Whether to align the title in the title bar's center horizontally (default: true)"
+                    },
                     "titleBarHeight": {
                       "type": "integer",
                       "description": "For consistency, the header's title bar has the default fixed height of 56 regardless of its content. You may adjust its height here.",
                       "minimum": 0
                     },
-                    "centerTitle": {
-                      "type": "boolean",
-                      "description": "Whether to align the title in the title bar's center horizontally (default: true)"
-                    }
+                    "flexibleMinHeight": {
+                      "type": "integer",
+                      "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's min height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). Note that this attribute will be ignored if smaller than the titleBarHeight"
+                    },
+                    "flexibleMaxHeight": {
+                      "type": "integer",
+                      "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's max height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). This attribute will be ignored if smaller than the flexibleMinHeight"
+                    },
+
                   }
                 }
               }
@@ -95,9 +104,13 @@
                 },
                 {
                   "properties": {
-                    "ignoreSafeArea": {
+                    "useSafeArea": {
                       "type": "boolean",
-                      "description": "Whether to ignore the Safe Area (top only) and use the entire screen height. (default is false)"
+                      "description": "Applicable only when we don't have a header. If true, insert paddings around the body content to account for the the devices' Safe Area (e.g. iPhone notch). Default is false."
+                    },
+                    "scrollableView": {
+                      "type": "boolean",
+                      "description": "Specify if the content of this page is scrollable with a global scrollbar. Using this also allow us to customize the scrolling experience of the header."
                     }
                   }
                 }
