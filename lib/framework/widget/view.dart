@@ -95,39 +95,112 @@ class ViewState extends State<View>{
     super.initState();
   }
 
-  PreferredSizeWidget? buildAppBar(HeaderModel? headerModel, Widget? drawer) {
+  /// create AppBar that is part of a CustomScrollView
+  Widget? buildSliverAppBar(HeaderModel? headerModel, Widget? drawer) {
     if (headerModel != null) {
-      final titleBarHeight = Utils.optionalInt(headerModel.styles?['titleBarHeight'], min: 0)?.toDouble() ?? kToolbarHeight;
-
-      Widget? titleWidget;
-      if (headerModel.titleWidget != null) {
-        titleWidget = _scopeManager.buildWidget(headerModel.titleWidget!);
+      dynamic appBar = _buildAppBar(headerModel, drawer, scrollableView: true);
+      if (appBar is SliverAppBar) {
+        return appBar;
       }
-      if (titleWidget == null && headerModel.titleText != null) {
-        titleWidget = Text(Utils.translate(headerModel.titleText!, context));
+    }
+    // TODO: what about drawer?
+
+    return null;
+  }
+
+  /// fixed AppBar
+  PreferredSizeWidget? buildFixedAppBar(HeaderModel? headerModel, Widget? drawer) {
+    if (headerModel != null) {
+      dynamic appBar = _buildAppBar(headerModel, drawer, scrollableView: false);
+      if (appBar is PreferredSizeWidget) {
+        return appBar;
       }
-
-      Widget? backgroundWidget;
-      if (headerModel.flexibleBackground != null) {
-        backgroundWidget = _scopeManager.buildWidget(headerModel.flexibleBackground!);
-      }
-
-      return AppBar(
-        title: titleWidget,
-        centerTitle: Utils.getBool(headerModel.styles?['centerTitle'], fallback: true),
-        backgroundColor: Utils.getColor(headerModel.styles?['backgroundColor']),
-        foregroundColor: Utils.getColor(headerModel.styles?['color']),
-        elevation: Utils.optionalInt(headerModel.styles?['elevation'], min: 0)?.toDouble(),
-        shadowColor: Utils.getColor(headerModel.styles?['shadowColor']),
-        automaticallyImplyLeading: Utils.getBool(headerModel.styles?['showNavigationIcon'], fallback: true),
-        toolbarHeight: titleBarHeight,
-
-        flexibleSpace: backgroundWidget,
-      );
     }
     /// we need the Appbar to show our menu drawer icon
     if (drawer != null) {
       return AppBar();
+    }
+    return null;
+  }
+
+  /// fixed AppBar
+  dynamic _buildAppBar(HeaderModel headerModel, Widget? drawer, {required bool scrollableView}) {
+    Widget? titleWidget;
+    if (headerModel.titleWidget != null) {
+      titleWidget = _scopeManager.buildWidget(headerModel.titleWidget!);
+    }
+    if (titleWidget == null && headerModel.titleText != null) {
+      titleWidget = Text(Utils.translate(headerModel.titleText!, context));
+    }
+
+    Widget? backgroundWidget;
+    if (headerModel.flexibleBackground != null) {
+      backgroundWidget = _scopeManager.buildWidget(headerModel.flexibleBackground!);
+    }
+
+    bool centerTitle = Utils.getBool(headerModel.styles?['centerTitle'], fallback: true);
+    bool showNavigationIcon = Utils.getBool(headerModel.styles?['showNavigationIcon'], fallback: true);
+    Color? backgroundColor = Utils.getColor(headerModel.styles?['backgroundColor']);
+    Color? color = Utils.getColor(headerModel.styles?['color']);
+    Color? shadowColor = Utils.getColor(headerModel.styles?['shadowColor']);
+    double? elevation = Utils.optionalInt(headerModel.styles?['elevation'], min: 0)?.toDouble();
+
+    final titleBarHeight = Utils.optionalInt(headerModel.styles?['titleBarHeight'], min: 0)?.toDouble() ?? kToolbarHeight;
+
+    // applicable only to Sliver scrolling
+    double? flexibleMaxHeight = Utils.optionalInt(headerModel.styles?['flexibleMaxHeight'])?.toDouble();
+    double? flexibleMinHeight = Utils.optionalInt(headerModel.styles?['flexibleMinHeight'])?.toDouble();
+    // collapsed height if specified needs to be bigger than titleBar height
+    if (flexibleMinHeight != null && flexibleMinHeight < titleBarHeight) {
+      flexibleMinHeight = null;
+    }
+
+    if (scrollableView) {
+      return SliverAppBar(
+        automaticallyImplyLeading: showNavigationIcon,
+        title: titleWidget,
+        centerTitle: centerTitle,
+        backgroundColor: backgroundColor,
+        foregroundColor: color,
+
+        // control the drop shadow on the header's bottom edge
+        elevation: elevation,
+        shadowColor: shadowColor,
+
+        toolbarHeight: titleBarHeight,
+
+        flexibleSpace: wrapsInFlexible(backgroundWidget),
+        expandedHeight: flexibleMaxHeight,
+        collapsedHeight: flexibleMinHeight,
+
+        pinned: true,
+
+      );
+    } else {
+      return AppBar(
+        automaticallyImplyLeading: showNavigationIcon,
+        title: titleWidget,
+        centerTitle: centerTitle,
+        backgroundColor: backgroundColor,
+        foregroundColor: color,
+
+        // control the drop shadow on the header's bottom edge
+        elevation: elevation,
+        shadowColor: shadowColor,
+
+        toolbarHeight: titleBarHeight,
+        flexibleSpace: backgroundWidget,
+      );
+    }
+  }
+
+  /// wraps the background in a FlexibleSpaceBar for automatic stretching and parallax effect.
+  Widget? wrapsInFlexible(Widget? backgroundWidget) {
+    if (backgroundWidget != null) {
+      return FlexibleSpaceBar(
+        background: backgroundWidget,
+        collapseMode: CollapseMode.parallax,
+      );
     }
     return null;
   }
@@ -184,14 +257,25 @@ class ViewState extends State<View>{
       );
     }
 
+    // whether to usse CustomScrollView for the entire page
+    bool isScrollableView = widget._pageModel.pageStyles?['scrollableView'] == true;
+
+    PreferredSizeWidget? fixedAppBar;
+    if (!isScrollableView) {
+      fixedAppBar = buildFixedAppBar(widget._pageModel.headerModel, drawer);
+    }
+
     Widget rtn = DataScopeWidget(
       scopeManager: _scopeManager,
       child: Scaffold(
         // slight optimization, if body background is set, let's paint
         // the entire screen including the Safe Area
         backgroundColor: backgroundColor,
-        appBar: buildAppBar(widget._pageModel.headerModel, drawer),
-        body: getBody(),
+
+        // appBar is inside CustomScrollView if defined
+        appBar: fixedAppBar,
+        body: isScrollableView ? buildScrollablePageContent(drawer) : buildFixedPageContent(fixedAppBar != null),
+
         bottomNavigationBar: bottomNavBar,
         drawer: drawer,
         bottomSheet: _buildFooter(_scopeManager, widget._pageModel),
@@ -218,9 +302,48 @@ class ViewState extends State<View>{
 
   }
 
-  Widget getBody () {
+  /// determine if we should wraps the body in a SafeArea or not
+  bool useSafeArea() {
+    bool? useSafeArea = Utils.optionalBool(widget._pageModel.pageStyles?['useSafeArea']);
 
-    bool ignoreSafeArea = Utils.getBool(widget._pageModel.pageStyles?['ignoreSafeArea'], fallback: false);
+    // backward compatible with legacy attribute
+    if (useSafeArea == null) {
+      bool? ignoreSafeArea = Utils.optionalBool(widget._pageModel.pageStyles?['ignoreSafeArea']);
+      if (ignoreSafeArea != null) {
+        useSafeArea = !ignoreSafeArea;
+      }
+    }
+
+    // by default don't use Safe Area
+    return useSafeArea ?? false;
+  }
+
+  Widget buildFixedPageContent(bool hasAppBar) {
+    return getBody(hasAppBar);
+  }
+
+  Widget buildScrollablePageContent(Widget? drawer) {
+    List<Widget> slivers = [];
+
+    // appBar
+    Widget? appBar = buildSliverAppBar(widget._pageModel.headerModel, drawer);
+    if (appBar != null) {
+      slivers.add(appBar);
+    }
+
+    // body
+    slivers.add(SliverToBoxAdapter(
+      child: getBody(appBar != null),
+    ));
+
+    return CustomScrollView(
+      slivers: slivers
+    );
+  }
+
+  Widget getBody (bool hasAppBar) {
+    // ignore safe area is only applicable if we don't have an AppBar
+    bool _useSafeArea = !hasAppBar && useSafeArea();
 
 
     if (menuDisplay == MenuDisplay.navBar_left.name) {
@@ -303,7 +426,7 @@ class ViewState extends State<View>{
       // add the bodyWidget
       content.add(Expanded(
           child: SafeArea(
-            top: !ignoreSafeArea, //widget._pageModel.pageType == PageType.modal ? false : true,
+            top: _useSafeArea, //widget._pageModel.pageType == PageType.modal ? false : true,
               child: rootWidget)));
 
       return Row(
@@ -312,7 +435,7 @@ class ViewState extends State<View>{
     }
 
     return SafeArea(
-        top: !ignoreSafeArea ,//widget._pageModel.pageType == PageType.modal ? false : true,
+        top: _useSafeArea,//widget._pageModel.pageType == PageType.modal ? false : true,
         child: rootWidget
     );
   }
