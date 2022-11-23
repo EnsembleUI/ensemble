@@ -9,7 +9,7 @@
     },
     "View": {
       "type": "object",
-      "description": "This is your root View",
+      "description": "This is your root View. It requires exactly one child widget of type Column, Row, Flex, or Stack.",
       "allOf": [
         {
           "$ref": "#/$defs/RootWidget"
@@ -1600,14 +1600,22 @@
     },
     "Menu": {
       "type": "object",
+      "description": "Specify the navigation menu for this page",
       "allOf": [
         {
           "properties": {
             "display": {
               "type": "string",
-              "description": "The menu display type",
-              "enum": [
-                "navBar", "navBar_left", "drawer"
+              "description": "Specify the type of menu",
+              "oneOf": [
+                {
+                  "const": "bottomNavBar",
+                  "description": "Use the bottom navigation bar (default)"
+                },
+                {
+                  "const": "drawer",
+                  "description": "Put the menu behind a drawer icon on the header"
+                }
               ]
             },
             "header": { "$ref": "#/$defs/Widget" },
@@ -1642,6 +1650,10 @@
                   "page": {
                     "type": "string",
                     "description": "The new page to navigate to on click"
+                  },
+                  "selected": {
+                    "type": "boolean",
+                    "description": "Mark this item as selected. There should only be one selected item per page."
                   }
                 }
               }
