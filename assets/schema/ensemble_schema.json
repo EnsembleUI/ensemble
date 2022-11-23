@@ -298,6 +298,15 @@
         }
       }
     },
+    "Html-payload": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "Enter the HTML text"
+        }
+      }
+    },
     "Icon-payload": {
       "type": "object",
       "required": ["icon"],
@@ -1464,6 +1473,11 @@
         {
           "properties": {
             "Markdown": { "$ref": "#/$defs/Markdown-payload" }
+          }
+        },
+        {
+          "properties": {
+            "Html": { "$ref": "#/$defs/Html-payload" }
           }
         },
         {

@@ -24,6 +24,7 @@ import 'package:ensemble/widget/image.dart';
 import 'package:ensemble/widget/lottie/lottie.dart';
 import 'package:ensemble/widget/map.dart';
 import 'package:ensemble/widget/markdown.dart';
+import 'package:ensemble/widget/html.dart';
 import 'package:ensemble/widget/progress_indicator.dart';
 import 'package:ensemble/widget/qr_code.dart';
 import 'package:ensemble/widget/rating.dart';
@@ -48,6 +49,7 @@ class WidgetRegistry {
   static Map<String, Function> get widgetMap => <String, Function> {
     ensemble.Text.type: () => ensemble.Text(),
     Markdown.type: () => Markdown(),
+    EnsembleHtml.type: () => EnsembleHtml(),
     EnsembleIcon.type: () => EnsembleIcon(),
     EnsembleImage.type: () => EnsembleImage(),
     EnsembleDivider.type: () => EnsembleDivider(),
