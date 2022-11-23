@@ -224,10 +224,7 @@ class ViewState extends State<View>{
       // left/right navBar will be rendered as part of the body
     }
 
-    Color? backgroundColor =
-      widget._pageModel.pageStyles?['backgroundColor'] is int ?
-      Color(widget._pageModel.pageStyles!['backgroundColor']) :
-      null;
+    Color? backgroundColor = Utils.getColor(widget._pageModel.pageStyles?['backgroundColor']);
     // if we have a background image, set the background color to transparent
     // since our image is outside the Scaffold
     BackgroundImage? backgroundImage = Utils.getBackgroundImage(widget._pageModel.pageStyles?['backgroundImage']);

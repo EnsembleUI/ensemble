@@ -110,6 +110,10 @@
                     "scrollableView": {
                       "type": "boolean",
                       "description": "Specify if the content of this page is scrollable with a global scrollbar. Using this also allow us to customize the scrolling experience of the header."
+                    },
+                    "backgroundColor": {
+                      "$ref": "#/$defs/typeColors",
+                      "description": "Background color for the page starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
                     }
                   }
                 }
