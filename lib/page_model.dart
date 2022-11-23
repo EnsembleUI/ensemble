@@ -277,8 +277,11 @@ class Menu {
   WidgetModel? footerModel;
 }
 enum MenuDisplay {
-  navBar,       // bottom navigation bar. Default if not specified
-  drawer,       // expansible/collapsible hamburger menu
+  bottomNavBar,   // bottom navigation bar. Default if not specified
+  drawer,         // hamburger drawer menu
+
+  // legacy or not exposed yet
+  navBar,         // bottom nav bar
   navBar_left,  // fixed navigation on the left of the screen
   navBar_right  // fixed navigation on the right of the screen
 }

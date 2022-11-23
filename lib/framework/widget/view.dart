@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
@@ -96,35 +97,36 @@ class ViewState extends State<View>{
   }
 
   /// create AppBar that is part of a CustomScrollView
-  Widget? buildSliverAppBar(HeaderModel? headerModel, Widget? drawer) {
+  Widget? buildSliverAppBar(HeaderModel? headerModel, bool hasDrawer) {
     if (headerModel != null) {
-      dynamic appBar = _buildAppBar(headerModel, drawer, scrollableView: true);
+      dynamic appBar = _buildAppBar(headerModel, scrollableView: true);
       if (appBar is SliverAppBar) {
         return appBar;
       }
     }
-    // TODO: what about drawer?
-
+    if (hasDrawer) {
+      return const SliverAppBar();
+    }
     return null;
   }
 
   /// fixed AppBar
-  PreferredSizeWidget? buildFixedAppBar(HeaderModel? headerModel, Widget? drawer) {
+  PreferredSizeWidget? buildFixedAppBar(HeaderModel? headerModel, bool hasDrawer) {
     if (headerModel != null) {
-      dynamic appBar = _buildAppBar(headerModel, drawer, scrollableView: false);
+      dynamic appBar = _buildAppBar(headerModel, scrollableView: false);
       if (appBar is PreferredSizeWidget) {
         return appBar;
       }
     }
     /// we need the Appbar to show our menu drawer icon
-    if (drawer != null) {
+    if (hasDrawer) {
       return AppBar();
     }
     return null;
   }
 
   /// fixed AppBar
-  dynamic _buildAppBar(HeaderModel headerModel, Widget? drawer, {required bool scrollableView}) {
+  dynamic _buildAppBar(HeaderModel headerModel, {required bool scrollableView}) {
     Widget? titleWidget;
     if (headerModel.titleWidget != null) {
       titleWidget = _scopeManager.buildWidget(headerModel.titleWidget!);
@@ -208,27 +210,18 @@ class ViewState extends State<View>{
   @override
   Widget build(BuildContext context) {
     log("View build() $hashCode");
-    Widget? bottomNavBar;
-    Widget? drawer;
 
-    // modal page has certain criteria (no navBar, no header)
-    if (widget._pageModel.screenOptions?.pageType != PageType.modal) {
-      // navigation
-      if (widget._pageModel.menu != null &&
-          widget._pageModel.menu!.menuItems.length >= 2) {
-
-        if (widget._pageModel.menu!.display != null) {
-          menuDisplay = _scopeManager.dataContext.eval(widget._pageModel.menu!.display);
-          if (menuDisplay == MenuDisplay.navBar.name) {
-            bottomNavBar = _buildBottomNavBar(context, widget._pageModel.menu!);
-          } else if (menuDisplay == MenuDisplay.drawer.name) {
-            drawer = _buildDrawer(context, widget._pageModel.menu!);
-          }
-        }
-        // left/right navBar will be rendered as part of the body
+    // build the navigation menu (bottom nav bar or drawer). Note that menu is not applicable on modal pages
+    Widget? _bottomNavBar;
+    Widget? _drawer;
+    if (widget._pageModel.menu != null && widget._pageModel.screenOptions?.pageType != PageType.modal) {
+      dynamic menuDisplay = _scopeManager.dataContext.eval(widget._pageModel.menu!.display);
+      if (menuDisplay == null || menuDisplay == MenuDisplay.bottomNavBar.name || menuDisplay == MenuDisplay.navBar.name) {
+        _bottomNavBar = _buildBottomNavBar(context, widget._pageModel.menu!);
+      } else if (menuDisplay == MenuDisplay.drawer.name) {
+        _drawer = _buildDrawer(context, widget._pageModel.menu!);
       }
-
-
+      // left/right navBar will be rendered as part of the body
     }
 
     Color? backgroundColor =
@@ -262,7 +255,7 @@ class ViewState extends State<View>{
 
     PreferredSizeWidget? fixedAppBar;
     if (!isScrollableView) {
-      fixedAppBar = buildFixedAppBar(widget._pageModel.headerModel, drawer);
+      fixedAppBar = buildFixedAppBar(widget._pageModel.headerModel, _drawer != null);
     }
 
     Widget rtn = DataScopeWidget(
@@ -274,10 +267,10 @@ class ViewState extends State<View>{
 
         // appBar is inside CustomScrollView if defined
         appBar: fixedAppBar,
-        body: isScrollableView ? buildScrollablePageContent(drawer) : buildFixedPageContent(fixedAppBar != null),
+        body: isScrollableView ? buildScrollablePageContent(_drawer != null) : buildFixedPageContent(fixedAppBar != null),
 
-        bottomNavigationBar: bottomNavBar,
-        drawer: drawer,
+        bottomNavigationBar: _bottomNavBar,
+        drawer: _drawer,
         bottomSheet: _buildFooter(_scopeManager, widget._pageModel),
         floatingActionButton: closeModalButton,
         floatingActionButtonLocation:
@@ -322,11 +315,11 @@ class ViewState extends State<View>{
     return getBody(hasAppBar);
   }
 
-  Widget buildScrollablePageContent(Widget? drawer) {
+  Widget buildScrollablePageContent(bool hasDrawer) {
     List<Widget> slivers = [];
 
     // appBar
-    Widget? appBar = buildSliverAppBar(widget._pageModel.headerModel, drawer);
+    Widget? appBar = buildSliverAppBar(widget._pageModel.headerModel, hasDrawer);
     if (appBar != null) {
       slivers.add(appBar);
     }
@@ -459,11 +452,15 @@ class ViewState extends State<View>{
         children: navItems,
       ),
     );
-
   }
 
-  /// navigation bar
+  /// Build a Bottom Navigation Bar (default if display is not specified)
   BottomNavigationBar? _buildBottomNavBar(BuildContext context, Menu menu) {
+    // need to have at least 2 items
+    if (menu.menuItems.length < 2) {
+      throw LanguageError("Menu requires at least 2 items.");
+    }
+
     int selectedIndex = 0;
     List<BottomNavigationBarItem> navItems = [];
     for (int i=0; i<menu.menuItems.length; i++) {
