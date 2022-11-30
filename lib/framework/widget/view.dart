@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
@@ -95,39 +96,113 @@ class ViewState extends State<View>{
     super.initState();
   }
 
-  PreferredSizeWidget? buildAppBar(HeaderModel? headerModel, Widget? drawer) {
+  /// create AppBar that is part of a CustomScrollView
+  Widget? buildSliverAppBar(HeaderModel? headerModel, bool hasDrawer) {
     if (headerModel != null) {
-      final titleBarHeight = Utils.optionalInt(headerModel.styles?['titleBarHeight'], min: 0)?.toDouble() ?? kToolbarHeight;
-
-      Widget? titleWidget;
-      if (headerModel.titleWidget != null) {
-        titleWidget = _scopeManager.buildWidget(headerModel.titleWidget!);
+      dynamic appBar = _buildAppBar(headerModel, scrollableView: true);
+      if (appBar is SliverAppBar) {
+        return appBar;
       }
-      if (titleWidget == null && headerModel.titleText != null) {
-        titleWidget = Text(Utils.translate(headerModel.titleText!, context));
-      }
+    }
+    if (hasDrawer) {
+      return const SliverAppBar();
+    }
+    return null;
+  }
 
-      Widget? backgroundWidget;
-      if (headerModel.flexibleBackground != null) {
-        backgroundWidget = _scopeManager.buildWidget(headerModel.flexibleBackground!);
+  /// fixed AppBar
+  PreferredSizeWidget? buildFixedAppBar(HeaderModel? headerModel, bool hasDrawer) {
+    if (headerModel != null) {
+      dynamic appBar = _buildAppBar(headerModel, scrollableView: false);
+      if (appBar is PreferredSizeWidget) {
+        return appBar;
       }
+    }
+    /// we need the Appbar to show our menu drawer icon
+    if (hasDrawer) {
+      return AppBar();
+    }
+    return null;
+  }
 
-      return AppBar(
+  /// fixed AppBar
+  dynamic _buildAppBar(HeaderModel headerModel, {required bool scrollableView}) {
+    Widget? titleWidget;
+    if (headerModel.titleWidget != null) {
+      titleWidget = _scopeManager.buildWidget(headerModel.titleWidget!);
+    }
+    if (titleWidget == null && headerModel.titleText != null) {
+      titleWidget = Text(Utils.translate(headerModel.titleText!, context));
+    }
+
+    Widget? backgroundWidget;
+    if (headerModel.flexibleBackground != null) {
+      backgroundWidget = _scopeManager.buildWidget(headerModel.flexibleBackground!);
+    }
+
+    bool centerTitle = Utils.getBool(headerModel.styles?['centerTitle'], fallback: true);
+    bool showNavigationIcon = Utils.getBool(headerModel.styles?['showNavigationIcon'], fallback: true);
+    Color? backgroundColor = Utils.getColor(headerModel.styles?['backgroundColor']);
+    Color? color = Utils.getColor(headerModel.styles?['color']);
+    Color? shadowColor = Utils.getColor(headerModel.styles?['shadowColor']);
+    double? elevation = Utils.optionalInt(headerModel.styles?['elevation'], min: 0)?.toDouble();
+
+    final titleBarHeight = Utils.optionalInt(headerModel.styles?['titleBarHeight'], min: 0)?.toDouble() ?? kToolbarHeight;
+
+    // applicable only to Sliver scrolling
+    double? flexibleMaxHeight = Utils.optionalInt(headerModel.styles?['flexibleMaxHeight'])?.toDouble();
+    double? flexibleMinHeight = Utils.optionalInt(headerModel.styles?['flexibleMinHeight'])?.toDouble();
+    // collapsed height if specified needs to be bigger than titleBar height
+    if (flexibleMinHeight != null && flexibleMinHeight < titleBarHeight) {
+      flexibleMinHeight = null;
+    }
+
+    if (scrollableView) {
+      return SliverAppBar(
+        automaticallyImplyLeading: showNavigationIcon,
         title: titleWidget,
-        centerTitle: Utils.getBool(headerModel.styles?['centerTitle'], fallback: true),
-        backgroundColor: Utils.getColor(headerModel.styles?['backgroundColor']),
-        foregroundColor: Utils.getColor(headerModel.styles?['color']),
-        elevation: Utils.optionalInt(headerModel.styles?['elevation'], min: 0)?.toDouble(),
-        shadowColor: Utils.getColor(headerModel.styles?['shadowColor']),
-        automaticallyImplyLeading: Utils.getBool(headerModel.styles?['showNavigationIcon'], fallback: true),
+        centerTitle: centerTitle,
+        backgroundColor: backgroundColor,
+        foregroundColor: color,
+
+        // control the drop shadow on the header's bottom edge
+        elevation: elevation,
+        shadowColor: shadowColor,
+
         toolbarHeight: titleBarHeight,
 
+        flexibleSpace: wrapsInFlexible(backgroundWidget),
+        expandedHeight: flexibleMaxHeight,
+        collapsedHeight: flexibleMinHeight,
+
+        pinned: true,
+
+      );
+    } else {
+      return AppBar(
+        automaticallyImplyLeading: showNavigationIcon,
+        title: titleWidget,
+        centerTitle: centerTitle,
+        backgroundColor: backgroundColor,
+        foregroundColor: color,
+
+        // control the drop shadow on the header's bottom edge
+        elevation: elevation,
+        shadowColor: shadowColor,
+
+        toolbarHeight: titleBarHeight,
         flexibleSpace: backgroundWidget,
       );
     }
-    /// we need the Appbar to show our menu drawer icon
-    if (drawer != null) {
-      return AppBar();
+  }
+
+  /// wraps the background in a FlexibleSpaceBar for automatic stretching and parallax effect.
+  Widget? wrapsInFlexible(Widget? backgroundWidget) {
+    if (backgroundWidget != null) {
+      return FlexibleSpaceBar(
+        background: backgroundWidget,
+        collapseMode: CollapseMode.parallax,
+      );
     }
     return null;
   }
@@ -135,33 +210,21 @@ class ViewState extends State<View>{
   @override
   Widget build(BuildContext context) {
     log("View build() $hashCode");
-    Widget? bottomNavBar;
-    Widget? drawer;
 
-    // modal page has certain criteria (no navBar, no header)
-    if (widget._pageModel.screenOptions?.pageType != PageType.modal) {
-      // navigation
-      if (widget._pageModel.menu != null &&
-          widget._pageModel.menu!.menuItems.length >= 2) {
-
-        if (widget._pageModel.menu!.display != null) {
-          menuDisplay = _scopeManager.dataContext.eval(widget._pageModel.menu!.display);
-          if (menuDisplay == MenuDisplay.navBar.name) {
-            bottomNavBar = _buildBottomNavBar(context, widget._pageModel.menu!);
-          } else if (menuDisplay == MenuDisplay.drawer.name) {
-            drawer = _buildDrawer(context, widget._pageModel.menu!);
-          }
-        }
-        // left/right navBar will be rendered as part of the body
+    // build the navigation menu (bottom nav bar or drawer). Note that menu is not applicable on modal pages
+    Widget? _bottomNavBar;
+    Widget? _drawer;
+    if (widget._pageModel.menu != null && widget._pageModel.screenOptions?.pageType != PageType.modal) {
+      dynamic menuDisplay = _scopeManager.dataContext.eval(widget._pageModel.menu!.display);
+      if (menuDisplay == null || menuDisplay == MenuDisplay.bottomNavBar.name || menuDisplay == MenuDisplay.navBar.name) {
+        _bottomNavBar = _buildBottomNavBar(context, widget._pageModel.menu!);
+      } else if (menuDisplay == MenuDisplay.drawer.name) {
+        _drawer = _buildDrawer(context, widget._pageModel.menu!);
       }
-
-
+      // left/right navBar will be rendered as part of the body
     }
 
-    Color? backgroundColor =
-      widget._pageModel.pageStyles?['backgroundColor'] is int ?
-      Color(widget._pageModel.pageStyles!['backgroundColor']) :
-      null;
+    Color? backgroundColor = Utils.getColor(widget._pageModel.pageStyles?['backgroundColor']);
     // if we have a background image, set the background color to transparent
     // since our image is outside the Scaffold
     BackgroundImage? backgroundImage = Utils.getBackgroundImage(widget._pageModel.pageStyles?['backgroundImage']);
@@ -184,16 +247,27 @@ class ViewState extends State<View>{
       );
     }
 
+    // whether to usse CustomScrollView for the entire page
+    bool isScrollableView = widget._pageModel.pageStyles?['scrollableView'] == true;
+
+    PreferredSizeWidget? fixedAppBar;
+    if (!isScrollableView) {
+      fixedAppBar = buildFixedAppBar(widget._pageModel.headerModel, _drawer != null);
+    }
+
     Widget rtn = DataScopeWidget(
       scopeManager: _scopeManager,
       child: Scaffold(
         // slight optimization, if body background is set, let's paint
         // the entire screen including the Safe Area
         backgroundColor: backgroundColor,
-        appBar: buildAppBar(widget._pageModel.headerModel, drawer),
-        body: getBody(),
-        bottomNavigationBar: bottomNavBar,
-        drawer: drawer,
+
+        // appBar is inside CustomScrollView if defined
+        appBar: fixedAppBar,
+        body: isScrollableView ? buildScrollablePageContent(_drawer != null) : buildFixedPageContent(fixedAppBar != null),
+
+        bottomNavigationBar: _bottomNavBar,
+        drawer: _drawer,
         bottomSheet: _buildFooter(_scopeManager, widget._pageModel),
         floatingActionButton: closeModalButton,
         floatingActionButtonLocation:
@@ -218,9 +292,48 @@ class ViewState extends State<View>{
 
   }
 
-  Widget getBody () {
+  /// determine if we should wraps the body in a SafeArea or not
+  bool useSafeArea() {
+    bool? useSafeArea = Utils.optionalBool(widget._pageModel.pageStyles?['useSafeArea']);
 
-    bool ignoreSafeArea = Utils.getBool(widget._pageModel.pageStyles?['ignoreSafeArea'], fallback: false);
+    // backward compatible with legacy attribute
+    if (useSafeArea == null) {
+      bool? ignoreSafeArea = Utils.optionalBool(widget._pageModel.pageStyles?['ignoreSafeArea']);
+      if (ignoreSafeArea != null) {
+        useSafeArea = !ignoreSafeArea;
+      }
+    }
+
+    // by default don't use Safe Area
+    return useSafeArea ?? false;
+  }
+
+  Widget buildFixedPageContent(bool hasAppBar) {
+    return getBody(hasAppBar);
+  }
+
+  Widget buildScrollablePageContent(bool hasDrawer) {
+    List<Widget> slivers = [];
+
+    // appBar
+    Widget? appBar = buildSliverAppBar(widget._pageModel.headerModel, hasDrawer);
+    if (appBar != null) {
+      slivers.add(appBar);
+    }
+
+    // body
+    slivers.add(SliverToBoxAdapter(
+      child: getBody(appBar != null),
+    ));
+
+    return CustomScrollView(
+      slivers: slivers
+    );
+  }
+
+  Widget getBody (bool hasAppBar) {
+    // ignore safe area is only applicable if we don't have an AppBar
+    bool _useSafeArea = !hasAppBar && useSafeArea();
 
 
     if (menuDisplay == MenuDisplay.navBar_left.name) {
@@ -303,7 +416,7 @@ class ViewState extends State<View>{
       // add the bodyWidget
       content.add(Expanded(
           child: SafeArea(
-            top: !ignoreSafeArea, //widget._pageModel.pageType == PageType.modal ? false : true,
+            top: _useSafeArea, //widget._pageModel.pageType == PageType.modal ? false : true,
               child: rootWidget)));
 
       return Row(
@@ -312,7 +425,7 @@ class ViewState extends State<View>{
     }
 
     return SafeArea(
-        top: !ignoreSafeArea ,//widget._pageModel.pageType == PageType.modal ? false : true,
+        top: _useSafeArea,//widget._pageModel.pageType == PageType.modal ? false : true,
         child: rootWidget
     );
   }
@@ -336,11 +449,15 @@ class ViewState extends State<View>{
         children: navItems,
       ),
     );
-
   }
 
-  /// navigation bar
+  /// Build a Bottom Navigation Bar (default if display is not specified)
   BottomNavigationBar? _buildBottomNavBar(BuildContext context, Menu menu) {
+    // need to have at least 2 items
+    if (menu.menuItems.length < 2) {
+      throw LanguageError("Menu requires at least 2 items.");
+    }
+
     int selectedIndex = 0;
     List<BottomNavigationBarItem> navItems = [];
     for (int i=0; i<menu.menuItems.length; i++) {

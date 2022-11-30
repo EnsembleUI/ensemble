@@ -9,7 +9,7 @@
     },
     "View": {
       "type": "object",
-      "description": "This is your root View",
+      "description": "This is your root View. It requires exactly one child widget of type Column, Row, Flex, or Stack.",
       "allOf": [
         {
           "$ref": "#/$defs/RootWidget"
@@ -53,14 +53,22 @@
                       "type": "boolean",
                       "description": "By default the App automatically injects the Menu or Back icon (if applicable) before the title. You may hide these icons by setting this to false."
                     },
+                    "centerTitle": {
+                      "type": "boolean",
+                      "description": "Whether to align the title in the title bar's center horizontally (default: true)"
+                    },
                     "titleBarHeight": {
                       "type": "integer",
                       "description": "For consistency, the header's title bar has the default fixed height of 56 regardless of its content. You may adjust its height here.",
                       "minimum": 0
                     },
-                    "centerTitle": {
-                      "type": "boolean",
-                      "description": "Whether to align the title in the title bar's center horizontally (default: true)"
+                    "flexibleMinHeight": {
+                      "type": "integer",
+                      "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's min height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). Note that this attribute will be ignored if smaller than the titleBarHeight"
+                    },
+                    "flexibleMaxHeight": {
+                      "type": "integer",
+                      "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's max height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). This attribute will be ignored if smaller than the flexibleMinHeight"
                     }
                   }
                 }
@@ -95,9 +103,17 @@
                 },
                 {
                   "properties": {
-                    "ignoreSafeArea": {
+                    "useSafeArea": {
                       "type": "boolean",
-                      "description": "Whether to ignore the Safe Area (top only) and use the entire screen height. (default is false)"
+                      "description": "Applicable only when we don't have a header. If true, insert paddings around the body content to account for the the devices' Safe Area (e.g. iPhone notch). Default is false."
+                    },
+                    "scrollableView": {
+                      "type": "boolean",
+                      "description": "Specify if the content of this page is scrollable with a global scrollbar. Using this also allow us to customize the scrolling experience of the header."
+                    },
+                    "backgroundColor": {
+                      "$ref": "#/$defs/typeColors",
+                      "description": "Background color for the page starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
                     }
                   }
                 }
@@ -283,6 +299,15 @@
               "$ref": "#/$defs/baseStyles"
             }
           ]
+        }
+      }
+    },
+    "Html-payload": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "Enter the HTML text"
         }
       }
     },
@@ -1456,6 +1481,11 @@
         },
         {
           "properties": {
+            "Html": { "$ref": "#/$defs/Html-payload" }
+          }
+        },
+        {
+          "properties": {
             "Icon": { "$ref": "#/$defs/Icon-payload" }
           }
         },
@@ -1588,14 +1618,22 @@
     },
     "Menu": {
       "type": "object",
+      "description": "Specify the navigation menu for this page",
       "allOf": [
         {
           "properties": {
             "display": {
               "type": "string",
-              "description": "The menu display type",
-              "enum": [
-                "navBar", "navBar_left", "drawer"
+              "description": "Specify the type of menu",
+              "oneOf": [
+                {
+                  "const": "bottomNavBar",
+                  "description": "Use the bottom navigation bar (default)"
+                },
+                {
+                  "const": "drawer",
+                  "description": "Put the menu behind a drawer icon on the header"
+                }
               ]
             },
             "header": { "$ref": "#/$defs/Widget" },
@@ -1630,6 +1668,10 @@
                   "page": {
                     "type": "string",
                     "description": "The new page to navigate to on click"
+                  },
+                  "selected": {
+                    "type": "boolean",
+                    "description": "Mark this item as selected. There should only be one selected item per page."
                   }
                 }
               }
