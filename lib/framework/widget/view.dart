@@ -215,7 +215,7 @@ class ViewState extends State<View>{
     Widget? _bottomNavBar;
     Widget? _drawer;
     if (widget._pageModel.menu != null && widget._pageModel.screenOptions?.pageType != PageType.modal) {
-      dynamic menuDisplay = _scopeManager.dataContext.eval(widget._pageModel.menu!.display);
+      menuDisplay = _scopeManager.dataContext.eval(widget._pageModel.menu!.display);
       if (menuDisplay == null || menuDisplay == MenuDisplay.bottomNavBar.name || menuDisplay == MenuDisplay.navBar.name) {
         _bottomNavBar = _buildBottomNavBar(context, widget._pageModel.menu!);
       } else if (menuDisplay == MenuDisplay.drawer.name) {
