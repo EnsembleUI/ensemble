@@ -91,12 +91,31 @@ abstract class BaseTextInput extends StatefulWidget with Invokable, HasControlle
       'borderRadius': (value) => _controller.borderRadius = Utils.optionalInt(value),
       'validator': (value) => _controller.validator = Utils.getValidator(value),
       'obscureToggle': (value) => _controller.obscureToggle = Utils.optionalBool(value),
+      'keyboardAction': (value) => _controller.keyboardAction = _getKeyboardAction(value)
     };
   }
 
   @override
   Map<String, Function> methods() {
     return {};
+  }
+
+  TextInputAction? _getKeyboardAction(dynamic value) {
+    switch(value) {
+      case 'done':
+        return TextInputAction.done;
+      case 'go':
+        return TextInputAction.go;
+      case 'search':
+        return TextInputAction.search;
+      case 'send':
+        return TextInputAction.send;
+      case 'next':
+        return TextInputAction.next;
+      case 'previous':
+        return TextInputAction.previous;
+    }
+    return null;
   }
 
   @override
@@ -111,6 +130,7 @@ abstract class BaseTextInput extends StatefulWidget with Invokable, HasControlle
 class TextInputController extends FormFieldController {
   EnsembleAction? onChange;
   EnsembleAction? onKeyPress;
+  TextInputAction? keyboardAction;
 
   // applicable only for TextInput
   bool? obscureText;
@@ -257,6 +277,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
         }
         return null;
       },
+      textInputAction: widget._controller.keyboardAction,
       keyboardType: widget.keyboardType,
       obscureText: isObscureOrPlainText(),
       enableSuggestions: !widget.isPassword(),
@@ -278,9 +299,6 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
           }
 
         }
-      },
-      onEditingComplete: () {
-        evaluateChanges();
       },
       style: textStyle,
       decoration: decoration

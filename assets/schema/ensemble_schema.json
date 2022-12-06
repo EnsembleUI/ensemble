@@ -642,6 +642,9 @@
               "description": "Pick a predefined input type",
               "enum": [ "default" ,"email", "phone", "ipAddress"]
             },
+            "keyboardAction": {
+              "$ref": "#/$defs/keyboardAction"
+            },
             "obscureText": {
               "type": "boolean",
               "description": "whether we should obscure the typed-in text (e.g Social Security)"
@@ -673,6 +676,9 @@
             "onKeyPress": {
               "$ref": "#/$defs/Action-payload",
               "description": "On every keystroke, call Ensemble's built-in functions or execute code"
+            },
+            "keyboardAction": {
+              "$ref": "#/$defs/keyboardAction"
             },
             "obscureToggle": {
               "type": "boolean",
@@ -1092,6 +1098,36 @@
           ]
         }
       }
+    },
+    "keyboardAction": {
+      "type": "string",
+      "description": "Specify the action key on native device's soft keyboard",
+      "oneOf": [
+        {
+          "const": "done",
+          "description": "show the keyboard action that represents completion (e.g. Android's checkmark, iOS's Done)"
+        },
+        {
+          "const": "go",
+          "description": "show the keyboard action that represents go (e.g. Android's right arrow, iOS's Done)"
+        },
+        {
+          "const": "search",
+          "description": "show the keyboard action that represents search"
+        },
+        {
+          "const": "send",
+          "description": "show the keyboard action that represents send"
+        },
+        {
+          "const": "next",
+          "description": "Move the focus to the next focusable field"
+        },
+        {
+          "const": "previous",
+          "description": "Move the focus to the previous focusable field"
+        }
+      ]
     },
     "Action-payload": {
       "type": ["object", "string"],
@@ -1633,6 +1669,10 @@
                 {
                   "const": "drawer",
                   "description": "Put the menu behind a drawer icon on the header"
+                },
+                {
+                  "const": "leftNavBar",
+                  "description": "Enable a fixed navigation menu to the left of the screen. Recommend for web only."
                 }
               ]
             },
@@ -1682,7 +1722,7 @@
           "if": {
             "properties": {
               "display": {
-                "const": "navBar_left"
+                "const": "leftNavBar"
               }
             }
           },
