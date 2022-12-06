@@ -336,7 +336,7 @@ class ViewState extends State<View>{
     bool _useSafeArea = !hasAppBar && useSafeArea();
 
 
-    if (menuDisplay == MenuDisplay.navBar_left.name) {
+    if (menuDisplay == MenuDisplay.leftNavBar.name || menuDisplay == MenuDisplay.navBar_left.name) {
       List<model.MenuItem> menuItems = widget._pageModel.menu!.menuItems;
       int selectedIndex = 0;
       List<NavigationRailDestination> navItems = [];

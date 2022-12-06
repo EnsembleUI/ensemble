@@ -156,6 +156,11 @@ class ButtonState extends WidgetState<Button> {
 
     }
 
+    // if focus in on a formfield (e.g. TextField), clicking on button will
+    // not remove focus, so its value is never updated. Unfocus here before
+    // executing button click ensure we get all the latest value of the form fields
+    FocusManager.instance.primaryFocus?.unfocus();
+
     // submit the form if specified
     if (widget._controller.submitForm == true) {
       FormHelper.submitForm(context);

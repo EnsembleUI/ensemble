@@ -81,8 +81,6 @@ class DateRangeState extends FormFieldWidgetState<DateRange> {
       enabled: isEnabled(),
       onChanged: (String txt) {
       },
-      onEditingComplete: () {
-      },
       style: widget._controller.fontSize != null ?
         TextStyle(fontSize: widget._controller.fontSize!.toDouble()) :
         null,
