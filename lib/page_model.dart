@@ -279,8 +279,9 @@ class Menu {
 enum MenuDisplay {
   bottomNavBar,   // bottom navigation bar. Default if not specified
   drawer,         // hamburger drawer menu
+  leftNavBar,     // fixed navigation to the left. Only recommend for Web
 
-  // legacy or not exposed yet
+  // legacy for backward compatible
   navBar,         // bottom nav bar
   navBar_left,  // fixed navigation on the left of the screen
   navBar_right  // fixed navigation on the right of the screen
