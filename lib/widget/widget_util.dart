@@ -10,9 +10,13 @@ class WidgetUtils {
 
   /// wrap our widget in a Box, which supports margin, padding, border, ...
   static Widget wrapInBox(Widget widget, BoxController boxController) {
-    BorderRadius? borderRadius = boxController.borderRadius == null ?
-      null :
-      boxController.borderRadius!.getValue();
+    BorderRadius? borderRadius;
+    Widget realWidget = widget;
+
+    if (boxController.borderRadius != null) {
+      borderRadius = boxController.borderRadius!.getValue();
+      realWidget = ClipRRect(child: widget, borderRadius: borderRadius);
+    }
 
     return Container(
         margin: boxController.margin,
@@ -25,10 +29,7 @@ class WidgetUtils {
             borderRadius: borderRadius
         ),
         padding: boxController.padding,
-        child: ClipRRect(
-            child: widget,
-            borderRadius: borderRadius ?? const BorderRadius.all(Radius.zero)
-        )
+        child: realWidget
     );
 
   }

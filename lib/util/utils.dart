@@ -507,7 +507,10 @@ class Utils {
 
   static EBorderRadius? getBorderRadius(dynamic value) {
     if (value is int) {
-      return EBorderRadius.all(value);
+      // optimize, ignore zero border radius as that causes extra processing for clipping
+      if (value != 0) {
+        return EBorderRadius.all(value);
+      }
     } else if (value is String) {
       List<int> numbers = _stringToIntegers(value, min: 0);
       if (numbers.length == 1) {

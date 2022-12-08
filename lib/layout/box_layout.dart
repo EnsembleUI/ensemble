@@ -9,7 +9,7 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' as flutter;
-import 'package:flutter/rendering.dart';
+import 'package:ensemble/util/platform.dart';
 
 class Column extends BoxLayout {
   static const type = 'Column';
@@ -167,12 +167,18 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
         IntrinsicHeight(child: boxWidget);
     }
 
+    // html-renderer has terrible scrolling performance when clipping is on, so disable it for now
+    Clip clipBehavior = Clip.hardEdge;
+    if (kIsWeb && isHtmlRenderer) {
+      clipBehavior = Clip.none;
+    }
+
     Widget rtn = Container(
         width: widget._controller.width != null ? widget._controller.width!.toDouble() : null,
         height: widget._controller.height != null ? widget._controller.height!.toDouble() : null,
         margin: widget._controller.margin,
 
-        clipBehavior: Clip.hardEdge,
+        clipBehavior: clipBehavior,
         decoration: _buildBoxDecoration(),
 
         child: flutter.InkWell(
