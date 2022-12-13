@@ -1,10 +1,12 @@
 import 'package:ensemble/framework/action.dart' as framework;
-import 'package:ensemble/framework/widget/icon.dart' as iconframework; 
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/widget/form_helper.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:flutter/material.dart';
+import 'package:yaml/yaml.dart';
 //import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class Dropdown extends SelectOne {
@@ -15,11 +17,11 @@ class Dropdown extends SelectOne {
   SelectOneType getType() {
     return SelectOneType.dropdown;
   }
+
 }
 
 
-abstract class SelectOne extends StatefulWidget
-    with Invokable, HasController<SelectOneController, SelectOneState> {
+abstract class SelectOne extends StatefulWidget with Invokable, HasController<SelectOneController, SelectOneState> {
   SelectOne({Key? key}) : super(key: key);
 
   final SelectOneController _controller = SelectOneController();
@@ -35,28 +37,24 @@ abstract class SelectOne extends StatefulWidget
       'value': () => getValue(),
     };
   }
-
-  void setItemsFromString(dynamic strValues, [dynamic delimiter = ',']) {
+  void setItemsFromString(dynamic strValues,[dynamic delimiter=',']) {
     delimiter ??= ',';
-    List<Map<String, String>> values = [];
+    List<Map<String,String>> values = [];
     setItemsFromArray(strValues.split(delimiter));
   }
-
   void setItemsFromArray(dynamic arrValues) {
-    List<Map<String, String>> values = [];
-    for (String str in arrValues) {
-      values.add({'label': str, 'value': str});
+    List<Map<String,String>> values = [];
+    for ( String str in arrValues ) {
+      values.add({'label':str,'value':str});
     }
     updateItems(values);
   }
-
   @override
   Map<String, Function> setters() {
     return {
       'value': (value) => _controller.maybeValue = value,
       'items': (values) => updateItems(values),
-      'onChange': (definition) =>
-          _controller.onChange = Utils.getAction(definition, initiator: this),
+      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this),
       'itemsFromString': (dynamic strValues) => setItemsFromString(strValues),
       'itemsFromArray': (dynamic arrValues) => setItemsFromArray(arrValues)
     };
@@ -65,8 +63,8 @@ abstract class SelectOne extends StatefulWidget
   @override
   Map<String, Function> methods() {
     return {
-      'itemsFromString': (dynamic strValues, [dynamic delimiter = ',']) {
-        setItemsFromString(strValues, delimiter);
+      'itemsFromString': (dynamic strValues,[dynamic delimiter=',']) {
+        setItemsFromString(strValues,delimiter);
       }
     };
   }
@@ -96,25 +94,18 @@ abstract class SelectOne extends StatefulWidget
       for (var element in values) {
         // must be of value/label pair. Maybe let user overrides later
         if (element is Map) {
-          if (element['iconname'] != null) {
-            entries.add(
-              SelectOneItem(
+          if (element['value'] != null) {
+            entries.add(SelectOneItem(
                 value: element['value'],
-                label: element['label']?.toString(),
-                iconname: element['iconname'].toString(),
-              ),
-            );
-          } else {
-            if (element['value'] != null) {
-              entries.add(SelectOneItem(
-                  value: element['value'],
-                  label: element['label']?.toString()));
-            }
+                label: element['label']?.toString()
+            ));
           }
         }
         // simply use the value
         else {
-          entries.add(SelectOneItem(value: element));
+          entries.add(SelectOneItem(
+              value: element
+          ));
         }
       }
     }
@@ -124,6 +115,8 @@ abstract class SelectOne extends StatefulWidget
     if (!isValueInItems()) {
       _controller.maybeValue = null;
     }
+
+
   }
 
   void onSelectionChanged(dynamic value) {
@@ -132,9 +125,12 @@ abstract class SelectOne extends StatefulWidget
 
   // to be implemented by subclass
   SelectOneType getType();
+
 }
 
-enum SelectOneType { dropdown }
+enum SelectOneType {
+  dropdown
+}
 
 class SelectOneController extends FormFieldController {
   List<SelectOneItem>? items;
@@ -173,6 +169,8 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
     }
   }
 
+
+
   @override
   Widget buildWidget(BuildContext context) {
     if (widget.getType() == SelectOneType.dropdown) {
@@ -180,14 +178,11 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
           key: validatorKey,
           validator: (value) {
             if (widget._controller.required && widget.getValue() == null) {
-              return Utils.translateWithFallback(
-                  'ensemble.input.required', 'This field is required');
+              return Utils.translateWithFallback('ensemble.input.required', 'This field is required');
             }
             return null;
           },
-          hint: widget._controller.hintText == null
-              ? null
-              : Text(widget._controller.hintText!),
+          hint: widget._controller.hintText == null ? null : Text(widget._controller.hintText!),
           value: widget.getValue(),
           items: buildItems(widget._controller.items),
           onChanged: isEnabled() ? (item) => onSelectionChanged(item) : null,
@@ -202,40 +197,23 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
     if (items != null) {
       results = [];
       for (SelectOneItem item in items) {
-        item.iconname != null
-            ? results.add(
-                DropdownMenuItem(
-                  child: Row(
-                    children: [
-                      iconframework.Icon(item.iconname),
-                      const SizedBox(
-                        width: 10.0,
-                      ),
-                      Text(
-                        Utils.optionalString(item.label) ?? item.value,
-                      ),
-                    ],
-                  ),
-                  value: item.value,
-                ),
-              )
-            : results.add(
-                DropdownMenuItem(
-                  value: item.value,
-                  child: Text(Utils.optionalString(item.label) ?? item.value),
-                ),
-              );
+        results.add(DropdownMenuItem(
+            value: item.value,
+            child: Text(Utils.optionalString(item.label) ?? item.value)));
       }
     }
     return results;
   }
+
 }
 
 /// Data Object for a SelectOne's item
 class SelectOneItem {
-  SelectOneItem({required this.value, this.label, this.iconname});
+  SelectOneItem({
+    required this.value,
+    this.label
+  });
 
   final dynamic value;
   final String? label;
-  final String? iconname;
 }
