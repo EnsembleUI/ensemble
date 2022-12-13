@@ -101,6 +101,7 @@ abstract class SelectOne extends StatefulWidget with Invokable, HasController<Se
                 value: element['value'],
                 label: element['label']?.toString(),
                 iconname: element['iconname'].toString(),
+                iconsize: element['iconsize'] ?? 10,
               ),
             );
           } else {
@@ -212,7 +213,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
           DropdownMenuItem(
             child: Row(
               children: [
-                iconframework.Icon(item.iconname),
+                iconframework.Icon(item.iconname,size: item.iconsize,),
                 const SizedBox(
                   width: 10.0,
                 ),
@@ -241,9 +242,11 @@ class SelectOneItem {
     required this.value,
     this.label,
     this.iconname,
+    this.iconsize,
   });
 
   final dynamic value;
   final String? label;
   final String? iconname;
+  final int? iconsize;
 }
