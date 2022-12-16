@@ -36,6 +36,7 @@ class DataContext {
     }
     _contextMap['app'] = AppConfig();
     _contextMap['ensemble'] = NativeInvokable(buildContext);
+    _contextMap['user'] = UserInfo();
     // device is a common name. If user already uses that, don't override it
     if (_contextMap['device'] == null) {
       _contextMap['device'] = Device();
@@ -415,6 +416,124 @@ class Formatter with Invokable {
 
 }
 
+class UserInfo with Invokable {
+  @override
+  Map<String, Function> getters() {
+    return {
+      'date': () => DateInfo(),
+      'datetime': () => DateTimeInfo(),
+    };
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {
+
+    };
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
+  }
+
+}
+
+/// represents a date and its operations
+class DateInfo with Invokable {
+  DateInfo({this.value});
+
+  DateTime? value;
+  DateTime get dateTime => value ?? DateTime.now();
+  Locale locale = Localizations.localeOf(Utils.globalAppKey.currentContext!);
+
+  @override
+  Map<String, Function> getters() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {
+      'plusDays': (int days) => DateInfo(value: dateTime.add(Duration(days: days))),
+      'plusYears': (int years) => DateInfo(value: dateTime.add(Duration(days: years * 365))),
+      'minusDays': (int days) => DateInfo(value: dateTime.add(Duration(days: -days))),
+      'minusYears': (int years) => DateInfo(value: dateTime.add(Duration(days: -years * 365))),
+
+      'getMonth': () => dateTime.month,
+      'getDay': () => dateTime.day,
+      'getDayOfWeek': () => dateTime.weekday,
+      'getYear': () => dateTime.year,
+
+      'pretty': () => DateFormat.yMMMd(locale.toString()).format(dateTime),
+      'format': (String format) => DateFormat(format, locale.toString()).format(dateTime),
+    };
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
+  }
+
+  @override
+  String toString() {
+    return dateTime.toIso8601DateString();
+  }
+}
+
+/// represents a datetime and its operations
+class DateTimeInfo with Invokable {
+  DateTimeInfo({this.value});
+
+  DateTime? value;
+  DateTime get dateTime => value ?? DateTime.now();
+  Locale locale = Localizations.localeOf(Utils.globalAppKey.currentContext!);
+
+  @override
+  Map<String, Function> getters() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {
+      'plusDays': (int days) => DateInfo(value: dateTime.add(Duration(days: days))),
+      'plusYears': (int years) => DateInfo(value: dateTime.add(Duration(days: years * 365))),
+      'plusHours': (int hours) => DateInfo(value: dateTime.add(Duration(hours: hours))),
+      'plusMinutes': (int minutes) => DateInfo(value: dateTime.add(Duration(minutes: minutes))),
+      'plusSeconds': (int seconds) => DateInfo(value: dateTime.add(Duration(seconds: seconds))),
+
+      'minusDays': (int days) => DateInfo(value: dateTime.add(Duration(days: -days))),
+      'minusYears': (int years) => DateInfo(value: dateTime.add(Duration(days: -years * 365))),
+      'minusHours': (int hours) => DateInfo(value: dateTime.add(Duration(hours: -hours))),
+      'minusMinutes': (int minutes) => DateInfo(value: dateTime.add(Duration(minutes: -minutes))),
+      'minusSeconds': (int seconds) => DateInfo(value: dateTime.add(Duration(seconds: -seconds))),
+
+      'getMonth': () => dateTime.month,
+      'getDay': () => dateTime.day,
+      'getDayOfWeek': () => dateTime.weekday,
+      'getYear': () => dateTime.year,
+      'getHour': () => dateTime.hour,
+      'getMinute': () => dateTime.minute,
+      'getSecond': () => dateTime.second,
+
+      'pretty': () => DateFormat.yMMMd(locale.toString()).format(dateTime) + ' ' + DateFormat.jm(locale.toString()).format(dateTime),
+      'format': (String format) => DateFormat(format, locale.toString()).format(dateTime),
+    };
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
+  }
+
+  @override
+  String toString() {
+    return dateTime.toIso8601String();
+  }
+}
+
+/// legacy
 class UserDateTime with Invokable {
   DateTime? _dateTime;
   DateTime get dateTime => _dateTime ??= DateTime.now();
