@@ -9,6 +9,8 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
+
+import '../framework/model.dart';
 //import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class Dropdown extends SelectOne {
@@ -96,13 +98,12 @@ abstract class SelectOne extends StatefulWidget with Invokable, HasController<Se
       for (var element in values) {
         // must be of value/label pair. Maybe let user overrides later
         if (element is Map) {
-          if (element['iconname'] != null) {
+          if (element['icon'] != null) {
             entries.add(
               SelectOneItem(
                 value: element['value'],
                 label: element['label']?.toString(),
-                iconname: element['iconname'].toString(),
-                iconsize: element['iconsize'] ?? 10,
+                icon: Utils.getIcon(element['icon']),
               ),
             );
           } else {
@@ -209,15 +210,12 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
     if (items != null) {
       results = [];
       for (SelectOneItem item in items) {
-        item.iconname != null
+        item.icon != null
             ? results.add(
           DropdownMenuItem(
             child: Row(
               children: [
-                iconframework.Icon(
-                  item.iconname,
-                  size: item.iconsize,
-                ),
+                iconframework.Icon.fromModel(item.icon!),
                 const SizedBox(
                   width: 10.0,
                 ),
@@ -244,11 +242,10 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
 /// Data Object for a SelectOne's item
 class SelectOneItem {
   SelectOneItem({
-    required this.value, this.label, this.iconname, this.iconsize
+    required this.value, this.label, this.icon
   });
 
   final dynamic value;
   final String? label;
-  final String? iconname;
-  final int? iconsize;
+  IconModel? icon;
 }
