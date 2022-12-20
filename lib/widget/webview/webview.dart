@@ -31,6 +31,7 @@ class EnsembleWebView extends StatefulWidget with Invokable, HasController<Ensem
     return {
       'uri': (value) => _controller.uri = Utils.getUrl(value),
       'height': (value) => _controller.height = Utils.getDouble(value, fallback: controller.height),
+      'width':(value) => _controller.width = Utils.getDouble(value, fallback: controller.height),
     };
   }
 }
@@ -55,4 +56,5 @@ class EnsembleWebViewController extends WidgetController {
     }
   }
   double height = 500;
+  double width = 500;
 }

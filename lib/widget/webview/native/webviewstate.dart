@@ -1,5 +1,7 @@
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/widget/webview/webview.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -14,6 +16,11 @@ class ControllerImpl extends ViewController {
 class WebViewState extends WidgetState<EnsembleWebView> {
   double? height = 0;
   late ControllerImpl _controller;
+  final Set<Factory<OneSequenceGestureRecognizer>> gestureRecognizers = {
+    Factory(() => EagerGestureRecognizer())
+  };
+
+  UniqueKey key = UniqueKey();
 
   @override
   void initState() {
@@ -25,8 +32,11 @@ class WebViewState extends WidgetState<EnsembleWebView> {
   Widget buildWidget(BuildContext context) {
     // WebView's height will be the same as the HTML height
     Widget webView = SizedBox(
-        height: height,
+        height: widget.controller.height,
+        width: widget.controller.width,
         child: WebView(
+            key: key,
+            gestureRecognizers: gestureRecognizers,
             initialUrl: widget.controller.uri,
             javascriptMode: JavascriptMode.unrestricted,
             onWebViewCreated:  (controller) {
