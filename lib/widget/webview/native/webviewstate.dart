@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/widget/webview/webview.dart';
 import 'package:flutter/foundation.dart';
@@ -14,12 +16,9 @@ class ControllerImpl extends ViewController {
   }
 }
 class WebViewState extends WidgetState<EnsembleWebView> {
-  double? height = 0;
+  // WebView won't render on Android if height is 0 initially
+  double? calculatedHeight = 1;
   late ControllerImpl _controller;
-  final Set<Factory<OneSequenceGestureRecognizer>> gestureRecognizers = {
-    Factory(() => EagerGestureRecognizer())
-  };
-
   UniqueKey key = UniqueKey();
 
   @override
@@ -32,12 +31,11 @@ class WebViewState extends WidgetState<EnsembleWebView> {
   Widget buildWidget(BuildContext context) {
     // WebView's height will be the same as the HTML height
     Widget webView = SizedBox(
-        height: widget.controller.height,
+        height: widget.controller.height ?? calculatedHeight,
         width: widget.controller.width,
         child: WebView(
             key: key,
-            gestureRecognizers: gestureRecognizers,
-            initialUrl: widget.controller.uri,
+            initialUrl: widget.controller.url,
             javascriptMode: JavascriptMode.unrestricted,
             onWebViewCreated:  (controller) {
               _controller.controller = controller;
@@ -54,7 +52,7 @@ class WebViewState extends WidgetState<EnsembleWebView> {
               });
             },
             onPageFinished: (param) async {
-              height = double.parse(
+              calculatedHeight = double.parse(
                   await _controller.controller!.runJavascriptReturningResult(
                       "document.documentElement.scrollHeight;"));
               setState(() {
