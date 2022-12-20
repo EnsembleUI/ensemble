@@ -20,10 +20,22 @@ class WebViewState extends WidgetState<EnsembleWebView> {
   double? calculatedHeight = 1;
   late ControllerImpl _controller;
   UniqueKey key = UniqueKey();
+  Set<Factory<OneSequenceGestureRecognizer>>? gestureRecognizers;
 
   @override
   void initState() {
     _controller = ControllerImpl();
+
+    // Unless we are in stretch mode, we want our WebView to take scrolling priority
+    // when it needs to scroll, in case it is wrapped inside the rootView's scrollable.
+    // In another word, when we are stretching to fit the content, there is no internal
+    // scrollbar on the webview, so no need to grab the scroll gesture.
+    if (widget.controller.expanded == true || widget.controller.height != null) {
+      gestureRecognizers = {
+        Factory(() => EagerGestureRecognizer())
+      };
+    }
+
     super.initState();
   }
 
@@ -35,6 +47,7 @@ class WebViewState extends WidgetState<EnsembleWebView> {
         width: widget.controller.width,
         child: WebView(
             key: key,
+            gestureRecognizers: gestureRecognizers,
             initialUrl: widget.controller.url,
             javascriptMode: JavascriptMode.unrestricted,
             onWebViewCreated:  (controller) {
