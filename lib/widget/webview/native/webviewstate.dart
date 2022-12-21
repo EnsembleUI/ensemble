@@ -1,5 +1,9 @@
+import 'dart:developer';
+
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/widget/webview/webview.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -12,12 +16,26 @@ class ControllerImpl extends ViewController {
   }
 }
 class WebViewState extends WidgetState<EnsembleWebView> {
-  double? height = 0;
+  // WebView won't render on Android if height is 0 initially
+  double? calculatedHeight = 1;
   late ControllerImpl _controller;
+  UniqueKey key = UniqueKey();
+  Set<Factory<OneSequenceGestureRecognizer>>? gestureRecognizers;
 
   @override
   void initState() {
     _controller = ControllerImpl();
+
+    // Unless we are in stretch mode, we want our WebView to take scrolling priority
+    // when it needs to scroll, in case it is wrapped inside the rootView's scrollable.
+    // In another word, when we are stretching to fit the content, there is no internal
+    // scrollbar on the webview, so no need to grab the scroll gesture.
+    if (widget.controller.expanded == true || widget.controller.height != null) {
+      gestureRecognizers = {
+        Factory(() => EagerGestureRecognizer())
+      };
+    }
+
     super.initState();
   }
 
@@ -25,9 +43,12 @@ class WebViewState extends WidgetState<EnsembleWebView> {
   Widget buildWidget(BuildContext context) {
     // WebView's height will be the same as the HTML height
     Widget webView = SizedBox(
-        height: height,
+        height: widget.controller.height ?? calculatedHeight,
+        width: widget.controller.width,
         child: WebView(
-            initialUrl: widget.controller.uri,
+            key: key,
+            gestureRecognizers: gestureRecognizers,
+            initialUrl: widget.controller.url,
             javascriptMode: JavascriptMode.unrestricted,
             onWebViewCreated:  (controller) {
               _controller.controller = controller;
@@ -44,7 +65,7 @@ class WebViewState extends WidgetState<EnsembleWebView> {
               });
             },
             onPageFinished: (param) async {
-              height = double.parse(
+              calculatedHeight = double.parse(
                   await _controller.controller!.runJavascriptReturningResult(
                       "document.documentElement.scrollHeight;"));
               setState(() {

@@ -1,5 +1,6 @@
 
 import 'package:ensemble/framework/action.dart' as framework;
+import 'package:ensemble/framework/widget/icon.dart' as iconframework;
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -8,6 +9,8 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
+
+import '../framework/model.dart';
 //import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class Dropdown extends SelectOne {
@@ -95,11 +98,20 @@ abstract class SelectOne extends StatefulWidget with Invokable, HasController<Se
       for (var element in values) {
         // must be of value/label pair. Maybe let user overrides later
         if (element is Map) {
-          if (element['value'] != null) {
-            entries.add(SelectOneItem(
+          if (element['icon'] != null) {
+            entries.add(
+              SelectOneItem(
                 value: element['value'],
-                label: element['label']?.toString()
-            ));
+                label: element['label']?.toString(),
+                icon: Utils.getIcon(element['icon']),
+              ),
+            );
+          } else {
+            if (element['value'] != null) {
+              entries.add(SelectOneItem(
+                  value: element['value'],
+                  label: element['label']?.toString()));
+            }
           }
         }
         // simply use the value
@@ -198,9 +210,28 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
     if (items != null) {
       results = [];
       for (SelectOneItem item in items) {
-        results.add(DropdownMenuItem(
-          value: item.value,
-          child: Text(Utils.optionalString(item.label) ?? item.value)));
+        item.icon != null
+            ? results.add(
+          DropdownMenuItem(
+            child: Row(
+              children: [
+                iconframework.Icon.fromModel(item.icon!),
+                const SizedBox(
+                  width: 10.0,
+                ),
+                Text(
+                  Utils.optionalString(item.label) ?? item.value,
+                ),
+              ],
+            ),
+            value: item.value,
+          ),
+        ): results.add(
+          DropdownMenuItem(
+            value: item.value,
+            child: Text(Utils.optionalString(item.label) ?? item.value),
+          ),
+        );
       }
     }
     return results;
@@ -211,10 +242,10 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
 /// Data Object for a SelectOne's item
 class SelectOneItem {
   SelectOneItem({
-    required this.value,
-    this.label
+    required this.value, this.label, this.icon
   });
 
   final dynamic value;
   final String? label;
+  IconModel? icon;
 }
