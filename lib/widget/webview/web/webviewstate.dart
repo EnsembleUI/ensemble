@@ -27,7 +27,7 @@ class WebViewState extends WidgetState<EnsembleWebView> {
     _iframeElement.style.width = '100%';
     _iframeElement.style.height = '100%';
 
-    _iframeElement.src = widget.controller.uri;
+    _iframeElement.src = widget.controller.url;
     _iframeElement.style.border = 'none';
 
     // ignore: undefined_prefixed_name
@@ -45,8 +45,8 @@ class WebViewState extends WidgetState<EnsembleWebView> {
   @override
   Widget buildWidget(BuildContext context) {
     // WebView's height will be the same as the HTML height
-    if ( widget.controller.uri == null ) {
-      return Text('Loading...');
+    if ( widget.controller.url == null ) {
+      return const Text('Loading...');
     }
     return SizedBox(
         height: widget.controller.height,
