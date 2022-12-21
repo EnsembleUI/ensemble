@@ -29,8 +29,12 @@ class EnsembleWebView extends StatefulWidget with Invokable, HasController<Ensem
   @override
   Map<String, Function> setters() {
     return {
-      'uri': (value) => _controller.uri = Utils.getUrl(value),
-      'height': (value) => _controller.height = Utils.getDouble(value, fallback: controller.height),
+      'url': (value) => _controller.url = Utils.getUrl(value),
+      'height': (value) => _controller.height = Utils.optionalDouble(value),
+      'width':(value) => _controller.width = Utils.optionalDouble(value),
+
+      // legacy
+      'uri': (value) => _controller.url = Utils.getUrl(value),
     };
   }
 }
@@ -44,15 +48,16 @@ class EnsembleWebViewController extends WidgetController {
 
   ViewController? webViewController;
 
-  String? _uri;
-  String? get uri => _uri;
-  set uri(String? url) {
-    _uri = url;
+  String? _url;
+  String? get url => _url;
+  set url(String? url) {
+    _url = url;
 
     error = null;
     if (url != null) {
       webViewController?.loadUrl(url);
     }
   }
-  double height = 500;
+  double? height;
+  double? width;
 }
