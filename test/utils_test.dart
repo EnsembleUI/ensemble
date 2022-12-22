@@ -46,7 +46,8 @@ void main() {
     expect(Utils.getExpressionTokens(r'${hi}'), [r'${hi}']);
     expect(Utils.getExpressionTokens(r'hi ${name}'), [r'${name}']);
     expect(Utils.getExpressionTokens(r'${first} ${last}'), [r'${first}', r'${last}']);
-    expect(Utils.getExpressionTokens(r'hi ${first} ${last}'), [r'${first}', r'${last}']);
+    expect(Utils.getExpressionTokens(r'hi ${48 * 2 * 122} ${last}'), [r'${48 * 2 * 122}', r'${last}']);
+    expect(Utils.getExpressionTokens(r'hey there ${Math.floor(device.width / 2) - ((48 * 2 + 12)/2)} hello'), [r'${Math.floor(device.width / 2) - ((48 * 2 + 12)/2)}']);
   });
 
   test("ISO date only", () {
