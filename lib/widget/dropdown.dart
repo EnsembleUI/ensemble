@@ -95,23 +95,17 @@ abstract class SelectOne extends StatefulWidget with Invokable, HasController<Se
   void updateItems(dynamic values) {
     List<SelectOneItem> entries = [];
     if (values is List) {
+      calculateIconSize(values);
       for (var element in values) {
         // must be of value/label pair. Maybe let user overrides later
         if (element is Map) {
-          if (element['icon'] != null) {
-            entries.add(
-              SelectOneItem(
+          if (element['value'] != null) {
+            entries.add(SelectOneItem(
                 value: element['value'],
                 label: element['label']?.toString(),
                 icon: Utils.getIcon(element['icon']),
-              ),
-            );
-          } else {
-            if (element['value'] != null) {
-              entries.add(SelectOneItem(
-                  value: element['value'],
-                  label: element['label']?.toString()));
-            }
+                isIcon: isIconExist(values),
+            ));
           }
         }
         // simply use the value
@@ -130,6 +124,39 @@ abstract class SelectOne extends StatefulWidget with Invokable, HasController<Se
     }
 
 
+  }
+
+  bool isIconExist(List v)
+  {
+    bool isIcon = false;
+    for (var e in v) {
+      if (e is Map) {
+        if (e['icon'] != null) {
+          isIcon = true;
+        }
+      }
+    }
+    return isIcon;
+  }
+
+  void calculateIconSize(List v) {
+    List iconSize = [];
+    _controller.size = 0;
+    for (var e in v) {
+      if (e is Map) {
+        if (e['icon'] != null) {
+          if (e['icon']['size'] != null) {
+            iconSize.add(e['icon']['size']);
+          }
+        }
+      }
+    }
+    if (iconSize.isNotEmpty) {
+      _controller.size =
+          iconSize.reduce((curr, next) => curr > next ? curr : next);
+    } else {
+      _controller.size = 0;
+    }
   }
 
   void onSelectionChanged(dynamic value) {
@@ -152,6 +179,7 @@ class SelectOneController extends FormFieldController {
   // Since user can set items/value in any order and at anytime, the value may
   // not be one of the items, hence it could be in an incorrect state
   dynamic maybeValue;
+  int size = 0;
 
   framework.EnsembleAction? onChange;
 }
@@ -210,14 +238,25 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
     if (items != null) {
       results = [];
       for (SelectOneItem item in items) {
-        item.icon != null
-            ? results.add(
+        item.isIcon != null || item.isIcon == true
+            ?
+        results.add(
           DropdownMenuItem(
             child: Row(
               children: [
-                iconframework.Icon.fromModel(item.icon!),
-                const SizedBox(
-                  width: 10.0,
+                item.icon != null
+                    ? iconframework.Icon.fromModel(item.icon!)
+                    : SizedBox(
+                  width: widget._controller.size.toDouble(),
+                ),
+                SizedBox(
+                  width: item.icon != null
+                      ? item.icon!.size != null
+                      ? item.icon!.size == widget._controller.size
+                      ? 10
+                      : checkDifference(item.icon!.size!)
+                      : widget._controller.size.toDouble() + 10.0
+                      : 10.0,
                 ),
                 Text(
                   Utils.optionalString(item.label) ?? item.value,
@@ -226,7 +265,8 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
             ),
             value: item.value,
           ),
-        ): results.add(
+        ) :
+        results.add(
           DropdownMenuItem(
             value: item.value,
             child: Text(Utils.optionalString(item.label) ?? item.value),
@@ -236,16 +276,20 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
     }
     return results;
   }
-
+  double checkDifference(int s) {
+    int i = widget._controller.size - s;
+    return (10 + i).toDouble();
+  }
 }
 
 /// Data Object for a SelectOne's item
 class SelectOneItem {
   SelectOneItem({
-    required this.value, this.label, this.icon
+    required this.value, this.label, this.icon, this.isIcon
   });
 
   final dynamic value;
   final String? label;
   IconModel? icon;
+  final bool? isIcon;
 }
