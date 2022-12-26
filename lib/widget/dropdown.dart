@@ -141,7 +141,7 @@ abstract class SelectOne extends StatefulWidget with Invokable, HasController<Se
 
   void calculateIconSize(List v) {
     List iconSize = [];
-    _controller.size = 0;
+    _controller.gap = 0;
     for (var e in v) {
       if (e is Map) {
         if (e['icon'] != null) {
@@ -152,10 +152,10 @@ abstract class SelectOne extends StatefulWidget with Invokable, HasController<Se
       }
     }
     if (iconSize.isNotEmpty) {
-      _controller.size =
+      _controller.gap =
           iconSize.reduce((curr, next) => curr > next ? curr : next);
     } else {
-      _controller.size = 0;
+      _controller.gap = 0;
     }
   }
 
@@ -179,7 +179,7 @@ class SelectOneController extends FormFieldController {
   // Since user can set items/value in any order and at anytime, the value may
   // not be one of the items, hence it could be in an incorrect state
   dynamic maybeValue;
-  int size = 0;
+  int gap = 0;
 
   framework.EnsembleAction? onChange;
 }
@@ -238,7 +238,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
     if (items != null) {
       results = [];
       for (SelectOneItem item in items) {
-        item.isIcon != null || item.isIcon == true
+        item.isIcon == true
             ?
         results.add(
           DropdownMenuItem(
@@ -247,15 +247,15 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
                 item.icon != null
                     ? iconframework.Icon.fromModel(item.icon!)
                     : SizedBox(
-                  width: widget._controller.size.toDouble(),
+                  width: widget._controller.gap.toDouble(),
                 ),
                 SizedBox(
                   width: item.icon != null
                       ? item.icon!.size != null
-                      ? item.icon!.size == widget._controller.size
+                      ? item.icon!.size == widget._controller.gap
                       ? 10
                       : checkDifference(item.icon!.size!)
-                      : widget._controller.size.toDouble() + 10.0
+                      : widget._controller.gap.toDouble() + 10.0
                       : 10.0,
                 ),
                 Text(
@@ -277,7 +277,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
     return results;
   }
   double checkDifference(int s) {
-    int i = widget._controller.size - s;
+    int i = widget._controller.gap - s;
     return (10 + i).toDouble();
   }
 }
@@ -285,11 +285,11 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
 /// Data Object for a SelectOne's item
 class SelectOneItem {
   SelectOneItem({
-    required this.value, this.label, this.icon, this.isIcon
+    required this.value, this.label, this.icon, this.isIcon = false
   });
 
   final dynamic value;
   final String? label;
   IconModel? icon;
-  final bool? isIcon;
+  final bool isIcon;
 }
