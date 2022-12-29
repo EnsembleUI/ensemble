@@ -243,13 +243,6 @@ class EnsembleConfig {
     return EnsembleTheme.getAppTheme(appBundle?.theme);
   }
 
-  UserAppConfig? getUserAppConfig() {
-    return UserAppConfig(
-      baseUrl: appBundle?.config?['app']?['baseUrl'],
-      useBrowserUrl: appBundle?.config?['app']?['useBrowserUrl']
-    );
-  }
-
   FlutterI18nDelegate getI18NDelegate() {
     return definitionProvider.getI18NDelegate();
   }
@@ -265,10 +258,9 @@ class I18nProps {
 }
 
 class AppBundle {
-  AppBundle({this.theme, this.config});
+  AppBundle({this.theme});
 
   YamlMap? theme;
-  YamlMap? config;
 }
 /// store the App's account info (e.g. access token for maps)
 class Account {

@@ -3,6 +3,7 @@ import 'dart:async';
 
 import 'dart:ui';
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:flutter_i18n/loaders/decoders/yaml_decode_strategy.dart';
@@ -23,12 +24,18 @@ abstract class DefinitionProvider {
 
   // get the home screen + the App Bundle (theme, translation, custom assets, ...)
   Future<AppBundle> getAppBundle();
+
+  // this should be update live if the config changes at runtime
+  // Call this only AFTER getAppBundle()
+  // TODO: rethink this
+  UserAppConfig? getAppConfig();
 }
 
 class LocalDefinitionProvider extends DefinitionProvider {
   LocalDefinitionProvider(this.path, this.appHome,I18nProps i18nProps): super(i18nProps);
   final String path;
   final String appHome;
+  UserAppConfig? appConfig;
 
   FlutterI18nDelegate? _i18nDelegate;
   @override
@@ -68,10 +75,23 @@ class LocalDefinitionProvider extends DefinitionProvider {
     try {
       var value = await rootBundle.loadString('${path}config.ensemble');
       config = await loadYaml(value);
+      if (config != null) {
+        appConfig = UserAppConfig(
+          baseUrl: config['app']?['baseUrl'],
+          useBrowserUrl: Utils.optionalBool(config['app']?['useBrowserUrl'])
+        );
+      }
     } catch (error) {
       // ignore error
     }
-    return AppBundle(theme: theme, config: config);
+    return AppBundle(
+      theme: theme
+    );
+  }
+
+  @override
+  UserAppConfig? getAppConfig() {
+    return appConfig;
   }
 }
 
@@ -132,6 +152,11 @@ class RemoteDefinitionProvider extends DefinitionProvider {
       completer.complete(AppBundle());
     }
     return completer.future;
+  }
+  // TODO: to be implemented
+  @override
+  UserAppConfig? getAppConfig() {
+    return null;
   }
 }
 
@@ -245,6 +270,12 @@ class LegacyDefinitionProvider extends DefinitionProvider {
     }
     completer.complete(AppBundle());
     return completer.future;
+  }
+
+  // To be implemented
+  @override
+  UserAppConfig? getAppConfig() {
+    return null;
   }
 
 }

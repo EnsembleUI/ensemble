@@ -107,7 +107,7 @@ class HttpUtils {
   static String resolveUrl(DataContext dataContext, String rawUrl) {
     RegExp regExp = RegExp(r'^\${app.baseUrl}');
     if (regExp.hasMatch(rawUrl)) {
-      UserAppConfig? appConfig = Ensemble().getConfig()?.getUserAppConfig();
+      UserAppConfig? appConfig = Ensemble().getConfig()?.definitionProvider.getAppConfig();
 
       // non-Web will need the baseUrl
       String? baseUrl = appConfig?.baseUrl;
