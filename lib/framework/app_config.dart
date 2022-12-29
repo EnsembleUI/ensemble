@@ -5,7 +5,8 @@ class AppConfig with Invokable {
   @override
   Map<String, Function> getters() {
     return {
-      'baseUrl': () => Ensemble().getConfig()?.getUserAppConfig()?.baseUrl
+      //'baseUrl': () => Ensemble().getConfig()?.getUserAppConfig()?.baseUrl
+      'baseUrl': () => Ensemble().getConfig()?.definitionProvider.getAppConfig()?.baseUrl
     };
   }
 
