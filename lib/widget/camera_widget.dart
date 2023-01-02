@@ -196,16 +196,10 @@ class CameraState extends WidgetState<Camera> {
                           widget._controller.cameracontroller!
                               .takePicture()
                               .then((value) async {
-                            if (kIsWeb) {
-                              widget._controller.imagesFileWeb
-                                  .add(await value.readAsBytes());
-                            } else {
-                              widget._controller.imageFileList.add(value);
-                            }
+                            widget._controller.imagesFileWeb
+                                .add(await value.readAsBytes());
                             setState(() {});
                           });
-                          print(
-                              'Check Length ${widget._controller.imageFileList.length}');
                         },
                         icon: const Icon(
                           Icons.camera,
@@ -227,9 +221,7 @@ class CameraState extends WidgetState<Camera> {
           height: 170,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            itemCount: kIsWeb
-                ? widget._controller.imagesFileWeb.length
-                : widget._controller.imageFileList.length,
+            itemCount: widget._controller.imagesFileWeb.length,
             shrinkWrap: true,
             separatorBuilder: (c, w) {
               return const SizedBox(
@@ -242,15 +234,8 @@ class CameraState extends WidgetState<Camera> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: kIsWeb
-                        ? Image.memory(
+                    child: Image.memory(
                       widget._controller.imagesFileWeb[i],
-                      fit: BoxFit.cover,
-                      width: 130.0,
-                      height: 150.0,
-                    )
-                        : Image.file(
-                      File(widget._controller.imageFileList[i].path),
                       fit: BoxFit.cover,
                       width: 130.0,
                       height: 150.0,
@@ -267,11 +252,7 @@ class CameraState extends WidgetState<Camera> {
                           size: 15.0,
                         ),
                         onPressed: () {
-                          if (kIsWeb) {
-                            widget._controller.imagesFileWeb.removeAt(i);
-                          } else {
-                            widget._controller.imageFileList.removeAt(i);
-                          }
+                          widget._controller.imagesFileWeb.removeAt(i);
                           setState(() {});
                         },
                       ),
@@ -294,9 +275,7 @@ class CameraState extends WidgetState<Camera> {
           height: 170,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            itemCount: kIsWeb
-                ? widget._controller.imagesFileWeb.length
-                : widget._controller.imageFileList.length,
+            itemCount: widget._controller.imageFileList.length,
             shrinkWrap: true,
             separatorBuilder: (c, w) {
               return const SizedBox(
@@ -309,14 +288,7 @@ class CameraState extends WidgetState<Camera> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: kIsWeb
-                        ? Image.memory(
-                      widget._controller.imagesFileWeb[i],
-                      fit: BoxFit.cover,
-                      width: 130.0,
-                      height: 150.0,
-                    )
-                        : Image.file(
+                    child:Image.file(
                       File(widget._controller.imageFileList[i].path),
                       fit: BoxFit.cover,
                       width: 130.0,
@@ -334,11 +306,7 @@ class CameraState extends WidgetState<Camera> {
                           size: 15.0,
                         ),
                         onPressed: () {
-                          if (kIsWeb) {
-                            widget._controller.imagesFileWeb.removeAt(i);
-                          } else {
-                            widget._controller.imageFileList.removeAt(i);
-                          }
+                          widget._controller.imageFileList.removeAt(i);
                           setState(() {});
                         },
                       ),
