@@ -128,15 +128,12 @@ abstract class SelectOne extends StatefulWidget with Invokable, HasController<Se
 
   bool isIconExist(List v)
   {
-    bool isIcon = false;
     for (var e in v) {
-      if (e is Map) {
-        if (e['icon'] != null) {
-          isIcon = true;
-        }
+      if(e['icon'] != null) {
+        return true;
       }
     }
-    return isIcon;
+    return false;
   }
 
   void calculateIconSize(List v) {
