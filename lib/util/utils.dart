@@ -569,8 +569,9 @@ class Utils {
     return int.tryParse(value);
   }
 
-  static final onlyExpression = RegExp(r'''^\${([a-z_-\d\s.,:?!$@&|<>="'\(\)\[\]]+)}$''', caseSensitive: false);
-  static final containExpression = RegExp(r'''\${([a-z_-\d\s.,:?!$@&|<>="'\(\)\[\]]+)}''', caseSensitive: false);
+  static final onlyExpression = RegExp(r'''^\${([a-z_-\d\s.,:?!$@&|<>\+/*|%^="'\(\)\[\]]+)}$''', caseSensitive: false);
+  static final containExpression = RegExp(r'''\${([a-z_-\d\s.,:?!$@&|<>\+/*|%^="'\(\)\[\]]+)}''', caseSensitive: false);
+
   static final i18nExpression = RegExp(r'r@[a-zA-Z0-9.-_]+',caseSensitive: false);
 
   // extract only the AST after the comment and expression e.g //code <expression>\n<AST>
@@ -666,6 +667,13 @@ class Utils {
       return strings[Random().nextInt(strings.length)];
     }
     return strings[0];
+  }
+
+  /// strip any query params (anything after the first ?) from our assets e.g. my-image?x=abc
+  static String stripQueryParamsFromAsset(String assetUrl) {
+    // match everything (that is not a question mark) until the optional question mark
+    RegExpMatch? match = RegExp('^([^?]*)\\??').firstMatch(assetUrl);
+    return match?.group(1) ?? assetUrl;
   }
 
 }

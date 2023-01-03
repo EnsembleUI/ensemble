@@ -1,5 +1,6 @@
 
 import 'package:ensemble/framework/action.dart' as framework;
+import 'package:ensemble/framework/widget/icon.dart' as iconframework;
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -8,6 +9,8 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
+
+import '../framework/model.dart';
 //import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class Dropdown extends SelectOne {
@@ -92,13 +95,16 @@ abstract class SelectOne extends StatefulWidget with Invokable, HasController<Se
   void updateItems(dynamic values) {
     List<SelectOneItem> entries = [];
     if (values is List) {
+      calculateIconSize(values);
       for (var element in values) {
         // must be of value/label pair. Maybe let user overrides later
         if (element is Map) {
           if (element['value'] != null) {
             entries.add(SelectOneItem(
                 value: element['value'],
-                label: element['label']?.toString()
+                label: element['label']?.toString(),
+                icon: Utils.getIcon(element['icon']),
+                isIcon: isIconExist(values),
             ));
           }
         }
@@ -118,6 +124,36 @@ abstract class SelectOne extends StatefulWidget with Invokable, HasController<Se
     }
 
 
+  }
+
+  bool isIconExist(List v)
+  {
+    for (var e in v) {
+      if(e['icon'] != null) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  void calculateIconSize(List v) {
+    List iconSize = [];
+    _controller.gap = 0;
+    for (var e in v) {
+      if (e is Map) {
+        if (e['icon'] != null) {
+          if (e['icon']['size'] != null) {
+            iconSize.add(e['icon']['size']);
+          }
+        }
+      }
+    }
+    if (iconSize.isNotEmpty) {
+      _controller.gap =
+          iconSize.reduce((curr, next) => curr > next ? curr : next);
+    } else {
+      _controller.gap = 0;
+    }
   }
 
   void onSelectionChanged(dynamic value) {
@@ -140,6 +176,7 @@ class SelectOneController extends FormFieldController {
   // Since user can set items/value in any order and at anytime, the value may
   // not be one of the items, hence it could be in an incorrect state
   dynamic maybeValue;
+  int gap = 0;
 
   framework.EnsembleAction? onChange;
 }
@@ -198,23 +235,58 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
     if (items != null) {
       results = [];
       for (SelectOneItem item in items) {
-        results.add(DropdownMenuItem(
-          value: item.value,
-          child: Text(Utils.optionalString(item.label) ?? item.value)));
+        item.isIcon == true
+            ?
+        results.add(
+          DropdownMenuItem(
+            child: Row(
+              children: [
+                item.icon != null
+                    ? iconframework.Icon.fromModel(item.icon!)
+                    : SizedBox(
+                  width: widget._controller.gap.toDouble(),
+                ),
+                SizedBox(
+                  width: item.icon != null
+                      ? item.icon!.size != null
+                      ? item.icon!.size == widget._controller.gap
+                      ? 10
+                      : checkDifference(item.icon!.size!)
+                      : widget._controller.gap.toDouble() + 10.0
+                      : 10.0,
+                ),
+                Text(
+                  Utils.optionalString(item.label) ?? item.value,
+                ),
+              ],
+            ),
+            value: item.value,
+          ),
+        ) :
+        results.add(
+          DropdownMenuItem(
+            value: item.value,
+            child: Text(Utils.optionalString(item.label) ?? item.value),
+          ),
+        );
       }
     }
     return results;
   }
-
+  double checkDifference(int s) {
+    int i = widget._controller.gap - s;
+    return (10 + i).toDouble();
+  }
 }
 
 /// Data Object for a SelectOne's item
 class SelectOneItem {
   SelectOneItem({
-    required this.value,
-    this.label
+    required this.value, this.label, this.icon, this.isIcon = false
   });
 
   final dynamic value;
   final String? label;
+  IconModel? icon;
+  final bool isIcon;
 }

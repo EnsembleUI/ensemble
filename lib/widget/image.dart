@@ -100,8 +100,11 @@ class ImageState extends WidgetState<EnsembleImage> {
       }
       // else attempt local asset
       else {
+        // user might use env variables to switch between remote and local images.
+        // Assets might have additional token e.g. my-image.png?x=2343
+        // so we need to strip them out
         return Image.asset(
-          'assets/images/${widget._controller.source}',
+          'ensemble/assets/${Utils.stripQueryParamsFromAsset(widget._controller.source)}',
           width: widget._controller.width?.toDouble(),
           height: widget._controller.height?.toDouble(),
           fit: fit,

@@ -1944,8 +1944,27 @@
     "WebView-payload": {
       "type": "object",
       "properties": {
-        "uri": {
+        "url": {
           "type": "string"
+        },
+        "styles": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
+            },
+            {
+              "properties": {
+                "width": {
+                  "type": "integer",
+                  "description": "By default the width will match its parent's available width, but you can set an explicit width here."
+                },
+                "height": {
+                  "type": "integer",
+                  "description": "If no height is specified, the web view will stretch its height to fit its content, in which case a scrollable parent is required to scroll the content. You may override this behavior by explicitly set the web view's height here, or uses 'expanded' to fill the available height."
+                }
+              }
+            }
+          ]
         }
       }
     },

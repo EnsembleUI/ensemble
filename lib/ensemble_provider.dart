@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'dart:ui';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:flutter_i18n/loaders/decoders/yaml_decode_strategy.dart';
 import 'package:yaml/yaml.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -84,6 +85,11 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
     return _i18nDelegate!;
   }
 
+  @override
+  UserAppConfig? getAppConfig() {
+    return appModel.appConfig;
+  }
+
 
 }
 
@@ -104,6 +110,7 @@ class AppModel {
   Map<String, String> screenNameMappings = {};
   String? homeMapping;
   String? themeMapping;
+  UserAppConfig? appConfig;
 
   /// fetch async and cache our entire App's artifacts.
   /// Plus listen for changes and update the cache
@@ -139,6 +146,21 @@ class AppModel {
         homeMapping = doc.id;
       } else if (doc.data()?['type'] == 'theme') {
         themeMapping = doc.id;
+      } else if (doc.data()?['type'] == 'config') {
+
+        // environment variable
+        Map<String, dynamic>? envVariables;
+        dynamic env = doc.data()!['envVariables'];
+        if (env is Map) {
+          envVariables = {};
+          env.forEach((key, value) => envVariables![key] = value);
+        }
+
+        appConfig = UserAppConfig(
+          baseUrl: doc.data()?['appBaseUrl'],
+          useBrowserUrl: Utils.optionalBool(doc.data()?['appUseBrowserUrl']),
+          envVariables: envVariables
+        );
       }
     }
 
@@ -257,7 +279,7 @@ class AppModel {
       }
     }
     return AppBundle(
-        theme: themeMapping != null ? contentCache[themeMapping] : null
+      theme: themeMapping != null ? contentCache[themeMapping] : null
     );
   }
 

@@ -46,7 +46,8 @@ void main() {
     expect(Utils.getExpressionTokens(r'${hi}'), [r'${hi}']);
     expect(Utils.getExpressionTokens(r'hi ${name}'), [r'${name}']);
     expect(Utils.getExpressionTokens(r'${first} ${last}'), [r'${first}', r'${last}']);
-    expect(Utils.getExpressionTokens(r'hi ${first} ${last}'), [r'${first}', r'${last}']);
+    expect(Utils.getExpressionTokens(r'hi ${48 * 2 * 122} ${last}'), [r'${48 * 2 * 122}', r'${last}']);
+    expect(Utils.getExpressionTokens(r'hey there ${Math.floor(device.width / 2) - ((48 * 2 + 12)/2)} hello'), [r'${Math.floor(device.width / 2) - ((48 * 2 + 12)/2)}']);
   });
 
   test("ISO date only", () {
@@ -153,6 +154,20 @@ void main() {
     model = IconModel('home', library: 'fontAwesome', color: Colors.green, size: 23);
     assertIconEquality(outputModel, model);
 
+  });
+
+  test('stripping query params from assets', () {
+    expect(Utils.stripQueryParamsFromAsset(''), '');
+    expect(Utils.stripQueryParamsFromAsset(' '), ' ');
+    expect(Utils.stripQueryParamsFromAsset('?'), '');
+    expect(Utils.stripQueryParamsFromAsset(' ?'), ' ');
+    expect(Utils.stripQueryParamsFromAsset('??'), '');
+    expect(Utils.stripQueryParamsFromAsset('a?'), 'a');
+    expect(Utils.stripQueryParamsFromAsset('a?b'), 'a');
+    expect(Utils.stripQueryParamsFromAsset('my-image.png'), 'my-image.png');
+    expect(Utils.stripQueryParamsFromAsset('image.jpg?x=abc'), 'image.jpg');
+    expect(Utils.stripQueryParamsFromAsset('https://hello.com/image_1.jpg?a=b&b=c'), 'https://hello.com/image_1.jpg');
+    expect(Utils.stripQueryParamsFromAsset('me.png?a=b?b=c&c=d'), 'me.png');
   });
 
 
