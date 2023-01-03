@@ -1,3 +1,4 @@
+import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 
 /// misc models
@@ -29,7 +30,7 @@ class BackgroundImage {
     if (_isUrl()) {
       imageProvider = NetworkImage(source);
     } else {
-      imageProvider = AssetImage('assets/images/$source');
+      imageProvider = AssetImage(Utils.getLocalAssetFullPath(source));
     }
     return DecorationImage(
       image: imageProvider,
