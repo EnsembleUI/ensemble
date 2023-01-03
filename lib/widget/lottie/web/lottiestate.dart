@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/lottie/lottie.dart';
 import 'package:ensemble/widget/widget_util.dart';
 import 'package:flutter/material.dart';
@@ -86,7 +87,7 @@ class LottieState extends WidgetState<EnsembleLottie> {
       // else attempt local asset
       else {
         return Lottie.asset(
-            'assets/images/${widget.controller.source}',
+            Utils.getLocalAssetFullPath(widget.controller.source),
             width: widget.controller.width?.toDouble(),
             height: widget.controller.height?.toDouble(),
             repeat: widget.controller.repeat ?? true,

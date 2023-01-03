@@ -104,7 +104,7 @@ class ImageState extends WidgetState<EnsembleImage> {
         // Assets might have additional token e.g. my-image.png?x=2343
         // so we need to strip them out
         return Image.asset(
-          'ensemble/assets/${Utils.stripQueryParamsFromAsset(widget._controller.source)}',
+          Utils.getLocalAssetFullPath(widget._controller.source),
           width: widget._controller.width?.toDouble(),
           height: widget._controller.height?.toDouble(),
           fit: fit,
@@ -128,7 +128,7 @@ class ImageState extends WidgetState<EnsembleImage> {
     }
     // attempt local assets
     return SvgPicture.asset(
-        'assets/images/${widget._controller.source}',
+        Utils.getLocalAssetFullPath(widget._controller.source),
         width: widget._controller.width?.toDouble(),
         height: widget._controller.height?.toDouble(),
         fit: fit ?? BoxFit.contain,
