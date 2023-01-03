@@ -669,4 +669,11 @@ class Utils {
     return strings[0];
   }
 
+  /// strip any query params (anything after the first ?) from our assets e.g. my-image?x=abc
+  static String stripQueryParamsFromAsset(String assetUrl) {
+    // match everything (that is not a question mark) until the optional question mark
+    RegExpMatch? match = RegExp('^([^?]*)\\??').firstMatch(assetUrl);
+    return match?.group(1) ?? assetUrl;
+  }
+
 }

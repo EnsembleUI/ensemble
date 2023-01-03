@@ -147,9 +147,19 @@ class AppModel {
       } else if (doc.data()?['type'] == 'theme') {
         themeMapping = doc.id;
       } else if (doc.data()?['type'] == 'config') {
+
+        // environment variable
+        Map<String, dynamic>? envVariables;
+        dynamic env = doc.data()!['envVariables'];
+        if (env is Map) {
+          envVariables = {};
+          env.forEach((key, value) => envVariables![key] = value);
+        }
+
         appConfig = UserAppConfig(
           baseUrl: doc.data()?['appBaseUrl'],
-          useBrowserUrl: Utils.optionalBool(doc.data()?['appUseBrowserUrl'])
+          useBrowserUrl: Utils.optionalBool(doc.data()?['appUseBrowserUrl']),
+          envVariables: envVariables
         );
       }
     }

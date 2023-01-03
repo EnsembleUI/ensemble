@@ -156,6 +156,20 @@ void main() {
 
   });
 
+  test('stripping query params from assets', () {
+    expect(Utils.stripQueryParamsFromAsset(''), '');
+    expect(Utils.stripQueryParamsFromAsset(' '), ' ');
+    expect(Utils.stripQueryParamsFromAsset('?'), '');
+    expect(Utils.stripQueryParamsFromAsset(' ?'), ' ');
+    expect(Utils.stripQueryParamsFromAsset('??'), '');
+    expect(Utils.stripQueryParamsFromAsset('a?'), 'a');
+    expect(Utils.stripQueryParamsFromAsset('a?b'), 'a');
+    expect(Utils.stripQueryParamsFromAsset('my-image.png'), 'my-image.png');
+    expect(Utils.stripQueryParamsFromAsset('image.jpg?x=abc'), 'image.jpg');
+    expect(Utils.stripQueryParamsFromAsset('https://hello.com/image_1.jpg?a=b&b=c'), 'https://hello.com/image_1.jpg');
+    expect(Utils.stripQueryParamsFromAsset('me.png?a=b?b=c&c=d'), 'me.png');
+  });
+
 
 
 }
