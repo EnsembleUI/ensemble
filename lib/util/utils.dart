@@ -122,6 +122,23 @@ class Utils {
     }
     return null;
   }
+  static  WrapAlignment? getWrapAlignment(dynamic value)
+  {
+    switch (value) {
+      case 'center':
+        return WrapAlignment.center;
+      case 'start':
+        return WrapAlignment.start;
+      case 'end':
+        return WrapAlignment.end;
+      case 'spaceAround':
+        return WrapAlignment.spaceAround;
+      case 'spaceBetween':
+        return WrapAlignment.spaceBetween;
+      case 'spaceEvenly':
+        return WrapAlignment.spaceEvenly;
+    }
+  }
   static InputValidator? getValidator(dynamic value) {
     if (value is Map) {
       int? minLength = Utils.optionalInt(value['minLength']);
