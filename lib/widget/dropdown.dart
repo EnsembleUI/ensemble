@@ -246,7 +246,9 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
             FocusNode fieldFocusNode,
             VoidCallback onFieldSubmitted) {
           return TextField(
+            
               expands: false,
+              enabled: isEnabled(),
               showCursor: true,
               cursorColor:
                   widget._controller.cursorColor ?? EnsembleTheme.primary,
@@ -263,6 +265,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
             print('Selected: ${selection.value}');
           }
         },
+
         optionsViewBuilder: (BuildContext context,
             AutocompleteOnSelected<SelectOneItem> onSelected,
             Iterable<SelectOneItem> options) {
