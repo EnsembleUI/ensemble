@@ -62,11 +62,20 @@ class Ensemble {
       );
     }
 
+    // environment variable overrides
+    Map<String, dynamic>? envOverrides;
+    dynamic env = yamlMap['environmentVariables'];
+    if (env is YamlMap) {
+      envOverrides = {};
+      env.forEach((key, value) => envOverrides![key.toString()] = value);
+    }
+
     DefinitionProvider definitionProvider = _createDefinitionProvider(yamlMap);
     _config = EnsembleConfig(
       definitionProvider: definitionProvider,
       appBundle: await definitionProvider.getAppBundle(),
-      account: Account(mapAccessToken: yamlMap['accounts']?['maps']?['mapbox_access_token'])
+      account: Account(mapAccessToken: yamlMap['accounts']?['maps']?['mapbox_access_token']),
+      envOverrides: envOverrides
     );
     return _config!;
   }
@@ -221,10 +230,14 @@ class EnsembleConfig {
   EnsembleConfig({
     required this.definitionProvider,
     this.account,
+    this.envOverrides,
     this.appBundle
   });
   final DefinitionProvider definitionProvider;
   Account? account;
+
+  // environment variable overrides
+  Map<String, dynamic>? envOverrides;
 
   // this can be fetched via definitionProvider, but we'll give the option
   // to pass it in via the constructor, as Ensemble can be pre-load
@@ -243,13 +256,6 @@ class EnsembleConfig {
     return EnsembleTheme.getAppTheme(appBundle?.theme);
   }
 
-  UserAppConfig? getUserAppConfig() {
-    return UserAppConfig(
-      baseUrl: appBundle?.config?['app']?['baseUrl'],
-      useBrowserUrl: appBundle?.config?['app']?['useBrowserUrl']
-    );
-  }
-
   FlutterI18nDelegate getI18NDelegate() {
     return definitionProvider.getI18NDelegate();
   }
@@ -265,10 +271,9 @@ class I18nProps {
 }
 
 class AppBundle {
-  AppBundle({this.theme, this.config});
+  AppBundle({this.theme});
 
   YamlMap? theme;
-  YamlMap? config;
 }
 /// store the App's account info (e.g. access token for maps)
 class Account {
@@ -277,9 +282,10 @@ class Account {
 }
 /// user configuration for the App
 class UserAppConfig {
-  UserAppConfig({this.baseUrl, this.useBrowserUrl});
+  UserAppConfig({this.baseUrl, this.useBrowserUrl, this.envVariables});
 
   String? baseUrl;
   bool? useBrowserUrl;
+  Map<String, dynamic>? envVariables;
 }
 

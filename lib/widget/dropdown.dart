@@ -100,7 +100,7 @@ abstract class SelectOne extends StatefulWidget
       for (var element in values) {
         // must be of value/label pair. Maybe let user overrides later
         if (element is Map) {
-          if (element['icon'] != null) {
+          if (element['value'] != null) {
             entries.add(
               SelectOneItem(
                 value: element['value'],

@@ -23,7 +23,6 @@ class Utils {
   static const double widgetMaxWidth = 2000;
 
 
-
   /// return an Integer if it is, or null if not
   static int? optionalInt(dynamic value, {int? min, int? max}) {
     int? rtn = value is int ? value : null;
@@ -667,6 +666,19 @@ class Utils {
       return strings[Random().nextInt(strings.length)];
     }
     return strings[0];
+  }
+
+  /// prefix the asset with the root directory (i.e. ensemble/assets/), plus
+  /// stripping any unecessary query params (e.g. anything after the first ?)
+  static String getLocalAssetFullPath(String asset) {
+    return 'ensemble/assets/${stripQueryParamsFromAsset(asset)}';
+  }
+
+  /// strip any query params (anything after the first ?) from our assets e.g. my-image?x=abc
+  static String stripQueryParamsFromAsset(String asset) {
+    // match everything (that is not a question mark) until the optional question mark
+    RegExpMatch? match = RegExp('^([^?]*)\\??').firstMatch(asset);
+    return match?.group(1) ?? asset;
   }
 
 }
