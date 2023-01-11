@@ -181,12 +181,6 @@ class MyCameraController extends WidgetController {
     notifyListeners();
   }
 
-  void initCamera() {
-    cameraFunction().then((value) {
-      setCamera(0);
-    });
-  }
-
   void setCamera(int i) {
     cameracontroller = CameraController(cameras![i], ResolutionPreset.max);
     cameracontroller!.initialize().then((_) {
