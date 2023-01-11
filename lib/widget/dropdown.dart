@@ -7,12 +7,11 @@ import 'package:ensemble/widget/form_helper.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-
 import '../framework/model.dart';
-//import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class Dropdown extends SelectOne {
   static const type = "Dropdown";
+
   Dropdown({Key? key}) : super(key: key);
 
   @override
@@ -26,6 +25,7 @@ abstract class SelectOne extends StatefulWidget
   SelectOne({Key? key}) : super(key: key);
 
   final SelectOneController _controller = SelectOneController();
+
   @override
   SelectOneController get controller => _controller;
 
@@ -246,8 +246,6 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
             FocusNode fieldFocusNode,
             VoidCallback onFieldSubmitted) {
           return TextField(
-            
-              expands: false,
               enabled: isEnabled(),
               showCursor: true,
               cursorColor:
@@ -265,7 +263,6 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
             print('Selected: ${selection.value}');
           }
         },
-
         optionsViewBuilder: (BuildContext context,
             AutocompleteOnSelected<SelectOneItem> onSelected,
             Iterable<SelectOneItem> options) {
@@ -327,12 +324,16 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
                                   ),
                             SizedBox(
                               width: option.icon != null
-                                  ? option.icon!.size != null
-                                      ? option.icon!.size ==
-                                              widget._controller.gap
-                                          ? 10
-                                          : checkDifference(option.icon!.size!)
-                                      : widget._controller.gap.toDouble() + 10.0
+                                  ? option.isIcon && option.icon!.size == null
+                                      ? isIconSizeNull()
+                                      : option.icon!.size != null
+                                          ? option.icon!.size ==
+                                                  widget._controller.gap
+                                              ? 10
+                                              : checkDifference(
+                                                  option.icon!.size!)
+                                          : widget._controller.gap.toDouble() +
+                                              10.0
                                   : 10.0,
                             ),
                             Text(
@@ -364,11 +365,13 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
                             ),
                       SizedBox(
                         width: item.icon != null
-                            ? item.icon!.size != null
-                                ? item.icon!.size == widget._controller.gap
-                                    ? 10
-                                    : checkDifference(item.icon!.size!)
-                                : widget._controller.gap.toDouble() + 10.0
+                            ? item.isIcon && item.icon!.size == null
+                                ? isIconSizeNull()
+                                : item.icon!.size != null
+                                    ? item.icon!.size == widget._controller.gap
+                                        ? 10
+                                        : checkDifference(item.icon!.size!)
+                                    : widget._controller.gap.toDouble() + 10.0
                             : 10.0,
                       ),
                       Text(
@@ -393,6 +396,15 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
   double checkDifference(int s) {
     int i = widget._controller.gap - s;
     return (10 + i).toDouble();
+  }
+
+  double isIconSizeNull() {
+    int i = widget._controller.gap - 23;
+    if (i < 0) {
+      return (i.abs() - 10).abs().toDouble();
+    } else {
+      return (i + 10).toDouble();
+    }
   }
 }
 
