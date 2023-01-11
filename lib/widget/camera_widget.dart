@@ -176,7 +176,7 @@ class MyCameraController extends WidgetController {
   final ImagePicker imagePicker = ImagePicker();
   List imageFileList = [];
 
-  Future<void> cameraFunction() async {
+  Future<void> initCamera() async {
     cameras = await availableCameras();
     notifyListeners();
   }
@@ -206,7 +206,7 @@ class MyCameraController extends WidgetController {
 class CameraState extends WidgetState<Camera> {
   @override
   void initState() {
-    widget._controller.cameraFunction().then((_) {
+    widget._controller.initCamera().then((_) {
       widget._controller.setCamera(0);
     });
     super.initState();
