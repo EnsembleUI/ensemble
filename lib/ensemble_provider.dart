@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'dart:ui';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/i18n_loader.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter_i18n/loaders/decoders/yaml_decode_strategy.dart';
 import 'package:yaml/yaml.dart';
@@ -17,6 +18,9 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
   }
   late final AppModel appModel;
   FlutterI18nDelegate? _i18nDelegate;
+
+  /// prefix for i18n in Firebase
+  static const i18nPrefix = 'i18n_';
 
   @override
   Future<AppBundle> getAppBundle() async {
@@ -75,12 +79,10 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
   @override
   FlutterI18nDelegate getI18NDelegate() {
     _i18nDelegate ??= FlutterI18nDelegate(
-        translationLoader: NetworkFileTranslationLoader(
-            baseUri: Uri.parse(i18nProps.path),
-            forcedLocale: Locale(i18nProps.defaultLocale),
-            fallbackFile: i18nProps.fallbackLocale,
-            useCountryCode: i18nProps.useCountryCode,
-            decodeStrategies: [YamlDecodeStrategy()])
+      translationLoader: DataTranslationLoader(
+        defaultLocaleMap: appModel.contentCache[i18nPrefix + i18nProps.defaultLocale],
+        fallbackLocaleMap: appModel.contentCache[i18nPrefix + i18nProps.fallbackLocale]
+      )
     );
     return _i18nDelegate!;
   }
