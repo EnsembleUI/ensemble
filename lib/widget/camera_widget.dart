@@ -189,8 +189,8 @@ class MyCameraController extends WidgetController {
   }
 
   void selectImage() async {
-    final List<XFile>? selectImage = await imagePicker.pickMultiImage();
-    if (selectImage!.isNotEmpty) {
+    final List<XFile> selectImage = await imagePicker.pickMultiImage();
+    if (selectImage.isNotEmpty) {
       if (kIsWeb) {
         for (var element in selectImage) {
           imageFileList.add(await element.readAsBytes());
