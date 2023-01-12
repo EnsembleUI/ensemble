@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 
 class LayoutUtils {
-
   static MainAxisAlignment getMainAxisAlignment(String spec) {
     switch (spec) {
       case 'spaceBetween':
@@ -26,9 +25,8 @@ class LayoutUtils {
     }
   }
 
-
   static CrossAxisAlignment getCrossAxisAlignment(String spec) {
-    switch(spec) {
+    switch (spec) {
       case 'center':
       case 'middle':
         return CrossAxisAlignment.center;
@@ -44,14 +42,13 @@ class LayoutUtils {
       default:
         return CrossAxisAlignment.start;
     }
-
   }
 
   /// insert the specified gap between the widgets
   static List<Widget> withGap(List<Widget> widgets, int gap) {
     if (gap > 0) {
       List<Widget> rtn = [];
-      for (int i=0; i<widgets.length; i++) {
+      for (int i = 0; i < widgets.length; i++) {
         rtn.add(widgets[i]);
         if (i != widgets.length - 1) {
           rtn.add(SizedBox(
@@ -64,8 +61,4 @@ class LayoutUtils {
     }
     return widgets;
   }
-
-
-
-
 }

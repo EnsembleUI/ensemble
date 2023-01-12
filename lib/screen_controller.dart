@@ -29,7 +29,6 @@ import 'package:yaml/yaml.dart';
 import 'package:url_launcher/link.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-
 /// Singleton that holds the page model definition
 /// and operations for the current screen
 class ScreenController {
@@ -37,7 +36,9 @@ class ScreenController {
 
   // Singleton
   static final ScreenController _instance = ScreenController._internal();
+
   ScreenController._internal();
+
   factory ScreenController() {
     return _instance;
   }
@@ -64,17 +65,26 @@ class ScreenController {
       executeActionWithScope(context, scopeManager, action);
     }
   }
-  void executeActionWithScope(BuildContext context, ScopeManager scopeManager, EnsembleAction action) {
-    _executeAction(context, scopeManager.dataContext, action, scopeManager.pageData.apiMap, scopeManager);
+
+  void executeActionWithScope(
+      BuildContext context, ScopeManager scopeManager, EnsembleAction action) {
+    _executeAction(context, scopeManager.dataContext, action,
+        scopeManager.pageData.apiMap, scopeManager);
   }
 
   /// internally execute an Action
-  void _executeAction(BuildContext context, DataContext providedDataContext, EnsembleAction action, Map<String, YamlMap>? apiMap, ScopeManager? scopeManager) {
+  void _executeAction(
+      BuildContext context,
+      DataContext providedDataContext,
+      EnsembleAction action,
+      Map<String, YamlMap>? apiMap,
+      ScopeManager? scopeManager) {
     /// Actions are short-live so we don't need a childScope, simply create a localized context from the given context
     /// Note that scopeManager may starts out without Invokable IDs (as widgets may yet to render), but at the time
     /// of API returns, they will be populated. For this reason, always rebuild data context from scope manager.
     /// For now we are OK as we don't send off the API until the screen has rendered.
-    DataContext dataContext = providedDataContext.clone(newBuildContext: context);
+    DataContext dataContext =
+        providedDataContext.clone(newBuildContext: context);
     /*DataContext dataContext;
     if (scopeManager != null) {
       // start with data context from scope manager but overwrite with provided data context
@@ -105,14 +115,18 @@ class ScreenController {
         // if invokeAPI has an ID, add it to context so we can bind to it
         // This is useful when the API is called in a loop, so binding to its API name won't work properly
         if (action.id != null && !dataContext.hasContext(action.id!)) {
-          scopeManager!.dataContext.addInvokableContext(action.id!, APIResponse());
+          scopeManager!.dataContext
+              .addInvokableContext(action.id!, APIResponse());
         }
 
         HttpUtils.invokeApi(apiDefinition, dataContext)
-            .then((response) => _onAPIComplete(context, dataContext, action, apiDefinition, Response(response), apiMap, scopeManager))
-            .onError((error, stackTrace) => processAPIError(context, dataContext, apiDefinition, error, apiMap, scopeManager));
+            .then((response) => _onAPIComplete(context, dataContext, action,
+                apiDefinition, Response(response), apiMap, scopeManager))
+            .onError((error, stackTrace) => processAPIError(context,
+                dataContext, apiDefinition, error, apiMap, scopeManager));
       } else {
-        throw RuntimeError("Unable to find api definition for ${action.apiName}");
+        throw RuntimeError(
+            "Unable to find api definition for ${action.apiName}");
       }
     } else if (action is BaseNavigateScreenAction) {
       // process input parameters
@@ -137,7 +151,6 @@ class ScreenController {
           executeActionWithScope(context, scopeManager, action.onModalDismiss!);
         });
       }
-
     } else if (action is ShowDialogAction) {
       if (scopeManager != null) {
         Widget content = scopeManager.buildWidgetFromDefinition(action.content);
@@ -151,59 +164,62 @@ class ScreenController {
         BuildContext? dialogContext;
 
         showGeneralDialog(
-          useRootNavigator: false,  // use inner-most MaterialApp (our App) as root so theming is ours
-          context: context,
-          barrierDismissible: true,
-          barrierLabel: "Barrier",
-          barrierColor: Colors.black54,
+            useRootNavigator: false,
+            // use inner-most MaterialApp (our App) as root so theming is ours
+            context: context,
+            barrierDismissible: true,
+            barrierLabel: "Barrier",
+            barrierColor: Colors.black54,
+            pageBuilder: (context, animation, secondaryAnimation) {
+              // save a reference to the builder's context so we can close it programmatically
+              dialogContext = context;
+              scopeManager.openedDialogs.add(dialogContext!);
 
-          pageBuilder: (context, animation, secondaryAnimation) {
-            // save a reference to the builder's context so we can close it programmatically
-            dialogContext = context;
-            scopeManager.openedDialogs.add(dialogContext!);
-
-            return Align(
-              alignment: Alignment(
-                Utils.getDouble(dialogStyles['horizontalOffset'], min: -1, max: 1, fallback: 0),
-                Utils.getDouble(dialogStyles['verticalOffset'], min: -1, max: 1, fallback: 0)
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minWidth: Utils.getDouble(dialogStyles['minWidth'], fallback: 0),
-                    maxWidth: Utils.getDouble(dialogStyles['maxWidth'], fallback: double.infinity),
-                    minHeight: Utils.getDouble(dialogStyles['minHeight'], fallback: 0),
-                    maxHeight: Utils.getDouble(dialogStyles['maxHeight'], fallback: double.infinity)
-                  ),
-                  child: Container(
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                          borderRadius: BorderRadius.all(Radius.circular(5)),
-                          boxShadow: <BoxShadow>[
-                            BoxShadow(
-                              color: Colors.white38,
-                              blurRadius: 5,
-                              offset: Offset(0, 0),
-                            )
-                          ]
-                      ),
-                    child: SingleChildScrollView (
-                      child: content,
-                    )
-                  )
-                )
-              )
-
-            );
-          }
-        ).then((value) {
+              return Align(
+                  alignment: Alignment(
+                      Utils.getDouble(dialogStyles['horizontalOffset'],
+                          min: -1, max: 1, fallback: 0),
+                      Utils.getDouble(dialogStyles['verticalOffset'],
+                          min: -1, max: 1, fallback: 0)),
+                  child: Material(
+                      color: Colors.transparent,
+                      child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                              minWidth: Utils.getDouble(
+                                  dialogStyles['minWidth'],
+                                  fallback: 0),
+                              maxWidth: Utils.getDouble(
+                                  dialogStyles['maxWidth'],
+                                  fallback: double.infinity),
+                              minHeight: Utils.getDouble(
+                                  dialogStyles['minHeight'],
+                                  fallback: 0),
+                              maxHeight: Utils.getDouble(
+                                  dialogStyles['maxHeight'],
+                                  fallback: double.infinity)),
+                          child: Container(
+                              decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(5)),
+                                  boxShadow: <BoxShadow>[
+                                    BoxShadow(
+                                      color: Colors.white38,
+                                      blurRadius: 5,
+                                      offset: Offset(0, 0),
+                                    )
+                                  ]),
+                              child: SingleChildScrollView(
+                                child: content,
+                              )))));
+            }).then((value) {
           // remove the dialog context since we are closing them
           scopeManager.openedDialogs.remove(dialogContext);
 
           // callback when dialog is dismissed
           if (action.onDialogDismiss != null) {
-            executeActionWithScope(context, scopeManager, action.onDialogDismiss!);
+            executeActionWithScope(
+                context, scopeManager, action.onDialogDismiss!);
           }
         });
       }
@@ -214,66 +230,59 @@ class ScreenController {
         }
         scopeManager.openedDialogs.clear();
       }
-
     } else if (action is StartTimerAction) {
-
       // what happened if ScopeManager is null?
       if (scopeManager != null) {
-
         int delay = action.payload?.startAfter ??
-          (action.payload?.repeat == true ? action.payload?.repeatInterval ?? 0 : 0);
+            (action.payload?.repeat == true
+                ? action.payload?.repeatInterval ?? 0
+                : 0);
 
         // we always execute at least once, delayed by startAfter and fallback to repeatInterval (or immediate if startAfter is 0)
-        Timer(
-          Duration(seconds: delay),
-          () {
-            // execute the action
-            executeActionWithScope(context, scopeManager, action.onTimer);
+        Timer(Duration(seconds: delay), () {
+          // execute the action
+          executeActionWithScope(context, scopeManager, action.onTimer);
 
-            // if no repeat, execute onTimerComplete
-            if (action.payload?.repeat != true) {
-              if (action.onTimerComplete != null) {
-                executeActionWithScope(context, scopeManager, action.onTimerComplete!);
-              }
+          // if no repeat, execute onTimerComplete
+          if (action.payload?.repeat != true) {
+            if (action.onTimerComplete != null) {
+              executeActionWithScope(
+                  context, scopeManager, action.onTimerComplete!);
             }
-            // else repeating timer
-            else if (action.payload?.repeatInterval != null) {
-              /// repeatCount value of null means forever by default
-              int? repeatCount;
-              if (action.payload?.maxTimes != null) {
-                repeatCount = action.payload!.maxTimes! - 1;
-              }
-              if (repeatCount != 0) {
-                int counter = 0;
-                final timer = Timer.periodic(
-                  Duration(seconds: action.payload!.repeatInterval!),
-                  (timer) {
-                    // execute the action
-                    executeActionWithScope(context, scopeManager, action.onTimer);
-
-                    // automatically cancel timer when repeatCount is reached
-                    if (repeatCount != null && ++counter == repeatCount) {
-                      timer.cancel();
-
-                      // timer terminates, call onTimerComplete
-                      if (action.onTimerComplete != null) {
-                        executeActionWithScope(context, scopeManager, action.onTimerComplete!);
-                      }
-                    }
-                  }
-                );
-
-                // save our timer to our PageData since user may want to cancel at anytime
-                // and also when we navigate away from the page
-                scopeManager.addTimer(action, timer);
-              }
-            }
-
           }
-        );
+          // else repeating timer
+          else if (action.payload?.repeatInterval != null) {
+            /// repeatCount value of null means forever by default
+            int? repeatCount;
+            if (action.payload?.maxTimes != null) {
+              repeatCount = action.payload!.maxTimes! - 1;
+            }
+            if (repeatCount != 0) {
+              int counter = 0;
+              final timer = Timer.periodic(
+                  Duration(seconds: action.payload!.repeatInterval!), (timer) {
+                // execute the action
+                executeActionWithScope(context, scopeManager, action.onTimer);
+
+                // automatically cancel timer when repeatCount is reached
+                if (repeatCount != null && ++counter == repeatCount) {
+                  timer.cancel();
+
+                  // timer terminates, call onTimerComplete
+                  if (action.onTimerComplete != null) {
+                    executeActionWithScope(
+                        context, scopeManager, action.onTimerComplete!);
+                  }
+                }
+              });
+
+              // save our timer to our PageData since user may want to cancel at anytime
+              // and also when we navigate away from the page
+              scopeManager.addTimer(action, timer);
+            }
+          }
+        });
       }
-
-
     } else if (action is StopTimerAction) {
       if (scopeManager != null) {
         scopeManager.removeTimer(action.id);
@@ -294,14 +303,19 @@ class ScreenController {
       }
     } else if (action is ShowToastAction) {
       Widget? customToastBody;
-      if (scopeManager != null && action.type == ToastType.custom && action.body != null) {
+      if (scopeManager != null &&
+          action.type == ToastType.custom &&
+          action.body != null) {
         customToastBody = scopeManager.buildWidgetFromDefinition(action.body);
       }
       ToastController().showToast(context, action, customToastBody);
-    } else if ( action is OpenUrlAction ) {
+    } else if (action is OpenUrlAction) {
       dynamic value = dataContext.eval(action.url);
       value ??= '';
-      launchUrl(Uri.parse(value),mode: (action.openInExternalApp)?LaunchMode.externalApplication:LaunchMode.platformDefault );
+      launchUrl(Uri.parse(value),
+          mode: (action.openInExternalApp)
+              ? LaunchMode.externalApplication
+              : LaunchMode.platformDefault);
     }
   }
 
@@ -315,11 +329,23 @@ class ScreenController {
   }*/
 
   /// e.g upon return of API result
-  void _onAPIComplete(BuildContext context, DataContext dataContext, InvokeAPIAction action, YamlMap apiDefinition, Response response, Map<String, YamlMap>? apiMap, ScopeManager? scopeManager) {
+  void _onAPIComplete(
+      BuildContext context,
+      DataContext dataContext,
+      InvokeAPIAction action,
+      YamlMap apiDefinition,
+      Response response,
+      Map<String, YamlMap>? apiMap,
+      ScopeManager? scopeManager) {
     // first execute API's onResponse code block
-    EnsembleAction? onResponse = Utils.getAction(apiDefinition['onResponse'], initiator: action.initiator);
+    EnsembleAction? onResponse = Utils.getAction(apiDefinition['onResponse'],
+        initiator: action.initiator);
     if (onResponse != null) {
-      processAPIResponse(context, dataContext, onResponse, response, apiMap, scopeManager, apiChangeHandler: dispatchAPIChanges, action: action, modifiableAPIResponse: true);
+      processAPIResponse(
+          context, dataContext, onResponse, response, apiMap, scopeManager,
+          apiChangeHandler: dispatchAPIChanges,
+          action: action,
+          modifiableAPIResponse: true);
     }
     // dispatch changes even if we don't have onResponse
     else {
@@ -328,9 +354,9 @@ class ScreenController {
 
     // if our Action has onResponse, invoke that next
     if (action.onResponse != null) {
-      processAPIResponse(context, dataContext, action.onResponse!, response, apiMap, scopeManager);
+      processAPIResponse(context, dataContext, action.onResponse!, response,
+          apiMap, scopeManager);
     }
-
   }
 
   void dispatchStorageChanges(BuildContext context, String key, dynamic value) {
@@ -340,7 +366,8 @@ class ScreenController {
     }
   }
 
-  void dispatchAPIChanges(ScopeManager? scopeManager, InvokeAPIAction action, APIResponse apiResponse) {
+  void dispatchAPIChanges(ScopeManager? scopeManager, InvokeAPIAction action,
+      APIResponse apiResponse) {
     // update the API response in our DataContext and fire changes to all listeners.
     // Make sure we don't override the key here, as all the scopes referenced the same API
     if (scopeManager != null) {
@@ -365,27 +392,35 @@ class ScreenController {
           dynamic apiById = scopeManager.dataContext.getContextById(action.id!);
           if (apiById is APIResponse) {
             apiById.setAPIResponse(_response);
-            scopeManager.dispatch(ModelChangeEvent(APIBindingSource(action.id!), apiById));
+            scopeManager.dispatch(
+                ModelChangeEvent(APIBindingSource(action.id!), apiById));
           }
         }
-
-
-
       }
     }
   }
 
   /// Executing the onResponse action. Note that this can be
   /// the API's onResponse or a caller's onResponse (e.g. onPageLoad's onResponse)
-  void processAPIResponse(BuildContext context, DataContext dataContext, EnsembleAction onResponseAction, Response response, Map<String, YamlMap>? apiMap, ScopeManager? scopeManager, {Function? apiChangeHandler, InvokeAPIAction? action, bool? modifiableAPIResponse}) {
+  void processAPIResponse(
+      BuildContext context,
+      DataContext dataContext,
+      EnsembleAction onResponseAction,
+      Response response,
+      Map<String, YamlMap>? apiMap,
+      ScopeManager? scopeManager,
+      {Function? apiChangeHandler,
+      InvokeAPIAction? action,
+      bool? modifiableAPIResponse}) {
     // execute the onResponse on the API definition
-    APIResponse apiResponse = modifiableAPIResponse == true ?
-      ModifiableAPIResponse(response: response) :
-      APIResponse(response: response);
+    APIResponse apiResponse = modifiableAPIResponse == true
+        ? ModifiableAPIResponse(response: response)
+        : APIResponse(response: response);
 
     DataContext localizedContext = dataContext.clone();
     localizedContext.addInvokableContext('response', apiResponse);
-    _executeAction(context, localizedContext, onResponseAction, apiMap, scopeManager);
+    _executeAction(
+        context, localizedContext, onResponseAction, apiMap, scopeManager);
 
     if (modifiableAPIResponse == true) {
       // should be on Action's callback instead
@@ -394,7 +429,13 @@ class ScreenController {
   }
 
   /// executing the onError action
-  void processAPIError(BuildContext context, DataContext dataContext, YamlMap apiDefinition, Object? error, Map<String, YamlMap>? apiMap, ScopeManager? scopeManager) {
+  void processAPIError(
+      BuildContext context,
+      DataContext dataContext,
+      YamlMap apiDefinition,
+      Object? error,
+      Map<String, YamlMap>? apiMap,
+      ScopeManager? scopeManager) {
     log("Error: $error");
 
     EnsembleAction? onErrorAction = Utils.getAction(apiDefinition['onError']);
@@ -410,16 +451,16 @@ class ScreenController {
     try {
       eContext.evalCode(codeBlock);
     } catch (e) {
-      print ("Code block exception: " + e.toString());
+      print("Code block exception: " + e.toString());
     }
   }
-
 
   /// Navigate to another screen
   /// [screenName] - navigate to the screen if specified, otherwise to appHome
   /// [asModal] - shows the App in a regular or modal screen
   /// [pageArgs] - Key/Value pairs to send to the screen if it takes input parameters
-  PageRouteBuilder navigateToScreen(BuildContext context, {
+  PageRouteBuilder navigateToScreen(
+    BuildContext context, {
     String? screenName,
     bool? asModal,
     Map<String, dynamic>? pageArgs,
@@ -427,7 +468,8 @@ class ScreenController {
     PageType pageType = asModal == true ? PageType.modal : PageType.regular;
 
     Widget screenWidget = Screen(
-      appProvider: AppProvider(definitionProvider: Ensemble().getConfig()!.definitionProvider),
+      appProvider: AppProvider(
+          definitionProvider: Ensemble().getConfig()!.definitionProvider),
       screenPayload: ScreenPayload(
         screenName: screenName,
         pageType: pageType,
@@ -440,29 +482,32 @@ class ScreenController {
     return route;
   }
 
-  void executeGetLocationAction(ScopeManager scopeManager, DataContext dataContext, BuildContext context, GetLocationAction action) {
+  void executeGetLocationAction(ScopeManager scopeManager,
+      DataContext dataContext, BuildContext context, GetLocationAction action) {
     if (action.onLocationReceived != null) {
       Device().getLocationStatus().then((LocationStatus status) async {
         if (status == LocationStatus.ready) {
           // if recurring
           if (action.recurring == true) {
-            StreamSubscription<Position> streamSubscription = Geolocator.getPositionStream(
-                locationSettings: LocationSettings(
-                    accuracy: LocationAccuracy.high,
-                    distanceFilter: action.recurringDistanceFilter ?? 1000
-                )
-            ).listen((Position? location) {
+            StreamSubscription<Position> streamSubscription =
+                Geolocator.getPositionStream(
+                        locationSettings: LocationSettings(
+                            accuracy: LocationAccuracy.high,
+                            distanceFilter:
+                                action.recurringDistanceFilter ?? 1000))
+                    .listen((Position? location) {
               if (location != null) {
                 log("on location updates");
                 // update last location. TODO: consolidate this
                 Device().updateLastLocation(location);
-                
-                _onLocationReceived(scopeManager, dataContext, context, action.onLocationReceived!, location);
-              }
-              else if (action.onError != null){
+
+                _onLocationReceived(scopeManager, dataContext, context,
+                    action.onLocationReceived!, location);
+              } else if (action.onError != null) {
                 DataContext localizedContext = dataContext.clone();
                 localizedContext.addDataContextById('reason', 'unknown');
-                _executeAction(context, localizedContext, action.onError!, null, scopeManager);
+                _executeAction(context, localizedContext, action.onError!, null,
+                    scopeManager);
               }
             });
             scopeManager.addLocationListener(streamSubscription);
@@ -470,40 +515,39 @@ class ScreenController {
           // one-time get location
           else {
             log("get location");
-            _onLocationReceived(scopeManager, dataContext, context, action.onLocationReceived!, await Device().simplyGetLocation());
+            _onLocationReceived(scopeManager, dataContext, context,
+                action.onLocationReceived!, await Device().simplyGetLocation());
           }
-        } else if (action.onError != null){
+        } else if (action.onError != null) {
           DataContext localizedContext = dataContext.clone();
           localizedContext.addDataContextById('reason', status.name);
-          _executeAction(context, localizedContext, action.onError!, null, scopeManager);
+          _executeAction(
+              context, localizedContext, action.onError!, null, scopeManager);
         }
       });
     }
   }
 
-  void _onLocationReceived(ScopeManager scopeManager, DataContext dataContext, BuildContext context, EnsembleAction onLocationReceived, Position location) {
+  void _onLocationReceived(
+      ScopeManager scopeManager,
+      DataContext dataContext,
+      BuildContext context,
+      EnsembleAction onLocationReceived,
+      Position location) {
     DataContext localizedContext = dataContext.clone();
     localizedContext.addDataContextById('latitude', location.latitude);
     localizedContext.addDataContextById('longitude', location.longitude);
-    _executeAction(context, localizedContext, onLocationReceived, null, scopeManager);
+    _executeAction(
+        context, localizedContext, onLocationReceived, null, scopeManager);
   }
-
 
   /// return a wrapper for the screen widget
   /// with custom animation for different pageType
-  PageRouteBuilder getScreenBuilder(Widget screenWidget, {
-    PageType? pageType
-  }) {
+  PageRouteBuilder getScreenBuilder(Widget screenWidget, {PageType? pageType}) {
     if (pageType == PageType.modal) {
       return EnsembleModalPageRouteBuilder(screenWidget: screenWidget);
     } else {
       return EnsemblePageRouteBuilder(screenWidget: screenWidget);
     }
   }
-
-
-
-
-
-
 }

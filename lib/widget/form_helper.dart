@@ -12,7 +12,7 @@ import 'package:flutter/material.dart';
 class FormFieldController extends WidgetController {
   bool? enabled;
   bool required = false;
-  bool autoComplete = false;
+
   String? hintText;
   String? icon;
   String? prefixIcon;
@@ -35,7 +35,6 @@ class FormFieldController extends WidgetController {
   Map<String, Function> getBaseGetters() {
     Map<String, Function> getters = super.getBaseGetters();
     getters.addAll({
-      'autoComplete': () => autoComplete,
       'enabled': () => enabled,
       'required': () => required,
     });
@@ -47,8 +46,6 @@ class FormFieldController extends WidgetController {
     Map<String, Function> setters = super.getBaseSetters();
     setters.addAll({
       'enabled': (value) => enabled = Utils.optionalBool(value),
-      'autoComplete': (value) =>
-          autoComplete = Utils.getBool(value, fallback: false),
       'required': (value) => required = Utils.getBool(value, fallback: false),
       'hintText': (value) => hintText = Utils.optionalString(value),
       'icon': (value) => icon = Utils.optionalString(value),

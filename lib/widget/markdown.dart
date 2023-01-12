@@ -1,4 +1,3 @@
-
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -13,23 +12,23 @@ import 'dart:convert';
 
 import 'package:yaml/yaml.dart';
 
-class Markdown extends StatefulWidget with Invokable, HasController<MarkdownController, MarkdownState> {
+class Markdown extends StatefulWidget
+    with Invokable, HasController<MarkdownController, MarkdownState> {
   static const type = 'Markdown';
+
   Markdown({Key? key}) : super(key: key);
 
   final MarkdownController _controller = MarkdownController();
+
   @override
   MarkdownController get controller => _controller;
 
   @override
   MarkdownState createState() => MarkdownState();
 
-
   @override
   Map<String, Function> getters() {
-    return {
-      'text': () => _controller.text
-    };
+    return {'text': () => _controller.text};
   }
 
   @override
@@ -45,25 +44,22 @@ class Markdown extends StatefulWidget with Invokable, HasController<MarkdownCont
   Map<String, Function> methods() {
     return {};
   }
-
 }
-
 
 class MarkdownController extends framework.WidgetController {
   String? text;
 
   TextStyle? textStyle;
   TextStyle? linkStyle;
-  //TextStyle? codeStyle
+//TextStyle? codeStyle
 }
-
 
 class MarkdownState extends framework.WidgetState<Markdown> {
   @override
   Widget buildWidget(BuildContext context) {
-
     // built styles from default Material3 text styles, then apply overrides
-    MarkdownStyleSheet styles = MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+    MarkdownStyleSheet styles =
+        MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
       p: widget._controller.textStyle,
       a: widget._controller.linkStyle,
     );
@@ -98,7 +94,7 @@ class MarkdownState extends framework.WidgetState<Markdown> {
       firstToken = raw;
     } else {
       firstToken = raw.substring(0, index);
-      secondToken = raw.substring(index+1);
+      secondToken = raw.substring(index + 1);
     }
 
     bool? asModal;
@@ -142,14 +138,11 @@ class MarkdownState extends framework.WidgetState<Markdown> {
       );
     } else {
       FlutterError.reportError(FlutterErrorDetails(
-        exception: LanguageError("Invalid screen navigation syntax in Markdown"),
+        exception:
+            LanguageError("Invalid screen navigation syntax in Markdown"),
         library: 'Markdown',
         context: ErrorSummary('Markdown error'),
       ));
     }
-
-
   }
-
-
 }

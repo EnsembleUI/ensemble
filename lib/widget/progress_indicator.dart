@@ -157,4 +157,4 @@ class ProgressState extends WidgetState<EnsembleProgressIndicator> {
 
 enum Display {
   linear, circular
-} 
+}

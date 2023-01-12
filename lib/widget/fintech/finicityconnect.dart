@@ -14,6 +14,7 @@ class FinicityConnectController extends WidgetController {
   FinicityConnectController() {
     id = 'finicityConnect';
   }
+
   int width = 0;
   int height = 0;
   String uri = '';
@@ -23,13 +24,19 @@ class FinicityConnectController extends WidgetController {
   int top = 0;
   String position = 'absolute';
 }
-class FinicityConnect extends StatefulWidget with Invokable, HasController<FinicityConnectController, FinicityConnectState> {
+
+class FinicityConnect extends StatefulWidget
+    with
+        Invokable,
+        HasController<FinicityConnectController, FinicityConnectState> {
   static const type = 'FinicityConnect';
+
   FinicityConnect({Key? key}) : super(key: key);
 
   static const defaultSize = 200;
 
   final FinicityConnectController _controller = FinicityConnectController();
+
   @override
   FinicityConnectController get controller => _controller;
 
@@ -43,68 +50,82 @@ class FinicityConnect extends StatefulWidget with Invokable, HasController<Finic
 
   @override
   Map<String, Function> methods() {
-    return {
-    };
+    return {};
   }
 
   @override
   Map<String, Function> setters() {
     return {
-      'id': (value) => _controller.id = Utils.getString(value, fallback: _controller.id!),
-      'width': (value) => _controller.width = Utils.getInt(value, fallback: defaultSize),
-      'height': (value) => _controller.height = Utils.getInt(value, fallback: defaultSize),
-      'left': (value) => _controller.left = Utils.getInt(value, fallback: _controller.left),
-      'top': (value) => _controller.top = Utils.getInt(value, fallback: _controller.top),
-      'position': (value) => _controller.position = Utils.getString(value, fallback: _controller.position),
-      'uri': (value) => _controller.uri = Utils.getString(value, fallback: _controller.uri),
-      'onSuccess': (funcDefinition) => _controller.onSuccess = Utils.getAction(funcDefinition, initiator: this),
-      'onCancel': (funcDefinition) => _controller.onCancel = Utils.getAction(funcDefinition, initiator: this),
-      'onError': (funcDefinition) => _controller.onError = Utils.getAction(funcDefinition, initiator: this),
-      'onRoute': (funcDefinition) => _controller.onRoute = Utils.getAction(funcDefinition, initiator: this),
-      'onUser': (funcDefinition) => _controller.onUser = Utils.getAction(funcDefinition, initiator: this),
-      'onLoaded': (funcDefinition) => _controller.onLoaded = Utils.getAction(funcDefinition, initiator: this),
+      'id': (value) =>
+          _controller.id = Utils.getString(value, fallback: _controller.id!),
+      'width': (value) =>
+          _controller.width = Utils.getInt(value, fallback: defaultSize),
+      'height': (value) =>
+          _controller.height = Utils.getInt(value, fallback: defaultSize),
+      'left': (value) =>
+          _controller.left = Utils.getInt(value, fallback: _controller.left),
+      'top': (value) =>
+          _controller.top = Utils.getInt(value, fallback: _controller.top),
+      'position': (value) => _controller.position =
+          Utils.getString(value, fallback: _controller.position),
+      'uri': (value) =>
+          _controller.uri = Utils.getString(value, fallback: _controller.uri),
+      'onSuccess': (funcDefinition) => _controller.onSuccess =
+          Utils.getAction(funcDefinition, initiator: this),
+      'onCancel': (funcDefinition) => _controller.onCancel =
+          Utils.getAction(funcDefinition, initiator: this),
+      'onError': (funcDefinition) => _controller.onError =
+          Utils.getAction(funcDefinition, initiator: this),
+      'onRoute': (funcDefinition) => _controller.onRoute =
+          Utils.getAction(funcDefinition, initiator: this),
+      'onUser': (funcDefinition) =>
+          _controller.onUser = Utils.getAction(funcDefinition, initiator: this),
+      'onLoaded': (funcDefinition) => _controller.onLoaded =
+          Utils.getAction(funcDefinition, initiator: this),
       'overlay': (value) => _controller.overlay = value,
     };
   }
 }
+
 class FinicityConnectState extends WidgetState<FinicityConnect> {
   void executeAction(Map event) {
     EnsembleAction? action;
 
-    if ( event['type'] == 'success' ) {
+    if (event['type'] == 'success') {
       action = widget._controller.onSuccess;
-    } else if ( event['type'] == 'cancel' ) {
+    } else if (event['type'] == 'cancel') {
       action = widget._controller.onCancel;
-    } else if ( event['type'] == 'error' ) {
+    } else if (event['type'] == 'error') {
       action = widget._controller.onError;
-    } else if ( event['type'] == 'loaded' ) {
+    } else if (event['type'] == 'loaded') {
       action = widget._controller.onLoaded;
-    } else if ( event['type'] == 'route' ) {
+    } else if (event['type'] == 'route') {
       action = widget._controller.onRoute;
-    } else if ( event['type'] == 'user' ) {
+    } else if (event['type'] == 'user') {
       action = widget._controller.onUser;
     }
-    if ( action != null ) {
+    if (action != null) {
       action.inputs ??= {};
-      action.inputs!['event'] = (event['data'] == null) ? {}: event['data'];
+      action.inputs!['event'] = (event['data'] == null) ? {} : event['data'];
       ScreenController().executeAction(context, action!);
     }
   }
+
   @override
   Widget buildWidget(BuildContext context) {
-    if ( widget.controller.uri == '')  {
+    if (widget.controller.uri == '') {
       return const Text("");
     }
     String overlay = '';
-    if ( widget.controller.overlay != null ) {
+    if (widget.controller.overlay != null) {
       overlay = 'overlay: ${widget.controller.overlay!},';
     }
     String width = '100%';
-    if ( widget.controller.width != 0 ) {
+    if (widget.controller.width != 0) {
       width = '${widget.controller.width}px';
     }
     String height = '100%';
-    if ( widget.controller.height != 0 ) {
+    if (widget.controller.height != 0) {
       height = '${widget.controller.height}px';
     }
     return JsWidget(
@@ -116,7 +137,6 @@ class FinicityConnectState extends WidgetState<FinicityConnect> {
         executeAction(json.decode(msg));
       },
       scriptToInstantiate: (String c) {
-
         return '''
         window.finicityConnect.launch("$c", {
         $overlay
@@ -162,7 +182,8 @@ class FinicityConnectState extends WidgetState<FinicityConnect> {
         ''';
         //return 'if (typeof ${widget.controller.chartVar} !== "undefined") ${widget.controller.chartVar}.destroy();${widget.controller.chartVar} = new Chart(document.getElementById("${widget.controller.chartId}"), $c);${widget.controller.chartVar}.update();';
       },
-      size: Size(widget.controller.width.toDouble(), widget.controller.height.toDouble()),
+      size: Size(widget.controller.width.toDouble(),
+          widget.controller.height.toDouble()),
       data: widget.controller.uri,
       scripts: const [
         "https://connect2.finicity.com/assets/sdk/finicity-connect.min.js",

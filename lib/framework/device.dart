@@ -49,7 +49,7 @@ class Device with Invokable, MediaQueryCapability, LocationCapability, DeviceInf
 
 
 
-  
+
 }
 
 mixin MediaQueryCapability {
@@ -118,7 +118,7 @@ mixin LocationCapability {
     lastLocation = await Geolocator.getCurrentPosition();
     return lastLocation!;
   }
-  
+
 
 }
 

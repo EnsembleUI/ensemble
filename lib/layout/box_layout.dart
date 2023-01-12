@@ -13,6 +13,7 @@ import 'package:ensemble/util/platform.dart';
 
 class Column extends BoxLayout {
   static const type = 'Column';
+
   Column({Key? key}) : super(key: key);
 
   @override
@@ -20,8 +21,10 @@ class Column extends BoxLayout {
     return true;
   }
 }
+
 class Row extends BoxLayout {
   static const type = 'Row';
+
   Row({Key? key}) : super(key: key);
 
   @override
@@ -29,15 +32,18 @@ class Row extends BoxLayout {
     return false;
   }
 }
+
 class Flex extends BoxLayout {
   static const type = 'Flex';
+
   Flex({Key? key}) : super(key: key);
 
   @override
   Map<String, Function> setters() {
     Map<String, Function> entries = super.setters();
     entries.addAll({
-      'direction': (value) => _controller.direction = Utils.optionalString(value)
+      'direction': (value) =>
+          _controller.direction = Utils.optionalString(value)
     });
     return entries;
   }
@@ -45,9 +51,7 @@ class Flex extends BoxLayout {
   @override
   Map<String, Function> getters() {
     Map<String, Function> entries = super.getters();
-    entries.addAll({
-      'direction': () => _controller.direction
-    });
+    entries.addAll({'direction': () => _controller.direction});
     return entries;
   }
 
@@ -57,13 +61,17 @@ class Flex extends BoxLayout {
   }
 }
 
-
-abstract class BoxLayout extends StatefulWidget with UpdatableContainer, Invokable, HasController<BoxLayoutController, BoxLayoutState> {
+abstract class BoxLayout extends StatefulWidget
+    with
+        UpdatableContainer,
+        Invokable,
+        HasController<BoxLayoutController, BoxLayoutState> {
   BoxLayout({Key? key}) : super(key: key);
 
   late final ItemTemplate? itemTemplate;
 
   final BoxLayoutController _controller = BoxLayoutController();
+
   @override
   BoxLayoutController get controller => _controller;
 
@@ -71,12 +79,15 @@ abstract class BoxLayout extends StatefulWidget with UpdatableContainer, Invokab
   Map<String, Function> getters() {
     return {};
   }
+
   @override
   Map<String, Function> setters() {
     return {
-      'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, initiator: this),
+      'onTap': (funcDefinition) =>
+          _controller.onTap = Utils.getAction(funcDefinition, initiator: this),
     };
   }
+
   @override
   Map<String, Function> methods() {
     return {};
@@ -92,7 +103,6 @@ abstract class BoxLayout extends StatefulWidget with UpdatableContainer, Invokab
   State<StatefulWidget> createState() => BoxLayoutState();
 
   bool isVertical();
-
 }
 
 class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
@@ -105,15 +115,18 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
     if (widget.itemTemplate != null) {
       // initial value maybe set before the screen rendered
       if (widget.itemTemplate!.initialValue != null) {
-        templatedChildren = buildWidgetsFromTemplate(context, widget.itemTemplate!.initialValue!, widget.itemTemplate!);
+        templatedChildren = buildWidgetsFromTemplate(
+            context, widget.itemTemplate!.initialValue!, widget.itemTemplate!);
       }
 
       // listen for changes
       // Note that when visibility is toggled after rendering, the API may already be populated.
       // In that case we want to evaluate the data to see if they are there
-      registerItemTemplate(context, widget.itemTemplate!, evaluateInitialValue: true, onDataChanged: (List dataList) {
+      registerItemTemplate(context, widget.itemTemplate!,
+          evaluateInitialValue: true, onDataChanged: (List dataList) {
         setState(() {
-          templatedChildren = buildWidgetsFromTemplate(context, dataList, widget.itemTemplate!);
+          templatedChildren =
+              buildWidgetsFromTemplate(context, dataList, widget.itemTemplate!);
         });
       });
     }
@@ -125,10 +138,8 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
     templatedChildren = null;
   }
 
-
   @override
   Widget buildWidget(BuildContext context) {
-
     // children will be rendered before templated children
     List<Widget> children = [];
     if (widget._controller.children != null) {
@@ -140,14 +151,14 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
 
     // if gap is specified, insert SizeBox between children
     if (widget._controller.gap != null) {
-      Widget gapWidget = widget.isVertical() ?
-        SizedBox(height: widget._controller.gap!.toDouble()) :
-        SizedBox(width: widget._controller.gap!.toDouble());
+      Widget gapWidget = widget.isVertical()
+          ? SizedBox(height: widget._controller.gap!.toDouble())
+          : SizedBox(width: widget._controller.gap!.toDouble());
 
       List<Widget> updatedChildren = [];
-      for (var i=0; i<children.length; i++) {
+      for (var i = 0; i < children.length; i++) {
         updatedChildren.add(children[i]);
-        if (i != children.length-1) {
+        if (i != children.length - 1) {
           updatedChildren.add(gapWidget);
         }
       }
@@ -162,9 +173,9 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
     // children like Divider can stretch across.
     // Note that this is in regard to the crossAxis (i.e Column needs to set its intrinsic width)
     if (widget._controller.autoFit) {
-      boxWidget = widget.isVertical() ?
-        IntrinsicWidth(child: boxWidget) :
-        IntrinsicHeight(child: boxWidget);
+      boxWidget = widget.isVertical()
+          ? IntrinsicWidth(child: boxWidget)
+          : IntrinsicHeight(child: boxWidget);
     }
 
     // html-renderer has terrible scrolling performance when clipping is on, so disable it for now
@@ -174,44 +185,45 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
     }
 
     Widget rtn = Container(
-        width: widget._controller.width != null ? widget._controller.width!.toDouble() : null,
-        height: widget._controller.height != null ? widget._controller.height!.toDouble() : null,
+        width: widget._controller.width != null
+            ? widget._controller.width!.toDouble()
+            : null,
+        height: widget._controller.height != null
+            ? widget._controller.height!.toDouble()
+            : null,
         margin: widget._controller.margin,
-
         clipBehavior: clipBehavior,
         decoration: _buildBoxDecoration(),
-
         child: flutter.InkWell(
             splashColor: flutter.Colors.transparent,
-            onTap: widget._controller.onTap == null ? null : () =>
-                ScreenController().executeAction(context, widget._controller.onTap!),
+            onTap: widget._controller.onTap == null
+                ? null
+                : () => ScreenController()
+                    .executeAction(context, widget._controller.onTap!),
             child: Padding(
                 padding: widget._controller.padding ?? const EdgeInsets.all(0),
-                child: boxWidget
-            )
-        )
-    );
+                child: boxWidget)));
 
-    return !widget._controller.scrollable ?
-        rtn :
-        SingleChildScrollView(
-            scrollDirection: widget.isVertical() ? Axis.vertical : Axis.horizontal,
+    return !widget._controller.scrollable
+        ? rtn
+        : SingleChildScrollView(
+            scrollDirection:
+                widget.isVertical() ? Axis.vertical : Axis.horizontal,
             child: rtn);
-
   }
 
   Widget _buildBoxWidget(List<Widget> children) {
-    MainAxisAlignment mainAxis = widget._controller.mainAxis != null ?
-      LayoutUtils.getMainAxisAlignment(widget._controller.mainAxis!) :
-      MainAxisAlignment.start;
+    MainAxisAlignment mainAxis = widget._controller.mainAxis != null
+        ? LayoutUtils.getMainAxisAlignment(widget._controller.mainAxis!)
+        : MainAxisAlignment.start;
 
-    CrossAxisAlignment crossAxis = widget._controller.crossAxis != null ?
-      LayoutUtils.getCrossAxisAlignment(widget._controller.crossAxis!) :
-      CrossAxisAlignment.start;
+    CrossAxisAlignment crossAxis = widget._controller.crossAxis != null
+        ? LayoutUtils.getCrossAxisAlignment(widget._controller.crossAxis!)
+        : CrossAxisAlignment.start;
 
-    MainAxisSize mainAxisSize = widget._controller.mainAxisSize == 'min' ?
-      MainAxisSize.min :
-      MainAxisSize.max;
+    MainAxisSize mainAxisSize = widget._controller.mainAxisSize == 'min'
+        ? MainAxisSize.min
+        : MainAxisSize.max;
 
     Widget boxWidget;
     if (widget is Column) {
@@ -252,11 +264,11 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
     // propagate text styling to all its children
     return DefaultTextStyle.merge(
         style: TextStyle(
-          fontFamily: widget._controller.fontFamily,
-          fontSize: widget._controller.fontSize != null ? widget._controller.fontSize!.toDouble() : null
-        ),
+            fontFamily: widget._controller.fontFamily,
+            fontSize: widget._controller.fontSize != null
+                ? widget._controller.fontSize!.toDouble()
+                : null),
         child: boxWidget);
-
   }
 
   BoxDecoration _buildBoxDecoration() {
@@ -264,18 +276,22 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
         color: widget._controller.backgroundColor,
         image: widget._controller.backgroundImage?.image,
         gradient: widget._controller.backgroundGradient,
-        border: !widget._controller.hasBorder() ? null : Border.all(
-            color: widget._controller.borderColor ?? flutter.Colors.black26,
-            width: (widget._controller.borderWidth ?? 1).toDouble()),
-        borderRadius: widget._controller.borderRadius != null ? widget._controller.borderRadius!.getValue() : null,
-        boxShadow: widget._controller.shadowColor == null ? null : <BoxShadow>[
-          BoxShadow(
-            color: Color(widget._controller.shadowColor!),
-            blurRadius: (widget._controller.shadowRadius ?? 0).toDouble(),
-            offset: widget._controller.shadowOffset ?? const Offset(0, 0),
-          )
-        ]
-    );
+        border: !widget._controller.hasBorder()
+            ? null
+            : Border.all(
+                color: widget._controller.borderColor ?? flutter.Colors.black26,
+                width: (widget._controller.borderWidth ?? 1).toDouble()),
+        borderRadius: widget._controller.borderRadius != null
+            ? widget._controller.borderRadius!.getValue()
+            : null,
+        boxShadow: widget._controller.shadowColor == null
+            ? null
+            : <BoxShadow>[
+                BoxShadow(
+                  color: Color(widget._controller.shadowColor!),
+                  blurRadius: (widget._controller.shadowRadius ?? 0).toDouble(),
+                  offset: widget._controller.shadowOffset ?? const Offset(0, 0),
+                )
+              ]);
   }
-
 }

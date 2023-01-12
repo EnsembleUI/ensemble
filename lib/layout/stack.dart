@@ -1,4 +1,3 @@
-
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -6,15 +5,19 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-class EnsembleStack extends StatefulWidget with UpdatableContainer, Invokable, HasController<StackController, StackState> {
+class EnsembleStack extends StatefulWidget
+    with
+        UpdatableContainer,
+        Invokable,
+        HasController<StackController, StackState> {
   static const type = 'Stack';
+
   EnsembleStack({Key? key}) : super(key: key);
 
   late final List<Widget>? children;
   late final ItemTemplate? itemTemplate;
 
   final StackController _controller = StackController();
-
 
   @override
   StackController get controller => _controller;
@@ -44,21 +47,19 @@ class EnsembleStack extends StatefulWidget with UpdatableContainer, Invokable, H
       'alignment': (value) => _controller.alignment = Utils.getAlignment(value),
     };
   }
-
 }
-
 
 class StackController extends WidgetController {
   List<Widget>? children;
 
   Alignment? alignment;
-
 }
 
 class StackState extends WidgetState<EnsembleStack> {
   @override
   Widget buildWidget(BuildContext context) {
-    if (widget._controller.children == null || widget._controller.children!.isEmpty ) {
+    if (widget._controller.children == null ||
+        widget._controller.children!.isEmpty) {
       return const SizedBox.shrink();
     }
 
@@ -67,5 +68,4 @@ class StackState extends WidgetState<EnsembleStack> {
       alignment: widget._controller.alignment ?? AlignmentDirectional.topStart,
     );
   }
-
 }

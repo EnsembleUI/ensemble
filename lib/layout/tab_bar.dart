@@ -1,5 +1,3 @@
-
-
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
@@ -15,22 +13,23 @@ import 'package:yaml/yaml.dart';
 /// TabBar navigation only
 class TabBarOnly extends BaseTabBar {
   static const type = 'TabBarOnly';
-  TabBarOnly({super.key});
 
+  TabBarOnly({super.key});
 }
 
 /// full TabBar container
 class TabBarContainer extends BaseTabBar {
   static const type = 'TabBar';
+
   TabBarContainer({super.key});
 }
 
-
-
-abstract class BaseTabBar extends StatefulWidget with Invokable, HasController<TabBarController, TabBarState> {
+abstract class BaseTabBar extends StatefulWidget
+    with Invokable, HasController<TabBarController, TabBarState> {
   BaseTabBar({Key? key}) : super(key: key);
 
   final TabBarController _controller = TabBarController();
+
   @override
   get controller => _controller;
 
@@ -52,23 +51,32 @@ abstract class BaseTabBar extends StatefulWidget with Invokable, HasController<T
   @override
   Map<String, Function> setters() {
     return {
-      'tabPosition': (position) => _controller.tabPosition = Utils.optionalString(position),
+      'tabPosition': (position) =>
+          _controller.tabPosition = Utils.optionalString(position),
       'margin': (margin) => _controller.margin = Utils.optionalInsets(margin),
-      'tabPadding': (padding) => _controller.tabPadding = Utils.optionalInsets(padding),
-      'tabFontSize': (fontSize) => _controller.tabFontSize = Utils.optionalInt(fontSize),
-      'tabFontWeight': (fontWeight) => _controller.tabFontWeight = Utils.getFontWeight(fontWeight),
-      'tabBackgroundColor': (bgColor) => _controller.tabBackgroundColor = Utils.getColor(bgColor),
-      'activeTabColor': (color) => _controller.activeTabColor = Utils.getColor(color),
-      'inactiveTabColor': (color) => _controller.inactiveTabColor = Utils.getColor(color),
-      'indicatorColor': (color) => _controller.indicatorColor = Utils.getColor(color),
-      'indicatorThickness': (thickness) => _controller.indicatorThickness = Utils.optionalInt(thickness),
-
-      'selectedIndex': (index) => _controller.selectedIndex = Utils.getInt(index, fallback: 0),
-      'onTabSelection': (action) => _controller.onTabSelection = Utils.getAction(action, initiator: this),
+      'tabPadding': (padding) =>
+          _controller.tabPadding = Utils.optionalInsets(padding),
+      'tabFontSize': (fontSize) =>
+          _controller.tabFontSize = Utils.optionalInt(fontSize),
+      'tabFontWeight': (fontWeight) =>
+          _controller.tabFontWeight = Utils.getFontWeight(fontWeight),
+      'tabBackgroundColor': (bgColor) =>
+          _controller.tabBackgroundColor = Utils.getColor(bgColor),
+      'activeTabColor': (color) =>
+          _controller.activeTabColor = Utils.getColor(color),
+      'inactiveTabColor': (color) =>
+          _controller.inactiveTabColor = Utils.getColor(color),
+      'indicatorColor': (color) =>
+          _controller.indicatorColor = Utils.getColor(color),
+      'indicatorThickness': (thickness) =>
+          _controller.indicatorThickness = Utils.optionalInt(thickness),
+      'selectedIndex': (index) =>
+          _controller.selectedIndex = Utils.getInt(index, fallback: 0),
+      'onTabSelection': (action) =>
+          _controller.onTabSelection = Utils.getAction(action, initiator: this),
       'items': (items) => _controller.items = items,
     };
   }
-
 }
 
 class TabBarController extends WidgetController {
@@ -85,7 +93,6 @@ class TabBarController extends WidgetController {
 
   EnsembleAction? onTabSelection;
 
-
   int selectedIndex = 0;
   final List<TabItem> _items = [];
 
@@ -93,17 +100,17 @@ class TabBarController extends WidgetController {
     if (items is YamlList) {
       for (YamlMap item in items) {
         _items.add(TabItem(
-            Utils.getString(item['label'], fallback: ''),
-            item['body'],
-            icon: Utils.getIcon(item['icon']),
-          )
-        );
+          Utils.getString(item['label'], fallback: ''),
+          item['body'],
+          icon: Utils.getIcon(item['icon']),
+        ));
       }
     }
   }
 }
 
-class TabBarState extends WidgetState<BaseTabBar> with SingleTickerProviderStateMixin {
+class TabBarState extends WidgetState<BaseTabBar>
+    with SingleTickerProviderStateMixin {
   late final TabController _tabController;
 
   @override
@@ -111,8 +118,7 @@ class TabBarState extends WidgetState<BaseTabBar> with SingleTickerProviderState
     _tabController = TabController(
         initialIndex: widget._controller.selectedIndex,
         length: widget._controller._items.length,
-        vsync: this
-    );
+        vsync: this);
     super.initState();
   }
 
@@ -134,10 +140,7 @@ class TabBarState extends WidgetState<BaseTabBar> with SingleTickerProviderState
     if (widget is TabBarOnly) {
       tabWidget = Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            buildTabBar()
-          ]
-      );
+          children: [buildTabBar()]);
     }
     // TabBar + body container
     else {
@@ -147,7 +150,9 @@ class TabBarState extends WidgetState<BaseTabBar> with SingleTickerProviderState
       // Note we make each Builder unique, as it tends to re-use
       // the states (down the tree) from the previous Builder
       // https://stackoverflow.com/questions/55425804/using-builder-instead-of-statelesswidget
-      Widget tabContent = Builder(key: UniqueKey(), builder: (BuildContext context) => buildSelectedTab());
+      Widget tabContent = Builder(
+          key: UniqueKey(),
+          builder: (BuildContext context) => buildSelectedTab());
       if (isExpanded) {
         tabContent = Expanded(child: tabContent);
       }
@@ -174,13 +179,9 @@ class TabBarState extends WidgetState<BaseTabBar> with SingleTickerProviderState
       }
     }
 
-
-
     if (widget._controller.margin != null) {
-      tabWidget = Padding(
-        padding: widget._controller.margin!,
-        child: tabWidget
-      );
+      tabWidget =
+          Padding(padding: widget._controller.margin!, child: tabWidget);
     }
 
     return tabWidget;
@@ -196,51 +197,54 @@ class TabBarState extends WidgetState<BaseTabBar> with SingleTickerProviderState
   Widget buildTabBar() {
     TextStyle? tabStyle = TextStyle(
         fontSize: widget._controller.tabFontSize?.toDouble(),
-        fontWeight: widget._controller.tabFontWeight
-    );
+        fontWeight: widget._controller.tabFontWeight);
 
-    EdgeInsets labelPadding = widget._controller.tabPadding ?? const EdgeInsets.only(left: 0, right: 30, top: 0, bottom: 0);
+    EdgeInsets labelPadding = widget._controller.tabPadding ??
+        const EdgeInsets.only(left: 0, right: 30, top: 0, bottom: 0);
     // default indicator is finicky and doesn't line up when label has padding.
     // Also we shouldn't allow vertical padding for indicator
-    EdgeInsets indicatorPadding = EdgeInsets.only(left: labelPadding.left, right: labelPadding.right);
+    EdgeInsets indicatorPadding =
+        EdgeInsets.only(left: labelPadding.left, right: labelPadding.right);
 
     // TODO: center-align labels in its compact form
     // Only stretch or left-align currently
-    bool labelPosition = widget._controller.tabPosition == 'stretch' ? false : true;
+    bool labelPosition =
+        widget._controller.tabPosition == 'stretch' ? false : true;
 
     Widget tabBar = TabBar(
       labelPadding: labelPadding,
       indicator: UnderlineTabIndicator(
-        borderSide: BorderSide(
-            width: widget._controller.indicatorThickness?.toDouble() ?? 2,
-            color: widget._controller.indicatorColor ?? Theme.of(context).colorScheme.primary
-        ),
-        insets: indicatorPadding
-      ),
+          borderSide: BorderSide(
+              width: widget._controller.indicatorThickness?.toDouble() ?? 2,
+              color: widget._controller.indicatorColor ??
+                  Theme.of(context).colorScheme.primary),
+          insets: indicatorPadding),
       controller: _tabController,
       isScrollable: labelPosition,
       labelStyle: tabStyle,
-      labelColor: widget._controller.activeTabColor ?? Theme.of(context).colorScheme.primary,
-      unselectedLabelColor: widget._controller.inactiveTabColor ?? Colors.black87,
-
-      tabs: widget._controller._items.map((e) => Tab(
-          text: e.label,
-          icon: e.icon != null ? ensemble.Icon.fromModel(e.icon!) : null)).toList(),
+      labelColor: widget._controller.activeTabColor ??
+          Theme.of(context).colorScheme.primary,
+      unselectedLabelColor:
+          widget._controller.inactiveTabColor ?? Colors.black87,
+      tabs: widget._controller._items
+          .map((e) => Tab(
+              text: e.label,
+              icon: e.icon != null ? ensemble.Icon.fromModel(e.icon!) : null))
+          .toList(),
       onTap: (index) {
         setState(() {
           widget._controller.selectedIndex = index;
         });
         if (widget._controller.onTabSelection != null) {
-          ScreenController().executeAction(context, widget._controller.onTabSelection!);
+          ScreenController()
+              .executeAction(context, widget._controller.onTabSelection!);
         }
       },
     );
 
     if (widget._controller.tabBackgroundColor != null) {
       return ColoredBox(
-          color: widget._controller.tabBackgroundColor!,
-          child: tabBar
-      );
+          color: widget._controller.tabBackgroundColor!, child: tabBar);
     }
     return tabBar;
   }
@@ -248,12 +252,12 @@ class TabBarState extends WidgetState<BaseTabBar> with SingleTickerProviderState
   Widget buildSelectedTab() {
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
     if (scopeManager != null) {
-      TabItem selectedTab = widget._controller._items[widget._controller.selectedIndex];
+      TabItem selectedTab =
+          widget._controller._items[widget._controller.selectedIndex];
       return scopeManager.buildWidgetFromDefinition(selectedTab.body);
     }
     return const Text("Unknown widget for this Tab");
   }
-
 }
 
 class TabItem {
@@ -262,5 +266,4 @@ class TabItem {
   String label;
   dynamic body;
   IconModel? icon;
-
 }

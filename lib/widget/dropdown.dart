@@ -61,7 +61,9 @@ abstract class SelectOne extends StatefulWidget
       'onChange': (definition) =>
           _controller.onChange = Utils.getAction(definition, initiator: this),
       'itemsFromString': (dynamic strValues) => setItemsFromString(strValues),
-      'itemsFromArray': (dynamic arrValues) => setItemsFromArray(arrValues)
+      'itemsFromArray': (dynamic arrValues) => setItemsFromArray(arrValues),
+      'autoComplete': (value) =>
+          _controller.autoComplete = Utils.getBool(value, fallback: false),
     };
   }
 
@@ -176,6 +178,7 @@ class SelectOneController extends FormFieldController {
   List<SelectOneItem>? items = [];
   TextEditingController valueController = TextEditingController();
   int gap = 0;
+  bool autoComplete = false;
 
   // this is our value but it can be in an invalid state.
   // Since user can set items/value in any order and at anytime, the value may
@@ -214,8 +217,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
 
   @override
   Widget buildWidget(BuildContext context) {
-    if (widget._controller.autoComplete == false &&
-        widget.getType() == SelectOneType.dropdown) {
+    if (widget._controller.autoComplete == false) {
       return DropdownButtonFormField<dynamic>(
           key: validatorKey,
           validator: (value) {
@@ -272,6 +274,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
     });
   }
 
+// ---------------------- Search From the List if [AUTOCOMPLETE] is true ---------------------------------
   List<SelectOneItem> buildAutoCompleteOptions(
       TextEditingValue textEditingValue) {
     return widget._controller.items!
@@ -289,6 +292,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
         .toList();
   }
 
+// ---------------------------------- Build Items ListTile if [AUTOCOMPLETE] is true ---------------------------------
   Widget buildAutoCompleteItems(
     BoxConstraints constraints,
     Iterable<SelectOneItem> options,
@@ -325,7 +329,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
                             SizedBox(
                               width: option.icon != null
                                   ? option.isIcon && option.icon!.size == null
-                                      ? isIconSizeNull()
+                                      ? paddingifIconSizeNull()
                                       : option.icon!.size != null
                                           ? option.icon!.size ==
                                                   widget._controller.gap
@@ -348,6 +352,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
         ));
   }
 
+// ---------------------------------- Build Items ListTile if [AUTOCOMPLETE] is false ---------------------------------
   List<DropdownMenuItem<dynamic>>? buildItems(List<SelectOneItem>? items) {
     List<DropdownMenuItem<dynamic>>? results;
     if (items != null) {
@@ -366,7 +371,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
                       SizedBox(
                         width: item.icon != null
                             ? item.isIcon && item.icon!.size == null
-                                ? isIconSizeNull()
+                                ? paddingifIconSizeNull()
                                 : item.icon!.size != null
                                     ? item.icon!.size == widget._controller.gap
                                         ? 10
@@ -398,7 +403,8 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
     return (10 + i).toDouble();
   }
 
-  double isIconSizeNull() {
+  // -------------- Returns the padding if icon size is not defined in YAML it will give space between [Icons] and [Text] -----------------
+  double paddingifIconSizeNull() {
     int i = widget._controller.gap - 23;
     if (i < 0) {
       return (i.abs() - 10).abs().toDouble();

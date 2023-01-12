@@ -4,11 +4,14 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-class EnsembleSpacer extends StatefulWidget with Invokable, HasController<SpacerController, SpacerState> {
+class EnsembleSpacer extends StatefulWidget
+    with Invokable, HasController<SpacerController, SpacerState> {
   static const type = 'Spacer';
+
   EnsembleSpacer({Key? key}) : super(key: key);
 
   final SpacerController _controller = SpacerController();
+
   @override
   SpacerController get controller => _controller;
 
@@ -27,9 +30,7 @@ class EnsembleSpacer extends StatefulWidget with Invokable, HasController<Spacer
 
   @override
   Map<String, Function> setters() {
-    return {
-      'size': (value) => _controller.size = Utils.optionalInt(value)
-    };
+    return {'size': (value) => _controller.size = Utils.optionalInt(value)};
   }
 
   /// NOTE: Spacer should not take expanded into account
@@ -43,7 +44,6 @@ class SpacerController extends WidgetController {
 class SpacerState extends WidgetState<EnsembleSpacer> {
   @override
   Widget buildWidget(BuildContext context) {
-
     if (widget._controller.size != null) {
       return SizedBox(
           width: widget._controller.size!.toDouble(),
@@ -51,6 +51,4 @@ class SpacerState extends WidgetState<EnsembleSpacer> {
     }
     return const Spacer();
   }
-
-
 }

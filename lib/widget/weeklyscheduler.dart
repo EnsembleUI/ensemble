@@ -186,7 +186,7 @@ class DailyScheduler extends StatefulWidget with Invokable, HasController<DailyS
   Map<String, Function> setters() {
     return {};
   }
-  
+
 }
 class DailySchedulerState extends WidgetState<DailyScheduler> {
   @override

@@ -1,4 +1,3 @@
-
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -26,12 +25,14 @@ class BoxController extends WidgetController {
       'margin': (value) => margin = Utils.optionalInsets(value),
       'padding': (value) => padding = Utils.optionalInsets(value),
 
-      'backgroundImage': (value) => backgroundImage = Utils.getBackgroundImage(value),
-      'backgroundGradient': (value) => backgroundGradient = Utils.getBackgroundGradient(value),
+      'backgroundImage': (value) =>
+          backgroundImage = Utils.getBackgroundImage(value),
+      'backgroundGradient': (value) =>
+          backgroundGradient = Utils.getBackgroundGradient(value),
 
-      'borderColor': (value) =>  borderColor = Utils.getColor(value),
-      'borderRadius': (value) =>  borderRadius = Utils.getBorderRadius(value),
-      'borderWidth': (value) =>  borderWidth = Utils.optionalInt(value),
+      'borderColor': (value) => borderColor = Utils.getColor(value),
+      'borderRadius': (value) => borderRadius = Utils.getBorderRadius(value),
+      'borderWidth': (value) => borderWidth = Utils.optionalInt(value),
     });
     return setters;
   }
@@ -40,7 +41,6 @@ class BoxController extends WidgetController {
     return borderColor != null || borderWidth != null;
   }
 }
-
 
 /// base controller for Column/Row
 class BoxLayoutController extends BoxController {
@@ -71,13 +71,13 @@ class BoxLayoutController extends BoxController {
   // applicable to Flex container only
   String? direction;
 
-
   @override
   Map<String, Function> getBaseSetters() {
     Map<String, Function> setters = super.getBaseSetters();
     setters.addAll({
-      'scrollable': (value) => scrollable = Utils.getBool(value, fallback: false),
-      'autoFit': (value) =>  autoFit = Utils.getBool(value, fallback: false),
+      'scrollable': (value) =>
+          scrollable = Utils.getBool(value, fallback: false),
+      'autoFit': (value) => autoFit = Utils.getBool(value, fallback: false),
       'mainAxis': (value) => mainAxis = Utils.optionalString(value),
       'crossAxis': (value) => crossAxis = Utils.optionalString(value),
       'mainAxisSize': (value) => mainAxisSize = Utils.optionalString(value),
@@ -86,16 +86,12 @@ class BoxLayoutController extends BoxController {
       'height': (value) => height = Utils.optionalInt(value),
       'maxHeight': (value) => maxHeight = Utils.optionalInt(value),
       'gap': (value) => gap = Utils.optionalInt(value),
-
       'backgroundColor': (value) => backgroundColor = Utils.getColor(value),
-
       'fontFamily': (value) => fontFamily = Utils.optionalString(value),
-      'fontSize': (value) =>  fontSize = Utils.optionalInt(value),
-
+      'fontSize': (value) => fontSize = Utils.optionalInt(value),
       'shadowColor': (value) => shadowColor = Utils.optionalInt(value),
       'shadowOffset': (list) => shadowOffset = Utils.getOffset(list),
-      'shadowRadius': (value) =>  shadowRadius = Utils.optionalInt(value),
-
+      'shadowRadius': (value) => shadowRadius = Utils.optionalInt(value),
     });
     return setters;
   }

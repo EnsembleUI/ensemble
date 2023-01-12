@@ -15,6 +15,7 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
   EnsembleDefinitionProvider(String appId, super.i18nProps) {
     appModel = AppModel(appId);
   }
+
   late final AppModel appModel;
   FlutterI18nDelegate? _i18nDelegate;
 
@@ -22,32 +23,37 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
   Future<AppBundle> getAppBundle() async {
     return appModel.getAppBundle();
   }
-  static void getAppDefinition(String appId, Function callback, Function onError) {
+
+  static void getAppDefinition(
+      String appId, Function callback, Function onError) {
     FirebaseFirestore db = FirebaseFirestore.instance;
-    db.collection('apps')
-        .doc(appId).get().then(
-            (doc) => callback(doc.id,doc.data()),
-            onError: (error) => onError(error)
-    );
+    db.collection('apps').doc(appId).get().then(
+        (doc) => callback(doc.id, doc.data()),
+        onError: (error) => onError(error));
   }
+
   //each item in the list is <appid>:<appname> format
-  static void getListOfDemoApps(Function callback,Function onError) {
-    List<Map<String,dynamic>> apps = [];
+  static void getListOfDemoApps(Function callback, Function onError) {
+    List<Map<String, dynamic>> apps = [];
     FirebaseFirestore db = FirebaseFirestore.instance;
-    db.collection('apps')
+    db
+        .collection('apps')
         .where("category", isEqualTo: "Demo")
         .where("isPublic", isEqualTo: true)
         .where("isArchived", isEqualTo: false)
         //.orderBy("name")
-        .get().then((querySnapshot) {
-          List<dynamic> allData = querySnapshot.docs.map((doc) => {'id':doc.id,'props':doc.data()})
-              .toList();
-          for (Map<String,dynamic> doc in allData) {
-            apps.add(doc);
-          }
-          callback(apps);
-        },onError: (error, stackTrace) => onError(error));
+        .get()
+        .then((querySnapshot) {
+      List<dynamic> allData = querySnapshot.docs
+          .map((doc) => {'id': doc.id, 'props': doc.data()})
+          .toList();
+      for (Map<String, dynamic> doc in allData) {
+        apps.add(doc);
+      }
+      callback(apps);
+    }, onError: (error, stackTrace) => onError(error));
   }
+
   @override
   Future<YamlMap> getDefinition({String? screenId, String? screenName}) async {
     YamlMap? content;
@@ -55,7 +61,6 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
     // search by ID
     if (screenId != null) {
       content = await appModel.getScreenById(screenId);
-
     }
     // search by name
     else if (screenName != null) {
@@ -67,7 +72,8 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
     }
 
     if (content == null) {
-      throw LanguageError("Invalid screen content: ${screenId ?? screenName ?? 'Home'}");
+      throw LanguageError(
+          "Invalid screen content: ${screenId ?? screenName ?? 'Home'}");
     }
     return content;
   }
@@ -80,8 +86,7 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
             forcedLocale: Locale(i18nProps.defaultLocale),
             fallbackFile: i18nProps.fallbackLocale,
             useCountryCode: i18nProps.useCountryCode,
-            decodeStrategies: [YamlDecodeStrategy()])
-    );
+            decodeStrategies: [YamlDecodeStrategy()]));
     return _i18nDelegate!;
   }
 
@@ -89,13 +94,9 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
   UserAppConfig? getAppConfig() {
     return appModel.appConfig;
   }
-
-
 }
 
-class InvalidDefinition {
-
-}
+class InvalidDefinition {}
 
 class AppModel {
   AppModel(this.appId) {
@@ -106,6 +107,7 @@ class AppModel {
 
   // the cache for ID -> screen content
   Map<String, dynamic> contentCache = {};
+
   // these are mappings from home/screen name to IDs
   Map<String, String> screenNameMappings = {};
   String? homeMapping;
@@ -115,31 +117,31 @@ class AppModel {
   /// fetch async and cache our entire App's artifacts.
   /// Plus listen for changes and update the cache
   String? listenerError;
+
   void initListeners() {
     FirebaseFirestore db = FirebaseFirestore.instance;
-    db.collection('apps')
+    db
+        .collection('apps')
         .doc(appId)
         .collection('artifacts')
         .where("isArchived", isEqualTo: false)
         .snapshots()
-        .listen(
-            (event) {
-          for (var change in event.docChanges) {
-            if (change.type == DocumentChangeType.removed) {
-              removeArtifact(change.doc);
-            } else {
-              updateArtifact(change.doc);
-            }
-          }
-        },
-        onError: (error) {
-          log("Provider listener error");
-          listenerError = error.toString();
+        .listen((event) {
+      for (var change in event.docChanges) {
+        if (change.type == DocumentChangeType.removed) {
+          removeArtifact(change.doc);
+        } else {
+          updateArtifact(change.doc);
         }
-    );
+      }
+    }, onError: (error) {
+      log("Provider listener error");
+      listenerError = error.toString();
+    });
   }
 
-  Future<bool> updateArtifact(DocumentSnapshot<Map<String, dynamic>> doc) async {
+  Future<bool> updateArtifact(
+      DocumentSnapshot<Map<String, dynamic>> doc) async {
     // adjust the theme and home screen
     if (doc.data()?['isRoot'] == true) {
       if (doc.data()?['type'] == 'screen') {
@@ -147,7 +149,6 @@ class AppModel {
       } else if (doc.data()?['type'] == 'theme') {
         themeMapping = doc.id;
       } else if (doc.data()?['type'] == 'config') {
-
         // environment variable
         Map<String, dynamic>? envVariables;
         dynamic env = doc.data()!['envVariables'];
@@ -157,10 +158,9 @@ class AppModel {
         }
 
         appConfig = UserAppConfig(
-          baseUrl: doc.data()?['appBaseUrl'],
-          useBrowserUrl: Utils.optionalBool(doc.data()?['appUseBrowserUrl']),
-          envVariables: envVariables
-        );
+            baseUrl: doc.data()?['appBaseUrl'],
+            useBrowserUrl: Utils.optionalBool(doc.data()?['appUseBrowserUrl']),
+            envVariables: envVariables);
       }
     }
 
@@ -175,7 +175,7 @@ class AppModel {
     if (content != null && content.isNotEmpty) {
       try {
         yamlContent = await loadYaml(content);
-      } on Exception catch(e) {
+      } on Exception catch (e) {
         // invalid YAML need to be suppressed until we actually reach the page,
         // so we'll just ignore this error here
       }
@@ -196,15 +196,13 @@ class AppModel {
     contentCache.remove(doc.id);
   }
 
-
   Future<YamlMap?> getScreenById(String screenId) async {
     dynamic content = contentCache[screenId];
     // fetch if not in cache. Should only be the first time when
     // our listeners are not done initialized yet.
     if (content == null) {
-      DocumentSnapshot<Map<String, dynamic>> snapshot = await _getArtifacts()
-          .doc(screenId)
-          .get();
+      DocumentSnapshot<Map<String, dynamic>> snapshot =
+          await _getArtifacts().doc(screenId).get();
       await updateArtifact(snapshot);
       content = contentCache[screenId];
       log("Cache missed for $screenId");
@@ -243,7 +241,7 @@ class AppModel {
     return null;
   }
 
-  Future<YamlMap?> getHomeScreen(){
+  Future<YamlMap?> getHomeScreen() {
     dynamic content;
     if (homeMapping != null) {
       content = contentCache[homeMapping];
@@ -254,13 +252,9 @@ class AppModel {
     return Future.value(null);
   }
 
-
   CollectionReference<Map<String, dynamic>> _getArtifacts() {
     FirebaseFirestore db = FirebaseFirestore.instance;
-    return db
-        .collection('apps')
-        .doc(appId)
-        .collection('artifacts');
+    return db.collection('apps').doc(appId).collection('artifacts');
   }
 
   /// App bundle for now only expects the theme, but we'll use this
@@ -279,8 +273,6 @@ class AppModel {
       }
     }
     return AppBundle(
-      theme: themeMapping != null ? contentCache[themeMapping] : null
-    );
+        theme: themeMapping != null ? contentCache[themeMapping] : null);
   }
-
 }

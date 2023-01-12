@@ -5,11 +5,14 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-class EnsembleWebView extends StatefulWidget with Invokable, HasController<EnsembleWebViewController, WebViewState> {
+class EnsembleWebView extends StatefulWidget
+    with Invokable, HasController<EnsembleWebViewController, WebViewState> {
   static const type = 'WebView';
+
   EnsembleWebView({Key? key}) : super(key: key);
 
   final EnsembleWebViewController _controller = EnsembleWebViewController();
+
   @override
   get controller => _controller;
 
@@ -31,16 +34,18 @@ class EnsembleWebView extends StatefulWidget with Invokable, HasController<Ensem
     return {
       'url': (value) => _controller.url = Utils.getUrl(value),
       'height': (value) => _controller.height = Utils.optionalDouble(value),
-      'width':(value) => _controller.width = Utils.optionalDouble(value),
+      'width': (value) => _controller.width = Utils.optionalDouble(value),
 
       // legacy
       'uri': (value) => _controller.url = Utils.getUrl(value),
     };
   }
 }
+
 abstract class ViewController {
   void loadUrl(String url);
 }
+
 class EnsembleWebViewController extends WidgetController {
   // params for each URI set
   int? loadingPercent = 0;
@@ -49,7 +54,9 @@ class EnsembleWebViewController extends WidgetController {
   ViewController? webViewController;
 
   String? _url;
+
   String? get url => _url;
+
   set url(String? url) {
     _url = url;
 
@@ -58,6 +65,7 @@ class EnsembleWebViewController extends WidgetController {
       webViewController?.loadUrl(url);
     }
   }
+
   double? height;
   double? width;
 }
