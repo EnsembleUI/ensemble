@@ -81,7 +81,6 @@ test_goldens/failures/
 main.dart
 assets/ensemble/pages
 ensemble-config.yaml
-assets/fonts
 assets/ignored
 .gradle
 .android
