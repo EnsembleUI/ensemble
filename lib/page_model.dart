@@ -40,7 +40,7 @@ class PageModel {
   late WidgetModel rootWidgetModel;
   Footer? footer;
 
-  PageModel._init (YamlMap data) {
+  PageModel._init(YamlMap data) {
     processAPI(data['API']);
     processModel(data);
   }
@@ -49,11 +49,9 @@ class PageModel {
     try {
       return PageModel._init(data);
     } on Error catch (e) {
-      throw LanguageError(
-          "Invalid page definition.",
+      throw LanguageError("Invalid page definition.",
           recovery: "Please double check your page syntax.",
-          detailError: e.toString() + "\n" + (e.stackTrace?.toString() ?? '')
-      );
+          detailError: e.toString() + "\n" + (e.stackTrace?.toString() ?? ''));
     }
   }
 
@@ -70,11 +68,15 @@ class PageModel {
     YamlMap viewMap = docMap['View'];
 
     if (viewMap['options'] is YamlMap) {
-      PageType pageType =
-        viewMap['options']['type'] == PageType.modal.name ? PageType.modal : PageType.regular;
+      PageType pageType = viewMap['options']['type'] == PageType.modal.name
+          ? PageType.modal
+          : PageType.regular;
       String? closeButtonPosition =
-        viewMap['options']?['closeButtonPosition'] == 'start' ? 'start' : 'end';
-      screenOptions = ScreenOptions(pageType: pageType, closeButtonPosition: closeButtonPosition);
+          viewMap['options']?['closeButtonPosition'] == 'start'
+              ? 'start'
+              : 'end';
+      screenOptions = ScreenOptions(
+          pageType: pageType, closeButtonPosition: closeButtonPosition);
     }
 
     // build a Map of the Custom Widgets
@@ -86,7 +88,6 @@ class PageModel {
     viewBehavior.onLoad = Utils.getAction(viewMap['onLoad']);
 
     processHeader(viewMap['header'], viewMap['title']);
-
 
     if (viewMap['menu'] != null) {
       processMenu(viewMap['menu']);
@@ -100,7 +101,8 @@ class PageModel {
     }
 
     if (viewMap['footer'] != null && viewMap['footer']['children'] != null) {
-      footer = Footer(ViewUtil.buildModels(viewMap['footer']['children'], customViewDefinitions));
+      footer = Footer(ViewUtil.buildModels(
+          viewMap['footer']['children'], customViewDefinitions));
     }
 
     rootWidgetModel = buildRootModel(viewMap, customViewDefinitions);
@@ -128,8 +130,15 @@ class PageModel {
       styles = ViewUtil.getMap(headerData['styles']);
     }
 
-    if (titleWidget != null || titleText != null || background != null || styles != null) {
-      headerModel = HeaderModel(titleText: titleText, titleWidget: titleWidget, flexibleBackground: background, styles: styles);
+    if (titleWidget != null ||
+        titleText != null ||
+        background != null ||
+        styles != null) {
+      headerModel = HeaderModel(
+          titleText: titleText,
+          titleWidget: titleWidget,
+          flexibleBackground: background,
+          styles: styles);
     }
   }
 
@@ -137,24 +146,25 @@ class PageModel {
     if (menuData['items'] is YamlList) {
       List<MenuItem> menuItems = [];
       for (final YamlMap item in (menuData['items'] as YamlList)) {
-        menuItems.add(MenuItem(
-            item['label'],
-            item['page'],
+        menuItems.add(MenuItem(item['label'], item['page'],
             icon: item['icon'],
             iconLibrary: item['iconLibrary'],
-            selected: item['selected']==true || item['selected']=='true'));
+            selected: item['selected'] == true || item['selected'] == 'true'));
       }
       Map<String, dynamic>? menuStyles = ViewUtil.getMap(menuData['styles']);
 
       WidgetModel? menuHeaderModel;
       if (menuData['header'] != null) {
-        menuHeaderModel = ViewUtil.buildModel(menuData['header'], customViewDefinitions);
+        menuHeaderModel =
+            ViewUtil.buildModel(menuData['header'], customViewDefinitions);
       }
       WidgetModel? menuFooterModel;
       if (menuData['footer'] != null) {
-        menuFooterModel = ViewUtil.buildModel(menuData['footer'], customViewDefinitions);
+        menuFooterModel =
+            ViewUtil.buildModel(menuData['footer'], customViewDefinitions);
       }
-      menu = Menu(menuData['display'], menuStyles, menuItems, headerModel: menuHeaderModel, footerModel: menuFooterModel);
+      menu = Menu(menuData['display'], menuStyles, menuItems,
+          headerModel: menuHeaderModel, footerModel: menuFooterModel);
     }
   }
 
@@ -162,25 +172,32 @@ class PageModel {
   // where as the root body (e.g Column) should be more restrictive
   // (e.g the whole body shouldn't be click-enable)
   // Let's manually select what can be specified here (really just styles/item-template/children)
-  WidgetModel buildRootModel(YamlMap viewMap, Map<String, dynamic>? customViewDefinitions) {
+  WidgetModel buildRootModel(
+      YamlMap viewMap, Map<String, dynamic>? customViewDefinitions) {
     WidgetModel? rootModel = getRootModel(viewMap, customViewDefinitions!);
     if (rootModel != null) {
-      if (![Column.type, Row.type, Flex.type, EnsembleStack.type, AppScroller.type].contains(rootModel.type)) {
-        throw LanguageError('Root widget type should only be Row, Column, Flex or Stack.');
+      if (![
+        Column.type,
+        Row.type,
+        Flex.type,
+        EnsembleStack.type,
+        AppScroller.type
+      ].contains(rootModel.type)) {
+        throw LanguageError(
+            'Root widget type should only be Row, Column, Flex or Stack.');
       }
       return rootModel;
     }
     throw LanguageError("View requires a child widget !");
   }
 
-  WidgetModel? getRootModel(YamlMap rootTree, Map<String, dynamic> customViewDefinitions) {
+  WidgetModel? getRootModel(
+      YamlMap rootTree, Map<String, dynamic> customViewDefinitions) {
     for (String key in rootTree.keys) {
       // if a regular widget or custom widget
       if (WidgetRegistry.widgetMap[key] != null ||
           customViewDefinitions[key] != null) {
-        YamlMap widgetMap = YamlMap.wrap({
-          key: rootTree[key]
-        });
+        YamlMap widgetMap = YamlMap.wrap({key: rootTree[key]});
         return ViewUtil.buildModel(widgetMap, customViewDefinitions);
       }
     }
@@ -195,15 +212,11 @@ class PageModel {
         if (value != null) {
           subViewDefinitions[key] = value;
         }
-
-
       }
     });
     return subViewDefinitions;
   }
-
 }
-
 
 class WidgetModel {
   final String type;
@@ -214,17 +227,14 @@ class WidgetModel {
   final List<WidgetModel>? children;
   final ItemTemplate? itemTemplate;
 
-  WidgetModel(this.type, this.styles, this.props, {this.children, this.itemTemplate});
+  WidgetModel(this.type, this.styles, this.props,
+      {this.children, this.itemTemplate});
 }
 
 class CustomWidgetModel extends WidgetModel {
-  CustomWidgetModel(
-      this.widgetModel,
-      Map<String, dynamic> props,
-      {
-        this.parameters,
-        this.inputs
-  }) : super('', {}, props);
+  CustomWidgetModel(this.widgetModel, Map<String, dynamic> props,
+      {this.parameters, this.inputs})
+      : super('', {}, props);
 
   WidgetModel widgetModel;
   List<String>? parameters;
@@ -237,7 +247,6 @@ class CustomWidgetModel extends WidgetModel {
   ViewBehavior getViewBehavior() {
     return ViewBehavior(onLoad: Utils.getAction(props['onLoad']));
   }
-
 }
 
 /// special behaviors for RootView (View) and Custom Views
@@ -257,7 +266,8 @@ class ItemTemplate {
 }
 
 class HeaderModel {
-  HeaderModel({this.titleText, this.titleWidget, this.flexibleBackground, this.styles});
+  HeaderModel(
+      {this.titleText, this.titleWidget, this.flexibleBackground, this.styles});
 
   // header title can be text or a widget
   String? titleText;
@@ -268,7 +278,8 @@ class HeaderModel {
 }
 
 class Menu {
-  Menu(this.display, this.styles, this.menuItems, { this.headerModel, this.footerModel });
+  Menu(this.display, this.styles, this.menuItems,
+      {this.headerModel, this.footerModel});
 
   Map<String, dynamic>? styles;
   String? display;
@@ -276,63 +287,55 @@ class Menu {
   WidgetModel? headerModel;
   WidgetModel? footerModel;
 }
+
 enum MenuDisplay {
-  bottomNavBar,   // bottom navigation bar. Default if not specified
-  drawer,         // hamburger drawer menu
-  leftNavBar,     // fixed navigation to the left. Only recommend for Web
+  bottomNavBar, // bottom navigation bar. Default if not specified
+  drawer, // hamburger drawer menu
+  leftNavBar, // fixed navigation to the left. Only recommend for Web
 
   // legacy for backward compatible
-  navBar,         // bottom nav bar
-  navBar_left,  // fixed navigation on the left of the screen
-  navBar_right  // fixed navigation on the right of the screen
+  navBar, // bottom nav bar
+  navBar_left, // fixed navigation on the left of the screen
+  navBar_right // fixed navigation on the right of the screen
 }
 
-enum MenuItemDisplay {
-  stacked,
-  sideBySide
-}
-
+enum MenuItemDisplay { stacked, sideBySide }
 
 class MenuItem {
-  MenuItem(this.label, this.page, {this.icon, this.iconLibrary, this.selected=false});
+  MenuItem(this.label, this.page,
+      {this.icon, this.iconLibrary, this.selected = false});
 
   final String? label;
   final String page;
   final dynamic icon;
   final String? iconLibrary;
   final bool selected;
-
 }
 
 class Footer {
   final List<WidgetModel> children;
+
   Footer(this.children);
 }
 
-enum PageType {
-  regular, modal
-}
+enum PageType { regular, modal }
 
 /// provider that gets passed into every screen
 class AppProvider {
-  AppProvider({
-    required this.definitionProvider
-  });
+  AppProvider({required this.definitionProvider});
+
   DefinitionProvider definitionProvider;
 
   Future<YamlMap> getDefinition({ScreenPayload? payload}) {
-    return definitionProvider.getDefinition(screenId: payload?.screenId, screenName: payload?.screenName);
+    return definitionProvider.getDefinition(
+        screenId: payload?.screenId, screenName: payload?.screenName);
   }
 }
 
 /// payload to pass to the Screen
 class ScreenPayload {
-  ScreenPayload({
-    this.screenId,
-    this.screenName,
-    this.arguments,
-    this.pageType
-  });
+  ScreenPayload(
+      {this.screenId, this.screenName, this.arguments, this.pageType});
 
   // screen ID is optional as the App always have a default screen
   String? screenId;

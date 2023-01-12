@@ -11,11 +11,14 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:ensemble/util/extensions.dart';
 
-class Time extends StatefulWidget with Invokable, HasController<TimeController, TimeState> {
+class Time extends StatefulWidget
+    with Invokable, HasController<TimeController, TimeState> {
   static const type = 'Time';
+
   Time({Key? key}) : super(key: key);
 
   final TimeController _controller = TimeController();
+
   @override
   TimeController get controller => _controller;
 
@@ -37,16 +40,17 @@ class Time extends StatefulWidget with Invokable, HasController<TimeController, 
   @override
   Map<String, Function> setters() {
     return {
-      'initialValue': (value) => _controller.initialValue = Utils.getTimeOfDay(value),
-      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this)
+      'initialValue': (value) =>
+          _controller.initialValue = Utils.getTimeOfDay(value),
+      'onChange': (definition) =>
+          _controller.onChange = Utils.getAction(definition, initiator: this)
     };
   }
-
-
 }
 
 class TimeController extends FormFieldController {
   TimeOfDay? value;
+
   String prettyValue(BuildContext context) {
     return value?.format(context) ?? hintText ?? 'Select a time';
   }
@@ -54,63 +58,54 @@ class TimeController extends FormFieldController {
   TimeOfDay? initialValue;
 
   EnsembleAction? onChange;
-
 }
 
 class TimeState extends FormFieldWidgetState<Time> {
   @override
   Widget buildWidget(BuildContext context) {
     return FormField<DateTime>(
-      key: validatorKey,
-      validator: (value) {
-        if (widget._controller.required && widget._controller.value == null) {
-          return Utils.translateWithFallback('ensemble.input.required', 'This field is required');
-        }
-        return null;
-      },
-      builder: (FormFieldState<DateTime> field) {
-        return InputDecorator(
-          decoration: inputDecoration.copyWith(
-            border: InputBorder.none,
-            enabledBorder: InputBorder.none,
-            disabledBorder: InputBorder.none,
-            focusedBorder: InputBorder.none,
-            errorText: field.errorText
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              InkWell(
-                child: nowBuildWidget(),
-                onTap: isEnabled() ? () => _selectTime(context) : null
-              )
-            ]
-          )
-        );
-      }
-    );
-
+        key: validatorKey,
+        validator: (value) {
+          if (widget._controller.required && widget._controller.value == null) {
+            return Utils.translateWithFallback(
+                'ensemble.input.required', 'This field is required');
+          }
+          return null;
+        },
+        builder: (FormFieldState<DateTime> field) {
+          return InputDecorator(
+              decoration: inputDecoration.copyWith(
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  disabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  errorText: field.errorText),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                InkWell(
+                    child: nowBuildWidget(),
+                    onTap: isEnabled() ? () => _selectTime(context) : null)
+              ]));
+        });
   }
-
 
   void _selectTime(BuildContext context) async {
     final picked = await showTimePicker(
-      context: context,
-      initialTime: widget._controller.initialValue ?? const TimeOfDay(hour: 12, minute: 0)
-    );
+        context: context,
+        initialTime: widget._controller.initialValue ??
+            const TimeOfDay(hour: 12, minute: 0));
     if (picked != null) {
-      if (widget._controller.value == null || widget._controller.value!.compareTo(picked) != 0) {
+      if (widget._controller.value == null ||
+          widget._controller.value!.compareTo(picked) != 0) {
         setState(() {
           widget._controller.value = picked;
         });
         if (isEnabled() && widget._controller.onChange != null) {
-          ScreenController().executeAction(
-              context, widget._controller.onChange!);
+          ScreenController()
+              .executeAction(context, widget._controller.onChange!);
         }
       }
     }
   }
-
 
   Widget nowBuildWidget() {
     Widget rtn = Row(
@@ -118,10 +113,8 @@ class TimeState extends FormFieldWidgetState<Time> {
       children: [
         const Icon(Icons.alarm, color: Colors.black54),
         const SizedBox(width: 5),
-        Text(
-          widget._controller.prettyValue(context),
-          style: TextStyle(fontSize: widget._controller.fontSize?.toDouble())
-        )
+        Text(widget._controller.prettyValue(context),
+            style: TextStyle(fontSize: widget._controller.fontSize?.toDouble()))
       ],
     );
     if (!isEnabled()) {
@@ -132,6 +125,4 @@ class TimeState extends FormFieldWidgetState<Time> {
     }
     return rtn;
   }
-
-
 }

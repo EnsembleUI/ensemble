@@ -11,20 +11,28 @@ class EnsembleSignatureController extends WidgetController {
   double? height, width;
   Color? exportBackgroundColor;
   Color? exportPenColor;
+
   SignatureController createSignatureController() {
-    return SignatureController(penStrokeWidth: penStrokeWidth,
-      penColor: penColor,
-      exportBackgroundColor: exportBackgroundColor,
-      exportPenColor: exportPenColor);
+    return SignatureController(
+        penStrokeWidth: penStrokeWidth,
+        penColor: penColor,
+        exportBackgroundColor: exportBackgroundColor,
+        exportPenColor: exportPenColor);
   }
 }
-class EnsembleSignature extends StatefulWidget with Invokable,HasController<EnsembleSignatureController,EnsembleSignatureState> {
+
+class EnsembleSignature extends StatefulWidget
+    with
+        Invokable,
+        HasController<EnsembleSignatureController, EnsembleSignatureState> {
   static const type = 'Signature';
+
   EnsembleSignature({Key? key}) : super(key: key);
 
   @override
   State<StatefulWidget> createState() => EnsembleSignatureState();
   final EnsembleSignatureController _controller = EnsembleSignatureController();
+
   @override
   get controller => _controller;
 
@@ -47,22 +55,23 @@ class EnsembleSignature extends StatefulWidget with Invokable,HasController<Ense
           controller.penColor = c;
         }
       },
-      'backgroundColor': (color) => controller.backgroundColor = Utils.getColor(color)??controller.backgroundColor,
+      'backgroundColor': (color) => controller.backgroundColor =
+          Utils.getColor(color) ?? controller.backgroundColor,
       'width': (w) => controller.width = Utils.optionalDouble(w),
       'height': (h) => controller.height = Utils.optionalDouble(h),
-      'penStrokeWidth': (w) => controller.penStrokeWidth = Utils.getDouble(w, fallback: controller.penStrokeWidth)
+      'penStrokeWidth': (w) => controller.penStrokeWidth =
+          Utils.getDouble(w, fallback: controller.penStrokeWidth)
     };
   }
-
-
 }
+
 class EnsembleSignatureState extends WidgetState<EnsembleSignature> {
   @override
   Widget buildWidget(BuildContext context) {
-    return Signature(controller: widget._controller.createSignatureController(),
-      backgroundColor: widget.controller.backgroundColor,
-      width: widget.controller.width,
-      height: widget.controller.height
-    );
+    return Signature(
+        controller: widget._controller.createSignatureController(),
+        backgroundColor: widget.controller.backgroundColor,
+        width: widget.controller.width,
+        height: widget.controller.height);
   }
 }

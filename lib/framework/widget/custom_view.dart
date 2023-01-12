@@ -11,13 +11,12 @@ import 'package:flutter/cupertino.dart';
 
 /// represent a Custom View declared in a yaml screen
 class CustomView extends StatelessWidget with Invokable {
-  CustomView({
-      super.key,
+  CustomView(
+      {super.key,
       required this.childWidget,
       this.parameters,
       required this.scopeManager,
       required this.viewBehavior}) {
-
     if (parameters != null) {
       // add placeholder so listeners can be attached to it
       for (var param in parameters!) {
@@ -25,7 +24,6 @@ class CustomView extends StatelessWidget with Invokable {
       }
     }
     log("Custom View created $hashCode");
-
   }
 
   final List<String>? parameters;
@@ -33,7 +31,6 @@ class CustomView extends StatelessWidget with Invokable {
   final ScopeManager scopeManager;
   final ViewBehavior viewBehavior;
   bool onLoadExecuted = false;
-
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +62,8 @@ class CustomView extends StatelessWidget with Invokable {
 
       // dispatch the changes to all inside our Custom Widget scope
       //log("Dispatching ${prop}=${val}. Scope ${scopeManager.hashCode}");
-      scopeManager.dispatch(ModelChangeEvent(SimpleBindingSource(prop), val, bindingScope: scopeManager));
+      scopeManager.dispatch(ModelChangeEvent(SimpleBindingSource(prop), val,
+          bindingScope: scopeManager));
     }
   }
 
@@ -73,14 +71,14 @@ class CustomView extends StatelessWidget with Invokable {
   Map<String, Function> getters() {
     throw UnimplementedError();
   }
+
   @override
   Map<String, Function> methods() {
     throw UnimplementedError();
   }
+
   @override
   Map<String, Function> setters() {
     throw UnimplementedError();
   }
-
-
 }

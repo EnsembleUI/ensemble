@@ -13,19 +13,22 @@ class ToastController {
 
   // Singleton
   static final ToastController _instance = ToastController._internal();
+
   ToastController._internal() {
     //_toast.init(Utils.globalAppKey.currentContext!);
   }
+
   factory ToastController() {
     return _instance;
   }
 
-  void showToast(BuildContext context, ShowToastAction toastAction, Widget? customToastBody) {
+  void showToast(BuildContext context, ShowToastAction toastAction,
+      Widget? customToastBody) {
     _toast.init(context);
     _toast.removeQueuedCustomToasts();
 
     ToastGravity toastGravity;
-    switch(toastAction.position) {
+    switch (toastAction.position) {
       case 'top':
         toastGravity = ToastGravity.TOP;
         break;
@@ -58,22 +61,23 @@ class ToastController {
         break;
     }
 
-
     _toast.showToast(
-      gravity: toastGravity,
-      toastDuration: toastAction.duration != null ? Duration(seconds: toastAction.duration!) : const Duration(days: 99),
-      child: getToastWidget(toastAction, customToastBody)
-    );
+        gravity: toastGravity,
+        toastDuration: toastAction.duration != null
+            ? Duration(seconds: toastAction.duration!)
+            : const Duration(days: 99),
+        child: getToastWidget(toastAction, customToastBody));
   }
 
   Widget getToastWidget(ShowToastAction toastAction, Widget? customToastBody) {
-    EdgeInsets padding = Utils.getInsets(
-        toastAction.styles?['padding'],
+    EdgeInsets padding = Utils.getInsets(toastAction.styles?['padding'],
         fallback: const EdgeInsets.symmetric(vertical: 5, horizontal: 10));
     Color? bgColor = Utils.getColor(toastAction.styles?['backgroundColor']);
-    EBorderRadius? borderRadius = Utils.getBorderRadius(toastAction.styles?['borderRadius']);
+    EBorderRadius? borderRadius =
+        Utils.getBorderRadius(toastAction.styles?['borderRadius']);
     Color? shadowColor = Utils.getColor(toastAction.styles?['shadowColor']);
-    double? shadowRadius = Utils.optionalDouble(toastAction.styles?['shadowRadius'], min: 0);
+    double? shadowRadius =
+        Utils.optionalDouble(toastAction.styles?['shadowRadius'], min: 0);
     Offset? shadowOffset = Utils.getOffset(toastAction.styles?['shadowOffset']);
 
     Widget content;
@@ -103,60 +107,51 @@ class ToastController {
         bgColor ??= Colors.white.withOpacity(.9);
       }
 
-      content = Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon),
-          const SizedBox(width: 7),
-          Text(toastAction.message!)
-        ]
-      );
+      content = Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon),
+        const SizedBox(width: 7),
+        Text(toastAction.message!)
+      ]);
     }
 
     // wrapper container for background/border...
     Widget container = Container(
-      padding: padding,
-      decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: borderRadius?.getValue() ?? const BorderRadius.all(Radius.circular(5)),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              blurStyle: BlurStyle.outer,
-              color: shadowColor ?? Colors.black26,
-              blurRadius: shadowRadius ?? 3,
-              offset: shadowOffset ?? const Offset(0, 0),
-            )
-          ]
-      ),
-      child: content
-    );
+        padding: padding,
+        decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: borderRadius?.getValue() ??
+                const BorderRadius.all(Radius.circular(5)),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                blurStyle: BlurStyle.outer,
+                color: shadowColor ?? Colors.black26,
+                blurRadius: shadowRadius ?? 3,
+                offset: shadowOffset ?? const Offset(0, 0),
+              )
+            ]),
+        child: content);
 
     // wraps in dismiss icon
     if (toastAction.dismissible != false) {
       double closeButtonRadius = 10;
-      container = Stack(
-        children: [
-          Padding(
-            padding: EdgeInsets.only(top: closeButtonRadius, right: closeButtonRadius),
-            child: container
-          ),
-          Positioned(
-              right: 0,
-              top: 0,
-              child: InkWell(
-                child: CircleAvatar(
-                  backgroundColor: Colors.white,
-                  radius: closeButtonRadius,
-                  child: Icon(Icons.close, size: closeButtonRadius * 2 - 2),
-                ),
-                onTap: () => _toast.removeQueuedCustomToasts(),
-              )
-          ),
-        ]
-      );
+      container = Stack(children: [
+        Padding(
+            padding: EdgeInsets.only(
+                top: closeButtonRadius, right: closeButtonRadius),
+            child: container),
+        Positioned(
+            right: 0,
+            top: 0,
+            child: InkWell(
+              child: CircleAvatar(
+                backgroundColor: Colors.white,
+                radius: closeButtonRadius,
+                child: Icon(Icons.close, size: closeButtonRadius * 2 - 2),
+              ),
+              onTap: () => _toast.removeQueuedCustomToasts(),
+            )),
+      ]);
     }
     return container;
-
   }
-
 }

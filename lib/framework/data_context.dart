@@ -45,7 +45,8 @@ class DataContext {
   }
 
   DataContext clone({BuildContext? newBuildContext}) {
-    return DataContext(buildContext: newBuildContext ?? buildContext, initialMap: _contextMap);
+    return DataContext(
+        buildContext: newBuildContext ?? buildContext, initialMap: _contextMap);
   }
 
   /// copy over the additionalContext,
@@ -65,16 +66,17 @@ class DataContext {
     }
   }
 
-
   // raw data (data map, api result), traversable with dot and bracket notations
   void addDataContext(Map<String, dynamic> data) {
     _contextMap.addAll(data);
   }
+
   void addDataContextById(String id, dynamic value) {
     if (value != null) {
       _contextMap[id] = value;
     }
   }
+
   /// invokable widget, traversable with getters, setters & methods
   /// Note that this will change a reference to the object, meaning the
   /// parent scope will not get the changes to this.
@@ -93,14 +95,13 @@ class DataContext {
     return _contextMap[id];
   }
 
-
   /// evaluate single inline binding expression (getters only) e.g ${myVar.text}.
   /// Note that this expects the variable to be surrounded by ${...}
   dynamic eval(dynamic expression) {
     if (expression is YamlMap) {
       return _evalMap(expression);
     }
-    if ( expression is List ) {
+    if (expression is List) {
       return _evalList(expression);
     }
     if (expression is! String) {
@@ -120,15 +121,15 @@ class DataContext {
     // if we have multiple expressions, or mixing with text, return as String
     // greedy match anything inside a $() with letters, digits, period, square brackets.
     return expression.replaceAllMapped(Utils.containExpression,
-            (match) => evalVariable("${match[1]}").toString());
+        (match) => evalVariable("${match[1]}").toString());
 
     /*return replaceAllMappedAsync(
         expression,
         RegExp(r'\$\(([a-z_-\d."\(\)\[\]]+)\)', caseSensitive: false),
         (match) async => (await evalVariable("${match[1]}")).toString()
     );*/
-
   }
+
   List _evalList(List list) {
     List value = [];
     for (var i in list) {
@@ -136,6 +137,7 @@ class DataContext {
     }
     return value;
   }
+
   Map<String, dynamic> _evalMap(YamlMap yamlMap) {
     Map<String, dynamic> map = {};
     yamlMap.forEach((k, v) {
@@ -152,11 +154,11 @@ class DataContext {
     return map;
   }
 
-
-  Future<String> replaceAllMappedAsync(String string, Pattern exp, Future<String> Function(Match match) replace) async {
+  Future<String> replaceAllMappedAsync(String string, Pattern exp,
+      Future<String> Function(Match match) replace) async {
     StringBuffer replaced = StringBuffer();
     int currentIndex = 0;
-    for(Match match in exp.allMatches(string)) {
+    for (Match match in exp.allMatches(string)) {
       String prefix = match.input.substring(currentIndex, match.start);
       currentIndex = match.end;
       replaced
@@ -172,7 +174,8 @@ class DataContext {
     // code can have //@code <expression>
     // We don't use that here but we need to strip
     // that out before parsing the content as JSON
-    String? codeWithoutComments = Utils.codeAfterComment.firstMatch(codeBlock)?.group(1);
+    String? codeWithoutComments =
+        Utils.codeAfterComment.firstMatch(codeBlock)?.group(1);
     if (codeWithoutComments != null) {
       codeBlock = codeWithoutComments;
     }
@@ -187,7 +190,8 @@ class DataContext {
       FlutterError.reportError(FlutterErrorDetails(
         exception: CodeError(error),
         library: 'Javascript',
-        context: ErrorSummary('Javascript error when running code block - $codeBlock'),
+        context: ErrorSummary(
+            'Javascript error when running code block - $codeBlock'),
       ));
       return null;
     }
@@ -195,7 +199,8 @@ class DataContext {
 
   /// eval single line Typescript surrounded by $(...)
   dynamic evalSingleLineCode(String codeWithNotation) {
-    RegExpMatch? simpleExpression = Utils.onlyExpression.firstMatch(codeWithNotation);
+    RegExpMatch? simpleExpression =
+        Utils.onlyExpression.firstMatch(codeWithNotation);
     if (simpleExpression != null) {
       String code = evalVariable(simpleExpression.group(1)!);
       return evalCode(code);
@@ -210,38 +215,38 @@ class DataContext {
     }
 
     if (data is Map) {
-      return evalToken(tokens, index+1, data[tokens[index]]);
+      return evalToken(tokens, index + 1, data[tokens[index]]);
     } else {
-        String token = tokens[index];
-        if (InvokableController.getGettableProperties(data).contains(token)) {
-          return evalToken(tokens, index + 1, data.getProperty(token));
-        } else {
-          // only support methods with 0 or 1 argument for now
-          RegExpMatch? match = RegExp(
-              r'''([a-zA-Z_-\d]+)\s*\(["']?([a-zA-Z_-\d:.]*)["']?\)''')
-              .firstMatch(token);
-          if (match != null) {
-            // first group is the method name, second is the argument
-            Function? method = InvokableController.getMethods(data)[match.group(1)];
-            if (method != null) {
-              // our match will always have 2 groups. Second group is the argument
-              // which could be empty since we use ()*
-              List<String> args = [];
-              if (match.group(2)!.isNotEmpty) {
-                args.add(match.group(2)!);
-              }
-              dynamic nextData = Function.apply(method, args);
-              return evalToken(tokens, index + 1, nextData);
+      String token = tokens[index];
+      if (InvokableController.getGettableProperties(data).contains(token)) {
+        return evalToken(tokens, index + 1, data.getProperty(token));
+      } else {
+        // only support methods with 0 or 1 argument for now
+        RegExpMatch? match =
+            RegExp(r'''([a-zA-Z_-\d]+)\s*\(["']?([a-zA-Z_-\d:.]*)["']?\)''')
+                .firstMatch(token);
+        if (match != null) {
+          // first group is the method name, second is the argument
+          Function? method =
+              InvokableController.getMethods(data)[match.group(1)];
+          if (method != null) {
+            // our match will always have 2 groups. Second group is the argument
+            // which could be empty since we use ()*
+            List<String> args = [];
+            if (match.group(2)!.isNotEmpty) {
+              args.add(match.group(2)!);
             }
+            dynamic nextData = Function.apply(method, args);
+            return evalToken(tokens, index + 1, nextData);
           }
-          // return null since we can't find any matching methods/getters on this Invokable
-          return null;
         }
+        // return null since we can't find any matching methods/getters on this Invokable
+        return null;
       }
+    }
 
     return data;
   }
-
 
   /// evaluate a single variable expression e.g myVariable.value.
   /// Note: use eval() if your variable are surrounded by ${...}
@@ -260,22 +265,22 @@ class DataContext {
   }
 
   /// token format: result
-  static dynamic _parseToken(List<String> tokens, int index, Map<String, dynamic> map) {
-    if (index == tokens.length-1) {
+  static dynamic _parseToken(
+      List<String> tokens, int index, Map<String, dynamic> map) {
+    if (index == tokens.length - 1) {
       return map[tokens[index]];
     }
     if (map[tokens[index]] == null) {
       return null;
     }
-    return _parseToken(tokens, index+1, map[tokens[index]]);
+    return _parseToken(tokens, index + 1, map[tokens[index]]);
   }
-
-
 }
 
 /// built-in helpers/utils accessible to all DataContext
 class NativeInvokable with Invokable {
   final BuildContext _buildContext;
+
   NativeInvokable(this._buildContext);
 
   @override
@@ -305,47 +310,44 @@ class NativeInvokable with Invokable {
 
   void navigateToScreen(String screenName, [dynamic inputs]) {
     Map<String, dynamic>? inputMap = Utils.getMap(inputs);
-    ScreenController().navigateToScreen(
-      _buildContext,
-      screenName: screenName,
-      pageArgs: inputMap,
-      asModal: false);
+    ScreenController().navigateToScreen(_buildContext,
+        screenName: screenName, pageArgs: inputMap, asModal: false);
   }
+
   void navigateToModalScreen(String screenName, [dynamic inputs]) {
     Map<String, dynamic>? inputMap = Utils.getMap(inputs);
-    ScreenController().navigateToScreen(
-      _buildContext,
-      screenName: screenName,
-      pageArgs: inputMap,
-      asModal: true);
+    ScreenController().navigateToScreen(_buildContext,
+        screenName: screenName, pageArgs: inputMap, asModal: true);
     // how do we handle onModalDismiss in Typescript?
   }
+
   void showDialog(dynamic content) {
-    ScreenController().executeAction(_buildContext, ShowDialogAction(
-        content: content)
-    );
+    ScreenController()
+        .executeAction(_buildContext, ShowDialogAction(content: content));
   }
+
   void invokeAPI(String apiName, [dynamic inputs]) {
     Map<String, dynamic>? inputMap = Utils.getMap(inputs);
-    ScreenController().executeAction(_buildContext, InvokeAPIAction(
-      apiName: apiName,
-      inputs: inputMap
-    ));
+    ScreenController().executeAction(
+        _buildContext, InvokeAPIAction(apiName: apiName, inputs: inputMap));
   }
+
   void stopTimer(String timerId) {
     ScreenController().executeAction(_buildContext, StopTimerAction(timerId));
   }
-
 }
 
 /// Singleton handling user storage
 class EnsembleStorage with Invokable {
   static final EnsembleStorage _instance = EnsembleStorage._internal();
+
   EnsembleStorage._internal();
+
   factory EnsembleStorage(BuildContext buildContext) {
     context = buildContext;
     return _instance;
   }
+
   static late BuildContext context;
   final storage = GetStorage();
 
@@ -367,7 +369,6 @@ class EnsembleStorage with Invokable {
     return prop is String ? storage.read(prop) : null;
   }
 
-
   @override
   Map<String, Function> getters() {
     throw UnimplementedError();
@@ -377,7 +378,8 @@ class EnsembleStorage with Invokable {
   Map<String, Function> methods() {
     return {
       'get': (String key) => storage.read(key),
-      'set': (String key, dynamic value) => value == null ? storage.remove(key) : storage.write(key, value),
+      'set': (String key, dynamic value) =>
+          value == null ? storage.remove(key) : storage.write(key, value),
       'delete': (key) => storage.remove(key)
     };
   }
@@ -386,11 +388,11 @@ class EnsembleStorage with Invokable {
   Map<String, Function> setters() {
     throw UnimplementedError();
   }
-
 }
 
 class Formatter with Invokable {
   final BuildContext _buildContext;
+
   Formatter(this._buildContext);
 
   @override
@@ -406,7 +408,8 @@ class Formatter with Invokable {
       'prettyDate': (input) => InvokablePrimitive.prettyDate(input),
       'prettyDateTime': (input) => InvokablePrimitive.prettyDateTime(input),
       'prettyCurrency': (input) => InvokablePrimitive.prettyCurrency(input),
-      'prettyDuration': (input) => InvokablePrimitive.prettyDuration(input, locale: locale)
+      'prettyDuration': (input) =>
+          InvokablePrimitive.prettyDuration(input, locale: locale)
     };
   }
 
@@ -414,7 +417,6 @@ class Formatter with Invokable {
   Map<String, Function> setters() {
     return {};
   }
-
 }
 
 class UserInfo with Invokable {
@@ -428,16 +430,13 @@ class UserInfo with Invokable {
 
   @override
   Map<String, Function> methods() {
-    return {
-
-    };
+    return {};
   }
 
   @override
   Map<String, Function> setters() {
     return {};
   }
-
 }
 
 /// represents a date and its operations
@@ -445,6 +444,7 @@ class DateInfo with Invokable {
   DateInfo({this.value});
 
   DateTime? value;
+
   DateTime get dateTime => value ?? DateTime.now();
   Locale locale = Localizations.localeOf(Utils.globalAppKey.currentContext!);
 
@@ -456,18 +456,21 @@ class DateInfo with Invokable {
   @override
   Map<String, Function> methods() {
     return {
-      'plusDays': (int days) => DateInfo(value: dateTime.add(Duration(days: days))),
-      'plusYears': (int years) => DateInfo(value: dateTime.add(Duration(days: years * 365))),
-      'minusDays': (int days) => DateInfo(value: dateTime.add(Duration(days: -days))),
-      'minusYears': (int years) => DateInfo(value: dateTime.add(Duration(days: -years * 365))),
-
+      'plusDays': (int days) =>
+          DateInfo(value: dateTime.add(Duration(days: days))),
+      'plusYears': (int years) =>
+          DateInfo(value: dateTime.add(Duration(days: years * 365))),
+      'minusDays': (int days) =>
+          DateInfo(value: dateTime.add(Duration(days: -days))),
+      'minusYears': (int years) =>
+          DateInfo(value: dateTime.add(Duration(days: -years * 365))),
       'getMonth': () => dateTime.month,
       'getDay': () => dateTime.day,
       'getDayOfWeek': () => dateTime.weekday,
       'getYear': () => dateTime.year,
-
       'pretty': () => DateFormat.yMMMd(locale.toString()).format(dateTime),
-      'format': (String format) => DateFormat(format, locale.toString()).format(dateTime),
+      'format': (String format) =>
+          DateFormat(format, locale.toString()).format(dateTime),
     };
   }
 
@@ -487,6 +490,7 @@ class DateTimeInfo with Invokable {
   DateTimeInfo({this.value});
 
   DateTime? value;
+
   DateTime get dateTime => value ?? DateTime.now();
   Locale locale = Localizations.localeOf(Utils.globalAppKey.currentContext!);
 
@@ -498,18 +502,26 @@ class DateTimeInfo with Invokable {
   @override
   Map<String, Function> methods() {
     return {
-      'plusDays': (int days) => DateInfo(value: dateTime.add(Duration(days: days))),
-      'plusYears': (int years) => DateInfo(value: dateTime.add(Duration(days: years * 365))),
-      'plusHours': (int hours) => DateInfo(value: dateTime.add(Duration(hours: hours))),
-      'plusMinutes': (int minutes) => DateInfo(value: dateTime.add(Duration(minutes: minutes))),
-      'plusSeconds': (int seconds) => DateInfo(value: dateTime.add(Duration(seconds: seconds))),
-
-      'minusDays': (int days) => DateInfo(value: dateTime.add(Duration(days: -days))),
-      'minusYears': (int years) => DateInfo(value: dateTime.add(Duration(days: -years * 365))),
-      'minusHours': (int hours) => DateInfo(value: dateTime.add(Duration(hours: -hours))),
-      'minusMinutes': (int minutes) => DateInfo(value: dateTime.add(Duration(minutes: -minutes))),
-      'minusSeconds': (int seconds) => DateInfo(value: dateTime.add(Duration(seconds: -seconds))),
-
+      'plusDays': (int days) =>
+          DateInfo(value: dateTime.add(Duration(days: days))),
+      'plusYears': (int years) =>
+          DateInfo(value: dateTime.add(Duration(days: years * 365))),
+      'plusHours': (int hours) =>
+          DateInfo(value: dateTime.add(Duration(hours: hours))),
+      'plusMinutes': (int minutes) =>
+          DateInfo(value: dateTime.add(Duration(minutes: minutes))),
+      'plusSeconds': (int seconds) =>
+          DateInfo(value: dateTime.add(Duration(seconds: seconds))),
+      'minusDays': (int days) =>
+          DateInfo(value: dateTime.add(Duration(days: -days))),
+      'minusYears': (int years) =>
+          DateInfo(value: dateTime.add(Duration(days: -years * 365))),
+      'minusHours': (int hours) =>
+          DateInfo(value: dateTime.add(Duration(hours: -hours))),
+      'minusMinutes': (int minutes) =>
+          DateInfo(value: dateTime.add(Duration(minutes: -minutes))),
+      'minusSeconds': (int seconds) =>
+          DateInfo(value: dateTime.add(Duration(seconds: -seconds))),
       'getMonth': () => dateTime.month,
       'getDay': () => dateTime.day,
       'getDayOfWeek': () => dateTime.weekday,
@@ -517,9 +529,12 @@ class DateTimeInfo with Invokable {
       'getHour': () => dateTime.hour,
       'getMinute': () => dateTime.minute,
       'getSecond': () => dateTime.second,
-
-      'pretty': () => DateFormat.yMMMd(locale.toString()).format(dateTime) + ' ' + DateFormat.jm(locale.toString()).format(dateTime),
-      'format': (String format) => DateFormat(format, locale.toString()).format(dateTime),
+      'pretty': () =>
+          DateFormat.yMMMd(locale.toString()).format(dateTime) +
+          ' ' +
+          DateFormat.jm(locale.toString()).format(dateTime),
+      'format': (String format) =>
+          DateFormat(format, locale.toString()).format(dateTime),
     };
   }
 
@@ -537,6 +552,7 @@ class DateTimeInfo with Invokable {
 /// legacy
 class UserDateTime with Invokable {
   DateTime? _dateTime;
+
   DateTime get dateTime => _dateTime ??= DateTime.now();
 
   @override
@@ -550,7 +566,10 @@ class UserDateTime with Invokable {
       'getDate': () => dateTime.toIso8601DateString(),
       'getDateTime': () => dateTime.toIso8601String(),
       'prettyDate': () => DateFormat.yMMMd().format(dateTime),
-      'prettyDateTime': () => DateFormat.yMMMd().format(dateTime) + ' ' + DateFormat.jm().format(dateTime),
+      'prettyDateTime': () =>
+          DateFormat.yMMMd().format(dateTime) +
+          ' ' +
+          DateFormat.jm().format(dateTime),
       'getMonth': () => dateTime.month,
       'getDay': () => dateTime.day,
       'getDayOfWeek': () => dateTime.weekday,
@@ -563,13 +582,13 @@ class UserDateTime with Invokable {
 
   @override
   Map<String, Function> setters() {
-  return {};
+    return {};
   }
-
 }
 
 class APIResponse with Invokable {
   Response? _response;
+
   APIResponse({Response? response}) {
     if (response != null) {
       setAPIResponse(response);
@@ -586,10 +605,7 @@ class APIResponse with Invokable {
 
   @override
   Map<String, Function> getters() {
-    return {
-      'body': () => _response?.body,
-      'headers': () => _response?.headers
-    };
+    return {'body': () => _response?.body, 'headers': () => _response?.headers};
   }
 
   @override
@@ -601,17 +617,19 @@ class APIResponse with Invokable {
   Map<String, Function> setters() {
     return {};
   }
-
 }
 
 class ModifiableAPIResponse extends APIResponse {
-  ModifiableAPIResponse({required Response response}) : super (response: response);
+  ModifiableAPIResponse({required Response response})
+      : super(response: response);
 
   @override
   Map<String, Function> setters() {
     return {
-      'body': (newBody) => _response!.body = HttpUtils.parseResponsePayload(newBody),
-      'headers': (newHeaders) => _response!.headers = HttpUtils.parseResponsePayload(newHeaders)
+      'body': (newBody) =>
+          _response!.body = HttpUtils.parseResponsePayload(newBody),
+      'headers': (newHeaders) =>
+          _response!.headers = HttpUtils.parseResponsePayload(newHeaders)
     };
   }
 

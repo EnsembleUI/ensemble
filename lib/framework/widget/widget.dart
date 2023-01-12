@@ -15,15 +15,14 @@ mixin UpdatableContainer<T extends Widget> {
   void initChildren({List<T>? children, ItemTemplate? itemTemplate});
 }
 
-
 /// base Controller class for your Ensemble widget
 abstract class WidgetController extends Controller {
-
   // Note: we manage these here so the user doesn't need to do in their widgets
   // base properties applicable to all widgets
   bool expanded = false;
   bool visible = true;
   String? id;
+
   // optional label/labelHint for use in Forms
   String? label;
   String? labelHint;
@@ -93,18 +92,15 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
     super.changeState();
     // dispatch changes, so anything binding to this will be notified
     if (widget.controller.lastSetterProperty != null) {
-      if (_scopeManager != null && widget is Invokable && (widget as Invokable).id != null) {
+      if (_scopeManager != null &&
+          widget is Invokable &&
+          (widget as Invokable).id != null) {
         _scopeManager!.dispatch(ModelChangeEvent(
-            WidgetBindingSource(
-                (widget as Invokable).id!,
-                property: widget.controller.lastSetterProperty!.key
-            ),
-            widget.controller.lastSetterProperty!.value
-        ));
+            WidgetBindingSource((widget as Invokable).id!,
+                property: widget.controller.lastSetterProperty!.key),
+            widget.controller.lastSetterProperty!.value));
       }
       widget.controller.lastSetterProperty = null;
     }
   }
 }
-
-

@@ -21,16 +21,13 @@ class ErrorScreen extends StatelessWidget {
         detail.add(myError.detailError!);
       }
 
-      return ErrorScreen._init(
-        myError.error,
-        recovery: myError.recovery,
-        detailError: join(myError.detailError, stackTrace?.toString())
-      );
+      return ErrorScreen._init(myError.error,
+          recovery: myError.recovery,
+          detailError: join(myError.detailError, stackTrace?.toString()));
     } else if (myError is Error) {
-      return ErrorScreen._init(
-          myError.toString(),
-          detailError: join(myError.stackTrace?.toString(), stackTrace?.toString())
-      );
+      return ErrorScreen._init(myError.toString(),
+          detailError:
+              join(myError.stackTrace?.toString(), stackTrace?.toString()));
     }
     return ErrorScreen._init(
       "Unknown Error occurred.",
@@ -50,14 +47,14 @@ class ErrorScreen extends StatelessWidget {
     children.add(Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(
-          Utils.randomize(["Oh Snap", "Uh Oh ..", "Foo Bar"]),
-          style: const TextStyle(fontSize: 28, color: Color(0xFFF7535A), fontWeight: FontWeight.w500)
-        ),
+        Text(Utils.randomize(["Oh Snap", "Uh Oh ..", "Foo Bar"]),
+            style: const TextStyle(
+                fontSize: 28,
+                color: Color(0xFFF7535A),
+                fontWeight: FontWeight.w500)),
         const Image(
-          image: AssetImage("assets/images/error.png", package: 'ensemble'),
-          width: 200
-        ),
+            image: AssetImage("assets/images/error.png", package: 'ensemble'),
+            width: 200),
         const SizedBox(height: 16),
         Text(
           errorText + (recovery != null ? '\n$recovery' : ''),
@@ -69,39 +66,27 @@ class ErrorScreen extends StatelessWidget {
 
     // add detail
     if (detailError != null && kDebugMode) {
-      children.add(Column(
-          children: [
-            const SizedBox(height: 30),
-            const Text(
-                'DETAILS',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)
-            ),
-            const SizedBox(height: 10),
-            Text(
-                detailError!,
-                textAlign: TextAlign.start,
-                style: const TextStyle(fontSize: 14, color: Colors.black87)
-            )
-          ]
-        )
-      );
+      children.add(Column(children: [
+        const SizedBox(height: 30),
+        const Text('DETAILS',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 10),
+        Text(detailError!,
+            textAlign: TextAlign.start,
+            style: const TextStyle(fontSize: 14, color: Colors.black87))
+      ]));
     }
 
-
     return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.only(left: 40, right: 40, top: 40),
-          child: SingleChildScrollView(
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: children
-            ),
-          )
-        )
-      )
-    );
+        body: SafeArea(
+            child: Padding(
+                padding: const EdgeInsets.only(left: 40, right: 40, top: 40),
+                child: SingleChildScrollView(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: children),
+                ))));
   }
 
   static String join(String? first, String? second) {
@@ -114,5 +99,4 @@ class ErrorScreen extends StatelessWidget {
     }
     return list.join('\n');
   }
-
 }

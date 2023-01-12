@@ -1,4 +1,3 @@
-
 import 'package:flutter_i18n/loaders/file_content.dart';
 import 'package:flutter_i18n/loaders/translation_loader.dart';
 
@@ -6,6 +5,7 @@ import 'package:flutter_i18n/loaders/translation_loader.dart';
 /// from memory (cache from Firestore)
 class DataTranslationLoader extends TranslationLoader {
   DataTranslationLoader({this.defaultLocaleMap, this.fallbackLocaleMap});
+
   Map? defaultLocaleMap;
   Map? fallbackLocaleMap;
 
@@ -25,9 +25,9 @@ class DataTranslationLoader extends TranslationLoader {
 
   /// copied from FileTranslationLoader
   Map<K, V> _deepMergeMaps<K, V>(
-      Map<K, V> map1,
-      Map<K, V> map2,
-      ) {
+    Map<K, V> map1,
+    Map<K, V> map2,
+  ) {
     var result = Map<K, V>.of(map1);
 
     map2.forEach((key, mapValue) {
@@ -51,5 +51,4 @@ class DataTranslationLoader extends TranslationLoader {
     });
     return result;
   }
-  
 }

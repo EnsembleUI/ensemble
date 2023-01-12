@@ -7,27 +7,26 @@ class ConfigError extends EnsembleError {
   String toString() => 'Config Error: $error';
 }
 
-
 /// Language Error will be exposed on Studio
 class LanguageError extends EnsembleError {
-  LanguageError (super.error, {super.recovery, super.detailError});
+  LanguageError(super.error, {super.recovery, super.detailError});
 
   @override
   String toString() => 'Language Error: $error\n$recovery';
 }
 
 class CodeError extends EnsembleError {
-  CodeError(Object input): super(
-    input is ParseError ? input.message.toString() : input.toString()
-  ) {
+  CodeError(Object input)
+      : super(
+            input is ParseError ? input.message.toString() : input.toString()) {
     if (input is ParseError) {
-      recovery = "Line ${input.line}. Position ${input.startOffset}-${input.endOffset}.";
+      recovery =
+          "Line ${input.line}. Position ${input.startOffset}-${input.endOffset}.";
     }
   }
 
   @override
   String toString() => "Code Error: $error\n$recovery";
-
 }
 
 class RuntimeError extends EnsembleError {
@@ -38,11 +37,8 @@ class RuntimeError extends EnsembleError {
 }
 
 abstract class EnsembleError extends Error {
-  EnsembleError(
-    this.error, {
-    this.recovery,
-    this.detailError
-  });
+  EnsembleError(this.error, {this.recovery, this.detailError});
+
   String error;
   String? recovery;
   String? detailError;
@@ -51,10 +47,10 @@ abstract class EnsembleError extends Error {
   String toString() => "$error\n$recovery\n$detailError";
 }
 
-
 /// All Exceptions will be written to a running log of some sort
 class RuntimeException implements Exception {
   RuntimeException(this.message);
+
   String message;
 
   @override

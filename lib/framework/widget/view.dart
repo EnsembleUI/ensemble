@@ -33,7 +33,6 @@ class View extends StatefulWidget {
   /// to the DataScopeWidget. This should only be used for this purpose.
   late ScopeManager rootScopeManager;
 
-
   /**
    * PageData pageData = PageData(
       pageTitle: pageModel.title,
@@ -47,20 +46,15 @@ class View extends StatefulWidget {
       );
    */
 
-
-
   //final Widget bodyWidget;
   //final Menu? menu;
   //final Widget? footer;
 
   @override
   State<View> createState() => ViewState();
-
-
 }
 
-
-class ViewState extends State<View>{
+class ViewState extends State<View> {
   late ScopeManager _scopeManager;
   String menuDisplay = MenuDisplay.navBar.name;
   late Widget rootWidget;
@@ -70,12 +64,10 @@ class ViewState extends State<View>{
     // initialize our root ScopeManager, which can have many child scopes.
     // All scopes will have access to the page-level PageData
     _scopeManager = ScopeManager(
-      widget._initialDataContext.clone(newBuildContext: context),
-      PageData(
-          customViewDefinitions: widget._pageModel.customViewDefinitions,
-          apiMap: widget._pageModel.apiMap
-      )
-    );
+        widget._initialDataContext.clone(newBuildContext: context),
+        PageData(
+            customViewDefinitions: widget._pageModel.customViewDefinitions,
+            apiMap: widget._pageModel.apiMap));
     widget.rootScopeManager = _scopeManager;
 
     // execute view behavior
@@ -111,13 +103,15 @@ class ViewState extends State<View>{
   }
 
   /// fixed AppBar
-  PreferredSizeWidget? buildFixedAppBar(HeaderModel? headerModel, bool hasDrawer) {
+  PreferredSizeWidget? buildFixedAppBar(
+      HeaderModel? headerModel, bool hasDrawer) {
     if (headerModel != null) {
       dynamic appBar = _buildAppBar(headerModel, scrollableView: false);
       if (appBar is PreferredSizeWidget) {
         return appBar;
       }
     }
+
     /// we need the Appbar to show our menu drawer icon
     if (hasDrawer) {
       return AppBar();
@@ -126,7 +120,8 @@ class ViewState extends State<View>{
   }
 
   /// fixed AppBar
-  dynamic _buildAppBar(HeaderModel headerModel, {required bool scrollableView}) {
+  dynamic _buildAppBar(HeaderModel headerModel,
+      {required bool scrollableView}) {
     Widget? titleWidget;
     if (headerModel.titleWidget != null) {
       titleWidget = _scopeManager.buildWidget(headerModel.titleWidget!);
@@ -137,21 +132,32 @@ class ViewState extends State<View>{
 
     Widget? backgroundWidget;
     if (headerModel.flexibleBackground != null) {
-      backgroundWidget = _scopeManager.buildWidget(headerModel.flexibleBackground!);
+      backgroundWidget =
+          _scopeManager.buildWidget(headerModel.flexibleBackground!);
     }
 
-    bool centerTitle = Utils.getBool(headerModel.styles?['centerTitle'], fallback: true);
-    bool showNavigationIcon = Utils.getBool(headerModel.styles?['showNavigationIcon'], fallback: true);
-    Color? backgroundColor = Utils.getColor(headerModel.styles?['backgroundColor']);
+    bool centerTitle =
+        Utils.getBool(headerModel.styles?['centerTitle'], fallback: true);
+    bool showNavigationIcon = Utils.getBool(
+        headerModel.styles?['showNavigationIcon'],
+        fallback: true);
+    Color? backgroundColor =
+        Utils.getColor(headerModel.styles?['backgroundColor']);
     Color? color = Utils.getColor(headerModel.styles?['color']);
     Color? shadowColor = Utils.getColor(headerModel.styles?['shadowColor']);
-    double? elevation = Utils.optionalInt(headerModel.styles?['elevation'], min: 0)?.toDouble();
+    double? elevation =
+        Utils.optionalInt(headerModel.styles?['elevation'], min: 0)?.toDouble();
 
-    final titleBarHeight = Utils.optionalInt(headerModel.styles?['titleBarHeight'], min: 0)?.toDouble() ?? kToolbarHeight;
+    final titleBarHeight =
+        Utils.optionalInt(headerModel.styles?['titleBarHeight'], min: 0)
+                ?.toDouble() ??
+            kToolbarHeight;
 
     // applicable only to Sliver scrolling
-    double? flexibleMaxHeight = Utils.optionalInt(headerModel.styles?['flexibleMaxHeight'])?.toDouble();
-    double? flexibleMinHeight = Utils.optionalInt(headerModel.styles?['flexibleMinHeight'])?.toDouble();
+    double? flexibleMaxHeight =
+        Utils.optionalInt(headerModel.styles?['flexibleMaxHeight'])?.toDouble();
+    double? flexibleMinHeight =
+        Utils.optionalInt(headerModel.styles?['flexibleMinHeight'])?.toDouble();
     // collapsed height if specified needs to be bigger than titleBar height
     if (flexibleMinHeight != null && flexibleMinHeight < titleBarHeight) {
       flexibleMinHeight = null;
@@ -176,7 +182,6 @@ class ViewState extends State<View>{
         collapsedHeight: flexibleMinHeight,
 
         pinned: true,
-
       );
     } else {
       return AppBar(
@@ -214,9 +219,13 @@ class ViewState extends State<View>{
     // build the navigation menu (bottom nav bar or drawer). Note that menu is not applicable on modal pages
     Widget? _bottomNavBar;
     Widget? _drawer;
-    if (widget._pageModel.menu != null && widget._pageModel.screenOptions?.pageType != PageType.modal) {
-      menuDisplay = _scopeManager.dataContext.eval(widget._pageModel.menu!.display);
-      if (menuDisplay == null || menuDisplay == MenuDisplay.bottomNavBar.name || menuDisplay == MenuDisplay.navBar.name) {
+    if (widget._pageModel.menu != null &&
+        widget._pageModel.screenOptions?.pageType != PageType.modal) {
+      menuDisplay =
+          _scopeManager.dataContext.eval(widget._pageModel.menu!.display);
+      if (menuDisplay == null ||
+          menuDisplay == MenuDisplay.bottomNavBar.name ||
+          menuDisplay == MenuDisplay.navBar.name) {
         _bottomNavBar = _buildBottomNavBar(context, widget._pageModel.menu!);
       } else if (menuDisplay == MenuDisplay.drawer.name) {
         _drawer = _buildDrawer(context, widget._pageModel.menu!);
@@ -224,10 +233,12 @@ class ViewState extends State<View>{
       // left/right navBar will be rendered as part of the body
     }
 
-    Color? backgroundColor = Utils.getColor(widget._pageModel.pageStyles?['backgroundColor']);
+    Color? backgroundColor =
+        Utils.getColor(widget._pageModel.pageStyles?['backgroundColor']);
     // if we have a background image, set the background color to transparent
     // since our image is outside the Scaffold
-    BackgroundImage? backgroundImage = Utils.getBackgroundImage(widget._pageModel.pageStyles?['backgroundImage']);
+    BackgroundImage? backgroundImage = Utils.getBackgroundImage(
+        widget._pageModel.pageStyles?['backgroundImage']);
     if (backgroundImage != null && backgroundColor == null) {
       backgroundColor = Colors.transparent;
     }
@@ -248,57 +259,57 @@ class ViewState extends State<View>{
     }
 
     // whether to usse CustomScrollView for the entire page
-    bool isScrollableView = widget._pageModel.pageStyles?['scrollableView'] == true;
+    bool isScrollableView =
+        widget._pageModel.pageStyles?['scrollableView'] == true;
 
     PreferredSizeWidget? fixedAppBar;
     if (!isScrollableView) {
-      fixedAppBar = buildFixedAppBar(widget._pageModel.headerModel, _drawer != null);
+      fixedAppBar =
+          buildFixedAppBar(widget._pageModel.headerModel, _drawer != null);
     }
 
     Widget rtn = DataScopeWidget(
       scopeManager: _scopeManager,
       child: Scaffold(
-        // slight optimization, if body background is set, let's paint
-        // the entire screen including the Safe Area
-        backgroundColor: backgroundColor,
+          // slight optimization, if body background is set, let's paint
+          // the entire screen including the Safe Area
+          backgroundColor: backgroundColor,
 
-        // appBar is inside CustomScrollView if defined
-        appBar: fixedAppBar,
-        body: isScrollableView ? buildScrollablePageContent(_drawer != null) : buildFixedPageContent(fixedAppBar != null),
-
-        bottomNavigationBar: _bottomNavBar,
-        drawer: _drawer,
-        bottomSheet: _buildFooter(_scopeManager, widget._pageModel),
-        floatingActionButton: closeModalButton,
-        floatingActionButtonLocation:
-          widget._pageModel.screenOptions?.closeButtonPosition == 'start' ?
-            FloatingActionButtonLocation.startTop :
-            FloatingActionButtonLocation.endTop
-      ),
+          // appBar is inside CustomScrollView if defined
+          appBar: fixedAppBar,
+          body: isScrollableView
+              ? buildScrollablePageContent(_drawer != null)
+              : buildFixedPageContent(fixedAppBar != null),
+          bottomNavigationBar: _bottomNavBar,
+          drawer: _drawer,
+          bottomSheet: _buildFooter(_scopeManager, widget._pageModel),
+          floatingActionButton: closeModalButton,
+          floatingActionButtonLocation:
+              widget._pageModel.screenOptions?.closeButtonPosition == 'start'
+                  ? FloatingActionButtonLocation.startTop
+                  : FloatingActionButtonLocation.endTop),
     );
 
     // if backgroundImage is set, put it outside of the Scaffold so
     // keyboard sliding up (when entering value) won't resize the background
     if (backgroundImage != null) {
       return Container(
-        constraints: const BoxConstraints.expand(),
-        decoration: BoxDecoration(
-          image: backgroundImage.image
-        ),
-        child: rtn
-      );
+          constraints: const BoxConstraints.expand(),
+          decoration: BoxDecoration(image: backgroundImage.image),
+          child: rtn);
     }
     return rtn;
-
   }
 
   /// determine if we should wraps the body in a SafeArea or not
   bool useSafeArea() {
-    bool? useSafeArea = Utils.optionalBool(widget._pageModel.pageStyles?['useSafeArea']);
+    bool? useSafeArea =
+        Utils.optionalBool(widget._pageModel.pageStyles?['useSafeArea']);
 
     // backward compatible with legacy attribute
     if (useSafeArea == null) {
-      bool? ignoreSafeArea = Utils.optionalBool(widget._pageModel.pageStyles?['ignoreSafeArea']);
+      bool? ignoreSafeArea =
+          Utils.optionalBool(widget._pageModel.pageStyles?['ignoreSafeArea']);
       if (ignoreSafeArea != null) {
         useSafeArea = !ignoreSafeArea;
       }
@@ -316,7 +327,8 @@ class ViewState extends State<View>{
     List<Widget> slivers = [];
 
     // appBar
-    Widget? appBar = buildSliverAppBar(widget._pageModel.headerModel, hasDrawer);
+    Widget? appBar =
+        buildSliverAppBar(widget._pageModel.headerModel, hasDrawer);
     if (appBar != null) {
       slivers.add(appBar);
     }
@@ -326,26 +338,25 @@ class ViewState extends State<View>{
       child: getBody(appBar != null),
     ));
 
-    return CustomScrollView(
-      slivers: slivers
-    );
+    return CustomScrollView(slivers: slivers);
   }
 
-  Widget getBody (bool hasAppBar) {
+  Widget getBody(bool hasAppBar) {
     // ignore safe area is only applicable if we don't have an AppBar
     bool _useSafeArea = !hasAppBar && useSafeArea();
 
-
-    if (menuDisplay == MenuDisplay.leftNavBar.name || menuDisplay == MenuDisplay.navBar_left.name) {
+    if (menuDisplay == MenuDisplay.leftNavBar.name ||
+        menuDisplay == MenuDisplay.navBar_left.name) {
       List<model.MenuItem> menuItems = widget._pageModel.menu!.menuItems;
       int selectedIndex = 0;
       List<NavigationRailDestination> navItems = [];
-      for (int i=0; i<menuItems.length; i++) {
+      for (int i = 0; i < menuItems.length; i++) {
         model.MenuItem item = menuItems[i];
         navItems.add(NavigationRailDestination(
-          padding: Utils.getInsets(widget._pageModel.menu!.styles?['itemPadding']),
-          icon: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
-          label: Text(Utils.translate(item.label ?? '', context))));
+            padding:
+                Utils.getInsets(widget._pageModel.menu!.styles?['itemPadding']),
+            icon: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
+            label: Text(Utils.translate(item.label ?? '', context))));
         if (item.selected) {
           selectedIndex = i;
         }
@@ -355,13 +366,14 @@ class ViewState extends State<View>{
       double paddingFromSafeSpace = 15;
       Widget? headerWidget;
       if (widget._pageModel.menu!.headerModel != null) {
-        headerWidget = _scopeManager.buildWidget(widget._pageModel.menu!.headerModel!);
+        headerWidget =
+            _scopeManager.buildWidget(widget._pageModel.menu!.headerModel!);
       }
       Widget menuHeader = Column(children: [
-       SizedBox(height: paddingFromSafeSpace),
-       Container(
-         child: headerWidget,
-       )
+        SizedBox(height: paddingFromSafeSpace),
+        Container(
+          child: headerWidget,
+        )
       ]);
 
       Widget? menuFooter;
@@ -369,68 +381,75 @@ class ViewState extends State<View>{
         // push footer to the bottom of the rail
         menuFooter = Expanded(
           child: Align(
-            alignment: Alignment.bottomCenter,
-            child: _scopeManager.buildWidget(widget._pageModel.menu!.footerModel!)
-          ),
+              alignment: Alignment.bottomCenter,
+              child: _scopeManager
+                  .buildWidget(widget._pageModel.menu!.footerModel!)),
         );
       }
 
-      MenuItemDisplay itemDisplay = MenuItemDisplay.values.from(widget._pageModel.menu!.styles?['itemDisplay']) ?? MenuItemDisplay.stacked;
+      MenuItemDisplay itemDisplay = MenuItemDisplay.values
+              .from(widget._pageModel.menu!.styles?['itemDisplay']) ??
+          MenuItemDisplay.stacked;
 
       // stacked's min gap seems to be 72 regardless of what we set. For side by side optimal min gap is around 40
       // we set this minGap and let user controls with itemPadding
       int minGap = itemDisplay == MenuItemDisplay.sideBySide ? 40 : 72;
 
       // minExtendedWidth is applicable only for side by side, and should never be below minWidth (or exception)
-      int minWidth = Utils.optionalInt(widget._pageModel.menu!.styles?['minWidth'], min: minGap) ?? 200;
-
-
+      int minWidth = Utils.optionalInt(
+              widget._pageModel.menu!.styles?['minWidth'],
+              min: minGap) ??
+          200;
 
       List<Widget> content = [];
       // process menu styles
-      Color? menuBackground = Utils.getColor(widget._pageModel.menu!.styles?['backgroundColor']);
+      Color? menuBackground =
+          Utils.getColor(widget._pageModel.menu!.styles?['backgroundColor']);
       content.add(NavigationRail(
         extended: itemDisplay == MenuItemDisplay.sideBySide ? true : false,
         minExtendedWidth: minWidth.toDouble(),
-        minWidth: minGap.toDouble(),     // this is important for optimal default item spacing
-        labelType: itemDisplay != MenuItemDisplay.sideBySide ? NavigationRailLabelType.all : null,
+        minWidth: minGap.toDouble(),
+        // this is important for optimal default item spacing
+        labelType: itemDisplay != MenuItemDisplay.sideBySide
+            ? NavigationRailLabelType.all
+            : null,
         backgroundColor: menuBackground,
         leading: menuHeader,
         destinations: navItems,
         trailing: menuFooter,
         selectedIndex: selectedIndex,
-        onDestinationSelected: (index) => selectNavigationIndex(context, menuItems[index]),
+        onDestinationSelected: (index) =>
+            selectNavigationIndex(context, menuItems[index]),
       ));
 
       // show a divider between the NavigationRail and the content
-      Color? borderColor = Utils.getColor(widget._pageModel.menu!.styles?['borderColor']);
-      int? borderWidth = Utils.optionalInt(widget._pageModel.menu!.styles?['borderWidth']);
+      Color? borderColor =
+          Utils.getColor(widget._pageModel.menu!.styles?['borderColor']);
+      int? borderWidth =
+          Utils.optionalInt(widget._pageModel.menu!.styles?['borderWidth']);
       if (borderColor != null || borderWidth != null) {
         content.add(VerticalDivider(
-          thickness: (borderWidth ?? 1).toDouble(),
-          width: (borderWidth ?? 1).toDouble(),
-          color: borderColor
-        ));
+            thickness: (borderWidth ?? 1).toDouble(),
+            width: (borderWidth ?? 1).toDouble(),
+            color: borderColor));
       }
 
       // add the bodyWidget
       content.add(Expanded(
           child: SafeArea(
-            top: _useSafeArea, //widget._pageModel.pageType == PageType.modal ? false : true,
+              top: _useSafeArea,
+              //widget._pageModel.pageType == PageType.modal ? false : true,
               child: rootWidget)));
 
       return Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: content);
+          crossAxisAlignment: CrossAxisAlignment.start, children: content);
     }
 
     return SafeArea(
-        top: _useSafeArea,//widget._pageModel.pageType == PageType.modal ? false : true,
-        child: rootWidget
-    );
+        top: _useSafeArea,
+        //widget._pageModel.pageType == PageType.modal ? false : true,
+        child: rootWidget);
   }
-
-
 
   Drawer? _buildDrawer(BuildContext context, Menu menu) {
     List<ListTile> navItems = [];
@@ -460,7 +479,7 @@ class ViewState extends State<View>{
 
     int selectedIndex = 0;
     List<BottomNavigationBarItem> navItems = [];
-    for (int i=0; i<menu.menuItems.length; i++) {
+    for (int i = 0; i < menu.menuItems.length; i++) {
       model.MenuItem item = menu.menuItems[i];
       navItems.add(BottomNavigationBarItem(
           icon: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
@@ -479,13 +498,11 @@ class ViewState extends State<View>{
           }
         },
         currentIndex: selectedIndex);
-
   }
 
   void selectNavigationIndex(BuildContext context, model.MenuItem menuItem) {
     ScreenController().navigateToScreen(context, screenName: menuItem.page);
   }
-
 
   Widget? _buildFooter(ScopeManager scopeManager, PageModel pageModel) {
     // Footer can only take 1 child by our design. Ignore the rest
@@ -497,11 +514,11 @@ class ViewState extends State<View>{
               width: double.infinity,
               height: 110,
               child: Padding(
-                padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 32),
-                child: scopeManager.buildWidget(pageModel.footer!.children.first),
-              )
-          )
-      );
+                padding: const EdgeInsets.only(
+                    left: 16, right: 16, top: 16, bottom: 32),
+                child:
+                    scopeManager.buildWidget(pageModel.footer!.children.first),
+              )));
     }
     return null;
   }
@@ -529,11 +546,9 @@ class ViewState extends State<View>{
 /// a wrapper InheritedWidget to expose the ScopeManager
 /// to every widgets in our tree
 class DataScopeWidget extends InheritedWidget {
-  const DataScopeWidget({
-    Key? key,
-    required this.scopeManager,
-    required Widget child
-  }) : super(key: key, child: child);
+  const DataScopeWidget(
+      {Key? key, required this.scopeManager, required Widget child})
+      : super(key: key, child: child);
 
   final ScopeManager scopeManager;
 
@@ -544,15 +559,14 @@ class DataScopeWidget extends InheritedWidget {
 
   /// return the ScopeManager which includes the dataContext
   static ScopeManager? getScope(BuildContext context) {
-    DataScopeWidget? viewWidget = context.dependOnInheritedWidgetOfExactType<DataScopeWidget>();
+    DataScopeWidget? viewWidget =
+        context.dependOnInheritedWidgetOfExactType<DataScopeWidget>();
     if (viewWidget != null) {
       return viewWidget.scopeManager;
     }
     return null;
   }
 }
-
-
 
 class ActionResponse {
   Map<String, dynamic>? _resultData;

@@ -11,11 +11,14 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:ensemble/util/extensions.dart';
 
-class Date extends StatefulWidget with Invokable, HasController<DateController, DateState> {
+class Date extends StatefulWidget
+    with Invokable, HasController<DateController, DateState> {
   static const type = 'Date';
+
   Date({Key? key}) : super(key: key);
 
   final DateController _controller = DateController();
+
   @override
   DateController get controller => _controller;
 
@@ -37,18 +40,19 @@ class Date extends StatefulWidget with Invokable, HasController<DateController, 
   @override
   Map<String, Function> setters() {
     return {
-      'initialValue': (value) => _controller.initialValue = Utils.getDate(value),
+      'initialValue': (value) =>
+          _controller.initialValue = Utils.getDate(value),
       'firstDate': (value) => _controller.firstDate = Utils.getDate(value),
       'lastDate': (value) => _controller.lastDate = Utils.getDate(value),
-      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this)
+      'onChange': (definition) =>
+          _controller.onChange = Utils.getAction(definition, initiator: this)
     };
   }
-
-
 }
 
 class DateController extends FormFieldController {
   DateTime? value;
+
   String get prettyValue {
     if (value != null) {
       return DateFormat('MMM dd').format(value!);
@@ -61,7 +65,6 @@ class DateController extends FormFieldController {
   DateTime? lastDate;
 
   EnsembleAction? onChange;
-
 }
 
 class DateState extends FormFieldWidgetState<Date> {
@@ -70,37 +73,29 @@ class DateState extends FormFieldWidgetState<Date> {
   @override
   Widget buildWidget(BuildContext context) {
     return FormField<DateTime>(
-      key: validatorKey,
-      validator: (value) {
-        if (widget._controller.required && widget._controller.value == null) {
-          return Utils.translateWithFallback('ensemble.input.required', 'This field is required');
-        }
-        return null;
-      },
-      builder: (FormFieldState<DateTime> field) {
-        return InputDecorator(
-          decoration: inputDecoration.copyWith(
-            border: InputBorder.none,
-            enabledBorder: InputBorder.none,
-            disabledBorder: InputBorder.none,
-            focusedBorder: InputBorder.none,
-            errorText: field.errorText
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              InkWell(
-                child: nowBuildWidget(),
-                onTap: isEnabled() ? () => _selectDate(context) : null
-              )
-            ]
-          )
-        );
-      }
-    );
-
+        key: validatorKey,
+        validator: (value) {
+          if (widget._controller.required && widget._controller.value == null) {
+            return Utils.translateWithFallback(
+                'ensemble.input.required', 'This field is required');
+          }
+          return null;
+        },
+        builder: (FormFieldState<DateTime> field) {
+          return InputDecorator(
+              decoration: inputDecoration.copyWith(
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  disabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  errorText: field.errorText),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                InkWell(
+                    child: nowBuildWidget(),
+                    onTap: isEnabled() ? () => _selectDate(context) : null)
+              ]));
+        });
   }
-
 
   void _selectDate(BuildContext context) async {
     // massage the dates to ensure initial date falls between firstDate and lastDate
@@ -109,7 +104,8 @@ class DateState extends FormFieldWidgetState<Date> {
     if (firstDate.isAfter(lastDate)) {
       firstDate = lastDate;
     }
-    DateTime initialDate = widget._controller.initialValue ?? DateTime.now().toDate();
+    DateTime initialDate =
+        widget._controller.initialValue ?? DateTime.now().toDate();
     if (initialDate.isBefore(firstDate)) {
       initialDate = firstDate;
     } else if (initialDate.isAfter(lastDate)) {
@@ -117,24 +113,23 @@ class DateState extends FormFieldWidgetState<Date> {
     }
 
     final picked = await showDatePicker(
-      context: context,
-      initialDate: initialDate,
-      firstDate: firstDate,
-      lastDate: lastDate
-    );
+        context: context,
+        initialDate: initialDate,
+        firstDate: firstDate,
+        lastDate: lastDate);
     if (picked != null) {
-      if (widget._controller.value == null || widget._controller.value!.compareTo(picked) != 0) {
+      if (widget._controller.value == null ||
+          widget._controller.value!.compareTo(picked) != 0) {
         setState(() {
           widget._controller.value = picked;
         });
         if (isEnabled() && widget._controller.onChange != null) {
-          ScreenController().executeAction(
-              context, widget._controller.onChange!);
+          ScreenController()
+              .executeAction(context, widget._controller.onChange!);
         }
       }
     }
   }
-
 
   Widget nowBuildWidget() {
     Widget rtn = Row(
@@ -142,10 +137,8 @@ class DateState extends FormFieldWidgetState<Date> {
       children: [
         const Icon(Icons.calendar_month_rounded, color: Colors.black54),
         const SizedBox(width: 5),
-        Text(
-          widget._controller.prettyValue,
-          style: TextStyle(fontSize: widget._controller.fontSize?.toDouble())
-        )
+        Text(widget._controller.prettyValue,
+            style: TextStyle(fontSize: widget._controller.fontSize?.toDouble()))
       ],
     );
     if (!isEnabled()) {
@@ -156,6 +149,4 @@ class DateState extends FormFieldWidgetState<Date> {
     }
     return rtn;
   }
-
-
 }

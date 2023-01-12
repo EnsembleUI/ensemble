@@ -1,5 +1,3 @@
-
-
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/custom_view.dart';
@@ -12,7 +10,6 @@ import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
 
 class ViewUtil {
-
   static bool isViewModel(dynamic item, Map<String, dynamic>? customWidgetMap) {
     if (item != null) {
       return customWidgetMap?[item.toString()] != null || item is YamlMap;
@@ -33,7 +30,8 @@ class ViewUtil {
   }
 
   ///convert a YAML representing a widget to a WidgetModel
-  static WidgetModel buildModel(dynamic item, Map<String, dynamic>? customWidgetMap) {
+  static WidgetModel buildModel(
+      dynamic item, Map<String, dynamic>? customWidgetMap) {
     String? widgetType;
     YamlMap? payload;
 
@@ -49,7 +47,8 @@ class ViewUtil {
 
     // if this is a custom widget
     if (customWidgetMap?[widgetType] != null) {
-      WidgetModel? customModel = buildCustomModel(payload, customWidgetMap![widgetType]!, customWidgetMap);
+      WidgetModel? customModel = buildCustomModel(
+          payload, customWidgetMap![widgetType]!, customWidgetMap);
       if (customModel == null) {
         throw LanguageError("Unable to build the Custom Widget");
       }
@@ -57,7 +56,8 @@ class ViewUtil {
     }
 
     if (widgetType == null) {
-      throw LanguageError('Invalid widget definition.', recovery: 'Widget type is required');
+      throw LanguageError('Invalid widget definition.',
+          recovery: 'Widget type is required');
     }
 
     // Let's build the model now
@@ -80,25 +80,20 @@ class ViewUtil {
         } else if (key == 'children' && value is YamlList) {
           children = ViewUtil.buildModels(value, customWidgetMap);
         } else if (key == "item-template" && value is YamlMap) {
-          itemTemplate = ItemTemplate(
-              value['data'],
-              value['name'],
-              value['template']);
+          itemTemplate =
+              ItemTemplate(value['data'], value['name'], value['template']);
         } else {
           props[key] = value;
         }
       }
     });
 
-    return WidgetModel(
-        widgetType,
-        styles,
-        props,
-        children: children,
-        itemTemplate: itemTemplate);
+    return WidgetModel(widgetType, styles, props,
+        children: children, itemTemplate: itemTemplate);
   }
 
-  static WidgetModel? buildCustomModel(YamlMap? callerPayload, dynamic viewDefinition, Map<String, dynamic> customWidgetMap) {
+  static WidgetModel? buildCustomModel(YamlMap? callerPayload,
+      dynamic viewDefinition, Map<String, dynamic> customWidgetMap) {
     // the custom definition may just have another widget name (with zero other information)
     if (viewDefinition is String) {
       return buildModel(viewDefinition, customWidgetMap);
@@ -115,7 +110,6 @@ class ViewUtil {
     Map<String, dynamic> props = {};
     List<String> inputParams = [];
     for (String key in viewDefinition.keys) {
-
       // see if the custom widget actually declare any input parameters
       if (key == 'inputs' && viewDefinition[key] is YamlList) {
         for (var input in viewDefinition[key]) {
@@ -129,10 +123,9 @@ class ViewUtil {
       // find the first widget model
       else {
         // if a regular widget or custom widget
-        if (WidgetRegistry.widgetMap[key] != null || customWidgetMap[key] != null) {
-          YamlMap widgetMap = YamlMap.wrap({
-            key: viewDefinition[key]
-          });
+        if (WidgetRegistry.widgetMap[key] != null ||
+            customWidgetMap[key] != null) {
+          YamlMap widgetMap = YamlMap.wrap({key: viewDefinition[key]});
           widgetModel = ViewUtil.buildModel(widgetMap, customWidgetMap);
 
           // there should only be 1 widget model
@@ -145,10 +138,12 @@ class ViewUtil {
       throw LanguageError("Custom Widget requires a child widget");
     }
 
-    return CustomWidgetModel(widgetModel, props, inputs: inputPayload, parameters: inputParams);
+    return CustomWidgetModel(widgetModel, props,
+        inputs: inputPayload, parameters: inputParams);
   }
 
-  static List<WidgetModel> buildModels(YamlList items, Map<String, dynamic>? customWidgetMap) {
+  static List<WidgetModel> buildModels(
+      YamlList items, Map<String, dynamic>? customWidgetMap) {
     List<WidgetModel> rtn = [];
     for (dynamic item in items) {
       rtn.add(buildModel(item, customWidgetMap));
@@ -156,32 +151,31 @@ class ViewUtil {
     return rtn;
   }
 
-  static Widget buildBareCustomWidget(ScopeNode scopeNode, CustomWidgetModel customModel, Map<WidgetModel, ModelPayload> modelMap) {
+  static Widget buildBareCustomWidget(ScopeNode scopeNode,
+      CustomWidgetModel customModel, Map<WidgetModel, ModelPayload> modelMap) {
     // create a new Scope (for our custom widget) and add to the parent
     ScopeManager customScope = scopeNode.scope.createChildScope();
     ScopeNode customScopeNode = ScopeNode(customScope);
     scopeNode.addChild(customScopeNode);
 
     // build the root child widget
-    Widget rootWidget = buildBareWidget(customScopeNode, customModel.getModel(), modelMap);
+    Widget rootWidget =
+        buildBareWidget(customScopeNode, customModel.getModel(), modelMap);
 
     Widget customWidget = CustomView(
-      childWidget: rootWidget,
-      parameters: customModel.parameters,
-      scopeManager: customScope,
-      viewBehavior: customModel.getViewBehavior()
-    );
+        childWidget: rootWidget,
+        parameters: customModel.parameters,
+        scopeManager: customScope,
+        viewBehavior: customModel.getViewBehavior());
     modelMap[customModel] = ModelPayload(customWidget, customScope);
 
-    return DataScopeWidget(
-      scopeManager: customScope,
-      child: customWidget
-    );
+    return DataScopeWidget(scopeManager: customScope, child: customWidget);
   }
 
-  static Widget buildBareWidget(ScopeNode scopeNode, WidgetModel model, Map<WidgetModel, ModelPayload> modelMap) {
+  static Widget buildBareWidget(ScopeNode scopeNode, WidgetModel model,
+      Map<WidgetModel, ModelPayload> modelMap) {
     if (model is CustomWidgetModel) {
-       return buildBareCustomWidget(scopeNode, model, modelMap);
+      return buildBareCustomWidget(scopeNode, model, modelMap);
     }
 
     Function? widgetInstance = WidgetRegistry.widgetMap[model.type];
@@ -236,12 +230,6 @@ class ViewUtil {
       }
     }
   }
-
-
-
-
-
-
 }
 
 class ModelPayload {
@@ -250,7 +238,6 @@ class ModelPayload {
   final Widget widget;
   final ScopeManager scopeManager;
   List<Widget>? children;
-
 }
 
 /// wrapper ScopeManager as a tree node

@@ -1,4 +1,3 @@
-
 import 'dart:developer';
 
 import 'package:ensemble/ensemble_theme.dart';
@@ -19,14 +18,17 @@ import 'package:form_validator/form_validator.dart';
 /// TextInput
 class TextInput extends BaseTextInput {
   static const type = 'TextInput';
+
   TextInput({Key? key}) : super(key: key);
 
   @override
   Map<String, Function> setters() {
     Map<String, Function> setters = super.setters();
     setters.addAll({
-      'value': (newValue) => textController.text = Utils.getString(newValue, fallback: ''),
-      'obscureText': (obscure) => _controller.obscureText = Utils.optionalBool(obscure),
+      'value': (newValue) =>
+          textController.text = Utils.getString(newValue, fallback: ''),
+      'obscureText': (obscure) =>
+          _controller.obscureText = Utils.optionalBool(obscure),
       'inputType': (type) => _controller.inputType = Utils.optionalString(type),
     });
     return setters;
@@ -47,12 +49,12 @@ class TextInput extends BaseTextInput {
     }
     return null;
   }
-
 }
 
 /// PasswordInput
 class PasswordInput extends BaseTextInput {
   static const type = 'PasswordInput';
+
   PasswordInput({Key? key}) : super(key: key);
 
   @override
@@ -62,16 +64,17 @@ class PasswordInput extends BaseTextInput {
 
   @override
   TextInputType? get keyboardType => null;
-
 }
 
 /// Base StatefulWidget for both TextInput and Password
-abstract class BaseTextInput extends StatefulWidget with Invokable, HasController<TextInputController, TextInputState> {
+abstract class BaseTextInput extends StatefulWidget
+    with Invokable, HasController<TextInputController, TextInputState> {
   BaseTextInput({Key? key}) : super(key: key);
 
   // textController manages 'value', while _controller manages the rest
   final TextEditingController textController = TextEditingController();
   final TextInputController _controller = TextInputController();
+
   @override
   TextInputController get controller => _controller;
 
@@ -86,12 +89,17 @@ abstract class BaseTextInput extends StatefulWidget with Invokable, HasControlle
   Map<String, Function> setters() {
     // set value is not specified here for safety in case of PasswordInput
     return {
-      'onKeyPress': (function) => _controller.onKeyPress = Utils.getAction(function, initiator: this),
-      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this),
-      'borderRadius': (value) => _controller.borderRadius = Utils.optionalInt(value),
+      'onKeyPress': (function) =>
+          _controller.onKeyPress = Utils.getAction(function, initiator: this),
+      'onChange': (definition) =>
+          _controller.onChange = Utils.getAction(definition, initiator: this),
+      'borderRadius': (value) =>
+          _controller.borderRadius = Utils.optionalInt(value),
       'validator': (value) => _controller.validator = Utils.getValidator(value),
-      'obscureToggle': (value) => _controller.obscureToggle = Utils.optionalBool(value),
-      'keyboardAction': (value) => _controller.keyboardAction = _getKeyboardAction(value)
+      'obscureToggle': (value) =>
+          _controller.obscureToggle = Utils.optionalBool(value),
+      'keyboardAction': (value) =>
+          _controller.keyboardAction = _getKeyboardAction(value)
     };
   }
 
@@ -101,7 +109,7 @@ abstract class BaseTextInput extends StatefulWidget with Invokable, HasControlle
   }
 
   TextInputAction? _getKeyboardAction(dynamic value) {
-    switch(value) {
+    switch (value) {
       case 'done':
         return TextInputAction.done;
       case 'go':
@@ -122,8 +130,8 @@ abstract class BaseTextInput extends StatefulWidget with Invokable, HasControlle
   TextInputState createState() => TextInputState();
 
   bool isPassword();
-  TextInputType? get keyboardType;
 
+  TextInputType? get keyboardType;
 }
 
 /// controller for both TextField and Password
@@ -152,6 +160,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
   // This is so we can be consistent with the other input widgets' onChange
   String previousText = '';
   bool didItChange = false;
+
   void evaluateChanges() {
     if (didItChange) {
       // trigger binding
@@ -170,7 +179,8 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
 
   @override
   void initState() {
-    currentlyObscured = widget.isPassword() || widget._controller.obscureText == true;
+    currentlyObscured =
+        widget.isPassword() || widget._controller.obscureText == true;
 
     focusNode.addListener(() {
       // on focus lost
@@ -203,114 +213,106 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
 
   @override
   Widget buildWidget(BuildContext context) {
-
     // TextField doesn't take the global disabled color for some reason,
     // so we have to account for it here
     TextStyle textStyle;
     if (isEnabled()) {
-      textStyle = TextStyle(
-          fontSize: widget.controller.fontSize?.toDouble());
+      textStyle = TextStyle(fontSize: widget.controller.fontSize?.toDouble());
     } else {
       textStyle = TextStyle(
-        color: Theme.of(context).disabledColor,
-        fontSize: widget.controller.fontSize?.toDouble());
+          color: Theme.of(context).disabledColor,
+          fontSize: widget.controller.fontSize?.toDouble());
     }
 
     // for password, show the toggle plain text/obscure text
     InputDecoration decoration = inputDecoration;
-    if ((widget.isPassword() || widget._controller.obscureText == true) && widget._controller.obscureToggle == true) {
+    if ((widget.isPassword() || widget._controller.obscureText == true) &&
+        widget._controller.obscureToggle == true) {
       decoration = decoration.copyWith(
-        suffixIcon: IconButton(
-          icon: Icon(currentlyObscured ? Icons.visibility : Icons.visibility_off),
-          onPressed: () {
-            setState(() {
-              currentlyObscured = !currentlyObscured;
-            });
-          },
-
-        )
-      );
+          suffixIcon: IconButton(
+        icon: Icon(currentlyObscured ? Icons.visibility : Icons.visibility_off),
+        onPressed: () {
+          setState(() {
+            currentlyObscured = !currentlyObscured;
+          });
+        },
+      ));
     }
 
-
     return TextFormField(
-      key: validatorKey,
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return widget._controller.required ?
-            Utils.translateWithFallback('ensemble.input.required', 'This field is required') :
-            null;
-        }
-        // only applicable for TextInput
-        if (!widget.isPassword() && value != null) {
-          if (widget._controller.inputType == InputType.email.name) {
-            if (!EmailValidator.validate(value)) {
-              return "Please enter a valid email address";
+        key: validatorKey,
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return widget._controller.required
+                ? Utils.translateWithFallback(
+                    'ensemble.input.required', 'This field is required')
+                : null;
+          }
+          // only applicable for TextInput
+          if (!widget.isPassword() && value != null) {
+            if (widget._controller.inputType == InputType.email.name) {
+              if (!EmailValidator.validate(value)) {
+                return "Please enter a valid email address";
+              }
+            } else if (widget._controller.inputType ==
+                InputType.ipAddress.name) {
+              if (!InputValidator.ipAddress(value)) {
+                return "Please enter a valid IP Address";
+              }
+            } else if (widget._controller.inputType == InputType.phone.name) {
+              if (!InputValidator.phone(value)) {
+                return "Please enter a valid Phone Number";
+              }
             }
-          } else if (widget._controller.inputType == InputType.ipAddress.name) {
-            if (!InputValidator.ipAddress(value)) {
-              return "Please enter a valid IP Address";
+          }
+          if (widget._controller.validator != null) {
+            ValidationBuilder? builder;
+            if (widget._controller.validator?.minLength != null) {
+              builder = ValidationBuilder()
+                  .minLength(widget._controller.validator!.minLength!);
             }
-          } else if (widget._controller.inputType == InputType.phone.name) {
-            if (!InputValidator.phone(value)) {
-              return "Please enter a valid Phone Number";
+            if (widget._controller.validator?.maxLength != null) {
+              builder = (builder ?? ValidationBuilder())
+                  .maxLength(widget._controller.validator!.maxLength!);
+            }
+            if (widget._controller.validator?.regex != null) {
+              builder = (builder ?? ValidationBuilder()).regExp(
+                  RegExp(widget._controller.validator!.regex!),
+                  widget._controller.validator!.regexError ??
+                      'This field has invalid value');
+            }
+            if (builder != null) {
+              return builder.build().call(value);
             }
           }
-        }
-        if (widget._controller.validator != null) {
-          ValidationBuilder? builder;
-          if (widget._controller.validator?.minLength != null) {
-            builder = ValidationBuilder().minLength(widget._controller.validator!.minLength!);
-          }
-          if (widget._controller.validator?.maxLength != null) {
-            builder = (builder ?? ValidationBuilder()).maxLength(widget._controller.validator!.maxLength!);
-          }
-          if (widget._controller.validator?.regex != null) {
-            builder = (builder ?? ValidationBuilder()).regExp(
-              RegExp(widget._controller.validator!.regex!),
-              widget._controller.validator!.regexError ?? 'This field has invalid value'
-            );
-          }
-          if (builder != null) {
-            return builder.build().call(value);
-          }
-        }
-        return null;
-      },
-      textInputAction: widget._controller.keyboardAction,
-      keyboardType: widget.keyboardType,
-      obscureText: isObscureOrPlainText(),
-      enableSuggestions: !widget.isPassword(),
-      autocorrect: !widget.isPassword(),
-      controller: widget.textController,
-      focusNode: focusNode,
-      enabled: isEnabled(),
-      onFieldSubmitted: (value) => widget.controller.submitForm(context),
-      onChanged: (String txt) {
-        if (txt != previousText) {
-          // for performance reason, we dispatch onChange (as well as binding to value)
-          // upon EditingComplete (select Done on virtual keyboard) or Focus Out
-          didItChange = true;
-          previousText = txt;
+          return null;
+        },
+        textInputAction: widget._controller.keyboardAction,
+        keyboardType: widget.keyboardType,
+        obscureText: isObscureOrPlainText(),
+        enableSuggestions: !widget.isPassword(),
+        autocorrect: !widget.isPassword(),
+        controller: widget.textController,
+        focusNode: focusNode,
+        enabled: isEnabled(),
+        onFieldSubmitted: (value) => widget.controller.submitForm(context),
+        onChanged: (String txt) {
+          if (txt != previousText) {
+            // for performance reason, we dispatch onChange (as well as binding to value)
+            // upon EditingComplete (select Done on virtual keyboard) or Focus Out
+            didItChange = true;
+            previousText = txt;
 
-          // we dispatch onKeyPress here
-          if (widget._controller.onKeyPress != null) {
-            ScreenController().executeAction(context, widget._controller.onKeyPress!);
+            // we dispatch onKeyPress here
+            if (widget._controller.onKeyPress != null) {
+              ScreenController()
+                  .executeAction(context, widget._controller.onKeyPress!);
+            }
           }
-
-        }
-      },
-      style: textStyle,
-      decoration: decoration
-    );
-
+        },
+        style: textStyle,
+        decoration: decoration);
   }
-
 }
 
-enum InputType {
-  email,
-  phone,
-  ipAddress
-}
-
+enum InputType { email, phone, ipAddress }
