@@ -86,6 +86,26 @@ flutter:
   assets:
     - assets/images/
 
+  fonts:
+    # semi-custom fonts
+    - family: idealTalent
+      fonts:
+        - asset: assets/fonts/idealTalent/icomoon.ttf
+    - family: Clarika
+      fonts:
+        - asset: assets/fonts/idealTalent/Clarika.ttf
+    - family: ClarikaRegular
+      fonts:
+        - asset: assets/fonts/idealTalent/ClarikaRegular.ttf
+
+    # other fonts available to apps
+    - family: Jost
+      fonts:
+        - asset: assets/fonts/Jost-VariableFont_wght.ttf
+        - asset: assets/fonts/Jost-Italic-VariableFont_wght.ttf
+          style: italic
+
+
   # This section identifies your Flutter project as a module meant for
   # embedding in a native host app.  These identifiers should _not_ ordinarily
   # be changed after generation - they are used to ensure that the tooling can
