@@ -4,56 +4,48 @@ import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
 
 class EnsembleTheme {
-
   static ThemeData getAppTheme(YamlMap? overrides) {
     ColorScheme colorScheme = _defaultColorScheme.copyWith(
         primary: Utils.getColor(overrides?['Colors']?['primary']),
         onPrimary: Utils.getColor(overrides?['Colors']?['onPrimary']),
         secondary: Utils.getColor(overrides?['Colors']?['secondary']),
-        onSecondary: Utils.getColor(overrides?['Colors']?['onSecondary'])
-    );
+        onSecondary: Utils.getColor(overrides?['Colors']?['onSecondary']));
 
     ThemeData themeData = ThemeData(
       // color scheme
       colorScheme: colorScheme,
       // disabled inputs / button
-      disabledColor: Utils.getColor(overrides?['Colors']?['disabled']) ?? _disabledColor,
+      disabledColor:
+          Utils.getColor(overrides?['Colors']?['disabled']) ?? _disabledColor,
       // toggleable inputs e.g. switch, checkbox
       toggleableActiveColor: colorScheme.secondary,
 
       // input theme (TextInput, Switch, Dropdown, ...)
-      inputDecorationTheme: _buildInputTheme(
-        overrides?['Widgets']?['Input'],
-        colorScheme: colorScheme
-      ),
+      inputDecorationTheme: _buildInputTheme(overrides?['Widgets']?['Input'],
+          colorScheme: colorScheme),
 
       textTheme: _buildTextTheme(overrides?['Text']),
 
       //switchTheme: buildSwitchTheme(overrides?['Widgets']?['Switch']),
 
       // button themes
-      textButtonTheme: TextButtonThemeData(style: _buildButtonTheme(
-          overrides?['Widgets']?['Button'],
-          isOutline: true,
-          colorScheme: colorScheme)
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(style: _buildButtonTheme(
-          overrides?['Widgets']?['Button'],
-          isOutline: false,
-          colorScheme: colorScheme)
-      ),
-
+      textButtonTheme: TextButtonThemeData(
+          style: _buildButtonTheme(overrides?['Widgets']?['Button'],
+              isOutline: true, colorScheme: colorScheme)),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+          style: _buildButtonTheme(overrides?['Widgets']?['Button'],
+              isOutline: false, colorScheme: colorScheme)),
     );
 
     // extends ThemeData
-    return themeData.copyWith(
-      extensions: [
-        EnsembleThemeExtension(
-          loadingScreenBackgroundColor: Utils.getColor(overrides?['Colors']?['loadingScreenBackgroundColor']),
-          loadingScreenIndicatorColor: Utils.getColor(overrides?['Colors']?['loadingScreenIndicatorColor']),
-        )
-      ]
-    );
+    return themeData.copyWith(extensions: [
+      EnsembleThemeExtension(
+        loadingScreenBackgroundColor: Utils.getColor(
+            overrides?['Colors']?['loadingScreenBackgroundColor']),
+        loadingScreenIndicatorColor: Utils.getColor(
+            overrides?['Colors']?['loadingScreenIndicatorColor']),
+      )
+    ]);
   }
 
   /// Ensemble default color scheme
@@ -88,65 +80,72 @@ class EnsembleTheme {
     shadow: Color(0xff000000),
   );
 
-
-
   /// Ensemble's fallback default values. These will be used
   /// if certain theme is not specified
   static const Color _disabledColor = Colors.black38;
   static const Color _inputBorderColor = Color(0xFFBDBDBD);
   static const Color _inputBorderDisabledColor = Colors.black12;
   static const int _inputBorderRadius = 3;
-  static const EdgeInsets _buttonPadding = EdgeInsets.only(left: 15, top: 5, right: 15, bottom: 5);
+  static const EdgeInsets _buttonPadding =
+      EdgeInsets.only(left: 15, top: 5, right: 15, bottom: 5);
   static const int _buttonBorderRadius = 3;
   static const Color _buttonBorderOutlineColor = Colors.black12;
 
-
-
   static TextTheme _buildTextTheme(YamlMap? textTheme) {
     return ThemeData.light().textTheme.copyWith(
-      displayLarge: Utils.getTextStyle(textTheme?['displayLarge']),
-      displayMedium: Utils.getTextStyle(textTheme?['displayMedium']),
-      displaySmall: Utils.getTextStyle(textTheme?['displaySmall']),
-      headlineLarge: Utils.getTextStyle(textTheme?['headlineLarge']),
-      headlineMedium: Utils.getTextStyle(textTheme?['headlineMedium']),
-      headlineSmall: Utils.getTextStyle(textTheme?['headlineSmall']),
-      titleLarge: Utils.getTextStyle(textTheme?['titleLarge']),
-      titleMedium: Utils.getTextStyle(textTheme?['titleMedium']),
-      titleSmall: Utils.getTextStyle(textTheme?['titleSmall']),
-      bodyLarge: Utils.getTextStyle(textTheme?['bodyLarge']),
-      bodyMedium: Utils.getTextStyle(textTheme?['bodyMedium']),
-      bodySmall: Utils.getTextStyle(textTheme?['bodySmall']),
-      labelLarge: Utils.getTextStyle(textTheme?['labelLarge']),
-      labelMedium: Utils.getTextStyle(textTheme?['labelMedium']),
-      labelSmall: Utils.getTextStyle(textTheme?['labelSmall']),
-    );
+          displayLarge: Utils.getTextStyle(textTheme?['displayLarge']),
+          displayMedium: Utils.getTextStyle(textTheme?['displayMedium']),
+          displaySmall: Utils.getTextStyle(textTheme?['displaySmall']),
+          headlineLarge: Utils.getTextStyle(textTheme?['headlineLarge']),
+          headlineMedium: Utils.getTextStyle(textTheme?['headlineMedium']),
+          headlineSmall: Utils.getTextStyle(textTheme?['headlineSmall']),
+          titleLarge: Utils.getTextStyle(textTheme?['titleLarge']),
+          titleMedium: Utils.getTextStyle(textTheme?['titleMedium']),
+          titleSmall: Utils.getTextStyle(textTheme?['titleSmall']),
+          bodyLarge: Utils.getTextStyle(textTheme?['bodyLarge']),
+          bodyMedium: Utils.getTextStyle(textTheme?['bodyMedium']),
+          bodySmall: Utils.getTextStyle(textTheme?['bodySmall']),
+          labelLarge: Utils.getTextStyle(textTheme?['labelLarge']),
+          labelMedium: Utils.getTextStyle(textTheme?['labelMedium']),
+          labelSmall: Utils.getTextStyle(textTheme?['labelSmall']),
+        );
   }
 
-
-
   /// parse the FormInput's theme from the theme YAML
-  static InputDecorationTheme? _buildInputTheme(YamlMap? input, {required ColorScheme colorScheme}) {
-    Color focusColor = Utils.getColor(input?['focusColor']) ?? colorScheme.primary;
-    Color borderColor = Utils.getColor(input?['borderColor']) ?? _inputBorderColor;
-    Color disabledColor = Utils.getColor(input?['borderDisabledColor']) ?? _inputBorderDisabledColor;
-    Color errorColor = Utils.getColor(input?['borderErrorColor']) ?? colorScheme.error;
+  static InputDecorationTheme? _buildInputTheme(YamlMap? input,
+      {required ColorScheme colorScheme}) {
+    Color focusColor =
+        Utils.getColor(input?['focusColor']) ?? colorScheme.primary;
+    Color borderColor =
+        Utils.getColor(input?['borderColor']) ?? _inputBorderColor;
+    Color disabledColor = Utils.getColor(input?['borderDisabledColor']) ??
+        _inputBorderDisabledColor;
+    Color errorColor =
+        Utils.getColor(input?['borderErrorColor']) ?? colorScheme.error;
 
     if (input?['variant'] == 'box') {
       return _getInputBoxDecoration(
-        focusColor: focusColor,
-        borderColor: borderColor,
-        disabledColor: disabledColor,
-        errorColor: errorColor,
-        borderRadius: Utils.optionalInt(input?['borderRadius']) ?? _inputBorderRadius);
+          focusColor: focusColor,
+          borderColor: borderColor,
+          disabledColor: disabledColor,
+          errorColor: errorColor,
+          borderRadius:
+              Utils.optionalInt(input?['borderRadius']) ?? _inputBorderRadius);
     } else {
       return _getInputUnderlineDecoration(
-        focusColor: focusColor,
-        borderColor: borderColor,
-        disabledColor: disabledColor,
-        errorColor: errorColor);
+          focusColor: focusColor,
+          borderColor: borderColor,
+          disabledColor: disabledColor,
+          errorColor: errorColor);
     }
   }
-  static InputDecorationTheme _getInputBoxDecoration({required Color focusColor, required Color borderColor, required Color disabledColor, required Color errorColor, required int borderRadius}) {
+
+  static InputDecorationTheme _getInputBoxDecoration(
+      {required Color focusColor,
+      required Color borderColor,
+      required Color disabledColor,
+      required Color errorColor,
+      required int borderRadius}) {
     return InputDecorationTheme(
       focusedBorder: ThemeUtils.getInputBoxBorder(
         borderColor: focusColor,
@@ -157,11 +156,9 @@ class EnsembleTheme {
         borderRadius: borderRadius,
       ),
       errorBorder: ThemeUtils.getInputBoxBorder(
-          borderColor: errorColor,
-          borderRadius: borderRadius),
+          borderColor: errorColor, borderRadius: borderRadius),
       focusedErrorBorder: ThemeUtils.getInputBoxBorder(
-          borderColor: errorColor,
-          borderRadius: borderRadius),
+          borderColor: errorColor, borderRadius: borderRadius),
       disabledBorder: ThemeUtils.getInputBoxBorder(
         borderColor: disabledColor,
         borderRadius: borderRadius,
@@ -170,37 +167,50 @@ class EnsembleTheme {
       contentPadding: const EdgeInsets.all(10),
     );
   }
-  static InputDecorationTheme _getInputUnderlineDecoration({required Color focusColor, required Color borderColor, required Color errorColor, required Color disabledColor}) {
+
+  static InputDecorationTheme _getInputUnderlineDecoration(
+      {required Color focusColor,
+      required Color borderColor,
+      required Color errorColor,
+      required Color disabledColor}) {
     return InputDecorationTheme(
-      focusedBorder: ThemeUtils.getInputUnderlineBorder(borderColor: focusColor),
-      enabledBorder: ThemeUtils.getInputUnderlineBorder(borderColor: borderColor),
-      disabledBorder: ThemeUtils.getInputUnderlineBorder(borderColor: disabledColor),
-      errorBorder:  ThemeUtils.getInputUnderlineBorder(borderColor: errorColor),
-      focusedErrorBorder: ThemeUtils.getInputUnderlineBorder(borderColor: errorColor),
+      focusedBorder:
+          ThemeUtils.getInputUnderlineBorder(borderColor: focusColor),
+      enabledBorder:
+          ThemeUtils.getInputUnderlineBorder(borderColor: borderColor),
+      disabledBorder:
+          ThemeUtils.getInputUnderlineBorder(borderColor: disabledColor),
+      errorBorder: ThemeUtils.getInputUnderlineBorder(borderColor: errorColor),
+      focusedErrorBorder:
+          ThemeUtils.getInputUnderlineBorder(borderColor: errorColor),
       isDense: false,
       contentPadding: EdgeInsets.zero,
     );
   }
 
-
-  static ButtonStyle? _buildButtonTheme(YamlMap? input, {required ColorScheme colorScheme, required bool isOutline}) {
+  static ButtonStyle? _buildButtonTheme(YamlMap? input,
+      {required ColorScheme colorScheme, required bool isOutline}) {
     // outline button can simply use backgroundColor as borderColor (if not set)
     Color? borderColor = Utils.getColor(input?['borderColor']);
     if (borderColor == null && isOutline) {
-      borderColor = Utils.getColor(input?['backgroundColor']) ?? _buttonBorderOutlineColor;
+      borderColor = Utils.getColor(input?['backgroundColor']) ??
+          _buttonBorderOutlineColor;
     }
 
     // outline button ignores backgroundColor
-    Color? backgroundColor = isOutline ? null : Utils.getColor(input?['backgroundColor']);
+    Color? backgroundColor =
+        isOutline ? null : Utils.getColor(input?['backgroundColor']);
 
     RoundedRectangleBorder border = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(
-        Utils.getInt(input?['borderRadius'], fallback: _buttonBorderRadius).toDouble()),
-      side: borderColor == null ? BorderSide.none : BorderSide(
-        color: borderColor,
-        width: Utils.getInt(input?['borderWidth'], fallback: 1).toDouble()
-      )
-    );
+        borderRadius: BorderRadius.circular(
+            Utils.getInt(input?['borderRadius'], fallback: _buttonBorderRadius)
+                .toDouble()),
+        side: borderColor == null
+            ? BorderSide.none
+            : BorderSide(
+                color: borderColor,
+                width: Utils.getInt(input?['borderWidth'], fallback: 1)
+                    .toDouble()));
 
     return ThemeUtils.getButtonStyle(
       isOutline: isOutline,
@@ -215,26 +225,14 @@ class EnsembleTheme {
     return const SwitchThemeData();
   }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
   /// legacy stuff
   static const Color notWhite = Color(0xFFEDF0F2);
   static const Color nearlyWhite = Color(0xFFFFFFFF);
   static const Color nearlyBlue = Color(0xFF00B6F0);
   static const Color nearlyBlack = Color(0xFF213333);
   static const Color grey = Color(0xFF3A5160);
-  static const Color dark_grey = Color(0xFF313A44);
+  static const Color darkgrey = Color(0xFF313A44);
+  static const Color primary = Color(0xFF08B48F);
 
   static const Color darkText = Color(0xFF253840);
   static const Color darkerText = Color(0xFF17262A);
@@ -244,39 +242,27 @@ class EnsembleTheme {
   static const Color chipBackground = Color(0xFFEEF1F3);
   static const Color spacer = Color(0xFFF2F2F2);
 
-
   static ThemeData get lightTheme {
     return ThemeData(
-        disabledColor: const Color(0xffE0E0E0),
+      disabledColor: const Color(0xffE0E0E0),
     );
   }
 
   static ThemeData get payAppTheme {
     return ThemeData(
-      colorScheme: const ColorScheme(
-        brightness: Brightness.light,
-        primary: Color(0xFF08B48F),
-        onPrimary: Colors.white,
-
-        secondary: Color(0xFFED5742),
-        onSecondary: Colors.white,
-
-        error: Color(0xFFB00020),
-        onError: Colors.white,
-
-        background: Colors.white,
-        onBackground: Color(0xFF404040),
-
-        surface: Colors.white,
-        onSurface: Color(0xFF404040)
-
-
-
-      )
-    );
+        colorScheme: const ColorScheme(
+            brightness: Brightness.light,
+            primary: Color(0xFF08B48F),
+            onPrimary: Colors.white,
+            secondary: Color(0xFFED5742),
+            onSecondary: Colors.white,
+            error: Color(0xFFB00020),
+            onError: Colors.white,
+            background: Colors.white,
+            onBackground: Color(0xFF404040),
+            surface: Colors.white,
+            onSurface: Color(0xFF404040)));
   }
-
-
 
   static const TextTheme textTheme = TextTheme(
     headline4: display1,
@@ -352,7 +338,6 @@ class EnsembleTheme {
     color: lightText, // was lightText
   );
 
-
   static TextTheme _buildTextThemeOld(TextTheme base) {
     const String fontName = 'WorkSans';
     return base.copyWith(
@@ -405,33 +390,34 @@ class EnsembleTheme {
 
 /// extend Theme to add our own special color parameters
 class EnsembleThemeExtension extends ThemeExtension<EnsembleThemeExtension> {
-  EnsembleThemeExtension({
-    this.loadingScreenBackgroundColor,
-    this.loadingScreenIndicatorColor
-  });
-  
+  EnsembleThemeExtension(
+      {this.loadingScreenBackgroundColor, this.loadingScreenIndicatorColor});
+
   final Color? loadingScreenBackgroundColor;
   final Color? loadingScreenIndicatorColor;
 
   @override
-  ThemeExtension<EnsembleThemeExtension> copyWith({
-    Color? loadingScreenBackgroundColor,
-    Color? loadingScreenIndicatorColor
-  }) {
+  ThemeExtension<EnsembleThemeExtension> copyWith(
+      {Color? loadingScreenBackgroundColor,
+      Color? loadingScreenIndicatorColor}) {
     return EnsembleThemeExtension(
-      loadingScreenBackgroundColor: loadingScreenBackgroundColor ?? this.loadingScreenBackgroundColor,
-      loadingScreenIndicatorColor: loadingScreenIndicatorColor ?? this.loadingScreenIndicatorColor
-    );
+        loadingScreenBackgroundColor:
+            loadingScreenBackgroundColor ?? this.loadingScreenBackgroundColor,
+        loadingScreenIndicatorColor:
+            loadingScreenIndicatorColor ?? this.loadingScreenIndicatorColor);
   }
 
   @override
-  ThemeExtension<EnsembleThemeExtension> lerp(ThemeExtension<EnsembleThemeExtension>? other, double t) {
+  ThemeExtension<EnsembleThemeExtension> lerp(
+      ThemeExtension<EnsembleThemeExtension>? other, double t) {
     if (other is! EnsembleThemeExtension) {
       return this;
     }
     return EnsembleThemeExtension(
-      loadingScreenBackgroundColor: Color.lerp(loadingScreenBackgroundColor, other.loadingScreenBackgroundColor, t),
-      loadingScreenIndicatorColor: Color.lerp(loadingScreenIndicatorColor, other.loadingScreenIndicatorColor, t),
+      loadingScreenBackgroundColor: Color.lerp(
+          loadingScreenBackgroundColor, other.loadingScreenBackgroundColor, t),
+      loadingScreenIndicatorColor: Color.lerp(
+          loadingScreenIndicatorColor, other.loadingScreenIndicatorColor, t),
     );
   }
 }
