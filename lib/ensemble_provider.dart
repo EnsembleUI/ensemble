@@ -136,6 +136,7 @@ class AppModel {
         },
         onError: (error) {
           log("Provider listener error");
+          print("[Firebase Timeout Error] - listener errors");
           listenerError = error.toString();
         }
     );
@@ -272,6 +273,7 @@ class AppModel {
         .where('isArchived', isEqualTo: false)
         .where('isRoot', isEqualTo: true)
         .get();
+
     for (var doc in snapshot.docs) {
       await updateArtifact(doc);
       if (doc.data()['type'] == 'theme') {
