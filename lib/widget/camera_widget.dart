@@ -56,64 +56,14 @@ class Camera extends StatefulWidget
           _controller.selectImageIcon = Utils.getIcon(value),
       'backIcon': (value) => _controller.backIcon = Utils.getIcon(value),
       'deleteIcon': (value) => _controller.deleteIcon = Utils.getIcon(value),
-      'rotateIconAlignment': (value) =>
-          _controller.rotateIconAlignment = Utils.getAlignment(value),
-      'rotateIconPadding': (value) =>
-          _controller.rotateIconPadding = Utils.optionalInsets(value),
-      'camerasIconAlignment': (value) =>
-          _controller.camerasIconAlignment = Utils.getAlignment(value),
-      'iconSidesPadding': (value) =>
-          _controller.iconSidesPadding = Utils.optionalInsets(value),
-      'appbarPadding': (value) =>
-          _controller.appbarPadding = Utils.optionalInsets(value),
-      'nextBtnPadding': (value) =>
-          _controller.nextBtnPadding = Utils.optionalInsets(value),
-      'cameraBtnPadding': (value) =>
-          _controller.cameraBtnPadding = Utils.optionalInsets(value),
-      'heading': (value) =>
-          _controller.heading = Utils.getString(value, fallback: ''),
       'imagesHeight': (value) =>
           _controller.imagesHeight = Utils.optionalDouble(value),
       'imagesWidth': (value) =>
           _controller.imagesWidth = Utils.optionalDouble(value),
-      'backgroundColor': (value) =>
-          _controller.backgroundColor = Utils.getColor(value),
-      'backBtnbgColor': (value) =>
-          _controller.backBtnbgColor = Utils.getColor(value),
-      'backBtnShadowColor': (value) =>
-          _controller.backBtnShadowColor = Utils.getColor(value),
-      'cameraIconBgColor': (value) =>
-          _controller.cameraIconBgColor = Utils.getColor(value),
       'listHeight': (value) =>
           _controller.listHeight = Utils.optionalDouble(value),
       'listWidth': (value) =>
           _controller.listWidth = Utils.optionalDouble(value),
-      'selectImagesAlignment': (value) =>
-          _controller.selectImagesAlignment = Utils.getWrapAlignment(value),
-      'selectImagesIconAlignment': (value) =>
-          _controller.selectImagesIconAlignment = Utils.getAlignment(value),
-      'fullImagesAlignment': (value) =>
-          _controller.fullImagesAlignment = Utils.getAlignment(value),
-      'previewImagesListAlignment': (value) =>
-          _controller.previewImagesListAlignment = Utils.getAlignment(value),
-      'imagesGap': (value) =>
-          _controller.imagesGap = Utils.optionalInsets(value),
-      'textbuttontitle': (value) =>
-          _controller.textbuttontitle = Utils.getString(value, fallback: ''),
-      'uploadBtntitle': (value) =>
-          _controller.uploadBtntitle = Utils.getString(value, fallback: ''),
-      'nextBtntitle': (value) =>
-          _controller.nextBtntitle = Utils.getString(value, fallback: ''),
-      'shadowOffset': (value) =>
-          _controller.shadowOffset = Utils.getOffset(value),
-      'shadowblurRadius': (value) =>
-          _controller.shadowblurRadius = Utils.optionalDouble(value),
-      'shadowSpreadRadius': (value) =>
-          _controller.shadowSpreadRadius = Utils.optionalDouble(value),
-      'cameraiconBoxShape': (value) =>
-          _controller.cameraiconBoxShape = WidgetUtils.getBoxShape(value),
-      'backbtnBoxShape': (value) =>
-          _controller.backbtnBoxShape = WidgetUtils.getBoxShape(value)
     };
   }
 }
@@ -136,38 +86,10 @@ class MyCameraController extends WidgetController {
   IconModel? backIcon;
   IconModel? deleteIcon;
 
-  Alignment? rotateIconAlignment;
-  Alignment? camerasIconAlignment;
-  Alignment? selectImagesIconAlignment;
-  Alignment? fullImagesAlignment;
-  Alignment? previewImagesListAlignment;
-  WrapAlignment? selectImagesAlignment;
-
-  EdgeInsets? rotateIconPadding;
-  EdgeInsets? iconSidesPadding;
-  EdgeInsets? imagesGap;
-  EdgeInsets? appbarPadding;
-  EdgeInsets? nextBtnPadding;
-  EdgeInsets? cameraBtnPadding;
-
-  String? heading;
-  String? textbuttontitle;
-  String? uploadBtntitle;
-  String? nextBtntitle;
-  Color? backgroundColor;
-  Color? backBtnbgColor;
-  Color? backBtnShadowColor;
-  Color? cameraIconBgColor;
-
-  Offset? shadowOffset;
-  double? shadowblurRadius;
-  double? shadowSpreadRadius;
-
-  BoxShape? cameraiconBoxShape;
-  BoxShape? backbtnBoxShape;
-
   bool isFrontCamera = false;
   bool imagePreview = false;
+  bool isPermission = false;
+
   var fullImage;
 
   List<CameraDescription>? cameras;
@@ -176,9 +98,20 @@ class MyCameraController extends WidgetController {
   final ImagePicker imagePicker = ImagePicker();
   List imageFileList = [];
 
+  SizedBox space = const SizedBox(
+    height: 10,
+  );
+
   Future<void> initCamera() async {
-    cameras = await availableCameras();
-    notifyListeners();
+    try {
+      cameras = await availableCameras();
+      notifyListeners();
+    } on CameraException catch (e) {
+      if (e.toString().contains('CameraAccessDenied')) {
+        isPermission = true;
+        notifyListeners();
+      }
+    }
   }
 
   void setCamera(int i) {
@@ -220,6 +153,11 @@ class CameraState extends WidgetState<Camera> {
 
   @override
   Widget buildWidget(BuildContext context) {
+    if (widget._controller.isPermission) {
+      return widget._controller.imagePreview
+          ? imagePreview()
+          : permissionDeniedView();
+    }
     if (widget._controller.cameracontroller == null ||
         !widget._controller.cameracontroller!.value.isInitialized) {
       return const SizedBox.shrink();
@@ -231,6 +169,35 @@ class CameraState extends WidgetState<Camera> {
     );
   }
 
+  Widget permissionDeniedView() {
+    return SizedBox(
+      height: widget._controller.height ?? 500,
+      width: widget._controller.width ?? 500,
+      child: Column(
+        children: [
+          widget._controller.imageFileList.isNotEmpty
+              ? imagePreviewButton()
+              : const SizedBox(),
+          const Spacer(),
+          const Text(
+              'To capture photos and videos, allow access to your camera.'),
+          textbutton(
+              title: 'Pick image from gallery',
+              onPressed: () {
+                widget._controller.selectImage();
+              }),
+          const Spacer(),
+          imagesPreview(),
+          textbutton(
+              title: 'Pick from gallery',
+              onPressed: () {
+                widget._controller.selectImage();
+              }),
+        ],
+      ),
+    );
+  }
+
   //<------ This is Image Preview --------->
 
   Widget imagePreview() {
@@ -238,18 +205,22 @@ class CameraState extends WidgetState<Camera> {
       children: [
         appbar(
           backArrowAction: () {
-            setState(() {
-              widget._controller.cameracontroller!.resumePreview();
-              widget._controller.imagePreview = false;
-            });
+            if (widget._controller.cameracontroller == null) {
+              setState(() {
+                widget._controller.cameracontroller!.resumePreview();
+                widget._controller.imagePreview = false;
+              });
+            } else {
+              setState(() {
+                widget._controller.imagePreview = false;
+              });
+            }
           },
           deleteButtonAction: () {
             deleteImages();
           },
         ),
-        const SizedBox(
-          height: 10.0,
-        ),
+        widget._controller.space,
         SizedBox(
           width: widget._controller.ImagePreviewwidth ??
               MediaQuery.of(context).size.width,
@@ -258,8 +229,7 @@ class CameraState extends WidgetState<Camera> {
           child: Stack(
             children: [
               Align(
-                alignment: widget._controller.fullImagesAlignment ??
-                    Alignment.topCenter,
+                alignment: Alignment.topCenter,
                 child: SizedBox(
                   width: widget._controller.fullImageWidth ??
                       MediaQuery.of(context).size.width,
@@ -277,8 +247,7 @@ class CameraState extends WidgetState<Camera> {
                 ),
               ),
               Align(
-                alignment: widget._controller.previewImagesListAlignment ??
-                    Alignment.bottomLeft,
+                alignment: Alignment.bottomLeft,
                 child: imagesPreview(
                   isImageOnTap: true,
                   isBorderView: true,
@@ -287,12 +256,10 @@ class CameraState extends WidgetState<Camera> {
             ],
           ),
         ),
-        const SizedBox(
-          height: 10.0,
-        ),
+        widget._controller.space,
         textbutton(
           onPressed: () {},
-          title: widget._controller.uploadBtntitle ?? 'Upload',
+          title: 'Upload',
         ),
       ],
     );
@@ -318,8 +285,10 @@ class CameraState extends WidgetState<Camera> {
         setState(() {
           widget._controller.imageFileList.removeWhere(
               (element) => element == widget._controller.fullImage);
-          widget._controller.cameracontroller!.resumePreview();
           widget._controller.imagePreview = false;
+          if (widget._controller.cameracontroller != null) {
+            widget._controller.cameracontroller!.resumePreview();
+          }
         });
       }
     } else if (i + 1 == widget._controller.imageFileList.length) {
@@ -336,8 +305,10 @@ class CameraState extends WidgetState<Camera> {
         setState(() {
           widget._controller.imageFileList.removeWhere(
               (element) => element == widget._controller.fullImage);
-          widget._controller.cameracontroller!.resumePreview();
           widget._controller.imagePreview = false;
+          if (widget._controller.cameracontroller != null) {
+            widget._controller.cameracontroller!.resumePreview();
+          }
         });
       }
     } else {
@@ -361,107 +332,115 @@ class CameraState extends WidgetState<Camera> {
             children: [
               // <----- This Row is Created for Preview Image and show full image and delete image ------>
               widget._controller.imageFileList.isNotEmpty
-                  ? Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Padding(
-                          padding: widget._controller.nextBtnPadding ??
-                              const EdgeInsets.all(8.0),
-                          child: nextButton(
-                            buttontitle:
-                                widget._controller.nextBtntitle ?? 'Next',
-                            imagelength: widget._controller.imageFileList.length
-                                .toString(),
-                            onTap: () {
-                              setState(() {
-                                widget._controller.cameracontroller!
-                                    .pausePreview();
-                                widget._controller.imagePreview = true;
-                                widget._controller.fullImage =
-                                    widget._controller.imageFileList[0];
-                              });
-                            },
-                          ),
-                        ),
-                      ],
-                    )
+                  ? imagePreviewButton()
                   : const SizedBox(),
               const Spacer(),
               // <----- This is Created for Image Preview ------>
               imagesPreview(),
-
               // <----- This is Created for Camera Button ------>
-
-              Padding(
-                padding: widget._controller.cameraBtnPadding ??
-                    const EdgeInsets.all(20.0),
-                child: Row(
-                  children: [
-                    // <----- This button is used for pick image in gallery ------>
-                    buttons(
-                        icon: widget._controller.selectImageIcon != null
-                            ? iconframework.Icon.fromModel(
-                                widget._controller.selectImageIcon!)
-                            : const Icon(
-                                Icons.photo_size_select_actual_outlined,
-                                size: 15.0,
-                                color: Colors.white),
-                        onPressed: () {
-                          widget._controller.selectImage();
-                          // showImages(context);
-                        }),
-                    const Spacer(),
-                    // <----- This button is used for take image ------>
-                    buttons(
-                        icon: widget._controller.imageTakeIcon != null
-                            ? iconframework.Icon.fromModel(
-                                widget._controller.imageTakeIcon!)
-                            : const Icon(
-                                Icons.circle_outlined,
-                                color: Colors.white,
-                                size: 25.0,
-                              ),
-                        onPressed: () {
-                          widget._controller.cameracontroller!
-                              .takePicture()
-                              .then((value) async {
-                            if (kIsWeb) {
-                              widget._controller.imageFileList
-                                  .add(await value.readAsBytes());
-                            } else {
-                              widget._controller.imageFileList.add(value);
-                            }
-                            setState(() {});
-                          });
-                        }),
-                    const Spacer(),
-                    // <----- This button is used for rotate camera if camera is exist more than one camera ------>
-                    buttons(
-                        icon: widget._controller.cameraRotateIcon != null
-                            ? iconframework.Icon.fromModel(
-                                widget._controller.cameraRotateIcon!)
-                            : const Icon(
-                                Icons.flip_camera_ios_outlined,
-                                size: 15.0,
-                                color: Colors.white,
-                              ),
-                        onPressed: () {
-                          if (widget._controller.isFrontCamera == false) {
-                            widget._controller.setCamera(1);
-                            widget._controller.isFrontCamera = true;
-                          } else {
-                            widget._controller.setCamera(0);
-                            widget._controller.isFrontCamera = false;
-                          }
-                          setState(() {});
-                        }),
-                  ],
-                ),
-              ),
+              cameraButton(),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget cameraButton() {
+    return Padding(
+      padding: const EdgeInsets.all(20.0),
+      child: Row(
+        children: [
+          // <----- This button is used for pick image in gallery ------>
+          buttons(
+            icon: widget._controller.selectImageIcon != null
+                ? iconframework.Icon.fromModel(
+                    widget._controller.selectImageIcon!)
+                : const Icon(Icons.photo_size_select_actual_outlined,
+                    size: 15.0, color: Colors.white),
+            onPressed: () {
+              widget._controller.selectImage();
+              // showImages(context);
+            },
+          ),
+          const Spacer(),
+          // <----- This button is used for take image ------>
+          buttons(
+              icon: widget._controller.imageTakeIcon != null
+                  ? iconframework.Icon.fromModel(
+                      widget._controller.imageTakeIcon!)
+                  : const Icon(
+                      Icons.circle_outlined,
+                      color: Colors.white,
+                      size: 25.0,
+                    ),
+              onPressed: () {
+                widget._controller.cameracontroller!
+                    .takePicture()
+                    .then((value) async {
+                  if (kIsWeb) {
+                    widget._controller.imageFileList
+                        .add(await value.readAsBytes());
+                  } else {
+                    widget._controller.imageFileList.add(value);
+                  }
+                  setState(() {});
+                });
+              }),
+          const Spacer(),
+          // <----- This button is used for rotate camera if camera is exist more than one camera ------>
+          buttons(
+              icon: widget._controller.cameraRotateIcon != null
+                  ? iconframework.Icon.fromModel(
+                      widget._controller.cameraRotateIcon!)
+                  : const Icon(
+                      Icons.flip_camera_ios_outlined,
+                      size: 15.0,
+                      color: Colors.white,
+                    ),
+              onPressed: () {
+                if (widget._controller.isFrontCamera == false) {
+                  widget._controller.setCamera(1);
+                  widget._controller.isFrontCamera = true;
+                } else {
+                  widget._controller.setCamera(0);
+                  widget._controller.isFrontCamera = false;
+                }
+                setState(() {});
+              }),
+        ],
+      ),
+    );
+  }
+
+  Widget imagePreviewButton() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: nextButton(
+            buttontitle: 'Next',
+            imagelength: widget._controller.imageFileList.length.toString(),
+            onTap: () {
+              if (widget._controller.cameracontroller != null) {
+                setState(() {
+                  widget._controller.cameracontroller!.pausePreview();
+                  widget._controller.imagePreview = true;
+                  widget._controller.fullImage =
+                      widget._controller.imageFileList[0];
+                });
+              } else {
+                setState(() {
+                  widget._controller.imagePreview = true;
+                  widget._controller.fullImage =
+                      widget._controller.imageFileList[0];
+                });
+              }
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -471,29 +450,25 @@ class CameraState extends WidgetState<Camera> {
       {required void Function()? backArrowAction,
       required void Function()? deleteButtonAction}) {
     return Padding(
-      padding: widget._controller.appbarPadding ??
-          const EdgeInsets.only(left: 10.0, right: 10.0),
+      padding: const EdgeInsets.only(left: 10.0, right: 10.0),
       child: Row(
         children: [
           Container(
-            decoration: BoxDecoration(
-                color: widget._controller.backBtnbgColor ?? Colors.white,
-                shape: widget._controller.backbtnBoxShape ?? BoxShape.circle,
+            decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                      color: widget._controller.backBtnShadowColor ??
-                          Colors.black54,
-                      spreadRadius: widget._controller.shadowSpreadRadius ?? 5,
-                      blurRadius: widget._controller.shadowblurRadius ?? 7,
-                      offset:
-                          widget._controller.shadowOffset ?? const Offset(0, 3))
+                      color: Colors.black54,
+                      spreadRadius: 5,
+                      blurRadius: 7,
+                      offset: Offset(0, 3))
                 ]),
             child: Center(
               child: IconButton(
                 onPressed: backArrowAction,
                 icon: widget._controller.backIcon != null
-                    ? iconframework.Icon.fromModel(
-                        widget._controller.backIcon!)
+                    ? iconframework.Icon.fromModel(widget._controller.backIcon!)
                     : const Icon(Icons.arrow_back),
               ),
             ),
@@ -534,10 +509,9 @@ class CameraState extends WidgetState<Camera> {
         itemCount: widget._controller.imageFileList.length,
         itemBuilder: (c, i) {
           return Padding(
-            padding: widget._controller.imagesGap ?? const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(8.0),
             child: Stack(
-              alignment: widget._controller.selectImagesIconAlignment ??
-                  Alignment.topRight,
+              alignment: Alignment.topRight,
               children: [
                 GestureDetector(
                   onTap: isImageOnTap
@@ -590,10 +564,6 @@ class CameraState extends WidgetState<Camera> {
         children: [
           Text(
             buttontitle!,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
           ),
           const SizedBox(
             width: 5.0,
@@ -623,13 +593,15 @@ class CameraState extends WidgetState<Camera> {
 
   // <----- This is used for camera button i make this for common to reused code ------>
 
-  Widget buttons({required void Function()? onPressed, required Widget icon}) {
+  Widget buttons(
+      {required void Function()? onPressed,
+      required Widget icon,
+      Color? bordercolor}) {
     return Container(
       decoration: BoxDecoration(
-        shape: widget._controller.cameraiconBoxShape ?? BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 1.5),
-        color: widget._controller.cameraIconBgColor ??
-            Colors.white.withOpacity(0.2),
+        shape: BoxShape.circle,
+        border: Border.all(color: bordercolor ?? Colors.white, width: 1.5),
+        color: Colors.white.withOpacity(0.2),
       ),
       child: IconButton(
         onPressed: onPressed,
