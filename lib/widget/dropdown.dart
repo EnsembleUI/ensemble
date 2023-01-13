@@ -110,14 +110,6 @@ abstract class SelectOne extends StatefulWidget with Invokable, HasController<Se
                 isIcon: isIconExist(values),
               ),
             );
-          } else {
-            if (element['value'] != null) {
-              entries.add(SelectOneItem(
-                value: element['value'],
-                label: element['label']?.toString(),
-                isIcon: isIconExist(values),
-              ));
-            }
           }
         }
         // simply use the value
@@ -250,10 +242,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
           return TextField(
               enabled: isEnabled(),
               showCursor: true,
-              cursorColor:
-              widget._controller.cursorColor ?? EnsembleTheme.primary,
-              onChanged:
-              isEnabled() ? (item) => onSelectionChanged(item) : null,
+              onChanged: isEnabled() ? (item) => onSelectionChanged(item) : null,
               style: const TextStyle(
                   color: Colors.black, fontWeight: FontWeight.w500),
               controller: fieldTextEditingController,
@@ -288,8 +277,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
           .toString()
           .toLowerCase()
           .startsWith(textEditingValue.text.toLowerCase()),
-    )
-        .toList();
+    ).toList();
   }
 
 // ---------------------------------- Build Items ListTile if [AUTOCOMPLETE] is true ---------------------------------
