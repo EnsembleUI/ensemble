@@ -297,14 +297,16 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
               height: options.length < 5 ? 52.0 * options.length : 52.0 * 5,
               child: ListView.builder(
                 itemCount: options.length,
+                shrinkWrap: true,
+                padding:const EdgeInsets.only(left: 10),
                 itemBuilder: (BuildContext c, i) {
                   final SelectOneItem option = options.elementAt(i);
-
                   return GestureDetector(
                       onTap: () {
                         onSelected(option);
                       },
                       child: ListTile(
+                        contentPadding:const EdgeInsets.all(0),
                         title: Row(
                           mainAxisAlignment: MainAxisAlignment.start,
                           crossAxisAlignment: CrossAxisAlignment.end,
