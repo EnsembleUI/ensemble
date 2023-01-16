@@ -92,7 +92,7 @@ class MyCameraController extends WidgetController {
 
   var fullImage;
 
-  List<CameraDescription>? cameras;
+  List<CameraDescription> cameras = [];
   CameraController? cameracontroller;
 
   final ImagePicker imagePicker = ImagePicker();
@@ -115,7 +115,7 @@ class MyCameraController extends WidgetController {
   }
 
   void setCamera(int i) {
-    cameracontroller = CameraController(cameras![i], ResolutionPreset.max);
+    cameracontroller = CameraController(cameras[i], ResolutionPreset.max);
     cameracontroller!.initialize().then((_) {
       notifyListeners();
     });
@@ -153,7 +153,7 @@ class CameraState extends WidgetState<Camera> {
 
   @override
   Widget buildWidget(BuildContext context) {
-    if (widget._controller.isPermission) {
+    if (widget._controller.isPermission || widget._controller.cameras.isEmpty) {
       return widget._controller.imagePreview
           ? imagePreview()
           : permissionDeniedView();
