@@ -182,7 +182,7 @@ class CameraState extends WidgetState<Camera> {
           const Text(
               'To capture photos and videos, allow access to your camera.'),
           textbutton(
-              title: 'Pick image from gallery',
+              title: 'Allow access',
               onPressed: () {
                 widget._controller.selectImage();
               }),
