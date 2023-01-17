@@ -50,8 +50,6 @@ class Camera extends StatefulWidget
           _controller.fullImageHeight = Utils.optionalDouble(value),
       'cameraRotateIcon': (value) =>
           _controller.cameraRotateIcon = Utils.getIcon(value),
-      'imageTakeIcon': (value) =>
-          _controller.imageTakeIcon = Utils.getIcon(value),
       'selectImageIcon': (value) =>
           _controller.selectImageIcon = Utils.getIcon(value),
       'backIcon': (value) => _controller.backIcon = Utils.getIcon(value),
@@ -81,7 +79,6 @@ class MyCameraController extends WidgetController {
   double? ImagePreviewWidth;
 
   IconModel? cameraRotateIcon;
-  IconModel? imageTakeIcon;
   IconModel? selectImageIcon;
   IconModel? backIcon;
   IconModel? deleteIcon;
@@ -215,11 +212,11 @@ class CameraState extends WidgetState<Camera> {
           backArrowAction: () {
             if (widget._controller.cameracontroller == null) {
               setState(() {
-                widget._controller.cameracontroller!.resumePreview();
                 widget._controller.imagePreview = false;
               });
             } else {
               setState(() {
+                widget._controller.cameracontroller!.resumePreview();
                 widget._controller.imagePreview = false;
               });
             }
@@ -374,28 +371,61 @@ class CameraState extends WidgetState<Camera> {
           ),
           const Spacer(),
           // <----- This button is used for take image ------>
-          buttons(
-              icon: widget._controller.imageTakeIcon != null
-                  ? iconframework.Icon.fromModel(
-                      widget._controller.imageTakeIcon!)
-                  : const Icon(
-                      Icons.circle_outlined,
-                      color: Colors.white,
-                      size: 25.0,
-                    ),
-              onPressed: () {
-                widget._controller.cameracontroller!
-                    .takePicture()
-                    .then((value) async {
-                  if (kIsWeb) {
-                    widget._controller.imageFileList
-                        .add(await value.readAsBytes());
-                  } else {
-                    widget._controller.imageFileList.add(value);
-                  }
-                  setState(() {});
-                });
-              }),
+          GestureDetector(
+            onTap: (){
+              widget._controller.cameracontroller!
+                  .takePicture()
+                  .then((value) async {
+                if (kIsWeb) {
+                  widget._controller.imageFileList
+                      .add(await value.readAsBytes());
+                } else {
+                  widget._controller.imageFileList.add(value);
+                }
+                setState(() {});
+              });
+            },
+            child: Container(
+              height: 65,
+              width: 65,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.white,width: 2),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Container(
+                  height: 55,
+                  width: 55,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.5),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // buttons(
+          //     icon: widget._controller.imageTakeIcon != null
+          //         ? iconframework.Icon.fromModel(
+          //             widget._controller.imageTakeIcon!)
+          //         : const Icon(
+          //             Icons.circle_outlined,
+          //             color: Colors.white,
+          //             size: 25.0,
+          //           ),
+          //     onPressed: () {
+          //       widget._controller.cameracontroller!
+          //           .takePicture()
+          //           .then((value) async {
+          //         if (kIsWeb) {
+          //           widget._controller.imageFileList
+          //               .add(await value.readAsBytes());
+          //         } else {
+          //           widget._controller.imageFileList.add(value);
+          //         }
+          //         setState(() {});
+          //       });
+          //     }),
           const Spacer(),
           // <----- This button is used for rotate camera if camera is exist more than one camera ------>
           buttons(
