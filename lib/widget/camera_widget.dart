@@ -102,11 +102,14 @@ class MyCameraController extends WidgetController {
     height: 10,
   );
 
+  // this function is user for initialized camera
+
   Future<void> initCamera() async {
     try {
       cameras = await availableCameras();
       notifyListeners();
     } on CameraException catch (e) {
+      // if the camera permission is denied than isPermission is true because change display for user
       if (e.toString().contains('CameraAccessDenied')) {
         isPermission = true;
         notifyListeners();
@@ -114,6 +117,7 @@ class MyCameraController extends WidgetController {
     }
   }
 
+  // this function is check how much cameras support in the device
   void setCamera(int i) {
     cameracontroller = CameraController(cameras[i], ResolutionPreset.max);
     cameracontroller!.initialize().then((_) {
@@ -121,6 +125,7 @@ class MyCameraController extends WidgetController {
     });
   }
 
+  // this function is used to pick images from gallery
   void selectImage() async {
     final List<XFile> selectImage = await imagePicker.pickMultiImage();
     if (selectImage.isNotEmpty) {
@@ -153,15 +158,18 @@ class CameraState extends WidgetState<Camera> {
 
   @override
   Widget buildWidget(BuildContext context) {
+    // this condition is run when permission is denied or no camera support in device
     if (widget._controller.isPermission || widget._controller.cameras.isEmpty) {
       return widget._controller.imagePreview
           ? imagePreview()
           : permissionDeniedView();
     }
+    // this condition is run when permission is granted and wait for camera initialized
     if (widget._controller.cameracontroller == null ||
         !widget._controller.cameracontroller!.value.isInitialized) {
       return const SizedBox.shrink();
     }
+    // this condition is run when permission is granted and camera is initialized
     return SizedBox(
       height: widget._controller.height,
       width: widget._controller.width,
@@ -169,6 +177,7 @@ class CameraState extends WidgetState<Camera> {
     );
   }
 
+  // this is permission denied view
   Widget permissionDeniedView() {
     return SizedBox(
       height: widget._controller.height ?? 500,
@@ -199,7 +208,6 @@ class CameraState extends WidgetState<Camera> {
   }
 
   //<------ This is Image Preview --------->
-
   Widget imagePreview() {
     return Column(
       children: [
@@ -234,7 +242,7 @@ class CameraState extends WidgetState<Camera> {
                   width: widget._controller.fullImageWidth ??
                       MediaQuery.of(context).size.width,
                   height: widget._controller.fullImageHeight ??
-                      MediaQuery.of(context).size.height / 1.5,
+                      MediaQuery.of(context).size.height / 1.6,
                   child: kIsWeb
                       ? Image.memory(
                           widget._controller.fullImage,
@@ -346,6 +354,7 @@ class CameraState extends WidgetState<Camera> {
     );
   }
 
+  // this is a camera button to click image and pick image form gallery and rotate camera
   Widget cameraButton() {
     return Padding(
       padding: const EdgeInsets.all(20.0),
@@ -413,6 +422,7 @@ class CameraState extends WidgetState<Camera> {
     );
   }
 
+  // this is a next button code for preview selected images
   Widget imagePreviewButton() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
@@ -445,7 +455,6 @@ class CameraState extends WidgetState<Camera> {
   }
 
   // <----- This Appbar is created for back image preview to camera and delete image ------>
-
   Widget appbar(
       {required void Function()? backArrowAction,
       required void Function()? deleteButtonAction}) {
@@ -530,18 +539,19 @@ class CameraState extends WidgetState<Camera> {
                         border: isBorderView
                             ? widget._controller.fullImage ==
                                     widget._controller.imageFileList[i]
-                                ? Border.all(color: Colors.indigo)
+                                ? Border.all(color: Colors.indigo , width: 2.0)
                                 : null
                             : null,
+                        borderRadius: BorderRadius.circular(2.0),
                       ),
                       child: kIsWeb
                           ? Image.memory(
                               widget._controller.imageFileList[i],
-                              fit: BoxFit.contain,
+                              fit: BoxFit.cover,
                             )
                           : Image.file(
                               File(widget._controller.imageFileList[i].path),
-                              fit: BoxFit.contain,
+                              fit: BoxFit.cover,
                             ),
                     ),
                   ),
