@@ -40,14 +40,14 @@ class Camera extends StatefulWidget
     return {
       'height': (value) => _controller.height = Utils.optionalDouble(value),
       'width': (value) => _controller.width = Utils.optionalDouble(value),
-      'ImagePreviewheight': (value) =>
-          _controller.ImagePreviewheight = Utils.optionalDouble(value),
-      'ImagePreviewwidth': (value) =>
-          _controller.ImagePreviewwidth = Utils.optionalDouble(value),
+      'ImagePreviewHeight': (value) =>
+          _controller.ImagePreviewHeight = Utils.optionalDouble(value),
+      'ImagePreviewWidth': (value) =>
+          _controller.ImagePreviewWidth = Utils.optionalDouble(value),
       'fullImageWidth': (value) =>
           _controller.fullImageWidth = Utils.optionalDouble(value),
-      'fullImageheight': (value) =>
-          _controller.fullImageheight = Utils.optionalDouble(value),
+      'fullImageHeight': (value) =>
+          _controller.fullImageHeight = Utils.optionalDouble(value),
       'cameraRotateIcon': (value) =>
           _controller.cameraRotateIcon = Utils.getIcon(value),
       'imageTakeIcon': (value) =>
@@ -76,9 +76,9 @@ class MyCameraController extends WidgetController {
   double? listHeight;
   double? listWidth;
   double? fullImageWidth;
-  double? fullImageheight;
-  double? ImagePreviewheight;
-  double? ImagePreviewwidth;
+  double? fullImageHeight;
+  double? ImagePreviewHeight;
+  double? ImagePreviewWidth;
 
   IconModel? cameraRotateIcon;
   IconModel? imageTakeIcon;
@@ -222,9 +222,9 @@ class CameraState extends WidgetState<Camera> {
         ),
         widget._controller.space,
         SizedBox(
-          width: widget._controller.ImagePreviewwidth ??
+          width: widget._controller.ImagePreviewWidth ??
               MediaQuery.of(context).size.width,
-          height: widget._controller.ImagePreviewheight ??
+          height: widget._controller.ImagePreviewHeight ??
               MediaQuery.of(context).size.height / 1.3,
           child: Stack(
             children: [
@@ -233,7 +233,7 @@ class CameraState extends WidgetState<Camera> {
                 child: SizedBox(
                   width: widget._controller.fullImageWidth ??
                       MediaQuery.of(context).size.width,
-                  height: widget._controller.fullImageheight ??
+                  height: widget._controller.fullImageHeight ??
                       MediaQuery.of(context).size.height / 1.5,
                   child: kIsWeb
                       ? Image.memory(
