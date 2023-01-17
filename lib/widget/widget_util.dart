@@ -61,6 +61,20 @@ class WidgetUtils {
     }
     return fit;
   }
+
+  static BoxShape? getBoxShape(String? inputShape) {
+    BoxShape? shape;
+    switch (inputShape) {
+      case 'circle':
+        shape = BoxShape.circle;
+        break;
+      case 'rectangle':
+        shape = BoxShape.rectangle;
+        break;
+    }
+    return shape;
+  }
+
 }
 class TextController extends WidgetController {
   String? text;
