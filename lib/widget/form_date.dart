@@ -37,7 +37,7 @@ class Date extends StatefulWidget with Invokable, HasController<DateController, 
   @override
   Map<String, Function> setters() {
     return {
-      'initialValue': (value) => _controller.initialValue = Utils.getDate(value),
+      'initialValue': (value) => _controller.value ??= Utils.getDate(value),
       'firstDate': (value) => _controller.firstDate = Utils.getDate(value),
       'lastDate': (value) => _controller.lastDate = Utils.getDate(value),
       'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this)
@@ -49,14 +49,8 @@ class Date extends StatefulWidget with Invokable, HasController<DateController, 
 
 class DateController extends FormFieldController {
   DateTime? value;
-  String get prettyValue {
-    if (value != null) {
-      return DateFormat('MMM dd').format(value!);
-    }
-    return hintText ?? 'Select a date';
-  }
 
-  DateTime? initialValue;
+  // first and last available dates to be selected
   DateTime? firstDate;
   DateTime? lastDate;
 
@@ -66,6 +60,11 @@ class DateController extends FormFieldController {
 
 class DateState extends FormFieldWidgetState<Date> {
   String? validationText;
+
+  /// the selected date nicely formatted
+  String get selectedValue => widget._controller.value != null
+      ? DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(widget._controller.value!)
+      : widget._controller.hintText ?? 'Select a date';
 
   @override
   Widget buildWidget(BuildContext context) {
@@ -109,7 +108,7 @@ class DateState extends FormFieldWidgetState<Date> {
     if (firstDate.isAfter(lastDate)) {
       firstDate = lastDate;
     }
-    DateTime initialDate = widget._controller.initialValue ?? DateTime.now().toDate();
+    DateTime initialDate = widget._controller.value ?? DateTime.now().toDate();
     if (initialDate.isBefore(firstDate)) {
       initialDate = firstDate;
     } else if (initialDate.isAfter(lastDate)) {
@@ -143,7 +142,7 @@ class DateState extends FormFieldWidgetState<Date> {
         const Icon(Icons.calendar_month_rounded, color: Colors.black54),
         const SizedBox(width: 5),
         Text(
-          widget._controller.prettyValue,
+          selectedValue,
           style: TextStyle(fontSize: widget._controller.fontSize?.toDouble())
         )
       ],
