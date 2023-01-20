@@ -101,18 +101,28 @@ class OnOffState extends FormFieldWidgetState<OnOffWidget> {
     // add leading/trailing text + the actual widget
     List<Widget> children = [];
     if (widget._controller.leadingText != null) {
-      children.add(Text(widget._controller.leadingText!));
+      children.add(
+        Flexible(
+          child: Text(
+            widget._controller.leadingText!,
+            style: formFieldTextStyle,
+          )
+        )
+      );
     }
-    children.add(widget.getType() == OnOffType.toggle ?
-        Switch(
-          value: widget._controller.value,
-          onChanged: isEnabled() ? (value) => onToggle(value) : null) :
-        Checkbox(
-          value: widget._controller.value,
-          onChanged: isEnabled() ? (bool? value) => onToggle(value ?? false) : null)
+    children.add(widget.getType() == OnOffType.toggle
+        ? aSwitch
+        : aCheckbox
     );
     if (widget._controller.trailingText != null) {
-      children.add(Text(widget._controller.trailingText!));
+      children.add(
+        Expanded(
+          child: Text(
+            widget._controller.trailingText!,
+            style: formFieldTextStyle,
+          )
+        )
+      );
     }
 
     // wraps around FormField to get all the form effects
@@ -126,7 +136,9 @@ class OnOffState extends FormFieldWidgetState<OnOffWidget> {
       },
       builder: (FormFieldState<bool> field) {
         return InputDecorator(
+
             decoration: inputDecoration.copyWith(
+              contentPadding: EdgeInsets.zero,
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
               disabledBorder: InputBorder.none,
@@ -139,6 +151,26 @@ class OnOffState extends FormFieldWidgetState<OnOffWidget> {
 
         );
       }
+    );
+  }
+
+  /// we adjust the hit area of the checkbox here. 40px is smaller than the default (48px)
+  /// but it seem to be reasonable for touch device, plus the alignment inside
+  /// form is much better (align well with the rest of the input widgets)
+  Widget get aCheckbox {
+    return SizedBox(
+        width: 40,
+        height: 40,
+        child: Checkbox(
+            value: widget._controller.value,
+            onChanged: isEnabled() ? (bool? value) => onToggle(value ?? false) : null
+        )
+    );
+  }
+  Widget get aSwitch {
+    return Switch(
+      value: widget._controller.value,
+      onChanged: isEnabled() ? (value) => onToggle(value) : null
     );
   }
 }
