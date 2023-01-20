@@ -218,7 +218,14 @@ class Utils {
           id: Utils.optionalString(payload['id']),
           onResponse: Utils.getAction(payload['onResponse'], initiator: initiator),
           onError: Utils.getAction(payload['onError'], initiator: initiator));
-      } else if (payload['action'] == ActionType.showDialog.name) {
+      } else if (payload['action'] == ActionType.openCamera.name)
+        {
+          return ShowCameraAction(
+            initiator: initiator,
+            options: getMap(payload['options']),
+          );
+        }
+      else if (payload['action'] == ActionType.showDialog.name) {
         return ShowDialogAction(
           initiator: initiator,
           content: payload['name'],
