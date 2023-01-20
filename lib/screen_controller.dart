@@ -16,6 +16,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/framework/widget/view.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/camera.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:event_bus/event_bus.dart';
@@ -138,7 +139,20 @@ class ScreenController {
         });
       }
 
-    } else if (action is ShowDialogAction) {
+    }
+    else if(action is ShowCameraAction)
+    {
+      if(scopeManager != null)
+      {
+        print('Check action options ${action.options}');
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const CameraScreen()),
+        );
+      }
+    }
+
+    else if (action is ShowDialogAction) {
       if (scopeManager != null) {
         Widget content = scopeManager.buildWidgetFromDefinition(action.content);
 
@@ -207,7 +221,8 @@ class ScreenController {
           }
         });
       }
-    } else if (action is CloseAllDialogsAction) {
+    }
+    else if (action is CloseAllDialogsAction) {
       if (scopeManager != null) {
         for (var dialogContext in scopeManager.openedDialogs) {
           Navigator.pop(dialogContext);
@@ -215,7 +230,8 @@ class ScreenController {
         scopeManager.openedDialogs.clear();
       }
 
-    } else if (action is StartTimerAction) {
+    }
+    else if (action is StartTimerAction) {
 
       // what happened if ScopeManager is null?
       if (scopeManager != null) {
@@ -274,13 +290,16 @@ class ScreenController {
       }
 
 
-    } else if (action is StopTimerAction) {
+    }
+    else if (action is StopTimerAction) {
       if (scopeManager != null) {
         scopeManager.removeTimer(action.id);
       }
-    } else if (action is GetLocationAction) {
+    }
+    else if (action is GetLocationAction) {
       executeGetLocationAction(scopeManager!, dataContext, context, action);
-    } else if (action is ExecuteCodeAction) {
+    }
+    else if (action is ExecuteCodeAction) {
       action.inputs?.forEach((key, value) {
         dynamic val = dataContext.eval(value);
         if (val != null) {
@@ -292,13 +311,15 @@ class ScreenController {
       if (action.onComplete != null && scopeManager != null) {
         executeActionWithScope(context, scopeManager, action.onComplete!);
       }
-    } else if (action is ShowToastAction) {
+    }
+    else if (action is ShowToastAction) {
       Widget? customToastBody;
       if (scopeManager != null && action.type == ToastType.custom && action.body != null) {
         customToastBody = scopeManager.buildWidgetFromDefinition(action.body);
       }
       ToastController().showToast(context, action, customToastBody);
-    } else if ( action is OpenUrlAction ) {
+    }
+    else if ( action is OpenUrlAction ) {
       dynamic value = dataContext.eval(action.url);
       value ??= '';
       launchUrl(Uri.parse(value),mode: (action.openInExternalApp)?LaunchMode.externalApplication:LaunchMode.platformDefault );

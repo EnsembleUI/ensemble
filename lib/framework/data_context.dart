@@ -294,6 +294,7 @@ class NativeInvokable with Invokable {
       ActionType.showDialog.name: showDialog,
       ActionType.invokeAPI.name: invokeAPI,
       ActionType.stopTimer.name: stopTimer,
+      ActionType.openCamera.name: showCamera,
       'debug': (value) => log('Debug: $value')
     };
   }
@@ -334,6 +335,11 @@ class NativeInvokable with Invokable {
   }
   void stopTimer(String timerId) {
     ScreenController().executeAction(_buildContext, StopTimerAction(timerId));
+  }
+
+  void showCamera()
+  {
+    ScreenController().executeAction(_buildContext, ShowCameraAction());
   }
 
 }
