@@ -1,4 +1,5 @@
 import 'package:ensemble/ensemble_theme.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/icon.dart' as framework;
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/form.dart';
@@ -62,7 +63,7 @@ class FormHelper {
       }
       if (formState.widget.controller.onSubmit != null) {
         ScreenController().executeAction(
-            context, formState.widget.controller.onSubmit!);
+            context, formState.widget.controller.onSubmit!,event: EnsembleEvent(formState.widget));
       }
     }
   }

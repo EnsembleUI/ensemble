@@ -1,6 +1,8 @@
 import 'dart:developer';
 
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/widget/webview/webview.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -26,6 +28,50 @@ class WebViewState extends WidgetState<EnsembleWebView> {
   late ControllerImpl _controller;
   UniqueKey key = UniqueKey();
   Set<Factory<OneSequenceGestureRecognizer>> gestureRecognizers = {};
+  NavigationDelegate initNavigationDelegate() {
+    return NavigationDelegate(
+      onProgress: (int value) {
+        setState(() {
+          widget.controller.loadingPercent = value;
+        });
+      },
+
+      onPageStarted: (String url) {
+        if ( widget.controller.onPageStart != null ) {
+          ScreenController().executeAction(context, widget.controller.onPageStart!, event: EnsembleEvent(widget,data:{'url':url}));
+        }
+      },
+      onPageFinished: (String url) async {
+        calculatedHeight =
+        await _controller.controller!.runJavaScriptReturningResult(
+            "document.documentElement.scrollHeight;") as double;
+        setState(() {
+          widget.controller.loadingPercent = 100;
+        });
+        if ( widget.controller.onPageFinished != null ) {
+          ScreenController().executeAction(context, widget.controller.onPageFinished!, event: EnsembleEvent(widget,data:{'url':url}));
+        }
+      },
+      onWebResourceError: (WebResourceError error) {
+        if ( widget.controller.onWebResourceError != null ) {
+          ScreenController().executeAction(context, widget.controller.onNavigationRequest!, event: EnsembleEvent(widget,data:{'errorCode':error.errorCode,'errorType':error.errorType,'description':error.description}));
+        }
+        setState(() {
+          widget.controller.error = "Error loading html content";
+        });
+      },
+      onNavigationRequest: (NavigationRequest request) async {
+        WebViewNavigationEvent event = WebViewNavigationEvent(widget,request.url);
+        if ( widget.controller.onNavigationRequest != null ) {
+          ScreenController().executeAction(context, widget.controller.onNavigationRequest!, event: event);
+        }
+        if ( !event.allowNavigation ) {
+          return NavigationDecision.prevent;
+        }
+        return NavigationDecision.navigate;
+      },
+    );
+  }
   void initController() {
     _controller = ControllerImpl();
     widget.controller.webViewController = _controller;
@@ -42,30 +88,7 @@ class WebViewState extends WidgetState<EnsembleWebView> {
     _controller.controller = WebViewController.fromPlatformCreationParams(params)
       ..setBackgroundColor(Colors.transparent)
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onProgress: (int value) {
-            setState(() {
-              widget.controller.loadingPercent = value;
-            });
-          },
-
-          onPageStarted: (String url) {},
-          onPageFinished: (String url) async {
-            calculatedHeight =
-                await _controller.controller!.runJavaScriptReturningResult(
-                "document.documentElement.scrollHeight;") as double;
-            setState(() {
-              widget.controller.loadingPercent = 100;
-            });
-          },
-          onWebResourceError: (WebResourceError error) {
-            setState(() {
-              widget.controller.error = "Error loading html content";
-            });
-          },
-        ),
-      );
+      ..setNavigationDelegate(initNavigationDelegate());
     if ( widget.controller.url != null ) {
       _controller.controller!.loadRequest(Uri.parse(widget.controller.url!));
     }
