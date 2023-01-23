@@ -8,6 +8,7 @@ import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/framework/widget/toast.dart';
@@ -58,18 +59,18 @@ class ScreenController {
   }
 
   /// handle Action e.g invokeAPI
-  void executeAction(BuildContext context, EnsembleAction action) {
+  void executeAction(BuildContext context, EnsembleAction action, {EnsembleEvent? event}) {
     ScopeManager? scopeManager = _getScopeManager(context);
     if (scopeManager != null) {
-      executeActionWithScope(context, scopeManager, action);
+      executeActionWithScope(context, scopeManager, action, event: event);
     }
   }
-  void executeActionWithScope(BuildContext context, ScopeManager scopeManager, EnsembleAction action) {
-    _executeAction(context, scopeManager.dataContext, action, scopeManager.pageData.apiMap, scopeManager);
+  void executeActionWithScope(BuildContext context, ScopeManager scopeManager, EnsembleAction action, {EnsembleEvent? event}) {
+    _executeAction(context, scopeManager.dataContext, action, scopeManager.pageData.apiMap, scopeManager, event: event);
   }
 
   /// internally execute an Action
-  void _executeAction(BuildContext context, DataContext providedDataContext, EnsembleAction action, Map<String, YamlMap>? apiMap, ScopeManager? scopeManager) {
+  void _executeAction(BuildContext context, DataContext providedDataContext, EnsembleAction action, Map<String, YamlMap>? apiMap, ScopeManager? scopeManager,{EnsembleEvent? event}) {
     /// Actions are short-live so we don't need a childScope, simply create a localized context from the given context
     /// Note that scopeManager may starts out without Invokable IDs (as widgets may yet to render), but at the time
     /// of API returns, they will be populated. For this reason, always rebuild data context from scope manager.
@@ -87,6 +88,9 @@ class ScreenController {
     // scope the initiator to *this* variable
     if (action.initiator != null) {
       dataContext.addInvokableContext('this', action.initiator!);
+    }
+    if ( event != null ) {
+      dataContext.addInvokableContext('event', event);
     }
 
     if (action is InvokeAPIAction) {
