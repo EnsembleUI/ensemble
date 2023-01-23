@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -23,7 +24,7 @@ class LottieState extends WidgetState<EnsembleLottie> {
     if (widget.controller.onTap != null) {
       rtn = GestureDetector(
           child: rtn,
-          onTap: () => ScreenController().executeAction(context, widget.controller.onTap!)
+          onTap: () => ScreenController().executeAction(context, widget.controller.onTap!,event: EnsembleEvent(widget))
       );
     }
     return rtn;
@@ -51,7 +52,7 @@ class LottieState extends WidgetState<EnsembleLottie> {
           listener: (String msg) {
             if ( widget.controller.onTap != null ) {
               ScreenController().executeAction(
-                  context, widget.controller.onTap!);
+                  context, widget.controller.onTap!,event: EnsembleEvent(widget));
             }
           },
           scriptToInstantiate: (String c) {

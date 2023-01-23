@@ -11,6 +11,8 @@ import 'package:flutter/material.dart';
 import 'package:ensemble/layout/form.dart' as ensembleForm;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 
+import '../framework/event.dart';
+
 class Button extends StatefulWidget with Invokable, HasController<ButtonController, ButtonState> {
   static const type = 'Button';
   Button({Key? key}) : super(key: key);
@@ -168,7 +170,7 @@ class ButtonState extends WidgetState<Button> {
 
     // execute the onTap action
     if (widget._controller.onTap != null) {
-      ScreenController().executeAction(context, widget._controller.onTap!);
+      ScreenController().executeAction(context, widget._controller.onTap!,event: EnsembleEvent(widget));
     }
   }
 

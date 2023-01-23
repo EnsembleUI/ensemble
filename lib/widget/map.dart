@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/view.dart';
 import 'package:ensemble/layout/templated.dart';
@@ -281,7 +282,7 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
 
     // send the event
     if (widget._controller.onMarkerTap != null) {
-      ScreenController().executeAction(context, widget._controller.onMarkerTap!);
+      ScreenController().executeAction(context, widget._controller.onMarkerTap!,event: EnsembleEvent(widget));
     }
 
   }
