@@ -70,6 +70,9 @@ dependencies:
   geolocator: ^9.0.2
   get_storage: ^2.0.3
   flutter_html: ^3.0.0-alpha.6    # flutter_html ^2.0.0 requires flutter_svg <1.0.0, conflicts with ours
+  camera: ^0.10.0+5
+  image_picker: ^0.8.6
+  webview_flutter: ^4.0.1
 
 
 dev_dependencies:
@@ -85,6 +88,26 @@ flutter:
 
   assets:
     - assets/images/
+
+  fonts:
+    # semi-custom fonts
+    - family: idealTalent
+      fonts:
+        - asset: assets/fonts/idealTalent/icomoon.ttf
+    - family: Clarika
+      fonts:
+        - asset: assets/fonts/idealTalent/Clarika.ttf
+    - family: ClarikaRegular
+      fonts:
+        - asset: assets/fonts/idealTalent/ClarikaRegular.ttf
+
+    # other fonts available to apps
+    - family: Jost
+      fonts:
+        - asset: assets/fonts/Jost-VariableFont_wght.ttf
+        - asset: assets/fonts/Jost-Italic-VariableFont_wght.ttf
+          style: italic
+
 
   # This section identifies your Flutter project as a module meant for
   # embedding in a native host app.  These identifiers should _not_ ordinarily

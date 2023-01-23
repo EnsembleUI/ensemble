@@ -1,4 +1,4 @@
-
+import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/widget/icon.dart' as framework;
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/form.dart';
@@ -49,8 +49,6 @@ class FormFieldController extends WidgetController {
   void submitForm(BuildContext context) {
     FormHelper.submitForm(context);
   }
-
-
 }
 
 class FormHelper {
@@ -63,14 +61,16 @@ class FormHelper {
         return;
       }
       if (formState.widget.controller.onSubmit != null) {
-        ScreenController().executeAction(context, formState.widget.controller.onSubmit!);
+        ScreenController().executeAction(
+            context, formState.widget.controller.onSubmit!);
       }
     }
   }
 }
 
 /// base widget state for FormField widgets
-abstract class FormFieldWidgetState<W extends HasController> extends WidgetState<W> {
+abstract class FormFieldWidgetState<W extends HasController>
+    extends WidgetState<W> {
   // the key to validate this FormField
   final validatorKey = GlobalKey<FormFieldState>();
 
@@ -83,14 +83,14 @@ abstract class FormFieldWidgetState<W extends HasController> extends WidgetState
           floatingLabelBehavior: FloatingLabelBehavior.always,
           labelText: shouldShowLabel() ? myController.label : null,
           hintText: myController.hintText,
-          icon: myController.icon == null ? null : framework.Icon(
-              myController.icon!,
+          icon: myController.icon == null
+              ? null
+              : framework.Icon(myController.icon!,
               library: myController.iconLibrary,
               size: myController.iconSize,
-              color: myController.iconColor != null ?
-                Color(myController.iconColor!) :
-                null)
-      );
+              color: myController.iconColor != null
+                  ? Color(myController.iconColor!)
+                  : null));
     }
     return const InputDecoration();
   }
@@ -100,7 +100,11 @@ abstract class FormFieldWidgetState<W extends HasController> extends WidgetState
   bool isEnabled() {
     if (widget.controller is FormFieldController) {
       return (widget.controller as FormFieldController).enabled
-          ?? EnsembleForm.of(context)?.widget.controller.enabled
+          ?? EnsembleForm
+              .of(context)
+              ?.widget
+              .controller
+              .enabled
           ?? true;
     }
     return true;
@@ -112,5 +116,18 @@ abstract class FormFieldWidgetState<W extends HasController> extends WidgetState
       return formState.widget.shouldFormFieldShowLabel;
     }
     return true;
+  }
+
+  /// return the TextStyle for a form field (TextField, ....)
+  TextStyle get formFieldTextStyle {
+    // MaterialSpec - titleMedium maps to FormField textStyle
+    TextStyle textStyle = Theme.of(context).textTheme.titleMedium ?? const TextStyle();
+    if (widget.controller is FormFieldController) {
+      return textStyle.copyWith(
+        fontSize: (widget.controller as FormFieldController).fontSize?.toDouble()
+        // TODO: expose color, ... for all form fields here
+      );
+    }
+    return textStyle;
   }
 }

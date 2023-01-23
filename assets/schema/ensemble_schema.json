@@ -756,6 +756,10 @@
             "lastDate": {
               "type": "string",
               "description": "The last selectable date in the calendar. Use format YYYY-MM-DD"
+            },
+            "showCalendarIcon": {
+              "type": "boolean",
+              "description": "Whether we should show (default) or hide the calendar icon. Selecting the text will still open the calendar picker"
             }
           }
         }
