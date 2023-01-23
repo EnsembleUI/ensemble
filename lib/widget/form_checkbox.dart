@@ -1,5 +1,6 @@
 
 import 'package:ensemble/framework/action.dart' as framework;
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -91,7 +92,7 @@ class OnOffState extends FormFieldWidgetState<OnOffWidget> {
     //validatorKey.currentState!.validate();
 
     if (widget._controller.onChange != null) {
-      ScreenController().executeAction(context, widget._controller.onChange!);
+      ScreenController().executeAction(context, widget._controller.onChange!,event: EnsembleEvent(widget));
     }
 
   }

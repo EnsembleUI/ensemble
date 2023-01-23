@@ -2,6 +2,7 @@
 import 'dart:developer';
 
 import 'package:ensemble/ensemble_theme.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/icon.dart' as framework;
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -159,7 +160,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
 
       // call onChange
       if (widget._controller.onChange != null) {
-        ScreenController().executeAction(context, widget._controller.onChange!);
+        ScreenController().executeAction(context, widget._controller.onChange!,event: EnsembleEvent(widget));
       }
       didItChange = false;
     }
@@ -295,7 +296,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
 
           // we dispatch onKeyPress here
           if (widget._controller.onKeyPress != null) {
-            ScreenController().executeAction(context, widget._controller.onKeyPress!);
+            ScreenController().executeAction(context, widget._controller.onKeyPress!,event: EnsembleEvent(widget));
           }
 
         }

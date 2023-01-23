@@ -1,5 +1,6 @@
 
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/layout_helper.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -70,7 +71,7 @@ class ImageState extends WidgetState<EnsembleImage> {
     if (widget._controller.onTap != null) {
       return GestureDetector(
         child: rtn,
-        onTap: () => ScreenController().executeAction(context, widget._controller.onTap!)
+        onTap: () => ScreenController().executeAction(context, widget._controller.onTap!,event: EnsembleEvent(widget))
       );
     }
     return rtn;
