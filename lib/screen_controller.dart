@@ -16,7 +16,6 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/framework/widget/view.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/camera.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:event_bus/event_bus.dart';
@@ -70,7 +69,7 @@ class ScreenController {
   }
 
   /// internally execute an Action
-  Future<void> _executeAction(BuildContext context, DataContext providedDataContext, EnsembleAction action, Map<String, YamlMap>? apiMap, ScopeManager? scopeManager) async {
+  void _executeAction(BuildContext context, DataContext providedDataContext, EnsembleAction action, Map<String, YamlMap>? apiMap, ScopeManager? scopeManager) {
     /// Actions are short-live so we don't need a childScope, simply create a localized context from the given context
     /// Note that scopeManager may starts out without Invokable IDs (as widgets may yet to render), but at the time
     /// of API returns, they will be populated. For this reason, always rebuild data context from scope manager.
@@ -139,21 +138,7 @@ class ScreenController {
         });
       }
 
-    } else if (action is ShowCameraAction)
-      {
-        if(scopeManager != null)
-        {
-          print('Check action options ${action.options}');
-          final res = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => CameraScreen(
-              initialCamera: action.options!['initialCamera'] ?? 'DEFAULT',
-            ),
-            ),
-          );
-          print('Check action options result ${res.toString()}');
-        }
-      } else if (action is ShowDialogAction) {
+    } else if (action is ShowDialogAction) {
       if (scopeManager != null) {
         Widget content = scopeManager.buildWidgetFromDefinition(action.content);
 
