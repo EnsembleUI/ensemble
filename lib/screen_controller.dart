@@ -70,7 +70,7 @@ class ScreenController {
   }
 
   /// internally execute an Action
-  void _executeAction(BuildContext context, DataContext providedDataContext, EnsembleAction action, Map<String, YamlMap>? apiMap, ScopeManager? scopeManager) {
+  void _executeAction(BuildContext context, DataContext providedDataContext, EnsembleAction action, Map<String, YamlMap>? apiMap, ScopeManager? scopeManager) async{
     /// Actions are short-live so we don't need a childScope, simply create a localized context from the given context
     /// Note that scopeManager may starts out without Invokable IDs (as widgets may yet to render), but at the time
     /// of API returns, they will be populated. For this reason, always rebuild data context from scope manager.
@@ -145,10 +145,14 @@ class ScreenController {
       if(scopeManager != null)
       {
         print('Check action options ${action.options}');
-        Navigator.push(
+        final res = await Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const CameraScreen()),
+          MaterialPageRoute(builder: (context) => CameraScreen(
+            initialCamera: action.options!['initialCamera'] ?? 'DEFAULT',
+          ),
+          ),
         );
+        print('Check action options result ${res.toString()}');
       }
     }
 
