@@ -212,32 +212,32 @@ class DataContext {
     if (data is Map) {
       return evalToken(tokens, index+1, data[tokens[index]]);
     } else {
-        String token = tokens[index];
-        if (InvokableController.getGettableProperties(data).contains(token)) {
-          return evalToken(tokens, index + 1, data.getProperty(token));
-        } else {
-          // only support methods with 0 or 1 argument for now
-          RegExpMatch? match = RegExp(
-              r'''([a-zA-Z_-\d]+)\s*\(["']?([a-zA-Z_-\d:.]*)["']?\)''')
-              .firstMatch(token);
-          if (match != null) {
-            // first group is the method name, second is the argument
-            Function? method = InvokableController.getMethods(data)[match.group(1)];
-            if (method != null) {
-              // our match will always have 2 groups. Second group is the argument
-              // which could be empty since we use ()*
-              List<String> args = [];
-              if (match.group(2)!.isNotEmpty) {
-                args.add(match.group(2)!);
-              }
-              dynamic nextData = Function.apply(method, args);
-              return evalToken(tokens, index + 1, nextData);
+      String token = tokens[index];
+      if (InvokableController.getGettableProperties(data).contains(token)) {
+        return evalToken(tokens, index + 1, data.getProperty(token));
+      } else {
+        // only support methods with 0 or 1 argument for now
+        RegExpMatch? match = RegExp(
+            r'''([a-zA-Z_-\d]+)\s*\(["']?([a-zA-Z_-\d:.]*)["']?\)''')
+            .firstMatch(token);
+        if (match != null) {
+          // first group is the method name, second is the argument
+          Function? method = InvokableController.getMethods(data)[match.group(1)];
+          if (method != null) {
+            // our match will always have 2 groups. Second group is the argument
+            // which could be empty since we use ()*
+            List<String> args = [];
+            if (match.group(2)!.isNotEmpty) {
+              args.add(match.group(2)!);
             }
+            dynamic nextData = Function.apply(method, args);
+            return evalToken(tokens, index + 1, nextData);
           }
-          // return null since we can't find any matching methods/getters on this Invokable
-          return null;
         }
+        // return null since we can't find any matching methods/getters on this Invokable
+        return null;
       }
+    }
 
     return data;
   }
@@ -294,7 +294,6 @@ class NativeInvokable with Invokable {
       ActionType.showDialog.name: showDialog,
       ActionType.invokeAPI.name: invokeAPI,
       ActionType.stopTimer.name: stopTimer,
-      ActionType.openCamera.name: showCamera,
       'debug': (value) => log('Debug: $value')
     };
   }
@@ -307,18 +306,18 @@ class NativeInvokable with Invokable {
   void navigateToScreen(String screenName, [dynamic inputs]) {
     Map<String, dynamic>? inputMap = Utils.getMap(inputs);
     ScreenController().navigateToScreen(
-      _buildContext,
-      screenName: screenName,
-      pageArgs: inputMap,
-      asModal: false);
+        _buildContext,
+        screenName: screenName,
+        pageArgs: inputMap,
+        asModal: false);
   }
   void navigateToModalScreen(String screenName, [dynamic inputs]) {
     Map<String, dynamic>? inputMap = Utils.getMap(inputs);
     ScreenController().navigateToScreen(
-      _buildContext,
-      screenName: screenName,
-      pageArgs: inputMap,
-      asModal: true);
+        _buildContext,
+        screenName: screenName,
+        pageArgs: inputMap,
+        asModal: true);
     // how do we handle onModalDismiss in Typescript?
   }
   void showDialog(dynamic content) {
@@ -329,17 +328,12 @@ class NativeInvokable with Invokable {
   void invokeAPI(String apiName, [dynamic inputs]) {
     Map<String, dynamic>? inputMap = Utils.getMap(inputs);
     ScreenController().executeAction(_buildContext, InvokeAPIAction(
-      apiName: apiName,
-      inputs: inputMap
+        apiName: apiName,
+        inputs: inputMap
     ));
   }
   void stopTimer(String timerId) {
     ScreenController().executeAction(_buildContext, StopTimerAction(timerId));
-  }
-
-  void showCamera()
-  {
-    ScreenController().executeAction(_buildContext, ShowCameraAction());
   }
 
 }
@@ -569,7 +563,7 @@ class UserDateTime with Invokable {
 
   @override
   Map<String, Function> setters() {
-  return {};
+    return {};
   }
 
 }
