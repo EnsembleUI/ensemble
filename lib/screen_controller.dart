@@ -15,7 +15,7 @@ import 'package:ensemble/framework/widget/toast.dart';
 import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/http_utils.dart';
-import 'package:ensemble/framework/widget/view.dart';
+import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -430,7 +430,21 @@ class ScreenController {
   }) {
     PageType pageType = asModal == true ? PageType.modal : PageType.regular;
 
-    Widget screenWidget = Screen(
+    Widget screenWidget = getScreen(screenName: screenName, asModal: asModal, pageArgs: pageArgs);
+
+    PageRouteBuilder route = getScreenBuilder(screenWidget, pageType: pageType);
+    Navigator.push(context, route);
+    return route;
+  }
+
+  /// get the screen widget. If screen is not specified, return the home screen
+  Widget getScreen({
+    String? screenName,
+    bool? asModal,
+    Map<String, dynamic>? pageArgs,
+  }) {
+    PageType pageType = asModal == true ? PageType.modal : PageType.regular;
+    return  Screen(
       appProvider: AppProvider(definitionProvider: Ensemble().getConfig()!.definitionProvider),
       screenPayload: ScreenPayload(
         screenName: screenName,
@@ -439,9 +453,6 @@ class ScreenController {
       ),
     );
 
-    PageRouteBuilder route = getScreenBuilder(screenWidget, pageType: pageType);
-    Navigator.push(context, route);
-    return route;
   }
 
   void executeGetLocationAction(ScopeManager scopeManager, DataContext dataContext, BuildContext context, GetLocationAction action) {

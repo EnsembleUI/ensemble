@@ -13,9 +13,10 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:yaml/yaml.dart';
 
-/// represents a screen translated from the YAML definition
-class PageModel {
-  static final List<String> reservedTokens = [
+abstract class PageModel {
+  PageModel();
+
+  final List<String> _reservedTokens = [
     'Import',
     'View',
     'Action',
@@ -24,30 +25,21 @@ class PageModel {
     'App',
     'Model',
     'Variable',
-    'Global'
+    'Global',
+    'Menu'
   ];
 
-  String? globalCode;
+  Menu? menu;
   Map<String, YamlMap>? apiMap;
   Map<String, dynamic>? customViewDefinitions;
-  ViewBehavior viewBehavior = ViewBehavior();
-
-  HeaderModel? headerModel;
-
-  Map<String, dynamic>? pageStyles;
-  Menu? menu;
-  ScreenOptions? screenOptions;
-  late WidgetModel rootWidgetModel;
-  Footer? footer;
-
-  PageModel._init (YamlMap data) {
-    processAPI(data['API']);
-    processModel(data);
-  }
+  String? globalCode;
 
   factory PageModel.fromYaml(YamlMap data) {
     try {
-      return PageModel._init(data);
+      if (data['Menu'] != null) {
+        return PageGroupModel._init(data);
+      }
+      return SinglePageModel._init(data);
     } on Error catch (e) {
       throw LanguageError(
           "Invalid page definition.",
@@ -56,8 +48,16 @@ class PageModel {
       );
     }
   }
+  void _processModel(YamlMap docMap) {
+    _processAPI(docMap['API']);
 
-  processAPI(YamlMap? map) {
+    globalCode = Utils.optionalString(docMap['Global']);
+
+    // build a Map of the Custom Widgets
+    customViewDefinitions = _buildCustomViewDefinitions(docMap);
+  }
+
+  void _processAPI(YamlMap? map) {
     if (map != null) {
       apiMap = {};
       map.forEach((key, value) {
@@ -66,30 +66,107 @@ class PageModel {
     }
   }
 
-  processModel(YamlMap docMap) {
+  /// Create a map of Ensemble's custom widgets so WidgetModel can reference them
+  Map<String, dynamic> _buildCustomViewDefinitions(YamlMap docMap) {
+    Map<String, dynamic> subViewDefinitions = {};
+    docMap.forEach((key, value) {
+      if (!_reservedTokens.contains(key)) {
+        if (value != null) {
+          subViewDefinitions[key] = value;
+        }
+
+
+      }
+    });
+    return subViewDefinitions;
+  }
+
+  void _processMenu(YamlMap menuData) {
+    if (menuData['items'] is YamlList) {
+      List<MenuItem> menuItems = [];
+      for (final YamlMap item in (menuData['items'] as YamlList)) {
+        menuItems.add(MenuItem(
+            item['label'],
+            item['page'],
+            icon: item['icon'],
+            iconLibrary: item['iconLibrary'],
+            selected: item['selected']==true || item['selected']=='true'));
+      }
+      Map<String, dynamic>? menuStyles = ViewUtil.getMap(menuData['styles']);
+
+      WidgetModel? menuHeaderModel;
+      if (menuData['header'] != null) {
+        menuHeaderModel = ViewUtil.buildModel(menuData['header'], customViewDefinitions);
+      }
+      WidgetModel? menuFooterModel;
+      if (menuData['footer'] != null) {
+        menuFooterModel = ViewUtil.buildModel(menuData['footer'], customViewDefinitions);
+      }
+      menu = Menu(menuData['display'], menuStyles, menuItems, headerModel: menuHeaderModel, footerModel: menuFooterModel);
+    }
+  }
+
+
+}
+
+/// a screen list grouped together by a menu
+class PageGroupModel extends PageModel {
+  PageGroupModel._init (YamlMap docMap) {
+    _processModel(docMap);
+  }
+
+  @override
+  void _processModel(YamlMap docMap) {
+    super._processModel(docMap);
+
+    _processMenu(docMap['Menu']);
+  }
+}
+
+
+/// represents an individual screen translated from the YAML definition
+class SinglePageModel extends PageModel {
+  SinglePageModel._init (YamlMap docMap) {
+    _processModel(docMap);
+  }
+
+
+  ViewBehavior viewBehavior = ViewBehavior();
+  HeaderModel? headerModel;
+
+  Map<String, dynamic>? pageStyles;
+  ScreenOptions? screenOptions;
+  late WidgetModel rootWidgetModel;
+  Footer? footer;
+
+
+
+
+  @override
+  _processModel(YamlMap docMap) {
+    super._processModel(docMap);
+
     YamlMap viewMap = docMap['View'];
 
     if (viewMap['options'] is YamlMap) {
-      PageType pageType =
-        viewMap['options']['type'] == PageType.modal.name ? PageType.modal : PageType.regular;
+      PageType pageType = viewMap['options']['type'] == PageType.modal.name
+          ? PageType.modal
+          : PageType.regular;
       String? closeButtonPosition =
-        viewMap['options']?['closeButtonPosition'] == 'start' ? 'start' : 'end';
-      screenOptions = ScreenOptions(pageType: pageType, closeButtonPosition: closeButtonPosition);
+          viewMap['options']?['closeButtonPosition'] == 'start'
+              ? 'start'
+              : 'end';
+      screenOptions = ScreenOptions(
+          pageType: pageType, closeButtonPosition: closeButtonPosition);
     }
-
-    // build a Map of the Custom Widgets
-    customViewDefinitions = buildCustomViewDefinitions(docMap);
-
-    globalCode = Utils.optionalString(docMap['Global']);
 
     // set the view behavior
     viewBehavior.onLoad = Utils.getAction(viewMap['onLoad']);
 
     processHeader(viewMap['header'], viewMap['title']);
 
-
     if (viewMap['menu'] != null) {
-      processMenu(viewMap['menu']);
+      _processMenu(viewMap['menu']);
     }
 
     if (viewMap['styles'] is YamlMap) {
@@ -104,6 +181,7 @@ class PageModel {
     }
 
     rootWidgetModel = buildRootModel(viewMap, customViewDefinitions);
+
   }
 
   void processHeader(YamlMap? headerData, String? legacyTitle) {
@@ -130,31 +208,6 @@ class PageModel {
 
     if (titleWidget != null || titleText != null || background != null || styles != null) {
       headerModel = HeaderModel(titleText: titleText, titleWidget: titleWidget, flexibleBackground: background, styles: styles);
-    }
-  }
-
-  void processMenu(YamlMap menuData) {
-    if (menuData['items'] is YamlList) {
-      List<MenuItem> menuItems = [];
-      for (final YamlMap item in (menuData['items'] as YamlList)) {
-        menuItems.add(MenuItem(
-            item['label'],
-            item['page'],
-            icon: item['icon'],
-            iconLibrary: item['iconLibrary'],
-            selected: item['selected']==true || item['selected']=='true'));
-      }
-      Map<String, dynamic>? menuStyles = ViewUtil.getMap(menuData['styles']);
-
-      WidgetModel? menuHeaderModel;
-      if (menuData['header'] != null) {
-        menuHeaderModel = ViewUtil.buildModel(menuData['header'], customViewDefinitions);
-      }
-      WidgetModel? menuFooterModel;
-      if (menuData['footer'] != null) {
-        menuFooterModel = ViewUtil.buildModel(menuData['footer'], customViewDefinitions);
-      }
-      menu = Menu(menuData['display'], menuStyles, menuItems, headerModel: menuHeaderModel, footerModel: menuFooterModel);
     }
   }
 
@@ -187,22 +240,12 @@ class PageModel {
     return null;
   }
 
-  /// Create a map of Ensemble's custom widgets so WidgetModel can reference them
-  Map<String, dynamic> buildCustomViewDefinitions(YamlMap docMap) {
-    Map<String, dynamic> subViewDefinitions = {};
-    docMap.forEach((key, value) {
-      if (!reservedTokens.contains(key)) {
-        if (value != null) {
-          subViewDefinitions[key] = value;
-        }
 
-
-      }
-    });
-    return subViewDefinitions;
-  }
 
 }
+
+
+
 
 
 class WidgetModel {
