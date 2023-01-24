@@ -28,16 +28,6 @@ class InvokeAPIAction extends EnsembleAction {
   EnsembleAction? onError;
 }
 
-class ShowCameraAction extends EnsembleAction{
-  ShowCameraAction({
-    Invokable? initiator,
-    Map<String, dynamic>? inputs,
-    this.options,
-
-  }) : super(initiator: initiator, inputs: inputs);
-  final Map<String , dynamic>? options;
-}
-
 class ShowDialogAction extends EnsembleAction {
   ShowDialogAction({
     Invokable? initiator,
@@ -66,7 +56,7 @@ class NavigateModalScreenAction extends BaseNavigateScreenAction {
     required String screenName,
     Map<String, dynamic>? inputs,
     this.onModalDismiss,
-    }) : super(initiator: initiator, screenName: screenName, asModal: true, inputs: inputs);
+  }) : super(initiator: initiator, screenName: screenName, asModal: true, inputs: inputs);
 
   EnsembleAction? onModalDismiss;
 
@@ -181,6 +171,6 @@ class TimerPayload {
 }
 
 
-enum ActionType { invokeAPI, navigateScreen, navigateModalScreen, showDialog, startTimer, stopTimer, closeAllDialogs, executeCode, showToast, getLocation, openUrl  , openCamera}
+enum ActionType { invokeAPI, navigateScreen, navigateModalScreen, showDialog, startTimer, stopTimer, closeAllDialogs, executeCode, showToast, getLocation, openUrl }
 
 enum ToastType { success, error, warning, info, custom }
