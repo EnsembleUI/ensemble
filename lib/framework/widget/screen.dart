@@ -85,8 +85,8 @@ class _ScreenState extends State<Screen> {
       }
     });
 
-    if (pageModel is PageGroupModel) {
-      return PageGroup(initialDataContext: dataContext, pageModel: pageModel);
+    if (pageModel is PageGroupModel && pageModel.menu != null) {
+      return PageGroup(initialDataContext: dataContext, pageModel: pageModel, menu: pageModel.menu!);
 
     } else if (pageModel is SinglePageModel) {
       // overwrite the pageType as modal only if specified in the payload
