@@ -17,16 +17,16 @@ import 'package:flutter/material.dart';
 /// The root View. Every Ensemble page will have at least one at its root
 class View extends StatefulWidget {
   View({
-    Key? key,
+    super.key,
     required DataContext dataContext,
-    required PageModel pageModel,
-  }) : super(key: key) {
+    required SinglePageModel pageModel,
+  }) {
     _initialDataContext = dataContext;
     _pageModel = pageModel;
   }
 
   late final DataContext _initialDataContext;
-  late final PageModel _pageModel;
+  late final SinglePageModel _pageModel;
 
   /// The reference to DataContext is needed for API invoked before
   /// the page load. In these cases we do not have the context to travel
@@ -487,7 +487,7 @@ class ViewState extends State<View>{
   }
 
 
-  Widget? _buildFooter(ScopeManager scopeManager, PageModel pageModel) {
+  Widget? _buildFooter(ScopeManager scopeManager, SinglePageModel pageModel) {
     // Footer can only take 1 child by our design. Ignore the rest
     if (pageModel.footer != null && pageModel.footer!.children.isNotEmpty) {
       return AnimatedOpacity(
