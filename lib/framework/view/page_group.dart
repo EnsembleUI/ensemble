@@ -1,6 +1,8 @@
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/device.dart';
+import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -9,27 +11,48 @@ import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/page_model.dart' as model;
 import 'package:ensemble/framework/extensions.dart';
 
-/// a collection of page behind a navigation menu
+/// a collection of pages grouped under a navigation menu
 class PageGroup extends StatefulWidget {
   const PageGroup({
     super.key,
     required this.initialDataContext,
-    required this.pageModel,
+    required this.model,
     required this.menu
   });
   final DataContext initialDataContext;
-  final PageGroupModel pageModel;
+  final PageGroupModel model;
   final Menu menu;
 
   @override
   State<StatefulWidget> createState() => PageGroupState();
 }
 
+/// wrapper widget to enable a Page to get the navigation menu from its parent PageGroup
+/// We need this because the menu (i.e. drawer) is determined at the PageGroup
+/// level, but need to be injected under each child Page to render.
+class PageGroupWidget extends DataScopeWidget {
+  const PageGroupWidget({
+    super.key,
+    required super.scopeManager,
+    required super.child,
+    this.navigationDrawer
+  });
+  final Drawer? navigationDrawer;
+
+  static Drawer? getNavigationDrawer(BuildContext context) => context
+      .dependOnInheritedWidgetOfExactType<PageGroupWidget>()
+      ?.navigationDrawer;
+
+  @override
+  bool updateShouldNotify(covariant InheritedWidget oldWidget) {
+    return true;
+  }
+}
 
 class PageGroupState extends State<PageGroup> with MediaQueryCapability {
   late ScopeManager _scopeManager;
 
-  // list of pages and the selectd one
+  // managing the list of pages
   List<Widget> pageWidgets = [];
   int selectedPage = 0;
 
@@ -39,8 +62,8 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     _scopeManager = ScopeManager(
         widget.initialDataContext.clone(newBuildContext: context),
         PageData(
-            customViewDefinitions: widget.pageModel.customViewDefinitions,
-            apiMap: widget.pageModel.apiMap
+            customViewDefinitions: widget.model.customViewDefinitions,
+            apiMap: widget.model.apiMap
         )
     );
 
@@ -58,37 +81,33 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.menu.menuItems.length >= 2) {
+    // skip rendering the menu if only 1 menu item, just the content itself
+    if (widget.menu.menuItems.length == 1) {
+      return pageWidgets[0];
+    } else if (widget.menu.menuItems.length >= 2) {
       MenuDisplay display = _getPreferredMenuDisplay(widget.menu);
 
-      // left nav bar is special as only its child content is inside Scaffold
-      if (display == MenuDisplay.leftNavBar) {
+      // drawer menu will be injected in the child Page, so we wraps
+      // the widget in a provider such that its children can get access
+      // to the drawer menu.
+      if (display == MenuDisplay.drawer) {
+        return PageGroupWidget(
+          scopeManager: _scopeManager,
+          navigationDrawer: _buildDrawer(context, widget.menu),
+          child: IndexedStack(children: pageWidgets, index: selectedPage)
+        );
+      }
+      else if (display == MenuDisplay.leftNavBar) {
 
-      } else {
-        return _addPageNavigation(display);
+      }
+      else if (display == MenuDisplay.bottomNavBar){
+        return Scaffold(
+          bottomNavigationBar: _buildBottomNavBar(context, widget.menu),
+          body: IndexedStack(children: pageWidgets, index: selectedPage)
+        );
       }
     }
-    return Text("unsupported");
-  }
-
-  /// add standards navigation menus
-  Widget _addPageNavigation(MenuDisplay display) {
-    BottomNavigationBar? bottomNavBar;
-    if (display == MenuDisplay.bottomNavBar) {
-      bottomNavBar = _buildBottomNavBar(context, widget.menu);
-    }
-
-    Drawer? drawer;
-    if (display == MenuDisplay.drawer) {
-
-    }
-
-
-    return Scaffold(
-      bottomNavigationBar: bottomNavBar,
-      body: IndexedStack(children: pageWidgets, index: selectedPage),
-    );
-
+    throw LanguageError('ViewGroup requires a menu and at least one page.');
   }
 
   /// Build a Bottom Navigation Bar (default if display is not specified)
@@ -113,8 +132,34 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
 
   }
 
+  Drawer? _buildDrawer(BuildContext context, Menu menu) {
+    List<ListTile> navItems = [];
+    for (var i=0; i<menu.menuItems.length; i++) {
+      model.MenuItem item = menu.menuItems[i];
+      navItems.add(ListTile(
+        selected: i == selectedPage,
+        title: Text(Utils.translate(item.label ?? '', context)),
+        leading: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
+        horizontalTitleGap: 0,
+        onTap: () {
+          setState(() {
+            //close the drawer
+            Navigator.maybePop(context);
+            selectedPage = i;
+          });
+        },
+      ));
+    }
+    return Drawer(
+      backgroundColor: Utils.getColor(menu.styles?['backgroundColor']),
+      child: ListView(
+        children: navItems,
+      ),
+    );
+  }
 
-  // get the menu mode depending on user spec + device types / screen resolutions
+
+  /// get the menu mode depending on user spec + device types / screen resolutions
   MenuDisplay _getPreferredMenuDisplay(Menu menu) {
     MenuDisplay? display = MenuDisplay.values.from(
         _scopeManager.dataContext.eval(menu.display)
