@@ -1679,8 +1679,12 @@
                   "description": "Put the menu behind a drawer icon on the header. The drawer icon will be positioned to the 'end' of the header (right for most languages, left for RTL languages)."
                 },
                 {
-                  "const": "leftNavBar",
-                  "description": "Enable a fixed navigation menu to the left of the screen. Recommend for web only."
+                  "const": "sidebar",
+                  "description": "Enable a fixed navigation menu to the 'start' of the screen (left for most languages, right for RTL languages). The menu may become a drawer menu on lower resolution."
+                },
+                {
+                  "const": "endSidebar",
+                  "description": "Enable a fixed navigation menu to the 'end' of the screen (right for most languages, left for RTL languages). The menu may become a drawer menu on lower resolution."
                 }
               ]
             },

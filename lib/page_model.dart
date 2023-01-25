@@ -324,9 +324,12 @@ enum MenuDisplay {
   bottomNavBar,   // bottom navigation bar. Default if not specified
   drawer,         // hamburger drawer menu
   endDrawer,
-  leftNavBar,     // fixed navigation to the left. Only recommend for Web
+  sidebar,        // side-bar navigation, which will becomes a drawer on low resolution
+  endSidebar,
+
 
   // legacy for backward compatible
+  leftNavBar,     // fixed navigation to the left. Only recommend for Web
   navBar,         // bottom nav bar
   navBar_left,  // fixed navigation on the left of the screen
   navBar_right  // fixed navigation on the right of the screen
