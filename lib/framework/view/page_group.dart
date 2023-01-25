@@ -35,13 +35,19 @@ class PageGroupWidget extends DataScopeWidget {
     super.key,
     required super.scopeManager,
     required super.child,
-    this.navigationDrawer
+    this.navigationDrawer,
+    this.navigationEndDrawer
   });
   final Drawer? navigationDrawer;
+  final Drawer? navigationEndDrawer;
 
   static Drawer? getNavigationDrawer(BuildContext context) => context
       .dependOnInheritedWidgetOfExactType<PageGroupWidget>()
       ?.navigationDrawer;
+
+  static Drawer? getNavigationEndDrawer(BuildContext context) => context
+      .dependOnInheritedWidgetOfExactType<PageGroupWidget>()
+      ?.navigationEndDrawer;
 
   @override
   bool updateShouldNotify(covariant InheritedWidget oldWidget) {
@@ -90,10 +96,12 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
       // drawer menu will be injected in the child Page, so we wraps
       // the widget in a provider such that its children can get access
       // to the drawer menu.
-      if (display == MenuDisplay.drawer) {
+      if (display == MenuDisplay.drawer || display == MenuDisplay.endDrawer) {
+        Drawer? drawer = _buildDrawer(context, widget.menu);
         return PageGroupWidget(
           scopeManager: _scopeManager,
-          navigationDrawer: _buildDrawer(context, widget.menu),
+          navigationDrawer: display == MenuDisplay.drawer ? drawer : null,
+          navigationEndDrawer: display == MenuDisplay.endDrawer ? drawer : null,
           child: IndexedStack(children: pageWidgets, index: selectedPage)
         );
       }

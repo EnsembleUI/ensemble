@@ -215,6 +215,9 @@ class PageState extends State<Page>{
     // drawer might be injected from the PageGroup, so check for it first.
     // Note that if the drawer already exists, we will ignore any new drawer
     Widget? _drawer = PageGroupWidget.getNavigationDrawer(context);
+    Widget? _endDrawer = PageGroupWidget.getNavigationEndDrawer(context);
+    bool hasDrawer = _drawer != null || _endDrawer != null;
+
     Widget? _bottomNavBar;
 
     // build the navigation menu (bottom nav bar or drawer). Note that menu is not applicable on modal pages
@@ -224,6 +227,8 @@ class PageState extends State<Page>{
         _bottomNavBar = _buildBottomNavBar(context, widget._pageModel.menu!);
       } else if (menuDisplay == MenuDisplay.drawer.name) {
         _drawer ??= _buildDrawer(context, widget._pageModel.menu!);
+      } else if (menuDisplay == MenuDisplay.endDrawer.name) {
+        _endDrawer ??= _buildDrawer(context, widget._pageModel.menu!);
       }
       // left/right navBar will be rendered as part of the body
     }
@@ -256,7 +261,7 @@ class PageState extends State<Page>{
 
     PreferredSizeWidget? fixedAppBar;
     if (!isScrollableView) {
-      fixedAppBar = buildFixedAppBar(widget._pageModel.headerModel, _drawer != null);
+      fixedAppBar = buildFixedAppBar(widget._pageModel.headerModel, hasDrawer);
     }
 
     Widget rtn = DataScopeWidget(
@@ -268,10 +273,11 @@ class PageState extends State<Page>{
 
         // appBar is inside CustomScrollView if defined
         appBar: fixedAppBar,
-        body: isScrollableView ? buildScrollablePageContent(_drawer != null) : buildFixedPageContent(fixedAppBar != null),
+        body: isScrollableView ? buildScrollablePageContent(hasDrawer) : buildFixedPageContent(fixedAppBar != null),
 
         bottomNavigationBar: _bottomNavBar,
         drawer: _drawer,
+        endDrawer: _endDrawer,
         bottomSheet: _buildFooter(_scopeManager, widget._pageModel),
         floatingActionButton: closeModalButton,
         floatingActionButtonLocation:

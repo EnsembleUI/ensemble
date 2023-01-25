@@ -19,6 +19,7 @@ abstract class PageModel {
   final List<String> _reservedTokens = [
     'Import',
     'View',
+    'ViewGroup',
     'Action',
     'API',
     'Functions',
@@ -26,7 +27,7 @@ abstract class PageModel {
     'Model',
     'Variable',
     'Global',
-    'Menu'
+    'Menu',
   ];
 
   Menu? menu;
@@ -36,7 +37,7 @@ abstract class PageModel {
 
   factory PageModel.fromYaml(YamlMap data) {
     try {
-      if (data['Menu'] != null) {
+      if (data['ViewGroup'] != null) {
         return PageGroupModel._init(data);
       }
       return SinglePageModel._init(data);
@@ -119,7 +120,7 @@ class PageGroupModel extends PageModel {
   void _processModel(YamlMap docMap) {
     super._processModel(docMap);
 
-    _processMenu(docMap['Menu']);
+    _processMenu(docMap['ViewGroup']);
   }
 }
 
@@ -322,6 +323,7 @@ class Menu {
 enum MenuDisplay {
   bottomNavBar,   // bottom navigation bar. Default if not specified
   drawer,         // hamburger drawer menu
+  endDrawer,
   leftNavBar,     // fixed navigation to the left. Only recommend for Web
 
   // legacy for backward compatible
