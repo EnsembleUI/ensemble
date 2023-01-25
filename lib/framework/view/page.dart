@@ -16,8 +16,8 @@ import 'package:ensemble/widget/button.dart';
 import 'package:flutter/material.dart';
 
 /// The root View. Every Ensemble page will have at least one at its root
-class View extends StatefulWidget {
-  View({
+class Page extends StatefulWidget {
+  Page({
     super.key,
     required DataContext dataContext,
     required SinglePageModel pageModel,
@@ -55,13 +55,13 @@ class View extends StatefulWidget {
   //final Widget? footer;
 
   @override
-  State<View> createState() => ViewState();
+  State<Page> createState() => PageState();
 
 
 }
 
 
-class ViewState extends State<View>{
+class PageState extends State<Page>{
   late ScopeManager _scopeManager;
   String menuDisplay = MenuDisplay.navBar.name;
   late Widget rootWidget;
