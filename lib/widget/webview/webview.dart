@@ -4,6 +4,7 @@ import 'package:ensemble/widget/webview/webviewstate.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:ensemble/framework/action.dart' as ensemble;
 
 class EnsembleWebView extends StatefulWidget with Invokable, HasController<EnsembleWebViewController, WebViewState> {
   static const type = 'WebView';
@@ -32,7 +33,10 @@ class EnsembleWebView extends StatefulWidget with Invokable, HasController<Ensem
       'url': (value) => _controller.url = Utils.getUrl(value),
       'height': (value) => _controller.height = Utils.optionalDouble(value),
       'width':(value) => _controller.width = Utils.optionalDouble(value),
-
+      'onPageStart': (funcDefinition) => _controller.onPageStart = Utils.getAction(funcDefinition, initiator: this),
+      'onPageFinished': (funcDefinition) => _controller.onPageFinished = Utils.getAction(funcDefinition, initiator: this),
+      'onNavigationRequest': (funcDefinition) => _controller.onNavigationRequest = Utils.getAction(funcDefinition, initiator: this),
+      'onWebResourceError': (funcDefinition) => _controller.onWebResourceError = Utils.getAction(funcDefinition, initiator: this),
       // legacy
       'uri': (value) => _controller.url = Utils.getUrl(value),
     };
@@ -47,7 +51,7 @@ class EnsembleWebViewController extends WidgetController {
   String? error;
 
   ViewController? webViewController;
-
+  ensemble.EnsembleAction? onPageStart,onPageFinished,onNavigationRequest,onWebResourceError;
   String? _url;
   String? get url => _url;
   set url(String? url) {
@@ -60,4 +64,5 @@ class EnsembleWebViewController extends WidgetController {
   }
   double? height;
   double? width;
+
 }

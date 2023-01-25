@@ -1,5 +1,6 @@
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -123,7 +124,7 @@ class DateState extends FormFieldWidgetState<Date> {
         });
         if (isEnabled() && widget._controller.onChange != null) {
           ScreenController().executeAction(
-              context, widget._controller.onChange!);
+              context, widget._controller.onChange!,event: EnsembleEvent(widget));
         }
       }
     }

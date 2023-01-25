@@ -4,6 +4,7 @@ import 'dart:math';
 import 'dart:developer' as dev;
 
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -100,7 +101,7 @@ class ProgressState extends WidgetState<EnsembleProgressIndicator> {
             _value = 1;
           });
           if (widget._controller.onCountdownComplete != null) {
-            ScreenController().executeAction(context, widget._controller.onCountdownComplete!);
+            ScreenController().executeAction(context, widget._controller.onCountdownComplete!,event: EnsembleEvent(widget));
           }
         }
       );
