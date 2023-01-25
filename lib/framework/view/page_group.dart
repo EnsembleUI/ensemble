@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -93,9 +95,10 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     } else if (widget.menu.menuItems.length >= 2) {
       MenuDisplay display = _getPreferredMenuDisplay(widget.menu);
 
-      // drawer menu will be injected in the child Page, so we wraps
-      // the widget in a provider such that its children can get access
-      // to the drawer menu.
+      // drawer menu will be injected in the child Page since the icon
+      // has to be on the header, which only exists on the Page.
+      // Here we wrap the widget in a provider such that its children
+      // can get access to the drawer menu.
       if (display == MenuDisplay.drawer || display == MenuDisplay.endDrawer) {
         Drawer? drawer = _buildDrawer(context, widget.menu);
         return PageGroupWidget(
@@ -105,8 +108,8 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
           child: IndexedStack(children: pageWidgets, index: selectedPage)
         );
       }
-      else if (display == MenuDisplay.leftNavBar) {
-
+      else if (display == MenuDisplay.sidebar || display == MenuDisplay.endSidebar) {
+        return buildSidebarNavigation(context, display, widget.menu);
       }
       else if (display == MenuDisplay.bottomNavBar){
         return Scaffold(
@@ -116,6 +119,119 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
       }
     }
     throw LanguageError('ViewGroup requires a menu and at least one page.');
+  }
+
+  /// build the sidebar and its children content
+  Widget buildSidebarNavigation(BuildContext context, MenuDisplay preferredMenuDisplay, Menu menu) {
+    Widget sidebar = _buildSidebar(context, menu);
+    Widget? separator = _buildSidebarSeparator(menu);
+    Widget content = Expanded(
+      child: IndexedStack(children: pageWidgets, index: selectedPage)
+    );
+
+    // figuring out the direction to lay things out
+    bool rtlLocale = Directionality.of(context) == TextDirection.rtl;
+    // standard layout is the sidebar menu then content
+    bool standardLayout = preferredMenuDisplay == MenuDisplay.sidebar ? !rtlLocale : rtlLocale;
+
+    List<Widget> children = [];
+    if (standardLayout) {
+      children.add(sidebar);
+      if (separator != null) {
+        children.add(separator);
+      }
+      children.add(content);
+    } else {
+      children.add(content);
+      if (separator != null) {
+        children.add(separator);
+      }
+      children.add(sidebar);
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: children,
+    );
+  }
+
+  // build the sidebar with optional header/footer
+  Widget _buildSidebar(BuildContext context, Menu menu) {
+    // sidebar header
+    double paddingFromSafeSpace = 15;
+    Widget? headerWidget;
+    if (menu.headerModel != null) {
+      headerWidget = _scopeManager.buildWidget(menu.headerModel!);
+    }
+    Widget menuHeader = Column(children: [
+      SizedBox(height: paddingFromSafeSpace),
+      Container(
+        child: headerWidget,
+      )
+    ]);
+
+    // build each menu item
+    List<NavigationRailDestination> navItems = [];
+    for (var item in menu.menuItems) {
+      navItems.add(NavigationRailDestination(
+          padding: Utils.getInsets(menu.styles?['itemPadding']),
+          icon: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
+          label: Text(Utils.translate(item.label ?? '', context))));
+    }
+
+    // sidebar footer
+    Widget? menuFooter;
+    if (menu.footerModel != null) {
+      // push footer to the bottom of the rail
+      menuFooter = Expanded(
+        child: Align(
+            alignment: Alignment.bottomCenter,
+            child: _scopeManager.buildWidget(menu.footerModel!)
+        ),
+      );
+    }
+
+    // misc styles
+    Color? menuBackground = Utils.getColor(menu.styles?['backgroundColor']);
+    MenuItemDisplay itemDisplay = MenuItemDisplay.values.from(
+        menu.styles?['itemDisplay']
+    ) ?? MenuItemDisplay.stacked;
+
+    // stacked's min gap seems to be 72 regardless of what we set. For side by side optimal min gap is around 40
+    // we set this minGap and let user controls with itemPadding
+    int minGap = itemDisplay == MenuItemDisplay.sideBySide ? 40 : 72;
+
+    // minExtendedWidth is applicable only for side by side, and should never be below minWidth (or exception)
+    int minWidth = Utils.optionalInt(menu.styles?['minWidth'], min: minGap) ?? 200;
+
+    return NavigationRail(
+      extended: itemDisplay == MenuItemDisplay.sideBySide ? true : false,
+      minExtendedWidth: minWidth.toDouble(),
+      minWidth: minGap.toDouble(),     // this is important for optimal default item spacing
+      labelType: itemDisplay != MenuItemDisplay.sideBySide ? NavigationRailLabelType.all : null,
+      backgroundColor: menuBackground,
+      leading: menuHeader,
+      destinations: navItems,
+      trailing: menuFooter,
+      selectedIndex: selectedPage,
+      onDestinationSelected: (index) {
+        setState(() {
+          selectedPage = index;
+        });
+      },
+    );
+  }
+
+  Widget? _buildSidebarSeparator(Menu menu) {
+    Color? borderColor = Utils.getColor(menu.styles?['borderColor']);
+    int? borderWidth = Utils.optionalInt(menu.styles?['borderWidth']);
+    if (borderColor != null || borderWidth != null) {
+      return VerticalDivider(
+          thickness: (borderWidth ?? 1).toDouble(),
+          width: (borderWidth ?? 1).toDouble(),
+          color: borderColor
+      );
+    }
+    return null;
   }
 
   /// Build a Bottom Navigation Bar (default if display is not specified)
@@ -172,9 +288,14 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     MenuDisplay? display = MenuDisplay.values.from(
         _scopeManager.dataContext.eval(menu.display)
     );
-    // left nav becomes drawer in lower resolution
-    if (display == MenuDisplay.leftNavBar && screenWidth < 1000) {
-      display = MenuDisplay.drawer;
+    log("screen width " + screenWidth.toString());
+    // left nav becomes drawer in lower resolution. TODO: take in user settings
+    if (screenWidth < 900) {
+      if (display == MenuDisplay.sidebar) {
+        display = MenuDisplay.drawer;
+      } else if (display == MenuDisplay.endSidebar) {
+        display = MenuDisplay.endDrawer;
+      }
     }
     display ??= MenuDisplay.bottomNavBar;
 
