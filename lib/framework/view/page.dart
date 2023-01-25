@@ -6,6 +6,7 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/page_model.dart' as model;
@@ -15,18 +16,18 @@ import 'package:ensemble/widget/button.dart';
 import 'package:flutter/material.dart';
 
 /// The root View. Every Ensemble page will have at least one at its root
-class View extends StatefulWidget {
-  View({
-    Key? key,
+class Page extends StatefulWidget {
+  Page({
+    super.key,
     required DataContext dataContext,
-    required PageModel pageModel,
-  }) : super(key: key) {
+    required SinglePageModel pageModel,
+  }) {
     _initialDataContext = dataContext;
     _pageModel = pageModel;
   }
 
   late final DataContext _initialDataContext;
-  late final PageModel _pageModel;
+  late final SinglePageModel _pageModel;
 
   /// The reference to DataContext is needed for API invoked before
   /// the page load. In these cases we do not have the context to travel
@@ -54,13 +55,13 @@ class View extends StatefulWidget {
   //final Widget? footer;
 
   @override
-  State<View> createState() => ViewState();
+  State<Page> createState() => PageState();
 
 
 }
 
 
-class ViewState extends State<View>{
+class PageState extends State<Page>{
   late ScopeManager _scopeManager;
   String menuDisplay = MenuDisplay.navBar.name;
   late Widget rootWidget;
@@ -211,15 +212,23 @@ class ViewState extends State<View>{
   Widget build(BuildContext context) {
     log("View build() $hashCode");
 
-    // build the navigation menu (bottom nav bar or drawer). Note that menu is not applicable on modal pages
+    // drawer might be injected from the PageGroup, so check for it first.
+    // Note that if the drawer already exists, we will ignore any new drawer
+    Widget? _drawer = PageGroupWidget.getNavigationDrawer(context);
+    Widget? _endDrawer = PageGroupWidget.getNavigationEndDrawer(context);
+    bool hasDrawer = _drawer != null || _endDrawer != null;
+
     Widget? _bottomNavBar;
-    Widget? _drawer;
+
+    // build the navigation menu (bottom nav bar or drawer). Note that menu is not applicable on modal pages
     if (widget._pageModel.menu != null && widget._pageModel.screenOptions?.pageType != PageType.modal) {
       menuDisplay = _scopeManager.dataContext.eval(widget._pageModel.menu!.display);
       if (menuDisplay == null || menuDisplay == MenuDisplay.bottomNavBar.name || menuDisplay == MenuDisplay.navBar.name) {
         _bottomNavBar = _buildBottomNavBar(context, widget._pageModel.menu!);
       } else if (menuDisplay == MenuDisplay.drawer.name) {
-        _drawer = _buildDrawer(context, widget._pageModel.menu!);
+        _drawer ??= _buildDrawer(context, widget._pageModel.menu!);
+      } else if (menuDisplay == MenuDisplay.endDrawer.name) {
+        _endDrawer ??= _buildDrawer(context, widget._pageModel.menu!);
       }
       // left/right navBar will be rendered as part of the body
     }
@@ -252,7 +261,7 @@ class ViewState extends State<View>{
 
     PreferredSizeWidget? fixedAppBar;
     if (!isScrollableView) {
-      fixedAppBar = buildFixedAppBar(widget._pageModel.headerModel, _drawer != null);
+      fixedAppBar = buildFixedAppBar(widget._pageModel.headerModel, hasDrawer);
     }
 
     Widget rtn = DataScopeWidget(
@@ -264,10 +273,11 @@ class ViewState extends State<View>{
 
         // appBar is inside CustomScrollView if defined
         appBar: fixedAppBar,
-        body: isScrollableView ? buildScrollablePageContent(_drawer != null) : buildFixedPageContent(fixedAppBar != null),
+        body: isScrollableView ? buildScrollablePageContent(hasDrawer) : buildFixedPageContent(fixedAppBar != null),
 
         bottomNavigationBar: _bottomNavBar,
         drawer: _drawer,
+        endDrawer: _endDrawer,
         bottomSheet: _buildFooter(_scopeManager, widget._pageModel),
         floatingActionButton: closeModalButton,
         floatingActionButtonLocation:
@@ -487,7 +497,7 @@ class ViewState extends State<View>{
   }
 
 
-  Widget? _buildFooter(ScopeManager scopeManager, PageModel pageModel) {
+  Widget? _buildFooter(ScopeManager scopeManager, SinglePageModel pageModel) {
     // Footer can only take 1 child by our design. Ignore the rest
     if (pageModel.footer != null && pageModel.footer!.children.isNotEmpty) {
       return AnimatedOpacity(
@@ -551,8 +561,6 @@ class DataScopeWidget extends InheritedWidget {
     return null;
   }
 }
-
-
 
 class ActionResponse {
   Map<String, dynamic>? _resultData;
