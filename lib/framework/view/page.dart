@@ -6,6 +6,7 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/page_model.dart' as model;
@@ -211,15 +212,18 @@ class ViewState extends State<View>{
   Widget build(BuildContext context) {
     log("View build() $hashCode");
 
-    // build the navigation menu (bottom nav bar or drawer). Note that menu is not applicable on modal pages
+    // drawer might be injected from the PageGroup, so check for it first.
+    // Note that if the drawer already exists, we will ignore any new drawer
+    Widget? _drawer = PageGroupWidget.getNavigationDrawer(context);
     Widget? _bottomNavBar;
-    Widget? _drawer;
+
+    // build the navigation menu (bottom nav bar or drawer). Note that menu is not applicable on modal pages
     if (widget._pageModel.menu != null && widget._pageModel.screenOptions?.pageType != PageType.modal) {
       menuDisplay = _scopeManager.dataContext.eval(widget._pageModel.menu!.display);
       if (menuDisplay == null || menuDisplay == MenuDisplay.bottomNavBar.name || menuDisplay == MenuDisplay.navBar.name) {
         _bottomNavBar = _buildBottomNavBar(context, widget._pageModel.menu!);
       } else if (menuDisplay == MenuDisplay.drawer.name) {
-        _drawer = _buildDrawer(context, widget._pageModel.menu!);
+        _drawer ??= _buildDrawer(context, widget._pageModel.menu!);
       }
       // left/right navBar will be rendered as part of the body
     }
@@ -551,8 +555,6 @@ class DataScopeWidget extends InheritedWidget {
     return null;
   }
 }
-
-
 
 class ActionResponse {
   Map<String, dynamic>? _resultData;
