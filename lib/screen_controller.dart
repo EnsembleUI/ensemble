@@ -434,12 +434,14 @@ class ScreenController {
 
   /// get the screen widget. If screen is not specified, return the home screen
   Widget getScreen({
+    Key? key,
     String? screenName,
     bool? asModal,
     Map<String, dynamic>? pageArgs,
   }) {
     PageType pageType = asModal == true ? PageType.modal : PageType.regular;
     return  Screen(
+      key: key,
       appProvider: AppProvider(definitionProvider: Ensemble().getConfig()!.definitionProvider),
       screenPayload: ScreenPayload(
         screenName: screenName,

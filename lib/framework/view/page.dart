@@ -210,7 +210,7 @@ class PageState extends State<Page>{
 
   @override
   Widget build(BuildContext context) {
-    log("View build() $hashCode");
+    //log("View build() $hashCode");
 
     // drawer might be injected from the PageGroup, so check for it first.
     // Note that if the drawer already exists, we will ignore any new drawer
@@ -520,8 +520,7 @@ class PageState extends State<Page>{
   void dispose() {
     //log('Disposing View ${widget.hashCode}');
     _scopeManager.dispose();
-
-    _scopeManager.debugListenerMap();
+    //_scopeManager.debugListenerMap();
     _scopeManager.eventBus.destroy();
     super.dispose();
   }
