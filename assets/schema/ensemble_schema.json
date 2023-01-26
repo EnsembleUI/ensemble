@@ -1734,7 +1734,7 @@
           "if": {
             "properties": {
               "display": {
-                "const": "leftNavBar"
+                "const": "sidebar"
               }
             }
           },
