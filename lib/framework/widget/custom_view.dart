@@ -24,7 +24,7 @@ class CustomView extends StatelessWidget with Invokable {
         scopeManager.dataContext.addInvokableContext(param, InvokableNull());
       }
     }
-    log("Custom View created $hashCode");
+    //log("Custom View created $hashCode");
 
   }
 

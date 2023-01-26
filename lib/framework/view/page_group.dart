@@ -79,7 +79,8 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     for (int i=0; i<widget.menu.menuItems.length; i++) {
       model.MenuItem menuItem = widget.menu.menuItems[i];
       pageWidgets.add(ScreenController().getScreen(
-          screenName: menuItem.page
+        key: UniqueKey(),   // ensure each screen is different for Flutter not to optimize
+        screenName: menuItem.page
       ));
       if (menuItem.selected) {
         selectedPage = i;
@@ -105,7 +106,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
           scopeManager: _scopeManager,
           navigationDrawer: display == MenuDisplay.drawer ? drawer : null,
           navigationEndDrawer: display == MenuDisplay.endDrawer ? drawer : null,
-          child: IndexedStack(children: pageWidgets, index: selectedPage)
+          child: pageWidgets[selectedPage]
         );
       }
       else if (display == MenuDisplay.sidebar || display == MenuDisplay.endSidebar) {
@@ -114,7 +115,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
       else if (display == MenuDisplay.bottomNavBar){
         return Scaffold(
           bottomNavigationBar: _buildBottomNavBar(context, widget.menu),
-          body: IndexedStack(children: pageWidgets, index: selectedPage)
+          body: pageWidgets[selectedPage]
         );
       }
     }
@@ -126,7 +127,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     Widget sidebar = _buildSidebar(context, menu);
     Widget? separator = _buildSidebarSeparator(menu);
     Widget content = Expanded(
-      child: IndexedStack(children: pageWidgets, index: selectedPage)
+      child: pageWidgets[selectedPage]
     );
 
     // figuring out the direction to lay things out
@@ -288,9 +289,8 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     MenuDisplay? display = MenuDisplay.values.from(
         _scopeManager.dataContext.eval(menu.display)
     );
-    log("screen width " + screenWidth.toString());
     // left nav becomes drawer in lower resolution. TODO: take in user settings
-    if (screenWidth < 900) {
+    if (screenWidth < 1024) {
       if (display == MenuDisplay.sidebar) {
         display = MenuDisplay.drawer;
       } else if (display == MenuDisplay.endSidebar) {
