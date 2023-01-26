@@ -351,10 +351,18 @@ class _CameraScreenState extends State<CameraScreen> {
                           setState(() async {
                             imageFileList.add(await value.readAsBytes());
                           });
+                          if(widget.maxCount == 1)
+                          {
+                            Navigator.pop(context, imageFileList);
+                          }
                         } else {
                           setState(() {
                             imageFileList.add(value);
                           });
+                          if(widget.maxCount == 1)
+                          {
+                            Navigator.pop(context, imageFileList);
+                          }
                         }
                       });
                     }
@@ -496,38 +504,33 @@ class _CameraScreenState extends State<CameraScreen> {
   // this function is used to pick images from gallery
   void selectImage() async {
     final List<XFile> selectImage = await imagePicker.pickMultiImage();
-    if (imageFileList.isNotEmpty) {
-      if (imageFileList.length >= widget.maxCount) {
-        FlutterToast.showToast(title: errorString);
+    if (imageFileList.length >= widget.maxCount) {
+      FlutterToast.showToast(title: errorString);
+      return;
+    } else {
+      if (selectImage.length > widget.maxCount) {
+        FlutterToast.showToast(
+            title: 'You just pick ${widget.maxCount} image');
         return;
       } else {
-        if (selectImage.length > widget.maxCount) {
-          FlutterToast.showToast(
-              title: 'You just pick ${widget.maxCount} image');
-          return;
-        } else {
-          if (selectImage.isNotEmpty) {
-            if (kIsWeb) {
-              for (var element in selectImage) {
-                imageFileList.add(await element.readAsBytes());
+        if (selectImage.isNotEmpty) {
+          if (kIsWeb) {
+            for (var element in selectImage) {
+              imageFileList.add(await element.readAsBytes());
+              if(widget.maxCount == 1)
+              {
+                Navigator.pop(context, imageFileList);
               }
-            } else {
-              imageFileList.addAll(selectImage);
             }
-            setState(() {});
+          } else {
+            imageFileList.addAll(selectImage);
+            if(widget.maxCount == 1)
+            {
+              Navigator.pop(context, imageFileList);
+            }
           }
+          setState(() {});
         }
-      }
-    } else {
-      if (selectImage.isNotEmpty) {
-        if (kIsWeb) {
-          for (var element in selectImage) {
-            imageFileList.add(await element.readAsBytes());
-          }
-        } else {
-          imageFileList.addAll(selectImage);
-        }
-        setState(() {});
       }
     }
   }
