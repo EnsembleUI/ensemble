@@ -176,8 +176,10 @@ class _CameraScreenState extends State<CameraScreen> {
         ),
         space,
         textbutton(
-          onPressed: () {},
-          title: 'Upload',
+          onPressed: () {
+            Navigator.pop(context, imageFileList);
+          },
+          title: 'Done',
         ),
       ],
     );
