@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:camera/camera.dart';
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
@@ -30,6 +31,7 @@ class _CameraScreenState extends State<CameraScreen> {
   List<CameraDescription> cameras = [];
 
   CameraController? cameracontroller;
+  late PageController pageController;
 
   var fullImage;
 
@@ -40,6 +42,9 @@ class _CameraScreenState extends State<CameraScreen> {
   bool isImagePreview = false;
   bool isPermission = false;
   String errorString = '';
+  int index = 0;
+
+  List cameraoptionsList = [];
 
   SizedBox space = const SizedBox(
     height: 10,
@@ -62,6 +67,12 @@ class _CameraScreenState extends State<CameraScreen> {
         setCamera(0);
       }
     });
+    pageController = PageController(viewportFraction: 0.25, initialPage: index);
+    cameraoptionsList = [
+      'PHOTO',
+      'VIDEO'
+    ];
+    setState(() {});
   }
 
   Future initCamera() async {
@@ -320,9 +331,44 @@ class _CameraScreenState extends State<CameraScreen> {
     return Container(
       color: Colors.black.withOpacity(0.3),
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(15.0),
         child: Column(
           children: [
+            SizedBox(
+              height: 20,
+              child: PageView.builder(
+                scrollDirection: Axis.horizontal,
+                controller: pageController,
+                onPageChanged: (i) {
+                  setState(() {
+                    index = i;
+                  });
+                },
+                itemCount: cameraoptionsList.length,
+                itemBuilder: ((c, i) {
+                  return AnimatedOpacity(
+                    duration: const Duration(milliseconds: 300),
+                    opacity: i == index ? 1 : 0.2,
+                    child: Center(
+                      child: Text(
+                        cameraoptionsList[i].toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          shadows: [
+                            Shadow(
+                              blurRadius: 4,
+                              color: Colors.black,
+                            )
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ),
+            space,
             Row(
               children: [
                 // <----- This button is used for pick image in gallery ------>
