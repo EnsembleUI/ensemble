@@ -355,6 +355,7 @@ class _CameraScreenState extends State<CameraScreen> {
                 buttons(
                   icon: Icon(Icons.photo_size_select_actual_outlined,
                       size: iconSize, color: iconColor),
+                  backgroundColor: Colors.white.withOpacity(0.3),
                   onPressed: () {
                     if (widget.useGallery) {
                       selectImage();
@@ -421,7 +422,9 @@ class _CameraScreenState extends State<CameraScreen> {
                       Icons.flip_camera_ios_outlined,
                       size: iconSize,
                       color: iconColor,
+                      
                     ),
+                    backgroundColor: Colors.white.withOpacity(0.3),
                     onPressed: () {
                       if (isFrontCamera == false) {
                         setCamera(1);
@@ -569,7 +572,7 @@ class _CameraScreenState extends State<CameraScreen> {
           backgroundColor: backgroundColor ?? Colors.transparent,
           shadowColor: shadowColor ?? Colors.transparent,
           shape: const CircleBorder(),
-          side: BorderSide(color: bordercolor ?? Colors.white),
+          side: BorderSide(color: bordercolor ?? Colors.white , width: 2.0),
           padding: const EdgeInsets.all(8),
         ),
       ),
