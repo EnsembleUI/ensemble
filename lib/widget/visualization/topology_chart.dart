@@ -67,6 +67,7 @@ class TopologyChartState extends WidgetState<TopologyChart> {
     return JsWidget(
       id: widget.controller.id!,
       createHtmlTag: () => '<div id="${widget.controller.chartDiv}" class="main-wrapper main-section"></div>',
+      preCreateScript: () => 'removeChart("${widget.controller.chartDiv}")',
       scriptToInstantiate: (String c) {
         return 'buildElement("${widget.controller.chartDiv}",$c)';
       },
