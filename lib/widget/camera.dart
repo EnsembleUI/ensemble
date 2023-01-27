@@ -106,11 +106,33 @@ class _CameraScreenState extends State<CameraScreen> {
       return Container();
     }
     return SafeArea(
-      child: Scaffold(
-        body: SizedBox(
-          height: MediaQuery.of(context).size.height,
-          width: MediaQuery.of(context).size.width,
-          child: isImagePreview ? fullImagePreview() : cameraView(),
+      child: WillPopScope(
+        onWillPop: () async{
+          if(isImagePreview)
+            {
+              if (cameracontroller == null) {
+                setState(() {
+                  isImagePreview = false;
+                });
+              } else {
+                setState(() {
+                  cameracontroller!.resumePreview();
+                  isImagePreview = false;
+                });
+              }
+            }
+          else
+            {
+              Navigator.pop(context, imageFileList);
+            }
+          return false;
+        },
+        child: Scaffold(
+          body: SizedBox(
+            height: MediaQuery.of(context).size.height,
+            width: MediaQuery.of(context).size.width,
+            child: isImagePreview ? fullImagePreview() : cameraView(),
+          ),
         ),
       ),
     );
