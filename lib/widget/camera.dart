@@ -466,7 +466,7 @@ class _CameraScreenState extends State<CameraScreen> {
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 14,
-                  fontWeight: FontWeight.normal,
+                  fontFamily: 'Roboto',
                   shadows: [
                     Shadow(
                       blurRadius: 4,
@@ -526,6 +526,11 @@ class _CameraScreenState extends State<CameraScreen> {
         children: [
           Text(
             buttontitle!,
+            style: TextStyle(
+              color: isPermission ? Colors.black : Colors.white,
+              fontSize: 18.0,
+              fontFamily: 'Roboto',
+            ),
           ),
           const SizedBox(
             width: 5.0,
