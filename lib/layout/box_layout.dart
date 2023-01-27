@@ -42,6 +42,7 @@ class Flex extends BoxLayout {
     return entries;
   }
 
+
   @override
   Map<String, Function> getters() {
     Map<String, Function> entries = super.getters();
@@ -54,6 +55,15 @@ class Flex extends BoxLayout {
   @override
   bool isVertical() {
     return _controller.direction != 'horizontal';
+  }
+}
+class ListView extends BoxLayout {
+  static const type = 'ListView';
+  ListView({Key? key}) : super(key: key);
+
+  @override
+  bool isVertical() {
+    return true;
   }
 }
 
@@ -154,7 +164,9 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
       children = updatedChildren;
     }
 
-    Widget boxWidget = _buildBoxWidget(children);
+    Widget boxWidget = templatedChildren != null && widget is ListView
+        ? _buildListView(children)
+        : _buildBoxWidget(children);
 
     // when we have a child (e.g Divider) that doesn't have an explicit size but stretches to
     // our container (Row/Column/Flex), our container needs to have an explicit size.
@@ -200,6 +212,16 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
 
   }
 
+  Widget _buildListView(List<Widget> listViewChildren) {
+    return flutter.ListView.builder(
+        scrollDirection: Axis.vertical,
+        itemCount: listViewChildren.length,
+        shrinkWrap: true,
+        itemBuilder: (BuildContext context, int index) {
+          return listViewChildren[index];
+        });
+  }
+
   Widget _buildBoxWidget(List<Widget> children) {
     MainAxisAlignment mainAxis = widget._controller.mainAxis != null ?
       LayoutUtils.getMainAxisAlignment(widget._controller.mainAxis!) :
@@ -220,7 +242,7 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
       // the scrollable, then performance is better.
       if (widget._controller.scrollable && kIsWeb) {
         children = [
-          ListView(
+          flutter.ListView(
             physics: const NeverScrollableScrollPhysics(),
             shrinkWrap: true,
             children: children,
@@ -238,7 +260,14 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
           crossAxisAlignment: crossAxis,
           mainAxisSize: mainAxisSize,
           children: children);
-    } else if (widget is Flex) {
+    } else if (widget is ListView) {
+      boxWidget = flutter.ListView(
+        children: children,
+        padding: widget._controller.padding ?? const EdgeInsets.all(0),
+        shrinkWrap: true,
+      );
+    }
+    else if (widget is Flex) {
       boxWidget = flutter.Flex(
           direction: widget.isVertical() ? Axis.vertical : Axis.horizontal,
           mainAxisAlignment: mainAxis,
