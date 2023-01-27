@@ -83,6 +83,7 @@ class WidgetRegistry {
     // containers
     Column.type: () => Column(),
     Row.type: () => Row(),
+    ListView.type: () => ListView(),
     Flex.type: () => Flex(),
     EnsembleStack.type: () => EnsembleStack(),
     Flow.type: () => Flow(),
