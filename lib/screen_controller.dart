@@ -147,11 +147,11 @@ class ScreenController {
         final res = await Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => CameraScreen(
-            mode: action.options!['mode'] != null ? Utils.getString(action.options!['mode'], fallback: '') : 'DEFAULT',
-            initialCamera: action.options!['initialCamera'] != null ? Utils.getString(action.options!['initialCamera'], fallback: '') : 'DEFAULT',
-            useGallery: action.options!['useGallery'] != null ? Utils.getBool(action.options!['useGallery'], fallback: false) : true,
-            preview: action.options!['preview'] != null ? Utils.getBool(action.options!['preview'], fallback: false) : false,
-            maxCount: action.options!['maxCount'] != null ? Utils.getInt(action.options!['maxCount'], fallback: 0) : 1,
+            mode: action.options == null? 'DEFAULT' : action.options!['mode'] != null ? Utils.getString(action.options!['mode'], fallback: '') : 'DEFAULT',
+            initialCamera: action.options == null? 'DEFAULT' : action.options!['initialCamera'] != null ? Utils.getString(action.options!['initialCamera'], fallback: '') : 'DEFAULT',
+            useGallery: action.options == null? true : action.options!['useGallery'] != null ? Utils.getBool(action.options!['useGallery'], fallback: false) : true,
+            preview: action.options == null? false : action.options!['preview'] != null ? Utils.getBool(action.options!['preview'], fallback: false) : false,
+            maxCount: action.options == null? 1 : action.options!['maxCount'] != null ? Utils.getInt(action.options!['maxCount'], fallback: 0) : 1,
           ),
           ),
         );
