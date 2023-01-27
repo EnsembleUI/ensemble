@@ -50,6 +50,9 @@ class _CameraScreenState extends State<CameraScreen> {
     height: 10,
   );
 
+  Color iconColor = const Color(0xff0086B8);
+  double iconSize = 24.0;
+
   @override
   void initState() {
     super.initState();
@@ -277,13 +280,13 @@ class _CameraScreenState extends State<CameraScreen> {
                 decoration: BoxDecoration(
                   border: isBorderView
                       ? fullImage == imageFileList[i]
-                          ? Border.all(color: Colors.indigo, width: 2.0)
-                          : Border.all(color: Colors.transparent, width: 2.0)
-                      : Border.all(color: Colors.transparent, width: 2.0),
+                          ? Border.all(color: iconColor, width: 3.0)
+                          : Border.all(color: Colors.transparent, width: 3.0)
+                      : Border.all(color: Colors.transparent, width: 3.0),
                   borderRadius: const BorderRadius.all(Radius.circular(5.0)),
                 ),
                 child: ClipRRect(
-                  borderRadius: const BorderRadius.all(Radius.circular(5.0)),
+                  borderRadius: BorderRadius.all(isBorderView ? const Radius.circular(0.0) : const Radius.circular(5.0)),
                   child: kIsWeb
                       ? Image.memory(
                     imageFileList[i],
@@ -311,14 +314,14 @@ class _CameraScreenState extends State<CameraScreen> {
         children: [
           buttons(
             onPressed: backArrowAction,
-            icon: const Icon(Icons.arrow_back , color: Colors.black,),
+            icon: Icon(Icons.arrow_back , color: Colors.black, size: iconSize,),
             backgroundColor: Colors.white,
             shadowColor: Colors.black54
           ),
           const Spacer(),
           IconButton(
             onPressed: deleteButtonAction,
-            icon: const Icon(Icons.delete_sharp),
+            icon: Icon(Icons.delete_sharp , color: iconColor,size: iconSize,),
           )
         ],
       ),
@@ -339,52 +342,19 @@ class _CameraScreenState extends State<CameraScreen> {
   // this is a camera button to click image and pick image form gallery and rotate camera
   Widget cameraButton() {
     return Container(
-      color: Colors.black.withOpacity(0.3),
+      color: Colors.black.withOpacity(0.4),
       child: Padding(
         padding: const EdgeInsets.all(15.0),
         child: Column(
           children: [
-            SizedBox(
-              height: 20,
-              child: PageView.builder(
-                scrollDirection: Axis.horizontal,
-                controller: pageController,
-                onPageChanged: (i) {
-                  setState(() {
-                    index = i;
-                  });
-                },
-                itemCount: cameraoptionsList.length,
-                itemBuilder: ((c, i) {
-                  return AnimatedOpacity(
-                    duration: const Duration(milliseconds: 300),
-                    opacity: i == index ? 1 : 0.2,
-                    child: Center(
-                      child: Text(
-                        cameraoptionsList[i].toString(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          shadows: [
-                            Shadow(
-                              blurRadius: 4,
-                              color: Colors.black,
-                            )
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                }),
-              ),
-            ),
+            silderView(),
             space,
             Row(
               children: [
                 // <----- This button is used for pick image in gallery ------>
                 buttons(
-                  icon: const Icon(Icons.photo_size_select_actual_outlined,
-                      size: 15.0, color: Colors.blue),
+                  icon: Icon(Icons.photo_size_select_actual_outlined,
+                      size: iconSize, color: iconColor),
                   onPressed: () {
                     if (widget.useGallery) {
                       selectImage();
@@ -426,16 +396,16 @@ class _CameraScreenState extends State<CameraScreen> {
                     }
                   },
                   child: Container(
-                    height: 65,
-                    width: 65,
+                    height: 60,
+                    width: 60,
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.white, width: 3),
                       shape: BoxShape.circle,
                     ),
                     child: Center(
                       child: Container(
-                        height: 55,
-                        width: 55,
+                        height: 46,
+                        width: 46,
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.5),
                           shape: BoxShape.circle,
@@ -447,10 +417,10 @@ class _CameraScreenState extends State<CameraScreen> {
                 const Spacer(),
                 // <----- This button is used for rotate camera if camera is exist more than one camera ------>
                 buttons(
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.flip_camera_ios_outlined,
-                      size: 15.0,
-                      color: Colors.blue,
+                      size: iconSize,
+                      color: iconColor,
                     ),
                     onPressed: () {
                       if (isFrontCamera == false) {
@@ -466,6 +436,45 @@ class _CameraScreenState extends State<CameraScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget silderView()
+  {
+    return SizedBox(
+      height: 20,
+      child: PageView.builder(
+        scrollDirection: Axis.horizontal,
+        controller: pageController,
+        onPageChanged: (i) {
+          setState(() {
+            index = i;
+          });
+        },
+        itemCount: cameraoptionsList.length,
+        itemBuilder: ((c, i) {
+          return AnimatedOpacity(
+            duration: const Duration(milliseconds: 300),
+            opacity: i == index ? 1 : 0.5,
+            child: Center(
+              child: Text(
+                cameraoptionsList[i].toString(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.normal,
+                  shadows: [
+                    Shadow(
+                      blurRadius: 4,
+                      color: Colors.black,
+                    )
+                  ],
+                ),
+              ),
+            ),
+          );
+        }),
       ),
     );
   }
@@ -550,15 +559,19 @@ class _CameraScreenState extends State<CameraScreen> {
       Color? backgroundColor,
       Color? shadowColor,
       }) {
-    return ElevatedButton(
-      onPressed: onPressed,
-      child: icon,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: backgroundColor ?? Colors.transparent,
-        shadowColor: shadowColor ?? Colors.transparent,
-        shape: const CircleBorder(),
-        side: BorderSide(color: bordercolor ?? Colors.white),
-        padding: const EdgeInsets.all(10),
+    return ButtonTheme(
+      height: 40,
+      minWidth: 40,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        child: icon,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: backgroundColor ?? Colors.transparent,
+          shadowColor: shadowColor ?? Colors.transparent,
+          shape: const CircleBorder(),
+          side: BorderSide(color: bordercolor ?? Colors.white),
+          padding: const EdgeInsets.all(8),
+        ),
       ),
     );
   }
