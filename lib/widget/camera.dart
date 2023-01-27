@@ -231,7 +231,7 @@ class _CameraScreenState extends State<CameraScreen> {
 
   Widget imagesPreview({bool isImageOnTap = false, bool isBorderView = false}) {
     return SizedBox(
-      height: 100,
+      height: 72,
       width: MediaQuery.of(context).size.width,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
@@ -240,7 +240,7 @@ class _CameraScreenState extends State<CameraScreen> {
         itemCount: imageFileList.length,
         itemBuilder: (c, i) {
           return Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(5.0),
             child: GestureDetector(
               onTap: isImageOnTap
                   ? () {
@@ -250,8 +250,8 @@ class _CameraScreenState extends State<CameraScreen> {
                     }
                   : null,
               child: Container(
-                width: 100.0,
-                height: 100.0,
+                width: 72.0,
+                height: 72.0,
                 decoration: BoxDecoration(
                   border: isBorderView
                       ? fullImage == imageFileList[i]
@@ -284,26 +284,14 @@ class _CameraScreenState extends State<CameraScreen> {
       {required void Function()? backArrowAction,
       required void Function()? deleteButtonAction}) {
     return Padding(
-      padding: const EdgeInsets.only(left: 10.0, right: 10.0),
+      padding: const EdgeInsets.only(left: 10.0, right: 10.0 , top: 10.0),
       child: Row(
         children: [
-          Container(
-            decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black54,
-                      spreadRadius: 5,
-                      blurRadius: 7,
-                      offset: Offset(0, 3))
-                ]),
-            child: Center(
-              child: IconButton(
-                onPressed: backArrowAction,
-                icon: const Icon(Icons.arrow_back),
-              ),
-            ),
+          buttons(
+            onPressed: backArrowAction,
+            icon: const Icon(Icons.arrow_back , color: Colors.black,),
+            backgroundColor: Colors.white,
+            shadowColor: Colors.black54
           ),
           const Spacer(),
           IconButton(
@@ -536,12 +524,16 @@ class _CameraScreenState extends State<CameraScreen> {
   Widget buttons(
       {required void Function()? onPressed,
       required Widget icon,
-      Color? bordercolor}) {
+      Color? bordercolor,
+      Color? backgroundColor,
+      Color? shadowColor,
+      }) {
     return ElevatedButton(
       onPressed: onPressed,
       child: icon,
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.transparent,
+        backgroundColor: backgroundColor ?? Colors.transparent,
+        shadowColor: shadowColor ?? Colors.transparent,
         shape: const CircleBorder(),
         side: BorderSide(color: bordercolor ?? Colors.white),
         padding: const EdgeInsets.all(10),
