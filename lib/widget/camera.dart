@@ -377,9 +377,8 @@ class _CameraScreenState extends State<CameraScreen> {
                     } else {
                       cameracontroller!.takePicture().then((value) async {
                         if (kIsWeb) {
-                          setState(() async {
-                            imageFileList.add(await value.readAsBytes());
-                          });
+                          imageFileList.add(await value.readAsBytes());
+                          setState((){});
                           if(widget.maxCount == 1)
                           {
                             Navigator.pop(context, imageFileList);
