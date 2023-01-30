@@ -15,19 +15,14 @@ import 'package:ensemble/framework/widget/toast.dart';
 import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/http_utils.dart';
-import 'package:ensemble/framework/widget/view.dart';
+import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_registry.dart';
-import 'package:ensemble/framework/widget/widget.dart';
-import 'package:event_bus/event_bus.dart';
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:http/http.dart' as http;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:yaml/yaml.dart';
-import 'package:url_launcher/link.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 
@@ -47,13 +42,13 @@ class ScreenController {
   ScopeManager? _getScopeManager(BuildContext context) {
     // get the current scope of the widget that invoked this. It gives us
     // the data context to evaluate expression
-    ScopeManager? scopeManager = DataScopeWidget.getScope(context);
+    ScopeManager? scopeManager = ensemble.DataScopeWidget.getScope(context);
 
     // when context is at the root View, we can't reach the DataScopeWidget which is
     // actually a child of View. Let's just get the scopeManager directly.
     // TODO: find a better more consistent way of getting ScopeManager
-    if (scopeManager == null && context.widget is View) {
-      scopeManager = (context.widget as View).rootScopeManager;
+    if (scopeManager == null && context.widget is ensemble.Page) {
+      scopeManager = (context.widget as ensemble.Page).rootScopeManager;
     }
     return scopeManager;
   }
@@ -430,7 +425,23 @@ class ScreenController {
   }) {
     PageType pageType = asModal == true ? PageType.modal : PageType.regular;
 
-    Widget screenWidget = Screen(
+    Widget screenWidget = getScreen(screenName: screenName, asModal: asModal, pageArgs: pageArgs);
+
+    PageRouteBuilder route = getScreenBuilder(screenWidget, pageType: pageType);
+    Navigator.push(context, route);
+    return route;
+  }
+
+  /// get the screen widget. If screen is not specified, return the home screen
+  Widget getScreen({
+    Key? key,
+    String? screenName,
+    bool? asModal,
+    Map<String, dynamic>? pageArgs,
+  }) {
+    PageType pageType = asModal == true ? PageType.modal : PageType.regular;
+    return  Screen(
+      key: key,
       appProvider: AppProvider(definitionProvider: Ensemble().getConfig()!.definitionProvider),
       screenPayload: ScreenPayload(
         screenName: screenName,
@@ -439,9 +450,6 @@ class ScreenController {
       ),
     );
 
-    PageRouteBuilder route = getScreenBuilder(screenWidget, pageType: pageType);
-    Navigator.push(context, route);
-    return route;
   }
 
   void executeGetLocationAction(ScopeManager scopeManager, DataContext dataContext, BuildContext context, GetLocationAction action) {

@@ -1,10 +1,9 @@
-import 'dart:developer';
-import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/error_screen.dart';
-import 'package:ensemble/framework/widget/view.dart';
+import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/page_model.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
@@ -74,16 +73,6 @@ class _ScreenState extends State<Screen> {
       initialMap: widget.screenPayload?.arguments
     );
 
-    // overwrite the pageType as modal only if specified in the payload
-    if (widget.screenPayload?.pageType == PageType.modal) {
-      if (pageModel.screenOptions != null) {
-        pageModel.screenOptions!.pageType = widget.screenPayload!.pageType!;
-      } else {
-        pageModel.screenOptions =
-            ScreenOptions(pageType: widget.screenPayload!.pageType!);
-      }
-    }
-
     // add all the API names to our context as Invokable, even though their result
     // will be null. This is so we can always reference it API responses come back
     pageModel.apiMap?.forEach((key, value) {
@@ -93,7 +82,24 @@ class _ScreenState extends State<Screen> {
         dataContext.addInvokableContext(key, APIResponse());
       }
     });
-    return View(dataContext: dataContext, pageModel: pageModel);
+
+    if (pageModel is PageGroupModel && pageModel.menu != null) {
+      return PageGroup(initialDataContext: dataContext, model: pageModel, menu: pageModel.menu!);
+
+    } else if (pageModel is SinglePageModel) {
+      // overwrite the pageType as modal only if specified in the payload
+      if (widget.screenPayload?.pageType == PageType.modal) {
+        if (pageModel.screenOptions != null) {
+          pageModel.screenOptions!.pageType = widget.screenPayload!.pageType!;
+        } else {
+          pageModel.screenOptions =
+              ScreenOptions(pageType: widget.screenPayload!.pageType!);
+        }
+      }
+      return ensemble.Page(dataContext: dataContext, pageModel: pageModel);
+    }
+
+    throw LanguageError("Invalid Screen Definition");
   }
 }
 
