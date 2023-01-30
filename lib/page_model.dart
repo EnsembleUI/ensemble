@@ -165,7 +165,7 @@ class PageModel {
   WidgetModel buildRootModel(YamlMap viewMap, Map<String, dynamic>? customViewDefinitions) {
     WidgetModel? rootModel = getRootModel(viewMap, customViewDefinitions!);
     if (rootModel != null) {
-      if (![Column.type, Row.type, Flex.type, EnsembleStack.type, AppScroller.type, ListView.type].contains(rootModel.type)) {
+      if (![Column.type, Row.type, Flex.type, EnsembleStack.type, AppScroller.type,].contains(rootModel.type)) {
         throw LanguageError('Root widget type should only be Row, Column, Flex or Stack.');
       }
       return rootModel;
@@ -336,7 +336,6 @@ class ScreenPayload {
 
   // screen ID is optional as the App always have a default screen
   String? screenId;
-
   // screenName is also optional, and refer to the friendly readable name
   String? screenName;
 
