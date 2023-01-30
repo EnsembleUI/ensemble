@@ -1,11 +1,9 @@
-import 'dart:io';
 
 import 'package:camera/camera.dart';
-import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+// import 'package:flutter/foundation.dart' show kIsWeb;
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({
@@ -51,7 +49,7 @@ class _CameraScreenState extends State<CameraScreen> {
   );
 
   Color iconColor = const Color(0xff0086B8);
-  double iconSize = 24.0;
+  double iconSize = 20.0;
 
   @override
   void initState() {
@@ -189,13 +187,8 @@ class _CameraScreenState extends State<CameraScreen> {
                 child: SizedBox(
                   width: MediaQuery.of(context).size.width,
                   height: MediaQuery.of(context).size.height / 1.6,
-                  child: kIsWeb
-                      ? Image.memory(
+                  child: Image.memory(
                           fullImage,
-                          fit: BoxFit.contain,
-                        )
-                      : Image.file(
-                          File(fullImage.path),
                           fit: BoxFit.contain,
                         ),
                 ),
@@ -287,13 +280,8 @@ class _CameraScreenState extends State<CameraScreen> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.all(isBorderView ? const Radius.circular(0.0) : const Radius.circular(5.0)),
-                  child: kIsWeb
-                      ? Image.memory(
+                  child: Image.memory(
                     imageFileList[i],
-                    fit: BoxFit.cover,
-                  )
-                      : Image.file(
-                    File(imageFileList[i].path),
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -376,22 +364,12 @@ class _CameraScreenState extends State<CameraScreen> {
                       );
                     } else {
                       cameracontroller!.takePicture().then((value) async {
-                        if (kIsWeb) {
                           imageFileList.add(await value.readAsBytes());
-                          setState((){});
                           if(widget.maxCount == 1)
                           {
                             Navigator.pop(context, imageFileList);
                           }
-                        } else {
-                          setState(() {
-                            imageFileList.add(value);
-                          });
-                          if(widget.maxCount == 1)
-                          {
-                            Navigator.pop(context, imageFileList);
-                          }
-                        }
+                        setState((){});
                       });
                     }
                   },
@@ -577,7 +555,7 @@ class _CameraScreenState extends State<CameraScreen> {
           shadowColor: shadowColor ?? Colors.transparent,
           shape: const CircleBorder(),
           side: BorderSide(color: bordercolor ?? Colors.white , width: 2.0),
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(10),
         ),
       ),
     );
@@ -596,7 +574,6 @@ class _CameraScreenState extends State<CameraScreen> {
         return;
       } else {
         if (selectImage.isNotEmpty) {
-          if (kIsWeb) {
             for (var element in selectImage) {
               imageFileList.add(await element.readAsBytes());
               if(widget.maxCount == 1)
@@ -604,13 +581,6 @@ class _CameraScreenState extends State<CameraScreen> {
                 Navigator.pop(context, imageFileList);
               }
             }
-          } else {
-            imageFileList.addAll(selectImage);
-            if(widget.maxCount == 1)
-            {
-              Navigator.pop(context, imageFileList);
-            }
-          }
           setState(() {});
         }
       }
