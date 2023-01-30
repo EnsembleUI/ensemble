@@ -8,8 +8,8 @@ import 'package:image_picker/image_picker.dart';
 class CameraScreen extends StatefulWidget {
   const CameraScreen({
     Key? key,
-    this.mode = 'DEFAULT',
-    this.initialCamera = 'DEFAULT',
+    this.mode = 'photo',
+    this.initialCamera = 'back',
     this.useGallery = true,
     this.maxCount = 1,
     this.preview = false,
@@ -58,8 +58,7 @@ class _CameraScreenState extends State<CameraScreen> {
     initCamera().then((_) {
       ///initialize camera and choose the back camera as the initial camera in use.
       if (cameras.length == 2) {
-        if (widget.initialCamera == 'DEFAULT' ||
-            widget.initialCamera == 'back') {
+        if (widget.initialCamera == 'back') {
           setCamera(0);
         } else {
           setCamera(1);
@@ -100,6 +99,8 @@ class _CameraScreenState extends State<CameraScreen> {
 
   @override
   Widget build(BuildContext context) {
+    print('Mode is ${widget.mode}');
+    print('initialCamera is ${widget.initialCamera}');
     if (isPermission || cameras.isEmpty) {
       return isImagePreview ? fullImagePreview() : permissionDeniedView();
     }
