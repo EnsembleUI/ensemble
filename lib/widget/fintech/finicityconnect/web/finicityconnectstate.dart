@@ -43,8 +43,8 @@ class FinicityConnectState extends FinicityConnectStateBase {
           finIFrame.style.left = '${widget.controller.left}px';
           finIFrame.style.top = '${widget.controller.top}px';
           finIFrame.style.position = '${widget.controller.position}';
-          finIFrame.style.width = '$width';
-          finIFrame.style.height = '$height';
+          //finIFrame.style.width = '$width';
+          //finIFrame.style.height = '$height';
         }
         ''';
   }
