@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/layout/box_layout.dart';
 import 'package:ensemble/layout/layout_helper.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
@@ -8,22 +9,17 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' as flutter;
 
 // ignore: must_be_immutable
-class ListView extends BoxLayout {
+class ListView extends ListViewWidget {
   static const type = 'ListView';
   ListView({Key? key}) : super(key: key);
-
-  @override
-  bool isVertical() {
-    return true;
-  }
 }
 
-abstract class BoxLayout extends StatefulWidget
+ class ListViewWidget extends StatefulWidget
     with
         UpdatableContainer,
         Invokable,
         HasController<BoxLayoutController, BoxLayoutState> {
-  BoxLayout({Key? key}) : super(key: key);
+   ListViewWidget({Key? key}) : super(key: key);
 
   late final ItemTemplate? itemTemplate;
 
@@ -56,12 +52,12 @@ abstract class BoxLayout extends StatefulWidget
   }
 
   @override
-  State<StatefulWidget> createState() => BoxLayoutState();
+  State<StatefulWidget> createState() => ListViewWidgetState();
 
-  bool isVertical();
+  // bool isVertical();
 }
 
-class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
+class ListViewWidgetState extends WidgetState<ListViewWidget> with TemplatedWidgetState {
   List<Widget>? templatedChildren;
 
   @override
@@ -104,23 +100,6 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
     if (templatedChildren != null) {
       children.addAll(templatedChildren!);
     }
-
-    // if gap is specified, insert SizeBox between children
-    if (widget._controller.gap != null) {
-      Widget gapWidget = widget.isVertical()
-          ? SizedBox(height: widget._controller.gap!.toDouble())
-          : SizedBox(width: widget._controller.gap!.toDouble());
-
-      List<Widget> updatedChildren = [];
-      for (var i = 0; i < children.length; i++) {
-        updatedChildren.add(children[i]);
-        if (i != children.length - 1) {
-          updatedChildren.add(gapWidget);
-        }
-      }
-      children = updatedChildren;
-    }
-
     return _buildBoxWidget(children);
   }
 
@@ -132,9 +111,10 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
             fontSize: widget._controller.fontSize != null
                 ? widget._controller.fontSize!.toDouble()
                 : null),
-        child: flutter.Expanded(
+        child: SizedBox(
+          width: widget._controller.width != null ? widget._controller.width!.toDouble() : null,
+          height: widget._controller.height != null ? widget._controller.height!.toDouble() : null,
           child: flutter.ListView.builder(
-              padding: widget._controller.padding ?? const EdgeInsets.all(0),
               scrollDirection: Axis.vertical,
               physics: const ScrollPhysics(),
               itemCount: children.length,
@@ -142,6 +122,6 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
               itemBuilder: (BuildContext context, int index) {
                 return children[index];
               }),
-        ));
+        ),);
   }
 }
