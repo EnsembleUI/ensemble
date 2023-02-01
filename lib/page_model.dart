@@ -294,7 +294,7 @@ class ViewBehavior {
 class ItemTemplate {
   final String data;
   final String name;
-  final YamlMap template;
+  final dynamic template;
   List<dynamic>? initialValue;
 
   ItemTemplate(this.data, this.name, this.template, {this.initialValue});

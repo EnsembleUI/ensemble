@@ -104,7 +104,7 @@ class MyController extends WidgetController with LocationCapability {
 
       String? lat = markerData['location']?['lat'];
       String? lng = markerData['location']?['lng'];
-      YamlMap? widget = markerData['widget'];
+      dynamic widget = markerData['widget'];
       if (data != null && name != null && widget != null && lat != null && lng != null) {
         _markerTemplate = MarkerTemplate(
           data: data,
@@ -405,7 +405,7 @@ class MarkerTemplate extends ItemTemplate {
   MarkerTemplate({
     required String data,
     required String name,
-    required YamlMap template,  // this is the marker widget, just piggyback on the name
+    required dynamic template,  // this is the marker widget, just piggyback on the name
     required this.lat,
     required this.lng,
     this.selectedWidget,
