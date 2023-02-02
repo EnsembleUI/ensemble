@@ -1,3 +1,5 @@
+
+
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/box_layout.dart';
 import 'package:ensemble/layout/layout_helper.dart';
@@ -7,19 +9,16 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' as flutter;
+import 'package:ensemble/screen_controller.dart';
 
-// ignore: must_be_immutable
-class ListView extends ListViewWidget {
-  static const type = 'ListView';
-  ListView({Key? key}) : super(key: key);
-}
 
- class ListViewWidget extends StatefulWidget
+class ListView extends StatefulWidget
     with
         UpdatableContainer,
         Invokable,
         HasController<BoxLayoutController, BoxLayoutState> {
-   ListViewWidget({Key? key}) : super(key: key);
+  static const type = 'ListView';
+  ListView({Key? key}) : super(key: key);
 
   late final ItemTemplate? itemTemplate;
 
@@ -35,8 +34,8 @@ class ListView extends ListViewWidget {
   @override
   Map<String, Function> setters() {
     return {
-      'onTap': (funcDefinition) =>
-      _controller.onTap = Utils.getAction(funcDefinition, initiator: this),
+      'onItemTap': (funcDefinition) =>
+      _controller.onItemTap = Utils.getAction(funcDefinition, initiator: this),
     };
   }
 
@@ -52,12 +51,12 @@ class ListView extends ListViewWidget {
   }
 
   @override
-  State<StatefulWidget> createState() => ListViewWidgetState();
+  State<StatefulWidget> createState() => ListViewState();
 
-  // bool isVertical();
+// bool isVertical();
 }
 
-class ListViewWidgetState extends WidgetState<ListViewWidget> with TemplatedWidgetState {
+class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
   List<Widget>? templatedChildren;
 
   @override
@@ -106,22 +105,43 @@ class ListViewWidgetState extends WidgetState<ListViewWidget> with TemplatedWidg
   Widget _buildBoxWidget(List<Widget> children) {
     // propagate text styling to all its children
     return DefaultTextStyle.merge(
-        style: TextStyle(
-            fontFamily: widget._controller.fontFamily,
-            fontSize: widget._controller.fontSize != null
-                ? widget._controller.fontSize!.toDouble()
-                : null),
-        child: SizedBox(
-          width: widget._controller.width != null ? widget._controller.width!.toDouble() : null,
-          height: widget._controller.height != null ? widget._controller.height!.toDouble() : null,
-          child: flutter.ListView.builder(
-              scrollDirection: Axis.vertical,
-              physics: const ScrollPhysics(),
-              itemCount: children.length,
-              shrinkWrap: true,
-              itemBuilder: (BuildContext context, int index) {
-                return children[index];
-              }),
-        ),);
+      style: TextStyle(
+          fontFamily: widget._controller.fontFamily,
+          fontSize: widget._controller.fontSize != null
+              ? widget._controller.fontSize!.toDouble()
+              : null),
+      child: Container(
+        width: widget._controller.width?.toDouble(),
+        height: widget._controller.height?.toDouble(),
+        decoration: _buildBoxDecoration(),
+        child: flutter.ListView.builder(
+            padding: widget._controller.padding ?? const EdgeInsets.all(0),
+            scrollDirection: Axis.vertical,
+            physics: const ScrollPhysics(),
+            itemCount: children.length,
+            shrinkWrap: true,
+            itemBuilder: (BuildContext context, int index) {
+              return GestureDetector(
+                  onTap: widget._controller.onItemTap == null ? null : () =>
+                      ScreenController().executeAction(context, widget._controller.onItemTap!),
+                  child: children[index]);
+            }),
+      ),);
+  }
+  BoxDecoration _buildBoxDecoration() {
+    return BoxDecoration(
+        color: widget._controller.backgroundColor,
+        border: !widget._controller.hasBorder() ? null : Border.all(
+            color: widget._controller.borderColor ?? flutter.Colors.black26,
+            width: (widget._controller.borderWidth ?? 1).toDouble()),
+        borderRadius: widget._controller.borderRadius != null ? widget._controller.borderRadius!.getValue() : null,
+        boxShadow: widget._controller.shadowColor == null ? null : <BoxShadow>[
+          BoxShadow(
+            color: Color(widget._controller.shadowColor!),
+            blurRadius: (widget._controller.shadowRadius ?? 0).toDouble(),
+            offset: widget._controller.shadowOffset ?? const Offset(0, 0),
+          )
+        ]
+    );
   }
 }
