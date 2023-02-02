@@ -70,6 +70,8 @@ class BoxLayoutController extends BoxController {
 
   // applicable to Flex container only
   String? direction;
+  // applicable only for ListView
+  EnsembleAction? onItemTap;
 
 
   @override
