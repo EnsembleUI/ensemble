@@ -12,18 +12,7 @@ class CameraScreen extends StatefulWidget with Invokable, HasController<MyCamera
   static const type = 'Camera';
   CameraScreen({
     Key? key,
-    // this.mode = 'photo',
-    // this.initialCamera = 'back',
-    // this.useGallery = true,
-    // this.maxCount = 1,
-    // this.preview = false,
   }) : super(key: key);
-
-  // final String mode;
-  // final String initialCamera;
-  // final bool useGallery;
-  // final int maxCount;
-  // final bool preview;
 
   final MyCameraController _controller = MyCameraController();
 
@@ -169,8 +158,6 @@ class CameraScreenState extends WidgetState<CameraScreen> with WidgetsBindingObs
 
   @override
   Widget buildWidget(BuildContext context) {
-    print('Mode is ${widget._controller.mode}');
-    print('initialCamera is ${widget._controller.initialCamera}');
     if (isPermission || cameras.isEmpty) {
       return isImagePreview ? fullImagePreview() : permissionDeniedView();
     }
