@@ -9,6 +9,7 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/widget/camera_manager.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/framework/widget/toast.dart';
 import 'package:ensemble/layout/ensemble_page_route.dart';
@@ -144,18 +145,27 @@ class ScreenController {
       if(scopeManager != null)
       {
         print('Check action options ${action.options}');
-        final res = await Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => CameraScreen(
-            mode: action.options == null? 'photo' : action.options!['mode'] != null ? Utils.getString(action.options!['mode'], fallback: '') : 'photo',
-            initialCamera: action.options == null? 'back' : action.options!['initialCamera'] != null ? Utils.getString(action.options!['initialCamera'], fallback: '') : 'back',
-            useGallery: action.options == null? true : action.options!['useGallery'] != null ? Utils.getBool(action.options!['useGallery'], fallback: false) : true,
-            preview: action.options == null? false : action.options!['preview'] != null ? Utils.getBool(action.options!['preview'], fallback: false) : false,
-            maxCount: action.options == null? 1 : action.options!['maxCount'] != null ? Utils.getInt(action.options!['maxCount'], fallback: 0) : 1,
-          ),
-          ),
-        );
-        print('Check action options result ${res.toString()}');
+        CameraManager().openCamera(context, action);
+        // CameraManager c = CameraManager();
+        // final camera = CameraScreen();
+        // camera.setProperty('mode', 'photo');
+        // camera.setProperty('initialCamera', 'photo');
+        // camera.setProperty('mode', 'photo');
+        // camera.setProperty('mode', 'photo');
+        // c.openCamera();
+        // final res = await Navigator.push(
+        //   context,
+        //   MaterialPageRoute(builder: (context) =>
+        //       CameraScreen(
+        //     // mode: action.options == null? 'photo' : action.options!['mode'] != null ? Utils.getString(action.options!['mode'], fallback: '') : 'photo',
+        //     // initialCamera: action.options == null? 'back' : action.options!['initialCamera'] != null ? Utils.getString(action.options!['initialCamera'], fallback: '') : 'back',
+        //     // useGallery: action.options == null? true : action.options!['useGallery'] != null ? Utils.getBool(action.options!['useGallery'], fallback: false) : true,
+        //     // preview: action.options == null? false : action.options!['preview'] != null ? Utils.getBool(action.options!['preview'], fallback: false) : false,
+        //     // maxCount: action.options == null? 1 : action.options!['maxCount'] != null ? Utils.getInt(action.options!['maxCount'], fallback: 0) : 1,
+        //   ),
+        //   ),
+        // );
+        // print('Check action options result ${res.toString()}');
       }
     } else if (action is ShowDialogAction) {
       if (scopeManager != null) {

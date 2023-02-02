@@ -1,34 +1,75 @@
 
 import 'package:camera/camera.dart';
+import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/util/utils.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
 // import 'package:flutter/foundation.dart' show kIsWeb;
 
-class CameraScreen extends StatefulWidget {
-  const CameraScreen({
+class CameraScreen extends StatefulWidget with Invokable, HasController<MyCameraController, CameraScreenState>{
+  static const type = 'Camera';
+  CameraScreen({
     Key? key,
-    this.mode = 'photo',
-    this.initialCamera = 'back',
-    this.useGallery = true,
-    this.maxCount = 1,
-    this.preview = false,
+    // this.mode = 'photo',
+    // this.initialCamera = 'back',
+    // this.useGallery = true,
+    // this.maxCount = 1,
+    // this.preview = false,
   }) : super(key: key);
 
-  final String mode;
-  final String initialCamera;
-  final bool useGallery;
-  final int maxCount;
-  final bool preview;
+  // final String mode;
+  // final String initialCamera;
+  // final bool useGallery;
+  // final int maxCount;
+  // final bool preview;
+
+  final MyCameraController _controller = MyCameraController();
 
   @override
-  State<CameraScreen> createState() => _CameraScreenState();
+  State<StatefulWidget> createState() => CameraScreenState();
+
+  @override
+  MyCameraController get controller => _controller;
+
+  @override
+  Map<String, Function> getters() {
+    return {
+
+    };
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {
+      'mode':(value) => _controller.mode = Utils.optionalString(value) ?? _controller.mode,
+      'initialCamera': (value) => _controller.initialCamera = Utils.optionalString(value) ?? _controller.initialCamera,
+      'useGallery': (value) => _controller.useGallery = Utils.optionalBool(value) ?? _controller.useGallery,
+      'maxCount': (value) => _controller.maxCount = Utils.optionalInt(value) ?? _controller.maxCount,
+      'preview': (value)=> _controller.preview = Utils.optionalBool(value) ?? _controller.preview,
+    };
+  }
 }
 
-class _CameraScreenState extends State<CameraScreen> {
-  List<CameraDescription> cameras = [];
+class MyCameraController extends WidgetController{
 
   CameraController? cameracontroller;
+
+  String mode = 'photo';
+  String initialCamera = 'photo';
+  bool useGallery = true;
+  int maxCount = 1;
+  bool preview = false;
+}
+
+class CameraScreenState extends WidgetState<CameraScreen> with WidgetsBindingObserver {
+  List<CameraDescription> cameras = [];
   late PageController pageController;
 
   var fullImage;
@@ -38,6 +79,7 @@ class _CameraScreenState extends State<CameraScreen> {
 
   bool isFrontCamera = false;
   bool isImagePreview = false;
+  bool isRecording = false;
   bool isPermission = false;
   String errorString = '';
   int index = 0;
@@ -54,17 +96,32 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   void initState() {
     super.initState();
-    errorString = 'You just pick at least ${widget.maxCount} image';
+    WidgetsBinding.instance.addObserver(this);
+    errorString = 'You just pick at least ${widget._controller.maxCount} image';
     initCamera().then((_) {
       ///initialize camera and choose the back camera as the initial camera in use.
       if (cameras.length == 2) {
-        if (widget.initialCamera == 'back') {
-          setCamera(0);
-        } else {
+        if (widget._controller.initialCamera == 'back') {
           setCamera(1);
+          isFrontCamera = false;
+        } else {
+          setCamera(0);
+          isFrontCamera = true;
         }
       } else {
+        isFrontCamera = false;
         setCamera(0);
+      }
+    }).catchError((Object e) {
+      if (e is CameraException) {
+        switch (e.code) {
+          case 'CameraAccessDenied':
+            // Handle access errors here.
+            break;
+          default:
+            // Handle other errors here.
+            break;
+        }
       }
     });
     pageController = PageController(viewportFraction: 0.25, initialPage: index);
@@ -82,8 +139,8 @@ class _CameraScreenState extends State<CameraScreen> {
 
   /// chooses the camera to use, where the front camera has index = 1, and the rear camera has index = 0
   void setCamera(int index) {
-    cameracontroller = CameraController(cameras[index], ResolutionPreset.max);
-    cameracontroller!.initialize().then((_) {
+    widget._controller.cameracontroller = CameraController(cameras[index], ResolutionPreset.max);
+    widget._controller.cameracontroller!.initialize().then((_) {
       if (!mounted) {
         return;
       }
@@ -93,18 +150,31 @@ class _CameraScreenState extends State<CameraScreen> {
 
   @override
   void dispose() {
-    cameracontroller?.dispose();
+    widget._controller.cameracontroller?.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) {
-    print('Mode is ${widget.mode}');
-    print('initialCamera is ${widget.initialCamera}');
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      widget._controller.cameracontroller!.resumePreview();
+      print("State is ${state.toString()}");
+    }
+    if (state == AppLifecycleState.inactive) {
+      widget._controller.cameracontroller!.pausePreview();
+    }
+    super.didChangeAppLifecycleState(state);
+  }
+
+  @override
+  Widget buildWidget(BuildContext context) {
+    print('Mode is ${widget._controller.mode}');
+    print('initialCamera is ${widget._controller.initialCamera}');
     if (isPermission || cameras.isEmpty) {
       return isImagePreview ? fullImagePreview() : permissionDeniedView();
     }
-    if (cameracontroller == null || !cameracontroller!.value.isInitialized) {
+    if (widget._controller.cameracontroller == null || !widget._controller.cameracontroller!.value.isInitialized) {
       return Container();
     }
     return SafeArea(
@@ -112,13 +182,13 @@ class _CameraScreenState extends State<CameraScreen> {
         onWillPop: () async{
           if(isImagePreview)
             {
-              if (cameracontroller == null) {
+              if (widget._controller.cameracontroller == null) {
                 setState(() {
                   isImagePreview = false;
                 });
               } else {
                 setState(() {
-                  cameracontroller!.resumePreview();
+                  widget._controller.cameracontroller!.resumePreview();
                   isImagePreview = false;
                 });
               }
@@ -142,7 +212,7 @@ class _CameraScreenState extends State<CameraScreen> {
 
   Widget cameraView() {
     return CameraPreview(
-      cameracontroller!,
+      widget._controller.cameracontroller!,
       child: Column(
         children: [
           imageFileList.isNotEmpty ? imagePreviewButton() : const SizedBox(),
@@ -162,13 +232,13 @@ class _CameraScreenState extends State<CameraScreen> {
       children: [
         appbar(
           backArrowAction: () {
-            if (cameracontroller == null) {
+            if (widget._controller.cameracontroller == null) {
               setState(() {
                 isImagePreview = false;
               });
             } else {
               setState(() {
-                cameracontroller!.resumePreview();
+                widget._controller.cameracontroller!.resumePreview();
                 isImagePreview = false;
               });
             }
@@ -236,7 +306,7 @@ class _CameraScreenState extends State<CameraScreen> {
           textbutton(
             title: 'Pick from gallery',
             onPressed: () {
-              if (widget.useGallery) {
+              if (widget._controller.useGallery) {
                 selectImage();
               } else {
                 FlutterToast.showToast(title: 'You have not access of gallery');
@@ -346,7 +416,7 @@ class _CameraScreenState extends State<CameraScreen> {
                       size: iconSize, color: iconColor),
                   backgroundColor: Colors.white.withOpacity(0.3),
                   onPressed: () {
-                    if (widget.useGallery) {
+                    if (widget._controller.useGallery) {
                       selectImage();
                     } else {
                       FlutterToast.showToast(
@@ -358,20 +428,55 @@ class _CameraScreenState extends State<CameraScreen> {
                 const Spacer(),
                 // <----- This button is used for take image ------>
                 GestureDetector(
-                  onTap: () {
-                    if (imageFileList.length >= widget.maxCount) {
+                  onTap: () async {
+                    if (imageFileList.length >= widget._controller.maxCount) {
                       FlutterToast.showToast(
                         title: errorString,
                       );
                     } else {
-                      cameracontroller!.takePicture().then((value) async {
-                          imageFileList.add(await value.readAsBytes());
-                          if(widget.maxCount == 1)
-                          {
-                            Navigator.pop(context, imageFileList);
-                          }
-                        setState((){});
-                      });
+                      if(index == 1)
+                        {
+                          if(isRecording)
+                            {
+                              await widget._controller.cameracontroller!.stopVideoRecording();
+                              setState((){
+                                isRecording = false;
+                              });
+
+                              //     .then((value) async{
+                              //   imageFileList.add(await value.readAsBytes());
+                              //   if(widget._controller.maxCount == 1)
+                              //   {
+                              //   Navigator.pop(context, imageFileList);
+                              //   }
+                              //   isRecording = false;
+                              //   setState((){});
+                              // });
+                            }
+                          else
+                            {
+                              try{
+                                await widget._controller.cameracontroller!.prepareForVideoRecording();
+                                await widget._controller.cameracontroller!.startVideoRecording();
+                                setState(() {
+                                  isRecording = true;
+                                });
+                              }catch(e){
+                                print("Check Recording Error ${e.toString()}");
+                              }
+                            }
+                        }
+                      else
+                        {
+                          widget._controller.cameracontroller!.takePicture().then((value) async {
+                            imageFileList.add(await value.readAsBytes());
+                            if(widget._controller.maxCount == 1)
+                            {
+                              Navigator.pop(context, imageFileList);
+                            }
+                            setState((){});
+                          });
+                        }
                     }
                   },
                   child: Container(
@@ -383,11 +488,12 @@ class _CameraScreenState extends State<CameraScreen> {
                     ),
                     child: Center(
                       child: Container(
-                        height: 46,
-                        width: 46,
+                        height: isRecording ? 25 : 46,
+                        width: isRecording ? 25 : 46,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.5),
-                          shape: BoxShape.circle,
+                          color: index == 1 ? const Color(0xffFF453A) : Colors.white.withOpacity(0.5),
+                          // shape: isRecording? BoxShape.rectangle : BoxShape.circle,
+                          borderRadius: BorderRadius.all(isRecording ? const Radius.circular(5) : const Radius.circular(30)),
                         ),
                       ),
                     ),
@@ -404,9 +510,10 @@ class _CameraScreenState extends State<CameraScreen> {
                     ),
                     backgroundColor: Colors.white.withOpacity(0.3),
                     onPressed: () {
-                      if (isFrontCamera == false) {
+                      index = 0;
+                      if (isFrontCamera) {
                         setCamera(1);
-                        isFrontCamera = true;
+                        isFrontCamera = false;
                       } else {
                         setCamera(0);
                         isFrontCamera = false;
@@ -432,6 +539,7 @@ class _CameraScreenState extends State<CameraScreen> {
           setState(() {
             index = i;
           });
+          print('Check index $index');
         },
         itemCount: cameraoptionsList.length,
         itemBuilder: ((c, i) {
@@ -468,13 +576,13 @@ class _CameraScreenState extends State<CameraScreen> {
         Padding(
           padding: const EdgeInsets.all(8.0),
           child: nextButton(
-            buttontitle: widget.preview ? 'Next' : 'Done',
+            buttontitle: widget._controller.preview ? 'Next' : 'Done',
             imagelength: imageFileList.length.toString(),
             onTap: () {
-              if (widget.preview) {
-                if (cameracontroller != null) {
+              if (widget._controller.preview) {
+                if (widget._controller.cameracontroller != null) {
                   setState(() {
-                    cameracontroller!.pausePreview();
+                    widget._controller.cameracontroller!.pausePreview();
                     isImagePreview = true;
                     fullImage = imageFileList[0];
                   });
@@ -565,19 +673,19 @@ class _CameraScreenState extends State<CameraScreen> {
   // this function is used to pick images from gallery
   void selectImage() async {
     final List<XFile> selectImage = await imagePicker.pickMultiImage();
-    if (imageFileList.length >= widget.maxCount) {
+    if (imageFileList.length >= widget._controller.maxCount) {
       FlutterToast.showToast(title: errorString);
       return;
     } else {
-      if (selectImage.length > widget.maxCount) {
+      if (selectImage.length > widget._controller.maxCount) {
         FlutterToast.showToast(
-            title: 'You just pick ${widget.maxCount} image');
+            title: 'You just pick ${widget._controller.maxCount} image');
         return;
       } else {
         if (selectImage.isNotEmpty) {
             for (var element in selectImage) {
               imageFileList.add(await element.readAsBytes());
-              if(widget.maxCount == 1)
+              if(widget._controller.maxCount == 1)
               {
                 Navigator.pop(context, imageFileList);
               }
@@ -606,8 +714,8 @@ class _CameraScreenState extends State<CameraScreen> {
         setState(() {
           imageFileList.removeWhere((element) => element == fullImage);
           isImagePreview = false;
-          if (cameracontroller != null) {
-            cameracontroller!.resumePreview();
+          if (widget._controller.cameracontroller != null) {
+            widget._controller.cameracontroller!.resumePreview();
           }
         });
       }
@@ -623,8 +731,8 @@ class _CameraScreenState extends State<CameraScreen> {
         setState(() {
           imageFileList.removeWhere((element) => element == fullImage);
           isImagePreview = false;
-          if (cameracontroller != null) {
-            cameracontroller!.resumePreview();
+          if (widget._controller.cameracontroller != null) {
+            widget._controller.cameracontroller!.resumePreview();
           }
         });
       }
