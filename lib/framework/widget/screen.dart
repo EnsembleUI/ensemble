@@ -40,12 +40,39 @@ class _ScreenState extends State<Screen> {
       builder: (context, snapshot) {
         // show error
         if (snapshot.hasError) {
-          return ErrorScreen(
-            LanguageError(
-              "I'm not able to read your page definition",
-              detailError: snapshot.error.toString()
-            )
-          );
+          return _appPlaceholderWrapper(
+              loadingBackgroundColor:
+              const Color(0XFF000000).withOpacity(0.9),
+              widget: AlertDialog(
+                backgroundColor: const Color(0xff011A23),
+                actions: [
+                  TextButton(
+                      onPressed: () {
+                        Navigator.of(context).popUntil((route) => route.isFirst);
+                      },
+                      child: const Text(
+                        "OK",
+                        style: TextStyle(
+                          color: Color(0xff059ACD),
+                        ),
+                      ))
+                ],
+                title: const Text(
+                  "Invalid App ",
+                  style: TextStyle(
+                    color: Color(0xffFFFFFF),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                content: const Text(
+                    "Make sure you are entering an app Id provided by Ensemble studio.",
+                    textAlign: TextAlign.left,
+                    style: TextStyle(
+                      color: Color(0xffFFFFFF),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                    )),
+              ));
 
         }
         // show progress bar
@@ -94,6 +121,11 @@ class _ScreenState extends State<Screen> {
       }
     });
     return View(dataContext: dataContext, pageModel: pageModel);
+  }
+  Widget _appPlaceholderWrapper(
+      {Widget? widget, Color? loadingBackgroundColor}) {
+    return MaterialApp(
+        home: Scaffold(backgroundColor: loadingBackgroundColor, body: widget));
   }
 }
 

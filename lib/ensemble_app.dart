@@ -72,12 +72,38 @@ class EnsembleAppState extends State<EnsembleApp> {
 
         if (snapshot.hasError) {
           return _appPlaceholderWrapper(
-              widget: ErrorScreen(LanguageError(
-                "Error loading configuration",
-                detailError: snapshot.error.toString()
-              )
-            )
-          );
+              loadingBackgroundColor:
+              const Color(0XFF000000).withOpacity(0.9),
+              widget: AlertDialog(
+                backgroundColor: const Color(0xff011A23),
+                actions: [
+                  TextButton(
+                      onPressed: () {
+                        Navigator.of(context).popUntil((route) => route.isFirst);
+                      },
+                      child: const Text(
+                        "OK",
+                        style: TextStyle(
+                          color: Color(0xff059ACD),
+                        ),
+                      ))
+                ],
+                title: const Text(
+                  "Invalid QR code",
+                  style: TextStyle(
+                    color: Color(0xffFFFFFF),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                content: const Text(
+                    "Make sure you are scanning a QR code displayed on Ensemble studio.",
+                    textAlign: TextAlign.left,
+                    style: TextStyle(
+                      color: Color(0xffFFFFFF),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                    )),
+              ));
         }
 
         // at this point we don't yet have the theme. It's best to have
