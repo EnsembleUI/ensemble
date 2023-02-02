@@ -31,10 +31,9 @@ class InvokeAPIAction extends EnsembleAction {
 class ShowCameraAction extends EnsembleAction{
   ShowCameraAction({
     Invokable? initiator,
-    Map<String, dynamic>? inputs,
     this.options,
 
-  }) : super(initiator: initiator, inputs: inputs);
+  }) : super(initiator: initiator);
   final Map<String , dynamic>? options;
 }
 
