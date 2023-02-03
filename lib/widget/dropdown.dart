@@ -243,7 +243,6 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
           return TextField(
               enabled: isEnabled(),
               showCursor: true,
-              onChanged: isEnabled() ? (item) => onSelectionChanged(item) : null,
               style: const TextStyle(
                   color: Colors.black, fontWeight: FontWeight.w500),
               controller: fieldTextEditingController,
@@ -251,6 +250,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
               decoration: inputDecoration);
         },
         onSelected: (SelectOneItem selection) {
+          onSelectionChanged(selection.value);
           if (kDebugMode) {
             print('Selected: ${selection.value}');
           }
