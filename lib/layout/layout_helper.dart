@@ -72,6 +72,9 @@ class BoxLayoutController extends BoxController {
   String? direction;
   // applicable only for ListView
   EnsembleAction? onItemTap;
+  Color? sepratorColor;
+  double? sepratorWidth;
+  EdgeInsets? sepratorPadding;
 
 
   @override
