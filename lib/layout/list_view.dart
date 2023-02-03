@@ -36,6 +36,12 @@ class ListView extends StatefulWidget
     return {
       'onItemTap': (funcDefinition) =>
       _controller.onItemTap = Utils.getAction(funcDefinition, initiator: this),
+      'sepratorColor': (value) =>
+      _controller.sepratorColor = Utils.getColor(value),
+      'sepratorWidth': (value) =>
+      _controller.sepratorWidth = Utils.optionalDouble(value),
+      'sepratorPadding': (value) =>
+      _controller.sepratorPadding = Utils.optionalInsets(value),
     };
   }
 
@@ -110,24 +116,49 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
           fontSize: widget._controller.fontSize != null
               ? widget._controller.fontSize!.toDouble()
               : null),
-      child: Container(
-        width: widget._controller.width?.toDouble(),
-        height: widget._controller.height?.toDouble(),
-        decoration: _buildBoxDecoration(),
-        child: flutter.ListView.builder(
-            padding: widget._controller.padding ?? const EdgeInsets.all(0),
-            scrollDirection: Axis.vertical,
-            physics: const ScrollPhysics(),
-            itemCount: children.length,
-            shrinkWrap: true,
-            itemBuilder: (BuildContext context, int index) {
-              return GestureDetector(
-                  onTap: widget._controller.onItemTap == null ? null : () =>
-                      ScreenController().executeAction(context, widget._controller.onItemTap!),
-                  child: children[index]);
-            }),
-      ),);
+      child: _buildListViewWidget(children));
+
   }
+
+  // ------------------ Build Widgets for the childrens displayed in YAML ----------------
+
+  Widget _buildListViewWidget(List<Widget> children) {
+    return Container(
+      width: widget._controller.width?.toDouble(),
+      height: widget._controller.height?.toDouble(),
+      decoration: _buildBoxDecoration(),
+      child: flutter.ListView.separated(
+          separatorBuilder: (context, index) =>
+              _buildSepratorWidget(context, index),
+          padding: widget._controller.padding ?? const EdgeInsets.all(0),
+          scrollDirection: Axis.vertical,
+          physics: const ScrollPhysics(),
+          itemCount: children.length,
+          shrinkWrap: true,
+          itemBuilder: (BuildContext context, int index) {
+            return GestureDetector(
+                onTap: widget._controller.onItemTap == null
+                    ? null
+                    : () => ScreenController()
+                    .executeAction(context, widget._controller.onItemTap!),
+                child: children[index]);
+          }),
+    );
+  }
+
+  // ---------------- Seprator --------------------------
+
+  Widget _buildSepratorWidget(BuildContext context, int index) {
+    return flutter.Padding(
+      padding: widget._controller.sepratorPadding ?? const EdgeInsets.all(0),
+      child: flutter.Divider(
+        color: widget._controller.sepratorColor,
+        thickness: (widget._controller.sepratorWidth ?? 1).toDouble(),
+      ),
+    );
+  }
+
+// -------------------- To give styling to the container of ListView -----------------
   BoxDecoration _buildBoxDecoration() {
     return BoxDecoration(
         color: widget._controller.backgroundColor,
