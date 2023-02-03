@@ -1,5 +1,6 @@
-
 import 'package:camera/camera.dart';
+import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/widget/camera_manager.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -37,11 +38,16 @@ class CameraScreen extends StatefulWidget with Invokable, HasController<MyCamera
   @override
   Map<String, Function> setters() {
     return {
-      'mode':(value) => _controller.mode = Utils.optionalString(value) ?? _controller.mode,
-      'initialCamera': (value) => _controller.initialCamera = Utils.optionalString(value) ?? _controller.initialCamera,
-      'useGallery': (value) => _controller.useGallery = Utils.optionalBool(value) ?? _controller.useGallery,
-      'maxCount': (value) => _controller.maxCount = Utils.optionalInt(value) ?? _controller.maxCount,
-      'preview': (value)=> _controller.preview = Utils.optionalBool(value) ?? _controller.preview,
+      'mode': (type) =>
+          _controller.mode = CameraMode.values.from(type) ?? CameraMode.both,
+      'initialCamera': (type) => _controller.initialCamera =
+          InitialCamera.values.from(type) ?? InitialCamera.back,
+      'useGallery': (value) => _controller.useGallery =
+          Utils.optionalBool(value) ?? _controller.useGallery,
+      'maxCount': (value) => _controller.maxCount =
+          Utils.optionalInt(value) ?? _controller.maxCount,
+      'preview': (value) => _controller.preview =
+          Utils.optionalBool(value) ?? _controller.preview,
     };
   }
 }
@@ -50,8 +56,8 @@ class MyCameraController extends WidgetController{
 
   CameraController? cameracontroller;
 
-  String mode = 'photo';
-  String initialCamera = 'photo';
+  CameraMode mode = CameraMode.both;
+  InitialCamera initialCamera = InitialCamera.back;
   bool useGallery = true;
   int maxCount = 1;
   bool preview = false;
@@ -89,17 +95,24 @@ class CameraScreenState extends WidgetState<CameraScreen> with WidgetsBindingObs
     errorString = 'You just pick at least ${widget._controller.maxCount} image';
     initCamera().then((_) {
       ///initialize camera and choose the back camera as the initial camera in use.
-      if (cameras.length == 2) {
-        if (widget._controller.initialCamera == 'back') {
-          setCamera(1);
+      if (cameras.length >= 2) {
+        if (widget._controller.initialCamera == InitialCamera.back) {
+          final back = cameras.firstWhere(
+              (camera) => camera.lensDirection == CameraLensDirection.back);
+          setCamera(cameraDescription: back);
           isFrontCamera = false;
-        } else {
-          setCamera(0);
+          setState(() {});
+        } else if (widget._controller.initialCamera == InitialCamera.front) {
+          final front = cameras.firstWhere(
+              (camera) => camera.lensDirection == CameraLensDirection.front);
+          setCamera(cameraDescription: front);
           isFrontCamera = true;
+          setState(() {});
         }
       } else {
-        isFrontCamera = false;
-        setCamera(0);
+        setCamera(isWeb: true);
+        isFrontCamera = true;
+        setState(() {});
       }
     }).catchError((Object e) {
       if (e is CameraException) {
@@ -127,14 +140,28 @@ class CameraScreenState extends WidgetState<CameraScreen> with WidgetsBindingObs
   }
 
   /// chooses the camera to use, where the front camera has index = 1, and the rear camera has index = 0
-  void setCamera(int index) {
-    widget._controller.cameracontroller = CameraController(cameras[index], ResolutionPreset.max);
-    widget._controller.cameracontroller!.initialize().then((_) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {});
-    });
+  void setCamera(
+      {bool isWeb = false, CameraDescription? cameraDescription}) {
+    // in web case if one camera exist than description is not define that why i added isWeb    
+    if (isWeb) {
+      widget._controller.cameracontroller =
+          CameraController(cameras[0], ResolutionPreset.max);
+      widget._controller.cameracontroller!.initialize().then((_) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {});
+      });
+    } else {
+      widget._controller.cameracontroller =
+          CameraController(cameraDescription!, ResolutionPreset.max);
+      widget._controller.cameracontroller!.initialize().then((_) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {});
+      });
+    }
   }
 
   @override
@@ -198,17 +225,21 @@ class CameraScreenState extends WidgetState<CameraScreen> with WidgetsBindingObs
   }
 
   Widget cameraView() {
-    return CameraPreview(
-      widget._controller.cameracontroller!,
-      child: Column(
-        children: [
-          imageFileList.isNotEmpty ? imagePreviewButton() : const SizedBox(),
-          const Spacer(),
-          // <----- This is Created for Image Preview ------>
-          imagesPreview(),
-          // <----- This is Created for Camera Button ------>
-          cameraButton(),
-        ],
+    return SizedBox(
+      height: MediaQuery.of(context).size.height,
+      width: MediaQuery.of(context).size.width,
+      child: CameraPreview(
+        widget._controller.cameracontroller!,
+        child: Column(
+          children: [
+            imagePreviewButton(),
+            const Spacer(),
+            // <----- This is Created for Image Preview ------>
+            imagesPreview(),
+            // <----- This is Created for Camera Button ------>
+            cameraButton(),
+          ],
+        ),
       ),
     );
   }
@@ -237,18 +268,18 @@ class CameraScreenState extends WidgetState<CameraScreen> with WidgetsBindingObs
         space,
         SizedBox(
           width: MediaQuery.of(context).size.width,
-          height: MediaQuery.of(context).size.height / 1.3,
+          height: MediaQuery.of(context).size.height / 1.4,
           child: Stack(
             children: [
               Align(
                 alignment: Alignment.topCenter,
                 child: SizedBox(
                   width: MediaQuery.of(context).size.width,
-                  height: MediaQuery.of(context).size.height / 1.6,
+                  height: MediaQuery.of(context).size.height / 1.7,
                   child: Image.memory(
-                          fullImage,
-                          fit: BoxFit.contain,
-                        ),
+                    fullImage,
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ),
               Align(
@@ -279,7 +310,7 @@ class CameraScreenState extends WidgetState<CameraScreen> with WidgetsBindingObs
       width: 500,
       child: Column(
         children: [
-          imageFileList.isNotEmpty ? imagePreviewButton() : const SizedBox(),
+          imagePreviewButton(),
           const Spacer(),
           const Text(
               'To capture photos and videos, allow access to your camera.'),
@@ -355,19 +386,26 @@ class CameraScreenState extends WidgetState<CameraScreen> with WidgetsBindingObs
       {required void Function()? backArrowAction,
       required void Function()? deleteButtonAction}) {
     return Padding(
-      padding: const EdgeInsets.only(left: 10.0, right: 10.0 , top: 10.0),
+      padding: const EdgeInsets.only(left: 10.0, right: 10.0, top: 10.0),
       child: Row(
         children: [
           buttons(
-            onPressed: backArrowAction,
-            icon: Icon(Icons.arrow_back , color: Colors.black, size: iconSize,),
-            backgroundColor: Colors.white,
-            shadowColor: Colors.black54
-          ),
+              onPressed: backArrowAction,
+              icon: Icon(
+                Icons.arrow_back,
+                color: Colors.black,
+                size: iconSize,
+              ),
+              backgroundColor: Colors.white,
+              shadowColor: Colors.black54),
           const Spacer(),
           IconButton(
             onPressed: deleteButtonAction,
-            icon: Icon(Icons.delete_sharp , color: iconColor,size: iconSize,),
+            icon: Icon(
+              Icons.delete_sharp,
+              color: iconColor,
+              size: iconSize,
+            ),
           )
         ],
       ),
@@ -398,20 +436,24 @@ class CameraScreenState extends WidgetState<CameraScreen> with WidgetsBindingObs
             Row(
               children: [
                 // <----- This button is used for pick image in gallery ------>
-                buttons(
-                  icon: Icon(Icons.photo_size_select_actual_outlined,
-                      size: iconSize, color: iconColor),
-                  backgroundColor: Colors.white.withOpacity(0.3),
-                  onPressed: () {
-                    if (widget._controller.useGallery) {
-                      selectImage();
-                    } else {
-                      FlutterToast.showToast(
-                          title: 'You have not access of gallery');
-                    }
-                    // showImages(context);
-                  },
-                ),
+                widget._controller.useGallery
+                    ? buttons(
+                        icon: Icon(Icons.photo_size_select_actual_outlined,
+                            size: iconSize, color: iconColor),
+                        backgroundColor: Colors.white.withOpacity(0.3),
+                        onPressed: () {
+                          if (widget._controller.useGallery) {
+                            selectImage();
+                          } else {
+                            FlutterToast.showToast(
+                                title: 'You have not access of gallery');
+                          }
+                          // showImages(context);
+                        },
+                      )
+                    : const SizedBox(
+                        width: 60,
+                      ),
                 const Spacer(),
                 // <----- This button is used for take image ------>
                 GestureDetector(
@@ -421,49 +463,37 @@ class CameraScreenState extends WidgetState<CameraScreen> with WidgetsBindingObs
                         title: errorString,
                       );
                     } else {
-                      if(index == 1)
-                        {
-                          if(isRecording)
-                            {
-                              await widget._controller.cameracontroller!.stopVideoRecording();
-                              setState((){
-                                isRecording = false;
-                              });
-
-                              //     .then((value) async{
-                              //   imageFileList.add(await value.readAsBytes());
-                              //   if(widget._controller.maxCount == 1)
-                              //   {
-                              //   Navigator.pop(context, imageFileList);
-                              //   }
-                              //   isRecording = false;
-                              //   setState((){});
-                              // });
-                            }
-                          else
-                            {
-                              try{
-                                await widget._controller.cameracontroller!.prepareForVideoRecording();
-                                await widget._controller.cameracontroller!.startVideoRecording();
-                                setState(() {
-                                  isRecording = true;
-                                });
-                              }catch(e){
-                                print("Check Recording Error ${e.toString()}");
-                              }
-                            }
-                        }
-                      else
-                        {
-                          widget._controller.cameracontroller!.takePicture().then((value) async {
-                            imageFileList.add(await value.readAsBytes());
-                            if(widget._controller.maxCount == 1)
-                            {
-                              Navigator.pop(context, imageFileList);
-                            }
-                            setState((){});
+                      if (index == 1) {
+                        if (isRecording) {
+                          await widget._controller.cameracontroller!
+                              .stopVideoRecording();
+                          setState(() {
+                            isRecording = false;
                           });
+                        } else {
+                          try {
+                            await widget._controller.cameracontroller!
+                                .prepareForVideoRecording();
+                            await widget._controller.cameracontroller!
+                                .startVideoRecording();
+                            setState(() {
+                              isRecording = true;
+                            });
+                          } catch (e) {
+                            print("Check Recording Error ${e.toString()}");
+                          }
                         }
+                      } else {
+                        widget._controller.cameracontroller!
+                            .takePicture()
+                            .then((value) async {
+                          imageFileList.add(await value.readAsBytes());
+                          if (widget._controller.maxCount == 1) {
+                            Navigator.pop(context, imageFileList);
+                          }
+                          setState(() {});
+                        });
+                      }
                     }
                   },
                   child: Container(
@@ -488,22 +518,30 @@ class CameraScreenState extends WidgetState<CameraScreen> with WidgetsBindingObs
                 ),
                 const Spacer(),
                 // <----- This button is used for rotate camera if camera is exist more than one camera ------>
+                cameras.length == 1
+                ?
+                const SizedBox(
+                      width: 60,
+                ) :
                 buttons(
                     icon: Icon(
                       Icons.flip_camera_ios_outlined,
                       size: iconSize,
                       color: iconColor,
-                      
                     ),
                     backgroundColor: Colors.white.withOpacity(0.3),
                     onPressed: () {
                       index = 0;
                       if (isFrontCamera) {
-                        setCamera(1);
+                        final back = cameras.firstWhere(
+                          (camera) => camera.lensDirection == CameraLensDirection.back);
+                        setCamera(cameraDescription: back);
                         isFrontCamera = false;
                       } else {
-                        setCamera(0);
-                        isFrontCamera = false;
+                        final front = cameras.firstWhere(
+                          (camera) => camera.lensDirection == CameraLensDirection.front);
+                        setCamera(cameraDescription: front);
+                        isFrontCamera = true;
                       }
                       setState(() {});
                     }),
@@ -557,35 +595,44 @@ class CameraScreenState extends WidgetState<CameraScreen> with WidgetsBindingObs
 
   // this is a next button code for preview selected images
   Widget imagePreviewButton() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: nextButton(
-            buttontitle: widget._controller.preview ? 'Next' : 'Done',
-            imagelength: imageFileList.length.toString(),
-            onTap: () {
-              if (widget._controller.preview) {
-                if (widget._controller.cameracontroller != null) {
-                  setState(() {
-                    widget._controller.cameracontroller!.pausePreview();
-                    isImagePreview = true;
-                    fullImage = imageFileList[0];
-                  });
-                } else {
-                  setState(() {
-                    isImagePreview = true;
-                    fullImage = imageFileList[0];
-                  });
-                }
-              } else {
-                Navigator.pop(context, imageFileList);
-              }
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Row(
+        children: [
+          buttons(
+            icon: Icon(Icons.close, size: iconSize, color: iconColor),
+            backgroundColor: Colors.white.withOpacity(0.3),
+            onPressed: () {
+              Navigator.pop(context, imageFileList);
             },
           ),
-        ),
-      ],
+          const Spacer(),
+          imageFileList.isNotEmpty
+              ? nextButton(
+                  buttontitle: widget._controller.preview ? 'Next' : 'Done',
+                  imagelength: imageFileList.length.toString(),
+                  onTap: () {
+                    if (widget._controller.preview) {
+                      if (widget._controller.cameracontroller != null) {
+                        setState(() {
+                          widget._controller.cameracontroller!.pausePreview();
+                          isImagePreview = true;
+                          fullImage = imageFileList[0];
+                        });
+                      } else {
+                        setState(() {
+                          isImagePreview = true;
+                          fullImage = imageFileList[0];
+                        });
+                      }
+                    } else {
+                      Navigator.pop(context, imageFileList);
+                    }
+                  },
+                )
+              : const SizedBox(),
+        ],
+      ),
     );
   }
 
