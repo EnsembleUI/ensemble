@@ -100,8 +100,6 @@ class CameraScreenState extends WidgetState<CameraScreen> with WidgetsBindingObs
           final back = cameras.firstWhere(
               (camera) => camera.lensDirection == CameraLensDirection.back);
           setCamera(cameraDescription: back);
-          isFrontCamera = false;
-          setState(() {});
         } else if (widget._controller.initialCamera == InitialCamera.front) {
           final front = cameras.firstWhere(
               (camera) => camera.lensDirection == CameraLensDirection.front);
@@ -110,9 +108,7 @@ class CameraScreenState extends WidgetState<CameraScreen> with WidgetsBindingObs
           setState(() {});
         }
       } else {
-        setCamera(isWeb: true);
-        isFrontCamera = true;
-        setState(() {});
+        setCamera(isNotDefine: true);
       }
     }).catchError((Object e) {
       if (e is CameraException) {
@@ -141,9 +137,9 @@ class CameraScreenState extends WidgetState<CameraScreen> with WidgetsBindingObs
 
   /// chooses the camera to use, where the front camera has index = 1, and the rear camera has index = 0
   void setCamera(
-      {bool isWeb = false, CameraDescription? cameraDescription}) {
-    // in web case if one camera exist than description is not define that why i added isWeb    
-    if (isWeb) {
+      {bool isNotDefine = false, CameraDescription? cameraDescription}) {
+    // in web case if one camera exist than description is not define that why i added isWeb
+    if (isNotDefine) {
       widget._controller.cameracontroller =
           CameraController(cameras[0], ResolutionPreset.max);
       widget._controller.cameracontroller!.initialize().then((_) {
