@@ -4,12 +4,6 @@ import 'package:ensemble/widget/camera.dart';
 import 'package:flutter/material.dart';
 
 class CameraManager {
-  // Singleton
-  static final CameraManager _instance = CameraManager._internal();
-  CameraManager._internal();
-  factory CameraManager() {
-    return _instance;
-  }
     // open camera function to set properties
   void openCamera(BuildContext context, ShowCameraAction cameraAction) async {
     // if camera action option is null than create camera screen without any setter
