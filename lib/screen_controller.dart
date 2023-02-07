@@ -10,6 +10,7 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/widget/camera_manager.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/framework/widget/toast.dart';
 import 'package:ensemble/layout/ensemble_page_route.dart';
@@ -17,6 +18,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/camera.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -25,7 +27,7 @@ import 'package:url_launcher/url_launcher_string.dart';
 import 'package:yaml/yaml.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-
+ 
 /// Singleton that holds the page model definition
 /// and operations for the current screen
 class ScreenController {
@@ -137,6 +139,13 @@ class ScreenController {
         });
       }
 
+    }  else if (action is ShowCameraAction)
+    {
+      if(scopeManager != null)
+      {
+        print('Check action options ${action.options}');
+        CameraManager().openCamera(context, action);
+      }
     } else if (action is ShowDialogAction) {
       if (scopeManager != null) {
         Widget content = scopeManager.buildWidgetFromDefinition(action.content);
@@ -150,52 +159,52 @@ class ScreenController {
         BuildContext? dialogContext;
 
         showGeneralDialog(
-          useRootNavigator: false,  // use inner-most MaterialApp (our App) as root so theming is ours
-          context: context,
-          barrierDismissible: true,
-          barrierLabel: "Barrier",
-          barrierColor: Colors.black54,
+            useRootNavigator: false,  // use inner-most MaterialApp (our App) as root so theming is ours
+            context: context,
+            barrierDismissible: true,
+            barrierLabel: "Barrier",
+            barrierColor: Colors.black54,
 
-          pageBuilder: (context, animation, secondaryAnimation) {
-            // save a reference to the builder's context so we can close it programmatically
-            dialogContext = context;
-            scopeManager.openedDialogs.add(dialogContext!);
+            pageBuilder: (context, animation, secondaryAnimation) {
+              // save a reference to the builder's context so we can close it programmatically
+              dialogContext = context;
+              scopeManager.openedDialogs.add(dialogContext!);
 
-            return Align(
-              alignment: Alignment(
-                Utils.getDouble(dialogStyles['horizontalOffset'], min: -1, max: 1, fallback: 0),
-                Utils.getDouble(dialogStyles['verticalOffset'], min: -1, max: 1, fallback: 0)
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minWidth: Utils.getDouble(dialogStyles['minWidth'], fallback: 0),
-                    maxWidth: Utils.getDouble(dialogStyles['maxWidth'], fallback: double.infinity),
-                    minHeight: Utils.getDouble(dialogStyles['minHeight'], fallback: 0),
-                    maxHeight: Utils.getDouble(dialogStyles['maxHeight'], fallback: double.infinity)
+              return Align(
+                  alignment: Alignment(
+                      Utils.getDouble(dialogStyles['horizontalOffset'], min: -1, max: 1, fallback: 0),
+                      Utils.getDouble(dialogStyles['verticalOffset'], min: -1, max: 1, fallback: 0)
                   ),
-                  child: Container(
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                          borderRadius: BorderRadius.all(Radius.circular(5)),
-                          boxShadow: <BoxShadow>[
-                            BoxShadow(
-                              color: Colors.white38,
-                              blurRadius: 5,
-                              offset: Offset(0, 0),
-                            )
-                          ]
-                      ),
-                    child: SingleChildScrollView (
-                      child: content,
-                    )
+                  child: Material(
+                      color: Colors.transparent,
+                      child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                              minWidth: Utils.getDouble(dialogStyles['minWidth'], fallback: 0),
+                              maxWidth: Utils.getDouble(dialogStyles['maxWidth'], fallback: double.infinity),
+                              minHeight: Utils.getDouble(dialogStyles['minHeight'], fallback: 0),
+                              maxHeight: Utils.getDouble(dialogStyles['maxHeight'], fallback: double.infinity)
+                          ),
+                          child: Container(
+                              decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.all(Radius.circular(5)),
+                                  boxShadow: <BoxShadow>[
+                                    BoxShadow(
+                                      color: Colors.white38,
+                                      blurRadius: 5,
+                                      offset: Offset(0, 0),
+                                    )
+                                  ]
+                              ),
+                              child: SingleChildScrollView (
+                                child: content,
+                              )
+                          )
+                      )
                   )
-                )
-              )
 
-            );
-          }
+              );
+            }
         ).then((value) {
           // remove the dialog context since we are closing them
           scopeManager.openedDialogs.remove(dialogContext);
@@ -220,55 +229,55 @@ class ScreenController {
       if (scopeManager != null) {
 
         int delay = action.payload?.startAfter ??
-          (action.payload?.repeat == true ? action.payload?.repeatInterval ?? 0 : 0);
+            (action.payload?.repeat == true ? action.payload?.repeatInterval ?? 0 : 0);
 
         // we always execute at least once, delayed by startAfter and fallback to repeatInterval (or immediate if startAfter is 0)
         Timer(
-          Duration(seconds: delay),
-          () {
-            // execute the action
-            executeActionWithScope(context, scopeManager, action.onTimer);
+            Duration(seconds: delay),
+                () {
+              // execute the action
+              executeActionWithScope(context, scopeManager, action.onTimer);
 
-            // if no repeat, execute onTimerComplete
-            if (action.payload?.repeat != true) {
-              if (action.onTimerComplete != null) {
-                executeActionWithScope(context, scopeManager, action.onTimerComplete!);
+              // if no repeat, execute onTimerComplete
+              if (action.payload?.repeat != true) {
+                if (action.onTimerComplete != null) {
+                  executeActionWithScope(context, scopeManager, action.onTimerComplete!);
+                }
               }
-            }
-            // else repeating timer
-            else if (action.payload?.repeatInterval != null) {
-              /// repeatCount value of null means forever by default
-              int? repeatCount;
-              if (action.payload?.maxTimes != null) {
-                repeatCount = action.payload!.maxTimes! - 1;
-              }
-              if (repeatCount != 0) {
-                int counter = 0;
-                final timer = Timer.periodic(
-                  Duration(seconds: action.payload!.repeatInterval!),
-                  (timer) {
-                    // execute the action
-                    executeActionWithScope(context, scopeManager, action.onTimer);
+              // else repeating timer
+              else if (action.payload?.repeatInterval != null) {
+                /// repeatCount value of null means forever by default
+                int? repeatCount;
+                if (action.payload?.maxTimes != null) {
+                  repeatCount = action.payload!.maxTimes! - 1;
+                }
+                if (repeatCount != 0) {
+                  int counter = 0;
+                  final timer = Timer.periodic(
+                      Duration(seconds: action.payload!.repeatInterval!),
+                          (timer) {
+                        // execute the action
+                        executeActionWithScope(context, scopeManager, action.onTimer);
 
-                    // automatically cancel timer when repeatCount is reached
-                    if (repeatCount != null && ++counter == repeatCount) {
-                      timer.cancel();
+                        // automatically cancel timer when repeatCount is reached
+                        if (repeatCount != null && ++counter == repeatCount) {
+                          timer.cancel();
 
-                      // timer terminates, call onTimerComplete
-                      if (action.onTimerComplete != null) {
-                        executeActionWithScope(context, scopeManager, action.onTimerComplete!);
+                          // timer terminates, call onTimerComplete
+                          if (action.onTimerComplete != null) {
+                            executeActionWithScope(context, scopeManager, action.onTimerComplete!);
+                          }
+                        }
                       }
-                    }
-                  }
-                );
+                  );
 
-                // save our timer to our PageData since user may want to cancel at anytime
-                // and also when we navigate away from the page
-                scopeManager.addTimer(action, timer);
+                  // save our timer to our PageData since user may want to cancel at anytime
+                  // and also when we navigate away from the page
+                  scopeManager.addTimer(action, timer);
+                }
               }
-            }
 
-          }
+            }
         );
       }
 
@@ -379,8 +388,8 @@ class ScreenController {
   void processAPIResponse(BuildContext context, DataContext dataContext, EnsembleAction onResponseAction, Response response, Map<String, YamlMap>? apiMap, ScopeManager? scopeManager, {Function? apiChangeHandler, InvokeAPIAction? action, bool? modifiableAPIResponse}) {
     // execute the onResponse on the API definition
     APIResponse apiResponse = modifiableAPIResponse == true ?
-      ModifiableAPIResponse(response: response) :
-      APIResponse(response: response);
+    ModifiableAPIResponse(response: response) :
+    APIResponse(response: response);
 
     DataContext localizedContext = dataContext.clone();
     localizedContext.addInvokableContext('response', apiResponse);
@@ -468,7 +477,7 @@ class ScreenController {
                 log("on location updates");
                 // update last location. TODO: consolidate this
                 Device().updateLastLocation(location);
-                
+
                 _onLocationReceived(scopeManager, dataContext, context, action.onLocationReceived!, location);
               }
               else if (action.onError != null){
