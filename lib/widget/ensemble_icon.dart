@@ -1,5 +1,6 @@
 
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensembleLib;
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -54,7 +55,7 @@ class IconState extends WidgetState<EnsembleIcon> {
     return InkWell(
       splashColor: Colors.transparent,
       onTap: widget._controller.onTap == null ? null : () =>
-          ScreenController().executeAction(context, widget._controller.onTap!),
+          ScreenController().executeAction(context, widget._controller.onTap!,event: EnsembleEvent(widget)),
       child: ensembleLib.Icon(
         widget._controller.icon,
         library: widget._controller.library,

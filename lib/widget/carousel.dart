@@ -5,6 +5,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/layout/layout_helper.dart';
 import 'package:ensemble/layout/templated.dart';
@@ -231,7 +232,7 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
     if (index != widget._controller.selectedIndex && widget._controller.onItemChange != null) {
       widget._controller.selectedIndex = index;
       //log("Changed to index $index");
-      ScreenController().executeAction(context, widget._controller.onItemChange!);
+      ScreenController().executeAction(context, widget._controller.onItemChange!,event: EnsembleEvent(widget));
     }
   }
 
