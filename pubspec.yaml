@@ -70,7 +70,7 @@ dependencies:
   geolocator: ^9.0.2
   get_storage: ^2.0.3
   flutter_html: ^3.0.0-alpha.6    # flutter_html ^2.0.0 requires flutter_svg <1.0.0, conflicts with ours
-  camera: ^0.10.0+5
+  camera: ^0.10.3
   image_picker: ^0.8.6
   webview_flutter: ^4.0.1
 
