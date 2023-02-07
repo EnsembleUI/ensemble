@@ -1,6 +1,7 @@
 
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/action.dart' as framework;
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/icon.dart' as iconframework;
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -204,7 +205,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
   void onSelectionChanged(dynamic value) {
     widget.onSelectionChanged(value);
     if (widget._controller.onChange != null) {
-      ScreenController().executeAction(context, widget._controller.onChange!);
+      ScreenController().executeAction(context, widget._controller.onChange!,event: EnsembleEvent(widget));
     }
   }
 
@@ -242,7 +243,6 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
           return TextField(
               enabled: isEnabled(),
               showCursor: true,
-              onChanged: isEnabled() ? (item) => onSelectionChanged(item) : null,
               style: const TextStyle(
                   color: Colors.black, fontWeight: FontWeight.w500),
               controller: fieldTextEditingController,
@@ -250,6 +250,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
               decoration: inputDecoration);
         },
         onSelected: (SelectOneItem selection) {
+          onSelectionChanged(selection.value);
           if (kDebugMode) {
             print('Selected: ${selection.value}');
           }

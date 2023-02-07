@@ -6,8 +6,9 @@ import 'dart:io';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
-import 'package:ensemble/framework/widget/view.dart';
+import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -103,7 +104,7 @@ class MyController extends WidgetController with LocationCapability {
 
       String? lat = markerData['location']?['lat'];
       String? lng = markerData['location']?['lng'];
-      YamlMap? widget = markerData['widget'];
+      dynamic widget = markerData['widget'];
       if (data != null && name != null && widget != null && lat != null && lng != null) {
         _markerTemplate = MarkerTemplate(
           data: data,
@@ -281,7 +282,7 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
 
     // send the event
     if (widget._controller.onMarkerTap != null) {
-      ScreenController().executeAction(context, widget._controller.onMarkerTap!);
+      ScreenController().executeAction(context, widget._controller.onMarkerTap!,event: EnsembleEvent(widget));
     }
 
   }
@@ -404,7 +405,7 @@ class MarkerTemplate extends ItemTemplate {
   MarkerTemplate({
     required String data,
     required String name,
-    required YamlMap template,  // this is the marker widget, just piggyback on the name
+    required dynamic template,  // this is the marker widget, just piggyback on the name
     required this.lat,
     required this.lng,
     this.selectedWidget,

@@ -1,4 +1,5 @@
 import 'package:ensemble/ensemble_theme.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/icon.dart' as framework;
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/form.dart';
@@ -62,7 +63,7 @@ class FormHelper {
       }
       if (formState.widget.controller.onSubmit != null) {
         ScreenController().executeAction(
-            context, formState.widget.controller.onSubmit!);
+            context, formState.widget.controller.onSubmit!,event: EnsembleEvent(formState.widget));
       }
     }
   }
@@ -80,7 +81,6 @@ abstract class FormFieldWidgetState<W extends HasController>
       FormFieldController myController = widget
           .controller as FormFieldController;
       return InputDecoration(
-          contentPadding: const EdgeInsets.only(left: 10),
           floatingLabelBehavior: FloatingLabelBehavior.always,
           labelText: shouldShowLabel() ? myController.label : null,
           hintText: myController.hintText,
@@ -117,5 +117,18 @@ abstract class FormFieldWidgetState<W extends HasController>
       return formState.widget.shouldFormFieldShowLabel;
     }
     return true;
+  }
+
+  /// return the TextStyle for a form field (TextField, ....)
+  TextStyle get formFieldTextStyle {
+    // MaterialSpec - titleMedium maps to FormField textStyle
+    TextStyle textStyle = Theme.of(context).textTheme.titleMedium ?? const TextStyle();
+    if (widget.controller is FormFieldController) {
+      return textStyle.copyWith(
+        fontSize: (widget.controller as FormFieldController).fontSize?.toDouble()
+        // TODO: expose color, ... for all form fields here
+      );
+    }
+    return textStyle;
   }
 }

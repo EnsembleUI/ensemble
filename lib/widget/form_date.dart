@@ -1,5 +1,6 @@
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -40,6 +41,7 @@ class Date extends StatefulWidget with Invokable, HasController<DateController, 
       'initialValue': (value) => _controller.value ??= Utils.getDate(value),
       'firstDate': (value) => _controller.firstDate = Utils.getDate(value),
       'lastDate': (value) => _controller.lastDate = Utils.getDate(value),
+      'showCalendarIcon': (shouldShow) => _controller.showCalendarIcon = Utils.optionalBool(shouldShow),
       'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this)
     };
   }
@@ -54,6 +56,7 @@ class DateController extends FormFieldController {
   DateTime? firstDate;
   DateTime? lastDate;
 
+  bool? showCalendarIcon;
   EnsembleAction? onChange;
 
 }
@@ -79,21 +82,14 @@ class DateState extends FormFieldWidgetState<Date> {
       builder: (FormFieldState<DateTime> field) {
         return InputDecorator(
           decoration: inputDecoration.copyWith(
-            border: InputBorder.none,
-            enabledBorder: InputBorder.none,
-            disabledBorder: InputBorder.none,
-            focusedBorder: InputBorder.none,
-            errorText: field.errorText
+            errorText: field.errorText,
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              InkWell(
-                child: nowBuildWidget(),
-                onTap: isEnabled() ? () => _selectDate(context) : null
-              )
-            ]
-          )
+          child: InkWell(
+              child: nowBuildWidget(),
+              onTap: isEnabled() ? () => _selectDate(context) : null
+            )
+
+
         );
       }
     );
@@ -128,7 +124,7 @@ class DateState extends FormFieldWidgetState<Date> {
         });
         if (isEnabled() && widget._controller.onChange != null) {
           ScreenController().executeAction(
-              context, widget._controller.onChange!);
+              context, widget._controller.onChange!,event: EnsembleEvent(widget));
         }
       }
     }
@@ -136,17 +132,18 @@ class DateState extends FormFieldWidgetState<Date> {
 
 
   Widget nowBuildWidget() {
-    Widget rtn = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Icon(Icons.calendar_month_rounded, color: Colors.black54),
-        const SizedBox(width: 5),
-        Text(
-          selectedValue,
-          style: TextStyle(fontSize: widget._controller.fontSize?.toDouble())
-        )
-      ],
-    );
+    Widget rtn = Text(selectedValue, style: formFieldTextStyle);
+    if (widget._controller.showCalendarIcon != false) {
+      rtn = Row(
+        children: [
+          Expanded(
+            child: rtn
+          ),
+          Icon(Icons.calendar_month_rounded, color: formFieldTextStyle.color?.withOpacity(.5)),
+        ]
+      );
+    }
+
     if (!isEnabled()) {
       rtn = Opacity(
         opacity: .5,
