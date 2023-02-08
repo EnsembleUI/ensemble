@@ -73,7 +73,7 @@ dependencies:
   camera: ^0.10.3
   image_picker: ^0.8.6
   webview_flutter: ^4.0.1
-
+  file_picker: ^5.2.5
 
 dev_dependencies:
   flutter_test:

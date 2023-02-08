@@ -298,7 +298,17 @@ class Utils {
           payload['url'],
           openInExternalApp: Utils.getBool(payload['openInExternalApp'], fallback: false)
         );
-      }
+      } else if ( payload['action']  == ActionType.uploadFiles.name ) {
+         return FileUploadAction(
+            id: Utils.optionalString(payload['options']['id']),
+            allowedExtensions: (payload['options']['allowedExtensions'] as YamlList?)?.cast<String>().toList(),
+            allowMultiple: Utils.optionalBool(payload['options']['allowMultiple']),
+            allowCompression: Utils.optionalBool(payload['options']['allowCompression']),
+            onComplete: Utils.getAction(payload['onComplete']),
+            onError: Utils.getAction(payload['onError']),
+            url: Utils.getUrl(payload['url']),
+         );
+       }
     }
     /// short-hand //@code string is same as ExecuteCodeAction
     else if (payload is String) {
