@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:developer';
+import 'dart:io';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/bindings.dart';
@@ -17,15 +17,15 @@ import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
+import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/camera.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 import 'package:yaml/yaml.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:file_picker/file_picker.dart';
 
  
 /// Singleton that holds the page model definition
@@ -310,6 +310,23 @@ class ScreenController {
       dynamic value = dataContext.eval(action.url);
       value ??= '';
       launchUrl(Uri.parse(value),mode: (action.openInExternalApp)?LaunchMode.externalApplication:LaunchMode.platformDefault );
+    } else if (action is FileUploadAction) {
+      FilePicker.platform.pickFiles(
+        type: action.allowedExtensions == null ? FileType.any: FileType.custom,
+        allowedExtensions: action.allowedExtensions,
+        allowCompression: action.allowCompression ?? true,
+        allowMultiple: action.allowMultiple ?? false,
+      ).then((files) {
+        
+        if (!(files?.files.isNotEmpty ?? false)) return;
+        if (action.url == null) throw Exception('Enter URL');
+        UploadUtils.uploadFiles(
+          action.url!, 
+          files!.files.map((file) => File(file.path!)).toList(),
+          onDone: action.onComplete == null ? null : () => executeAction(context, action.onComplete!),
+          onError: action.onError == null ? null : (error) => executeAction(context, action.onError!),
+        );
+      });
     }
   }
 
