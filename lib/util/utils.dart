@@ -300,7 +300,7 @@ class Utils {
         );
       } else if ( payload['action']  == ActionType.uploadFiles.name ) {
          return FileUploadAction(
-            id: Utils.optionalString(payload['options']['id']),
+            id: Utils.optionalString(payload['id']),
             allowedExtensions: (payload['options']['allowedExtensions'] as YamlList?)?.cast<String>().toList(),
             allowMultiple: Utils.optionalBool(payload['options']['allowMultiple']),
             allowCompression: Utils.optionalBool(payload['options']['allowCompression']),

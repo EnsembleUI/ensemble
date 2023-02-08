@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:developer';
-import 'dart:io';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/bindings.dart';
@@ -316,13 +315,20 @@ class ScreenController {
         allowedExtensions: action.allowedExtensions,
         allowCompression: action.allowCompression ?? true,
         allowMultiple: action.allowMultiple ?? false,
-      ).then((files) {
+      ).then((result) {
+
+        if (!(result?.files.isNotEmpty ?? false)) return;
+
+        final selectedFiles = result!.files.map((file) => File.fromPlatformFile(file)).toList();
+        if (action.id != null && scopeManager != null) {
+          scopeManager.dataContext.addInvokableContext(action.id!, FileData(files: selectedFiles));
+        }
         
-        if (!(files?.files.isNotEmpty ?? false)) return;
         if (action.url == null) throw Exception('Enter URL');
         UploadUtils.uploadFiles(
           action.url!, 
-          files!.files.map((file) => File(file.path!)).toList(),
+          selectedFiles,
+          // onDone add reponse body to dataContext
           onDone: action.onComplete == null ? null : () => executeAction(context, action.onComplete!),
           onError: action.onError == null ? null : (error) => executeAction(context, action.onError!),
         );
