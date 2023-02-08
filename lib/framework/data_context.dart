@@ -6,6 +6,7 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:jsparser/jsparser.dart';
 
@@ -631,3 +632,53 @@ class ModifiableAPIResponse extends APIResponse {
     };
   }
 }
+
+class FileData with Invokable {
+
+  FileData({List<File>? files}) : _files = files;
+  
+  final List<File>? _files;
+
+  @override
+  Map<String, Function> getters() {
+    return {
+      'files': () => _files?.map((file) => file.toJson()).toList(),
+    };
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
+  }
+}
+
+class File {
+  File(this.name, this.ext, this.size, this.path);
+
+  File.fromPlatformFile(PlatformFile file):
+    name = file.name,
+    ext = file.extension,
+    size = file.size,
+    path = file.path;
+
+
+  final String name;
+  final int size;
+  final String? ext;
+  final String? path;
+
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'extension': ext,
+      'size': size,
+      'path': path,
+    };
+  }
+} 

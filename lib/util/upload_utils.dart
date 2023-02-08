@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:io';
+import 'package:ensemble/framework/data_context.dart';
 import 'package:http/http.dart' as http;
 
 typedef ProgressCallback = void Function(double progress);
@@ -28,7 +28,8 @@ class UploadUtils {
     final multipartFiles = <http.MultipartFile>[];
   
     for (var file in files) {
-      final multipartFile = await http.MultipartFile.fromPath('files', file.path);
+      if (file.path == null) continue;
+      final multipartFile = await http.MultipartFile.fromPath('files', file.path!);
       multipartFiles.add(multipartFile);
     }
 
