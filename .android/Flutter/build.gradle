@@ -30,7 +30,7 @@ group 'com.ensembleui.ensemble'
 version '1.0'
 
 android {
-    compileSdkVersion 33
+    compileSdkVersion flutter.compileSdkVersion
     ndkVersion flutter.ndkVersion
 
     compileOptions {

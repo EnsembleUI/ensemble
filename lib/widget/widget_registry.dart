@@ -4,10 +4,11 @@ import 'package:ensemble/layout/box_layout.dart';
 import 'package:ensemble/layout/data_grid.dart';
 import 'package:ensemble/layout/flow.dart';
 import 'package:ensemble/layout/form.dart';
+import 'package:ensemble/layout/list_view.dart';
 import 'package:ensemble/layout/stack.dart';
 import 'package:ensemble/layout/tab_bar.dart';
-import 'package:ensemble/widget/camera_widget.dart';
 import 'package:ensemble/widget/fintech/finicityconnect/finicityconnect.dart';
+// import 'package:ensemble/widget/camera_widget.dart';
 import 'package:ensemble/widget/visualization/topology_chart.dart';
 import 'package:ensemble/widget/weeklyscheduler.dart';
 import 'package:ensemble/widget/Text.dart' as ensemble;
@@ -68,7 +69,7 @@ class WidgetRegistry {
     EnsembleLottie.type: () => EnsembleLottie(),
     EnsembleSignature.type: () => EnsembleSignature(),
     WeeklyScheduler.type: () => WeeklyScheduler(),
-    Camera.type: () => Camera(),
+    // Camera.type: () => Camera(),
 
     // form fields
     EnsembleForm.type: () => EnsembleForm(),
@@ -85,6 +86,7 @@ class WidgetRegistry {
     // containers
     Column.type: () => Column(),
     Row.type: () => Row(),
+    ListView.type: () => ListView(),
     Flex.type: () => Flex(),
     EnsembleStack.type: () => EnsembleStack(),
     Flow.type: () => Flow(),
