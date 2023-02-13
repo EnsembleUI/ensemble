@@ -313,7 +313,7 @@ class ScreenController {
     }
     else if (action is NavigateBack) {
       if (scopeManager != null) {
-        Navigator.pop(context);
+        Navigator.of(context).maybePop();
       }
     }
   }
