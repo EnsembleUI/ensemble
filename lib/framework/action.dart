@@ -187,7 +187,7 @@ class FileUploadAction extends EnsembleAction {
     this.id,
     this.onComplete,
     this.onError,
-    this.url,
+    this.uploadUrl,
   });
 
   List<String>? allowedExtensions;
@@ -196,7 +196,7 @@ class FileUploadAction extends EnsembleAction {
   String? id;
   EnsembleAction? onComplete;
   EnsembleAction? onError;
-  String? url;
+  String? uploadUrl;
 }
 
 

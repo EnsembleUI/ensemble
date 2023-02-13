@@ -324,9 +324,9 @@ class ScreenController {
           scopeManager.dataContext.addInvokableContext(action.id!, FileData(files: selectedFiles));
         }
         
-        if (action.url == null) throw RuntimeException('Enter URL');
+        if (action.uploadUrl == null) throw RuntimeException('Enter URL');
         final response = await UploadUtils.uploadFiles(
-          action.url!, 
+          action.uploadUrl!, 
           selectedFiles,
           onDone: action.onComplete == null ? null : () => executeAction(context, action.onComplete!),
           onError: action.onError == null ? null : (error) => executeAction(context, action.onError!),

@@ -1497,7 +1497,7 @@
                 "type": "string",
                 "description": "Give the Uploader an ID allows you to bind to its result. e.g. ${filePicker.files...}, ${filePicker.body...}"
               },
-              "url": {
+              "uploadUrl": {
                 "type": "string",
                 "description": "Enter URL endpoint where files need to be uploaded"
               },
