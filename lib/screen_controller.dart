@@ -317,14 +317,14 @@ class ScreenController {
         allowMultiple: action.allowMultiple ?? false,
       ).then((result) async {
 
-        if (!(result?.files.isNotEmpty ?? false)) return;
+        if (result==null || result.files.isEmpty) return;
 
-        final selectedFiles = result!.files.map((file) => File.fromPlatformFile(file)).toList();
+        final selectedFiles = result.files.map((file) => File.fromPlatformFile(file)).toList();
         if (action.id != null && scopeManager != null) {
           scopeManager.dataContext.addInvokableContext(action.id!, FileData(files: selectedFiles));
         }
         
-        if (action.url == null) throw Exception('Enter URL');
+        if (action.url == null) throw RuntimeException('Enter URL');
         final response = await UploadUtils.uploadFiles(
           action.url!, 
           selectedFiles,
