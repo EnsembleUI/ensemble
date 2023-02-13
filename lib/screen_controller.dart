@@ -311,6 +311,11 @@ class ScreenController {
       value ??= '';
       launchUrl(Uri.parse(value),mode: (action.openInExternalApp)?LaunchMode.externalApplication:LaunchMode.platformDefault );
     }
+    else if (action is NavigateBack) {
+      if (scopeManager != null) {
+        Navigator.pop(context);
+      }
+    }
   }
 
   /// executing a code block
