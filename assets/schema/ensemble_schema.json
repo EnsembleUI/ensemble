@@ -1149,7 +1149,7 @@
             "action": {
               "type": "string",
               "description": "invoke an Ensemble's built-in functions",
-              "enum": ["invokeAPI" ,"navigateScreen", "navigateModalScreen", "showDialog", "closeAllDialogs", "startTimer", "showToast", "executeCode", "getLocation"]
+              "enum": ["invokeAPI" ,"navigateScreen", "navigateModalScreen", "showDialog", "closeAllDialogs", "startTimer", "showToast", "executeCode", "getLocation", "uploadFiles"]
             }
           }
         },
@@ -1479,6 +1479,51 @@
               "onError": {
                 "$ref": "#/$defs/Action-payload",
                 "description": "Callback Action if we are unable to get the device location. Reason is available under 'reason' field"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "uploadFiles"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Give the Uploader an ID allows you to bind to its result. e.g. ${filePicker.files...}, ${filePicker.body...}"
+              },
+              "url": {
+                "type": "string",
+                "description": "Enter URL endpoint where files need to be uploaded"
+              },
+              "onComplete": {
+                "$ref": "#/$defs/Action-payload",
+                "description": "Execute another Action upon successful upload of files"
+              },
+              "onError": {
+                "$ref": "#/$defs/Action-payload",
+                "description": "Execute an Action when uploader fails with error(s)"
+              },
+              "options": {
+                "type": "object",
+                "properties": {
+                  "allowMultiple": {
+                    "type": "boolean",
+                    "description" : "Allow users to pick multiple files (default False)"
+                  },
+                  "allowCompression": {
+                    "type": "boolean",
+                    "description" : "It will allow media to apply the default OS compression (default True)"
+                  },
+                  "allowedExtensions": {
+                    "type": "array"
+                  }
+                }
               }
             }
           }
