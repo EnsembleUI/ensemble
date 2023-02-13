@@ -295,6 +295,7 @@ class NativeInvokable with Invokable {
       ActionType.invokeAPI.name: invokeAPI,
       ActionType.stopTimer.name: stopTimer,
       ActionType.openCamera.name: showCamera,
+      ActionType.navigateBack.name: navigateBack,
       'debug': (value) => log('Debug: $value')
     };
   }
@@ -339,6 +340,11 @@ class NativeInvokable with Invokable {
   void showCamera()
   {
     ScreenController().executeAction(_buildContext, ShowCameraAction());
+  }
+
+  void navigateBack()
+  {
+    ScreenController().executeAction(_buildContext, NavigateBack());
   }
 
 }
