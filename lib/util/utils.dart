@@ -306,7 +306,7 @@ class Utils {
             allowCompression: Utils.optionalBool(payload['options']?['allowCompression']),
             onComplete: Utils.getAction(payload['onComplete']),
             onError: Utils.getAction(payload['onError']),
-            url: Utils.getUrl(payload['url']),
+            uploadUrl: Utils.getUrl(payload['uploadUrl']),
          );
        }
     }
