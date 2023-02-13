@@ -315,7 +315,7 @@ class ScreenController {
         allowedExtensions: action.allowedExtensions,
         allowCompression: action.allowCompression ?? true,
         allowMultiple: action.allowMultiple ?? false,
-      ).then((result) {
+      ).then((result) async {
 
         if (!(result?.files.isNotEmpty ?? false)) return;
 
@@ -325,13 +325,15 @@ class ScreenController {
         }
         
         if (action.url == null) throw Exception('Enter URL');
-        UploadUtils.uploadFiles(
+        final response = await UploadUtils.uploadFiles(
           action.url!, 
           selectedFiles,
-          // onDone add reponse body to dataContext
           onDone: action.onComplete == null ? null : () => executeAction(context, action.onComplete!),
           onError: action.onError == null ? null : (error) => executeAction(context, action.onError!),
         );
+        if (response == null || action.id == null || scopeManager == null) return;
+        final fileData = scopeManager.dataContext.getContextById(action.id!) as FileData;
+        fileData.setResponse(response);
       });
     }
   }

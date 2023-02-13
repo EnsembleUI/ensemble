@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/util/http_utils.dart';
 import 'package:http/http.dart' as http;
 
 typedef ProgressCallback = void Function(double progress);
@@ -8,7 +9,7 @@ typedef OnErrorCallback = void Function(dynamic error);
 
 class UploadUtils {
   
-  static Future<void> uploadFiles(
+  static Future<Response?> uploadFiles(
       String url, 
       List<File> files, 
       {
@@ -40,12 +41,15 @@ class UploadUtils {
       
       if (response.statusCode >= 200 && response.statusCode <= 300) {
         onDone?.call();
+        final res = await http.Response.fromStream(response);
+        return Response(res);
       } else {
         throw Exception('Failed to upload file');
       }
     } catch (error) {
       onError?.call(error);
     }
+    return null;
     
   }
 }
