@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
@@ -17,15 +16,15 @@ import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
+import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/camera.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 import 'package:yaml/yaml.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:file_picker/file_picker.dart';
 
  
 /// Singleton that holds the page model definition
@@ -310,6 +309,32 @@ class ScreenController {
       dynamic value = dataContext.eval(action.url);
       value ??= '';
       launchUrl(Uri.parse(value),mode: (action.openInExternalApp)?LaunchMode.externalApplication:LaunchMode.platformDefault );
+    } else if (action is FileUploadAction) {
+      FilePicker.platform.pickFiles(
+        type: action.allowedExtensions == null ? FileType.any: FileType.custom,
+        allowedExtensions: action.allowedExtensions,
+        allowCompression: action.allowCompression ?? true,
+        allowMultiple: action.allowMultiple ?? false,
+      ).then((result) async {
+
+        if (result==null || result.files.isEmpty) return;
+
+        final selectedFiles = result.files.map((file) => File.fromPlatformFile(file)).toList();
+        if (action.id != null && scopeManager != null) {
+          scopeManager.dataContext.addInvokableContext(action.id!, FileData(files: selectedFiles));
+        }
+        
+        if (action.uploadUrl == null) throw RuntimeException('Enter URL');
+        final response = await UploadUtils.uploadFiles(
+          action.uploadUrl!, 
+          selectedFiles,
+          onDone: action.onComplete == null ? null : () => executeAction(context, action.onComplete!),
+          onError: action.onError == null ? null : (error) => executeAction(context, action.onError!),
+        );
+        if (response == null || action.id == null || scopeManager == null) return;
+        final fileData = scopeManager.dataContext.getContextById(action.id!) as FileData;
+        fileData.setResponse(response);
+      });
     }
     else if (action is NavigateBack) {
       if (scopeManager != null) {
