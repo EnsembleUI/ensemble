@@ -121,6 +121,8 @@ class OpenUrlAction extends EnsembleAction {
   bool openInExternalApp;
   OpenUrlAction(this.url, {this.openInExternalApp=false});
 }
+class NavigateBack extends EnsembleAction {
+}
 class ShowToastAction extends EnsembleAction {
   ShowToastAction({
     Invokable? initiator,
@@ -200,6 +202,6 @@ class FileUploadAction extends EnsembleAction {
 }
 
 
-enum ActionType { invokeAPI, navigateScreen, navigateModalScreen, showDialog, startTimer, stopTimer, closeAllDialogs, executeCode, showToast, getLocation, openUrl, openCamera, uploadFiles }
+enum ActionType { invokeAPI, navigateScreen, navigateModalScreen, showDialog, startTimer, stopTimer, closeAllDialogs, executeCode, showToast, getLocation, openUrl, openCamera, uploadFiles, navigateBack }
 
 enum ToastType { success, error, warning, info, custom }

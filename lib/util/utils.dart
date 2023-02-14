@@ -269,7 +269,13 @@ class Utils {
         }
       } else if (payload['action'] == ActionType.closeAllDialogs.name) {
         return CloseAllDialogsAction();
-      } else if (payload['action'] == ActionType.showToast.name) {
+        
+      }
+      else if (payload['action'] == ActionType.navigateBack.name) {
+        return NavigateBack();
+        
+      }
+       else if (payload['action'] == ActionType.showToast.name) {
         return ShowToastAction(
           type: ToastType.values.from(payload['options']?['type']) ?? ToastType.info,
           message: Utils.optionalString(payload['options']?['message']),

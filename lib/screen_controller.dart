@@ -336,6 +336,11 @@ class ScreenController {
         fileData.setResponse(response);
       });
     }
+    else if (action is NavigateBack) {
+      if (scopeManager != null) {
+        Navigator.of(context).maybePop();
+      }
+    }
   }
 
   /// executing a code block
