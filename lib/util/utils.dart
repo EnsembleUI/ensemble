@@ -270,7 +270,13 @@ class Utils {
         }
       } else if (payload['action'] == ActionType.closeAllDialogs.name) {
         return CloseAllDialogsAction();
-      } else if (payload['action'] == ActionType.showToast.name) {
+        
+      }
+      else if (payload['action'] == ActionType.navigateBack.name) {
+        return NavigateBack();
+        
+      }
+       else if (payload['action'] == ActionType.showToast.name) {
         return ShowToastAction(
           type: ToastType.values.from(payload['options']?['type']) ?? ToastType.info,
           message: Utils.optionalString(payload['options']?['message']),
@@ -300,7 +306,17 @@ class Utils {
           payload['url'],
           openInExternalApp: Utils.getBool(payload['openInExternalApp'], fallback: false)
         );
-      }
+      } else if ( payload['action']  == ActionType.uploadFiles.name ) {
+         return FileUploadAction(
+            id: Utils.optionalString(payload['id']),
+            allowedExtensions: (payload['options']?['allowedExtensions'] as YamlList?)?.cast<String>().toList(),
+            allowMultiple: Utils.optionalBool(payload['options']?['allowMultiple']),
+            allowCompression: Utils.optionalBool(payload['options']?['allowCompression']),
+            onComplete: Utils.getAction(payload['onComplete']),
+            onError: Utils.getAction(payload['onError']),
+            uploadUrl: Utils.getUrl(payload['uploadUrl']),
+         );
+       }
     }
     /// short-hand //@code string is same as ExecuteCodeAction
     else if (payload is String) {

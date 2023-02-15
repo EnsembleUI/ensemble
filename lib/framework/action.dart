@@ -124,6 +124,8 @@ class OpenUrlAction extends EnsembleAction {
   bool openInExternalApp;
   OpenUrlAction(this.url, {this.openInExternalApp=false});
 }
+class NavigateBack extends EnsembleAction {
+}
 class ShowToastAction extends EnsembleAction {
   ShowToastAction({
     Invokable? initiator,
@@ -182,7 +184,27 @@ class TimerPayload {
   final bool? isGlobal;        // if global is marked, only 1 instance is available for the entire app
 }
 
+class FileUploadAction extends EnsembleAction {
+  FileUploadAction({
+    this.allowedExtensions, 
+    this.allowMultiple, 
+    this.allowCompression,
+    this.id,
+    this.onComplete,
+    this.onError,
+    this.uploadUrl,
+  });
 
-enum ActionType { invokeAPI, navigateScreen, navigateModalScreen, showDialog, startTimer, stopTimer, closeAllDialogs, executeCode, showToast, getLocation, openUrl, openCamera }
+  List<String>? allowedExtensions;
+  bool? allowMultiple;
+  bool? allowCompression;
+  String? id;
+  EnsembleAction? onComplete;
+  EnsembleAction? onError;
+  String? uploadUrl;
+}
+
+
+enum ActionType { invokeAPI, navigateScreen, navigateModalScreen, showDialog, startTimer, stopTimer, closeAllDialogs, executeCode, showToast, getLocation, openUrl, openCamera, uploadFiles, navigateBack }
 
 enum ToastType { success, error, warning, info, custom }
