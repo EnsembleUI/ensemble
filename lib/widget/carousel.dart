@@ -1,4 +1,3 @@
-
 import 'dart:developer';
 
 import 'package:carousel_slider/carousel_slider.dart';
@@ -57,7 +56,14 @@ class Carousel extends StatefulWidget with UpdatableContainer, Invokable, HasCon
 
   @override
   Map<String, Function> methods() {
-    return {};
+    return {
+      'next': () {
+        _controller._carouselController.nextPage();
+      },
+      'previous' : (){
+        _controller._carouselController.previousPage();
+      }
+    };
   }
 
   @override
@@ -102,10 +108,12 @@ class MyController extends BoxController {
   int selectedIndex = 0;
 }
 
+  final CarouselController _carouselController = CarouselController();
+}
 
 class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
   List<Widget>? templatedChildren;
-  final CarouselController _carouselController = CarouselController();
+
   // this is used to highlight the correct indicator index
   int focusIndex = 0;
 
@@ -125,9 +133,7 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
           });
       });
     }
-
   }
-
 
   @override
   Widget buildWidget(BuildContext context) {
@@ -138,7 +144,7 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
     Widget carousel = CarouselSlider(
       options: singleView ? _getSingleViewOptions() : _getMultiViewOptions(),
       items: items,
-      carouselController: _carouselController,
+      carouselController: widget._controller._carouselController,
     );
 
     // show indicators
@@ -148,7 +154,6 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
         indicators.add(GestureDetector(
           child: getIndicator(i == focusIndex),
           onTap: () {
-
             // MultiView only dispatch itemChange when explicitly clicking on the item
             // But here since we are selecting the indicator, this should be the
             // same as if you are selecting the item, hence dispatch the item here
@@ -156,7 +161,7 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
               _onItemChange(i);
             }
 
-            _carouselController.animateToPage(i);
+            widget._controller._carouselController.animateToPage(i);
           },
         ));
       }
@@ -285,8 +290,6 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
     );
 
   }
-
-
 }
 
 enum CarouselLayout {
