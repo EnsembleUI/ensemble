@@ -75,7 +75,7 @@ class BoxLayoutController extends BoxController {
   Color? sepratorColor;
   double? sepratorWidth;
   EdgeInsets? sepratorPadding;
-  int selectedItemIndex=0;
+  int selectedItemIndex= -1;
 
 
   @override
