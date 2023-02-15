@@ -88,7 +88,7 @@ class ImageState extends WidgetState<EnsembleImage> {
         // image binding is tricky. When the URL has not been resolved
         // the image will throw exception. We have to use a permanent placeholder
         // until the binding engages
-        if (widget._controller.cache == true) {
+        if (widget._controller.cache) {
           return CachedNetworkImage(
             width: widget._controller.width?.toDouble(),
             height: widget._controller.height?.toDouble(),
