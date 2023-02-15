@@ -66,13 +66,14 @@ dependencies:
   flutter_markdown: ^0.6.10+5
   url_launcher: ^6.1.5
   provider: ^6.0.3
-  cloud_firestore: 4.2.0
+  cloud_firestore: 4.4.0
   geolocator: ^9.0.2
   get_storage: ^2.0.3
   flutter_html: ^3.0.0-alpha.6    # flutter_html ^2.0.0 requires flutter_svg <1.0.0, conflicts with ours
   camera: ^0.10.3
   image_picker: ^0.8.6
   webview_flutter: ^4.0.1
+  source_span: ^1.9.1
 
 
 dev_dependencies:
