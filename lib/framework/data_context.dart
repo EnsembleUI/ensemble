@@ -5,6 +5,7 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:get_storage/get_storage.dart';
 
 import 'package:ensemble/framework/action.dart';
@@ -277,6 +278,7 @@ class NativeInvokable with Invokable {
       ActionType.invokeAPI.name: invokeAPI,
       ActionType.stopTimer.name: stopTimer,
       ActionType.openCamera.name: showCamera,
+      ActionType.navigateBack.name: navigateBack,
       'debug': (value) => log('Debug: $value')
     };
   }
@@ -321,6 +323,11 @@ class NativeInvokable with Invokable {
   void showCamera()
   {
     ScreenController().executeAction(_buildContext, ShowCameraAction());
+  }
+
+  void navigateBack()
+  {
+    ScreenController().executeAction(_buildContext, NavigateBack());
   }
 
 }
@@ -613,3 +620,59 @@ class ModifiableAPIResponse extends APIResponse {
     };
   }
 }
+
+class FileData with Invokable {
+  FileData({List<File>? files}) : _files = files;
+
+  final List<File>? _files;
+  Response? _response;
+
+  setResponse(Response response) {
+    _response = response;
+  }
+
+  @override
+  Map<String, Function> getters() {
+    return {
+      'files': () => _files?.map((file) => file.toJson()).toList(),
+      'body': () => _response?.body,
+      'headers': () => _response?.headers
+    };
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
+  }
+}
+
+class File {
+  File(this.name, this.ext, this.size, this.path);
+
+  File.fromPlatformFile(PlatformFile file):
+    name = file.name,
+    ext = file.extension,
+    size = file.size,
+    path = file.path;
+
+
+  final String name;
+  final int size;
+  final String? ext;
+  final String? path;
+
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'extension': ext,
+      'size': size,
+      'path': path,
+    };
+  }
+} 

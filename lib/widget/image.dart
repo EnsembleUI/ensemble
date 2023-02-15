@@ -1,4 +1,5 @@
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -40,6 +41,7 @@ class EnsembleImage extends StatefulWidget with Invokable, HasController<ImageCo
       'height': (value) => _controller.height = Utils.optionalInt(value),
       'fit': (value) => _controller.fit = Utils.optionalString(value),
       'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, initiator: this),
+      'cache': (value) => _controller.cache = Utils.optionalBool(value) ?? _controller.cache,
     };
   }
 
@@ -51,6 +53,7 @@ class ImageController extends BoxController {
   int? height;
   String? fit;
   EnsembleAction? onTap;
+  bool cache=true;
 }
 
 class ImageState extends WidgetState<EnsembleImage> {
@@ -85,19 +88,29 @@ class ImageState extends WidgetState<EnsembleImage> {
         // image binding is tricky. When the URL has not been resolved
         // the image will throw exception. We have to use a permanent placeholder
         // until the binding engages
-        return Image.network(
-            widget._controller.source,
+        if (widget._controller.cache) {
+          return CachedNetworkImage(
             width: widget._controller.width?.toDouble(),
             height: widget._controller.height?.toDouble(),
             fit: fit,
-            errorBuilder: (context, error, stacktrace) => placeholderImage(),
-            loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
-              if (loadingProgress == null) {
-                return child;
-              }
-              return placeholderImage();
-            }
-        );
+            errorWidget: (context, error, stacktrace) => placeholderImage(),
+            placeholder: (context, url) => placeholderImage(),
+            imageUrl: widget.controller.source,
+          );
+        } else {
+          return Image.network(widget._controller.source,
+              width: widget._controller.width?.toDouble(),
+              height: widget._controller.height?.toDouble(),
+              fit: fit,
+              errorBuilder: (context, error, stacktrace) => placeholderImage(),
+              loadingBuilder: (BuildContext context, Widget child,
+                  ImageChunkEvent? loadingProgress) {
+                if (loadingProgress == null) {
+                  return child;
+                }
+                return placeholderImage();
+              });
+        }
       }
       // else attempt local asset
       else {
@@ -105,12 +118,11 @@ class ImageState extends WidgetState<EnsembleImage> {
         // Assets might have additional token e.g. my-image.png?x=2343
         // so we need to strip them out
         return Image.asset(
-          Utils.getLocalAssetFullPath(widget._controller.source),
-          width: widget._controller.width?.toDouble(),
-          height: widget._controller.height?.toDouble(),
-          fit: fit,
-          errorBuilder: (context, error, stacktrace) => placeholderImage()
-        );
+            Utils.getLocalAssetFullPath(widget._controller.source),
+            width: widget._controller.width?.toDouble(),
+            height: widget._controller.height?.toDouble(),
+            fit: fit,
+            errorBuilder: (context, error, stacktrace) => placeholderImage());
       }
     }
     return placeholderImage();
