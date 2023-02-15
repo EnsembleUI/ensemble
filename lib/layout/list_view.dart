@@ -167,7 +167,7 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
         widget._controller.onItemTap != null) {
       widget._controller.selectedItemIndex = index;
       //log("Changed to index $index");
-      ScreenController().executeAction(context, widget._controller.onItemTap!,event: EnsembleEvent(widget));
+      ScreenController().executeAction(context, widget._controller.onItemTap!);
       print("The Selected index in data array of ListView is ${widget._controller.selectedItemIndex}");
     }
   }
