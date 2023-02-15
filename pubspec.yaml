@@ -74,6 +74,7 @@ dependencies:
   image_picker: ^0.8.6
   webview_flutter: ^4.0.1
   file_picker: ^5.2.5
+  cached_network_image: ^3.2.3
 
 dev_dependencies:
   flutter_test:
