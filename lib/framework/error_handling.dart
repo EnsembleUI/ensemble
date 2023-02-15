@@ -1,4 +1,5 @@
-import 'package:jsparser/jsparser.dart';
+import 'package:ensemble_ts_interpreter/parser/newjs_interpreter.dart';
+import 'package:source_span/source_span.dart';
 
 class ConfigError extends EnsembleError {
   ConfigError(super.error);
@@ -17,17 +18,14 @@ class LanguageError extends EnsembleError {
 }
 
 class CodeError extends EnsembleError {
-  CodeError(Object input): super(
-    input is ParseError ? input.message.toString() : input.toString()
-  ) {
-    if (input is ParseError) {
-      recovery = "Line ${input.line}. Position ${input.startOffset}-${input.endOffset}.";
-    }
+  CodeError(JSException exception,SourceLocation yamlLocation): super(exception.message,line:exception.line,detailError: exception.detailedError) {
+    line = yamlLocation.line;
+    line = line! + exception.line;
+    error = "Line: $line in YAML and Line: ${exception.line} within the code block.";
   }
 
   @override
-  String toString() => "Code Error: $error\n$recovery";
-
+  String toString() => '$error $recovery $detailError';
 }
 
 class RuntimeError extends EnsembleError {
@@ -40,9 +38,12 @@ class RuntimeError extends EnsembleError {
 abstract class EnsembleError extends Error {
   EnsembleError(
     this.error, {
-    this.recovery,
-    this.detailError
+      this.line,
+      this.recovery,
+      this.detailError
   });
+  int? line;
+  int? column;
   String error;
   String? recovery;
   String? detailError;
