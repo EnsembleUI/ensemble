@@ -1,5 +1,6 @@
 
 
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/box_layout.dart';
 import 'package:ensemble/layout/layout_helper.dart';
@@ -28,7 +29,9 @@ class ListView extends StatefulWidget
 
   @override
   Map<String, Function> getters() {
-    return {};
+    return {
+      'selectedItemIndex': () => _controller.selectedItemIndex,
+    };
   }
 
   @override
@@ -137,10 +140,9 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
           shrinkWrap: true,
           itemBuilder: (BuildContext context, int index) {
             return GestureDetector(
-                onTap: widget._controller.onItemTap == null
+               onTap: widget._controller.onItemTap == null
                     ? null
-                    : () => ScreenController()
-                    .executeAction(context, widget._controller.onItemTap!),
+                    : () => _onItemTapped(index),
                 child: children[index]);
           }),
     );
@@ -156,6 +158,18 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
         thickness: (widget._controller.sepratorWidth ?? 1).toDouble(),
       ),
     );
+  }
+
+  // ----------------- To GET the current [index] of the item in data array -------------------
+
+  _onItemTapped(int index) {
+    if (index != widget._controller.selectedItemIndex &&
+        widget._controller.onItemTap != null) {
+      widget._controller.selectedItemIndex = index;
+      //log("Changed to index $index");
+      ScreenController().executeAction(context, widget._controller.onItemTap!,event: EnsembleEvent(widget));
+      print("The Selected index in data array of ListView is ${widget._controller.selectedItemIndex}");
+    }
   }
 
 // -------------------- To give styling to the container of ListView -----------------
