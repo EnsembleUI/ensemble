@@ -1,4 +1,4 @@
-import 'package:ensemble_ts_interpreter/parser/newjs_interpreter.dart';
+import 'package:ensemble_ts_interpreter/errors.dart';
 import 'package:source_span/source_span.dart';
 
 class ConfigError extends EnsembleError {
@@ -18,14 +18,11 @@ class LanguageError extends EnsembleError {
 }
 
 class CodeError extends EnsembleError {
-  CodeError(JSException exception,SourceLocation yamlLocation): super(exception.message,line:exception.line,detailError: exception.detailedError) {
+  CodeError(JSException exception,SourceLocation yamlLocation): super(exception.message,line:exception.line,recovery: exception.recovery,detailError: exception.detailedError) {
     line = yamlLocation.line;
     line = line! + exception.line;
-    error = "Line: $line in YAML and Line: ${exception.line} within the code block.";
+    error = 'Line: $line in YAML and Line: ${exception.line} within the code block. Error Message: $error';
   }
-
-  @override
-  String toString() => '$error $recovery $detailError';
 }
 
 class RuntimeError extends EnsembleError {
@@ -49,7 +46,7 @@ abstract class EnsembleError extends Error {
   String? detailError;
 
   @override
-  String toString() => "$error\n$recovery\n$detailError";
+  String toString() => "$error${recovery??''}${detailError??''}";
 }
 
 
