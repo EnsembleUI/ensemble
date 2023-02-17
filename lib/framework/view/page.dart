@@ -530,7 +530,7 @@ class PageState extends State<Page>{
 
     // execute Global Code
     if (widget._pageModel.globalCode != null) {
-      _scopeManager.dataContext.evalCode(widget._pageModel.globalCode!);
+      _scopeManager.dataContext.evalCode(widget._pageModel.globalCode!,widget._pageModel.globalCodeSpan!);
     }
   }
 }

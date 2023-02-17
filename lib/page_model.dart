@@ -11,6 +11,7 @@ import 'package:ensemble/layout/stack.dart';
 import 'package:ensemble/provider.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_registry.dart';
+import 'package:source_span/source_span.dart';
 import 'package:yaml/yaml.dart';
 
 abstract class PageModel {
@@ -34,6 +35,7 @@ abstract class PageModel {
   Map<String, YamlMap>? apiMap;
   Map<String, dynamic>? customViewDefinitions;
   String? globalCode;
+  SourceSpan? globalCodeSpan;
 
   factory PageModel.fromYaml(YamlMap data) {
     try {
@@ -51,8 +53,11 @@ abstract class PageModel {
   }
   void _processModel(YamlMap docMap) {
     _processAPI(docMap['API']);
-
-    globalCode = Utils.optionalString(docMap['Global']);
+    YamlNode? globalCodeNode = docMap.nodes['Global'];
+    if ( globalCodeNode != null ) {
+      globalCode = Utils.optionalString(globalCodeNode.value);
+      globalCodeSpan = ViewUtil.getDefinition(globalCodeNode);
+    }
 
     // build a Map of the Custom Widgets
     customViewDefinitions = _buildCustomViewDefinitions(docMap);
@@ -228,28 +233,41 @@ class SinglePageModel extends PageModel {
   }
 
   WidgetModel? getRootModel(YamlMap rootTree, Map<String, dynamic> customViewDefinitions) {
+    for ( MapEntry<dynamic,dynamic> entry in rootTree.entries ) {
+      if (WidgetRegistry.widgetMap[entry.key] != null ||
+          customViewDefinitions[entry.key] != null) {
+        return ViewUtil.buildModel(entry, customViewDefinitions);
+      }
+    }
+    return null;
+    /*
     for (String key in rootTree.keys) {
       // if a regular widget or custom widget
       if (WidgetRegistry.widgetMap[key] != null ||
           customViewDefinitions[key] != null) {
+        if ( rootTree[key] is YamlNode ) {
+          print('YAML node.line=${rootTree[key].span.start.line} and the node=${key}');
+        }
         YamlMap widgetMap = YamlMap.wrap({
           key: rootTree[key]
         });
+        for ( String nodeKey in widgetMap.keys ) {
+          print('YAMLNode.key=$nodeKey');
+        }
         return ViewUtil.buildModel(widgetMap, customViewDefinitions);
       }
     }
     return null;
+
+     */
   }
 
 
 
 }
 
-
-
-
-
 class WidgetModel {
+  final SourceSpan definition;
   final String type;
   final Map<String, dynamic> styles;
   final Map<String, dynamic> props;
@@ -258,7 +276,7 @@ class WidgetModel {
   final List<WidgetModel>? children;
   final ItemTemplate? itemTemplate;
 
-  WidgetModel(this.type, this.styles, this.props, {this.children, this.itemTemplate});
+  WidgetModel(this.definition,this.type, this.styles, this.props, {this.children, this.itemTemplate});
 }
 
 class CustomWidgetModel extends WidgetModel {
@@ -268,7 +286,7 @@ class CustomWidgetModel extends WidgetModel {
       {
         this.parameters,
         this.inputs
-  }) : super('', {}, props);
+  }) : super(widgetModel.definition,'', {}, props);
 
   WidgetModel widgetModel;
   List<String>? parameters;
