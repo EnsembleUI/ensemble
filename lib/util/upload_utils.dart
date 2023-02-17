@@ -29,8 +29,16 @@ class UploadUtils {
     final multipartFiles = <http.MultipartFile>[];
   
     for (var file in files) {
-      if (file.path == null) continue;
-      final multipartFile = await http.MultipartFile.fromPath('files', file.path!);
+      http.MultipartFile? multipartFile;
+
+      if (file.path != null) {
+        multipartFile = await http.MultipartFile.fromPath('files', file.path!);
+      } else if ( file.bytes != null ) {
+        multipartFile = http.MultipartFile.fromBytes('files', file.bytes!, filename: file.name);
+      } else {
+        continue;
+      }
+
       multipartFiles.add(multipartFile);
     }
 
