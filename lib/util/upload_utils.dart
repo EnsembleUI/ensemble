@@ -48,7 +48,6 @@ class UploadUtils {
       final response = await request.send();
       
       if (response.statusCode >= 200 && response.statusCode <= 300) {
-        onDone?.call();
         final res = await http.Response.fromStream(response);
         return Response(res);
       } else {
