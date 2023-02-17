@@ -39,11 +39,11 @@ class ListView extends StatefulWidget
     return {
       'onItemTap': (funcDefinition) =>
       _controller.onItemTap = Utils.getAction(funcDefinition, initiator: this),
-      'sepratorColor': (value) =>
+      'separatorColor': (value) =>
       _controller.sepratorColor = Utils.getColor(value),
-      'sepratorWidth': (value) =>
+      'separatorWidth': (value) =>
       _controller.sepratorWidth = Utils.optionalDouble(value),
-      'sepratorPadding': (value) =>
+      'separatorPadding': (value) =>
       _controller.sepratorPadding = Utils.optionalInsets(value),
     };
   }
