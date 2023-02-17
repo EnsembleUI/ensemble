@@ -653,19 +653,21 @@ class FileData with Invokable {
 }
 
 class File {
-  File(this.name, this.ext, this.size, this.path);
+  File(this.name, this.ext, this.size, this.path, this.bytes);
 
   File.fromPlatformFile(PlatformFile file):
     name = file.name,
     ext = file.extension,
     size = file.size,
-    path = file.path;
+    path = kIsWeb ? null : file.path,
+    bytes = file.bytes;
 
 
   final String name;
   final int size;
   final String? ext;
   final String? path;
+  final Uint8List? bytes;
 
 
   Map<String, dynamic> toJson() {
@@ -674,6 +676,7 @@ class File {
       'extension': ext,
       'size': size,
       'path': path,
+      'bytes': bytes,
     };
   }
 } 

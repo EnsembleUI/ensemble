@@ -328,12 +328,12 @@ class ScreenController {
         final response = await UploadUtils.uploadFiles(
           action.uploadUrl!, 
           selectedFiles,
-          onDone: action.onComplete == null ? null : () => executeAction(context, action.onComplete!),
           onError: action.onError == null ? null : (error) => executeAction(context, action.onError!),
         );
         if (response == null || action.id == null || scopeManager == null) return;
         final fileData = scopeManager.dataContext.getContextById(action.id!) as FileData;
         fileData.setResponse(response);
+        if (action.onComplete != null) executeAction(context, action.onComplete!);
       });
     }
     else if (action is NavigateBack) {
