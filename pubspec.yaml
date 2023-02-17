@@ -74,6 +74,7 @@ dependencies:
   image_picker: ^0.8.6
   webview_flutter: ^4.0.1
   file_picker: ^5.2.5
+  walletconnect_flutter_v2: ^1.0.0 
 
 dev_dependencies:
   flutter_test:

@@ -14,6 +14,7 @@ import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/framework/widget/toast.dart';
 import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/util/chain_utils.dart';
 import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/util/upload_utils.dart';
@@ -22,6 +23,7 @@ import 'package:ensemble/widget/widget_registry.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:walletconnect_flutter_v2/walletconnect_flutter_v2.dart';
 import 'package:yaml/yaml.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:file_picker/file_picker.dart';
@@ -66,7 +68,7 @@ class ScreenController {
   }
 
   /// internally execute an Action
-  void _executeAction(BuildContext context, DataContext providedDataContext, EnsembleAction action, Map<String, YamlMap>? apiMap, ScopeManager? scopeManager,{EnsembleEvent? event}) {
+  Future<void> _executeAction(BuildContext context, DataContext providedDataContext, EnsembleAction action, Map<String, YamlMap>? apiMap, ScopeManager? scopeManager,{EnsembleEvent? event}) async {
     /// Actions are short-live so we don't need a childScope, simply create a localized context from the given context
     /// Note that scopeManager may starts out without Invokable IDs (as widgets may yet to render), but at the time
     /// of API returns, they will be populated. For this reason, always rebuild data context from scope manager.
@@ -335,11 +337,58 @@ class ScreenController {
         final fileData = scopeManager.dataContext.getContextById(action.id!) as FileData;
         fileData.setResponse(response);
       });
-    }
-    else if (action is NavigateBack) {
+    } else if (action is WalletConnectAction) {
+        _connectWallet(context, action, scopeManager);
+    } else if (action is NavigateBack) {
       if (scopeManager != null) {
         Navigator.of(context).maybePop();
       }
+    }
+  }
+
+  Future<void> _connectWallet(BuildContext context, WalletConnectAction action, ScopeManager? scopeManager) async {
+    try {
+        final wcClient = await SignClient.createInstance(
+        core: Core(projectId: action.wcProjectId),
+        metadata: PairingMetadata(
+          name: action.appMetaData.name,
+          description: action.appMetaData.description,
+          url: action.appMetaData.url,
+          icons: [action.appMetaData.url],
+        ),
+      );
+
+      wcClient.onSessionConnect.subscribe((connector) {
+          if (connector == null || action.id == null || scopeManager == null) return;
+
+          final walletData = scopeManager.dataContext.getContextById(action.id!) as WalletData;
+          walletData.setSession(connector.session);
+          final walletPublicKey = connector.session.namespaces[ChainUtils.ethereumNamespace]?.accounts.first.split(':')[2];
+
+          if (walletPublicKey != null) walletData.setPublicKey(walletPublicKey);
+          if (action.onComplete != null)  executeAction(context, action.onComplete!);
+      });
+
+      final walletData = WalletData(wcClient);
+      if (action.id != null) scopeManager?.dataContext.addInvokableContext(action.id!, walletData);
+
+      final response = await wcClient.connect(
+        requiredNamespaces: {
+          ChainUtils.ethereumNamespace:  RequiredNamespace(
+            chains: [ChainUtils.ethereumMainChain], // Ethereum chain
+            methods: ChainUtils.getEthereumMethods(),
+            events: ChainUtils.getEthereumEvents(),
+          ),
+        },
+      );
+      if (response.uri == null) throw Exception('Failed to connect to wallet');
+      walletData.setUri(response.uri!);
+      if (!await launchUrl(response.uri!)) {
+        throw Exception('Could not launch ${response.uri}');
+      }
+    } catch (e) {
+      if (action.onError != null) executeAction(context, action.onError!);
+      throw RuntimeException(e.toString());
     }
   }
 

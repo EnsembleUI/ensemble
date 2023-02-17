@@ -314,7 +314,15 @@ class Utils {
             onError: Utils.getAction(payload['onError']),
             uploadUrl: Utils.getUrl(payload['uploadUrl']),
          );
-       }
+       } else if ( payload['action'] == ActionType.connectWallet.name ) {
+          return WalletConnectAction(
+            id: Utils.optionalString(payload['id']),
+            onComplete: Utils.getAction(payload['onComplete']),
+            onError: Utils.getAction(payload['onError']),
+            wcProjectId: payload['wcProjectId'], 
+            appMetaData: AppMetaData.fromYaml(payload['metadata']),
+          );
+      }
     }
     /// short-hand //@code string is same as ExecuteCodeAction
     else if (payload is String) {

@@ -201,7 +201,44 @@ class FileUploadAction extends EnsembleAction {
   String? uploadUrl;
 }
 
+class WalletConnectAction extends EnsembleAction {
+  WalletConnectAction({
+    required this.wcProjectId,
+    required this.appMetaData,
+    this.id,
+    this.onComplete,
+    this.onError,
+  });
 
-enum ActionType { invokeAPI, navigateScreen, navigateModalScreen, showDialog, startTimer, stopTimer, closeAllDialogs, executeCode, showToast, getLocation, openUrl, openCamera, uploadFiles, navigateBack }
+  String wcProjectId;
+  AppMetaData appMetaData;
+  String? id;
+  EnsembleAction? onComplete;
+  EnsembleAction? onError;
+
+}
+
+class AppMetaData {
+  String name;
+  String description;
+  String url;
+  String iconUrl;
+
+  AppMetaData({
+    required this.name,
+    required this.description,
+    required this.url,
+    required this.iconUrl,
+  });
+
+  AppMetaData.fromYaml(YamlMap yaml):
+    name = yaml['name'],
+    description = yaml['description'],
+    url = yaml['url'],
+    iconUrl = yaml['iconUrl'];
+}
+
+
+enum ActionType { invokeAPI, navigateScreen, navigateModalScreen, showDialog, startTimer, stopTimer, closeAllDialogs, executeCode, showToast, getLocation, openUrl, openCamera, uploadFiles, navigateBack, connectWallet }
 
 enum ToastType { success, error, warning, info, custom }

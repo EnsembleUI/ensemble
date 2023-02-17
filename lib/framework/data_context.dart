@@ -4,6 +4,7 @@ import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/util/chain_utils.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:file_picker/file_picker.dart';
@@ -23,6 +24,7 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/parser/ast.dart';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
+import 'package:walletconnect_flutter_v2/walletconnect_flutter_v2.dart';
 import 'package:yaml/yaml.dart';
 
 /// manages Data and Invokables within the current data scope.
@@ -694,3 +696,58 @@ class File {
     };
   }
 } 
+
+class WalletData with Invokable {
+  WalletData(SignClient wcClient) : _wcClient = wcClient;
+
+  final SignClient _wcClient;
+  Uri? _connectionUri;
+  SessionData? _sessionData;
+  String? _publicKey;
+
+  setPublicKey(String publicKey) {
+    _publicKey = publicKey;
+  } 
+
+  setUri(Uri uri) {
+    _connectionUri = uri;
+  }
+
+  setSession(SessionData sessionData) {
+    _sessionData = sessionData;
+  }
+
+  @override
+  Map<String, Function> getters() {
+    return {
+      'publicKey': () => _publicKey,
+      'uri': () =>  _connectionUri?.toString(),
+      'expiry': () => _sessionData?.expiry,
+    };
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {
+      'allSessions': () =>  allSessions(),
+      'signTransaction': () => signTransaction(),
+    };
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
+  }
+
+  Map<String, SessionData>? allSessions() {
+    return _wcClient.getActiveSessions();
+  }
+
+  signTransaction() async {
+    final _ = await _wcClient.request(
+      topic: _sessionData!.topic, 
+      chainId: ChainUtils.ethereumNamespace, 
+      request: SessionRequestParams(method: ChainUtils.ethSignTransaction, params: 'abc')
+    );
+  }
+}
