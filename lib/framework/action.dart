@@ -2,6 +2,7 @@
 
 
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:source_span/source_span.dart';
 import 'package:yaml/yaml.dart';
 
 /// payload representing an Action to do (navigateToScreen, InvokeAPI, ..)
@@ -110,16 +111,20 @@ class ExecuteCodeAction extends EnsembleAction {
     Invokable? initiator,
     Map<String, dynamic>? inputs,
     required this.codeBlock,
-    this.onComplete
+    this.onComplete,
+    required this.codeBlockSpan
   }) : super(initiator: initiator,inputs: inputs);
 
   String codeBlock;
   EnsembleAction? onComplete;
+  SourceSpan codeBlockSpan;
 }
 class OpenUrlAction extends EnsembleAction {
   String url;
   bool openInExternalApp;
   OpenUrlAction(this.url, {this.openInExternalApp=false});
+}
+class NavigateBack extends EnsembleAction {
 }
 class ShowToastAction extends EnsembleAction {
   ShowToastAction({
@@ -179,7 +184,27 @@ class TimerPayload {
   final bool? isGlobal;        // if global is marked, only 1 instance is available for the entire app
 }
 
+class FileUploadAction extends EnsembleAction {
+  FileUploadAction({
+    this.allowedExtensions, 
+    this.allowMultiple, 
+    this.allowCompression,
+    this.id,
+    this.onComplete,
+    this.onError,
+    this.uploadUrl,
+  });
 
-enum ActionType { invokeAPI, navigateScreen, navigateModalScreen, showDialog, startTimer, stopTimer, closeAllDialogs, executeCode, showToast, getLocation, openUrl, openCamera }
+  List<String>? allowedExtensions;
+  bool? allowMultiple;
+  bool? allowCompression;
+  String? id;
+  EnsembleAction? onComplete;
+  EnsembleAction? onError;
+  String? uploadUrl;
+}
+
+
+enum ActionType { invokeAPI, navigateScreen, navigateModalScreen, showDialog, startTimer, stopTimer, closeAllDialogs, executeCode, showToast, getLocation, openUrl, openCamera, uploadFiles, navigateBack }
 
 enum ToastType { success, error, warning, info, custom }

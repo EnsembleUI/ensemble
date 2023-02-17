@@ -5,6 +5,7 @@ import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/model.dart' as ensemble;
+import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
 import 'package:flutter/material.dart';
@@ -269,7 +270,13 @@ class Utils {
         }
       } else if (payload['action'] == ActionType.closeAllDialogs.name) {
         return CloseAllDialogsAction();
-      } else if (payload['action'] == ActionType.showToast.name) {
+        
+      }
+      else if (payload['action'] == ActionType.navigateBack.name) {
+        return NavigateBack();
+        
+      }
+       else if (payload['action'] == ActionType.showToast.name) {
         return ShowToastAction(
           type: ToastType.values.from(payload['options']?['type']) ?? ToastType.info,
           message: Utils.optionalString(payload['options']?['message']),
@@ -291,18 +298,29 @@ class Utils {
             initiator: initiator,
             inputs: inputs,
             codeBlock: payload['body'],
-            onComplete: Utils.getAction(payload['onComplete'], initiator: initiator)
+            onComplete: Utils.getAction(payload['onComplete'], initiator: initiator),
+            codeBlockSpan: ViewUtil.optDefinition(payload.nodes['body'])
         );
       } else if ( payload['action'] == ActionType.openUrl.name ) {
         return OpenUrlAction(
           payload['url'],
           openInExternalApp: Utils.getBool(payload['openInExternalApp'], fallback: false)
         );
-      }
+      } else if ( payload['action']  == ActionType.uploadFiles.name ) {
+         return FileUploadAction(
+            id: Utils.optionalString(payload['id']),
+            allowedExtensions: (payload['options']?['allowedExtensions'] as YamlList?)?.cast<String>().toList(),
+            allowMultiple: Utils.optionalBool(payload['options']?['allowMultiple']),
+            allowCompression: Utils.optionalBool(payload['options']?['allowCompression']),
+            onComplete: Utils.getAction(payload['onComplete']),
+            onError: Utils.getAction(payload['onError']),
+            uploadUrl: Utils.getUrl(payload['uploadUrl']),
+         );
+       }
     }
     /// short-hand //@code string is same as ExecuteCodeAction
     else if (payload is String) {
-      return ExecuteCodeAction(initiator: initiator, codeBlock: payload);
+      return ExecuteCodeAction(initiator: initiator, codeBlock: payload, codeBlockSpan: ViewUtil.optDefinition(null));
     }
     return null;
   }
@@ -597,7 +615,7 @@ class Utils {
 
   static final i18nExpression = RegExp(r'r@[a-zA-Z0-9.-_]+',caseSensitive: false);
 
-  // extract only the AST after the comment and expression e.g //code <expression>\n<AST>
+  // extract only the code after the comment and expression e.g //@code <expression>\n
   static final codeAfterComment = RegExp(r'^//@code[^\n]*\n+((.|\n)+)', caseSensitive: false);
 
   // match an expression and AST e.g //@code <expression>\n<AST> in group1 and group2
