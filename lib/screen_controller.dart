@@ -294,7 +294,7 @@ class ScreenController {
           dataContext.addDataContextById(key, val);
         }
       });
-      dataContext.evalCode(action.codeBlock);
+      dataContext.evalCode(action.codeBlock,action.codeBlockSpan);
 
       if (action.onComplete != null && scopeManager != null) {
         executeActionWithScope(context, scopeManager, action.onComplete!);
@@ -443,16 +443,6 @@ class ScreenController {
 
     // silently fail if error handle is not defined? or should we alert user?
   }
-
-  void processCodeBlock(DataContext eContext, String codeBlock) {
-    try {
-      eContext.evalCode(codeBlock);
-    } catch (e) {
-      print ("Code block exception: " + e.toString());
-    }
-  }
-
-
   /// Navigate to another screen
   /// [screenName] - navigate to the screen if specified, otherwise to appHome
   /// [asModal] - shows the App in a regular or modal screen
