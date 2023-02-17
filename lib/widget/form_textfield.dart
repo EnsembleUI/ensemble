@@ -64,6 +64,14 @@ class PasswordInput extends BaseTextInput {
   @override
   TextInputType? get keyboardType => null;
 
+  @override
+  Map<String, Function> setters() {
+    Map<String, Function> setters = super.setters();
+    setters.addAll({
+      'value': (newValue) => textController.text = Utils.getString(newValue, fallback: '')
+    });
+    return setters;
+  }
 }
 
 /// Base StatefulWidget for both TextInput and Password
