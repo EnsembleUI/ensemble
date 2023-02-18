@@ -1,12 +1,14 @@
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/error_screen.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/page_model.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
+import 'package:provider/provider.dart';
 
 class Screen extends StatefulWidget {
   const Screen({
@@ -96,7 +98,20 @@ class _ScreenState extends State<Screen> {
               ScreenOptions(pageType: widget.screenPayload!.pageType!);
         }
       }
-      return ensemble.Page(dataContext: dataContext, pageModel: pageModel);
+
+      // create the page's ScopeManager and provide it to all children
+      var scopeManager = ScopeManager(
+          dataContext.clone(),
+          PageData(
+              customViewDefinitions: pageModel.customViewDefinitions,
+              apiMap: pageModel.apiMap
+          )
+      );
+      return ensemble.Page(
+          rootScopeManager: scopeManager,
+          dataContext: dataContext,
+          pageModel: pageModel
+      );
     }
 
     throw LanguageError("Invalid Screen Definition");
