@@ -283,7 +283,11 @@ class ScreenController {
 
     } else if (action is StopTimerAction) {
       if (scopeManager != null) {
-        scopeManager.removeTimer(action.id);
+        try {
+          scopeManager.removeTimer(action.id);
+        } catch (e) {
+          debugPrint('error when trying to stop timer with name ${action.id}. Error: ${e.toString()}');
+        }
       }
     } else if (action is GetLocationAction) {
       executeGetLocationAction(scopeManager!, dataContext, context, action);
