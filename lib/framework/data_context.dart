@@ -177,7 +177,11 @@ class DataContext {
       codeBlock = codeWithoutComments;
       startLoc = SourceLocationBase(0,sourceUrl: startLoc.sourceUrl,line: startLoc.line+2);
     }
-
+    //https://github.com/EnsembleUI/ensemble/issues/249
+    if ( codeBlock.isEmpty ) {
+      //just don't do anything and return.
+      return null;
+    }
     try {
       _contextMap['getStringValue'] = Utils.optionalString;
       return JSInterpreter.fromCode(codeBlock, _contextMap).evaluate();
