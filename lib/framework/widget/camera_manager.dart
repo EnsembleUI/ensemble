@@ -4,7 +4,7 @@ import 'package:ensemble/widget/camera.dart';
 import 'package:flutter/material.dart';
 
 class CameraManager {
-    // open camera function to set properties
+  // open camera function to set properties
   void openCamera(BuildContext context, ShowCameraAction cameraAction) async {
     // if camera action option is null than create camera screen without any setter
     if (cameraAction.options == null) {
@@ -15,12 +15,12 @@ class CameraManager {
         ),
       );
     }
-    // if camera action is not null 
+    // if camera action is not null
     else {
-    // camera instance is created for set properties to setter
-    // if any other camera instance is created already automatically remove beacuse camera instance is dispose
-    // when screen is close
-     
+      // camera instance is created for set properties to setter
+      // if any other camera instance is created already automatically remove beacuse camera instance is dispose
+      // when screen is close
+
       CameraScreen camera = CameraScreen();
       cameraAction.options!['mode'] == null
           ? camera.setProperty('mode', CameraMode.both)
@@ -28,19 +28,31 @@ class CameraManager {
       cameraAction.options!['initialCamera'] == null
           ? camera.setProperty('initialCamera', InitialCamera.back)
           : camera.setProperty(
-          'initialCamera', i(cameraAction.options!['initialCamera']));
+              'initialCamera', i(cameraAction.options!['initialCamera']));
       cameraAction.options!['useGallery'] == null
           ? camera.setProperty('useGallery', true)
           : camera.setProperty(
-          'useGallery', cameraAction.options!['useGallery']);
+              'useGallery', cameraAction.options!['useGallery']);
       cameraAction.options!['preview'] == null
           ? camera.setProperty('preview', false)
           : camera.setProperty('preview', cameraAction.options!['preview']);
       cameraAction.options!['maxCount'] == null
           ? camera.setProperty('maxCount', 1)
-          : camera.setProperty('maxCount', cameraAction.options!['maxCount']);      
+          : camera.setProperty('maxCount', cameraAction.options!['maxCount']);
+      cameraAction.options!['errormessage'] == null
+          ? ''
+          : camera.setProperty(
+              'errormessage', cameraAction.options!['errormessage']);
+      cameraAction.options!['imgPickerIcon'] == null
+          ? ''
+          : camera.setProperty(
+              'imgPickerIcon', cameraAction.options!['imgPickerIcon']);
+      cameraAction.options!['cameraRotateIcon'] == null
+          ? ''
+          : camera.setProperty(
+              'cameraRotateIcon', cameraAction.options!['cameraRotateIcon']);
 
-      // when properties is set push on camera screen 
+      // when properties is set push on camera screen
       // res is used when camera is close than return list of image
       final res = await Navigator.push(
         context,
