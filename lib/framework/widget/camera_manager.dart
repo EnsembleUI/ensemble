@@ -39,14 +39,14 @@ class CameraManager {
       cameraAction.options!['maxCount'] == null
           ? camera.setProperty('maxCount', 1)
           : camera.setProperty('maxCount', cameraAction.options!['maxCount']);
-      cameraAction.options!['errormessage'] == null
+      cameraAction.options!['maxCountMessage'] == null
           ? ''
           : camera.setProperty(
-              'errormessage', cameraAction.options!['errormessage']);
-      cameraAction.options!['imgPickerIcon'] == null
+              'maxCountMessage', cameraAction.options!['maxCountMessage']);
+      cameraAction.options!['imagePickerIcon'] == null
           ? ''
           : camera.setProperty(
-              'imgPickerIcon', cameraAction.options!['imgPickerIcon']);
+              'imagePickerIcon', cameraAction.options!['imagePickerIcon']);
       cameraAction.options!['cameraRotateIcon'] == null
           ? ''
           : camera.setProperty(
