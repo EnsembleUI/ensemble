@@ -46,10 +46,10 @@ class CameraScreen extends StatefulWidget
           Utils.optionalInt(value) ?? _controller.maxCount,
       'preview': (value) => _controller.preview =
           Utils.optionalBool(value) ?? _controller.preview,
-      'errormessage': (value) =>
-          _controller.errormessage = Utils.getString(value, fallback: ''),
-      'imgPickerIcon': (value) =>
-          _controller.imgPickerIcon = Utils.getIcon(value),
+      'maxCountMessage': (value) =>
+          _controller.maxCountMessage = Utils.getString(value, fallback: ''),
+      'imagePickerIcon': (value) =>
+          _controller.imagePickerIcon = Utils.getIcon(value),
       'cameraRotateIcon' : (value) => _controller.cameraRotateIcon = Utils.getIcon(value) 
     };
   }
@@ -63,9 +63,9 @@ class MyCameraController extends WidgetController {
   bool useGallery = true;
   int maxCount = 1;
   bool preview = false;
-  String? errormessage;
+  String? maxCountMessage;
 
-  IconModel? imgPickerIcon;
+  IconModel? imagePickerIcon;
   IconModel? cameraRotateIcon;
 
   void initCameraOption(dynamic data) {
@@ -119,7 +119,7 @@ class CameraScreenState extends WidgetState<CameraScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    defineErrorText();
+    getMaxSelectedMessage();
     initCamera().then((_) {
       ///initialize camera and choose the back camera as the initial camera in use.
       if (cameras.length >= 2) {
@@ -158,7 +158,7 @@ class CameraScreenState extends WidgetState<CameraScreen>
     setState(() {});
   }
 
-  void defineErrorText() {
+  void getMaxSelectedMessage() {
     if (widget._controller.mode == CameraMode.photo) {
       errorString =
           'Maximum ${widget._controller.maxCount} images may be selected';
@@ -358,12 +358,7 @@ class CameraScreenState extends WidgetState<CameraScreen>
           textbutton(
             title: 'Pick from gallery',
             onPressed: () {
-              if (widget._controller.useGallery) {
-                selectImage();
-              } else {
-                FlutterToast.showToast(
-                    title: widget._controller.errormessage ?? errorString);
-              }
+              selectImage();
             },
           ),
         ],
@@ -475,9 +470,9 @@ class CameraScreenState extends WidgetState<CameraScreen>
                 // <----- This button is used for pick image in gallery ------>
                 widget._controller.useGallery
                     ? buttons(
-                        icon: widget._controller.imgPickerIcon != null
+                        icon: widget._controller.imagePickerIcon != null
                             ? iconframework.Icon.fromModel(
-                                widget._controller.imgPickerIcon!)
+                                widget._controller.imagePickerIcon!)
                             : Icon(Icons.photo_size_select_actual_outlined,
                                 size: iconSize, color: iconColor),
                         backgroundColor: Colors.white.withOpacity(0.3),
@@ -495,7 +490,7 @@ class CameraScreenState extends WidgetState<CameraScreen>
                   onTap: () async {
                     if (imageFileList.length >= widget._controller.maxCount) {
                       FlutterToast.showToast(
-                        title: widget._controller.errormessage ?? errorString,
+                        title: widget._controller.maxCountMessage ?? errorString,
                       );
                     } else {
                       if (index == 1) {
@@ -758,12 +753,12 @@ class CameraScreenState extends WidgetState<CameraScreen>
     final List<XFile> selectImage = await imagePicker.pickMultiImage();
     if (imageFileList.length >= widget._controller.maxCount) {
       FlutterToast.showToast(
-          title: widget._controller.errormessage ?? errorString);
+          title: widget._controller.maxCountMessage ?? errorString);
       return;
     } else {
       if (selectImage.length > widget._controller.maxCount) {
         FlutterToast.showToast(
-            title: widget._controller.errormessage ?? errorString);
+            title: widget._controller.maxCountMessage ?? errorString);
         return;
       } else {
         if (selectImage.isNotEmpty) {
