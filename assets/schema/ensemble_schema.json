@@ -1706,7 +1706,12 @@
           "properties": {
             "WebView": { "$ref": "#/$defs/WebView-payload" }
           }
-        }
+        },
+        {
+          "properties": {
+            "Chart": { "$ref": "#/$defs/Chart-payload" }
+          }
+        }       
       ]
     },
     "Menu": {
@@ -2030,6 +2035,32 @@
               }
             }
           ]
+        }
+      }
+    },
+    "Chart-payload": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "width": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "config": {
+          "type": "string",
+          "description": "Chartjs config. \nSee this for an example - https://www.chartjs.org/docs/latest/configuration/. \nExample from Kitchen sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/5d7b84de-3bbd-456e-aeea-98e2c9f4c3c7"
         }
       }
     },
