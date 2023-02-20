@@ -5,8 +5,8 @@ jobs:
   createCard:
     runs-on: ubuntu-latest
     steps:
-      - name: Create or Update Project Card
-        uses: peter-evans/create-or-update-project-card@v1
+      - name: Add To GitHub projects
+        uses: actions/add-to-project@v0.4.0
         with:
-          project-name: Ensemble
-          column-name: Planning
+          project-url: https://github.com/orgs/EnsembleUI/projects/2
+          github-token: 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
