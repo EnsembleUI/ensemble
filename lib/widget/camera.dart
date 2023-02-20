@@ -47,15 +47,15 @@ class CameraScreen extends StatefulWidget
       'preview': (value) => _controller.preview =
           Utils.optionalBool(value) ?? _controller.preview,
       'maxCountMessage': (value) =>
-          _controller.maxCountMessage = Utils.getString(value, fallback: ''),
+          _controller.maxCountMessage = Utils.optionalString(value),
       'permissionDeniedMessage': (value) => _controller
-          .permissionDeniedMessage = Utils.getString(value, fallback: ''),
+          .permissionDeniedMessage = Utils.optionalString(value),
       'nextButtonLabel': (value) =>
-          _controller.nextButtonLabel = Utils.getString(value, fallback: ''),
+          _controller.nextButtonLabel = Utils.optionalString(value),
       'accessButtonLabel': (value) =>
-          _controller.accessButtonLabel = Utils.getString(value, fallback: ''),
+          _controller.accessButtonLabel = Utils.optionalString(value),
       'galleryButtonLabel': (value) =>
-          _controller.galleryButtonLabel = Utils.getString(value, fallback: ''),
+          _controller.galleryButtonLabel = Utils.optionalString(value),
       'imagePickerIcon': (value) =>
           _controller.imagePickerIcon = Utils.getIcon(value),
       'cameraRotateIcon': (value) =>
