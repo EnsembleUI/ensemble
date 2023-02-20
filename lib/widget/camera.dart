@@ -668,8 +668,8 @@ class CameraScreenState extends WidgetState<CameraScreen>
           imageFileList.isNotEmpty
               ? nextButton(
                   buttontitle: widget._controller.preview
-                      ? buttonLable('Next')
-                      : buttonLable('Done'),
+                      ? buttonLabel('Next')
+                      : buttonLabel('Done'),
                   imagelength: imageFileList.length.toString(),
                   onTap: () {
                     if (widget._controller.preview) {
@@ -852,7 +852,7 @@ class CameraScreenState extends WidgetState<CameraScreen>
     }
   }
 
-  String buttonLable(String label) {
+  String buttonLabel(String label) {
     if (widget._controller.nextButtonLabel != null) {
       return widget._controller.nextButtonLabel!;
     }
