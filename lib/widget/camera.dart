@@ -48,9 +48,18 @@ class CameraScreen extends StatefulWidget
           Utils.optionalBool(value) ?? _controller.preview,
       'maxCountMessage': (value) =>
           _controller.maxCountMessage = Utils.getString(value, fallback: ''),
+      'permissionDeniedMessage': (value) => _controller
+          .permissionDeniedMessage = Utils.getString(value, fallback: ''),
+      'nextButtonLabel': (value) =>
+          _controller.nextButtonLabel = Utils.getString(value, fallback: ''),
+      'accessButtonLabel': (value) =>
+          _controller.accessButtonLabel = Utils.getString(value, fallback: ''),
+      'galleryButtonLabel': (value) =>
+          _controller.galleryButtonLabel = Utils.getString(value, fallback: ''),
       'imagePickerIcon': (value) =>
           _controller.imagePickerIcon = Utils.getIcon(value),
-      'cameraRotateIcon' : (value) => _controller.cameraRotateIcon = Utils.getIcon(value) 
+      'cameraRotateIcon': (value) =>
+          _controller.cameraRotateIcon = Utils.getIcon(value),
     };
   }
 }
@@ -64,6 +73,10 @@ class MyCameraController extends WidgetController {
   int maxCount = 1;
   bool preview = false;
   String? maxCountMessage;
+  String? permissionDeniedMessage;
+  String? nextButtonLabel;
+  String? accessButtonLabel;
+  String? galleryButtonLabel;
 
   IconModel? imagePickerIcon;
   IconModel? cameraRotateIcon;
@@ -346,17 +359,24 @@ class CameraScreenState extends WidgetState<CameraScreen>
         children: [
           imagePreviewButton(),
           const Spacer(),
-          const Text(
-              'To capture photos and videos, allow access to your camera.'),
+          Text(
+            widget._controller.permissionDeniedMessage ??
+                Utils.translateWithFallback('ensemble.input.maxCountMessage',
+                    'To capture photos and videos, allow access to your camera.'),
+          ),
           textbutton(
-              title: 'Allow access',
+              title: widget._controller.accessButtonLabel ??
+                  Utils.translateWithFallback(
+                      'ensemble.input.accessButtonLabel', 'Allow access'),
               onPressed: () {
                 selectImage();
               }),
           const Spacer(),
           imagesPreview(),
           textbutton(
-            title: 'Pick from gallery',
+            title: widget._controller.galleryButtonLabel ??
+                Utils.translateWithFallback(
+                    'ensemble.input.galleryButtonLabel', 'Pick from gallery'),
             onPressed: () {
               selectImage();
             },
@@ -490,7 +510,9 @@ class CameraScreenState extends WidgetState<CameraScreen>
                   onTap: () async {
                     if (imageFileList.length >= widget._controller.maxCount) {
                       FlutterToast.showToast(
-                        title: widget._controller.maxCountMessage ?? errorString,
+                        title: widget._controller.maxCountMessage ??
+                            Utils.translateWithFallback(
+                                'ensemble.input.maxCountMessage', errorString),
                       );
                     } else {
                       if (index == 1) {
@@ -559,11 +581,12 @@ class CameraScreenState extends WidgetState<CameraScreen>
                     : buttons(
                         icon: widget._controller.cameraRotateIcon != null
                             ? iconframework.Icon.fromModel(
-                                widget._controller.cameraRotateIcon!) : Icon(
-                          Icons.flip_camera_ios_outlined,
-                          size: iconSize,
-                          color: iconColor,
-                        ),
+                                widget._controller.cameraRotateIcon!)
+                            : Icon(
+                                Icons.flip_camera_ios_outlined,
+                                size: iconSize,
+                                color: iconColor,
+                              ),
                         backgroundColor: Colors.white.withOpacity(0.3),
                         onPressed: () {
                           index = 0;
@@ -600,7 +623,6 @@ class CameraScreenState extends WidgetState<CameraScreen>
           setState(() {
             index = i;
           });
-          print('Check index $index');
         },
         itemCount: cameraoptionsList.length,
         itemBuilder: ((c, i) {
@@ -645,7 +667,9 @@ class CameraScreenState extends WidgetState<CameraScreen>
           const Spacer(),
           imageFileList.isNotEmpty
               ? nextButton(
-                  buttontitle: widget._controller.preview ? 'Next' : 'Done',
+                  buttontitle: widget._controller.preview
+                      ? buttonLable('Next')
+                      : buttonLable('Done'),
                   imagelength: imageFileList.length.toString(),
                   onTap: () {
                     if (widget._controller.preview) {
@@ -753,12 +777,16 @@ class CameraScreenState extends WidgetState<CameraScreen>
     final List<XFile> selectImage = await imagePicker.pickMultiImage();
     if (imageFileList.length >= widget._controller.maxCount) {
       FlutterToast.showToast(
-          title: widget._controller.maxCountMessage ?? errorString);
+          title: widget._controller.maxCountMessage ??
+              Utils.translateWithFallback(
+                  'ensemble.input.maxCountMessage', errorString));
       return;
     } else {
       if (selectImage.length > widget._controller.maxCount) {
         FlutterToast.showToast(
-            title: widget._controller.maxCountMessage ?? errorString);
+            title: widget._controller.maxCountMessage ??
+                Utils.translateWithFallback(
+                    'ensemble.input.maxCountMessage', errorString));
         return;
       } else {
         if (selectImage.isNotEmpty) {
@@ -822,6 +850,13 @@ class CameraScreenState extends WidgetState<CameraScreen>
         });
       }
     }
+  }
+
+  String buttonLable(String label) {
+    if (widget._controller.nextButtonLabel != null) {
+      return widget._controller.nextButtonLabel!;
+    }
+    return Utils.translateWithFallback('ensemble.input.nextButtonLabel', label);
   }
 }
 
