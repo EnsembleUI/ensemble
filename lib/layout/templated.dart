@@ -63,6 +63,22 @@ mixin TemplatedWidgetState<W extends StatefulWidget> on State<W> {
     }
     return widgets;
   }
+  // ------------------------ Render the listview children ----------------------------------
+  DataScopeWidget? buildWidgetsForListView(BuildContext context, List dataList, ItemTemplate itemTemplate,int itemIndex) {
+    DataScopeWidget? widgets;
+    ScopeManager? parentScope = DataScopeWidget.getScope(context);
+    if (parentScope != null) {
+      
+        // create a new scope for each item template
+        ScopeManager templatedScope = parentScope.createChildScope();
+        templatedScope.dataContext.addDataContextById(itemTemplate.name, dataList.elementAt(itemIndex));
+
+        Widget templatedWidget = templatedScope.buildWidgetFromDefinition(itemTemplate.template);
+
+        widgets = DataScopeWidget(scopeManager: templatedScope, child: templatedWidget);
+    }
+    return widgets;
+  }
 
 
 }
