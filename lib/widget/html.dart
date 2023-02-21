@@ -1,6 +1,8 @@
 
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart' as framework;
+import 'package:ensemble/widget/helpers/controllers.dart';
+
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -42,7 +44,7 @@ class EnsembleHtml extends StatefulWidget with Invokable, HasController<HtmlCont
 }
 
 
-class HtmlController extends framework.WidgetController {
+class HtmlController extends WidgetController {
   String? text;
 }
 

@@ -3,9 +3,10 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/widget.dart';
-import 'package:ensemble/layout/layout_helper.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/widget_util.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
@@ -37,8 +38,6 @@ class EnsembleImage extends StatefulWidget with Invokable, HasController<ImageCo
   Map<String, Function> setters() {
     return {
       'source': (value) => _controller.source = Utils.getString(value, fallback: ''),
-      'width': (value) => _controller.width = Utils.optionalInt(value),
-      'height': (value) => _controller.height = Utils.optionalInt(value),
       'fit': (value) => _controller.fit = Utils.optionalString(value),
       'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, initiator: this),
       'cache': (value) => _controller.cache = Utils.optionalBool(value) ?? _controller.cache,
@@ -49,8 +48,6 @@ class EnsembleImage extends StatefulWidget with Invokable, HasController<ImageCo
 
 class ImageController extends BoxController {
   String source = '';
-  int? width;
-  int? height;
   String? fit;
   EnsembleAction? onTap;
   bool cache=true;
@@ -62,7 +59,6 @@ class ImageState extends WidgetState<EnsembleImage> {
   Widget buildWidget(BuildContext context) {
 
     BoxFit? fit = WidgetUtils.getBoxFit(widget._controller.fit);
-
     Widget image;
     if (isSvg()) {
       image = buildSvgImage(fit);
@@ -70,12 +66,22 @@ class ImageState extends WidgetState<EnsembleImage> {
       image = buildNonSvgImage(fit);
     }
 
-    Widget rtn = WidgetUtils.wrapInBox(image, widget._controller);
+    Widget rtn = BoxWrapper(
+        widget: image,
+        boxController: widget._controller,
+        ignoresMargin: true,      // make sure the gesture don't include the margin
+        ignoresDimension: true    // we apply width/height in the image already
+    );
     if (widget._controller.onTap != null) {
-      return GestureDetector(
+      rtn = GestureDetector(
         child: rtn,
         onTap: () => ScreenController().executeAction(context, widget._controller.onTap!,event: EnsembleEvent(widget))
       );
+    }
+    if (widget._controller.margin != null) {
+      rtn = Padding(
+          padding: widget._controller.margin!,
+          child: rtn);
     }
     return rtn;
   }

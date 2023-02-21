@@ -581,6 +581,10 @@ class Utils {
     return null;
   }
 
+  static BlurStyle? getShadowBlurStyle(dynamic style) {
+    return BlurStyle.values.from(style);
+  }
+
   static Map<String, dynamic>? parseYamlMap(dynamic value) {
     Map<String, dynamic>? rtn;
     if (value is YamlMap) {
