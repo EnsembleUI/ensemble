@@ -98,17 +98,7 @@ class _ScreenState extends State<Screen> {
               ScreenOptions(pageType: widget.screenPayload!.pageType!);
         }
       }
-
-      // create the page's ScopeManager and provide it to all children
-      var scopeManager = ScopeManager(
-          dataContext.clone(),
-          PageData(
-              customViewDefinitions: pageModel.customViewDefinitions,
-              apiMap: pageModel.apiMap
-          )
-      );
       return ensemble.Page(
-          rootScopeManager: scopeManager,
           dataContext: dataContext,
           pageModel: pageModel
       );
