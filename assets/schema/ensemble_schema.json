@@ -2091,9 +2091,11 @@
     "borderRadius": {
       "type": "object",
       "properties": {
-        "type": ["integer", "string"],
-        "minimum": 0,
-        "description": "Border Radius with CSS-like notation (1 to 4 integers)"
+        "borderRadius": {
+          "type": ["integer", "string"],
+          "minimum": 0,
+          "description": "Border Radius with CSS-like notation (1 to 4 integers)"
+        }
       }
     },
 
