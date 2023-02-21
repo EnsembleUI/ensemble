@@ -6,6 +6,7 @@ import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/layout_helper.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/widget_util.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
@@ -37,8 +38,6 @@ class EnsembleImage extends StatefulWidget with Invokable, HasController<ImageCo
   Map<String, Function> setters() {
     return {
       'source': (value) => _controller.source = Utils.getString(value, fallback: ''),
-      'width': (value) => _controller.width = Utils.optionalInt(value),
-      'height': (value) => _controller.height = Utils.optionalInt(value),
       'fit': (value) => _controller.fit = Utils.optionalString(value),
       'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, initiator: this),
       'cache': (value) => _controller.cache = Utils.optionalBool(value) ?? _controller.cache,
@@ -49,8 +48,6 @@ class EnsembleImage extends StatefulWidget with Invokable, HasController<ImageCo
 
 class ImageController extends BoxController {
   String source = '';
-  int? width;
-  int? height;
   String? fit;
   EnsembleAction? onTap;
   bool cache=true;
