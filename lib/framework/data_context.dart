@@ -1,17 +1,13 @@
-import 'dart:convert';
 import 'dart:developer';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
-import 'package:ensemble/page_model.dart';
+import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:jsparser/jsparser.dart';
 
-import 'package:device_info_plus/device_info_plus.dart';
-import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/http_utils.dart';
@@ -20,9 +16,10 @@ import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
 import 'package:ensemble_ts_interpreter/parser/newjs_interpreter.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:ensemble_ts_interpreter/parser/ast.dart';
+import 'package:ensemble_ts_interpreter/errors.dart';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
+import 'package:source_span/source_span.dart';
 import 'package:yaml/yaml.dart';
 
 /// manages Data and Invokables within the current data scope.
@@ -110,7 +107,7 @@ class DataContext {
 
     // execute as code if expression is AST
     if (expression.startsWith("//@code")) {
-      return evalCode(expression);
+      return evalCode(expression,ViewUtil.optDefinition(null));
     }
 
     // if just have single standalone expression, return the actual type (e.g integer)
@@ -169,39 +166,36 @@ class DataContext {
   }
 
   /// evaluate Typescript code block
-  dynamic evalCode(String codeBlock) {
+  dynamic evalCode(String codeBlock, SourceSpan definition) {
     // code can have //@code <expression>
     // We don't use that here but we need to strip
-    // that out before parsing the content as JSON
+    // that out before passing it to the JSInterpreter
+
+    SourceLocation startLoc = definition.start;
     String? codeWithoutComments = Utils.codeAfterComment.firstMatch(codeBlock)?.group(1);
     if (codeWithoutComments != null) {
       codeBlock = codeWithoutComments;
+      startLoc = SourceLocationBase(0,sourceUrl: startLoc.sourceUrl,line: startLoc.line+2);
     }
-
+    //https://github.com/EnsembleUI/ensemble/issues/249
+    if ( codeBlock.isEmpty ) {
+      //just don't do anything and return.
+      return null;
+    }
     try {
       _contextMap['getStringValue'] = Utils.optionalString;
       return JSInterpreter.fromCode(codeBlock, _contextMap).evaluate();
-    } catch (error) {
+    } on JSException catch (e) {
       /// not all JS errors are actual errors. API binding resolving to null
       /// may be considered a normal condition as binding may not resolved
       /// until later e.g myAPI.value.prettyDateTime()
       FlutterError.reportError(FlutterErrorDetails(
-        exception: CodeError(error),
+        exception: CodeError(e,startLoc),
         library: 'Javascript',
         context: ErrorSummary('Javascript error when running code block - $codeBlock'),
       ));
       return null;
     }
-  }
-
-  /// eval single line Typescript surrounded by $(...)
-  dynamic evalSingleLineCode(String codeWithNotation) {
-    RegExpMatch? simpleExpression = Utils.onlyExpression.firstMatch(codeWithNotation);
-    if (simpleExpression != null) {
-      String code = evalVariable(simpleExpression.group(1)!);
-      return evalCode(code);
-    }
-    return null;
   }
 
   dynamic evalToken(List<String> tokens, int index, dynamic data) {
@@ -239,8 +233,6 @@ class DataContext {
         return null;
       }
     }
-
-    return data;
   }
 
 
@@ -253,11 +245,6 @@ class DataContext {
       log('JS Parsing Error: $error');
     }
     return null;
-
-    // legacy expression parsing
-    /*List<String> tokens = variable.split('.');
-    dynamic result = evalToken(tokens, 1, _contextMap[tokens[0]]);
-    return result;*/
   }
 
   /// token format: result
@@ -670,19 +657,21 @@ class FileData with Invokable {
 }
 
 class File {
-  File(this.name, this.ext, this.size, this.path);
+  File(this.name, this.ext, this.size, this.path, this.bytes);
 
   File.fromPlatformFile(PlatformFile file):
     name = file.name,
     ext = file.extension,
     size = file.size,
-    path = file.path;
+    path = kIsWeb ? null : file.path,
+    bytes = file.bytes;
 
 
   final String name;
   final int size;
   final String? ext;
   final String? path;
+  final Uint8List? bytes;
 
 
   Map<String, dynamic> toJson() {
@@ -691,6 +680,7 @@ class File {
       'extension': ext,
       'size': size,
       'path': path,
+      'bytes': bytes,
     };
   }
 } 

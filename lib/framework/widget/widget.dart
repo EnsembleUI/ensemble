@@ -6,6 +6,7 @@ import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
@@ -16,36 +17,7 @@ mixin UpdatableContainer<T extends Widget> {
 }
 
 
-/// base Controller class for your Ensemble widget
-abstract class WidgetController extends Controller {
 
-  // Note: we manage these here so the user doesn't need to do in their widgets
-  // base properties applicable to all widgets
-  bool expanded = false;
-  bool visible = true;
-  String? id;
-  // optional label/labelHint for use in Forms
-  String? label;
-  String? labelHint;
-
-  @override
-  Map<String, Function> getBaseGetters() {
-    return {
-      'expanded': () => expanded,
-      'visible': () => visible,
-    };
-  }
-
-  @override
-  Map<String, Function> getBaseSetters() {
-    return {
-      'expanded': (value) => expanded = Utils.getBool(value, fallback: false),
-      'visible': (value) => visible = Utils.getBool(value, fallback: true),
-      'label': (value) => label = Utils.optionalString(value),
-      'labelHint': (value) => labelHint = Utils.optionalString(value),
-    };
-  }
-}
 
 /// base class for widgets that want to participate in Ensemble layout
 abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {

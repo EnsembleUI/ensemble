@@ -1,18 +1,17 @@
-
 import 'dart:developer';
 
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
-import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
-import 'package:ensemble/layout/layout_helper.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/widget_util.dart';
 import 'package:ensemble/widget/widget_util.dart';
 import 'package:flutter/material.dart';
@@ -58,7 +57,14 @@ class Carousel extends StatefulWidget with UpdatableContainer, Invokable, HasCon
 
   @override
   Map<String, Function> methods() {
-    return {};
+    return {
+      'next': () {
+        _controller._carouselController.nextPage();
+      },
+      'previous' : (){
+        _controller._carouselController.previousPage();
+      }
+    };
   }
 
   @override
@@ -66,7 +72,6 @@ class Carousel extends StatefulWidget with UpdatableContainer, Invokable, HasCon
     _controller.children = children;
     _controller.itemTemplate = itemTemplate;
   }
-
 }
 
 class MyController extends BoxController {
@@ -75,7 +80,6 @@ class MyController extends BoxController {
   ItemTemplate? itemTemplate;
   List<Widget>? children;
 
-  int? height;
   int? gap; // gap between the children
 
   // empty spaces at the start and end. Note that this is different
@@ -101,12 +105,13 @@ class MyController extends BoxController {
   // for multi view this dispatch when clicking on a card
   EnsembleAction? onItemChange;
   int selectedIndex = 0;
-}
 
+  final CarouselController _carouselController = CarouselController();
+}
 
 class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
   List<Widget>? templatedChildren;
-  final CarouselController _carouselController = CarouselController();
+
   // this is used to highlight the correct indicator index
   int focusIndex = 0;
 
@@ -126,9 +131,7 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
           });
       });
     }
-
   }
-
 
   @override
   Widget buildWidget(BuildContext context) {
@@ -139,17 +142,16 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
     Widget carousel = CarouselSlider(
       options: singleView ? _getSingleViewOptions() : _getMultiViewOptions(),
       items: items,
-      carouselController: _carouselController,
+      carouselController: widget._controller._carouselController,
     );
 
     // show indicators
     if (widget._controller.indicatorType != null && widget._controller.indicatorType != IndicatorType.none) {
       List<Widget> indicators = [];
-      for (int i=0; i<items.length; i++) {
+      for (int i = 0; i < items.length; i++) {
         indicators.add(GestureDetector(
           child: getIndicator(i == focusIndex),
           onTap: () {
-
             // MultiView only dispatch itemChange when explicitly clicking on the item
             // But here since we are selecting the indicator, this should be the
             // same as if you are selecting the item, hence dispatch the item here
@@ -157,7 +159,7 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
               _onItemChange(i);
             }
 
-            _carouselController.animateToPage(i);
+            widget._controller._carouselController.animateToPage(i);
           },
         ));
       }
@@ -180,7 +182,11 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
       );
     }
 
-    return WidgetUtils.wrapInBox(carousel, widget._controller);
+    return BoxWrapper(
+        widget: carousel,
+        boxController: widget._controller,
+        ignoresDimension: true,   // width/height shouldn't be apply in the container
+    );
   }
 
   /// return if we should display our cards one at a time for the current screen
@@ -232,7 +238,7 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
     if (index != widget._controller.selectedIndex && widget._controller.onItemChange != null) {
       widget._controller.selectedIndex = index;
       //log("Changed to index $index");
-      ScreenController().executeAction(context, widget._controller.onItemChange!,event: EnsembleEvent(widget));
+      ScreenController().executeAction(context, widget._controller.onItemChange!);
     }
   }
 
@@ -286,8 +292,6 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
     );
 
   }
-
-
 }
 
 enum CarouselLayout {

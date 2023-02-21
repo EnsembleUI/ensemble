@@ -1,12 +1,12 @@
 
 import 'package:ensemble/framework/action.dart' as ensemble;
 import 'package:ensemble/layout/form.dart';
-import 'package:ensemble/layout/layout_helper.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/theme_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/widget/form_helper.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/layout/form.dart' as ensembleForm;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -36,7 +36,6 @@ class Button extends StatefulWidget with Invokable, HasController<ButtonControll
 
       'enabled': (value) => _controller.enabled = Utils.optionalBool(value),
       'outline': (value) => _controller.outline = Utils.optionalBool(value),
-      'backgroundColor': (value) => _controller.backgroundColor = Utils.getColor(value),
       'color': (value) => _controller.color = Utils.getColor(value),
       'fontSize': (value) => _controller.fontSize = Utils.optionalInt(value),
       'fontWeight': (value) => _controller.fontWeight = Utils.getFontWeight(value),
@@ -68,7 +67,6 @@ class ButtonController extends BoxController {
 
   bool? enabled;
   bool? outline;
-  Color? backgroundColor;
   Color? color;
   int? fontSize;
   FontWeight? fontWeight;

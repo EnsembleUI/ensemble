@@ -10,6 +10,7 @@ import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
+import 'package:source_span/source_span.dart';
 
 class ViewUtil {
 
@@ -31,12 +32,24 @@ class ViewUtil {
     }
     return rtn;
   }
-
+  static SourceSpan optDefinition(YamlNode? node) {
+    if ( node == null ) {
+      return SourceSpanBase(SourceLocationBase(0), SourceLocationBase(0), '');
+    }
+    return getDefinition(node!);
+  }
+  static SourceSpan getDefinition(YamlNode node) {
+    //we are doing a deep copy instead of re-using the object to make sure that we don't cause memory leaks
+    return SourceSpanBase(
+        SourceLocationBase(node.span.start.offset,sourceUrl: node.span.start.sourceUrl,line: node.span.start.line,column: node.span.start.column),
+        SourceLocationBase(node.span.end.offset,sourceUrl: node.span.end.sourceUrl,line: node.span.end.line,column: node.span.end.column),
+        node.span.text);
+  }
   ///convert a YAML representing a widget to a WidgetModel
   static WidgetModel buildModel(dynamic item, Map<String, dynamic>? customWidgetMap) {
     String? widgetType;
     YamlMap? payload;
-
+    SourceSpan def = SourceSpanBase(SourceLocationBase(0),SourceLocationBase(0),'');
     // name only e.g Spacer
     if (item is String) {
       widgetType = item;
@@ -44,6 +57,15 @@ class ViewUtil {
       widgetType = item.keys.first.toString();
       if (item[widgetType] is YamlMap) {
         payload = item[widgetType];
+      }
+      def = getDefinition(item);
+    } else if ( item is MapEntry ) {
+      widgetType = item.key as String;
+      if (item.value is YamlMap) {
+        payload = item.value;
+        def = getDefinition(item.value);
+      } else if ( item.value is String ) {
+        widgetType = item.value;
       }
     }
 
@@ -63,7 +85,7 @@ class ViewUtil {
     // Let's build the model now
     // no payload, simple widget e.g Spacer or Spacer:
     if (payload == null) {
-      return WidgetModel(widgetType, {}, {});
+      return WidgetModel(def, widgetType, {}, {});
     }
 
     List<WidgetModel>? children;
@@ -91,6 +113,7 @@ class ViewUtil {
     });
 
     return WidgetModel(
+        def,
         widgetType,
         styles,
         props,
@@ -114,26 +137,22 @@ class ViewUtil {
     WidgetModel? widgetModel;
     Map<String, dynamic> props = {};
     List<String> inputParams = [];
-    for (String key in viewDefinition.keys) {
-
+    for (MapEntry entry in (viewDefinition as YamlMap).entries) {
       // see if the custom widget actually declare any input parameters
-      if (key == 'inputs' && viewDefinition[key] is YamlList) {
-        for (var input in viewDefinition[key]) {
+      if (entry.key == 'inputs' && entry.value is YamlList) {
+        for (var input in entry.value) {
           inputParams.add(input.toString());
         }
       }
       // extract onLoad and other properties at the root of the Custom Widget
-      else if (key == 'onLoad') {
-        props[key] = viewDefinition[key];
+      else if (entry.key == 'onLoad') {
+        props[entry.key] = entry.value;
       }
       // find the first widget model
       else {
         // if a regular widget or custom widget
-        if (WidgetRegistry.widgetMap[key] != null || customWidgetMap[key] != null) {
-          YamlMap widgetMap = YamlMap.wrap({
-            key: viewDefinition[key]
-          });
-          widgetModel = ViewUtil.buildModel(widgetMap, customWidgetMap);
+        if (WidgetRegistry.widgetMap[entry.key] != null || customWidgetMap[entry.key] != null) {
+          widgetModel = ViewUtil.buildModel(entry, customWidgetMap);
 
           // there should only be 1 widget model
           break;
@@ -193,9 +212,12 @@ class ViewUtil {
 
       // If our widget has an ID, add it to our data context
       String? id = model.props['id']?.toString();
-      if (id != null && w is Invokable) {
-        (w as Invokable).id = id;
-        currentScope.dataContext.addInvokableContext(id, (w as Invokable));
+      if ( w is Invokable ) {
+        (w as Invokable).definition = model.definition;
+        if (id != null) {
+          (w as Invokable).id = id;
+          currentScope.dataContext.addInvokableContext(id, (w as Invokable));
+        }
       }
 
       // build children and save the reference to the modelMap
