@@ -35,8 +35,6 @@ class EnsembleLottie extends StatefulWidget with Invokable, HasController<Lottie
   Map<String, Function> setters() {
     return {
       'source': (value) => _controller.source = Utils.getString(value, fallback: ''),
-      'width': (value) => _controller.width = Utils.optionalInt(value),
-      'height': (value) => _controller.height = Utils.optionalInt(value),
       'fit': (value) => _controller.fit = Utils.optionalString(value),
       'repeat': (value) => _controller.repeat = Utils.optionalBool(value),
       'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, initiator: this),
@@ -47,8 +45,6 @@ class EnsembleLottie extends StatefulWidget with Invokable, HasController<Lottie
 
 class LottieController extends BoxController {
   String source = '';
-  int? width;
-  int? height;
   bool? repeat;
   String? fit;
   EnsembleAction? onTap;

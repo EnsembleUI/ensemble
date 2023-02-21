@@ -76,17 +76,20 @@ class WidgetUtils {
   }
 
 }
-class TextController extends WidgetController {
+class TextController extends BoxController {
+  // set from caller
   String? text;
+  String? overflow;
+  String? textAlign;
+
+  // use our setters
   String? font;   // pre-defined font styles
   String? fontFamily;
   int? fontSize;
   FontWeight? fontWeight;
   Color? color;
-  String? overflow;
-  String? textAlign;
-  String? textStyle;
   String? lineHeight;
+  String? textStyle;
 }
 class TextUtils {
   static void setStyles(Map styles,TextController controller) {

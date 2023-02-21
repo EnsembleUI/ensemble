@@ -36,7 +36,6 @@ class Button extends StatefulWidget with Invokable, HasController<ButtonControll
 
       'enabled': (value) => _controller.enabled = Utils.optionalBool(value),
       'outline': (value) => _controller.outline = Utils.optionalBool(value),
-      'backgroundColor': (value) => _controller.backgroundColor = Utils.getColor(value),
       'color': (value) => _controller.color = Utils.getColor(value),
       'fontSize': (value) => _controller.fontSize = Utils.optionalInt(value),
       'fontWeight': (value) => _controller.fontWeight = Utils.getFontWeight(value),
@@ -68,7 +67,6 @@ class ButtonController extends BoxController {
 
   bool? enabled;
   bool? outline;
-  Color? backgroundColor;
   Color? color;
   int? fontSize;
   FontWeight? fontWeight;
