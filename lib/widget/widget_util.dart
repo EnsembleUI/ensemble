@@ -1,6 +1,7 @@
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/layout_helper.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as flutter;
 import 'package:ensemble/util/utils.dart';
@@ -9,6 +10,7 @@ import 'package:ensemble/util/utils.dart';
 class WidgetUtils {
 
   /// wrap our widget in a Box, which supports margin, padding, border, ...
+  @Deprecated('use BoxWrapper instead')
   static Widget wrapInBox(Widget widget, BoxController boxController) {
     BorderRadius? borderRadius;
     Widget realWidget = widget;
@@ -203,6 +205,7 @@ class TextUtils {
         break;
     }
     return flutter.Text(
+
         controller.text ?? '',
         textAlign: textAlign,
         overflow: textOverflow.overflow,
