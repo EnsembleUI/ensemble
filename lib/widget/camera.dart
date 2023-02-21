@@ -12,6 +12,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:ensemble/framework/widget/icon.dart' as iconframework;
+import '../framework/model.dart';
 import 'package:http/http.dart' as http;
 import '../framework/widget/video_screen.dart';
 import 'package:path_provider/path_provider.dart';
@@ -53,6 +55,20 @@ class CameraScreen extends StatefulWidget
           Utils.optionalInt(value) ?? _controller.maxCount,
       'preview': (value) => _controller.preview =
           Utils.optionalBool(value) ?? _controller.preview,
+      'maxCountMessage': (value) =>
+          _controller.maxCountMessage = Utils.optionalString(value),
+      'permissionDeniedMessage': (value) => _controller
+          .permissionDeniedMessage = Utils.optionalString(value),
+      'nextButtonLabel': (value) =>
+          _controller.nextButtonLabel = Utils.optionalString(value),
+      'accessButtonLabel': (value) =>
+          _controller.accessButtonLabel = Utils.optionalString(value),
+      'galleryButtonLabel': (value) =>
+          _controller.galleryButtonLabel = Utils.optionalString(value),
+      'imagePickerIcon': (value) =>
+          _controller.imagePickerIcon = Utils.getIcon(value),
+      'cameraRotateIcon': (value) =>
+          _controller.cameraRotateIcon = Utils.getIcon(value),
     };
   }
 }
@@ -65,6 +81,15 @@ class MyCameraController extends WidgetController {
   bool useGallery = true;
   int maxCount = 1;
   bool preview = false;
+  String? maxCountMessage;
+  String? permissionDeniedMessage;
+  String? nextButtonLabel;
+  String? accessButtonLabel;
+  String? galleryButtonLabel;
+
+  IconModel? imagePickerIcon;
+  IconModel? cameraRotateIcon;
+
 
   void initCameraOption(dynamic data) {
     if (data != null) {
@@ -124,7 +149,7 @@ class CameraScreenState extends WidgetState<CameraScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    errorString = 'You just pick at least ${widget._controller.maxCount} image';
+    getMaxSelectedMessage();
     initCamera().then((_) {
       ///initialize camera and choose the back camera as the initial camera in use.
       setCameraInit();
@@ -147,6 +172,23 @@ class CameraScreenState extends WidgetState<CameraScreen>
 
   Future initCamera() async {
     cameras = await availableCameras();
+    setState(() {});
+  }
+
+  void getMaxSelectedMessage() {
+    if (widget._controller.mode == CameraMode.photo) {
+      errorString =
+          'Maximum ${widget._controller.maxCount} images may be selected';
+      cameraoptionsList = ['PHOTO'];
+    } else if (widget._controller.mode == CameraMode.video) {
+      errorString =
+          'Maximum ${widget._controller.maxCount} videos may be selected';
+      cameraoptionsList = ['VIDEO'];
+    } else {
+      errorString =
+          'Maximum ${widget._controller.maxCount} images and videos may be selected';
+      cameraoptionsList = ['PHOTO', 'VIDEO'];
+    }
     setState(() {});
   }
 
@@ -369,23 +411,26 @@ class CameraScreenState extends WidgetState<CameraScreen>
         children: [
           imagePreviewButton(),
           const Spacer(),
-          const Text(
-              'To capture photos and videos, allow access to your camera.'),
+          Text(
+            widget._controller.permissionDeniedMessage ??
+                Utils.translateWithFallback('ensemble.input.maxCountMessage',
+                    'To capture photos and videos, allow access to your camera.'),
+          ),
           textbutton(
-              title: 'Allow access',
+              title: widget._controller.accessButtonLabel ??
+                  Utils.translateWithFallback(
+                      'ensemble.input.accessButtonLabel', 'Allow access'),
               onPressed: () {
                 selectImage();
               }),
           const Spacer(),
           imagesPreview(),
           textbutton(
-            title: 'Pick from gallery',
+            title: widget._controller.galleryButtonLabel ??
+                Utils.translateWithFallback(
+                    'ensemble.input.galleryButtonLabel', 'Pick from gallery'),
             onPressed: () {
-              if (widget._controller.useGallery) {
-                selectImage();
-              } else {
-                FlutterToast.showToast(title: 'You have not access of gallery');
-              }
+              selectImage();
             },
           ),
         ],
@@ -519,16 +564,14 @@ class CameraScreenState extends WidgetState<CameraScreen>
                 // <----- This button is used for pick image in gallery ------>
                 widget._controller.useGallery
                     ? buttons(
-                        icon: Icon(Icons.photo_size_select_actual_outlined,
-                            size: iconSize, color: iconColor),
+                        icon: widget._controller.imagePickerIcon != null
+                            ? iconframework.Icon.fromModel(
+                                widget._controller.imagePickerIcon!)
+                            : Icon(Icons.photo_size_select_actual_outlined,
+                                size: iconSize, color: iconColor),
                         backgroundColor: Colors.white.withOpacity(0.3),
                         onPressed: () {
-                          if (widget._controller.useGallery) {
-                            selectImage();
-                          } else {
-                            FlutterToast.showToast(
-                                title: 'You have not access of gallery');
-                          }
+                          selectImage();
                           // showImages(context);
                         },
                       )
@@ -541,7 +584,9 @@ class CameraScreenState extends WidgetState<CameraScreen>
                   onTap: () async {
                     if (imageFileList.length >= widget._controller.maxCount) {
                       FlutterToast.showToast(
-                        title: errorString,
+                        title: widget._controller.maxCountMessage ??
+                            Utils.translateWithFallback(
+                                'ensemble.input.maxCountMessage', errorString),
                       );
                     } else {
                       if (index == 1 ||
@@ -633,11 +678,14 @@ class CameraScreenState extends WidgetState<CameraScreen>
                         width: 60,
                       )
                     : buttons(
-                        icon: Icon(
-                          Icons.flip_camera_ios_outlined,
-                          size: iconSize,
-                          color: iconColor,
-                        ),
+                        icon: widget._controller.cameraRotateIcon != null
+                            ? iconframework.Icon.fromModel(
+                                widget._controller.cameraRotateIcon!)
+                            : Icon(
+                                Icons.flip_camera_ios_outlined,
+                                size: iconSize,
+                                color: iconColor,
+                              ),
                         backgroundColor: Colors.white.withOpacity(0.3),
                         onPressed: () {
                           index = 0;
@@ -674,7 +722,6 @@ class CameraScreenState extends WidgetState<CameraScreen>
           setState(() {
             index = i;
           });
-          print('Check index $index');
         },
         itemCount: cameraoptionsList.length,
         itemBuilder: ((c, i) {
@@ -723,7 +770,9 @@ class CameraScreenState extends WidgetState<CameraScreen>
           const Spacer(),
           imageFileList.isNotEmpty
               ? nextButton(
-                  buttontitle: widget._controller.preview ? 'Next' : 'Done',
+                  buttontitle: widget._controller.preview
+                      ? buttonLabel('Next')
+                      : buttonLabel('Done'),
                   imagelength: imageFileList.length.toString(),
                   onTap: () {
                     if (widget._controller.preview) {
@@ -832,12 +881,17 @@ class CameraScreenState extends WidgetState<CameraScreen>
   void selectImage() async {
     final List<XFile> selectImage = await imagePicker.pickMultiImage();
     if (imageFileList.length >= widget._controller.maxCount) {
-      FlutterToast.showToast(title: errorString);
+      FlutterToast.showToast(
+          title: widget._controller.maxCountMessage ??
+              Utils.translateWithFallback(
+                  'ensemble.input.maxCountMessage', errorString));
       return;
     } else {
       if (selectImage.length > widget._controller.maxCount) {
         FlutterToast.showToast(
-            title: 'You just pick ${widget._controller.maxCount} image');
+            title: widget._controller.maxCountMessage ??
+                Utils.translateWithFallback(
+                    'ensemble.input.maxCountMessage', errorString));
         return;
       } else {
         if (selectImage.isNotEmpty) {
@@ -912,7 +966,12 @@ class CameraScreenState extends WidgetState<CameraScreen>
     }
   }
 
-  //<------ Timer Widget ---->
+  String buttonLabel(String label) {
+    if (widget._controller.nextButtonLabel != null) {
+      return widget._controller.nextButtonLabel!;
+    }
+    return Utils.translateWithFallback('ensemble.input.nextButtonLabel', label);
+}
 
   Widget timerWidget(int min, int sec) {
     return Container(
