@@ -4,15 +4,13 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 
-
-
 /// base Controller class for your Ensemble widget
 abstract class WidgetController extends Controller {
   // Note: we manage these here so the user doesn't need to do in their widgets
   // base properties applicable to all widgets
   bool expanded = false;
   bool visible = true;
-  String? id;             // do we need this?
+  String? id; // do we need this?
 
   // optional label/labelHint for use in Forms
   String? label;
@@ -71,28 +69,53 @@ class BoxController extends WidgetController {
       'height': (value) => height = Utils.optionalInt(value),
 
       'backgroundColor': (value) => backgroundColor = Utils.getColor(value),
-      'backgroundImage': (value) => backgroundImage = Utils.getBackgroundImage(value),
-      'backgroundGradient': (value) => backgroundGradient = Utils.getBackgroundGradient(value),
+      'backgroundImage': (value) =>
+          backgroundImage = Utils.getBackgroundImage(value),
+      'backgroundGradient': (value) =>
+          backgroundGradient = Utils.getBackgroundGradient(value),
 
-      'borderColor': (value) =>  borderColor = Utils.getColor(value),
-      'borderWidth': (value) =>  borderWidth = Utils.optionalInt(value),
-      'borderRadius': (value) =>  borderRadius = Utils.getBorderRadius(value),
+      'borderColor': (value) => borderColor = Utils.getColor(value),
+      'borderWidth': (value) => borderWidth = Utils.optionalInt(value),
+      'borderRadius': (value) => borderRadius = Utils.getBorderRadius(value),
 
       'shadowColor': (value) => shadowColor = Utils.getColor(value),
       'shadowOffset': (list) => shadowOffset = Utils.getOffset(list),
-      'shadowRadius': (value) =>  shadowRadius = Utils.optionalInt(value),
+      'shadowRadius': (value) => shadowRadius = Utils.optionalInt(value),
       'shadowStyle': (value) => shadowStyle = Utils.getShadowBlurStyle(value)
     });
     return setters;
   }
 
-  bool hasBorder() {
-    return borderColor != null || borderWidth != null;
-  }
-  bool hasBoxShadow() {
-    return shadowColor != null ||
-        shadowOffset != null ||
-        shadowRadius != null ||
-        shadowStyle != null;
-  }
+  /// optimization. This is important to review if more properties are added
+  bool requiresBox(bool ignoresMargin, bool ignoresDimension) =>
+      (!ignoresDimension && hasDimension()) ||
+      (!ignoresMargin && margin != null) ||
+      padding != null ||
+      hasBoxDecoration();
+
+  bool hasDimension() =>
+      width != null ||
+      height != null;
+
+  bool hasBoxDecoration() =>
+      hasBackground() ||
+      hasBorder() ||
+      borderRadius != null ||
+      hasBoxShadow();
+
+  bool hasBackground() =>
+      backgroundColor != null ||
+      backgroundImage != null ||
+      backgroundGradient != null;
+
+  bool hasBorder() =>
+      borderColor != null ||
+      borderWidth != null;
+
+  bool hasBoxShadow() =>
+      shadowColor != null ||
+      shadowOffset != null ||
+      shadowRadius != null ||
+      shadowStyle != null;
+
 }

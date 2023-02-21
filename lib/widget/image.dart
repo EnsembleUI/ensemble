@@ -6,6 +6,7 @@ import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/widget_util.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
@@ -58,7 +59,6 @@ class ImageState extends WidgetState<EnsembleImage> {
   Widget buildWidget(BuildContext context) {
 
     BoxFit? fit = WidgetUtils.getBoxFit(widget._controller.fit);
-
     Widget image;
     if (isSvg()) {
       image = buildSvgImage(fit);
@@ -66,12 +66,22 @@ class ImageState extends WidgetState<EnsembleImage> {
       image = buildNonSvgImage(fit);
     }
 
-    Widget rtn = WidgetUtils.wrapInBox(image, widget._controller);
+    Widget rtn = BoxWrapper(
+        widget: image,
+        boxController: widget._controller,
+        ignoresMargin: true,      // make sure the gesture don't include the margin
+        ignoresDimension: true    // we apply width/height in the image already
+    );
     if (widget._controller.onTap != null) {
-      return GestureDetector(
+      rtn = GestureDetector(
         child: rtn,
         onTap: () => ScreenController().executeAction(context, widget._controller.onTap!,event: EnsembleEvent(widget))
       );
+    }
+    if (widget._controller.margin != null) {
+      rtn = Padding(
+          padding: widget._controller.margin!,
+          child: rtn);
     }
     return rtn;
   }
