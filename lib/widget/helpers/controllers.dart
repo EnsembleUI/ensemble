@@ -51,12 +51,13 @@ class BoxController extends WidgetController {
   LinearGradient? backgroundGradient;
 
   Color? borderColor;
-  EBorderRadius? borderRadius;
   int? borderWidth;
+  EBorderRadius? borderRadius;
 
-  int? shadowColor;
+  Color? shadowColor;
   Offset? shadowOffset;
   int? shadowRadius;
+  BlurStyle? shadowStyle;
 
   @override
   Map<String, Function> getBaseSetters() {
@@ -74,17 +75,24 @@ class BoxController extends WidgetController {
       'backgroundGradient': (value) => backgroundGradient = Utils.getBackgroundGradient(value),
 
       'borderColor': (value) =>  borderColor = Utils.getColor(value),
-      'borderRadius': (value) =>  borderRadius = Utils.getBorderRadius(value),
       'borderWidth': (value) =>  borderWidth = Utils.optionalInt(value),
+      'borderRadius': (value) =>  borderRadius = Utils.getBorderRadius(value),
 
-      'shadowColor': (value) => shadowColor = Utils.optionalInt(value),
+      'shadowColor': (value) => shadowColor = Utils.getColor(value),
       'shadowOffset': (list) => shadowOffset = Utils.getOffset(list),
       'shadowRadius': (value) =>  shadowRadius = Utils.optionalInt(value),
+      'shadowStyle': (value) => shadowStyle = Utils.getShadowBlurStyle(value)
     });
     return setters;
   }
 
   bool hasBorder() {
     return borderColor != null || borderWidth != null;
+  }
+  bool hasBoxShadow() {
+    return shadowColor != null ||
+        shadowOffset != null ||
+        shadowRadius != null ||
+        shadowStyle != null;
   }
 }
