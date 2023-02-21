@@ -67,26 +67,18 @@ class ListView extends StatefulWidget
 
 class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
   List<Widget>? templatedChildren;
+  List _listViewChildren=[];
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
 
     if (widget.itemTemplate != null) {
-      // initial value maybe set before the screen rendered
-      if (widget.itemTemplate!.initialValue != null) {
-        templatedChildren = buildWidgetsFromTemplate(
-            context, widget.itemTemplate!.initialValue!, widget.itemTemplate!);
-      }
-
-      // listen for changes
-      // Note that when visibility is toggled after rendering, the API may already be populated.
-      // In that case we want to evaluate the data to see if they are there
+      
       registerItemTemplate(context, widget.itemTemplate!,
           evaluateInitialValue: true, onDataChanged: (List dataList) {
             setState(() {
-              templatedChildren =
-                  buildWidgetsFromTemplate(context, dataList, widget.itemTemplate!);
+              _listViewChildren=dataList;
             });
           });
     }
@@ -100,18 +92,10 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
 
   @override
   Widget buildWidget(BuildContext context) {
-    // children will be rendered before templated children
-    List<Widget> children = [];
-    if (widget._controller.children != null) {
-      children.addAll(widget._controller.children!);
-    }
-    if (templatedChildren != null) {
-      children.addAll(templatedChildren!);
-    }
-    return _buildBoxWidget(children);
+    return _buildBoxWidget();
   }
 
-  Widget _buildBoxWidget(List<Widget> children) {
+  Widget _buildBoxWidget() {
     // propagate text styling to all its children
     return DefaultTextStyle.merge(
       style: TextStyle(
@@ -119,13 +103,13 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
           fontSize: widget._controller.fontSize != null
               ? widget._controller.fontSize!.toDouble()
               : null),
-      child: _buildListViewWidget(children));
+      child: _buildListViewWidget());
 
   }
 
   // ------------------ Build Widgets for the childrens displayed in YAML ----------------
 
-  Widget _buildListViewWidget(List<Widget> children) {
+  Widget _buildListViewWidget() {
     return Container(
       width: widget._controller.width?.toDouble(),
       height: widget._controller.height?.toDouble(),
@@ -136,14 +120,14 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
           padding: widget._controller.padding ?? const EdgeInsets.all(0),
           scrollDirection: Axis.vertical,
           physics: const ScrollPhysics(),
-          itemCount: children.length,
-          shrinkWrap: true,
+          itemCount: _listViewChildren.length,
+          shrinkWrap: false,
           itemBuilder: (BuildContext context, int index) {
             return GestureDetector(
                onTap: widget._controller.onItemTap == null
                     ? null
                     : () => _onItemTapped(index),
-                child: children[index]);
+                child: buildWidgetsForListView(context, _listViewChildren, widget.itemTemplate!, index));
           }),
     );
   }
