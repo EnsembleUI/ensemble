@@ -2,6 +2,7 @@
 
 
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:source_span/source_span.dart';
 import 'package:yaml/yaml.dart';
 
 /// payload representing an Action to do (navigateToScreen, InvokeAPI, ..)
@@ -110,11 +111,13 @@ class ExecuteCodeAction extends EnsembleAction {
     Invokable? initiator,
     Map<String, dynamic>? inputs,
     required this.codeBlock,
-    this.onComplete
+    this.onComplete,
+    required this.codeBlockSpan
   }) : super(initiator: initiator,inputs: inputs);
 
   String codeBlock;
   EnsembleAction? onComplete;
+  SourceSpan codeBlockSpan;
 }
 class OpenUrlAction extends EnsembleAction {
   String url;

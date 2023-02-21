@@ -1,7 +1,8 @@
 
 import 'package:ensemble/framework/widget/widget.dart';
-import 'package:ensemble/layout/layout_helper.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/widget_util.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
@@ -34,7 +35,6 @@ class QRCode extends StatefulWidget with Invokable, HasController<QRCodeControll
     return {
       'value': (value) => _controller.value = Utils.optionalString(value),
       'size': (value) => _controller.size = Utils.optionalInt(value),
-      'backgroundColor': (color) => _controller.backgroundColor = Utils.getColor(color),
       'color': (color) => _controller.color = Utils.getColor(color),
     };
   }
@@ -43,7 +43,6 @@ class QRCode extends StatefulWidget with Invokable, HasController<QRCodeControll
 class QRCodeController extends BoxController {
   String? value;
   int? size;
-  Color? backgroundColor;
   Color? color;
 }
 
@@ -61,14 +60,16 @@ class QRCodeState extends WidgetState<QRCode> {
         semanticLabel: 'Invalid QR Code');
     }
 
-    return WidgetUtils.wrapInBox(
-      QrImage(
-        data: widget._controller.value!,
-        size: widget._controller.size?.toDouble() ?? defaultSize,
-        backgroundColor: widget._controller.backgroundColor ?? Colors.transparent,
-        foregroundColor: widget._controller.color
-      ),
-      widget._controller);
+    return BoxWrapper(
+      widget: QrImage(
+          data: widget._controller.value!,
+          size: widget._controller.size?.toDouble() ?? defaultSize,
+          backgroundColor: widget._controller.backgroundColor ?? Colors.transparent,
+          foregroundColor: widget._controller.color
+        ),
+      boxController: widget._controller,
+      ignoresDimension: true   // width/height doesn't apply here
+    );
   }
 
 }

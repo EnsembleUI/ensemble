@@ -3,10 +3,10 @@
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/box_layout.dart';
-import 'package:ensemble/layout/layout_helper.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/theme_manager.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' as flutter;
@@ -39,11 +39,11 @@ class ListView extends StatefulWidget
     return {
       'onItemTap': (funcDefinition) =>
       _controller.onItemTap = Utils.getAction(funcDefinition, initiator: this),
-      'sepratorColor': (value) =>
+      'separatorColor': (value) =>
       _controller.sepratorColor = Utils.getColor(value),
-      'sepratorWidth': (value) =>
+      'separatorWidth': (value) =>
       _controller.sepratorWidth = Utils.optionalDouble(value),
-      'sepratorPadding': (value) =>
+      'separatorPadding': (value) =>
       _controller.sepratorPadding = Utils.optionalInsets(value),
     };
   }
@@ -182,7 +182,7 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
         borderRadius: widget._controller.borderRadius != null ? widget._controller.borderRadius!.getValue() : null,
         boxShadow: widget._controller.shadowColor == null ? null : <BoxShadow>[
           BoxShadow(
-            color: Color(widget._controller.shadowColor!),
+            color: widget._controller.shadowColor ?? ThemeManager.getShadowColor(context),
             blurRadius: (widget._controller.shadowRadius ?? 0).toDouble(),
             offset: widget._controller.shadowOffset ?? const Offset(0, 0),
           )

@@ -5,6 +5,7 @@ import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/model.dart' as ensemble;
+import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
 import 'package:flutter/material.dart';
@@ -297,7 +298,8 @@ class Utils {
             initiator: initiator,
             inputs: inputs,
             codeBlock: payload['body'],
-            onComplete: Utils.getAction(payload['onComplete'], initiator: initiator)
+            onComplete: Utils.getAction(payload['onComplete'], initiator: initiator),
+            codeBlockSpan: ViewUtil.optDefinition(payload.nodes['body'])
         );
       } else if ( payload['action'] == ActionType.openUrl.name ) {
         return OpenUrlAction(
@@ -318,7 +320,7 @@ class Utils {
     }
     /// short-hand //@code string is same as ExecuteCodeAction
     else if (payload is String) {
-      return ExecuteCodeAction(initiator: initiator, codeBlock: payload);
+      return ExecuteCodeAction(initiator: initiator, codeBlock: payload, codeBlockSpan: ViewUtil.optDefinition(null));
     }
     return null;
   }
@@ -579,6 +581,10 @@ class Utils {
     return null;
   }
 
+  static BlurStyle? getShadowBlurStyle(dynamic style) {
+    return BlurStyle.values.from(style);
+  }
+
   static Map<String, dynamic>? parseYamlMap(dynamic value) {
     Map<String, dynamic>? rtn;
     if (value is YamlMap) {
@@ -613,7 +619,7 @@ class Utils {
 
   static final i18nExpression = RegExp(r'r@[a-zA-Z0-9.-_]+',caseSensitive: false);
 
-  // extract only the AST after the comment and expression e.g //code <expression>\n<AST>
+  // extract only the code after the comment and expression e.g //@code <expression>\n
   static final codeAfterComment = RegExp(r'^//@code[^\n]*\n+((.|\n)+)', caseSensitive: false);
 
   // match an expression and AST e.g //@code <expression>\n<AST> in group1 and group2

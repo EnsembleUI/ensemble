@@ -283,7 +283,11 @@ class ScreenController {
 
     } else if (action is StopTimerAction) {
       if (scopeManager != null) {
-        scopeManager.removeTimer(action.id);
+        try {
+          scopeManager.removeTimer(action.id);
+        } catch (e) {
+          debugPrint('error when trying to stop timer with name ${action.id}. Error: ${e.toString()}');
+        }
       }
     } else if (action is GetLocationAction) {
       executeGetLocationAction(scopeManager!, dataContext, context, action);
@@ -294,7 +298,7 @@ class ScreenController {
           dataContext.addDataContextById(key, val);
         }
       });
-      dataContext.evalCode(action.codeBlock);
+      dataContext.evalCode(action.codeBlock,action.codeBlockSpan);
 
       if (action.onComplete != null && scopeManager != null) {
         executeActionWithScope(context, scopeManager, action.onComplete!);
@@ -328,12 +332,12 @@ class ScreenController {
         final response = await UploadUtils.uploadFiles(
           action.uploadUrl!, 
           selectedFiles,
-          onDone: action.onComplete == null ? null : () => executeAction(context, action.onComplete!),
           onError: action.onError == null ? null : (error) => executeAction(context, action.onError!),
         );
         if (response == null || action.id == null || scopeManager == null) return;
         final fileData = scopeManager.dataContext.getContextById(action.id!) as FileData;
         fileData.setResponse(response);
+        if (action.onComplete != null) executeAction(context, action.onComplete!);
       });
     }
     else if (action is NavigateBack) {
@@ -443,16 +447,6 @@ class ScreenController {
 
     // silently fail if error handle is not defined? or should we alert user?
   }
-
-  void processCodeBlock(DataContext eContext, String codeBlock) {
-    try {
-      eContext.evalCode(codeBlock);
-    } catch (e) {
-      print ("Code block exception: " + e.toString());
-    }
-  }
-
-
   /// Navigate to another screen
   /// [screenName] - navigate to the screen if specified, otherwise to appHome
   /// [asModal] - shows the App in a regular or modal screen

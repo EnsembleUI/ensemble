@@ -19,36 +19,18 @@ import 'package:flutter/material.dart';
 class Page extends StatefulWidget {
   Page({
     super.key,
+    required this.rootScopeManager,
     required DataContext dataContext,
     required SinglePageModel pageModel,
-  }) {
-    _initialDataContext = dataContext;
-    _pageModel = pageModel;
-  }
+  }) : _initialDataContext = dataContext, _pageModel = pageModel;
 
-  late final DataContext _initialDataContext;
-  late final SinglePageModel _pageModel;
+  final DataContext _initialDataContext;
+  final SinglePageModel _pageModel;
 
   /// The reference to DataContext is needed for API invoked before
   /// the page load. In these cases we do not have the context to travel
   /// to the DataScopeWidget. This should only be used for this purpose.
-  late ScopeManager rootScopeManager;
-
-
-  /**
-   * PageData pageData = PageData(
-      pageTitle: pageModel.title,
-      pageStyles: pageModel.pageStyles,
-      pageName: pageName,
-      pageType: pageModel.pageType,
-      datasourceMap: {},
-      customViewDefinitions: pageModel.customViewDefinitions,
-      //dataContext: pageModel.dataContext,
-      apiMap: apiMap
-      );
-   */
-
-
+  final ScopeManager rootScopeManager;
 
   //final Widget bodyWidget;
   //final Menu? menu;
@@ -62,22 +44,11 @@ class Page extends StatefulWidget {
 
 
 class PageState extends State<Page>{
-  late ScopeManager _scopeManager;
   String menuDisplay = MenuDisplay.navBar.name;
   late Widget rootWidget;
 
   @override
   void initState() {
-    // initialize our root ScopeManager, which can have many child scopes.
-    // All scopes will have access to the page-level PageData
-    _scopeManager = ScopeManager(
-      widget._initialDataContext.clone(newBuildContext: context),
-      PageData(
-          customViewDefinitions: widget._pageModel.customViewDefinitions,
-          apiMap: widget._pageModel.apiMap
-      )
-    );
-    widget.rootScopeManager = _scopeManager;
 
     // execute view behavior
     if (widget._pageModel.viewBehavior.onLoad != null) {
@@ -88,7 +59,7 @@ class PageState extends State<Page>{
       /// separate them out yet
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ScreenController().executeActionWithScope(
-            context, _scopeManager, widget._pageModel.viewBehavior.onLoad!);
+            context, widget.rootScopeManager, widget._pageModel.viewBehavior.onLoad!);
       });
     }
 
@@ -130,7 +101,7 @@ class PageState extends State<Page>{
   dynamic _buildAppBar(HeaderModel headerModel, {required bool scrollableView}) {
     Widget? titleWidget;
     if (headerModel.titleWidget != null) {
-      titleWidget = _scopeManager.buildWidget(headerModel.titleWidget!);
+      titleWidget = widget.rootScopeManager.buildWidget(headerModel.titleWidget!);
     }
     if (titleWidget == null && headerModel.titleText != null) {
       titleWidget = Text(Utils.translate(headerModel.titleText!, context));
@@ -138,7 +109,7 @@ class PageState extends State<Page>{
 
     Widget? backgroundWidget;
     if (headerModel.flexibleBackground != null) {
-      backgroundWidget = _scopeManager.buildWidget(headerModel.flexibleBackground!);
+      backgroundWidget = widget.rootScopeManager.buildWidget(headerModel.flexibleBackground!);
     }
 
     bool centerTitle = Utils.getBool(headerModel.styles?['centerTitle'], fallback: true);
@@ -222,7 +193,7 @@ class PageState extends State<Page>{
 
     // build the navigation menu (bottom nav bar or drawer). Note that menu is not applicable on modal pages
     if (widget._pageModel.menu != null && widget._pageModel.screenOptions?.pageType != PageType.modal) {
-      menuDisplay = _scopeManager.dataContext.eval(widget._pageModel.menu!.display);
+      menuDisplay = widget.rootScopeManager.dataContext.eval(widget._pageModel.menu!.display);
       if (menuDisplay == null || menuDisplay == MenuDisplay.bottomNavBar.name || menuDisplay == MenuDisplay.navBar.name) {
         _bottomNavBar = _buildBottomNavBar(context, widget._pageModel.menu!);
       } else if (menuDisplay == MenuDisplay.drawer.name) {
@@ -265,7 +236,7 @@ class PageState extends State<Page>{
     }
 
     Widget rtn = DataScopeWidget(
-      scopeManager: _scopeManager,
+      scopeManager: widget.rootScopeManager,
       child: Scaffold(
         // slight optimization, if body background is set, let's paint
         // the entire screen including the Safe Area
@@ -278,7 +249,7 @@ class PageState extends State<Page>{
         bottomNavigationBar: _bottomNavBar,
         drawer: _drawer,
         endDrawer: _endDrawer,
-        bottomSheet: _buildFooter(_scopeManager, widget._pageModel),
+        bottomSheet: _buildFooter(widget.rootScopeManager, widget._pageModel),
         floatingActionButton: closeModalButton,
         floatingActionButtonLocation:
           widget._pageModel.screenOptions?.closeButtonPosition == 'start' ?
@@ -365,7 +336,7 @@ class PageState extends State<Page>{
       double paddingFromSafeSpace = 15;
       Widget? headerWidget;
       if (widget._pageModel.menu!.headerModel != null) {
-        headerWidget = _scopeManager.buildWidget(widget._pageModel.menu!.headerModel!);
+        headerWidget = widget.rootScopeManager.buildWidget(widget._pageModel.menu!.headerModel!);
       }
       Widget menuHeader = Column(children: [
        SizedBox(height: paddingFromSafeSpace),
@@ -380,7 +351,7 @@ class PageState extends State<Page>{
         menuFooter = Expanded(
           child: Align(
             alignment: Alignment.bottomCenter,
-            child: _scopeManager.buildWidget(widget._pageModel.menu!.footerModel!)
+            child: widget.rootScopeManager.buildWidget(widget._pageModel.menu!.footerModel!)
           ),
         );
       }
@@ -519,18 +490,18 @@ class PageState extends State<Page>{
   @override
   void dispose() {
     //log('Disposing View ${widget.hashCode}');
-    _scopeManager.dispose();
+    widget.rootScopeManager.dispose();
     //_scopeManager.debugListenerMap();
-    _scopeManager.eventBus.destroy();
+    widget.rootScopeManager.eventBus.destroy();
     super.dispose();
   }
 
   void buildRootWidget() {
-    rootWidget = _scopeManager.buildWidget(widget._pageModel.rootWidgetModel);
+    rootWidget = widget.rootScopeManager.buildWidget(widget._pageModel.rootWidgetModel);
 
     // execute Global Code
     if (widget._pageModel.globalCode != null) {
-      _scopeManager.dataContext.evalCode(widget._pageModel.globalCode!);
+      widget.rootScopeManager.dataContext.evalCode(widget._pageModel.globalCode!,widget._pageModel.globalCodeSpan!);
     }
   }
 }
