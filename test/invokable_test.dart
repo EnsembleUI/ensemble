@@ -2,7 +2,7 @@
 import 'dart:io';
 
 import 'package:ensemble/framework/data_context.dart';
-import 'package:ensemble/widget/Text.dart' as widget;
+import 'package:ensemble/widget/text.dart' as widget;
 import 'package:ensemble/widget/form_textfield.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:flutter/cupertino.dart';
@@ -38,7 +38,7 @@ void main() {
   DataContext getDataAndWidgetContext() {
     DataContext context = getBaseContext();
 
-    widget.Text myText = widget.Text();
+    widget.EnsembleText myText = widget.EnsembleText();
     myText.setProperty('text', 'Hello');
     context.addInvokableContext("myText", myText);
 

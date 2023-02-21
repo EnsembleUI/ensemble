@@ -5,12 +5,13 @@ import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/extensions.dart';
-import 'package:ensemble/layout/layout_helper.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/widget_util.dart';
 import 'package:ensemble/widget/widget_util.dart';
 import 'package:flutter/material.dart';
@@ -79,7 +80,6 @@ class MyController extends BoxController {
   ItemTemplate? itemTemplate;
   List<Widget>? children;
 
-  int? height;
   int? gap; // gap between the children
 
   // empty spaces at the start and end. Note that this is different
@@ -182,7 +182,11 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
       );
     }
 
-    return WidgetUtils.wrapInBox(carousel, widget._controller);
+    return BoxWrapper(
+        widget: carousel,
+        boxController: widget._controller,
+        ignoresDimension: true,   // width/height shouldn't be apply in the container
+    );
   }
 
   /// return if we should display our cards one at a time for the current screen

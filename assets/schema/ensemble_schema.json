@@ -102,6 +102,10 @@
                   "$ref": "#/$defs/backgroundImage"
                 },
                 {
+                  "$ref": "#/$defs/backgroundColor",
+                  "description": "Background color for the page starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+                },
+                {
                   "properties": {
                     "useSafeArea": {
                       "type": "boolean",
@@ -110,10 +114,6 @@
                     "scrollableView": {
                       "type": "boolean",
                       "description": "Specify if the content of this page is scrollable with a global scrollbar. Using this also allow us to customize the scrolling experience of the header."
-                    },
-                    "backgroundColor": {
-                      "$ref": "#/$defs/typeColors",
-                      "description": "Background color for the page starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
                     }
                   }
                 }
@@ -225,6 +225,9 @@
           "allOf": [
             {
               "$ref": "#/$defs/baseStyles"
+            },
+            {
+              "$ref": "#/$defs/boxStyles"
             },
             {
               "type": "object",
@@ -506,7 +509,7 @@
               "$ref": "#/$defs/baseStyles"
             },
             {
-              "$ref": "#/$defs/boxStyles"
+              "$ref": "#/$defs/boxStylesWithoutDimension"
             },
             {
               "type": "object",
@@ -514,9 +517,6 @@
                 "size": {
                   "type": "integer",
                   "description": "Specify the width/height of the QR Code. Default: 160"
-                },
-                "backgroundColor": {
-                  "$ref": "#/$defs/typeColors"
                 },
                 "color": {
                   "$ref": "#/$defs/typeColors",
@@ -550,6 +550,9 @@
               "$ref": "#/$defs/baseStyles"
             },
             {
+              "$ref": "#/$defs/backgroundColor"
+            },
+            {
               "type": "object",
               "properties": {
                 "size": {
@@ -563,9 +566,6 @@
                   "description": "Specifies the thickness of the indicator (for progress bar this is the height)"
                 },
                 "color": {
-                  "$ref": "#/$defs/typeColors"
-                },
-                "backgroundColor": {
                   "$ref": "#/$defs/typeColors"
                 }
               }
@@ -819,10 +819,6 @@
                   "type": "boolean",
                   "description": "Whether the button should have an outline border instead of filled background"
                 },
-                "backgroundColor": {
-                  "type": ["number", "string"],
-                  "description": "Button background color starting with '0xFF' for full opacity"
-                },
                 "color": {
                   "type": ["number", "string"],
                   "description": "Set the color for the button label starting with '0xFF' for full opacity"
@@ -963,7 +959,7 @@
             "styles": {
               "allOf": [
                 {
-                  "$ref": "#/$defs/boxStyles"
+                  "$ref": "#/$defs/boxStylesWithoutDimension"
                 },
                 {
                   "type": "object",
@@ -1416,11 +1412,11 @@
                 "type": "object",
                 "allOf": [
                   {
+                    "$ref": "#/$defs/backgroundColor",
+                    "description": "Toast's background color"
+                  },
+                  {
                     "properties": {
-                      "backgroundColor": {
-                        "$ref": "#/$defs/typeColors",
-                        "description": "Toast's background color"
-                      },
                       "shadowColor": {
                         "type": ["number", "string"],
                         "description": "box shadow color starting with '0xFF' for full opacity"
@@ -2122,30 +2118,17 @@
         "light", "normal", "bold", "w100", "w200", "w300", "w400", "w500", "w600", "w700", "w800", "w900"
       ]
     },
-
-    "borderStyles": {
+    "boxStyles": {
       "allOf": [
         {
-          "$ref": "#/$defs/borderRadius"
+          "$ref": "#/$defs/boxStylesWithoutDimension"
         },
         {
-          "type": "object",
-          "properties": {
-            "borderColor": {
-              "type": [
-                "number",
-                "string"
-              ],
-              "description": "Border color starting with '0xFF' for full opacity"
-            },
-            "borderWidth": {
-              "type": "integer"
-            }
-          }
+          "$ref": "#/$defs/HasDimension"
         }
       ]
     },
-    "boxStyles": {
+    "boxStylesWithoutDimension": {
       "allOf": [
         {
           "$ref": "#/$defs/styleMargin"
@@ -2154,13 +2137,13 @@
           "$ref": "#/$defs/stylePadding"
         },
         {
-          "$ref": "#/$defs/borderStyles"
+          "$ref": "#/$defs/HasBackground"
         },
         {
-          "$ref": "#/$defs/backgroundGradient"
+          "$ref": "#/$defs/HasBorder"
         },
         {
-          "$ref": "#/$defs/backgroundImage"
+          "$ref": "#/$defs/HasShadow"
         }
       ]
     },
@@ -2172,22 +2155,11 @@
         {
           "type": "object",
           "properties": {
-            "width": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "height": {
-              "type": "integer",
-              "minimum": 0
-            },
             "gap": {
               "type": "integer",
               "minimum": 0
             },
-            "backgroundColor": {
-              "$ref": "#/$defs/typeColors",
-              "description": "BackgroundColor starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
-            },
+
             "fontFamily": {
               "type": "string",
               "description": "Set the font family applicable for all widgets inside this container"
@@ -2195,20 +2167,6 @@
             "fontSize": {
               "type": "integer",
               "minimum": 0
-            },
-            "shadowColor": {
-              "type": ["number", "string"],
-              "description": "Box shadow color starting with '0xFF' for full opacity"
-            },
-            "shadowRadius": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "shadowOffset": {
-              "type": "array",
-              "items": {
-                "type": "integer"
-              }
             }
           }
         }
@@ -2364,6 +2322,15 @@
         }
       ]
     },
+    "backgroundColor": {
+      "type": "object",
+      "properties": {
+        "backgroundColor": {
+          "$ref": "#/$defs/typeColors",
+          "description": "Background color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+        }
+      }
+    },
     "backgroundGradient": {
       "type": "object",
       "properties": {
@@ -2489,6 +2456,95 @@
           "enum": ["none", "lineThrough", "underline", "overline"]
         }
       }
+    },
+
+    "HasDimension": {
+      "type": "object",
+      "properties": {
+        "width": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "HasBorder": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/borderRadius"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "borderColor": {
+              "$ref": "#/$defs/typeColors",
+              "description": "Border color, starting with '0xFF' for full opacity"
+            },
+            "borderWidth": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "The thickness of the border"
+            }
+          }
+        }
+      ]
+    },
+    "HasShadow": {
+      "type": "object",
+      "properties": {
+        "shadowColor": {
+          "type": ["number", "string"],
+          "description": "Box shadow color starting with '0xFF' for full opacity"
+        },
+        "shadowOffset": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "shadowRadius": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "shadowStyle": {
+          "type": "string",
+          "description": "The blur style to apply on the shadow",
+          "oneOf": [
+            {
+              "const": "normal",
+              "description": "Fuzzy inside and outside (default)."
+            },
+            {
+              "const": "solid",
+              "description": "Solid inside, fuzzy outside."
+            },
+            {
+              "const": "outer",
+              "description": "Nothing inside, fuzzy outside."
+            },
+            {
+              "const": "inner",
+              "description": "Fuzzy inside, nothing outside."
+            }
+          ]
+        }
+      }
+    },
+    "HasBackground": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/backgroundColor"
+        },
+        {
+          "$ref": "#/$defs/backgroundImage"
+        },
+        {
+          "$ref": "#/$defs/backgroundGradient"
+        }
+      ]
     }
 
 

@@ -4,6 +4,7 @@ import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/lottie/lottie.dart';
 import 'package:ensemble/widget/widget_util.dart';
 import 'package:flutter/material.dart';
@@ -20,12 +21,22 @@ class LottieState extends WidgetState<EnsembleLottie> {
     print('isCanvasKit=$isCanvasKit');
     BoxFit? fit = WidgetUtils.getBoxFit(widget.controller.fit);
 
-    Widget rtn = WidgetUtils.wrapInBox((isCanvasKit)?buildLottieCanvas(fit):buildLottieHtml(fit), widget.controller);
+    Widget rtn = BoxWrapper(
+        widget: isCanvasKit ? buildLottieCanvas(fit) : buildLottieHtml(fit),
+        boxController: widget.controller,
+        ignoresMargin: true,
+        ignoresDimension: true
+    );
     if (widget.controller.onTap != null) {
       rtn = GestureDetector(
           child: rtn,
           onTap: () => ScreenController().executeAction(context, widget.controller.onTap!,event: EnsembleEvent(widget))
       );
+    }
+    if (widget.controller.margin != null) {
+      rtn = Padding(
+          padding: widget.controller.margin!,
+          child: rtn);
     }
     return rtn;
   }
