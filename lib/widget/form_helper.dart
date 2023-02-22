@@ -21,6 +21,7 @@ class FormFieldController extends WidgetController {
   int? iconSize;
   int? iconColor;
   int? fontSize;
+  Color? backgroundColor;
 
   @override
   Map<String, Function> getBaseGetters() {
@@ -44,6 +45,7 @@ class FormFieldController extends WidgetController {
       'iconSize': (value) => iconSize = Utils.optionalInt(value),
       'iconColor': (value) => iconColor = Utils.optionalInt(value),
       'fontSize': (value) => fontSize = Utils.optionalInt(value),
+      'backgroundColor': (value) => backgroundColor = Utils.getColor(value)
     });
     return setters;
   }
@@ -83,6 +85,8 @@ abstract class FormFieldWidgetState<W extends HasController>
           .controller as FormFieldController;
       return InputDecoration(
           floatingLabelBehavior: FloatingLabelBehavior.always,
+          filled: myController.backgroundColor == null ? false : true,
+          fillColor: myController.backgroundColor,
           labelText: shouldShowLabel() ? myController.label : null,
           hintText: myController.hintText,
           icon: myController.icon == null
