@@ -375,7 +375,11 @@
       "properties": {
         "source": {
           "type": "string",
-          "description": "URL to or asset name of the image"
+          "description": "URL to or asset name of the image. If the URL is used, it is highly recommended that the dimensions is set (either with width/height or other means) to prevent the UI jerkiness while loading."
+        },
+        "onTap": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Call Ensemble's built-in functions or execute code"
         },
         "styles": {
           "allOf": [
@@ -388,11 +392,9 @@
             {
               "type": "object",
               "properties": {
-                "width": {
-                  "type": "integer"
-                },
-                "height": {
-                  "type": "integer"
+                "placeholderColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "The placeholder color while the image is loading."
                 },
                 "fit": {
                   "type": "string",
@@ -1207,6 +1209,15 @@
               "inputs": {
                 "type": "object",
                 "description": "Specify the key/value pairs to pass into the next Screen"
+              },
+              "options": {
+                "type": "object",
+                "properties": {
+                  "replaceCurrentScreen": {
+                    "type": "boolean",
+                    "description": "If true, the new screen will replace the current screen on the navigation history. Navigating back from the new screen will skip the current screen."
+                  }
+                }
               }
             }
           }

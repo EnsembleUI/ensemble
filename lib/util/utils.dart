@@ -204,7 +204,8 @@ class Utils {
         return NavigateScreenAction(
           initiator: initiator,
           screenName: payload['name'],
-          inputs: inputs);
+          inputs: inputs,
+          options: getMap(payload['options']));
       } else if (payload['action'] == ActionType.navigateModalScreen.name) {
         return NavigateModalScreenAction(
           initiator: initiator,

@@ -1,4 +1,6 @@
 
+import 'dart:math';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/event.dart';
@@ -39,6 +41,7 @@ class EnsembleImage extends StatefulWidget with Invokable, HasController<ImageCo
     return {
       'source': (value) => _controller.source = Utils.getString(value, fallback: ''),
       'fit': (value) => _controller.fit = Utils.optionalString(value),
+      'placeholderColor': (value) => _controller.placeholderColor = Utils.getColor(value),
       'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, initiator: this),
       'cache': (value) => _controller.cache = Utils.optionalBool(value) ?? _controller.cache,
     };
@@ -49,6 +52,7 @@ class EnsembleImage extends StatefulWidget with Invokable, HasController<ImageCo
 class ImageController extends BoxController {
   String source = '';
   String? fit;
+  Color? placeholderColor;
   EnsembleAction? onTap;
   bool cache=true;
 }
@@ -99,8 +103,8 @@ class ImageState extends WidgetState<EnsembleImage> {
             width: widget._controller.width?.toDouble(),
             height: widget._controller.height?.toDouble(),
             fit: fit,
-            errorWidget: (context, error, stacktrace) => placeholderImage(),
-            placeholder: (context, url) => placeholderImage(),
+            errorWidget: (context, error, stacktrace) => errorFallback(),
+            placeholder: (context, url) => placeholder(),
             imageUrl: widget.controller.source,
           );
         } else {
@@ -108,13 +112,13 @@ class ImageState extends WidgetState<EnsembleImage> {
               width: widget._controller.width?.toDouble(),
               height: widget._controller.height?.toDouble(),
               fit: fit,
-              errorBuilder: (context, error, stacktrace) => placeholderImage(),
+              errorBuilder: (context, error, stacktrace) => errorFallback(),
               loadingBuilder: (BuildContext context, Widget child,
                   ImageChunkEvent? loadingProgress) {
                 if (loadingProgress == null) {
                   return child;
                 }
-                return placeholderImage();
+                return placeholder();
               });
         }
       }
@@ -128,10 +132,10 @@ class ImageState extends WidgetState<EnsembleImage> {
             width: widget._controller.width?.toDouble(),
             height: widget._controller.height?.toDouble(),
             fit: fit,
-            errorBuilder: (context, error, stacktrace) => placeholderImage());
+            errorBuilder: (context, error, stacktrace) => errorFallback());
       }
     }
-    return placeholderImage();
+    return errorFallback();
   }
 
   Widget buildSvgImage(BoxFit? fit) {
@@ -142,7 +146,7 @@ class ImageState extends WidgetState<EnsembleImage> {
           width: widget._controller.width?.toDouble(),
           height: widget._controller.height?.toDouble(),
           fit: fit ?? BoxFit.contain,
-          placeholderBuilder: (_) => placeholderImage()
+          placeholderBuilder: (_) => placeholder()
       );
     }
     // attempt local assets
@@ -151,7 +155,7 @@ class ImageState extends WidgetState<EnsembleImage> {
         width: widget._controller.width?.toDouble(),
         height: widget._controller.height?.toDouble(),
         fit: fit ?? BoxFit.contain,
-        placeholderBuilder: (_) => placeholderImage()
+        placeholderBuilder: (_) => placeholder()
     );
   }
 
@@ -159,12 +163,21 @@ class ImageState extends WidgetState<EnsembleImage> {
     return widget._controller.source.endsWith('svg');
   }
 
-  Widget placeholderImage() {
-    return SizedBox(
-      width: widget._controller.width?.toDouble(),
-      height: widget._controller.height?.toDouble(),
-      child: Image.asset('assets/images/img_placeholder.png', package: 'ensemble')
-    );
+  /// display if the image cannot be loaded
+  Widget errorFallback() {
+    return Image.asset(
+      'assets/images/img_placeholder.png',
+      package: 'ensemble',
+      fit: BoxFit.cover);
+  }
+
+  // use modern colors as background placeholder while images are being loaded
+  final placeholderColors = [0xffD9E3E5, 0xffBBCBD2, 0xffA79490, 0xffD7BFA8, 0xffEAD9C9, 0xffEEEAE7];
+  Widget placeholder() {
+    return ColoredBox(
+        color: widget._controller.placeholderColor ??
+            Color(
+                placeholderColors[Random().nextInt(placeholderColors.length)]));
   }
 
 
