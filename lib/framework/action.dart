@@ -54,10 +54,12 @@ class ShowDialogAction extends EnsembleAction {
 
 class NavigateScreenAction extends BaseNavigateScreenAction {
   NavigateScreenAction({
-    Invokable? initiator,
-    required String screenName,
-    Map<String, dynamic>? inputs
-  }) : super(initiator: initiator, screenName: screenName, asModal: false, inputs: inputs);
+    super.initiator,
+    required super.screenName,
+    super.inputs,
+    this.options
+  }) : super(asModal: false);
+  final Map<String, dynamic>? options;
 }
 
 class NavigateModalScreenAction extends BaseNavigateScreenAction {

@@ -85,7 +85,7 @@ abstract class FormFieldWidgetState<W extends HasController>
           .controller as FormFieldController;
       return InputDecoration(
           floatingLabelBehavior: FloatingLabelBehavior.always,
-          filled: myController.backgroundColor == null ? false : true,
+          filled: myController.backgroundColor != null,
           fillColor: myController.backgroundColor,
           labelText: shouldShowLabel() ? myController.label : null,
           hintText: myController.hintText,

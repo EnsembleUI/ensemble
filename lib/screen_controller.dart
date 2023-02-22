@@ -125,6 +125,8 @@ class ScreenController {
           providedDataContext.buildContext,
           screenName: dataContext.eval(action.screenName),
           asModal: action.asModal,
+          replace: action is NavigateScreenAction &&
+            action.options?['replaceCurrentScreen'] == true,
           pageArgs: nextArgs);
 
       // process onModalDismiss
@@ -140,9 +142,7 @@ class ScreenController {
 
     }  else if (action is ShowCameraAction)
     {
-      if(scopeManager != null)
-      {
-        print('Check action options ${action.options}');
+      if(scopeManager != null) {
         CameraManager().openCamera(context, action);
       }
     } else if (action is ShowDialogAction) {
@@ -450,10 +450,13 @@ class ScreenController {
   /// Navigate to another screen
   /// [screenName] - navigate to the screen if specified, otherwise to appHome
   /// [asModal] - shows the App in a regular or modal screen
+  /// [replace] - whether to replace the current route on the stack, such that
+  /// navigating back will skip the current route.
   /// [pageArgs] - Key/Value pairs to send to the screen if it takes input parameters
   PageRouteBuilder navigateToScreen(BuildContext context, {
     String? screenName,
     bool? asModal,
+    bool? replace,
     Map<String, dynamic>? pageArgs,
   }) {
     PageType pageType = asModal == true ? PageType.modal : PageType.regular;
@@ -461,7 +464,11 @@ class ScreenController {
     Widget screenWidget = getScreen(screenName: screenName, asModal: asModal, pageArgs: pageArgs);
 
     PageRouteBuilder route = getScreenBuilder(screenWidget, pageType: pageType);
-    Navigator.push(context, route);
+    if (replace == true) {
+      Navigator.pushReplacement(context, route);
+    } else {
+      Navigator.push(context, route);
+    }
     return route;
   }
 
