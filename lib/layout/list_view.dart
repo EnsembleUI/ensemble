@@ -127,7 +127,7 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
                onTap: widget._controller.onItemTap == null
                     ? null
                     : () => _onItemTapped(index),
-                child: buildWidgetsForListView(context, _listViewChildren, widget.itemTemplate!, index));
+                child: buildWidgetForIndex(context, _listViewChildren, widget.itemTemplate!, index));
           }),
     );
   }
