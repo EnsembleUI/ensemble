@@ -321,14 +321,29 @@ class ScreenController {
         allowMultiple: action.allowMultiple ?? false,
       ).then((result) async {
 
+        const defaultMaxFileSize = 100000;
+        const defaultOverMaxFileSizeMessage = 'The size of is which is larger than the maximum allowed';
+
         if (result==null || result.files.isEmpty) return;
 
         final selectedFiles = result.files.map((file) => File.fromPlatformFile(file)).toList();
+        final totalSize = selectedFiles.fold<int>(0, (previousValue, element) => previousValue + element.size);
+
+        final message = Utils.translateWithFallback(
+          'ensemble.input.overMaxFileSizeMessage', 
+          action.overMaxFileSizeMessage ?? defaultOverMaxFileSizeMessage,
+        );
+
+        if (totalSize > (action.maxFileSize ?? defaultMaxFileSize)) {
+          ToastController().showToast(context, ShowToastAction(type: ToastType.error, message: message, position: 'bottom'), null);
+          return;
+        }
+
         if (action.id != null && scopeManager != null) {
           scopeManager.dataContext.addInvokableContext(action.id!, FileData(files: selectedFiles));
         }
         
-        if (action.uploadUrl == null) throw RuntimeException('Enter URL');
+        if (action.uploadUrl == null) throw LanguageError('Enter Upload URL');
         final response = await UploadUtils.uploadFiles(
           action.uploadUrl!, 
           selectedFiles,

@@ -1,6 +1,7 @@
 
 
 
+import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:source_span/source_span.dart';
 import 'package:yaml/yaml.dart';
@@ -193,6 +194,8 @@ class FileUploadAction extends EnsembleAction {
     this.onComplete,
     this.onError,
     this.uploadUrl,
+    this.maxFileSize,
+    this.overMaxFileSizeMessage,
   });
 
   List<String>? allowedExtensions;
@@ -202,6 +205,8 @@ class FileUploadAction extends EnsembleAction {
   EnsembleAction? onComplete;
   EnsembleAction? onError;
   String? uploadUrl;
+  double? maxFileSize;
+  String? overMaxFileSizeMessage;
 }
 
 

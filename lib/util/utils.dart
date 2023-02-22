@@ -315,6 +315,8 @@ class Utils {
             onComplete: Utils.getAction(payload['onComplete']),
             onError: Utils.getAction(payload['onError']),
             uploadUrl: Utils.getUrl(payload['uploadUrl']),
+            maxFileSize: Utils.optionalDouble(payload['options']?['maxFileSize']),
+            overMaxFileSizeMessage: Utils.optionalString(payload['options']?['overMaxFileSizeMessage']),
          );
        }
     }
