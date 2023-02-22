@@ -30,11 +30,23 @@ class BoxWrapper extends StatelessWidget {
     if (!boxController.requiresBox(ignoresMargin, ignoresDimension)) {
       return widget;
     }
+    // when we have a border radius, we may need to clip the child (e.g. image)
+    // so it doesn't bleed through the border. This really only applies for
+    // the actual child widget, as the backgroundColor/backgroundImage will already
+    // be clipped properly. For simplicity just apply it and take a small
+    // performance hit.
+    Clip clip = Clip.none;
+    if (boxController.borderRadius != null &&
+        boxController.hasBoxDecoration()) {
+      clip = Clip.hardEdge;
+    }
+
     return Container(
       width: ignoresDimension ? null : boxController.width?.toDouble(),
       height: ignoresDimension ? null : boxController.height?.toDouble(),
       margin: ignoresMargin ? null : boxController.margin,
       padding: boxController.padding,
+      clipBehavior: clip,
       child: widget,
       decoration: !boxController.hasBoxDecoration()
           ? null

@@ -6,6 +6,8 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:ensemble/widget/helpers/theme_manager.dart';
+import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 
@@ -31,6 +33,7 @@ class EnsembleIcon extends StatefulWidget with Invokable, HasController<IconCont
       'library': (value) => _controller.library = Utils.optionalString(value),
       'size': (value) => _controller.size = Utils.optionalInt(value),
       'color': (value) => _controller.color = Utils.getColor(value),
+      'splashColor': (value) => _controller.splashColor = Utils.getColor(value),
       'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, initiator: this),
     };
   }
@@ -40,11 +43,12 @@ class EnsembleIcon extends StatefulWidget with Invokable, HasController<IconCont
   }
 
 }
-class IconController extends WidgetController {
+class IconController extends BoxController {
   dynamic icon;
   String? library;
   int? size;
   Color? color;
+  Color? splashColor;
   EnsembleAction? onTap;
 }
 
@@ -52,18 +56,38 @@ class IconState extends WidgetState<EnsembleIcon> {
 
   @override
   Widget buildWidget(BuildContext context) {
+    bool tapEnabled = widget._controller.onTap != null;
 
-    return InkWell(
-      splashColor: Colors.transparent,
-      onTap: widget._controller.onTap == null ? null : () =>
-          ScreenController().executeAction(context, widget._controller.onTap!,event: EnsembleEvent(widget)),
-      child: ensembleLib.Icon(
-        widget._controller.icon,
-        library: widget._controller.library,
-        size: widget._controller.size,
-        color: widget._controller.color
-      )
+    Widget icon = BoxWrapper(
+        widget: ensembleLib.Icon(
+            widget._controller.icon,
+            library: widget._controller.library,
+            size: widget._controller.size,
+            color: widget._controller.color
+        ),
+        boxController: widget._controller,
+        ignoresDimension: true,   // width/height is not applicable
+        ignoresMargin: tapEnabled       // click area has to be inside the margin
     );
+
+    if (tapEnabled) {
+      icon = InkWell(
+          child: icon,
+          splashColor: widget._controller.splashColor ?? ThemeManager.getSplashColor(context),
+          borderRadius: widget._controller.borderRadius?.getValue(),
+          onTap: () =>
+              ScreenController().executeAction(
+                  context,
+                  widget._controller.onTap!,
+                  event: EnsembleEvent(widget))
+      );
+      if (widget._controller.margin != null) {
+        icon = Padding(
+            padding: widget._controller.margin!,
+            child: icon);
+      }
+    }
+    return icon;
   }
 
 
