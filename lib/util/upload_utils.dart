@@ -21,13 +21,13 @@ class UploadUtils {
     final request = MultipartRequest(
       'POST',
       Uri.parse(url),  
-      onProgress: (int bytes, int total) {
+      onProgress: progressCallback == null ? null : (int bytes, int total) {
         final progress = bytes / total;
-        progressCallback?.call(progress);
+        progressCallback.call(progress);
       }
-  );
+    );
     final multipartFiles = <http.MultipartFile>[];
-  
+
     for (var file in files) {
       http.MultipartFile? multipartFile;
 
@@ -81,12 +81,12 @@ class MultipartRequest extends http.MultipartRequest {
 
     final t = StreamTransformer.fromHandlers(
       handleData: (List<int> data, EventSink<List<int>> sink) {
-        bytes = data.length;
-        onProgress?.call(bytes, total);
+        bytes += data.length;
         if(total >= bytes) {
-           sink.add(data);
+          sink.add(data);
+          onProgress?.call(bytes, total);
         }
-      }
+      }, 
     );
     final stream = byteStream.transform(t);
     return http.ByteStream(stream);
