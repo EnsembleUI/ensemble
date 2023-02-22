@@ -125,6 +125,10 @@
         "borderDisabledColor": {
           "$ref": "#/$defs/Color",
           "description": "The disabled border color of applicable input fields"
+        },
+        "backgroundColor": {
+          "$ref": "#/$defs/Color",
+          "description": "The backgroundColor is fillColor of applicable input fields"
         }
       }
     },
