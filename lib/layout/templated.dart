@@ -42,43 +42,37 @@ mixin TemplatedWidgetState<W extends StatefulWidget> on State<W> {
     }
   }
 
-  /// build the list of templated widget from the given data expression
-  /// Note that each child is wrapped in DataScopeWidget for proper data scoping
-  List<DataScopeWidget>? buildWidgetsFromTemplate(BuildContext context, List dataList, ItemTemplate itemTemplate) {
-    List<DataScopeWidget>? widgets;
-    ScopeManager? parentScope = DataScopeWidget.getScope(context);
-    if (parentScope != null) {
-      widgets = [];
-      for (dynamic itemData in dataList) {
-        // create a new scope for each item template
-        ScopeManager templatedScope = parentScope.createChildScope();
-        templatedScope.dataContext.addDataContextById(itemTemplate.name, itemData);
-
-        Widget templatedWidget = templatedScope.buildWidgetFromDefinition(itemTemplate.template);
-
-        // wraps each templated widget inside a DataScopeWidget so
-        // we can constraint the data scope
-        widgets.add(DataScopeWidget(scopeManager: templatedScope, child: templatedWidget));
-      }
+List<DataScopeWidget>? buildWidgetsFromTemplate(BuildContext context, List dataList, ItemTemplate itemTemplate) {
+  List<DataScopeWidget>? widgets;
+  ScopeManager? parentScope = DataScopeWidget.getScope(context);
+  if (parentScope != null) {
+    widgets = [];
+    for (dynamic itemData in dataList) {
+      DataScopeWidget singleWidget = buildSingleWidget(parentScope, itemTemplate, itemData);
+      widgets.add(singleWidget);
     }
-    return widgets;
   }
-  // ------------------------ Render the listview children ----------------------------------
-  DataScopeWidget? buildWidgetsForListView(BuildContext context, List dataList, ItemTemplate itemTemplate,int itemIndex) {
-    DataScopeWidget? widgets;
-    ScopeManager? parentScope = DataScopeWidget.getScope(context);
-    if (parentScope != null) {
-      
-        // create a new scope for each item template
-        ScopeManager templatedScope = parentScope.createChildScope();
-        templatedScope.dataContext.addDataContextById(itemTemplate.name, dataList.elementAt(itemIndex));
+  return widgets;
+}
 
-        Widget templatedWidget = templatedScope.buildWidgetFromDefinition(itemTemplate.template);
+DataScopeWidget buildSingleWidget(ScopeManager parentScope, ItemTemplate itemTemplate, dynamic itemData) {
+  // create a new scope for each item template
+  ScopeManager templatedScope = parentScope.createChildScope();
+  templatedScope.dataContext.addDataContextById(itemTemplate.name, itemData);
 
-        widgets = DataScopeWidget(scopeManager: templatedScope, child: templatedWidget);
-    }
-    return widgets;
+  Widget templatedWidget = templatedScope.buildWidgetFromDefinition(itemTemplate.template);
+
+  // wraps the templated widget inside a DataScopeWidget so we can constrain the data scope
+  return DataScopeWidget(scopeManager: templatedScope, child: templatedWidget);
+}
+
+DataScopeWidget? buildWidgetForIndex(BuildContext context, List dataList, ItemTemplate itemTemplate, int itemIndex) {
+  ScopeManager? parentScope = DataScopeWidget.getScope(context);
+  if (parentScope != null) {
+    dynamic itemData = dataList.elementAt(itemIndex);
+    return buildSingleWidget(parentScope, itemTemplate, itemData);
   }
-
+  return null;
+}
 
 }
