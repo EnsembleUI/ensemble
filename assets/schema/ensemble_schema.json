@@ -347,13 +347,21 @@
               "$ref": "#/$defs/baseStyles"
             },
             {
+              "$ref": "#/$defs/boxStylesWithoutDimension"
+            },
+            {
               "type": "object",
               "properties": {
                 "size": {
                   "type": "integer"
                 },
                 "color": {
-                  "type": ["number", "string"]
+                  "$ref": "#/$defs/typeColors",
+                  "description": "The color of the icon"
+                },
+                "splashColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "If onTap is defined, this color will show up as a splash effect upon tapping the icon. Note that the effect only happens if backgroundColor is not set."
                 }
               }
             }

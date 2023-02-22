@@ -5,6 +5,10 @@ import 'package:flutter/material.dart';
 /// If anything is hardcoded, they need to be corrected later on.
 class ThemeManager {
 
+  // color when clicking on (InkWell)
+  static getSplashColor(BuildContext context) {
+    return Theme.of(context).colorScheme.primary;
+  }
   static Color getBorderColor(BuildContext context) {
     return Theme.of(context).colorScheme.onSurface;
   }
@@ -26,6 +30,7 @@ class ThemeManager {
   static getShadowStyle(BuildContext context) {
     return BlurStyle.normal;
   }
+
 
 
 }
