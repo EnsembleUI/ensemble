@@ -6,6 +6,7 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/layout_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/theme_manager.dart';
+import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -219,21 +220,9 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
         IntrinsicHeight(child: boxWidget);
     }
 
-    // html-renderer has terrible scrolling performance when clipping is on, so disable it for now
-    Clip clipBehavior = Clip.hardEdge;
-    if (kIsWeb && isHtmlRenderer) {
-      clipBehavior = Clip.none;
-    }
-
-    Widget rtn = Container(
-        width: widget._controller.width != null ? widget._controller.width!.toDouble() : null,
-        height: widget._controller.height != null ? widget._controller.height!.toDouble() : null,
-        margin: widget._controller.margin,
-
-        clipBehavior: clipBehavior,
-        decoration: _buildBoxDecoration(),
-
-        child: flutter.InkWell(
+    Widget rtn = BoxWrapper(
+        boxController: widget._controller,
+        widget: flutter.InkWell(
             splashColor: flutter.Colors.transparent,
             onTap: widget._controller.onTap == null ? null : () =>
                 ScreenController().executeAction(context, widget._controller.onTap!),
@@ -309,25 +298,6 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
         ),
         child: boxWidget);
 
-  }
-
-  BoxDecoration _buildBoxDecoration() {
-    return BoxDecoration(
-        color: widget._controller.backgroundColor,
-        image: widget._controller.backgroundImage?.image,
-        gradient: widget._controller.backgroundGradient,
-        border: !widget._controller.hasBorder() ? null : Border.all(
-            color: widget._controller.borderColor ?? flutter.Colors.black26,
-            width: (widget._controller.borderWidth ?? 1).toDouble()),
-        borderRadius: widget._controller.borderRadius != null ? widget._controller.borderRadius!.getValue() : null,
-        boxShadow: widget._controller.shadowColor == null ? null : <BoxShadow>[
-          BoxShadow(
-            color: widget._controller.shadowColor ?? ThemeManager.getShadowColor(context),
-            blurRadius: (widget._controller.shadowRadius ?? 0).toDouble(),
-            offset: widget._controller.shadowOffset ?? const Offset(0, 0),
-          )
-        ]
-    );
   }
 
 }
