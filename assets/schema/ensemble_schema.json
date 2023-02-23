@@ -1501,9 +1501,9 @@
                 "type": "string",
                 "description": "Give the Uploader an ID allows you to bind to its result. e.g. ${filePicker.files...}, ${filePicker.body...}"
               },
-              "uploadUrl": {
+              "apiName": {
                 "type": "string",
-                "description": "Enter URL endpoint where files need to be uploaded"
+                "description": "Enter the name of your defined API"
               },
               "onComplete": {
                 "$ref": "#/$defs/Action-payload",

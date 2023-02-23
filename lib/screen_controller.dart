@@ -324,10 +324,14 @@ class ScreenController {
         const defaultMaxFileSize = 100000;
         const defaultOverMaxFileSizeMessage = 'The size of is which is larger than the maximum allowed';
 
-        if (result==null || result.files.isEmpty) return;
+        if (result==null || result.files.isEmpty) {
+          if (action.onError != null) executeAction(context, action.onError!);
+          return null;
+        }
 
         final selectedFiles = result.files.map((file) => File.fromPlatformFile(file)).toList();
-        final totalSize = selectedFiles.fold<int>(0, (previousValue, element) => previousValue + element.size);
+        int totalSize = selectedFiles.fold<int>(0, (previousValue, element) => previousValue + element.size);
+        totalSize = totalSize ~/ 1000;
 
         final message = Utils.translateWithFallback(
           'ensemble.input.overMaxFileSizeMessage', 
@@ -336,16 +340,26 @@ class ScreenController {
 
         if (totalSize > (action.maxFileSize ?? defaultMaxFileSize)) {
           ToastController().showToast(context, ShowToastAction(type: ToastType.error, message: message, position: 'bottom'), null);
+          if (action.onError != null) executeAction(context, action.onError!);
           return;
         }
 
         if (action.id != null && scopeManager != null) {
           scopeManager.dataContext.addInvokableContext(action.id!, FileData(files: selectedFiles));
         }
-        
-        if (action.uploadUrl == null) throw LanguageError('Enter Upload URL');
+        YamlMap? apiDefinition = apiMap?[action.apiName];
+        if (apiDefinition == null) throw LanguageError('Unable to find api definition for ${action.apiName}');
+        if (apiDefinition['inputs'] is YamlList && action.inputs != null) {
+          for (var input in apiDefinition['inputs']) {
+            dynamic value = dataContext.eval(action.inputs![input]);
+            if (value != null) {
+              dataContext.addDataContextById(input, value);
+            }
+          }
+        }
         final response = await UploadUtils.uploadFiles(
-          action.uploadUrl!, 
+          apiDefinition, 
+          dataContext,
           selectedFiles,
           onError: action.onError == null ? null : (error) => executeAction(context, action.onError!),
         );

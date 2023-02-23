@@ -187,16 +187,17 @@ class TimerPayload {
 
 class FileUploadAction extends EnsembleAction {
   FileUploadAction({
+    Map<String, dynamic>? inputs,
     this.allowedExtensions, 
     this.allowMultiple, 
     this.allowCompression,
     this.id,
     this.onComplete,
     this.onError,
-    this.uploadUrl,
+    required this.apiName,
     this.maxFileSize,
     this.overMaxFileSizeMessage,
-  });
+  }) : super(inputs: inputs);
 
   List<String>? allowedExtensions;
   bool? allowMultiple;
@@ -204,7 +205,7 @@ class FileUploadAction extends EnsembleAction {
   String? id;
   EnsembleAction? onComplete;
   EnsembleAction? onError;
-  String? uploadUrl;
+  String apiName;
   double? maxFileSize;
   String? overMaxFileSizeMessage;
 }

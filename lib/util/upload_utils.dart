@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/util/http_utils.dart';
 import 'package:http/http.dart' as http;
+import 'package:yaml/yaml.dart';
 
 typedef ProgressCallback = void Function(double progress);
 typedef OnDoneCallback = void Function();
@@ -10,7 +11,8 @@ typedef OnErrorCallback = void Function(dynamic error);
 class UploadUtils {
   
   static Future<Response?> uploadFiles(
-      String url, 
+      YamlMap api, 
+      DataContext eContext,
       List<File> files, 
       {
         ProgressCallback? progressCallback,
@@ -18,14 +20,28 @@ class UploadUtils {
         OnErrorCallback? onError,
       }
     ) async {
+
+    Map<String, String> headers = {};
+    if (api['headers'] is YamlMap) {
+      (api['headers'] as YamlMap).forEach((key, value) {
+        if (value != null) {
+          headers[key.toString()] = eContext.eval(value).toString();
+        }
+      });
+    }
+    
+    String url = HttpUtils.resolveUrl(eContext, api['uri'].toString().trim());
+    String method = api['method']?.toString().toUpperCase() ?? 'POST';
+
     final request = MultipartRequest(
-      'POST',
+      method,
       Uri.parse(url),  
       onProgress: progressCallback == null ? null : (int bytes, int total) {
         final progress = bytes / total;
         progressCallback.call(progress);
       }
     );
+    request.headers.addAll(headers);
     final multipartFiles = <http.MultipartFile>[];
 
     for (var file in files) {
