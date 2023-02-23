@@ -7,6 +7,7 @@ import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/theme_manager.dart';
+import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' as flutter;
@@ -126,11 +127,9 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
   // ------------------ Build Widgets for the childrens displayed in YAML ----------------
 
   Widget _buildListViewWidget(List<Widget> children) {
-    return Container(
-      width: widget._controller.width?.toDouble(),
-      height: widget._controller.height?.toDouble(),
-      decoration: _buildBoxDecoration(),
-      child: flutter.ListView.separated(
+    return BoxWrapper(
+      boxController: widget._controller,
+      widget: flutter.ListView.separated(
           separatorBuilder: (context, index) =>
               _buildSepratorWidget(context, index),
           padding: widget._controller.padding ?? const EdgeInsets.all(0),
@@ -172,21 +171,4 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
     }
   }
 
-// -------------------- To give styling to the container of ListView -----------------
-  BoxDecoration _buildBoxDecoration() {
-    return BoxDecoration(
-        color: widget._controller.backgroundColor,
-        border: !widget._controller.hasBorder() ? null : Border.all(
-            color: widget._controller.borderColor ?? flutter.Colors.black26,
-            width: (widget._controller.borderWidth ?? 1).toDouble()),
-        borderRadius: widget._controller.borderRadius != null ? widget._controller.borderRadius!.getValue() : null,
-        boxShadow: widget._controller.shadowColor == null ? null : <BoxShadow>[
-          BoxShadow(
-            color: widget._controller.shadowColor ?? ThemeManager.getShadowColor(context),
-            blurRadius: (widget._controller.shadowRadius ?? 0).toDouble(),
-            offset: widget._controller.shadowOffset ?? const Offset(0, 0),
-          )
-        ]
-    );
-  }
 }
