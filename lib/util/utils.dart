@@ -211,6 +211,7 @@ class Utils {
           initiator: initiator,
           screenName: payload['name'],
           inputs: inputs,
+          options: getMap(payload['options']),
           onModalDismiss: Utils.getAction(payload['onModalDismiss']));
       } else if (payload['action'] == ActionType.invokeAPI.name) {
         return InvokeAPIAction(
