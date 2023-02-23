@@ -57,33 +57,35 @@ class NavigateScreenAction extends BaseNavigateScreenAction {
     super.initiator,
     required super.screenName,
     super.inputs,
-    this.options
+    super.options
   }) : super(asModal: false);
-  final Map<String, dynamic>? options;
+
 }
 
 class NavigateModalScreenAction extends BaseNavigateScreenAction {
   NavigateModalScreenAction({
-    Invokable? initiator,
-    required String screenName,
-    Map<String, dynamic>? inputs,
+    super.initiator,
+    required super.screenName,
+    super.inputs,
+    super.options,
     this.onModalDismiss,
-  }) : super(initiator: initiator, screenName: screenName, asModal: true, inputs: inputs);
-
+  }) : super(asModal: true);
   EnsembleAction? onModalDismiss;
 
 }
 
 abstract class BaseNavigateScreenAction extends EnsembleAction {
   BaseNavigateScreenAction({
-    Invokable? initiator,
+    super.initiator,
     required this.screenName,
     required this.asModal,
-    Map<String, dynamic>? inputs
-  }) : super(initiator: initiator,inputs: inputs);
+    super.inputs,
+    this.options
+  });
 
   String screenName;
   bool asModal;
+  final Map<String, dynamic>? options;
 }
 
 class StartTimerAction extends EnsembleAction {

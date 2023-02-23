@@ -158,12 +158,8 @@ class SinglePageModel extends PageModel {
       PageType pageType = viewMap['options']['type'] == PageType.modal.name
           ? PageType.modal
           : PageType.regular;
-      String? closeButtonPosition =
-          viewMap['options']?['closeButtonPosition'] == 'start'
-              ? 'start'
-              : 'end';
       screenOptions = ScreenOptions(
-          pageType: pageType, closeButtonPosition: closeButtonPosition);
+          pageType: pageType);
     }
 
     // set the view behavior
@@ -413,10 +409,7 @@ class ScreenPayload {
 
 /// rendering options for the screenc
 class ScreenOptions {
-  ScreenOptions({this.pageType, this.closeButtonPosition});
+  ScreenOptions({this.pageType});
 
   PageType? pageType = PageType.regular;
-
-  // applicable only for modal pages (start/end)
-  String? closeButtonPosition = 'end';
 }
