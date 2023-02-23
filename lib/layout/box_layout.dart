@@ -221,6 +221,7 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
     }
 
     Widget rtn = BoxWrapper(
+        ignoresMargin: true,  
         boxController: widget._controller,
         widget: flutter.InkWell(
             splashColor: flutter.Colors.transparent,
