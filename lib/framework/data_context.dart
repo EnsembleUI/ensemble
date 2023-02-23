@@ -668,6 +668,8 @@ class File {
 
 
   final String name;
+  /// The file size in bytes. Defaults to `0` if the file size could not be
+  /// determined.
   final int size;
   final String? ext;
   final String? path;
