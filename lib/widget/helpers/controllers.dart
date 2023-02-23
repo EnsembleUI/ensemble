@@ -112,7 +112,7 @@ class BoxController extends WidgetController {
       backgroundGradient != null;
 
   bool hasBorder() =>
-      borderColor != null ||
+      borderGradient != null ||
       borderColor != null ||
       borderWidth != null;
 
