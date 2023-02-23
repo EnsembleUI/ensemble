@@ -347,8 +347,8 @@ class ScreenController {
         if (action.id != null && scopeManager != null) {
           scopeManager.dataContext.addInvokableContext(action.id!, FileData(files: selectedFiles));
         }
-        YamlMap? apiDefinition = apiMap?[action.apiName];
-        if (apiDefinition == null) throw LanguageError('Unable to find api definition for ${action.apiName}');
+        YamlMap? apiDefinition = apiMap?[action.uploadApi];
+        if (apiDefinition == null) throw LanguageError('Unable to find api definition for ${action.uploadApi}');
         if (apiDefinition['inputs'] is YamlList && action.inputs != null) {
           for (var input in apiDefinition['inputs']) {
             dynamic value = dataContext.eval(action.inputs![input]);
