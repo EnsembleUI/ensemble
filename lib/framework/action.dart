@@ -194,7 +194,7 @@ class FileUploadAction extends EnsembleAction {
     this.id,
     this.onComplete,
     this.onError,
-    required this.apiName,
+    required this.uploadApi,
     this.maxFileSize,
     this.overMaxFileSizeMessage,
   }) : super(inputs: inputs);
@@ -205,7 +205,7 @@ class FileUploadAction extends EnsembleAction {
   String? id;
   EnsembleAction? onComplete;
   EnsembleAction? onError;
-  String apiName;
+  String uploadApi;
   double? maxFileSize;
   String? overMaxFileSizeMessage;
 }

@@ -1501,7 +1501,7 @@
                 "type": "string",
                 "description": "Give the Uploader an ID allows you to bind to its result. e.g. ${filePicker.files...}, ${filePicker.body...}"
               },
-              "apiName": {
+              "uploadApi": {
                 "type": "string",
                 "description": "Enter the name of your defined API"
               },
