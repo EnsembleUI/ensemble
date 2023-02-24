@@ -956,6 +956,52 @@
         }
       }
     },
+    "ListView-payload": {
+      "type": "object",
+      "allOf": [
+        {
+          "properties": {
+            "children": { "$ref": "#/$defs/Widgets" },
+            "onItemTap": {
+              "description": "Dispatch when an ListView item is selected/tapped.The event dispatches only when you tap on the item. The index of the item can be retrieved using 'selectedItemIndex'.",
+              "$ref": "#/$defs/Action-payload"
+            },
+            "styles": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/boxLayoutStyles"
+                },
+                {
+                  "$ref": "#/$defs/baseStyles"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "separatorColor": {
+                      "$ref": "#/$defs/typeColors",
+                      "description": "Set the color for the separator between items"
+                    },
+                    "separatorWidth": {
+                      "type": "integer",
+                      "description": "The thickness of the separator between items"
+                    },
+                    "separatorPadding": {
+                      "type": ["integer", "string"],
+                      "description": "Padding with CSS-style value e.g. padding: 5 20 5 Default 0 0 0"
+                    }
+                  }
+                }
+              ]
+            },
+            "selectedItemIndex": {
+              "type": "integer",
+              "description": "Selecting a ListView item gives the index of selected item"
+            }
+          }
+        },
+        { "$ref": "#/$defs/Templated-payload" }
+      ]
+    },
     "Carousel-payload": {
       "type": "object",
       "allOf": [
@@ -1714,6 +1760,11 @@
         {
           "properties": {
             "Column": { "$ref": "#/$defs/Column-payload" }
+          }
+        },
+        {
+          "properties": {
+            "Column": { "$ref": "#/$defs/ListView-payload" }
           }
         },
         {
