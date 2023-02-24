@@ -157,8 +157,7 @@ class TextInputController extends FormFieldController {
   {
     if(data != null)
     {
-      maxLines = data;
-      notifyListeners();
+      maxLines =  Utils.optionalInt(data)!;
     }
   }
 }
