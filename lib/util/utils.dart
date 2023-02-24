@@ -316,7 +316,10 @@ class Utils {
             allowCompression: Utils.optionalBool(payload['options']?['allowCompression']),
             onComplete: Utils.getAction(payload['onComplete']),
             onError: Utils.getAction(payload['onError']),
-            uploadUrl: Utils.getUrl(payload['uploadUrl']),
+            uploadApi: payload['uploadApi'],
+            inputs: inputs,
+            maxFileSize: Utils.optionalDouble(payload['options']?['maxFileSize']),
+            overMaxFileSizeMessage: Utils.optionalString(payload['options']?['overMaxFileSizeMessage']),
          );
        }
     }
