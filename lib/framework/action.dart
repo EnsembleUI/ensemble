@@ -1,6 +1,7 @@
 
 
 
+import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:source_span/source_span.dart';
 import 'package:yaml/yaml.dart';
@@ -190,14 +191,17 @@ class TimerPayload {
 
 class FileUploadAction extends EnsembleAction {
   FileUploadAction({
+    Map<String, dynamic>? inputs,
     this.allowedExtensions, 
     this.allowMultiple, 
     this.allowCompression,
     this.id,
     this.onComplete,
     this.onError,
-    this.uploadUrl,
-  });
+    required this.uploadApi,
+    this.maxFileSize,
+    this.overMaxFileSizeMessage,
+  }) : super(inputs: inputs);
 
   List<String>? allowedExtensions;
   bool? allowMultiple;
@@ -205,7 +209,9 @@ class FileUploadAction extends EnsembleAction {
   String? id;
   EnsembleAction? onComplete;
   EnsembleAction? onError;
-  String? uploadUrl;
+  String uploadApi;
+  double? maxFileSize;
+  String? overMaxFileSizeMessage;
 }
 
 
