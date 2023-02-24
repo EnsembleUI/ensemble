@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -291,12 +292,15 @@ class PageState extends State<Page>{
     // if backgroundImage is set, put it outside of the Scaffold so
     // keyboard sliding up (when entering value) won't resize the background
     if (backgroundImage != null) {
-      return Container(
-        constraints: const BoxConstraints.expand(),
-        decoration: BoxDecoration(
-          image: backgroundImage.image
-        ),
-        child: rtn
+      return Stack(
+        children: [
+          Positioned.fill(
+              child: CachedNetworkImage(
+            imageUrl: backgroundImage.source,
+            fit: BoxFit.cover,
+          )),
+          rtn
+        ],
       );
     }
     return rtn;
