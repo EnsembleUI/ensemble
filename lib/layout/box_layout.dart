@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
@@ -221,18 +222,25 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
     }
 
     Widget rtn = BoxWrapper(
-        ignoresMargin: true,  
         boxController: widget._controller,
-        widget: flutter.InkWell(
-            splashColor: flutter.Colors.transparent,
-            onTap: widget._controller.onTap == null ? null : () =>
-                ScreenController().executeAction(context, widget._controller.onTap!),
-            child: Padding(
-                padding: widget._controller.padding ?? const EdgeInsets.all(0),
-                child: boxWidget
-            )
-        )
+        widget: boxWidget,
+        ignoresMargin: true,
     );
+
+
+     if (widget._controller.onTap != null) {
+      rtn = flutter.InkWell(
+        child: rtn,
+        onTap: () =>  ScreenController().executeAction(context, widget._controller.onTap!),
+      );
+    }
+    
+    
+    if (widget._controller.margin != null) {
+      rtn = Padding(
+          padding: widget._controller.margin!,
+          child: rtn);
+    }
 
     return !widget._controller.scrollable ?
         rtn :
