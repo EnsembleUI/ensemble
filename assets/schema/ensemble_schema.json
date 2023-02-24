@@ -1546,9 +1546,9 @@
                 "type": "string",
                 "description": "Give the Uploader an ID allows you to bind to its result. e.g. ${filePicker.files...}, ${filePicker.body...}"
               },
-              "uploadUrl": {
+              "uploadApi": {
                 "type": "string",
-                "description": "Enter URL endpoint where files need to be uploaded"
+                "description": "Enter the name of your defined API"
               },
               "onComplete": {
                 "$ref": "#/$defs/Action-payload",
@@ -1570,7 +1570,16 @@
                     "description" : "It will allow media to apply the default OS compression (default True)"
                   },
                   "allowedExtensions": {
-                    "type": "array"
+                    "type": "array",
+                    "description": "Allow files with specific extension e.g jpg, png, pdf"
+                  },
+                  "maxFileSize" : {
+                    "type": "integer",
+                    "description": "File size that is allowed (default 100 mb), If multiple is allow then sum of all files"
+                  },
+                  "overMaxFileSizeMessage" : {
+                    "type": "string",
+                    "description": "Error message to show when selected files size is above maxFileSize."
                   }
                 }
               }
