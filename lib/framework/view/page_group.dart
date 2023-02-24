@@ -114,6 +114,9 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
       }
       else if (display == MenuDisplay.bottomNavBar){
         return Scaffold(
+          // image background shouldn't resized when keyboard is up. The inner
+          // scaffold will have the keyboard, this one is outside.
+          resizeToAvoidBottomInset: false,
           bottomNavigationBar: _buildBottomNavBar(context, widget.menu),
           body: pageWidgets[selectedPage]
         );
