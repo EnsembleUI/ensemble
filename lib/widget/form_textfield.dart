@@ -298,6 +298,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
         return null;
       },
       textInputAction: widget._controller.keyboardAction,
+      keyboardType: widget.keyboardType,
       maxLines: widget._controller.maxLines,
       obscureText: isObscureOrPlainText(),
       enableSuggestions: !widget.isPassword(),
