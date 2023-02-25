@@ -101,7 +101,7 @@ abstract class BaseTextInput extends StatefulWidget with Invokable, HasControlle
       'validator': (value) => _controller.validator = Utils.getValidator(value),
       'obscureToggle': (value) => _controller.obscureToggle = Utils.optionalBool(value),
       'keyboardAction': (value) => _controller.keyboardAction = _getKeyboardAction(value),
-      'maxLines' : (value) => _controller.updateMaxline(value),
+      'maxLines' : (value) =>  _controller.maxLines = Utils.getInt(value, min: 1, fallback: _controller.maxLines),
     };
   }
 
@@ -152,14 +152,6 @@ class TextInputController extends FormFieldController {
   String? inputType;
   int? borderRadius;
   int maxLines = 1;
-
-  void updateMaxline(dynamic data)
-  {
-    if(data != null)
-    {
-      maxLines =  Utils.optionalInt(data)!;
-    }
-  }
 }
 
 class TextInputState extends FormFieldWidgetState<BaseTextInput> {
