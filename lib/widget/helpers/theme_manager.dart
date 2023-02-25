@@ -12,6 +12,9 @@ class ThemeManager {
   static Color getBorderColor(BuildContext context) {
     return Theme.of(context).colorScheme.onSurface;
   }
+  static Color getPrimaryColor(BuildContext context) {
+    return Theme.of(context).colorScheme.primary;
+  }
   static double getBorderThickness(BuildContext context) {
     return 1;
   }
