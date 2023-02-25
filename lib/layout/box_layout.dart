@@ -221,9 +221,11 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
 
     // html-renderer has terrible scrolling performance when clipping is on, so disable it for now
     Clip clipBehavior = Clip.hardEdge;
-    if (kIsWeb && isHtmlRenderer) {
-      clipBehavior = Clip.none;
-    }
+    // 02-24-23 change the clipping back to hardEdge for html renderer. We'll
+    // keep a close eye on performance.
+    // if (kIsWeb && isHtmlRenderer) {
+    //   clipBehavior = Clip.none;
+    // }
 
     Widget rtn = Container(
         width: widget._controller.width != null ? widget._controller.width!.toDouble() : null,
