@@ -39,6 +39,8 @@ class Button extends StatefulWidget with Invokable, HasController<ButtonControll
       'color': (value) => _controller.color = Utils.getColor(value),
       'fontSize': (value) => _controller.fontSize = Utils.optionalInt(value),
       'fontWeight': (value) => _controller.fontWeight = Utils.getFontWeight(value),
+      'width': (value) => _controller.buttonWidth = Utils.optionalDouble(value),
+      'height': (value) => _controller.buttonHeight = Utils.optionalDouble(value),
     };
   }
   @override
@@ -70,6 +72,8 @@ class ButtonController extends BoxController {
   Color? color;
   int? fontSize;
   FontWeight? fontWeight;
+  double? buttonWidth;
+  double? buttonHeight;
 }
 
 
@@ -95,9 +99,12 @@ class ButtonState extends WidgetState<Button> {
     }
 
     // add margin if specified
-    return widget._controller.margin != null ?
-      Padding(padding: widget._controller.margin!, child: rtn) :
-      rtn;
+    return Container(
+      width: widget._controller.buttonWidth,
+      height: widget._controller.buttonHeight,
+      padding: widget._controller.margin??const EdgeInsets.all(0),
+      child: rtn,
+    );
   }
   
   ButtonStyle getButtonStyle(BuildContext context, bool isOutlineButton) {
