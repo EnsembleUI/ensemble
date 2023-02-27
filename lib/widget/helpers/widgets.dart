@@ -54,10 +54,9 @@ class BoxWrapper extends StatelessWidget {
               color: boxController.backgroundColor,
               image: boxController.backgroundImage?.image,
               gradient: boxController.backgroundGradient,
-              border: 
-              !boxController.hasBorder()?
-              null:
-              boxController.borderGradient !=null
+              border: !boxController.hasBorder() 
+              ? null 
+              : boxController.borderGradient !=null
                   ? GradientBorder(
                     gradient: boxController.borderGradient,
                     width: boxController.borderWidth?.toDouble() ??

@@ -13,6 +13,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' as flutter;
 import 'package:ensemble/util/platform.dart';
+import 'package:flutter/material.dart';
 
 import '../widget/helpers/controllers.dart';
 
@@ -230,6 +231,7 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
 
      if (widget._controller.onTap != null) {
       rtn = flutter.InkWell(
+        splashColor: Colors.transparent,
         child: rtn,
         onTap: () =>  ScreenController().executeAction(context, widget._controller.onTap!),
       );
