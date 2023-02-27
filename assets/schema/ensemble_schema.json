@@ -959,12 +959,17 @@
     "ListView-payload": {
       "type": "object",
       "allOf": [
+        { "$ref": "#/$defs/Templated-payload" },
         {
           "properties": {
             "children": { "$ref": "#/$defs/Widgets" },
             "onItemTap": {
               "description": "Dispatch when an ListView item is selected/tapped.The event dispatches only when you tap on the item. The index of the item can be retrieved using 'selectedItemIndex'.",
               "$ref": "#/$defs/Action-payload"
+            },
+            "selectedItemIndex": {
+              "type": "integer",
+              "description": "Selecting a ListView item gives the index of selected item"
             },
             "styles": {
               "allOf": [
@@ -992,14 +997,9 @@
                   }
                 }
               ]
-            },
-            "selectedItemIndex": {
-              "type": "integer",
-              "description": "Selecting a ListView item gives the index of selected item"
             }
           }
-        },
-        { "$ref": "#/$defs/Templated-payload" }
+        }
       ]
     },
     "Carousel-payload": {
@@ -1764,7 +1764,7 @@
         },
         {
           "properties": {
-            "Column": { "$ref": "#/$defs/ListView-payload" }
+            "ListView": { "$ref": "#/$defs/ListView-payload" }
           }
         },
         {
@@ -2657,3 +2657,4 @@
 
   }
 }
+
