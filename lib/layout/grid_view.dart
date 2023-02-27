@@ -13,24 +13,25 @@ import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' as flutter;
 
 /// Layout items in a tile in a responsive fashion
-class TileView extends StatefulWidget
+class GridView extends StatefulWidget
     with
         UpdatableContainer,
         Invokable,
-        HasController<TileViewController, TileViewState> {
-  static const type = 'TileView';
+        HasController<GridViewController, GridViewState> {
+  static const type = 'GridView';
 
-  TileView({super.key});
+  GridView({super.key});
 
-  final TileViewController _controller = TileViewController();
+  final GridViewController _controller = GridViewController();
 
   @override
   get controller => _controller;
 
   @override
-  State<StatefulWidget> createState() => TileViewState();
+  State<StatefulWidget> createState() => GridViewState();
 
   @override
   Map<String, Function> getters() {
@@ -67,7 +68,7 @@ class TileView extends StatefulWidget
 
 }
 
-class TileViewController extends BoxController {
+class GridViewController extends BoxController {
   List<int>? horizontalTileCount;
   int? horizontalGap;
   int? verticalGap;
@@ -95,7 +96,7 @@ class TileViewController extends BoxController {
   }
 }
 
-class TileViewState extends WidgetState<TileView> with TemplatedWidgetState {
+class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
   static const gap = 10.0;
   static const cachedPixels = 1000.0; // cache an additional iphone size height
 
@@ -184,7 +185,7 @@ class TileViewState extends WidgetState<TileView> with TemplatedWidgetState {
         // we handle padding in the GridView so the scrollbar doesn't overlap content
         ignoresPadding: true,
         widget: LayoutBuilder(builder: (context, constraints) =>
-            GridView.builder(
+            flutter.GridView.builder(
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: _getTileCount(constraints),
                   crossAxisSpacing: widget._controller.horizontalGap
