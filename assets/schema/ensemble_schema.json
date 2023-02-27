@@ -1658,11 +1658,6 @@
         },
         {
           "properties": {
-            "TileView": { "$ref": "#/$defs/TileView-payload" }
-          }
-        },
-        {
-          "properties": {
             "Flex": { "$ref": "#/$defs/Flex-payload" }
           }
         },
@@ -1783,6 +1778,11 @@
         {
           "properties": {
             "Row": { "$ref": "#/$defs/Row-payload" }
+          }
+        },
+        {
+          "properties": {
+            "TileView": { "$ref": "#/$defs/TileView-payload" }
           }
         },
         {
