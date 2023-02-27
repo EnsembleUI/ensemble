@@ -892,6 +892,7 @@
     "Flow-payload": {
       "type": "object",
       "allOf": [
+        { "$ref": "#/$defs/Templated-payload" },
         {
           "properties": {
             "children": { "$ref": "#/$defs/Widgets" },
@@ -902,32 +903,81 @@
             },
             "styles": { "$ref": "#/$defs/flowStyles" }
           }
-        },
-        { "$ref": "#/$defs/Templated-payload" }
+        }
       ]
     },
     "Column-payload": {
       "type": "object",
       "allOf": [
+        { "$ref": "#/$defs/Templated-payload" },
         {
           "properties": {
             "children": { "$ref": "#/$defs/Widgets" },
             "styles": { "$ref": "#/$defs/columnStyles" }
           }
-        },
-        { "$ref": "#/$defs/Templated-payload" }
+        }
       ]
     },
     "Row-payload": {
       "type": "object",
       "allOf": [
+        { "$ref": "#/$defs/Templated-payload" },
         {
           "properties": {
             "children": { "$ref": "#/$defs/Widgets" },
             "styles": { "$ref": "#/$defs/rowStyles" }
           }
-        },
-        { "$ref": "#/$defs/Templated-payload" }
+        }
+      ]
+    },
+    "TileView-payload": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/Templated-payload" },
+        {
+          "properties": {
+            "onItemTap": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Call Ensemble's built-in functions or execute code when tapping on an item in the list."
+            },
+            "styles": {
+              "allOf": [
+                { "$ref": "#/$defs/baseStyles" },
+                { "$ref": "#/$defs/boxLayoutStyles" },
+                {
+                  "properties": {
+                    "horizontalTileCount": {
+                      "type": ["integer", "string"],
+                      "description": "The number of horizontal tiles (max 5) to show. If not specified, the number of tiles will automatically be determined by the screen size. You may also specify a single number (for all breakpoints), three numbers (for small, medium, large breakpoints), or five numbers (xSmall, small, medium, large, xLarge).",
+                      "minimum": 1,
+                      "maximum": 5
+                    },
+                    "horizontalGap": {
+                      "type": "integer",
+                      "description": "The gap between the horizontal tiles if there are more than one (default: 10).",
+                      "minimum": 0
+                    },
+                    "verticalGap": {
+                      "type": "integer",
+                      "description": "The gap between the vertical tiles if there are more than one (default: 10).",
+                      "minimum": 0
+                    },
+                    "itemHeight": {
+                      "type": "integer",
+                      "description": "Set a fixed height for each item in the tile. If each tile item comprises of many widgets vertically, setting this attribute may require you to stretch (expand) at least one inner widget.",
+                      "minimum": 0
+                    },
+                    "itemAspectRatio": {
+                      "type": "number",
+                      "description": "Instead of itemHeight, you can set the tile's dimension as a ratio of (item width / item height). For example, a tile with 3x width and 2x height is 3/2 = 1.5. This attribute will be ignored if itemHeight is set.",
+                      "minimum": 0
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
       ]
     },
     "Flex-payload": {

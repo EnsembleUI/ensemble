@@ -558,7 +558,7 @@ class Utils {
         return EBorderRadius.all(value);
       }
     } else if (value is String) {
-      List<int> numbers = _stringToIntegers(value, min: 0);
+      List<int> numbers = stringToIntegers(value, min: 0);
       if (numbers.length == 1) {
         return EBorderRadius.all(numbers[0]);
       } else if (numbers.length == 2) {
@@ -602,13 +602,15 @@ class Utils {
   }
 
   /// parse a string and return a list of integers
-  static List<int> _stringToIntegers(String value, {int? min}) {
+  static List<int> stringToIntegers(String value, {int? min, int? max}) {
     List<int> rtn = [];
 
     List<String> values = value.split(' ');
     for (var val in values) {
       int? number = int.tryParse(val);
-      if (number != null && (min == null || number >= min)) {
+      if (number != null &&
+          (min == null || number >= min) &&
+          (max == null || number <= max)) {
         rtn.add(number);
       }
     }
