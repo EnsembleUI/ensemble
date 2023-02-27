@@ -544,10 +544,10 @@ class PageState extends State<Page>{
 /// to every widgets in our tree
 class DataScopeWidget extends InheritedWidget {
   const DataScopeWidget({
-    Key? key,
+    super.key,
     required this.scopeManager,
-    required Widget child
-  }) : super(key: key, child: child);
+    required super.child
+  });
 
   final ScopeManager scopeManager;
 
