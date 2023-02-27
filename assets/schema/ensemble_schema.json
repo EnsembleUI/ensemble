@@ -930,7 +930,7 @@
         }
       ]
     },
-    "TileView-payload": {
+    "GridView-payload": {
       "type": "object",
       "allOf": [
         { "$ref": "#/$defs/Templated-payload" },
@@ -1782,7 +1782,7 @@
         },
         {
           "properties": {
-            "TileView": { "$ref": "#/$defs/TileView-payload" }
+            "GridView": { "$ref": "#/$defs/GridView-payload" }
           }
         },
         {
