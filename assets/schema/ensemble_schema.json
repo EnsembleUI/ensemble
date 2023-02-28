@@ -2283,6 +2283,11 @@
         {
           "type": "object",
           "properties": {
+            "mainAxis": {
+              "type": "string",
+              "description": "Control our children's layout vertically",
+              "enum": ["start", "center", "end", "spaceBetween", "spaceAround", "spaceEvenly"]
+            },
             "gap": {
               "type": "integer",
               "description": "The gap between the children in the main direction",
