@@ -1420,6 +1420,11 @@
                     "type": "number",
                     "minimum": -1.0,
                     "maximum": 1.0
+                  },
+                  "style": {
+                    "type": "string",
+                    "description": "Render the dialog with a default style. You can also specify 'none' and control your own styles in your widget.",
+                    "enum": ["default", "none"]
                   }
                 }
               },
