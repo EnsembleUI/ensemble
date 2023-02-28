@@ -58,7 +58,7 @@ class BoxWrapper extends StatelessWidget {
               ? null 
               : boxController.borderGradient !=null
                   ? GradientBorder(
-                    gradient: boxController.borderGradient,
+                    gradient: boxController.borderGradient!,
                     width: boxController.borderWidth?.toDouble() ??
                           ThemeManager.getBorderThickness(context)
                   )
@@ -88,9 +88,9 @@ class BoxWrapper extends StatelessWidget {
 
 
 class GradientBorder extends BoxBorder {
-  const GradientBorder({this.gradient,  required this.width});
+  const GradientBorder({required this.gradient,  required this.width});
 
-  final Gradient? gradient;
+  final LinearGradient gradient;
 
   final double width;
 
@@ -138,7 +138,7 @@ class GradientBorder extends BoxBorder {
   Paint _getPaint(Rect rect) {
     return Paint()
       ..strokeWidth = width 
-      ..shader = gradient!.createShader(rect)
+      ..shader = gradient.createShader(rect)
       ..style = PaintingStyle.stroke;
   }
 }
