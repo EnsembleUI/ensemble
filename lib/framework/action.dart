@@ -1,6 +1,7 @@
 
 
 
+import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:source_span/source_span.dart';
@@ -9,9 +10,10 @@ import 'package:yaml/yaml.dart';
 /// payload representing an Action to do (navigateToScreen, InvokeAPI, ..)
 abstract class EnsembleAction {
   EnsembleAction({this.initiator,this.inputs});
-  Map<String, dynamic>? inputs;
+
   // initiator is an Invokable so we can scope to *this* variable
   Invokable? initiator;
+  Map<String, dynamic>? inputs;
 }
 
 class InvokeAPIAction extends EnsembleAction {
@@ -41,14 +43,18 @@ class ShowCameraAction extends EnsembleAction{
 
 class ShowDialogAction extends EnsembleAction {
   ShowDialogAction({
-    Invokable? initiator,
-    required this.content,
+    super.initiator,
+    required this.widget,
     this.options,
     this.onDialogDismiss,
-    Map<String, dynamic>? inputs
-  }) : super(initiator: initiator, inputs: inputs);
+    super.inputs
+  }) {
+    if (widget == null) {
+      throw LanguageError("Dialog requires a widget.");
+    }
+  }
 
-  final dynamic content;
+  final dynamic widget;
   final Map<String, dynamic>? options;
   final EnsembleAction? onDialogDismiss;
 }

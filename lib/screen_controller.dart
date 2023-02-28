@@ -147,7 +147,7 @@ class ScreenController {
       }
     } else if (action is ShowDialogAction) {
       if (scopeManager != null) {
-        Widget content = scopeManager.buildWidgetFromDefinition(action.content);
+        Widget widget = scopeManager.buildWidgetFromDefinition(action.widget);
 
         // get styles. TODO: make bindable
         Map<String, dynamic> dialogStyles = {};
@@ -196,7 +196,7 @@ class ScreenController {
                                   ]
                               ),
                               child: SingleChildScrollView (
-                                child: content,
+                                child: widget,
                               )
                           )
                       )

@@ -79,7 +79,7 @@ class ViewUtil {
     }
 
     if (widgetType == null) {
-      throw LanguageError('Invalid widget definition.', recovery: 'Widget type is required');
+      throw LanguageError('Invalid widget definition.', recovery: 'Please provide a valid widget.');
     }
 
     // Let's build the model now

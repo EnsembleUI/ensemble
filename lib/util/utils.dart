@@ -231,7 +231,7 @@ class Utils {
       else if (payload['action'] == ActionType.showDialog.name) {
         return ShowDialogAction(
           initiator: initiator,
-          content: payload['name'],
+          widget: payload['widget'] ?? payload['name'],   // payload['name'] for backward compatibility
           options: getMap(payload['options']),
           inputs: inputs,
           onDialogDismiss: Utils.getAction(payload['onDialogDismiss'])
