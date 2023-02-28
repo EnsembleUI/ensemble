@@ -1153,7 +1153,7 @@
             "action": {
               "type": "string",
               "description": "invoke an Ensemble's built-in functions",
-              "enum": ["invokeAPI" ,"navigateScreen", "navigateModalScreen", "showDialog", "closeAllDialogs", "startTimer", "showToast", "executeCode", "getLocation", "uploadFiles"]
+              "enum": ["invokeAPI" ,"navigateScreen", "navigateModalScreen", "showDialog", "closeAllDialogs", "startTimer", "showToast", "executeCode", "getLocation", "uploadFiles" , "openCamera"]
             }
           }
         },
@@ -1232,6 +1232,66 @@
               "onModalDismiss": {
                 "$ref": "#/$defs/Action-payload",
                 "description": "Execute an Action when the modal screen is dismissed"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "openCamera"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "options": {
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "type": "string",
+                    "description": "Enter the mode for video and photo or both"
+                  },
+                  "initialCamera": {
+                    "type": "string",
+                    "description": "Enter the initialCamera for back or front camera"
+                  },
+                  "useGallery": {
+                    "type": "boolean",
+                    "description": "useGallery is being used for selecting images and videos from gallery"
+                  },
+                  "preview": {
+                    "type": "boolean",
+                    "description": "preview is being used for showing selected or captured videos or images"
+                  },
+                  "maxCount": {
+                    "description": "maxCount is being used for how maximum videos or photos user can add in stack",
+                    "type": "number"
+                  },
+                  "maxCountMessage": {
+                    "description": "maxCountMessage is being used for when maxCount value will be equal to stack value then it’ll show message",
+                    "type": "string"
+                  },
+                  "imagePickerIcon": {
+                    "$ref": "#/$defs/Icon-payload"
+                  },
+                  "cameraRotateIcon": {
+                    "$ref": "#/$defs/Icon-payload"
+                  },
+                  "permissionDeniedMessage": {
+                    "type": "string"
+                  },
+                  "nextButtonLabel": {
+                    "type": "string"
+                  },
+                  "accessButtonLabel": {
+                    "type": "string"
+                  },
+                  "galleryButtonLabel": {
+                    "type": "string"
+                  }
+                }
               }
             }
           }
