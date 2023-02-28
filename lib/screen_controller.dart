@@ -155,6 +155,7 @@ class ScreenController {
           dialogStyles[key] = dataContext.eval(value);
         });
 
+        bool useDefaultStyle = dialogStyles['style'] != 'none';
         BuildContext? dialogContext;
 
         showGeneralDialog(
@@ -162,7 +163,7 @@ class ScreenController {
             context: context,
             barrierDismissible: true,
             barrierLabel: "Barrier",
-            barrierColor: Colors.black54,
+            barrierColor: Colors.black54,   // this has some transparency so the bottom shown through
 
             pageBuilder: (context, animation, secondaryAnimation) {
               // save a reference to the builder's context so we can close it programmatically
@@ -184,17 +185,20 @@ class ScreenController {
                               maxHeight: Utils.getDouble(dialogStyles['maxHeight'], fallback: double.infinity)
                           ),
                           child: Container(
-                              decoration: const BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.all(Radius.circular(5)),
-                                  boxShadow: <BoxShadow>[
-                                    BoxShadow(
-                                      color: Colors.white38,
-                                      blurRadius: 5,
-                                      offset: Offset(0, 0),
-                                    )
-                                  ]
-                              ),
+                              decoration: useDefaultStyle
+                                ? const BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.all(Radius.circular(5)),
+                                    boxShadow: <BoxShadow>[
+                                      BoxShadow(
+                                        color: Colors.white38,
+                                        blurRadius: 5,
+                                        offset: Offset(0, 0),
+                                      )
+                                    ])
+                                : null,
+                              margin: useDefaultStyle ? const EdgeInsets.all(20) : null,
+                              padding: useDefaultStyle ? const EdgeInsets.all(20) : null,
                               child: SingleChildScrollView (
                                 child: widget,
                               )
