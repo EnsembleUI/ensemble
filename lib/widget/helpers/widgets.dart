@@ -88,11 +88,11 @@ class BoxWrapper extends StatelessWidget {
 
 
 class GradientBorder extends BoxBorder {
-  const GradientBorder({this.gradient, this.width});
+  const GradientBorder({this.gradient,  required this.width});
 
   final Gradient? gradient;
 
-  final double? width;
+  final double width;
 
   @override
   BorderSide get bottom => BorderSide.none;
@@ -101,7 +101,7 @@ class GradientBorder extends BoxBorder {
   BorderSide get top => BorderSide.none;
 
   @override
-  EdgeInsetsGeometry get dimensions => EdgeInsets.all(width!);
+  EdgeInsetsGeometry get dimensions => EdgeInsets.all(width);
 
   @override
   bool get isUniform => true;
@@ -122,11 +122,11 @@ class GradientBorder extends BoxBorder {
   }
 
   void _paintRect(Canvas canvas, Rect rect) {
-    canvas.drawRect(rect.deflate(width! / 2), _getPaint(rect));
+    canvas.drawRect(rect.deflate(width / 2), _getPaint(rect));
   }
 
   void _paintRRect(Canvas canvas, Rect rect, BorderRadius borderRadius) {
-    final rrect = borderRadius.toRRect(rect).deflate(width! / 2);
+    final rrect = borderRadius.toRRect(rect).deflate(width / 2);
     canvas.drawRRect(rrect, _getPaint(rect));
   }
 
@@ -137,7 +137,7 @@ class GradientBorder extends BoxBorder {
 
   Paint _getPaint(Rect rect) {
     return Paint()
-      ..strokeWidth = width!
+      ..strokeWidth = width 
       ..shader = gradient!.createShader(rect)
       ..style = PaintingStyle.stroke;
   }
