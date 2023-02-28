@@ -1386,10 +1386,11 @@
             }
           },
           "then": {
+            "required": ["widget"],
             "properties": {
-              "name": {
+              "widget": {
                 "$ref": "#/$defs/Widget",
-                "description": "Specifies a widget name or declare a widget to render inside the Dialog"
+                "description": "Return an inline widget or specify a custom widget's name to use in the dialog."
               },
               "options": {
                 "type": "object",
@@ -1424,7 +1425,7 @@
               },
               "onDialogDismiss": {
                 "$ref": "#/$defs/Action-payload",
-                "description": "Execute an Action when the Dialog is dismissed"
+                "description": "Execute an Action when the dialog is dismissed."
               }
             }
           }
@@ -2061,7 +2062,7 @@
           "description": "Define each of your Tab here",
           "items": {
             "type": "object",
-            "required": ["label", "body"],
+            "required": ["label", "widget"],
             "properties": {
               "label": {
                 "type": "string",
@@ -2070,9 +2071,9 @@
               "icon": {
                 "$ref":"#/$defs/HasIcon"
               },
-              "body": {
+              "widget": {
                 "$ref": "#/$defs/Widget",
-                "description": "Add a widget to be rendered as this tab's content"
+                "description": "Return an inline widget or specify a custom widget to be rendered as this tab's content"
               }
             }
           }

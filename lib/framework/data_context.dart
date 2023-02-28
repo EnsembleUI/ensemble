@@ -310,9 +310,9 @@ class NativeInvokable with Invokable {
         asModal: true);
     // how do we handle onModalDismiss in Typescript?
   }
-  void showDialog(dynamic content) {
+  void showDialog(dynamic widget) {
     ScreenController().executeAction(_buildContext, ShowDialogAction(
-        content: content)
+        widget: widget)
     );
   }
   void invokeAPI(String apiName, [dynamic inputs]) {
