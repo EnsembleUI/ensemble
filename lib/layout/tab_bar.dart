@@ -1,6 +1,7 @@
 
 
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/page.dart';
@@ -95,7 +96,7 @@ class TabBarController extends WidgetController {
       for (YamlMap item in items) {
         _items.add(TabItem(
             Utils.getString(item['label'], fallback: ''),
-            item['body'],
+            item['widget'] ?? item['body'],   // item['body'] for backward compatibility
             icon: Utils.getIcon(item['icon']),
           )
         );
@@ -250,7 +251,7 @@ class TabBarState extends WidgetState<BaseTabBar> with SingleTickerProviderState
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
     if (scopeManager != null) {
       TabItem selectedTab = widget._controller._items[widget._controller.selectedIndex];
-      return scopeManager.buildWidgetFromDefinition(selectedTab.body);
+      return scopeManager.buildWidgetFromDefinition(selectedTab.widget);
     }
     return const Text("Unknown widget for this Tab");
   }
@@ -258,10 +259,14 @@ class TabBarState extends WidgetState<BaseTabBar> with SingleTickerProviderState
 }
 
 class TabItem {
-  TabItem(this.label, this.body, {this.icon});
+  TabItem(this.label, this.widget, {this.icon}) {
+    if (widget == null) {
+      throw LanguageError('Tab item requires a widget.');
+    }
+  }
 
   String label;
-  dynamic body;
+  dynamic widget;
   IconModel? icon;
 
 }

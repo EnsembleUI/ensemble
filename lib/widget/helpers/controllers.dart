@@ -90,10 +90,13 @@ class BoxController extends WidgetController {
   }
 
   /// optimization. This is important to review if more properties are added
-  bool requiresBox(bool ignoresMargin, bool ignoresDimension) =>
+  bool requiresBox({
+    required bool ignoresMargin,
+    required bool ignoresPadding,
+    required bool ignoresDimension}) =>
       (!ignoresDimension && hasDimension()) ||
       (!ignoresMargin && margin != null) ||
-      padding != null ||
+      (!ignoresPadding && padding != null) ||
       hasBoxDecoration();
 
   bool hasDimension() =>

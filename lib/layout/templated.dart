@@ -1,4 +1,6 @@
 
+import 'dart:developer';
+
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/scope.dart';
@@ -55,7 +57,7 @@ List<DataScopeWidget>? buildWidgetsFromTemplate(BuildContext context, List dataL
   return widgets;
 }
 
-DataScopeWidget buildSingleWidget(ScopeManager parentScope, ItemTemplate itemTemplate, dynamic itemData) {
+DataScopeWidget buildSingleWidget(ScopeManager parentScope, ItemTemplate itemTemplate, dynamic itemData, {Key? key}) {
   // create a new scope for each item template
   ScopeManager templatedScope = parentScope.createChildScope();
   templatedScope.dataContext.addDataContextById(itemTemplate.name, itemData);
@@ -63,13 +65,15 @@ DataScopeWidget buildSingleWidget(ScopeManager parentScope, ItemTemplate itemTem
   Widget templatedWidget = templatedScope.buildWidgetFromDefinition(itemTemplate.template);
 
   // wraps the templated widget inside a DataScopeWidget so we can constrain the data scope
-  return DataScopeWidget(scopeManager: templatedScope, child: templatedWidget);
+  return DataScopeWidget(scopeManager: templatedScope, child: templatedWidget, key: key,);
 }
 
 DataScopeWidget? buildWidgetForIndex(BuildContext context, List dataList, ItemTemplate itemTemplate, int itemIndex) {
+  //log("building item index $itemIndex");
   ScopeManager? parentScope = DataScopeWidget.getScope(context);
   if (parentScope != null) {
     dynamic itemData = dataList.elementAt(itemIndex);
+    //return buildSingleWidget(parentScope, itemTemplate, itemData, key: ValueKey(itemIndex));
     return buildSingleWidget(parentScope, itemTemplate, itemData);
   }
   return null;

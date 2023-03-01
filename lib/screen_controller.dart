@@ -147,7 +147,7 @@ class ScreenController {
       }
     } else if (action is ShowDialogAction) {
       if (scopeManager != null) {
-        Widget content = scopeManager.buildWidgetFromDefinition(action.content);
+        Widget widget = scopeManager.buildWidgetFromDefinition(action.widget);
 
         // get styles. TODO: make bindable
         Map<String, dynamic> dialogStyles = {};
@@ -155,6 +155,7 @@ class ScreenController {
           dialogStyles[key] = dataContext.eval(value);
         });
 
+        bool useDefaultStyle = dialogStyles['style'] != 'none';
         BuildContext? dialogContext;
 
         showGeneralDialog(
@@ -162,7 +163,7 @@ class ScreenController {
             context: context,
             barrierDismissible: true,
             barrierLabel: "Barrier",
-            barrierColor: Colors.black54,
+            barrierColor: Colors.black54,   // this has some transparency so the bottom shown through
 
             pageBuilder: (context, animation, secondaryAnimation) {
               // save a reference to the builder's context so we can close it programmatically
@@ -184,19 +185,22 @@ class ScreenController {
                               maxHeight: Utils.getDouble(dialogStyles['maxHeight'], fallback: double.infinity)
                           ),
                           child: Container(
-                              decoration: const BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.all(Radius.circular(5)),
-                                  boxShadow: <BoxShadow>[
-                                    BoxShadow(
-                                      color: Colors.white38,
-                                      blurRadius: 5,
-                                      offset: Offset(0, 0),
-                                    )
-                                  ]
-                              ),
+                              decoration: useDefaultStyle
+                                ? const BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.all(Radius.circular(5)),
+                                    boxShadow: <BoxShadow>[
+                                      BoxShadow(
+                                        color: Colors.white38,
+                                        blurRadius: 5,
+                                        offset: Offset(0, 0),
+                                      )
+                                    ])
+                                : null,
+                              margin: useDefaultStyle ? const EdgeInsets.all(20) : null,
+                              padding: useDefaultStyle ? const EdgeInsets.all(20) : null,
                               child: SingleChildScrollView (
-                                child: content,
+                                child: widget,
                               )
                           )
                       )
@@ -321,16 +325,45 @@ class ScreenController {
         allowMultiple: action.allowMultiple ?? false,
       ).then((result) async {
 
-        if (result==null || result.files.isEmpty) return;
+        const defaultMaxFileSize = 100000;
+        const defaultOverMaxFileSizeMessage = 'The size of is which is larger than the maximum allowed';
+
+        if (result==null || result.files.isEmpty) {
+          if (action.onError != null) executeAction(context, action.onError!);
+          return null;
+        }
 
         final selectedFiles = result.files.map((file) => File.fromPlatformFile(file)).toList();
+        int totalSize = selectedFiles.fold<int>(0, (previousValue, element) => previousValue + element.size);
+        totalSize = totalSize ~/ 1000;
+
+        final message = Utils.translateWithFallback(
+          'ensemble.input.overMaxFileSizeMessage', 
+          action.overMaxFileSizeMessage ?? defaultOverMaxFileSizeMessage,
+        );
+
+        if (totalSize > (action.maxFileSize ?? defaultMaxFileSize)) {
+          ToastController().showToast(context, ShowToastAction(type: ToastType.error, message: message, position: 'bottom'), null);
+          if (action.onError != null) executeAction(context, action.onError!);
+          return;
+        }
+
         if (action.id != null && scopeManager != null) {
           scopeManager.dataContext.addInvokableContext(action.id!, FileData(files: selectedFiles));
         }
-        
-        if (action.uploadUrl == null) throw RuntimeException('Enter URL');
+        YamlMap? apiDefinition = apiMap?[action.uploadApi];
+        if (apiDefinition == null) throw LanguageError('Unable to find api definition for ${action.uploadApi}');
+        if (apiDefinition['inputs'] is YamlList && action.inputs != null) {
+          for (var input in apiDefinition['inputs']) {
+            dynamic value = dataContext.eval(action.inputs![input]);
+            if (value != null) {
+              dataContext.addDataContextById(input, value);
+            }
+          }
+        }
         final response = await UploadUtils.uploadFiles(
-          action.uploadUrl!, 
+          apiDefinition, 
+          dataContext,
           selectedFiles,
           onError: action.onError == null ? null : (error) => executeAction(context, action.onError!),
         );

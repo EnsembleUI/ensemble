@@ -40,6 +40,10 @@ abstract class BindingSource {
         int dotIndex = variable.indexOf('.');
         if (dotIndex != -1) {
           String modelId = variable.substring(0, dotIndex);
+
+          // modelId can be of syntax val[1], so strip out the array
+          modelId = Utils.stripEndingArrays(modelId);
+
           unknownModelId = modelId;
           String property = variable.substring(dotIndex + 1);
 

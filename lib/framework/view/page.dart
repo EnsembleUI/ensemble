@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -86,9 +87,12 @@ class PageState extends State<Page>{
   }
 
   /// create AppBar that is part of a CustomScrollView
-  Widget? buildSliverAppBar(HeaderModel? headerModel, bool hasDrawer) {
-    if (headerModel != null) {
-      dynamic appBar = _buildAppBar(headerModel, scrollableView: true);
+  Widget? buildSliverAppBar(SinglePageModel pageModel, bool hasDrawer) {
+    if (pageModel.headerModel != null) {
+      dynamic appBar = _buildAppBar(
+        pageModel.headerModel!,
+        scrollableView: true,
+        showNavigationIcon: pageModel.pageStyles?['showNavigationIcon']);
       if (appBar is SliverAppBar) {
         return appBar;
       }
@@ -100,9 +104,12 @@ class PageState extends State<Page>{
   }
 
   /// fixed AppBar
-  PreferredSizeWidget? buildFixedAppBar(HeaderModel? headerModel, bool hasDrawer) {
-    if (headerModel != null) {
-      dynamic appBar = _buildAppBar(headerModel, scrollableView: false);
+  PreferredSizeWidget? buildFixedAppBar(SinglePageModel pageModel, bool hasDrawer) {
+    if (pageModel.headerModel != null) {
+      dynamic appBar = _buildAppBar(
+          pageModel.headerModel!,
+          scrollableView: false,
+          showNavigationIcon: pageModel.pageStyles?['showNavigationIcon']);
       if (appBar is PreferredSizeWidget) {
         return appBar;
       }
@@ -115,7 +122,7 @@ class PageState extends State<Page>{
   }
 
   /// fixed AppBar
-  dynamic _buildAppBar(HeaderModel headerModel, {required bool scrollableView}) {
+  dynamic _buildAppBar(HeaderModel headerModel, {required bool scrollableView, bool? showNavigationIcon}) {
     Widget? titleWidget;
     if (headerModel.titleWidget != null) {
       titleWidget = _scopeManager.buildWidget(headerModel.titleWidget!);
@@ -130,7 +137,6 @@ class PageState extends State<Page>{
     }
 
     bool centerTitle = Utils.getBool(headerModel.styles?['centerTitle'], fallback: true);
-    bool showNavigationIcon = Utils.getBool(headerModel.styles?['showNavigationIcon'], fallback: true);
     Color? backgroundColor = Utils.getColor(headerModel.styles?['backgroundColor']);
     Color? color = Utils.getColor(headerModel.styles?['color']);
     Color? shadowColor = Utils.getColor(headerModel.styles?['shadowColor']);
@@ -148,7 +154,7 @@ class PageState extends State<Page>{
 
     if (scrollableView) {
       return SliverAppBar(
-        automaticallyImplyLeading: showNavigationIcon,
+        automaticallyImplyLeading: showNavigationIcon != false,
         title: titleWidget,
         centerTitle: centerTitle,
         backgroundColor: backgroundColor,
@@ -169,7 +175,7 @@ class PageState extends State<Page>{
       );
     } else {
       return AppBar(
-        automaticallyImplyLeading: showNavigationIcon,
+        automaticallyImplyLeading: showNavigationIcon != false,
         title: titleWidget,
         centerTitle: centerTitle,
         backgroundColor: backgroundColor,
@@ -229,9 +235,23 @@ class PageState extends State<Page>{
       backgroundColor = Colors.transparent;
     }
 
+    // whether to usse CustomScrollView for the entire page
+    bool isScrollableView = widget._pageModel.pageStyles?['scrollableView'] == true;
+
+    PreferredSizeWidget? fixedAppBar;
+    if (!isScrollableView) {
+      fixedAppBar = buildFixedAppBar(widget._pageModel, hasDrawer);
+    }
+
+    // whether we have a header and if the close button is already there
+    bool hasHeader = widget._pageModel.headerModel != null || hasDrawer;
+    bool? showNavigationIcon = widget._pageModel.pageStyles?['showNavigationIcon'];
+
     // add close button for modal page
     Widget? closeModalButton;
-    if (widget._pageModel.screenOptions?.pageType == PageType.modal) {
+    if (widget._pageModel.screenOptions?.pageType == PageType.modal &&
+        !hasHeader &&
+        showNavigationIcon != false) {
       closeModalButton = FloatingActionButton(
         elevation: 3,
         backgroundColor: Colors.white,
@@ -244,13 +264,7 @@ class PageState extends State<Page>{
       );
     }
 
-    // whether to usse CustomScrollView for the entire page
-    bool isScrollableView = widget._pageModel.pageStyles?['scrollableView'] == true;
 
-    PreferredSizeWidget? fixedAppBar;
-    if (!isScrollableView) {
-      fixedAppBar = buildFixedAppBar(widget._pageModel.headerModel, hasDrawer);
-    }
 
     Widget rtn = DataScopeWidget(
       scopeManager: _scopeManager,
@@ -269,7 +283,7 @@ class PageState extends State<Page>{
         bottomSheet: _buildFooter(_scopeManager, widget._pageModel),
         floatingActionButton: closeModalButton,
         floatingActionButtonLocation:
-          widget._pageModel.screenOptions?.closeButtonPosition == 'start' ?
+          widget._pageModel.pageStyles?['navigationIconPosition'] == 'start' ?
             FloatingActionButtonLocation.startTop :
             FloatingActionButtonLocation.endTop
       ),
@@ -278,12 +292,15 @@ class PageState extends State<Page>{
     // if backgroundImage is set, put it outside of the Scaffold so
     // keyboard sliding up (when entering value) won't resize the background
     if (backgroundImage != null) {
-      return Container(
-        constraints: const BoxConstraints.expand(),
-        decoration: BoxDecoration(
-          image: backgroundImage.image
-        ),
-        child: rtn
+      return Stack(
+        children: [
+          Positioned.fill(
+              child: CachedNetworkImage(
+            imageUrl: backgroundImage.source,
+            fit: BoxFit.cover,
+          )),
+          rtn
+        ],
       );
     }
     return rtn;
@@ -314,7 +331,7 @@ class PageState extends State<Page>{
     List<Widget> slivers = [];
 
     // appBar
-    Widget? appBar = buildSliverAppBar(widget._pageModel.headerModel, hasDrawer);
+    Widget? appBar = buildSliverAppBar(widget._pageModel, hasDrawer);
     if (appBar != null) {
       slivers.add(appBar);
     }
@@ -527,10 +544,10 @@ class PageState extends State<Page>{
 /// to every widgets in our tree
 class DataScopeWidget extends InheritedWidget {
   const DataScopeWidget({
-    Key? key,
+    super.key,
     required this.scopeManager,
-    required Widget child
-  }) : super(key: key, child: child);
+    required super.child
+  });
 
   final ScopeManager scopeManager;
 
