@@ -1461,10 +1461,19 @@
             }
           },
           "then": {
+            "required": ["onTimer"],
             "properties": {
               "id": {
                 "type": "string",
                 "description": "Give this timer an ID so it can be cancelled by a stopTimer action"
+              },
+              "onTimer": {
+                "$ref": "#/$defs/Action-payload",
+                "description": "Execute an Action every time the timer triggers"
+              },
+              "onTimerComplete": {
+                "$ref": "#/$defs/Action-payload",
+                "description": "Execute an Action when the timer has completed and will terminate"
               },
               "options": {
                 "type": "object",
@@ -1493,14 +1502,6 @@
                     "description": "Set the max number of times the timer will triggers, if repeat is true"
                   }
                 }
-              },
-              "onTimer": {
-                "$ref": "#/$defs/Action-payload",
-                "description": "Execute an Action every time the timer triggers"
-              },
-              "onTimerComplete": {
-                "$ref": "#/$defs/Action-payload",
-                "description": "Execute an Action when the timer has completed and will terminate"
               }
             }
           }

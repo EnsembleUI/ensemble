@@ -669,6 +669,14 @@ class Utils {
     return output != key ? output : fallback;
   }
 
+  static String stripEndingArrays(String input) {
+    RegExpMatch? match = RegExp(r'^(.+?)(?:\[[^\]]*\])+?$').firstMatch(input);
+    if (match != null) {
+      return match.group(1).toString();
+    }
+    return input;
+  }
+
   /// is it $(....)
   static bool isExpression(String expression) {
     return onlyExpression.hasMatch(expression);
