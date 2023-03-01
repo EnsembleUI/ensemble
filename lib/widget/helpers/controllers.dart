@@ -27,6 +27,7 @@ abstract class WidgetController extends Controller {
   @override
   Map<String, Function> getBaseSetters() {
     return {
+      'id': (value) => id = Utils.optionalString(value),
       'expanded': (value) => expanded = Utils.getBool(value, fallback: false),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
       'label': (value) => label = Utils.optionalString(value),
