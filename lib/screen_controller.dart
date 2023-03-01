@@ -362,6 +362,7 @@ class ScreenController {
           dataContext,
           selectedFiles,
           onError: action.onError == null ? null : (error) => executeAction(context, action.onError!),
+          fieldName: action.fieldName,
         );
         if (response == null || action.id == null || scopeManager == null) return;
         final fileData = scopeManager.dataContext.getContextById(action.id!) as FileData;
