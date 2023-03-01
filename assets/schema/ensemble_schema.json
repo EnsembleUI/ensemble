@@ -1880,7 +1880,7 @@
         },
         {
           "properties": {
-            "Chart": { "$ref": "#/$defs/Chart-payload" }
+            "ChartJs": { "$ref": "#/$defs/ChartJs-payload" }
           }
         }       
       ]
@@ -2193,7 +2193,7 @@
         }
       }
     },
-    "Chart-payload": {
+    "ChartJs-payload": {
       "type": "object",
       "properties": {
         "id": {
