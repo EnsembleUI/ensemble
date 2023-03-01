@@ -18,6 +18,7 @@ class UploadUtils {
         ProgressCallback? progressCallback,
         OnDoneCallback? onDone,
         OnErrorCallback? onError,
+        String? fieldName,
       }
     ) async {
 
@@ -48,9 +49,9 @@ class UploadUtils {
       http.MultipartFile? multipartFile;
 
       if (file.path != null) {
-        multipartFile = await http.MultipartFile.fromPath('files', file.path!);
+        multipartFile = await http.MultipartFile.fromPath(fieldName ?? 'files', file.path!);
       } else if ( file.bytes != null ) {
-        multipartFile = http.MultipartFile.fromBytes('files', file.bytes!, filename: file.name);
+        multipartFile = http.MultipartFile.fromBytes(fieldName ?? 'files', file.bytes!, filename: file.name);
       } else {
         continue;
       }
