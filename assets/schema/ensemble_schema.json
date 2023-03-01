@@ -52,10 +52,6 @@
                       "$ref": "#/$defs/typeColors",
                       "description": "If elevation is non-zero, this will override the drop shadow color of the header's bottom edge."
                     },
-                    "showNavigationIcon": {
-                      "type": "boolean",
-                      "description": "By default the App automatically injects the Menu or Back icon (if applicable) before the title. You may hide these icons by setting this to false."
-                    },
                     "centerTitle": {
                       "type": "boolean",
                       "description": "Whether to align the title in the title bar's center horizontally (default: true)"
@@ -79,20 +75,15 @@
             },
             "onLoad": {
               "$ref": "#/$defs/Action-payload",
-              "description": "Execute an Action when the page loads"
+              "description": "Execute an Action when the screen loads"
             },
             "options": {
               "type": "object",
               "properties": {
                 "type": {
                   "type": "string",
-                  "description": "Specify if this is a regular (default) or modal page",
+                  "description": "Specify if this is a regular (default) or modal screen",
                   "enum": ["regular", "modal"]
-                },
-                "closeButtonPosition": {
-                  "type": "string",
-                  "description": "For modal page, position the close button at the start or end of the screen. For left-to-right languages like English, start is on the left and end is on the right.",
-                  "enum": ["start", "end"]
                 }
               }
             },
@@ -103,7 +94,7 @@
                 },
                 {
                   "$ref": "#/$defs/backgroundColor",
-                  "description": "Background color for the page starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+                  "description": "Background color for the screen starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
                 },
                 {
                   "properties": {
@@ -113,7 +104,16 @@
                     },
                     "scrollableView": {
                       "type": "boolean",
-                      "description": "Specify if the content of this page is scrollable with a global scrollbar. Using this also allow us to customize the scrolling experience of the header."
+                      "description": "Specify if the content of this screen is scrollable with a global scrollbar. Using this also allow you to customize the scrolling experience of the header."
+                    },
+                    "showNavigationIcon": {
+                      "type": "boolean",
+                      "description": "For a screen with header, the App will automatically show the Menu, Back, or Close icon (for modal screen) before the title. On modal screen without the header, the Close icon will be shown. Set this flag to false if you wish to hide the icons and handle the navigation yourself."
+                    },
+                    "navigationIconPosition": {
+                      "type": "string",
+                      "description": "On modal screen without a header, you can position the close button at the start or end of the screen. For left-to-right languages like English, start is on the left and end is on the right. This property has no effect on a screen with header.",
+                      "enum": ["start", "end"]
                     }
                   }
                 }
@@ -137,7 +137,7 @@
     },
     "Functions": {
       "type": "string",
-      "description": "Javascript snippet for declaring variables and reusable functions, visible anywhere within this page"
+      "description": "Javascript snippet for declaring variables and reusable functions, visible anywhere within this screen"
     },
     "Global": {
       "defaultSnippets": [
@@ -146,7 +146,7 @@
           "body": "|-\n\t//@code\n\t"
         }
       ],
-      "markdownDescription": "Declare Javascript variables and functions that are visible globally within this page.  \n//@code  \n var myGlobalVar = 'hello';  \nfunction myGlobalFunc() {  \n  }"
+      "markdownDescription": "Declare Javascript variables and functions that are visible globally within this screen.  \n//@code  \n var myGlobalVar = 'hello';  \nfunction myGlobalFunc() {  \n  }"
 
     },
     "API": {
@@ -892,6 +892,7 @@
     "Flow-payload": {
       "type": "object",
       "allOf": [
+        { "$ref": "#/$defs/Templated-payload" },
         {
           "properties": {
             "children": { "$ref": "#/$defs/Widgets" },
@@ -902,32 +903,81 @@
             },
             "styles": { "$ref": "#/$defs/flowStyles" }
           }
-        },
-        { "$ref": "#/$defs/Templated-payload" }
+        }
       ]
     },
     "Column-payload": {
       "type": "object",
       "allOf": [
+        { "$ref": "#/$defs/Templated-payload" },
         {
           "properties": {
             "children": { "$ref": "#/$defs/Widgets" },
             "styles": { "$ref": "#/$defs/columnStyles" }
           }
-        },
-        { "$ref": "#/$defs/Templated-payload" }
+        }
       ]
     },
     "Row-payload": {
       "type": "object",
       "allOf": [
+        { "$ref": "#/$defs/Templated-payload" },
         {
           "properties": {
             "children": { "$ref": "#/$defs/Widgets" },
             "styles": { "$ref": "#/$defs/rowStyles" }
           }
-        },
-        { "$ref": "#/$defs/Templated-payload" }
+        }
+      ]
+    },
+    "GridView-payload": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/Templated-payload" },
+        {
+          "properties": {
+            "onItemTap": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Call Ensemble's built-in functions or execute code when tapping on an item in the list."
+            },
+            "styles": {
+              "allOf": [
+                { "$ref": "#/$defs/baseStyles" },
+                { "$ref": "#/$defs/boxLayoutStyles" },
+                {
+                  "properties": {
+                    "horizontalTileCount": {
+                      "type": ["integer", "string"],
+                      "description": "The number of horizontal tiles (max 5) to show. If not specified, the number of tiles will automatically be determined by the screen size. You may also specify a single number (for all breakpoints), three numbers (for small, medium, large breakpoints), or five numbers (xSmall, small, medium, large, xLarge).",
+                      "minimum": 1,
+                      "maximum": 5
+                    },
+                    "horizontalGap": {
+                      "type": "integer",
+                      "description": "The gap between the horizontal tiles if there are more than one (default: 10).",
+                      "minimum": 0
+                    },
+                    "verticalGap": {
+                      "type": "integer",
+                      "description": "The gap between the vertical tiles if there are more than one (default: 10).",
+                      "minimum": 0
+                    },
+                    "itemHeight": {
+                      "type": "integer",
+                      "description": "Set a fixed height for each item in the tile. If each tile item comprises of many widgets vertically, setting this attribute may require you to stretch (expand) at least one inner widget.",
+                      "minimum": 0
+                    },
+                    "itemAspectRatio": {
+                      "type": "number",
+                      "description": "Instead of itemHeight, you can set the tile's dimension as a ratio of (item width / item height). For example, a tile with 3x width and 2x height is 3/2 = 1.5. This attribute will be ignored if itemHeight is set.",
+                      "minimum": 0
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
       ]
     },
     "Flex-payload": {
@@ -955,6 +1005,52 @@
           }
         }
       }
+    },
+    "ListView-payload": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/Templated-payload" },
+        {
+          "properties": {
+            "children": { "$ref": "#/$defs/Widgets" },
+            "onItemTap": {
+              "description": "Dispatch when an ListView item is selected/tapped.The event dispatches only when you tap on the item. The index of the item can be retrieved using 'selectedItemIndex'.",
+              "$ref": "#/$defs/Action-payload"
+            },
+            "selectedItemIndex": {
+              "type": "integer",
+              "description": "Selecting a ListView item gives the index of selected item"
+            },
+            "styles": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/boxLayoutStyles"
+                },
+                {
+                  "$ref": "#/$defs/baseStyles"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "separatorColor": {
+                      "$ref": "#/$defs/typeColors",
+                      "description": "Set the color for the separator between items"
+                    },
+                    "separatorWidth": {
+                      "type": "integer",
+                      "description": "The thickness of the separator between items"
+                    },
+                    "separatorPadding": {
+                      "type": ["integer", "string"],
+                      "description": "Padding with CSS-style value e.g. padding: 5 20 5 Default 0 0 0"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     "Carousel-payload": {
       "type": "object",
@@ -1088,12 +1184,8 @@
           "type": "boolean"
         },
         "icon": {
-          "type": "string",
-          "description": "Icon name from Material Icons or Font Awesome"
-        },
-        "iconLibrary": {
-          "type": "string",
-          "enum": ["default", "fontAwesome"]
+          "$ref": "#/$defs/HasIcon",
+          "description": "The icon to show before the Input field"
         },
         "onChange": {
           "$ref": "#/$defs/Action-payload",
@@ -1101,18 +1193,7 @@
         },
         "styles": {
           "allOf": [
-            { "$ref": "#/$defs/baseStyles" },
-            {
-              "type": "object",
-              "properties": {
-                "iconSize": {
-                  "type": "integer"
-                },
-                "iconColor": {
-                  "type": ["number", "string"]
-                }
-              }
-            }
+            { "$ref": "#/$defs/baseStyles" }
           ]
         }
       }
@@ -1155,7 +1236,56 @@
             "action": {
               "type": "string",
               "description": "invoke an Ensemble's built-in functions",
-              "enum": ["invokeAPI" ,"navigateScreen", "navigateModalScreen", "showDialog", "closeAllDialogs", "startTimer", "showToast", "executeCode", "getLocation", "uploadFiles"]
+              "oneOf": [
+                {
+                  "const": "invokeAPI",
+                  "description": "Calling an API"
+                },
+                {
+                  "const": "navigateScreen",
+                  "description": "Navigating to a new screen"
+                },
+                {
+                  "const": "navigateModalScreen",
+                  "description": "Opening a new screen as a modal"
+                },
+                {
+                  "const": "navigateBack",
+                  "description": "Navigating back to the previous screen if possible. The current screen will be removed from the navigation history. This also works for a modal screen."
+                },
+                {
+                  "const": "showDialog",
+                  "description": "Opening a dialog"
+                },
+                {
+                  "const": "closeAllDialogs",
+                  "description": "Closing all opened dialogs"
+                },
+                {
+                  "const": "startTimer",
+                  "description": "Initiating the start of a timer"
+                },
+                {
+                  "const": "stopTimer",
+                  "description": "Stop a timer if it is running"
+                },
+                {
+                  "const": "showToast",
+                  "description": "Showing a toast message"
+                },
+                {
+                  "const": "executeCode",
+                  "description": "Execute a block of code."
+                },
+                {
+                  "const": "getLocation",
+                  "description": "Requesting user's permission to get his/her current location"
+                },
+                {
+                  "const": "uploadFiles",
+                  "description": "Allow users to upload files to an API from the camera or file system"
+                }
+              ]
             }
           }
         },
@@ -1256,10 +1386,11 @@
             }
           },
           "then": {
+            "required": ["widget"],
             "properties": {
-              "name": {
+              "widget": {
                 "$ref": "#/$defs/Widget",
-                "description": "Specifies a widget name or declare a widget to render inside the Dialog"
+                "description": "Return an inline widget or specify a custom widget's name to use in the dialog."
               },
               "options": {
                 "type": "object",
@@ -1289,12 +1420,17 @@
                     "type": "number",
                     "minimum": -1.0,
                     "maximum": 1.0
+                  },
+                  "style": {
+                    "type": "string",
+                    "description": "Render the dialog with a default style. You can also specify 'none' and control your own styles in your widget.",
+                    "enum": ["default", "none"]
                   }
                 }
               },
               "onDialogDismiss": {
                 "$ref": "#/$defs/Action-payload",
-                "description": "Execute an Action when the Dialog is dismissed"
+                "description": "Execute an Action when the dialog is dismissed."
               }
             }
           }
@@ -1325,10 +1461,19 @@
             }
           },
           "then": {
+            "required": ["onTimer"],
             "properties": {
               "id": {
                 "type": "string",
                 "description": "Give this timer an ID so it can be cancelled by a stopTimer action"
+              },
+              "onTimer": {
+                "$ref": "#/$defs/Action-payload",
+                "description": "Execute an Action every time the timer triggers"
+              },
+              "onTimerComplete": {
+                "$ref": "#/$defs/Action-payload",
+                "description": "Execute an Action when the timer has completed and will terminate"
               },
               "options": {
                 "type": "object",
@@ -1357,14 +1502,6 @@
                     "description": "Set the max number of times the timer will triggers, if repeat is true"
                   }
                 }
-              },
-              "onTimer": {
-                "$ref": "#/$defs/Action-payload",
-                "description": "Execute an Action every time the timer triggers"
-              },
-              "onTimerComplete": {
-                "$ref": "#/$defs/Action-payload",
-                "description": "Execute an Action when the timer has completed and will terminate"
               }
             }
           }
@@ -1512,9 +1649,9 @@
                 "type": "string",
                 "description": "Give the Uploader an ID allows you to bind to its result. e.g. ${filePicker.files...}, ${filePicker.body...}"
               },
-              "uploadUrl": {
+              "uploadApi": {
                 "type": "string",
-                "description": "Enter URL endpoint where files need to be uploaded"
+                "description": "Enter the name of your defined API"
               },
               "onComplete": {
                 "$ref": "#/$defs/Action-payload",
@@ -1536,7 +1673,16 @@
                     "description" : "It will allow media to apply the default OS compression (default True)"
                   },
                   "allowedExtensions": {
-                    "type": "array"
+                    "type": "array",
+                    "description": "Allow files with specific extension e.g jpg, png, pdf"
+                  },
+                  "maxFileSize" : {
+                    "type": "integer",
+                    "description": "File size that is allowed (default 100 mb), If multiple is allow then sum of all files"
+                  },
+                  "overMaxFileSizeMessage" : {
+                    "type": "string",
+                    "description": "Error message to show when selected files size is above maxFileSize."
                   }
                 }
               }
@@ -1684,7 +1830,17 @@
         },
         {
           "properties": {
+            "ListView": { "$ref": "#/$defs/ListView-payload" }
+          }
+        },
+        {
+          "properties": {
             "Row": { "$ref": "#/$defs/Row-payload" }
+          }
+        },
+        {
+          "properties": {
+            "GridView": { "$ref": "#/$defs/GridView-payload" }
           }
         },
         {
@@ -1912,34 +2068,18 @@
           "description": "Define each of your Tab here",
           "items": {
             "type": "object",
-            "required": ["label", "body"],
+            "required": ["label", "widget"],
             "properties": {
               "label": {
                 "type": "string",
                 "description": "Setting the tab label"
               },
               "icon": {
-                "type": "object",
-                "description": "The icon for each tab item. (short-hand 'iconName iconLibrary' also supported)",
-                "properties": {
-                  "name": {
-                    "type": ["integer", "string"],
-                    "description": "The name of the icon"
-                  },
-                  "library": {
-                    "$ref": "#/$defs/iconLibrary"
-                  },
-                  "color": {
-                    "$ref": "#/$defs/typeColors"
-                  },
-                  "size": {
-                    "type": "integer"
-                  }
-                }
+                "$ref":"#/$defs/HasIcon"
               },
-              "body": {
+              "widget": {
                 "$ref": "#/$defs/Widget",
-                "description": "Add a widget to be rendered as this tab's content"
+                "description": "Return an inline widget or specify a custom widget to be rendered as this tab's content"
               }
             }
           }
@@ -2201,6 +2341,11 @@
         {
           "type": "object",
           "properties": {
+            "mainAxis": {
+              "type": "string",
+              "description": "Control our children's layout vertically",
+              "enum": ["start", "center", "end", "spaceBetween", "spaceAround", "spaceEvenly"]
+            },
             "gap": {
               "type": "integer",
               "description": "The gap between the children in the main direction",
@@ -2426,11 +2571,6 @@
         }
       }
     },
-    "iconLibrary": {
-      "type": "string",
-      "description": "(optional) Select the icon library",
-      "enum": ["default", "fontAwesome"]
-    },
     "alignment": {
       "type": "string",
       "enum": ["topLeft", "topCenter", "topRight", "centerLeft", "center", "centerRight", "bottomLeft", "bottomCenter", "bottomRight"]
@@ -2566,8 +2706,31 @@
           "$ref": "#/$defs/backgroundGradient"
         }
       ]
+    },
+    "HasIcon": {
+      "type": "object",
+      "description": "Specifies the icon to use. You can also use the short-handed syntax 'iconName iconLibrary')",
+      "properties": {
+        "name": {
+          "type": ["integer", "string"],
+          "description": "The name of the icon"
+        },
+        "library": {
+          "type": "string",
+          "description": "Which icon library to use.",
+          "enum": ["default", "fontAwesome"]
+        },
+        "color": {
+          "$ref": "#/$defs/typeColors"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
     }
 
 
   }
 }
+

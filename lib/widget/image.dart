@@ -42,8 +42,7 @@ class EnsembleImage extends StatefulWidget with Invokable, HasController<ImageCo
       'source': (value) => _controller.source = Utils.getString(value, fallback: ''),
       'fit': (value) => _controller.fit = Utils.optionalString(value),
       'placeholderColor': (value) => _controller.placeholderColor = Utils.getColor(value),
-      'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, initiator: this),
-      'cache': (value) => _controller.cache = Utils.optionalBool(value) ?? _controller.cache,
+      'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, initiator: this)
     };
   }
 
@@ -54,20 +53,31 @@ class ImageController extends BoxController {
   String? fit;
   Color? placeholderColor;
   EnsembleAction? onTap;
-  bool cache=true;
 }
 
 class ImageState extends WidgetState<EnsembleImage> {
+  late Widget placeholder;
+
+  @override
+  void initState() {
+    super.initState();
+    placeholder = getPlaceholder();
+  }
 
   @override
   Widget buildWidget(BuildContext context) {
+    String source = widget._controller.source.trim();
+    // use the placeholder for the initial state before binding kicks in
+    if (source.isEmpty) {
+      return placeholder;
+    }
 
     BoxFit? fit = WidgetUtils.getBoxFit(widget._controller.fit);
     Widget image;
     if (isSvg()) {
-      image = buildSvgImage(fit);
+      image = buildSvgImage(source, fit);
     } else {
-      image = buildNonSvgImage(fit);
+      image = buildNonSvgImage(source, fit);
     }
 
     Widget rtn = BoxWrapper(
@@ -90,63 +100,37 @@ class ImageState extends WidgetState<EnsembleImage> {
     return rtn;
   }
 
-  Widget buildNonSvgImage(BoxFit? fit) {
-    String source = widget._controller.source.trim();
-    if (source.isNotEmpty) {
-      // if is URL
-      if (source.startsWith('https://') || source.startsWith('http://')) {
-        // image binding is tricky. When the URL has not been resolved
-        // the image will throw exception. We have to use a permanent placeholder
-        // until the binding engages
-        if (widget._controller.cache) {
-          return CachedNetworkImage(
-            width: widget._controller.width?.toDouble(),
-            height: widget._controller.height?.toDouble(),
-            fit: fit,
-            errorWidget: (context, error, stacktrace) => errorFallback(),
-            placeholder: (context, url) => placeholder(),
-            imageUrl: widget.controller.source,
-          );
-        } else {
-          return Image.network(widget._controller.source,
-              width: widget._controller.width?.toDouble(),
-              height: widget._controller.height?.toDouble(),
-              fit: fit,
-              errorBuilder: (context, error, stacktrace) => errorFallback(),
-              loadingBuilder: (BuildContext context, Widget child,
-                  ImageChunkEvent? loadingProgress) {
-                if (loadingProgress == null) {
-                  return child;
-                }
-                return placeholder();
-              });
-        }
-      }
-      // else attempt local asset
-      else {
-        // user might use env variables to switch between remote and local images.
-        // Assets might have additional token e.g. my-image.png?x=2343
-        // so we need to strip them out
-        return Image.asset(
-            Utils.getLocalAssetFullPath(widget._controller.source),
-            width: widget._controller.width?.toDouble(),
-            height: widget._controller.height?.toDouble(),
-            fit: fit,
-            errorBuilder: (context, error, stacktrace) => errorFallback());
-      }
+  Widget buildNonSvgImage(String source, BoxFit? fit) {
+    if (source.startsWith('https://') || source.startsWith('http://')) {
+      return CachedNetworkImage(
+        imageUrl: source,
+        width: widget._controller.width?.toDouble(),
+        height: widget._controller.height?.toDouble(),
+        fit: fit,
+        errorWidget: (context, error, stacktrace) => errorFallback(),
+        placeholder: (context, url) => placeholder);
     }
-    return errorFallback();
+    // else attempt local asset
+    // user might use env variables to switch between remote and local images.
+    // Assets might have additional token e.g. my-image.png?x=2343
+    // so we need to strip them out
+    return Image.asset(
+        Utils.getLocalAssetFullPath(source),
+        width: widget._controller.width?.toDouble(),
+        height: widget._controller.height?.toDouble(),
+        fit: fit,
+        errorBuilder: (context, error, stacktrace) => errorFallback());
   }
 
-  Widget buildSvgImage(BoxFit? fit) {
+  Widget buildSvgImage(String source, BoxFit? fit) {
     // if is URL
-    if (widget._controller.source.startsWith('https://') || widget._controller.source.startsWith('http://')) {
+    if (source.startsWith('https://') || source.startsWith('http://')) {
       return SvgPicture.network(
           widget._controller.source,
           width: widget._controller.width?.toDouble(),
           height: widget._controller.height?.toDouble(),
           fit: fit ?? BoxFit.contain,
-          placeholderBuilder: (_) => placeholder()
+          placeholderBuilder: (_) => placeholder
       );
     }
     // attempt local assets
@@ -154,8 +138,7 @@ class ImageState extends WidgetState<EnsembleImage> {
         Utils.getLocalAssetFullPath(widget._controller.source),
         width: widget._controller.width?.toDouble(),
         height: widget._controller.height?.toDouble(),
-        fit: fit ?? BoxFit.contain,
-        placeholderBuilder: (_) => placeholder()
+        fit: fit ?? BoxFit.contain
     );
   }
 
@@ -173,11 +156,12 @@ class ImageState extends WidgetState<EnsembleImage> {
 
   // use modern colors as background placeholder while images are being loaded
   final placeholderColors = [0xffD9E3E5, 0xffBBCBD2, 0xffA79490, 0xffD7BFA8, 0xffEAD9C9, 0xffEEEAE7];
-  Widget placeholder() {
+  Widget getPlaceholder() {
+    // TODO: this doesn't show up when Image doesn't have explicit width/height
     return ColoredBox(
         color: widget._controller.placeholderColor ??
-            Color(
-                placeholderColors[Random().nextInt(placeholderColors.length)]));
+            Color(placeholderColors[Random().nextInt(placeholderColors.length)]),
+    );
   }
 
 

@@ -11,6 +11,10 @@ class BoxWrapper extends StatelessWidget {
     required this.widget,
     required this.boxController,
 
+    // internal widget may want to handle padding itself (e.g. ListView so
+    // its scrollbar lays on top of the padding and not the content)
+    this.ignoresPadding = false,
+
     // sometimes our widget may register a gesture. Such gesture should not
     // include the margin. This allows it to handle the margin on its own.
     this.ignoresMargin = false,
@@ -22,12 +26,16 @@ class BoxWrapper extends StatelessWidget {
   final BoxController boxController;
 
   // child widget may want to control these themselves
+  final bool ignoresPadding;
   final bool ignoresMargin;
   final bool ignoresDimension;
 
   @override
   Widget build(BuildContext context) {
-    if (!boxController.requiresBox(ignoresMargin, ignoresDimension)) {
+    if (!boxController.requiresBox(
+        ignoresMargin: ignoresMargin,
+        ignoresPadding: ignoresPadding,
+        ignoresDimension: ignoresDimension)) {
       return widget;
     }
     // when we have a border radius, we may need to clip the child (e.g. image)
@@ -45,7 +53,7 @@ class BoxWrapper extends StatelessWidget {
       width: ignoresDimension ? null : boxController.width?.toDouble(),
       height: ignoresDimension ? null : boxController.height?.toDouble(),
       margin: ignoresMargin ? null : boxController.margin,
-      padding: boxController.padding,
+      padding: ignoresPadding ? null : boxController.padding,
       clipBehavior: clip,
       child: widget,
       decoration: !boxController.hasBoxDecoration()

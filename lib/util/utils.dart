@@ -211,6 +211,7 @@ class Utils {
           initiator: initiator,
           screenName: payload['name'],
           inputs: inputs,
+          options: getMap(payload['options']),
           onModalDismiss: Utils.getAction(payload['onModalDismiss']));
       } else if (payload['action'] == ActionType.invokeAPI.name) {
         return InvokeAPIAction(
@@ -230,7 +231,7 @@ class Utils {
       else if (payload['action'] == ActionType.showDialog.name) {
         return ShowDialogAction(
           initiator: initiator,
-          content: payload['name'],
+          widget: payload['widget'] ?? payload['name'],   // payload['name'] for backward compatibility
           options: getMap(payload['options']),
           inputs: inputs,
           onDialogDismiss: Utils.getAction(payload['onDialogDismiss'])
@@ -315,7 +316,10 @@ class Utils {
             allowCompression: Utils.optionalBool(payload['options']?['allowCompression']),
             onComplete: Utils.getAction(payload['onComplete']),
             onError: Utils.getAction(payload['onError']),
-            uploadUrl: Utils.getUrl(payload['uploadUrl']),
+            uploadApi: payload['uploadApi'],
+            inputs: inputs,
+            maxFileSize: Utils.optionalDouble(payload['options']?['maxFileSize']),
+            overMaxFileSizeMessage: Utils.optionalString(payload['options']?['overMaxFileSizeMessage']),
          );
        }
     }
@@ -554,7 +558,7 @@ class Utils {
         return EBorderRadius.all(value);
       }
     } else if (value is String) {
-      List<int> numbers = _stringToIntegers(value, min: 0);
+      List<int> numbers = stringToIntegers(value, min: 0);
       if (numbers.length == 1) {
         return EBorderRadius.all(numbers[0]);
       } else if (numbers.length == 2) {
@@ -598,13 +602,15 @@ class Utils {
   }
 
   /// parse a string and return a list of integers
-  static List<int> _stringToIntegers(String value, {int? min}) {
+  static List<int> stringToIntegers(String value, {int? min, int? max}) {
     List<int> rtn = [];
 
     List<String> values = value.split(' ');
     for (var val in values) {
       int? number = int.tryParse(val);
-      if (number != null && (min == null || number >= min)) {
+      if (number != null &&
+          (min == null || number >= min) &&
+          (max == null || number <= max)) {
         rtn.add(number);
       }
     }
@@ -661,6 +667,14 @@ class Utils {
   static String translateWithFallback(String key, String fallback) {
     String output = FlutterI18n.translate(Utils.globalAppKey.currentContext!, key);
     return output != key ? output : fallback;
+  }
+
+  static String stripEndingArrays(String input) {
+    RegExpMatch? match = RegExp(r'^(.+?)(?:\[[^\]]*\])+?$').firstMatch(input);
+    if (match != null) {
+      return match.group(1).toString();
+    }
+    return input;
   }
 
   /// is it $(....)
