@@ -53,6 +53,18 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
   /// call when the screen is being disposed
   /// TODO: consolidate listeners, location, eventBus, ...
   void dispose() {
+    // clear out all event listeners
+    eventBus.destroy();
+
+    // cancel all timers bound to Invokable
+    pageData._timerMap.forEach((_, timer) {
+      timer.cancel();
+    });
+    // cancel all standalone timers
+    for (var timer in pageData._timers) {
+      timer.cancel();
+    }
+
     // cancel the screen's location listener
     pageData.locationListener?.cancel();
   }
@@ -452,21 +464,6 @@ mixin PageBindingManager on IsScopeManager {
   void dispatch(ModelChangeEvent event) {
     //log("EventBus ${eventBus.hashCode} firing $event");
     eventBus.fire(event);
-  }
-
-  /// upon widget being disposed, we need to remove all listeners associated with it
-  void disposeWidget(Invokable widget) {
-    // remove all listeners associated with this Invokable
-    if (listenerMap[widget] != null) {
-      for (StreamSubscription listener in listenerMap[widget]!.values) {
-        listener.cancel();
-      }
-      //log("Binding : Disposing ${widget}(${widget.id ?? ''}). Removing ${listenerMap[widget]!.length} listeners");
-      listenerMap.remove(widget);
-    }
-    // remove all Timers associated with this Invokable
-    removeTimerByWidget(widget);
-
   }
 
   /// unique but repeatable hash (within the same session) of the provided keys
