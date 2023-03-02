@@ -316,7 +316,7 @@ class Utils {
             onError: Utils.getAction(payload['onError']),
             uploadApi: payload['uploadApi'],
             inputs: inputs,
-            fieldName: Utils.optionalString(payload['fieldName']),
+            fieldName: Utils.getString(payload['fieldName'], fallback: 'files'),
             maxFileSize: Utils.optionalDouble(payload['options']?['maxFileSize']),
             overMaxFileSizeMessage: Utils.optionalString(payload['options']?['overMaxFileSizeMessage']),
          );
