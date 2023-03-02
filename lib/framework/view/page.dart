@@ -526,7 +526,6 @@ class PageState extends State<Page>{
     //log('Disposing View ${widget.hashCode}');
     _scopeManager.dispose();
     //_scopeManager.debugListenerMap();
-    _scopeManager.eventBus.destroy();
     super.dispose();
   }
 
