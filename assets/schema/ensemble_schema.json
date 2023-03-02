@@ -1725,27 +1725,43 @@
       "allOf": [
         {
           "properties": {
-            "Text": { "$ref": "#/$defs/Text-payload" }
+            "Text": { 
+              "$ref": "#/$defs/Text-payload",
+              "description": "Example from Kitchen Sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/c87f8b09-58e2-4c2f-99a1-cbbe9e25e9a5"
+            }
           }
         },
         {
           "properties": {
-            "Markdown": { "$ref": "#/$defs/Markdown-payload" }
+            "Markdown": { 
+              "$ref": "#/$defs/Markdown-payload",
+              "description": "Example from Kitchen Sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/6b6d9c3d-359b-4768-99a5-3f087a64387c#"
+            }
           }
         },
         {
           "properties": {
-            "Html": { "$ref": "#/$defs/Html-payload" }
+            "Html": { 
+              "$ref": "#/$defs/Html-payload",
+              "description": "Example from Kitchen Sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/ZhTBody9YozadVvTlhW0#"
+            }
           }
         },
         {
           "properties": {
-            "Icon": { "$ref": "#/$defs/Icon-payload" }
+            "Icon": { 
+              "$ref": "#/$defs/Icon-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/e7c686f5-b8a2-4670-9e6e-8fdb0fea768e#"
+            }
           }
         },
         {
           "properties": {
-            "Image": { "$ref": "#/$defs/Image-payload" }
+            "Image": { 
+              "$ref": "#/$defs/Image-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/7c7a3ffe-68ef-4e99-b9d1-4b5cee166233#"
+            
+            }
           }
         },
         {
@@ -1760,129 +1776,211 @@
         },
         {
           "properties": {
-            "Progress": { "$ref": "#/$defs/Progress-payload" }
+            "Progress": { 
+              "$ref": "#/$defs/Progress-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/c2c248f2-a289-40d3-acd5-65a1a7f3c5a2#"
+            }
           }
         },
         {
           "properties": {
-            "Divider": { "$ref": "#/$defs/Divider-payload" }
+            "Divider": {
+              "$ref": "#/$defs/Divider-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/4a893a2e-5bde-400c-b974-b25b497d31a5#"
+            }
           }
         },
         {
           "properties": {
-            "Spacer": { "$ref": "#/$defs/Spacer-payload" }
+            "Spacer": { 
+              "$ref": "#/$defs/Spacer-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/1d7e42a9-5bbc-4b4b-9a02-8c102234ee05#"
+            }
           }
         },
         {
           "properties": {
-            "TextInput": { "$ref": "#/$defs/TextInput-payload" }
+            "TextInput": { 
+              "$ref": "#/$defs/TextInput-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/abc081b1-bcb4-4db6-ae55-7987cb6c418e#"
+            
+            }
           }
         },
         {
           "properties": {
-            "PasswordInput": { "$ref": "#/$defs/PasswordInput-payload" }
+            "PasswordInput": { 
+              "$ref": "#/$defs/PasswordInput-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/218fa244-f0cd-4d17-91e6-7c099bbedede#" 
+            
+            }
           }
         },
         {
           "properties": {
-            "Checkbox": { "$ref": "#/$defs/OnOff-payload" }
+            "Checkbox": { 
+              "$ref": "#/$defs/OnOff-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/21f43d9b-db21-40fe-9c2f-806267e6c412#"
+            }
           }
         },
         {
           "properties": {
-            "Switch": { "$ref": "#/$defs/OnOff-payload" }
+            "Switch": { 
+              "$ref": "#/$defs/OnOff-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/3f4ba37a-0e6a-46a1-9b78-e4e04c84937d#"
+            }
           }
         },
         {
           "properties": {
-            "Dropdown": { "$ref": "#/$defs/SelectOne-payload" }
+            "Dropdown": {
+              "$ref": "#/$defs/SelectOne-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/fb8d28a2-834e-40a9-8419-155272fb0191#"
+            }
           }
         },
         {
           "properties": {
-            "Date": { "$ref": "#/$defs/Date-payload" }
+            "Date": { 
+              "$ref": "#/$defs/Date-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/b45c5576-ec22-4b04-832f-6dd7571dd20f#"
+            }
           }
         },
         {
           "properties": {
-            "Time": { "$ref": "#/$defs/Time-payload" }
+            "Time": { 
+              "$ref": "#/$defs/Time-payload",
+              "description": "Kitchen Sink Example: ...coming ..." 
+            
+            }
           }
         },
         {
           "properties": {
-            "Button": { "$ref": "#/$defs/Button-payload" }
+            "Button": { 
+              "$ref": "#/$defs/Button-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/09c1087b-f9ee-4a8c-9286-e0e881184c07#"
+            }
           }
         },
         {
           "properties": {
-            "Form": { "$ref": "#/$defs/Form-payload" }
+            "Form": { 
+              "$ref": "#/$defs/Form-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/3107baf6-dfc3-42cd-b617-61c37b31f31e#" 
+            }
           }
         },
         {
           "properties": {
-            "Flow": { "$ref": "#/$defs/Flow-payload" }
+            "Flow": { 
+              "$ref": "#/$defs/Flow-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/3e901fb8-a0e8-4f52-979b-7f5f2547e650#" 
+            }
           }
         },
         {
           "properties": {
-            "Column": { "$ref": "#/$defs/Column-payload" }
+            "Column": { 
+              "$ref": "#/$defs/Column-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/90a8e4df-5eab-4473-ba10-2ecffc9596b0#" 
+            }
           }
         },
         {
           "properties": {
-            "ListView": { "$ref": "#/$defs/ListView-payload" }
+            "ListView": { 
+              "$ref": "#/$defs/ListView-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/w0Wmu9ZMP4csk7IELSx3#" 
+            
+            }
           }
         },
         {
           "properties": {
-            "Row": { "$ref": "#/$defs/Row-payload" }
+            "Row": { 
+              "$ref": "#/$defs/Row-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/4bd0d453-c243-429d-a562-93cbc9db38e3#" 
+            
+            }
           }
         },
         {
           "properties": {
-            "GridView": { "$ref": "#/$defs/GridView-payload" }
+            "GridView": { 
+              "$ref": "#/$defs/GridView-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/DX5j2WVQFabmxD9FCD5h#" 
+            
+            }
           }
         },
         {
           "properties": {
-            "Flex": { "$ref": "#/$defs/Flex-payload" }
+            "Flex": { 
+              "$ref": "#/$defs/Flex-payload",
+              "description": "Kitchen Sink Example: ...coming ..." 
+            
+            }
           }
         },
         {
           "properties": {
-            "Stack": { "$ref": "#/$defs/Stack-payload" }
+            "Stack": { 
+              "$ref": "#/$defs/Stack-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/572ecf3b-b9f2-46f4-960f-ff438e5fa1dc#" 
+            }
           }
         },
         {
           "properties": {
-            "Carousel": { "$ref": "#/$defs/Carousel-payload" }
+            "Carousel": { 
+              "$ref": "#/$defs/Carousel-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/2e1d88b1-f281-4c2c-9bb1-bd18016d2b8c#" 
+            }
           }
         },
         {
           "properties": {
-            "TabBar": { "$ref": "#/$defs/TabBar-payload" }
+            "TabBar": { 
+              "$ref": "#/$defs/TabBar-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/cebd491d-7d90-43f4-9f17-b8575de441ca#" 
+            
+            }
           }
         },
         {
           "properties": {
-            "Map": { "$ref": "#/$defs/Map-payload" }
+            "Map": { 
+              "$ref": "#/$defs/Map-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/36e52d1a-39c5-4a6b-b064-2be6cfe3cf7b#"
+            
+            }
           }
         },
         {
           "properties": {
-            "Video": { "$ref": "#/$defs/Video-payload" }
+            "Video": {
+              "$ref": "#/$defs/Video-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/fce92bbb-af8e-403d-bf2d-c10926cc89a0#"
+            }
           }
         },
         {
           "properties": {
-            "WebView": { "$ref": "#/$defs/WebView-payload" }
+            "WebView": { 
+              "$ref": "#/$defs/WebView-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/22c8d57d-a906-4d11-873d-161fd6c56c0a#"
+            
+            }
           }
         },
         {
           "properties": {
             "ChartJs": { 
               "$ref": "#/$defs/ChartJs-payload" ,
-              "description": "Example from Kitchen sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/5d7b84de-3bbd-456e-aeea-98e2c9f4c3c7"      
+              "description": "Example from Kitchen Sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/5d7b84de-3bbd-456e-aeea-98e2c9f4c3c7"      
               }
           }
         }       
