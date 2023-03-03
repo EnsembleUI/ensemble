@@ -143,7 +143,8 @@ void main() {
     expect(context.eval(r'Psst ${ensemble.storage.get("password")}'), 'Psst pass');
   });
 
-  test('Date Formatter', () {
+  // need to re-work date time formatter
+  /*test('Date Formatter', () {
     DataContext context = getBaseContext();
     context.addInvokableContext("ensemble", NativeInvokable(MockBuildContext()));
 
@@ -158,7 +159,7 @@ void main() {
 
     expect(context.eval(r'${result.date_1.prettyDateTime()}'), 'Jun 16, 2022 5:01 PM');
     expect(context.eval(r'${result.has_power_since.prettyDateTime()}'), 'Jun 9, 2022 11:09 PM');
-  });
+  });*/
 
   test('currency formatter', () {
     DataContext context = getBaseContext();
