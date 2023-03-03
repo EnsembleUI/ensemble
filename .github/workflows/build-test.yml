@@ -6,7 +6,9 @@ on:
 #     types: [opened, reopened]
 
 jobs:
-  runTests:  
+  unitTest:
+    name: Unit Tests / Widget Tests
+  
     runs-on: macos-latest
     steps:
     - name: Checkout Code
@@ -18,7 +20,7 @@ jobs:
         channel: 'stable'
 
     - name: Pub Upgrade
-      run: flutter pub get
+      run: flutter pub upgrade
 
-    - name: Unit Tests / Widget Tests 
+    - name: Run Tests 
       run: flutter test
