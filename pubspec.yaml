@@ -79,6 +79,8 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  integration_test:
+    sdk: flutter
   flutter_lints: ^1.0.0
 
 flutter:
@@ -89,6 +91,10 @@ flutter:
 
   assets:
     - assets/images/
+
+    # integration tests (TODO - exclude from build)
+    - ensemble/integration_tests/
+    - ensemble/integration_tests/default/
 
   fonts:
     # semi-custom fonts
