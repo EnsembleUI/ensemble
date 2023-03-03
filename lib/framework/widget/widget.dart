@@ -51,15 +51,6 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
     _scopeManager = DataScopeWidget.getScope(context);
   }
 
-  // notify our ScopeManager that the widget is being disposed
-  @override
-  void dispose() {
-    if (widget is Invokable) {
-      _scopeManager?.disposeWidget(widget as Invokable);
-    }
-    super.dispose();
-  }
-
   @override
   void changeState() {
     super.changeState();
