@@ -14,10 +14,11 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:ensemble/framework/widget/icon.dart' as iconframework;
 import '../framework/model.dart';
-import 'package:http/http.dart' as http;
+import '../framework/scope.dart';
 import '../framework/widget/video_screen.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:ensemble/framework/data_context.dart' as filelist;
 // import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:file_picker/file_picker.dart';
 
 class CameraScreen extends StatefulWidget
     with Invokable, HasController<MyCameraController, CameraScreenState> {
@@ -36,7 +37,9 @@ class CameraScreen extends StatefulWidget
 
   @override
   Map<String, Function> getters() {
-    return {};
+    return {
+      'selectedfileslist' : () => _controller.selectedList
+    };
   }
 
   @override
@@ -79,7 +82,7 @@ class MyCameraController extends WidgetController {
   CameraMode? mode;
   InitialCamera? initialCamera;
   bool useGallery = true;
-  int maxCount = 1;
+  int maxCount = 10;
   bool preview = false;
   String? maxCountMessage;
   String? permissionDeniedMessage;
@@ -89,6 +92,7 @@ class MyCameraController extends WidgetController {
 
   IconModel? imagePickerIcon;
   IconModel? cameraRotateIcon;
+  List selectedList = [];
 
 
   void initCameraOption(dynamic data) {
@@ -421,7 +425,8 @@ class CameraScreenState extends WidgetState<CameraScreen>
                   Utils.translateWithFallback(
                       'ensemble.input.accessButtonLabel', 'Allow access'),
               onPressed: () {
-                selectImage();
+                selectFile();
+                // selectImage();
               }),
           const Spacer(),
           imagesPreview(),
@@ -430,7 +435,8 @@ class CameraScreenState extends WidgetState<CameraScreen>
                 Utils.translateWithFallback(
                     'ensemble.input.galleryButtonLabel', 'Pick from gallery'),
             onPressed: () {
-              selectImage();
+              // selectImage();
+              selectFile();
             },
           ),
         ],
@@ -571,7 +577,8 @@ class CameraScreenState extends WidgetState<CameraScreen>
                                 size: iconSize, color: iconColor),
                         backgroundColor: Colors.white.withOpacity(0.3),
                         onPressed: () {
-                          selectImage();
+                          selectFile();
+                          // selectImage();
                           // showImages(context);
                         },
                       )
@@ -589,7 +596,7 @@ class CameraScreenState extends WidgetState<CameraScreen>
                                 'ensemble.input.maxCountMessage', errorString),
                       );
                     } else {
-                      if (index == 1 ||
+                      if (index == 10 ||
                           widget._controller.mode == CameraMode.video) {
                         if (isRecording) {
                           final file = await widget
@@ -638,7 +645,7 @@ class CameraScreenState extends WidgetState<CameraScreen>
                             "source": "image",
                             "path": await value.readAsBytes(),
                           });
-                          if (widget._controller.maxCount == 1) {
+                          if (widget._controller.maxCount == 10) {
                             Navigator.pop(context, imageFileList);
                           }
                           setState(() {});
@@ -658,7 +665,7 @@ class CameraScreenState extends WidgetState<CameraScreen>
                         height: isRecording ? 25 : 46,
                         width: isRecording ? 25 : 46,
                         decoration: BoxDecoration(
-                          color: index == 1 ||
+                          color: index == 10 ||
                                   widget._controller.mode == CameraMode.video
                               ? const Color(0xffFF453A)
                               : Colors.white.withOpacity(0.5),
@@ -673,7 +680,7 @@ class CameraScreenState extends WidgetState<CameraScreen>
                 ),
                 const Spacer(),
                 // <----- This button is used for rotate camera if camera is exist more than one camera ------>
-                cameras.length == 1
+                cameras.length == 10
                     ? const SizedBox(
                         width: 60,
                       )
@@ -901,7 +908,7 @@ class CameraScreenState extends WidgetState<CameraScreen>
               "path": await element.readAsBytes(),
               "duration": "0",
             });
-            if (widget._controller.maxCount == 1) {
+            if (widget._controller.maxCount == 10) {
               Navigator.pop(context, imageFileList);
             }
           }
@@ -909,6 +916,23 @@ class CameraScreenState extends WidgetState<CameraScreen>
         }
       }
     }
+  }
+
+  void selectFile() async
+  {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.media,
+      allowMultiple: true,
+    );
+    if(result != null)
+      {
+        setState(() {
+          widget._controller.selectedList = result.files.map((file) => filelist.File.fromPlatformFile(file)).toList();
+        });
+        for (var element in result.files) {
+          print("check file path ${element.path}");
+        }
+      }
   }
 
   //<------ This code is used for delete image and point next image to preview or delete image ---->

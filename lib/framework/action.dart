@@ -33,9 +33,11 @@ class ShowCameraAction extends EnsembleAction{
   ShowCameraAction({
     Invokable? initiator,
     this.options,
+    this.id,
 
   }) : super(initiator: initiator);
   final Map<String , dynamic>? options;
+  String? id;
 }
 
 class ShowDialogAction extends EnsembleAction {

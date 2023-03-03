@@ -223,6 +223,7 @@ class Utils {
         {
           return ShowCameraAction(
             initiator: initiator,
+            id: Utils.optionalString(payload['id']),
             options: getMap(payload['options']),
           );
         }

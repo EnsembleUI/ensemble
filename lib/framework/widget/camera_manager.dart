@@ -1,19 +1,25 @@
 // manage Camera
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/widget/camera.dart';
 import 'package:flutter/material.dart';
 
 class CameraManager {
   // open camera function to set properties
-  void openCamera(BuildContext context, ShowCameraAction cameraAction) async {
+  void openCamera(BuildContext context, ShowCameraAction cameraAction , ScopeManager? scopeManager){
     // if camera action option is null than create camera screen without any setter
     if (cameraAction.options == null) {
-      final res = await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => CameraScreen(),
-        ),
-      );
+      if(cameraAction.id == null)
+        {
+          CameraScreen cameraScreen = CameraScreen();
+          scopeManager!.dataContext.addInvokableContext(cameraAction.id!, cameraScreen);
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => cameraScreen,
+            ),
+          );
+        }
     }
     // if camera action is not null
     else {
@@ -37,7 +43,7 @@ class CameraManager {
           ? camera.setProperty('preview', false)
           : camera.setProperty('preview', cameraAction.options!['preview']);
       cameraAction.options!['maxCount'] == null
-          ? camera.setProperty('maxCount', 1)
+          ? camera.setProperty('maxCount', 10)
           : camera.setProperty('maxCount', cameraAction.options!['maxCount']);
       cameraAction.options!['maxCountMessage'] == null
           ? ''
@@ -70,12 +76,17 @@ class CameraManager {
 
       // when properties is set push on camera screen
       // res is used when camera is close than return list of image
-      final res = await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => camera,
-        ),
-      );
+      if(cameraAction.id != null)
+      {
+        scopeManager!.dataContext.addInvokableContext(cameraAction.id!, camera);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => camera,
+          ),
+        );
+      }
+
     }
   }
 
