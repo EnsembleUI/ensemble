@@ -32,8 +32,11 @@ jobs:
         model: 'iPhone 14 Pro Max'
         shutdown_after_job: true
         
+    - name: List all simulators
+      run: "xcrun xctrace list devices"
+        
     - name: Run Integration Tests
-      run: flutter test integration_test
+      run: flutter test integration_test --verbose
   
 
     
