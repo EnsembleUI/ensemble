@@ -99,12 +99,9 @@ class ButtonState extends WidgetState<Button> {
     }
 
     // add margin if specified
-    return Container(
-      width: widget._controller.buttonWidth,
-      height: widget._controller.buttonHeight,
-      padding: widget._controller.margin??const EdgeInsets.all(0),
-      child: rtn,
-    );
+    return widget._controller.margin != null ?
+      Padding(padding: widget._controller.margin!, child: rtn) :
+      rtn;
   }
   
   ButtonStyle getButtonStyle(BuildContext context, bool isOutlineButton) {
@@ -141,6 +138,8 @@ class ButtonState extends WidgetState<Button> {
         color: widget._controller.color,
         backgroundColor: widget._controller.backgroundColor,
         border: border,
+        buttonHeight: widget._controller.buttonHeight,
+        buttonWidth: widget._controller.buttonWidth,
         padding: widget._controller.padding,
         fontSize: widget._controller.fontSize,
         fontWeight: widget._controller.fontWeight
