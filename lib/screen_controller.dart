@@ -143,7 +143,7 @@ class ScreenController {
       if(scopeManager != null)
       {
         print('Check action options ${action.options}');
-        CameraManager().openCamera(context, action);
+        CameraManager().openCamera(context, action , scopeManager);
       }
     } else if (action is ShowDialogAction) {
       if (scopeManager != null) {
