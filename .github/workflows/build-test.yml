@@ -38,6 +38,7 @@ jobs:
         model: ${{ matrix.device }}
         
     - name: Run Integration Tests
+      timeout-minutes: 20
       run: flutter test integration_test --verbose
   
 
