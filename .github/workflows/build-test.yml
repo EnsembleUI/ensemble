@@ -6,11 +6,12 @@ on:
 #     types: [opened, reopened]
 
 jobs:
-  unitTest:
-    name: Unit Tests / Widget Tests
+  test:
+    name: Execute Tests
   
     runs-on: macos-latest
     steps:
+    
     - name: Checkout Code
       uses: actions/checkout@v3
       
@@ -22,5 +23,18 @@ jobs:
     - name: Pub Upgrade
       run: flutter pub upgrade
 
-    - name: Run Tests 
+    - name: Run Unit Tests / Widget Tests
       run: flutter test
+      
+    - name: Start iOS Simulator
+      uses: futureware-tech/simulator-action@v2
+      with:
+        model: 'iPhone 14 Pro Max'
+        shutdown_after_job: true
+        
+    - name: Run Integration Tests
+      run: flutter test integration_test
+  
+
+    
+    
