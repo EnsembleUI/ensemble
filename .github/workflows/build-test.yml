@@ -1,23 +1,24 @@
-name: Build Ensemble
+name: Execute Tests
 on:
   workflow_dispatch:
-    
+
 #   pull_request:
 #     types: [opened, reopened]
 
 jobs:
-  buildAndTest:
-  
-    runs-on: macos-12
+  runTests:  
+    runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout Code
+      uses: actions/checkout@v3
+      
     - name: Setup Flutter SDK
       uses: subosito/flutter-action@v2
       with:
         channel: 'stable'
 
     - name: Pub Upgrade
-      run: flutter pub upgrade
+      run: flutter pub get
 
     - name: Unit Tests / Widget Tests 
       run: flutter test
