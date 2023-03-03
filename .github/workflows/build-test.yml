@@ -10,14 +10,14 @@ jobs:
   
     runs-on: macos-12
     steps:
-    
-      - name: Setup Flutter SDK
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-    
-      - name: Pub Upgrade
-        run: flutter pub upgrade
-      
-      - name: Unit Tests / Widget Tests 
-        run: flutter test
+    - uses: actions/checkout@v3
+    - name: Setup Flutter SDK
+      uses: subosito/flutter-action@v2
+      with:
+        channel: 'stable'
+
+    - name: Pub Upgrade
+      run: flutter pub upgrade
+
+    - name: Unit Tests / Widget Tests 
+      run: flutter test
