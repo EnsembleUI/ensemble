@@ -1,6 +1,6 @@
 name: Build Ensemble
 on:
-  workflow_run:
+  workflow_dispatch:
     
 #   pull_request:
 #     types: [opened, reopened]
