@@ -19,7 +19,7 @@ jobs:
         script: ./gradlew connectedCheck
     - name: Run Integration Tests
       timeout-minutes: 100
-      run: flutter test integration_test --verbose -d ${{steps.simulator.outputs.udid}}
+      run: flutter test integration_test --verbose
   
   
   
