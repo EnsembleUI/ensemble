@@ -22,9 +22,6 @@ class EnsembleApp extends StatefulWidget {
     // initialize once
     GetStorage.init();
     Device().initDeviceInfo();
-    ErrorWidget.builder = (FlutterErrorDetails errorDetails) {
-      return ErrorScreen(errorDetails);
-    };
   }
 
   final ScreenPayload? screenPayload;

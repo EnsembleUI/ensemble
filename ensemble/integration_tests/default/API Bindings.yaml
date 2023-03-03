@@ -1,0 +1,54 @@
+View:
+  styles:
+    useSafeArea: true
+  onLoad:
+    action: invokeAPI
+    name: getPeople
+
+  Column:
+    children:
+      - Text:
+          text: count ${getPeople.body.results.length}
+      - CustomWidget:
+          inputs:
+            people: ${getPeople.body.results}
+            borderColor: black
+
+CustomWidget:
+  inputs: [people, borderColor]
+  Column:
+    styles:
+      # https://github.com/EnsembleUI/ensemble/issues/305 borderColor makes the Column recreate the child Text.
+      borderColor: ${borderColor}
+    children:
+      - Text:
+          text: "First person: ${people[0].name.first}"
+
+API:
+  getPeople:
+    uri: https://randomuser.me/api/?results=2
+    method: GET
+    onResponse: |-
+      //@code
+      // we need consistent output, so hardcode the result
+      response.body = {
+        "results": [
+          {
+            "gender": "female",
+            "name": {
+              "title": "Miss",
+              "first": "Rachel",
+              "last": "Miles"
+            }
+          },
+          {
+            "gender": "male",
+            "name": {
+              "title": "Mr",
+              "first": "Peter",
+              "last": "Parker"
+            }
+          }
+        ]
+      }
+      

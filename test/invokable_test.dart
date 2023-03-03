@@ -21,7 +21,7 @@ void main() {
       'skills': 'flying',
       'superhero': true,
       'first_name': 'Peter',
-      'last-name': 'Parker',
+      'lastName': 'Parker',
       'has_power_since': 1654841398,
       'power_for_hire': 6400.12,
       'date_1': 'Thu, 16 Jun 2022 17:01:08 GMT-0700',
@@ -79,12 +79,12 @@ void main() {
   test('Parsing expressions', () {
     // empty context returns original
     DataContext context = DataContext(buildContext: MockBuildContext(), initialMap: {});
-    expect(context.eval(r'${blah}'), null);
-    expect(context.eval(r'${result.name}'), null);
+    expect(context.eval(r'${blah}'), '');
+    expect(context.eval(r'${result.name}'), '');
 
     context = getBaseContext();
     expect(context.eval(r'${result.first_name}'), 'Peter');
-    expect(context.eval(r'${result.last-name}'), 'Parker');
+    expect(context.eval(r'${result.lastName}'), 'Parker');
     expect(context.eval(r'${result.name}'), 'Peter Parker');
 
     expect(context.eval('hello'), 'hello');
@@ -106,11 +106,11 @@ void main() {
   test("Widget getters", () {
     DataContext context = getDataAndWidgetContext();
     
-    //expect(context.eval(r'$(myText.text) there $(result.name)'), 'Hello there Peter Parker');
+    expect(context.eval(r'${myText.text} there ${result.name}'), 'Hello there Peter Parker');
     //expect(context.eval(r'$(myTextField.value)'), 'Ronald');
 
     // invalid getter
-    expect(context.eval(r'${myTextField.what}'), null);
+    expect(context.eval(r'${myTextField.what}'), '');
   });
 
   /*test("Container getters", () {
