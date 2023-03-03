@@ -1661,6 +1661,14 @@
                 "$ref": "#/$defs/Action-payload",
                 "description": "Execute an Action when uploader fails with error(s)"
               },
+              "inputs": {
+                "type": "array",
+                "description": "Define the list of input names that upload API accepts"
+              },
+              "fieldName" : {
+                "type": "string",
+                "description": "Field name that your server is expecting (default files)"
+              },
               "options": {
                 "type": "object",
                 "properties": {

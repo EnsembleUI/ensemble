@@ -362,9 +362,10 @@ class ScreenController {
           }
         }
         final response = await UploadUtils.uploadFiles(
-          apiDefinition, 
-          dataContext,
-          selectedFiles,
+          api: apiDefinition, 
+          eContext: dataContext,
+          files: selectedFiles,
+          fieldName: action.fieldName,
           onError: action.onError == null ? null : (error) => executeAction(context, action.onError!),
         );
         if (response == null || action.id == null || scopeManager == null) return;

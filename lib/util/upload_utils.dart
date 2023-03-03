@@ -10,14 +10,14 @@ typedef OnErrorCallback = void Function(dynamic error);
 
 class UploadUtils {
   
-  static Future<Response?> uploadFiles(
-      YamlMap api, 
-      DataContext eContext,
-      List<File> files, 
-      {
-        ProgressCallback? progressCallback,
-        OnDoneCallback? onDone,
-        OnErrorCallback? onError,
+  static Future<Response?> uploadFiles({
+      required YamlMap api,
+      required DataContext eContext,
+      required List<File> files,
+      required String fieldName,
+      ProgressCallback? progressCallback,
+      OnDoneCallback? onDone,
+      OnErrorCallback? onError,
       }
     ) async {
 
@@ -48,9 +48,9 @@ class UploadUtils {
       http.MultipartFile? multipartFile;
 
       if (file.path != null) {
-        multipartFile = await http.MultipartFile.fromPath('files', file.path!);
+        multipartFile = await http.MultipartFile.fromPath(fieldName, file.path!);
       } else if ( file.bytes != null ) {
-        multipartFile = http.MultipartFile.fromBytes('files', file.bytes!, filename: file.name);
+        multipartFile = http.MultipartFile.fromBytes(fieldName, file.bytes!, filename: file.name);
       } else {
         continue;
       }
