@@ -13,6 +13,7 @@ import 'package:ensemble/widget/widget_util.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_svg/svg.dart';
 
 class EnsembleImage extends StatefulWidget with Invokable, HasController<ImageController, ImageState> {
@@ -41,6 +42,8 @@ class EnsembleImage extends StatefulWidget with Invokable, HasController<ImageCo
     return {
       'source': (value) => _controller.source = Utils.getString(value, fallback: ''),
       'fit': (value) => _controller.fit = Utils.optionalString(value),
+      'resizedWidth': (width) => _controller.resizedWidth = Utils.optionalInt(width, min: 0, max: 2000),
+      'resizedHeight': (height) => _controller.resizedHeight = Utils.optionalInt(height, min: 0, max: 2000),
       'placeholderColor': (value) => _controller.placeholderColor = Utils.getColor(value),
       'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, initiator: this)
     };
@@ -53,6 +56,11 @@ class ImageController extends BoxController {
   String? fit;
   Color? placeholderColor;
   EnsembleAction? onTap;
+
+  // whether we should resize the image to this. Note that we should set either
+  // resizedWidth or resizedHeight but not both so the aspect ratio is maintained
+  int? resizedWidth;
+  int? resizedHeight;
 }
 
 class ImageState extends WidgetState<EnsembleImage> {
@@ -102,11 +110,29 @@ class ImageState extends WidgetState<EnsembleImage> {
 
   Widget buildNonSvgImage(String source, BoxFit? fit) {
     if (source.startsWith('https://') || source.startsWith('http://')) {
+
+      int? cachedWidth = widget._controller.resizedWidth;
+      int? cachedHeight = widget._controller.resizedHeight;
+
+      // if user doesn't override the cache dimension, we resize all images
+      // to a reasonable 800 width so loading lots of gigantic images won't crash.
+      // TODO: figure out the actual dimension once so we can do min(actualWidth, 800)
+      if (cachedWidth == null && cachedHeight == null) {
+        cachedWidth = 800;
+      }
+
       return CachedNetworkImage(
         imageUrl: source,
         width: widget._controller.width?.toDouble(),
         height: widget._controller.height?.toDouble(),
         fit: fit,
+
+        // we auto resize and cap these values so loading lots of
+        // gigantic images won't run out of memory
+        memCacheWidth: cachedWidth,
+        memCacheHeight: cachedHeight,
+
+        cacheManager: EnsembleImageCacheManager.instance,
         errorWidget: (context, error, stacktrace) => errorFallback(),
         placeholder: (context, url) => placeholder);
     }
@@ -157,14 +183,22 @@ class ImageState extends WidgetState<EnsembleImage> {
   // use modern colors as background placeholder while images are being loaded
   final placeholderColors = [0xffD9E3E5, 0xffBBCBD2, 0xffA79490, 0xffD7BFA8, 0xffEAD9C9, 0xffEEEAE7];
   Widget getPlaceholder() {
-    // TODO: this doesn't show up when Image doesn't have explicit width/height
-    return ColoredBox(
-        color: widget._controller.placeholderColor ??
-            Color(placeholderColors[Random().nextInt(placeholderColors.length)]),
+    // container without child will get the size of its parent
+    return Container(
+      decoration: BoxDecoration(color: widget._controller.placeholderColor ??
+        Color(placeholderColors[Random().nextInt(placeholderColors.length)]))
     );
   }
 
+}
 
-
-
+class EnsembleImageCacheManager {
+  static const key = 'ensembleImageCacheKey';
+  static CacheManager instance = CacheManager(
+    Config(
+      key,
+      stalePeriod: const Duration(minutes: 15),
+      maxNrOfCacheObjects: 50,
+    )
+  );
 }
