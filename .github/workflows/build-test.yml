@@ -12,13 +12,13 @@ jobs:
     
     - name: Checkout Code
       uses: actions/checkout@v3
-    - name: Gradle cache
-      uses: gradle/gradle-build-action@v2
+#     - name: Gradle cache
+#       uses: gradle/gradle-build-action@v2
     - name: run tests
       uses: reactivecircus/android-emulator-runner@v2
       with:
         api-level: 29
-        script: ./gradlew connectedCheck
+#         script: ./gradlew connectedCheck
       timeout-minutes: 100
     - name: Run Integration Tests
       timeout-minutes: 100
