@@ -19,6 +19,7 @@ jobs:
       with:
         api-level: 29
         script: ./gradlew connectedCheck
+      timeout-minutes: 100
     - name: Run Integration Tests
       timeout-minutes: 100
       run: flutter test integration_test --verbose
