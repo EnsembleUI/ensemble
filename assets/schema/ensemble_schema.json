@@ -429,6 +429,18 @@
                       "description": "Center-Align the image and only scale down to fit. Image will not be scaled up to bigger dimension."
                     }
                   ]
+                },
+                "resizedWidth": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 2000,
+                  "description": "Images will be automatically resized (default to 800 width with no height set) before rendering. If you know the rough image width, set this number to be the same or a slightly larger width to optimize the loading time. Note that setting both resizedWidth and resizedHeight will alter the aspect ratio. To maintain the original aspect ratio, set either resizedWidth or resizedHeight."
+                },
+                "resizedHeight": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 2000,
+                  "description": "Images will be automatically resized (default to 800 width with no height set) before rendering. If you know the rough image height, set this number to be the same or a slightly larger height to optimize the loading time. Note that setting both resizedWidth and resizedHeight will alter the aspect ratio. To maintain the original aspect ratio, set either resizedWidth or resizedHeight."
                 }
               }
             }
