@@ -12,9 +12,11 @@ import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/widget_util.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:transparent_image/transparent_image.dart';
 
 class EnsembleImage extends StatefulWidget with Invokable, HasController<ImageController, ImageState> {
   static const type = 'Image';
@@ -119,6 +121,18 @@ class ImageState extends WidgetState<EnsembleImage> {
       // TODO: figure out the actual dimension once so we can do min(actualWidth, 800)
       if (cachedWidth == null && cachedHeight == null) {
         cachedWidth = 800;
+      }
+
+      if (kIsWeb) {
+        return FadeInImage.memoryNetwork(
+          image: source,
+          width: widget._controller.width?.toDouble(),
+          height: widget._controller.height?.toDouble(),
+          fit: fit,
+          imageCacheWidth: cachedWidth,
+          imageCacheHeight: cachedHeight,
+          placeholder: kTransparentImage
+        );
       }
 
       return CachedNetworkImage(
