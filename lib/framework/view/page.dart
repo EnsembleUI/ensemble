@@ -48,6 +48,9 @@ class PageState extends State<Page>{
   late Widget rootWidget;
   late ScopeManager _scopeManager;
 
+  // a menu can include other pages, keep track of what is selected
+  int selectedPage = 0;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -66,6 +69,17 @@ class PageState extends State<Page>{
         )
     );
     widget.rootScopeManager = _scopeManager;
+
+    // if we have a menu, figure out which child page to display initially
+    if (widget._pageModel.menu != null && widget._pageModel.menu!.menuItems.length > 1) {
+      for (int i=0; i<widget._pageModel.menu!.menuItems.length; i++) {
+        MenuItem item = widget._pageModel.menu!.menuItems[i];
+        dynamic selected = _scopeManager.dataContext.eval(item.selected);
+        if (selected == true || selected == 'true') {
+          selectedPage = i;
+        }
+      }
+    }
 
 
     // execute view behavior
@@ -353,7 +367,6 @@ class PageState extends State<Page>{
 
     if (menuDisplay == MenuDisplay.leftNavBar.name || menuDisplay == MenuDisplay.navBar_left.name) {
       List<model.MenuItem> menuItems = widget._pageModel.menu!.menuItems;
-      int selectedIndex = 0;
       List<NavigationRailDestination> navItems = [];
       for (int i=0; i<menuItems.length; i++) {
         model.MenuItem item = menuItems[i];
@@ -361,9 +374,6 @@ class PageState extends State<Page>{
           padding: Utils.getInsets(widget._pageModel.menu!.styles?['itemPadding']),
           icon: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
           label: Text(Utils.translate(item.label ?? '', context))));
-        if (item.selected) {
-          selectedIndex = i;
-        }
       }
 
       // TODO: consolidate buildWidget into 1 place
@@ -413,7 +423,7 @@ class PageState extends State<Page>{
         leading: menuHeader,
         destinations: navItems,
         trailing: menuFooter,
-        selectedIndex: selectedIndex,
+        selectedIndex: selectedPage,
         onDestinationSelected: (index) => selectNavigationIndex(context, menuItems[index]),
       ));
 
@@ -449,9 +459,10 @@ class PageState extends State<Page>{
 
   Drawer? _buildDrawer(BuildContext context, Menu menu) {
     List<ListTile> navItems = [];
-    for (model.MenuItem item in menu.menuItems) {
+    for (int i=0; i<menu.menuItems.length; i++) {
+      model.MenuItem item = menu.menuItems[i];
       navItems.add(ListTile(
-        selected: item.selected,
+        selected: i == selectedPage,
         title: Text(Utils.translate(item.label ?? '', context)),
         leading: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
         horizontalTitleGap: 0,
@@ -473,27 +484,23 @@ class PageState extends State<Page>{
       throw LanguageError("Menu requires at least 2 items.");
     }
 
-    int selectedIndex = 0;
     List<BottomNavigationBarItem> navItems = [];
     for (int i=0; i<menu.menuItems.length; i++) {
       model.MenuItem item = menu.menuItems[i];
       navItems.add(BottomNavigationBarItem(
           icon: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
           label: Utils.translate(item.label ?? '', context)));
-      if (item.selected) {
-        selectedIndex = i;
-      }
     }
     return BottomNavigationBar(
         items: navItems,
         backgroundColor: Utils.getColor(menu.styles?['backgroundColor']),
         type: BottomNavigationBarType.fixed,
         onTap: (index) {
-          if (!menu.menuItems[index].selected) {
+          if (index != selectedPage) {
             selectNavigationIndex(context, menu.menuItems[index]);
           }
         },
-        currentIndex: selectedIndex);
+        currentIndex: selectedPage);
 
   }
 
