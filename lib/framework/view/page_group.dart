@@ -82,7 +82,8 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
         key: UniqueKey(),   // ensure each screen is different for Flutter not to optimize
         screenName: menuItem.page
       ));
-      if (menuItem.selected) {
+      dynamic selected = _scopeManager.dataContext.eval(menuItem.selected);
+      if (selected == true || selected == 'true') {
         selectedPage = i;
       }
     }
