@@ -225,6 +225,7 @@ class Utils {
             initiator: initiator,
             id: Utils.optionalString(payload['id']),
             options: getMap(payload['options']),
+            onComplete: Utils.getAction(payload['onComplete'], initiator: initiator)
           );
         }
       else if (payload['action'] == ActionType.showDialog.name) {

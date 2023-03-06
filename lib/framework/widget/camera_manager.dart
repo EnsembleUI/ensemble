@@ -26,7 +26,7 @@ class CameraManager {
       // camera instance is created for set properties to setter
       // if any other camera instance is created already automatically remove beacuse camera instance is dispose
       // when screen is close
-
+      print("check camera action ${cameraAction.onComplete}");
       CameraScreen camera = CameraScreen();
       cameraAction.options!['mode'] == null
           ? camera.setProperty('mode', CameraMode.both)
@@ -72,7 +72,9 @@ class CameraManager {
       cameraAction.options!['galleryButtonLabel'] == null
           ? ''
           : camera.setProperty(
-              'galleryButtonLabel', cameraAction.options!['galleryButtonLabel']);                
+              'galleryButtonLabel', cameraAction.options!['galleryButtonLabel']);
+      cameraAction.onComplete == null
+      ? (){} : camera.setProperty('onComplete', cameraAction.onComplete);
 
       // when properties is set push on camera screen
       // res is used when camera is close than return list of image
