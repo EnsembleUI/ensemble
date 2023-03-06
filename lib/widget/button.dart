@@ -33,7 +33,8 @@ class Button extends StatefulWidget with Invokable, HasController<ButtonControll
       'submitForm': (value) => _controller.submitForm = Utils.optionalBool(value),
       'validateForm': (value) => _controller.validateForm = Utils.optionalBool(value),
       'validateFields': (items) => _controller.validateFields = Utils.getList(items),
-
+      
+      
       'enabled': (value) => _controller.enabled = Utils.optionalBool(value),
       'outline': (value) => _controller.outline = Utils.optionalBool(value),
       'color': (value) => _controller.color = Utils.getColor(value),
@@ -83,10 +84,15 @@ class ButtonState extends WidgetState<Button> {
 
     Widget? rtn;
     if (isOutlineButton) {
-      rtn = TextButton(
-        onPressed: isEnabled() ? () => onPressed(context) : null,
-        style: getButtonStyle(context, isOutlineButton),
-        child: label);
+      rtn = CustomPaint(
+        
+        painter:widget._controller.borderGradient!=null?
+        Painter(widget._controller.borderGradient as LinearGradient,  widget._controller.borderWidth?.toDouble()??1,  10):null,
+        child: TextButton(
+          onPressed: isEnabled() ? () => onPressed(context) : null,
+          style: getButtonStyle(context, isOutlineButton),
+          child: label),
+      );
     } else {
       rtn = ElevatedButton(
         onPressed: isEnabled() ? () => onPressed(context) : null,
@@ -114,7 +120,7 @@ class ButtonState extends WidgetState<Button> {
         borderSide = defaultShape.side;
       } else {
         borderSide = BorderSide(
-            color: widget._controller.borderColor ?? defaultShape.side.color,
+            color: widget._controller.borderColor ?? Colors.transparent,
             width: widget._controller.borderWidth?.toDouble() ?? defaultShape.side.width);
       }
 
@@ -133,7 +139,10 @@ class ButtonState extends WidgetState<Button> {
         isOutline: isOutlineButton,
         color: widget._controller.color,
         backgroundColor: widget._controller.backgroundColor,
-        border: border,
+        border: widget._controller.borderGradient!=null?const RoundedRectangleBorder(
+          side: BorderSide.none
+          
+        ):border,
         padding: widget._controller.padding,
         fontSize: widget._controller.fontSize,
         fontWeight: widget._controller.fontWeight
@@ -178,4 +187,48 @@ class ButtonState extends WidgetState<Button> {
         ?? true;
   }
 
+}
+
+
+class Painter extends CustomPainter {
+  final Paint _paint = Paint();
+  final Gradient gradient;
+  final double strokeWidth;
+  final double radius;
+
+  Painter(this.gradient,  this.strokeWidth,this.radius );
+
+  // @override
+  // void paint(Canvas canvas, Size size) {
+  //   final Rect rect = Rect.fromLTWH(width / 2, width / 2.1, size.width - width, size.height - width);
+  //   final RRect rRect = RRect.fromRectAndRadius(rect, borderRadius);
+  //   final Paint _paint = Paint()
+  //     ..style = PaintingStyle.stroke
+  //     ..strokeWidth = width
+  //     ..shader = gradient.createShader(rect);
+  //   canvas.drawRRect(rRect, _paint);
+  // }
+  @override
+  void paint(Canvas canvas, Size size) {
+    // create outer rectangle equals size
+    Rect outerRect = Offset.zero & size;
+    var outerRRect = RRect.fromRectAndRadius(outerRect, Radius.circular(radius));
+
+    // create inner rectangle smaller by strokeWidth
+    Rect innerRect = Rect.fromLTWH(strokeWidth, strokeWidth, size.width - strokeWidth * 2, size.height - strokeWidth * 2);
+    var innerRRect = RRect.fromRectAndRadius(innerRect, Radius.circular(radius - strokeWidth));
+
+    // apply gradient shader
+    _paint.shader = gradient.createShader(outerRect);
+
+    // create difference between outer and inner paths and draw it
+    Path path1 = Path()..addRRect(outerRRect);
+    Path path2 = Path()..addRRect(innerRRect);
+    var path = Path.combine(PathOperation.difference, path1, path2);
+    canvas.drawPath(path, _paint);
+  }
+
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => oldDelegate != this;
 }
