@@ -15,12 +15,17 @@ import 'package:ensemble/framework/extensions.dart';
 
 /// a collection of pages grouped under a navigation menu
 class PageGroup extends StatefulWidget {
-  const PageGroup({
-    super.key,
-    required this.initialDataContext,
-    required this.model,
-    required this.menu
-  });
+  const PageGroup(
+      {super.key,
+      required this.initialDataContext,
+      required this.model,
+      required this.menu,
+      this.pageArgs});
+
+  // keep it simple, all pages under PageGroup receives the same
+  // input arguments that the PageGroup is getting
+  final Map<String, dynamic>? pageArgs;
+
   final DataContext initialDataContext;
   final PageGroupModel model;
   final Menu menu;
@@ -33,13 +38,13 @@ class PageGroup extends StatefulWidget {
 /// We need this because the menu (i.e. drawer) is determined at the PageGroup
 /// level, but need to be injected under each child Page to render.
 class PageGroupWidget extends DataScopeWidget {
-  const PageGroupWidget({
-    super.key,
-    required super.scopeManager,
-    required super.child,
-    this.navigationDrawer,
-    this.navigationEndDrawer
-  });
+  const PageGroupWidget(
+      {super.key,
+      required super.scopeManager,
+      required super.child,
+      this.navigationDrawer,
+      this.navigationEndDrawer});
+
   final Drawer? navigationDrawer;
   final Drawer? navigationEndDrawer;
 
@@ -50,6 +55,14 @@ class PageGroupWidget extends DataScopeWidget {
   static Drawer? getNavigationEndDrawer(BuildContext context) => context
       .dependOnInheritedWidgetOfExactType<PageGroupWidget>()
       ?.navigationEndDrawer;
+
+  /// return the ScopeManager which includes the dataContext
+  /// TODO: have to repeat this function in DataScopeWidget?
+  static ScopeManager? getScope(BuildContext context) {
+    return context
+        .dependOnInheritedWidgetOfExactType<PageGroupWidget>()
+        ?.scopeManager;
+  }
 
   @override
   bool updateShouldNotify(covariant InheritedWidget oldWidget) {
@@ -71,17 +84,16 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
         widget.initialDataContext.clone(newBuildContext: context),
         PageData(
             customViewDefinitions: widget.model.customViewDefinitions,
-            apiMap: widget.model.apiMap
-        )
-    );
+            apiMap: widget.model.apiMap));
 
     // init the pages (TODO: need to update if definition changes)
-    for (int i=0; i<widget.menu.menuItems.length; i++) {
+    for (int i = 0; i < widget.menu.menuItems.length; i++) {
       model.MenuItem menuItem = widget.menu.menuItems[i];
       pageWidgets.add(ScreenController().getScreen(
-        key: UniqueKey(),   // ensure each screen is different for Flutter not to optimize
-        screenName: menuItem.page
-      ));
+          key: UniqueKey(),
+          // ensure each screen is different for Flutter not to optimize
+          screenName: menuItem.page,
+          pageArgs: widget.pageArgs));
       dynamic selected = _scopeManager.dataContext.eval(menuItem.selected);
       if (selected == true || selected == 'true') {
         selectedPage = i;
@@ -104,40 +116,43 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
       if (display == MenuDisplay.drawer || display == MenuDisplay.endDrawer) {
         Drawer? drawer = _buildDrawer(context, widget.menu);
         return PageGroupWidget(
-          scopeManager: _scopeManager,
-          navigationDrawer: display == MenuDisplay.drawer ? drawer : null,
-          navigationEndDrawer: display == MenuDisplay.endDrawer ? drawer : null,
-          child: pageWidgets[selectedPage]
-        );
-      }
-      else if (display == MenuDisplay.sidebar || display == MenuDisplay.endSidebar) {
-        return buildSidebarNavigation(context, display, widget.menu);
-      }
-      else if (display == MenuDisplay.bottomNavBar){
+            scopeManager: _scopeManager,
+            navigationDrawer: display == MenuDisplay.drawer ? drawer : null,
+            navigationEndDrawer:
+                display == MenuDisplay.endDrawer ? drawer : null,
+            child: pageWidgets[selectedPage]);
+      } else if (display == MenuDisplay.sidebar ||
+          display == MenuDisplay.endSidebar) {
+        return PageGroupWidget(
+            scopeManager: _scopeManager,
+            child: buildSidebarNavigation(context, display, widget.menu));
+      } else if (display == MenuDisplay.bottomNavBar) {
         return Scaffold(
-          // image background shouldn't resized when keyboard is up. The inner
-          // scaffold will have the keyboard, this one is outside.
-          resizeToAvoidBottomInset: false,
-          bottomNavigationBar: _buildBottomNavBar(context, widget.menu),
-          body: pageWidgets[selectedPage]
-        );
+            // image background shouldn't resized when keyboard is up. The inner
+            // scaffold will have the keyboard, this one is outside.
+            resizeToAvoidBottomInset: false,
+            bottomNavigationBar: _buildBottomNavBar(context, widget.menu),
+            body: PageGroupWidget(
+              scopeManager: _scopeManager,
+              child: pageWidgets[selectedPage],
+            ));
       }
     }
     throw LanguageError('ViewGroup requires a menu and at least one page.');
   }
 
   /// build the sidebar and its children content
-  Widget buildSidebarNavigation(BuildContext context, MenuDisplay preferredMenuDisplay, Menu menu) {
+  Widget buildSidebarNavigation(
+      BuildContext context, MenuDisplay preferredMenuDisplay, Menu menu) {
     Widget sidebar = _buildSidebar(context, menu);
     Widget? separator = _buildSidebarSeparator(menu);
-    Widget content = Expanded(
-      child: pageWidgets[selectedPage]
-    );
+    Widget content = Expanded(child: pageWidgets[selectedPage]);
 
     // figuring out the direction to lay things out
     bool rtlLocale = Directionality.of(context) == TextDirection.rtl;
     // standard layout is the sidebar menu then content
-    bool standardLayout = preferredMenuDisplay == MenuDisplay.sidebar ? !rtlLocale : rtlLocale;
+    bool standardLayout =
+        preferredMenuDisplay == MenuDisplay.sidebar ? !rtlLocale : rtlLocale;
 
     List<Widget> children = [];
     if (standardLayout) {
@@ -190,29 +205,32 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
       menuFooter = Expanded(
         child: Align(
             alignment: Alignment.bottomCenter,
-            child: _scopeManager.buildWidget(menu.footerModel!)
-        ),
+            child: _scopeManager.buildWidget(menu.footerModel!)),
       );
     }
 
     // misc styles
     Color? menuBackground = Utils.getColor(menu.styles?['backgroundColor']);
-    MenuItemDisplay itemDisplay = MenuItemDisplay.values.from(
-        menu.styles?['itemDisplay']
-    ) ?? MenuItemDisplay.stacked;
+    MenuItemDisplay itemDisplay =
+        MenuItemDisplay.values.from(menu.styles?['itemDisplay']) ??
+            MenuItemDisplay.stacked;
 
     // stacked's min gap seems to be 72 regardless of what we set. For side by side optimal min gap is around 40
     // we set this minGap and let user controls with itemPadding
     int minGap = itemDisplay == MenuItemDisplay.sideBySide ? 40 : 72;
 
     // minExtendedWidth is applicable only for side by side, and should never be below minWidth (or exception)
-    int minWidth = Utils.optionalInt(menu.styles?['minWidth'], min: minGap) ?? 200;
+    int minWidth =
+        Utils.optionalInt(menu.styles?['minWidth'], min: minGap) ?? 200;
 
     return NavigationRail(
       extended: itemDisplay == MenuItemDisplay.sideBySide ? true : false,
       minExtendedWidth: minWidth.toDouble(),
-      minWidth: minGap.toDouble(),     // this is important for optimal default item spacing
-      labelType: itemDisplay != MenuItemDisplay.sideBySide ? NavigationRailLabelType.all : null,
+      minWidth: minGap.toDouble(),
+      // this is important for optimal default item spacing
+      labelType: itemDisplay != MenuItemDisplay.sideBySide
+          ? NavigationRailLabelType.all
+          : null,
       backgroundColor: menuBackground,
       leading: menuHeader,
       destinations: navItems,
@@ -233,8 +251,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
       return VerticalDivider(
           thickness: (borderWidth ?? 1).toDouble(),
           width: (borderWidth ?? 1).toDouble(),
-          color: borderColor
-      );
+          color: borderColor);
     }
     return null;
   }
@@ -242,7 +259,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
   /// Build a Bottom Navigation Bar (default if display is not specified)
   BottomNavigationBar? _buildBottomNavBar(BuildContext context, Menu menu) {
     List<BottomNavigationBarItem> navItems = [];
-    for (int i=0; i<menu.menuItems.length; i++) {
+    for (int i = 0; i < menu.menuItems.length; i++) {
       model.MenuItem item = menu.menuItems[i];
       navItems.add(BottomNavigationBarItem(
           icon: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
@@ -258,12 +275,11 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
           });
         },
         currentIndex: selectedPage);
-
   }
 
   Drawer? _buildDrawer(BuildContext context, Menu menu) {
     List<ListTile> navItems = [];
-    for (var i=0; i<menu.menuItems.length; i++) {
+    for (var i = 0; i < menu.menuItems.length; i++) {
       model.MenuItem item = menu.menuItems[i];
       navItems.add(ListTile(
         selected: i == selectedPage,
@@ -287,12 +303,10 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     );
   }
 
-
   /// get the menu mode depending on user spec + device types / screen resolutions
   MenuDisplay _getPreferredMenuDisplay(Menu menu) {
-    MenuDisplay? display = MenuDisplay.values.from(
-        _scopeManager.dataContext.eval(menu.display)
-    );
+    MenuDisplay? display =
+        MenuDisplay.values.from(_scopeManager.dataContext.eval(menu.display));
     // left nav becomes drawer in lower resolution. TODO: take in user settings
     if (screenWidth < 1024) {
       if (display == MenuDisplay.sidebar) {
@@ -305,5 +319,4 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
 
     return display;
   }
-
 }
