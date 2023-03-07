@@ -9,6 +9,7 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/camera_manager.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/framework/widget/toast.dart';
@@ -51,6 +52,12 @@ class ScreenController {
     if (scopeManager == null && context.widget is ensemble.Page) {
       scopeManager = (context.widget as ensemble.Page).rootScopeManager;
     }
+
+    // If we still can't find a ScopeManager, look into the PageGroupWidget
+    // which extends the DataScopeWidget. We have to do this again since
+    // Unfortunately look up only works by exact type (and not inherited type)
+    scopeManager ??= PageGroupWidget.getScope(context);
+
     return scopeManager;
   }
 
