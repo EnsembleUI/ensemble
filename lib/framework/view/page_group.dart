@@ -19,8 +19,13 @@ class PageGroup extends StatefulWidget {
     super.key,
     required this.initialDataContext,
     required this.model,
-    required this.menu
+    required this.menu,
+    this.pageArgs
   });
+  // keep it simple, all pages under PageGroup receives the same
+  // input arguments that the PageGroup is getting
+  final Map<String, dynamic>? pageArgs;
+
   final DataContext initialDataContext;
   final PageGroupModel model;
   final Menu menu;
@@ -80,7 +85,8 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
       model.MenuItem menuItem = widget.menu.menuItems[i];
       pageWidgets.add(ScreenController().getScreen(
         key: UniqueKey(),   // ensure each screen is different for Flutter not to optimize
-        screenName: menuItem.page
+        screenName: menuItem.page,
+        pageArgs: widget.pageArgs
       ));
       dynamic selected = _scopeManager.dataContext.eval(menuItem.selected);
       if (selected == true || selected == 'true') {
