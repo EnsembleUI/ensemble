@@ -39,6 +39,8 @@ class Button extends StatefulWidget with Invokable, HasController<ButtonControll
       'color': (value) => _controller.color = Utils.getColor(value),
       'fontSize': (value) => _controller.fontSize = Utils.optionalInt(value),
       'fontWeight': (value) => _controller.fontWeight = Utils.getFontWeight(value),
+      'width': (value) => _controller.buttonWidth = Utils.optionalInt(value),
+      'height': (value) => _controller.buttonHeight = Utils.optionalInt(value),
     };
   }
   @override
@@ -70,6 +72,8 @@ class ButtonController extends BoxController {
   Color? color;
   int? fontSize;
   FontWeight? fontWeight;
+  int? buttonWidth;
+  int? buttonHeight;
 }
 
 
@@ -134,6 +138,8 @@ class ButtonState extends WidgetState<Button> {
         color: widget._controller.color,
         backgroundColor: widget._controller.backgroundColor,
         border: border,
+        buttonHeight: widget._controller.buttonHeight?.toDouble(),
+        buttonWidth: widget._controller.buttonWidth?.toDouble(),
         padding: widget._controller.padding,
         fontSize: widget._controller.fontSize,
         fontWeight: widget._controller.fontWeight
