@@ -7,6 +7,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/widget/form_helper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/layout/form.dart' as ensembleForm;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -39,6 +40,8 @@ class Button extends StatefulWidget with Invokable, HasController<ButtonControll
       'outline': (value) => _controller.outline = Utils.optionalBool(value),
       'color': (value) => _controller.color = Utils.getColor(value),
       'fontSize': (value) => _controller.fontSize = Utils.optionalInt(value),
+      'height': (value) => _controller.buttonHeight = Utils.optionalInt(value),
+      'width': (value) => _controller.buttonWidth = Utils.optionalInt(value),
       'fontWeight': (value) => _controller.fontWeight = Utils.getFontWeight(value),
     };
   }
@@ -67,6 +70,8 @@ class ButtonController extends BoxController {
   List<dynamic>? validateFields;
 
   bool? enabled;
+  int? buttonHeight;
+  int? buttonWidth;
   bool? outline;
   Color? color;
   int? fontSize;
@@ -81,18 +86,14 @@ class ButtonState extends WidgetState<Button> {
     bool isOutlineButton = widget._controller.outline ?? false;
     
     Text label = Text(Utils.translate(widget._controller.label ?? '', context));
-
+//  painter:widget._controller.borderGradient!=null?
+//         Painter(widget._controller.borderGradient as LinearGradient,  widget._controller.borderWidth?.toDouble()??1,  10):null,
     Widget? rtn;
     if (isOutlineButton) {
-      rtn = CustomPaint(
-        
-        painter:widget._controller.borderGradient!=null?
-        Painter(widget._controller.borderGradient as LinearGradient,  widget._controller.borderWidth?.toDouble()??1,  10):null,
-        child: TextButton(
-          onPressed: isEnabled() ? () => onPressed(context) : null,
-          style: getButtonStyle(context, isOutlineButton),
-          child: label),
-      );
+      rtn = TextButton(
+        onPressed: isEnabled() ? () => onPressed(context) : null,
+        style: getButtonStyle(context, isOutlineButton),
+        child: label);
     } else {
       rtn = ElevatedButton(
         onPressed: isEnabled() ? () => onPressed(context) : null,
@@ -107,46 +108,99 @@ class ButtonState extends WidgetState<Button> {
   }
   
   ButtonStyle getButtonStyle(BuildContext context, bool isOutlineButton) {
-    // we need to build a border which requires valid borderColor, borderThickness & borderRadius.
-    // Let's get the default theme so we can overwrite only necessary styles
-    RoundedRectangleBorder? border;
-    OutlinedBorder? defaultShape = isOutlineButton ?
-      Theme.of(context).textButtonTheme.style?.shape?.resolve({}) :
-        Theme.of(context).elevatedButtonTheme.style?.shape?.resolve({});
-    if (defaultShape is RoundedRectangleBorder) {
-      // if we don't specify borderColor here, and the default border is none, stick with that
-      BorderSide borderSide;
-      if (widget._controller.borderColor == null && defaultShape.side.style == BorderStyle.none) {
-        borderSide = defaultShape.side;
-      } else {
-        borderSide = BorderSide(
-            color: widget._controller.borderColor ?? Colors.transparent,
-            width: widget._controller.borderWidth?.toDouble() ?? defaultShape.side.width);
-      }
+    // // we need to build a border which requires valid borderColor, borderThickness & borderRadius.
+    // // Let's get the default theme so we can overwrite only necessary styles
+    // RoundedRectangleBorder? border;
+    // OutlinedBorder? defaultShape = isOutlineButton ?
+    //   Theme.of(context).textButtonTheme.style?.shape?.resolve({}) :
+    //     Theme.of(context).elevatedButtonTheme.style?.shape?.resolve({});
+    // if (defaultShape is RoundedRectangleBorder) {
+    //   // if we don't specify borderColor here, and the default border is none, stick with that
+    //   BorderSide borderSide;
+    //   if (widget._controller.borderColor == null && defaultShape.side.style == BorderStyle.none) {
+    //     borderSide = defaultShape.side;
+    //   } else {
+    //     borderSide = BorderSide(
+    //         color: widget._controller.borderColor ?? Colors.transparent,
+    //         width: widget._controller.borderWidth?.toDouble() ?? defaultShape.side.width);
+    //   }
 
-      border = RoundedRectangleBorder(
-        borderRadius: widget._controller.borderRadius == null ?
-            defaultShape.borderRadius :
-            widget._controller.borderRadius!.getValue(),
-        side: borderSide);
-    }
+    //   border = RoundedRectangleBorder(
+    //     borderRadius: widget._controller.borderRadius == null ?
+    //         defaultShape.borderRadius :
+    //         widget._controller.borderRadius!.getValue(),
+    //     side: borderSide);
+    // }
         
-    // we need to get the button shape from borderRadius, borderColor & borderThickness
-    // and we do not want to override the default theme if not specified
-    //int borderRadius = widget._controller.borderRadius ?? defaultButtonStyle?.
+    // // we need to get the button shape from borderRadius, borderColor & borderThickness
+    // // and we do not want to override the default theme if not specified
+    // //int borderRadius = widget._controller.borderRadius ?? defaultButtonStyle?.
 
-    return ThemeUtils.getButtonStyle(
-        isOutline: isOutlineButton,
-        color: widget._controller.color,
-        backgroundColor: widget._controller.backgroundColor,
-        border: widget._controller.borderGradient!=null?const RoundedRectangleBorder(
-          side: BorderSide.none
-          
-        ):border,
-        padding: widget._controller.padding,
-        fontSize: widget._controller.fontSize,
-        fontWeight: widget._controller.fontWeight
-    );
+    // return ThemeUtils.getButtonStyle(
+    //     isOutline: isOutlineButton,
+    //     color: widget._controller.color,
+    //     backgroundColor: widget._controller.backgroundColor,
+    //     border: border,
+    //     padding: widget._controller.padding,
+    //     height: widget._controller.buttonHeight?.toDouble(),
+
+    //     width: widget._controller.buttonWidth?.toDouble(),
+    //     fontSize: widget._controller.fontSize,
+    //     fontWeight: widget._controller.fontWeight
+    // );
+    // we need to build a border which requires valid borderColor, borderThickness & borderRadius.
+// Let's get the default theme so we can overwrite only necessary styles
+RoundedRectangleBorder? border;
+
+OutlinedBorder? defaultShape = isOutlineButton ?
+    Theme.of(context).textButtonTheme.style?.shape?.resolve({}) :
+    Theme.of(context).elevatedButtonTheme.style?.shape?.resolve({});
+if (defaultShape is RoundedRectangleBorder) {
+  // if we don't specify borderColor here, and the default border is none, stick with that
+  BorderSide borderSide;
+  if (widget._controller.borderColor == null && defaultShape.side.style == BorderStyle.none) {
+    borderSide = defaultShape.side;
+  } else {
+    borderSide = BorderSide(
+        color: widget._controller.borderColor ?? Colors.transparent,
+        width: widget._controller.borderWidth?.toDouble() ?? defaultShape.side.width);
+  }
+
+ widget._controller.borderGradient!=null?
+    border=  GradientRoundedRectangleBorder(
+      gradient: widget._controller.borderGradient??const LinearGradient(colors: [Colors.red,Colors.green]),
+      width: widget._controller.borderWidth?.toDouble()??borderSide.width,
+      radius: widget._controller.borderRadius == null ?
+          defaultShape.borderRadius :
+          widget._controller.borderRadius!.getValue(),
+          // borderSide: borderSide
+          // borderSide: borderSide
+  ):
+  border=RoundedRectangleBorder(
+    borderRadius:widget._controller.borderRadius == null ?
+          defaultShape.borderRadius :
+          widget._controller.borderRadius!.getValue(),
+    side: borderSide
+  );
+}
+
+// we need to get the button shape from borderRadius, borderColor & borderThickness
+// and we do not want to override the default theme if not specified
+//int borderRadius = widget._controller.borderRadius ?? defaultButtonStyle?.
+
+return ThemeUtils.getButtonStyle(
+    isOutline: isOutlineButton,
+    color: widget._controller.color,
+    backgroundColor: widget._controller.backgroundColor,
+    border: border,
+    padding: widget._controller.padding,
+    height: widget._controller.buttonHeight?.toDouble(),
+
+    width: widget._controller.buttonWidth?.toDouble(),
+    fontSize: widget._controller.fontSize,
+    fontWeight: widget._controller.fontWeight
+);
+
   }
 
   void onPressed(BuildContext context) {
@@ -232,3 +286,56 @@ class Painter extends CustomPainter {
   @override
   bool shouldRepaint(CustomPainter oldDelegate) => oldDelegate != this;
 }
+
+
+// ---------------------- code for gradient border -------------
+
+class GradientRoundedRectangleBorder extends RoundedRectangleBorder with GradientBorderMixin {
+  
+  GradientRoundedRectangleBorder({
+    required LinearGradient gradient,
+    required double width,
+    required BorderRadiusGeometry radius,
+  }):   side = BorderSide(width: width,style: BorderStyle.solid,),
+       borderRadius = radius 
+    {
+    this.gradient = gradient;
+    this.width = width;
+  }
+
+  @override
+  final BorderSide side;
+
+  @override
+  final BorderRadiusGeometry borderRadius;
+
+  @override
+  Path getInnerPath(Rect rect, { TextDirection? textDirection }) {
+    
+    return Path()..addRRect(borderRadius.resolve(textDirection!).toRRect(rect).deflate(side.width));
+  }
+  
+
+  @override
+  Path getOuterPath(Rect rect, { TextDirection? textDirection }) {
+    
+    return Path()..addRRect(borderRadius.resolve(textDirection!).toRRect(rect));
+  }
+
+  @override
+  ShapeBorder scale(double t) {
+    
+    return GradientRoundedRectangleBorder(
+      gradient: gradient,
+      width: width * t,
+      
+      radius: borderRadius,
+      
+      
+    );
+  }
+
+ 
+}
+
+

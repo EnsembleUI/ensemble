@@ -22,7 +22,7 @@ class ThemeUtils {
 
   /// this function is also called while building the button, so make sure we don't use any fallback
   /// to ensure the style reverts to the button theming
-  static ButtonStyle getButtonStyle({required bool isOutline, Color? backgroundColor, Color? color, RoundedRectangleBorder? border, EdgeInsets? padding, FontWeight? fontWeight, int? fontSize}) {
+  static ButtonStyle getButtonStyle({required bool isOutline, Color? backgroundColor, Color? color, RoundedRectangleBorder? border, EdgeInsets? padding, FontWeight? fontWeight, int? fontSize, double? height,double?width}) {
     TextStyle? textStyle;
     if (fontWeight != null || fontSize != null) {
       textStyle = TextStyle(
@@ -34,6 +34,7 @@ class ThemeUtils {
     if (isOutline) {
       return TextButton.styleFrom(
         padding: padding,
+        fixedSize: Size(width??Size.infinite.width, height??Size.infinite.height),
         primary: color,
         shape: border,
         textStyle: textStyle
@@ -42,6 +43,7 @@ class ThemeUtils {
       return ElevatedButton.styleFrom(
         padding: padding,
         primary: backgroundColor,
+        fixedSize: Size(width??Size.infinite.width, height??Size.infinite.height),
         onPrimary: color,
         shape: border,
         textStyle: textStyle

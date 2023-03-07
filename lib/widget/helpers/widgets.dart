@@ -96,7 +96,7 @@ class BoxWrapper extends StatelessWidget {
 
 
 
-mixin GradientBorderMixin on BoxBorder {
+mixin GradientBorderMixin on ShapeBorder {
   late final LinearGradient gradient;
   late final double width;
 
