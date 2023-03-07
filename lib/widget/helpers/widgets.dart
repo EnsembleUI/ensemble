@@ -95,12 +95,32 @@ class BoxWrapper extends StatelessWidget {
 }
 
 
-class GradientBorder extends BoxBorder {
-  const GradientBorder({required this.gradient,  required this.width});
+mixin GradientBorderMixin on ShapeBorder {
+  late final LinearGradient gradient;
+  late final double width;
 
-  final LinearGradient gradient;
+  void paintRect(Canvas canvas, Rect rect) {
+    canvas.drawRect(rect.deflate(width / 2), getPaint(rect));
+  }
 
-  final double width;
+  void paintRRect(Canvas canvas, Rect rect, BorderRadius borderRadius) {
+    final rrect = borderRadius.toRRect(rect).deflate(width / 2);
+    canvas.drawRRect(rrect, getPaint(rect));
+  }
+
+  Paint getPaint(Rect rect) {
+    return Paint()
+      ..strokeWidth = width 
+      ..shader = gradient.createShader(rect)
+      ..style = PaintingStyle.stroke;
+  }
+}
+
+class GradientBorder extends BoxBorder  with GradientBorderMixin {
+  GradientBorder({required LinearGradient gradient, required double width}) {
+    this.gradient = gradient;
+    this.width = width;
+  }
 
   @override
   BorderSide get bottom => BorderSide.none;
@@ -122,31 +142,15 @@ class GradientBorder extends BoxBorder {
     BoxShape shape = BoxShape.rectangle,
     BorderRadius? borderRadius,
   }) {
-     if (borderRadius != null) {
-          _paintRRect(canvas, rect, borderRadius);
-          return;
-        }
-        _paintRect(canvas, rect);
-  }
-
-  void _paintRect(Canvas canvas, Rect rect) {
-    canvas.drawRect(rect.deflate(width / 2), _getPaint(rect));
-  }
-
-  void _paintRRect(Canvas canvas, Rect rect, BorderRadius borderRadius) {
-    final rrect = borderRadius.toRRect(rect).deflate(width / 2);
-    canvas.drawRRect(rrect, _getPaint(rect));
+    if (borderRadius != null) {
+      paintRRect(canvas, rect, borderRadius);
+      return;
+    }
+    paintRect(canvas, rect);
   }
 
   @override
   ShapeBorder scale(double t) {
     return this;
-  }
-
-  Paint _getPaint(Rect rect) {
-    return Paint()
-      ..strokeWidth = width 
-      ..shader = gradient.createShader(rect)
-      ..style = PaintingStyle.stroke;
   }
 }

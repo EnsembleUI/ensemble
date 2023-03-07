@@ -7,6 +7,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/widget/form_helper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/layout/form.dart' as ensembleForm;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -121,7 +122,10 @@ class ButtonState extends WidgetState<Button> {
             color: widget._controller.borderColor ?? defaultShape.side.color,
             width: widget._controller.borderWidth?.toDouble() ?? defaultShape.side.width);
       }
-
+      widget._controller.borderGradient!=null?
+      border=GradientRoundedRectangleBorder(gradient: widget._controller.backgroundGradient??LinearGradient(colors: [Colors.red,Colors.black]), width: widget._controller.borderWidth?.toDouble()??defaultShape.side.width, radius:  widget._controller.borderRadius == null ?
+            defaultShape.borderRadius :
+            widget._controller.borderRadius!.getValue(),):
       border = RoundedRectangleBorder(
         borderRadius: widget._controller.borderRadius == null ?
             defaultShape.borderRadius :
@@ -184,4 +188,52 @@ class ButtonState extends WidgetState<Button> {
         ?? true;
   }
 
+}
+
+class GradientRoundedRectangleBorder extends RoundedRectangleBorder with GradientBorderMixin {
+  
+  GradientRoundedRectangleBorder({
+    required LinearGradient gradient,
+    required double width,
+    required BorderRadiusGeometry radius,
+  }):   side = BorderSide(width: width,style: BorderStyle.solid,),
+       borderRadius = radius 
+    {
+    this.gradient = gradient;
+    this.width = width;
+  }
+
+  @override
+  final BorderSide side;
+
+  @override
+  final BorderRadiusGeometry borderRadius;
+
+  @override
+  Path getInnerPath(Rect rect, { TextDirection? textDirection }) {
+    
+    return Path()..addRRect(borderRadius.resolve(textDirection!).toRRect(rect).deflate(side.width));
+  }
+  
+
+  @override
+  Path getOuterPath(Rect rect, { TextDirection? textDirection }) {
+    
+    return Path()..addRRect(borderRadius.resolve(textDirection!).toRRect(rect));
+  }
+
+  @override
+  ShapeBorder scale(double t) {
+    
+    return GradientRoundedRectangleBorder(
+      gradient: gradient,
+      width: width * t,
+      
+      radius: borderRadius,
+      
+      
+    );
+  }
+
+ 
 }
