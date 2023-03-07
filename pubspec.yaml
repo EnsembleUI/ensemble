@@ -75,9 +75,12 @@ dependencies:
   webview_flutter: ^4.0.1
   file_picker: ^5.2.5
   cached_network_image: ^3.2.3
+  flutter_cache_manager: ^3.3.0
 
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+  integration_test:
     sdk: flutter
   flutter_lints: ^1.0.0
 
@@ -89,6 +92,10 @@ flutter:
 
   assets:
     - assets/images/
+
+    # integration tests (TODO - exclude from build)
+    - ensemble/integration_tests/
+    - ensemble/integration_tests/default/
 
   fonts:
     # semi-custom fonts

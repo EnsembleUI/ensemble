@@ -82,7 +82,8 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
         key: UniqueKey(),   // ensure each screen is different for Flutter not to optimize
         screenName: menuItem.page
       ));
-      if (menuItem.selected) {
+      dynamic selected = _scopeManager.dataContext.eval(menuItem.selected);
+      if (selected == true || selected == 'true') {
         selectedPage = i;
       }
     }
@@ -114,6 +115,9 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
       }
       else if (display == MenuDisplay.bottomNavBar){
         return Scaffold(
+          // image background shouldn't resized when keyboard is up. The inner
+          // scaffold will have the keyboard, this one is outside.
+          resizeToAvoidBottomInset: false,
           bottomNavigationBar: _buildBottomNavBar(context, widget.menu),
           body: pageWidgets[selectedPage]
         );

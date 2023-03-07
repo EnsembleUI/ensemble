@@ -1,4 +1,6 @@
 
+import 'dart:math';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/event.dart';
@@ -11,6 +13,7 @@ import 'package:ensemble/widget/widget_util.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_svg/svg.dart';
 
 class EnsembleImage extends StatefulWidget with Invokable, HasController<ImageController, ImageState> {
@@ -39,8 +42,10 @@ class EnsembleImage extends StatefulWidget with Invokable, HasController<ImageCo
     return {
       'source': (value) => _controller.source = Utils.getString(value, fallback: ''),
       'fit': (value) => _controller.fit = Utils.optionalString(value),
-      'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, initiator: this),
-      'cache': (value) => _controller.cache = Utils.optionalBool(value) ?? _controller.cache,
+      'resizedWidth': (width) => _controller.resizedWidth = Utils.optionalInt(width, min: 0, max: 2000),
+      'resizedHeight': (height) => _controller.resizedHeight = Utils.optionalInt(height, min: 0, max: 2000),
+      'placeholderColor': (value) => _controller.placeholderColor = Utils.getColor(value),
+      'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, initiator: this)
     };
   }
 
@@ -49,21 +54,38 @@ class EnsembleImage extends StatefulWidget with Invokable, HasController<ImageCo
 class ImageController extends BoxController {
   String source = '';
   String? fit;
+  Color? placeholderColor;
   EnsembleAction? onTap;
-  bool cache=true;
+
+  // whether we should resize the image to this. Note that we should set either
+  // resizedWidth or resizedHeight but not both so the aspect ratio is maintained
+  int? resizedWidth;
+  int? resizedHeight;
 }
 
 class ImageState extends WidgetState<EnsembleImage> {
+  late Widget placeholder;
+
+  @override
+  void initState() {
+    super.initState();
+    placeholder = getPlaceholder();
+  }
 
   @override
   Widget buildWidget(BuildContext context) {
+    String source = widget._controller.source.trim();
+    // use the placeholder for the initial state before binding kicks in
+    if (source.isEmpty) {
+      return placeholder;
+    }
 
     BoxFit? fit = WidgetUtils.getBoxFit(widget._controller.fit);
     Widget image;
     if (isSvg()) {
-      image = buildSvgImage(fit);
+      image = buildSvgImage(source, fit);
     } else {
-      image = buildNonSvgImage(fit);
+      image = buildNonSvgImage(source, fit);
     }
 
     Widget rtn = BoxWrapper(
@@ -86,63 +108,55 @@ class ImageState extends WidgetState<EnsembleImage> {
     return rtn;
   }
 
-  Widget buildNonSvgImage(BoxFit? fit) {
-    String source = widget._controller.source.trim();
-    if (source.isNotEmpty) {
-      // if is URL
-      if (source.startsWith('https://') || source.startsWith('http://')) {
-        // image binding is tricky. When the URL has not been resolved
-        // the image will throw exception. We have to use a permanent placeholder
-        // until the binding engages
-        if (widget._controller.cache) {
-          return CachedNetworkImage(
-            width: widget._controller.width?.toDouble(),
-            height: widget._controller.height?.toDouble(),
-            fit: fit,
-            errorWidget: (context, error, stacktrace) => placeholderImage(),
-            placeholder: (context, url) => placeholderImage(),
-            imageUrl: widget.controller.source,
-          );
-        } else {
-          return Image.network(widget._controller.source,
-              width: widget._controller.width?.toDouble(),
-              height: widget._controller.height?.toDouble(),
-              fit: fit,
-              errorBuilder: (context, error, stacktrace) => placeholderImage(),
-              loadingBuilder: (BuildContext context, Widget child,
-                  ImageChunkEvent? loadingProgress) {
-                if (loadingProgress == null) {
-                  return child;
-                }
-                return placeholderImage();
-              });
-        }
+  Widget buildNonSvgImage(String source, BoxFit? fit) {
+    if (source.startsWith('https://') || source.startsWith('http://')) {
+
+      int? cachedWidth = widget._controller.resizedWidth;
+      int? cachedHeight = widget._controller.resizedHeight;
+
+      // if user doesn't override the cache dimension, we resize all images
+      // to a reasonable 800 width so loading lots of gigantic images won't crash.
+      // TODO: figure out the actual dimension once so we can do min(actualWidth, 800)
+      if (cachedWidth == null && cachedHeight == null) {
+        cachedWidth = 800;
       }
-      // else attempt local asset
-      else {
-        // user might use env variables to switch between remote and local images.
-        // Assets might have additional token e.g. my-image.png?x=2343
-        // so we need to strip them out
-        return Image.asset(
-            Utils.getLocalAssetFullPath(widget._controller.source),
-            width: widget._controller.width?.toDouble(),
-            height: widget._controller.height?.toDouble(),
-            fit: fit,
-            errorBuilder: (context, error, stacktrace) => placeholderImage());
-      }
+
+      return CachedNetworkImage(
+        imageUrl: source,
+        width: widget._controller.width?.toDouble(),
+        height: widget._controller.height?.toDouble(),
+        fit: fit,
+
+        // we auto resize and cap these values so loading lots of
+        // gigantic images won't run out of memory
+        memCacheWidth: cachedWidth,
+        memCacheHeight: cachedHeight,
+
+        cacheManager: EnsembleImageCacheManager.instance,
+        errorWidget: (context, error, stacktrace) => errorFallback(),
+        placeholder: (context, url) => placeholder);
     }
-    return placeholderImage();
+    // else attempt local asset
+    // user might use env variables to switch between remote and local images.
+    // Assets might have additional token e.g. my-image.png?x=2343
+    // so we need to strip them out
+    return Image.asset(
+        Utils.getLocalAssetFullPath(source),
+        width: widget._controller.width?.toDouble(),
+        height: widget._controller.height?.toDouble(),
+        fit: fit,
+        errorBuilder: (context, error, stacktrace) => errorFallback());
   }
 
-  Widget buildSvgImage(BoxFit? fit) {
+  Widget buildSvgImage(String source, BoxFit? fit) {
     // if is URL
-    if (widget._controller.source.startsWith('https://') || widget._controller.source.startsWith('http://')) {
+    if (source.startsWith('https://') || source.startsWith('http://')) {
       return SvgPicture.network(
           widget._controller.source,
           width: widget._controller.width?.toDouble(),
           height: widget._controller.height?.toDouble(),
           fit: fit ?? BoxFit.contain,
-          placeholderBuilder: (_) => placeholderImage()
+          placeholderBuilder: (_) => placeholder
       );
     }
     // attempt local assets
@@ -150,8 +164,7 @@ class ImageState extends WidgetState<EnsembleImage> {
         Utils.getLocalAssetFullPath(widget._controller.source),
         width: widget._controller.width?.toDouble(),
         height: widget._controller.height?.toDouble(),
-        fit: fit ?? BoxFit.contain,
-        placeholderBuilder: (_) => placeholderImage()
+        fit: fit ?? BoxFit.contain
     );
   }
 
@@ -159,15 +172,33 @@ class ImageState extends WidgetState<EnsembleImage> {
     return widget._controller.source.endsWith('svg');
   }
 
-  Widget placeholderImage() {
-    return SizedBox(
-      width: widget._controller.width?.toDouble(),
-      height: widget._controller.height?.toDouble(),
-      child: Image.asset('assets/images/img_placeholder.png', package: 'ensemble')
+  /// display if the image cannot be loaded
+  Widget errorFallback() {
+    return Image.asset(
+      'assets/images/img_placeholder.png',
+      package: 'ensemble',
+      fit: BoxFit.cover);
+  }
+
+  // use modern colors as background placeholder while images are being loaded
+  final placeholderColors = [0xffD9E3E5, 0xffBBCBD2, 0xffA79490, 0xffD7BFA8, 0xffEAD9C9, 0xffEEEAE7];
+  Widget getPlaceholder() {
+    // container without child will get the size of its parent
+    return Container(
+      decoration: BoxDecoration(color: widget._controller.placeholderColor ??
+        Color(placeholderColors[Random().nextInt(placeholderColors.length)]))
     );
   }
 
+}
 
-
-
+class EnsembleImageCacheManager {
+  static const key = 'ensembleImageCacheKey';
+  static CacheManager instance = CacheManager(
+    Config(
+      key,
+      stalePeriod: const Duration(minutes: 15),
+      maxNrOfCacheObjects: 50,
+    )
+  );
 }

@@ -22,9 +22,6 @@ class EnsembleApp extends StatefulWidget {
     // initialize once
     GetStorage.init();
     Device().initDeviceInfo();
-    ErrorWidget.builder = (FlutterErrorDetails errorDetails) {
-      return ErrorScreen(errorDetails);
-    };
   }
 
   final ScreenPayload? screenPayload;
@@ -106,6 +103,11 @@ class EnsembleAppState extends State<EnsembleApp> {
       //   GlobalWidgetsLocalizations.delegate
       // ],
       home: Scaffold(
+        // this outer scaffold is where the background image would be (if
+        // specified). We do not want it to resize on keyboard popping up.
+        // The Page's Scaffold can handle the resizing.
+        resizeToAvoidBottomInset: false,
+
         body: Screen(
           appProvider: AppProvider(definitionProvider: config.definitionProvider),
           screenPayload: widget.screenPayload,

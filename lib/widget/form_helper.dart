@@ -1,5 +1,6 @@
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/widget/icon.dart' as framework;
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/form.dart';
@@ -16,11 +17,9 @@ class FormFieldController extends WidgetController {
   bool? enabled;
   bool required = false;
   String? hintText;
-  String? icon;
-  String? iconLibrary;
-  int? iconSize;
-  int? iconColor;
+  IconModel? icon;
   int? fontSize;
+  Color? backgroundColor;
 
   @override
   Map<String, Function> getBaseGetters() {
@@ -39,11 +38,9 @@ class FormFieldController extends WidgetController {
       'enabled': (value) => enabled = Utils.optionalBool(value),
       'required': (value) => required = Utils.getBool(value, fallback: false),
       'hintText': (value) => hintText = Utils.optionalString(value),
-      'icon': (value) => icon = Utils.optionalString(value),
-      'iconLibrary': (value) => iconLibrary = Utils.optionalString(value),
-      'iconSize': (value) => iconSize = Utils.optionalInt(value),
-      'iconColor': (value) => iconColor = Utils.optionalInt(value),
+      'icon': (value) => icon = Utils.getIcon(value),
       'fontSize': (value) => fontSize = Utils.optionalInt(value),
+      'backgroundColor': (value) => backgroundColor = Utils.getColor(value)
     });
     return setters;
   }
@@ -83,16 +80,16 @@ abstract class FormFieldWidgetState<W extends HasController>
           .controller as FormFieldController;
       return InputDecoration(
           floatingLabelBehavior: FloatingLabelBehavior.always,
+          filled: myController.backgroundColor != null,
+          fillColor: myController.backgroundColor,
           labelText: shouldShowLabel() ? myController.label : null,
           hintText: myController.hintText,
           icon: myController.icon == null
               ? null
-              : framework.Icon(myController.icon!,
-              library: myController.iconLibrary,
-              size: myController.iconSize,
-              color: myController.iconColor != null
-                  ? Color(myController.iconColor!)
-                  : null));
+              : framework.Icon(myController.icon!.icon,
+              library: myController.icon!.library,
+              size: myController.icon!.size,
+              color: myController.icon!.color));
     }
     return const InputDecoration();
   }

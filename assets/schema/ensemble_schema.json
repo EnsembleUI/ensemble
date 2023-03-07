@@ -52,10 +52,6 @@
                       "$ref": "#/$defs/typeColors",
                       "description": "If elevation is non-zero, this will override the drop shadow color of the header's bottom edge."
                     },
-                    "showNavigationIcon": {
-                      "type": "boolean",
-                      "description": "By default the App automatically injects the Menu or Back icon (if applicable) before the title. You may hide these icons by setting this to false."
-                    },
                     "centerTitle": {
                       "type": "boolean",
                       "description": "Whether to align the title in the title bar's center horizontally (default: true)"
@@ -79,20 +75,15 @@
             },
             "onLoad": {
               "$ref": "#/$defs/Action-payload",
-              "description": "Execute an Action when the page loads"
+              "description": "Execute an Action when the screen loads"
             },
             "options": {
               "type": "object",
               "properties": {
                 "type": {
                   "type": "string",
-                  "description": "Specify if this is a regular (default) or modal page",
+                  "description": "Specify if this is a regular (default) or modal screen",
                   "enum": ["regular", "modal"]
-                },
-                "closeButtonPosition": {
-                  "type": "string",
-                  "description": "For modal page, position the close button at the start or end of the screen. For left-to-right languages like English, start is on the left and end is on the right.",
-                  "enum": ["start", "end"]
                 }
               }
             },
@@ -103,7 +94,7 @@
                 },
                 {
                   "$ref": "#/$defs/backgroundColor",
-                  "description": "Background color for the page starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+                  "description": "Background color for the screen starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
                 },
                 {
                   "properties": {
@@ -113,7 +104,16 @@
                     },
                     "scrollableView": {
                       "type": "boolean",
-                      "description": "Specify if the content of this page is scrollable with a global scrollbar. Using this also allow us to customize the scrolling experience of the header."
+                      "description": "Specify if the content of this screen is scrollable with a global scrollbar. Using this also allow you to customize the scrolling experience of the header."
+                    },
+                    "showNavigationIcon": {
+                      "type": "boolean",
+                      "description": "For a screen with header, the App will automatically show the Menu, Back, or Close icon (for modal screen) before the title. On modal screen without the header, the Close icon will be shown. Set this flag to false if you wish to hide the icons and handle the navigation yourself."
+                    },
+                    "navigationIconPosition": {
+                      "type": "string",
+                      "description": "On modal screen without a header, you can position the close button at the start or end of the screen. For left-to-right languages like English, start is on the left and end is on the right. This property has no effect on a screen with header.",
+                      "enum": ["start", "end"]
                     }
                   }
                 }
@@ -137,7 +137,7 @@
     },
     "Functions": {
       "type": "string",
-      "description": "Javascript snippet for declaring variables and reusable functions, visible anywhere within this page"
+      "description": "Javascript snippet for declaring variables and reusable functions, visible anywhere within this screen"
     },
     "Global": {
       "defaultSnippets": [
@@ -146,7 +146,7 @@
           "body": "|-\n\t//@code\n\t"
         }
       ],
-      "markdownDescription": "Declare Javascript variables and functions that are visible globally within this page.  \n//@code  \n var myGlobalVar = 'hello';  \nfunction myGlobalFunc() {  \n  }"
+      "markdownDescription": "Declare Javascript variables and functions that are visible globally within this screen.  \n//@code  \n var myGlobalVar = 'hello';  \nfunction myGlobalFunc() {  \n  }"
 
     },
     "API": {
@@ -347,13 +347,21 @@
               "$ref": "#/$defs/baseStyles"
             },
             {
+              "$ref": "#/$defs/boxStylesWithoutDimension"
+            },
+            {
               "type": "object",
               "properties": {
                 "size": {
                   "type": "integer"
                 },
                 "color": {
-                  "type": ["number", "string"]
+                  "$ref": "#/$defs/typeColors",
+                  "description": "The color of the icon"
+                },
+                "splashColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "If onTap is defined, this color will show up as a splash effect upon tapping the icon. Note that the effect only happens if backgroundColor is not set."
                 }
               }
             }
@@ -367,7 +375,11 @@
       "properties": {
         "source": {
           "type": "string",
-          "description": "URL to or asset name of the image"
+          "description": "URL to or asset name of the image. If the URL is used, it is highly recommended that the dimensions is set (either with width/height or other means) to prevent the UI jerkiness while loading."
+        },
+        "onTap": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Call Ensemble's built-in functions or execute code"
         },
         "styles": {
           "allOf": [
@@ -380,11 +392,9 @@
             {
               "type": "object",
               "properties": {
-                "width": {
-                  "type": "integer"
-                },
-                "height": {
-                  "type": "integer"
+                "placeholderColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "The placeholder color while the image is loading."
                 },
                 "fit": {
                   "type": "string",
@@ -419,6 +429,18 @@
                       "description": "Center-Align the image and only scale down to fit. Image will not be scaled up to bigger dimension."
                     }
                   ]
+                },
+                "resizedWidth": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 2000,
+                  "description": "Images will be automatically resized (default to 800 width with no height set) before rendering. If you know the rough image width, set this number to be the same or a slightly larger width to optimize the loading time. To maintain the original aspect ratio, set either resizedWidth or resizedHeight, but not both. This setting is not supported on Web."
+                },
+                "resizedHeight": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 2000,
+                  "description": "Images will be automatically resized (default to 800 width with no height set) before rendering. If you know the rough image height, set this number to be the same or a slightly larger height to optimize the loading time. To maintain the original aspect ratio, set either resizedWidth or resizedHeight, but not both. This setting is not supported on Web."
                 }
               }
             }
@@ -882,6 +904,7 @@
     "Flow-payload": {
       "type": "object",
       "allOf": [
+        { "$ref": "#/$defs/Templated-payload" },
         {
           "properties": {
             "children": { "$ref": "#/$defs/Widgets" },
@@ -892,32 +915,81 @@
             },
             "styles": { "$ref": "#/$defs/flowStyles" }
           }
-        },
-        { "$ref": "#/$defs/Templated-payload" }
+        }
       ]
     },
     "Column-payload": {
       "type": "object",
       "allOf": [
+        { "$ref": "#/$defs/Templated-payload" },
         {
           "properties": {
             "children": { "$ref": "#/$defs/Widgets" },
             "styles": { "$ref": "#/$defs/columnStyles" }
           }
-        },
-        { "$ref": "#/$defs/Templated-payload" }
+        }
       ]
     },
     "Row-payload": {
       "type": "object",
       "allOf": [
+        { "$ref": "#/$defs/Templated-payload" },
         {
           "properties": {
             "children": { "$ref": "#/$defs/Widgets" },
             "styles": { "$ref": "#/$defs/rowStyles" }
           }
-        },
-        { "$ref": "#/$defs/Templated-payload" }
+        }
+      ]
+    },
+    "GridView-payload": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/Templated-payload" },
+        {
+          "properties": {
+            "onItemTap": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Call Ensemble's built-in functions or execute code when tapping on an item in the list."
+            },
+            "styles": {
+              "allOf": [
+                { "$ref": "#/$defs/baseStyles" },
+                { "$ref": "#/$defs/boxLayoutStyles" },
+                {
+                  "properties": {
+                    "horizontalTileCount": {
+                      "type": ["integer", "string"],
+                      "description": "The number of horizontal tiles (max 5) to show. If not specified, the number of tiles will automatically be determined by the screen size. You may also specify a single number (for all breakpoints), three numbers (for small, medium, large breakpoints), or five numbers (xSmall, small, medium, large, xLarge).",
+                      "minimum": 1,
+                      "maximum": 5
+                    },
+                    "horizontalGap": {
+                      "type": "integer",
+                      "description": "The gap between the horizontal tiles if there are more than one (default: 10).",
+                      "minimum": 0
+                    },
+                    "verticalGap": {
+                      "type": "integer",
+                      "description": "The gap between the vertical tiles if there are more than one (default: 10).",
+                      "minimum": 0
+                    },
+                    "itemHeight": {
+                      "type": "integer",
+                      "description": "Set a fixed height for each item in the tile. If each tile item comprises of many widgets vertically, setting this attribute may require you to stretch (expand) at least one inner widget.",
+                      "minimum": 0
+                    },
+                    "itemAspectRatio": {
+                      "type": "number",
+                      "description": "Instead of itemHeight, you can set the tile's dimension as a ratio of (item width / item height). For example, a tile with 3x width and 2x height is 3/2 = 1.5. This attribute will be ignored if itemHeight is set.",
+                      "minimum": 0
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
       ]
     },
     "Flex-payload": {
@@ -945,6 +1017,52 @@
           }
         }
       }
+    },
+    "ListView-payload": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/Templated-payload" },
+        {
+          "properties": {
+            "children": { "$ref": "#/$defs/Widgets" },
+            "onItemTap": {
+              "description": "Dispatch when an ListView item is selected/tapped.The event dispatches only when you tap on the item. The index of the item can be retrieved using 'selectedItemIndex'.",
+              "$ref": "#/$defs/Action-payload"
+            },
+            "selectedItemIndex": {
+              "type": "integer",
+              "description": "Selecting a ListView item gives the index of selected item"
+            },
+            "styles": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/boxLayoutStyles"
+                },
+                {
+                  "$ref": "#/$defs/baseStyles"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "separatorColor": {
+                      "$ref": "#/$defs/typeColors",
+                      "description": "Set the color for the separator between items"
+                    },
+                    "separatorWidth": {
+                      "type": "integer",
+                      "description": "The thickness of the separator between items"
+                    },
+                    "separatorPadding": {
+                      "type": ["integer", "string"],
+                      "description": "Padding with CSS-style value e.g. padding: 5 20 5 Default 0 0 0"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     "Carousel-payload": {
       "type": "object",
@@ -1078,12 +1196,8 @@
           "type": "boolean"
         },
         "icon": {
-          "type": "string",
-          "description": "Icon name from Material Icons or Font Awesome"
-        },
-        "iconLibrary": {
-          "type": "string",
-          "enum": ["default", "fontAwesome"]
+          "$ref": "#/$defs/HasIcon",
+          "description": "The icon to show before the Input field"
         },
         "onChange": {
           "$ref": "#/$defs/Action-payload",
@@ -1091,18 +1205,7 @@
         },
         "styles": {
           "allOf": [
-            { "$ref": "#/$defs/baseStyles" },
-            {
-              "type": "object",
-              "properties": {
-                "iconSize": {
-                  "type": "integer"
-                },
-                "iconColor": {
-                  "type": ["number", "string"]
-                }
-              }
-            }
+            { "$ref": "#/$defs/baseStyles" }
           ]
         }
       }
@@ -1145,7 +1248,56 @@
             "action": {
               "type": "string",
               "description": "invoke an Ensemble's built-in functions",
-              "enum": ["invokeAPI" ,"navigateScreen", "navigateModalScreen", "showDialog", "closeAllDialogs", "startTimer", "showToast", "executeCode", "getLocation", "uploadFiles"]
+              "oneOf": [
+                {
+                  "const": "invokeAPI",
+                  "description": "Calling an API"
+                },
+                {
+                  "const": "navigateScreen",
+                  "description": "Navigating to a new screen"
+                },
+                {
+                  "const": "navigateModalScreen",
+                  "description": "Opening a new screen as a modal"
+                },
+                {
+                  "const": "navigateBack",
+                  "description": "Navigating back to the previous screen if possible. The current screen will be removed from the navigation history. This also works for a modal screen."
+                },
+                {
+                  "const": "showDialog",
+                  "description": "Opening a dialog"
+                },
+                {
+                  "const": "closeAllDialogs",
+                  "description": "Closing all opened dialogs"
+                },
+                {
+                  "const": "startTimer",
+                  "description": "Initiating the start of a timer"
+                },
+                {
+                  "const": "stopTimer",
+                  "description": "Stop a timer if it is running"
+                },
+                {
+                  "const": "showToast",
+                  "description": "Showing a toast message"
+                },
+                {
+                  "const": "executeCode",
+                  "description": "Execute a block of code."
+                },
+                {
+                  "const": "getLocation",
+                  "description": "Requesting user's permission to get his/her current location"
+                },
+                {
+                  "const": "uploadFiles",
+                  "description": "Allow users to upload files to an API from the camera or file system"
+                }
+              ]
             }
           }
         },
@@ -1199,6 +1351,15 @@
               "inputs": {
                 "type": "object",
                 "description": "Specify the key/value pairs to pass into the next Screen"
+              },
+              "options": {
+                "type": "object",
+                "properties": {
+                  "replaceCurrentScreen": {
+                    "type": "boolean",
+                    "description": "If true, the new screen will replace the current screen on the navigation history. Navigating back from the new screen will skip the current screen."
+                  }
+                }
               }
             }
           }
@@ -1237,10 +1398,11 @@
             }
           },
           "then": {
+            "required": ["widget"],
             "properties": {
-              "name": {
+              "widget": {
                 "$ref": "#/$defs/Widget",
-                "description": "Specifies a widget name or declare a widget to render inside the Dialog"
+                "description": "Return an inline widget or specify a custom widget's name to use in the dialog."
               },
               "options": {
                 "type": "object",
@@ -1270,12 +1432,17 @@
                     "type": "number",
                     "minimum": -1.0,
                     "maximum": 1.0
+                  },
+                  "style": {
+                    "type": "string",
+                    "description": "Render the dialog with a default style. You can also specify 'none' and control your own styles in your widget.",
+                    "enum": ["default", "none"]
                   }
                 }
               },
               "onDialogDismiss": {
                 "$ref": "#/$defs/Action-payload",
-                "description": "Execute an Action when the Dialog is dismissed"
+                "description": "Execute an Action when the dialog is dismissed."
               }
             }
           }
@@ -1306,10 +1473,19 @@
             }
           },
           "then": {
+            "required": ["onTimer"],
             "properties": {
               "id": {
                 "type": "string",
                 "description": "Give this timer an ID so it can be cancelled by a stopTimer action"
+              },
+              "onTimer": {
+                "$ref": "#/$defs/Action-payload",
+                "description": "Execute an Action every time the timer triggers"
+              },
+              "onTimerComplete": {
+                "$ref": "#/$defs/Action-payload",
+                "description": "Execute an Action when the timer has completed and will terminate"
               },
               "options": {
                 "type": "object",
@@ -1338,14 +1514,6 @@
                     "description": "Set the max number of times the timer will triggers, if repeat is true"
                   }
                 }
-              },
-              "onTimer": {
-                "$ref": "#/$defs/Action-payload",
-                "description": "Execute an Action every time the timer triggers"
-              },
-              "onTimerComplete": {
-                "$ref": "#/$defs/Action-payload",
-                "description": "Execute an Action when the timer has completed and will terminate"
               }
             }
           }
@@ -1493,9 +1661,9 @@
                 "type": "string",
                 "description": "Give the Uploader an ID allows you to bind to its result. e.g. ${filePicker.files...}, ${filePicker.body...}"
               },
-              "uploadUrl": {
+              "uploadApi": {
                 "type": "string",
-                "description": "Enter URL endpoint where files need to be uploaded"
+                "description": "Enter the name of your defined API"
               },
               "onComplete": {
                 "$ref": "#/$defs/Action-payload",
@@ -1504,6 +1672,14 @@
               "onError": {
                 "$ref": "#/$defs/Action-payload",
                 "description": "Execute an Action when uploader fails with error(s)"
+              },
+              "inputs": {
+                "type": "array",
+                "description": "Define the list of input names that upload API accepts"
+              },
+              "fieldName" : {
+                "type": "string",
+                "description": "Field name that your server is expecting (default files)"
               },
               "options": {
                 "type": "object",
@@ -1517,7 +1693,16 @@
                     "description" : "It will allow media to apply the default OS compression (default True)"
                   },
                   "allowedExtensions": {
-                    "type": "array"
+                    "type": "array",
+                    "description": "Allow files with specific extension e.g jpg, png, pdf"
+                  },
+                  "maxFileSize" : {
+                    "type": "integer",
+                    "description": "File size that is allowed (default 100 mb), If multiple is allow then sum of all files"
+                  },
+                  "overMaxFileSizeMessage" : {
+                    "type": "string",
+                    "description": "Error message to show when selected files size is above maxFileSize."
                   }
                 }
               }
@@ -1560,27 +1745,43 @@
       "allOf": [
         {
           "properties": {
-            "Text": { "$ref": "#/$defs/Text-payload" }
+            "Text": { 
+              "$ref": "#/$defs/Text-payload",
+              "description": "Example from Kitchen Sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/c87f8b09-58e2-4c2f-99a1-cbbe9e25e9a5"
+            }
           }
         },
         {
           "properties": {
-            "Markdown": { "$ref": "#/$defs/Markdown-payload" }
+            "Markdown": { 
+              "$ref": "#/$defs/Markdown-payload",
+              "description": "Example from Kitchen Sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/6b6d9c3d-359b-4768-99a5-3f087a64387c#"
+            }
           }
         },
         {
           "properties": {
-            "Html": { "$ref": "#/$defs/Html-payload" }
+            "Html": { 
+              "$ref": "#/$defs/Html-payload",
+              "description": "Example from Kitchen Sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/ZhTBody9YozadVvTlhW0#"
+            }
           }
         },
         {
           "properties": {
-            "Icon": { "$ref": "#/$defs/Icon-payload" }
+            "Icon": { 
+              "$ref": "#/$defs/Icon-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/e7c686f5-b8a2-4670-9e6e-8fdb0fea768e#"
+            }
           }
         },
         {
           "properties": {
-            "Image": { "$ref": "#/$defs/Image-payload" }
+            "Image": { 
+              "$ref": "#/$defs/Image-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/7c7a3ffe-68ef-4e99-b9d1-4b5cee166233#"
+            
+            }
           }
         },
         {
@@ -1595,117 +1796,212 @@
         },
         {
           "properties": {
-            "Progress": { "$ref": "#/$defs/Progress-payload" }
+            "Progress": { 
+              "$ref": "#/$defs/Progress-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/c2c248f2-a289-40d3-acd5-65a1a7f3c5a2#"
+            }
           }
         },
         {
           "properties": {
-            "Divider": { "$ref": "#/$defs/Divider-payload" }
+            "Divider": {
+              "$ref": "#/$defs/Divider-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/4a893a2e-5bde-400c-b974-b25b497d31a5#"
+            }
           }
         },
         {
           "properties": {
-            "Spacer": { "$ref": "#/$defs/Spacer-payload" }
+            "Spacer": { 
+              "$ref": "#/$defs/Spacer-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/1d7e42a9-5bbc-4b4b-9a02-8c102234ee05#"
+            }
           }
         },
         {
           "properties": {
-            "TextInput": { "$ref": "#/$defs/TextInput-payload" }
+            "TextInput": { 
+              "$ref": "#/$defs/TextInput-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/abc081b1-bcb4-4db6-ae55-7987cb6c418e#"
+            
+            }
           }
         },
         {
           "properties": {
-            "PasswordInput": { "$ref": "#/$defs/PasswordInput-payload" }
+            "PasswordInput": { 
+              "$ref": "#/$defs/PasswordInput-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/218fa244-f0cd-4d17-91e6-7c099bbedede#" 
+            
+            }
           }
         },
         {
           "properties": {
-            "Checkbox": { "$ref": "#/$defs/OnOff-payload" }
+            "Checkbox": { 
+              "$ref": "#/$defs/OnOff-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/21f43d9b-db21-40fe-9c2f-806267e6c412#"
+            }
           }
         },
         {
           "properties": {
-            "Switch": { "$ref": "#/$defs/OnOff-payload" }
+            "Switch": { 
+              "$ref": "#/$defs/OnOff-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/3f4ba37a-0e6a-46a1-9b78-e4e04c84937d#"
+            }
           }
         },
         {
           "properties": {
-            "Dropdown": { "$ref": "#/$defs/SelectOne-payload" }
+            "Dropdown": {
+              "$ref": "#/$defs/SelectOne-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/fb8d28a2-834e-40a9-8419-155272fb0191#"
+            }
           }
         },
         {
           "properties": {
-            "Date": { "$ref": "#/$defs/Date-payload" }
+            "Date": { 
+              "$ref": "#/$defs/Date-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/b45c5576-ec22-4b04-832f-6dd7571dd20f#"
+            }
           }
         },
         {
           "properties": {
-            "Time": { "$ref": "#/$defs/Time-payload" }
+            "Time": { 
+              "$ref": "#/$defs/Time-payload",
+              "description": "Kitchen Sink Example: ...coming ..." 
+            
+            }
           }
         },
         {
           "properties": {
-            "Button": { "$ref": "#/$defs/Button-payload" }
+            "Button": { 
+              "$ref": "#/$defs/Button-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/09c1087b-f9ee-4a8c-9286-e0e881184c07#"
+            }
           }
         },
         {
           "properties": {
-            "Form": { "$ref": "#/$defs/Form-payload" }
+            "Form": { 
+              "$ref": "#/$defs/Form-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/3107baf6-dfc3-42cd-b617-61c37b31f31e#" 
+            }
           }
         },
         {
           "properties": {
-            "Flow": { "$ref": "#/$defs/Flow-payload" }
+            "Flow": { 
+              "$ref": "#/$defs/Flow-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/3e901fb8-a0e8-4f52-979b-7f5f2547e650#" 
+            }
           }
         },
         {
           "properties": {
-            "Column": { "$ref": "#/$defs/Column-payload" }
+            "Column": { 
+              "$ref": "#/$defs/Column-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/90a8e4df-5eab-4473-ba10-2ecffc9596b0#" 
+            }
           }
         },
         {
           "properties": {
-            "Row": { "$ref": "#/$defs/Row-payload" }
+            "ListView": { 
+              "$ref": "#/$defs/ListView-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/w0Wmu9ZMP4csk7IELSx3#" 
+            
+            }
           }
         },
         {
           "properties": {
-            "Flex": { "$ref": "#/$defs/Flex-payload" }
+            "Row": { 
+              "$ref": "#/$defs/Row-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/4bd0d453-c243-429d-a562-93cbc9db38e3#" 
+            
+            }
           }
         },
         {
           "properties": {
-            "Stack": { "$ref": "#/$defs/Stack-payload" }
+            "GridView": { 
+              "$ref": "#/$defs/GridView-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/DX5j2WVQFabmxD9FCD5h#" 
+            
+            }
           }
         },
         {
           "properties": {
-            "Carousel": { "$ref": "#/$defs/Carousel-payload" }
+            "Flex": { 
+              "$ref": "#/$defs/Flex-payload",
+              "description": "Kitchen Sink Example: ...coming ..." 
+            
+            }
           }
         },
         {
           "properties": {
-            "TabBar": { "$ref": "#/$defs/TabBar-payload" }
+            "Stack": { 
+              "$ref": "#/$defs/Stack-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/572ecf3b-b9f2-46f4-960f-ff438e5fa1dc#" 
+            }
           }
         },
         {
           "properties": {
-            "Map": { "$ref": "#/$defs/Map-payload" }
+            "Carousel": { 
+              "$ref": "#/$defs/Carousel-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/2e1d88b1-f281-4c2c-9bb1-bd18016d2b8c#" 
+            }
           }
         },
         {
           "properties": {
-            "Video": { "$ref": "#/$defs/Video-payload" }
+            "TabBar": { 
+              "$ref": "#/$defs/TabBar-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/cebd491d-7d90-43f4-9f17-b8575de441ca#" 
+            
+            }
           }
         },
         {
           "properties": {
-            "WebView": { "$ref": "#/$defs/WebView-payload" }
+            "Map": { 
+              "$ref": "#/$defs/Map-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/36e52d1a-39c5-4a6b-b064-2be6cfe3cf7b#"
+            
+            }
           }
         },
         {
           "properties": {
-            "Chart": { "$ref": "#/$defs/Chart-payload" }
+            "Video": {
+              "$ref": "#/$defs/Video-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/fce92bbb-af8e-403d-bf2d-c10926cc89a0#"
+            }
+          }
+        },
+        {
+          "properties": {
+            "WebView": { 
+              "$ref": "#/$defs/WebView-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/22c8d57d-a906-4d11-873d-161fd6c56c0a#"
+            
+            }
+          }
+        },
+        {
+          "properties": {
+            "ChartJs": { 
+              "$ref": "#/$defs/ChartJs-payload" ,
+              "description": "Example from Kitchen Sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/5d7b84de-3bbd-456e-aeea-98e2c9f4c3c7"      
+              }
           }
         }       
       ]
@@ -1893,34 +2189,18 @@
           "description": "Define each of your Tab here",
           "items": {
             "type": "object",
-            "required": ["label", "body"],
+            "required": ["label", "widget"],
             "properties": {
               "label": {
                 "type": "string",
                 "description": "Setting the tab label"
               },
               "icon": {
-                "type": "object",
-                "description": "The icon for each tab item. (short-hand 'iconName iconLibrary' also supported)",
-                "properties": {
-                  "name": {
-                    "type": ["integer", "string"],
-                    "description": "The name of the icon"
-                  },
-                  "library": {
-                    "$ref": "#/$defs/iconLibrary"
-                  },
-                  "color": {
-                    "$ref": "#/$defs/typeColors"
-                  },
-                  "size": {
-                    "type": "integer"
-                  }
-                }
+                "$ref":"#/$defs/HasIcon"
               },
-              "body": {
+              "widget": {
                 "$ref": "#/$defs/Widget",
-                "description": "Add a widget to be rendered as this tab's content"
+                "description": "Return an inline widget or specify a custom widget to be rendered as this tab's content"
               }
             }
           }
@@ -2034,7 +2314,7 @@
         }
       }
     },
-    "Chart-payload": {
+    "ChartJs-payload": {
       "type": "object",
       "properties": {
         "id": {
@@ -2056,7 +2336,7 @@
         },
         "config": {
           "type": "string",
-          "description": "Chartjs config. \nSee this for an example - https://www.chartjs.org/docs/latest/configuration/. \nExample from Kitchen sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/5d7b84de-3bbd-456e-aeea-98e2c9f4c3c7"
+          "description": "Chartjs config. \nSee this for an example - https://www.chartjs.org/docs/latest/configuration/"
         }
       }
     },
@@ -2091,9 +2371,11 @@
     "borderRadius": {
       "type": "object",
       "properties": {
-        "type": ["integer", "string"],
-        "minimum": 0,
-        "description": "Border Radius with CSS-like notation (1 to 4 integers)"
+        "borderRadius": {
+          "type": ["integer", "string"],
+          "minimum": 0,
+          "description": "Border Radius with CSS-like notation (1 to 4 integers)"
+        }
       }
     },
 
@@ -2180,6 +2462,11 @@
         {
           "type": "object",
           "properties": {
+            "mainAxis": {
+              "type": "string",
+              "description": "Control our children's layout vertically",
+              "enum": ["start", "center", "end", "spaceBetween", "spaceAround", "spaceEvenly"]
+            },
             "gap": {
               "type": "integer",
               "description": "The gap between the children in the main direction",
@@ -2405,11 +2692,6 @@
         }
       }
     },
-    "iconLibrary": {
-      "type": "string",
-      "description": "(optional) Select the icon library",
-      "enum": ["default", "fontAwesome"]
-    },
     "alignment": {
       "type": "string",
       "enum": ["topLeft", "topCenter", "topRight", "centerLeft", "center", "centerRight", "bottomLeft", "bottomCenter", "bottomRight"]
@@ -2545,8 +2827,31 @@
           "$ref": "#/$defs/backgroundGradient"
         }
       ]
+    },
+    "HasIcon": {
+      "type": "object",
+      "description": "Specifies the icon to use. You can also use the short-handed syntax 'iconName iconLibrary')",
+      "properties": {
+        "name": {
+          "type": ["integer", "string"],
+          "description": "The name of the icon"
+        },
+        "library": {
+          "type": "string",
+          "description": "Which icon library to use.",
+          "enum": ["default", "fontAwesome"]
+        },
+        "color": {
+          "$ref": "#/$defs/typeColors"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
     }
 
 
   }
 }
+

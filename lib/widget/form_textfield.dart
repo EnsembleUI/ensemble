@@ -100,7 +100,8 @@ abstract class BaseTextInput extends StatefulWidget with Invokable, HasControlle
       'borderRadius': (value) => _controller.borderRadius = Utils.optionalInt(value),
       'validator': (value) => _controller.validator = Utils.getValidator(value),
       'obscureToggle': (value) => _controller.obscureToggle = Utils.optionalBool(value),
-      'keyboardAction': (value) => _controller.keyboardAction = _getKeyboardAction(value)
+      'keyboardAction': (value) => _controller.keyboardAction = _getKeyboardAction(value),
+      'maxLines' : (value) =>  _controller.maxLines = Utils.getInt(value, min: 1, fallback: _controller.maxLines),
     };
   }
 
@@ -150,6 +151,7 @@ class TextInputController extends FormFieldController {
   model.InputValidator? validator;
   String? inputType;
   int? borderRadius;
+  int maxLines = 1;
 }
 
 class TextInputState extends FormFieldWidgetState<BaseTextInput> {
@@ -288,6 +290,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
       },
       textInputAction: widget._controller.keyboardAction,
       keyboardType: widget.keyboardType,
+      maxLines: widget._controller.maxLines,
       obscureText: isObscureOrPlainText(),
       enableSuggestions: !widget.isPassword(),
       autocorrect: !widget.isPassword(),

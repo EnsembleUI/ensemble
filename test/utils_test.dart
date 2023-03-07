@@ -31,6 +31,17 @@ void main() {
 
   });
 
+  test('strip ending arrays', () {
+    expect(Utils.stripEndingArrays(''), '');
+    expect(Utils.stripEndingArrays('hello'), 'hello');
+    expect(Utils.stripEndingArrays('hello[0]'), 'hello');
+    expect(Utils.stripEndingArrays('hello[name]'), 'hello');
+    expect(Utils.stripEndingArrays('hello[0][12]'), 'hello');
+    expect(Utils.stripEndingArrays('hello[one][two][three]'), 'hello');
+    expect(Utils.stripEndingArrays('hello[0]there[1]'), 'hello[0]there');
+    expect(Utils.stripEndingArrays('hello.there'), 'hello.there');
+  });
+
   test('expressions utility', () {
     expect(Utils.isExpression(r'${hi}'), true);
     expect(Utils.isExpression(r'hello ${hi}'), false);

@@ -11,6 +11,10 @@ class BoxWrapper extends StatelessWidget {
     required this.widget,
     required this.boxController,
 
+    // internal widget may want to handle padding itself (e.g. ListView so
+    // its scrollbar lays on top of the padding and not the content)
+    this.ignoresPadding = false,
+
     // sometimes our widget may register a gesture. Such gesture should not
     // include the margin. This allows it to handle the margin on its own.
     this.ignoresMargin = false,
@@ -22,19 +26,35 @@ class BoxWrapper extends StatelessWidget {
   final BoxController boxController;
 
   // child widget may want to control these themselves
+  final bool ignoresPadding;
   final bool ignoresMargin;
   final bool ignoresDimension;
 
   @override
   Widget build(BuildContext context) {
-    if (!boxController.requiresBox(ignoresMargin, ignoresDimension)) {
+    if (!boxController.requiresBox(
+        ignoresMargin: ignoresMargin,
+        ignoresPadding: ignoresPadding,
+        ignoresDimension: ignoresDimension)) {
       return widget;
     }
+    // when we have a border radius, we may need to clip the child (e.g. image)
+    // so it doesn't bleed through the border. This really only applies for
+    // the actual child widget, as the backgroundColor/backgroundImage will already
+    // be clipped properly. For simplicity just apply it and take a small
+    // performance hit.
+    Clip clip = Clip.none;
+    if (boxController.borderRadius != null &&
+        boxController.hasBoxDecoration()) {
+      clip = Clip.hardEdge;
+    }
+
     return Container(
       width: ignoresDimension ? null : boxController.width?.toDouble(),
       height: ignoresDimension ? null : boxController.height?.toDouble(),
       margin: ignoresMargin ? null : boxController.margin,
-      padding: boxController.padding,
+      padding: ignoresPadding ? null : boxController.padding,
+      clipBehavior: clip,
       child: widget,
       decoration: !boxController.hasBoxDecoration()
           ? null
@@ -42,8 +62,14 @@ class BoxWrapper extends StatelessWidget {
               color: boxController.backgroundColor,
               image: boxController.backgroundImage?.image,
               gradient: boxController.backgroundGradient,
-              border: !boxController.hasBorder()
-                  ? null
+              border: !boxController.hasBorder() 
+              ? null 
+              : boxController.borderGradient !=null
+                  ? GradientBorder(
+                    gradient: boxController.borderGradient!,
+                    width: boxController.borderWidth?.toDouble() ??
+                          ThemeManager.getBorderThickness(context)
+                  )
                   : Border.all(
                       color: boxController.borderColor ??
                           ThemeManager.getBorderColor(context),
@@ -66,4 +92,61 @@ class BoxWrapper extends StatelessWidget {
                     ]));
   }
 
+}
+
+
+class GradientBorder extends BoxBorder {
+  const GradientBorder({required this.gradient,  required this.width});
+
+  final LinearGradient gradient;
+
+  final double width;
+
+  @override
+  BorderSide get bottom => BorderSide.none;
+
+  @override
+  BorderSide get top => BorderSide.none;
+
+  @override
+  EdgeInsetsGeometry get dimensions => EdgeInsets.all(width);
+
+  @override
+  bool get isUniform => true;
+
+  @override
+  void paint(
+    Canvas canvas,
+    Rect rect, {
+    TextDirection? textDirection,
+    BoxShape shape = BoxShape.rectangle,
+    BorderRadius? borderRadius,
+  }) {
+     if (borderRadius != null) {
+          _paintRRect(canvas, rect, borderRadius);
+          return;
+        }
+        _paintRect(canvas, rect);
+  }
+
+  void _paintRect(Canvas canvas, Rect rect) {
+    canvas.drawRect(rect.deflate(width / 2), _getPaint(rect));
+  }
+
+  void _paintRRect(Canvas canvas, Rect rect, BorderRadius borderRadius) {
+    final rrect = borderRadius.toRRect(rect).deflate(width / 2);
+    canvas.drawRRect(rrect, _getPaint(rect));
+  }
+
+  @override
+  ShapeBorder scale(double t) {
+    return this;
+  }
+
+  Paint _getPaint(Rect rect) {
+    return Paint()
+      ..strokeWidth = width 
+      ..shader = gradient.createShader(rect)
+      ..style = PaintingStyle.stroke;
+  }
 }

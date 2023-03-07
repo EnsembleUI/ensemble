@@ -91,12 +91,14 @@ abstract class PageModel {
     if (menuData['items'] is YamlList) {
       List<MenuItem> menuItems = [];
       for (final YamlMap item in (menuData['items'] as YamlList)) {
+
+
         menuItems.add(MenuItem(
             item['label'],
             item['page'],
             icon: item['icon'],
             iconLibrary: item['iconLibrary'],
-            selected: item['selected']==true || item['selected']=='true'));
+            selected: item['selected']));
       }
       Map<String, dynamic>? menuStyles = ViewUtil.getMap(menuData['styles']);
 
@@ -158,12 +160,8 @@ class SinglePageModel extends PageModel {
       PageType pageType = viewMap['options']['type'] == PageType.modal.name
           ? PageType.modal
           : PageType.regular;
-      String? closeButtonPosition =
-          viewMap['options']?['closeButtonPosition'] == 'start'
-              ? 'start'
-              : 'end';
       screenOptions = ScreenOptions(
-          pageType: pageType, closeButtonPosition: closeButtonPosition);
+          pageType: pageType);
     }
 
     // set the view behavior
@@ -360,13 +358,13 @@ enum MenuItemDisplay {
 
 
 class MenuItem {
-  MenuItem(this.label, this.page, {this.icon, this.iconLibrary, this.selected=false});
+  MenuItem(this.label, this.page, {this.icon, this.iconLibrary, this.selected});
 
   final String? label;
   final String page;
   final dynamic icon;
   final String? iconLibrary;
-  final bool selected;
+  final dynamic selected;
 
 }
 
@@ -413,10 +411,7 @@ class ScreenPayload {
 
 /// rendering options for the screenc
 class ScreenOptions {
-  ScreenOptions({this.pageType, this.closeButtonPosition});
+  ScreenOptions({this.pageType});
 
   PageType? pageType = PageType.regular;
-
-  // applicable only for modal pages (start/end)
-  String? closeButtonPosition = 'end';
 }

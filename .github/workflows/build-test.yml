@@ -1,0 +1,68 @@
+name: Execute Tests
+on:
+  workflow_dispatch:
+
+#   pull_request:
+#     types: [opened, reopened]
+
+jobs:
+  android:
+    runs-on: macos-latest
+    steps:
+    
+    - name: Checkout Code
+      uses: actions/checkout@v3
+#     - name: Gradle cache
+#       uses: gradle/gradle-build-action@v2
+    - name: run tests
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: 29
+#         script: ./gradlew connectedCheck
+      timeout-minutes: 100
+    - name: Run Integration Tests
+      timeout-minutes: 100
+      run: flutter test integration_test --verbose
+  
+  
+  
+#   test:
+#     timeout-minutes: 100
+#     name: Execute Tests
+    
+#     strategy:
+#       matrix:
+#         device:
+#           - iPhone 14 Pro Max
+#       fail-fast: true
+  
+#     runs-on: macos-latest
+#     steps:
+    
+#     - name: Checkout Code
+#       uses: actions/checkout@v3
+      
+#     - name: Setup Flutter SDK
+#       uses: subosito/flutter-action@v2
+#       with:
+#         channel: 'stable'
+
+#     - name: Pub Upgrade
+#       run: flutter pub upgrade
+
+# #     - name: Run Unit Tests / Widget Tests
+# #       run: flutter test
+      
+#     - name: Start iOS Simulator
+#       id: simulator
+#       uses: futureware-tech/simulator-action@v2
+#       with:
+#         model: ${{ matrix.device }}
+        
+#     - name: Run Integration Tests
+#       timeout-minutes: 100
+#       run: flutter test integration_test --verbose -d ${{steps.simulator.outputs.udid}}
+  
+
+    
+    
