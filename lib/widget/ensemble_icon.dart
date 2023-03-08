@@ -73,7 +73,7 @@ class IconState extends WidgetState<EnsembleIcon> {
     if (tapEnabled) {
       icon = InkWell(
           child: icon,
-          splashColor: widget._controller.splashColor ?? ThemeManager.getSplashColor(context),
+          splashColor: widget._controller.splashColor ?? ThemeManager().getSplashColor(context),
           borderRadius: widget._controller.borderRadius?.getValue(),
           onTap: () =>
               ScreenController().executeAction(
