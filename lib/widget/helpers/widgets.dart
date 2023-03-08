@@ -1,7 +1,7 @@
 /// This class contains common widgets for use with Ensemble widgets.
 
 import 'package:ensemble/widget/helpers/controllers.dart';
-import 'package:ensemble/widget/helpers/theme_manager.dart';
+import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:flutter/cupertino.dart';
 
 /// wraps around a widget and gives it common box attributes
