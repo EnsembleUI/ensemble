@@ -6,7 +6,6 @@ import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/form.dart';
 import 'package:ensemble/layout/form.dart' as ensemble;
 import 'package:ensemble/screen_controller.dart';
-import 'package:ensemble/util/theme_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -79,6 +78,7 @@ abstract class FormFieldWidgetState<W extends HasController>
       FormFieldController myController = widget
           .controller as FormFieldController;
       return InputDecoration(
+        //contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 3),
           floatingLabelBehavior: FloatingLabelBehavior.always,
           filled: myController.backgroundColor != null,
           fillColor: myController.backgroundColor,
