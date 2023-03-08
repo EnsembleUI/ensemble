@@ -1,5 +1,6 @@
 
 
+import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
@@ -73,8 +74,6 @@ mixin ThemeLoader {
   /// if certain theme is not specified
   /// TODO: these should be deprecated
   final Color _disabledColor = Colors.black38;
-  final Color _inputBorderColor = Color(0xFFBDBDBD);
-  final Color _inputBorderDisabledColor = Colors.black12;
   final int _inputBorderRadius = 3;
   final EdgeInsets _buttonPadding = EdgeInsets.only(left: 15, top: 5, right: 15, bottom: 5);
   final int _buttonBorderRadius = 3;
@@ -156,67 +155,96 @@ mixin ThemeLoader {
 
   /// parse the FormInput's theme from the theme YAML
   InputDecorationTheme? _buildInputTheme(YamlMap? input, {required ColorScheme colorScheme}) {
-    Color focusColor = Utils.getColor(input?['focusColor']) ?? colorScheme.primary;
-    Color borderColor = Utils.getColor(input?['borderColor']) ?? _inputBorderColor;
-    Color disabledColor = Utils.getColor(input?['borderDisabledColor']) ?? _inputBorderDisabledColor;
-    Color errorColor = Utils.getColor(input?['borderErrorColor']) ?? colorScheme.error;
-    Color backgroundColor = Utils.getColor(input?['backgroundColor']) ?? Colors.transparent;
+    Color? fillColor = Utils.getColor(input?['fillColor']);
+    InputDecorationTheme baseInputDecoration = InputDecorationTheme(
+      //isDense: true,
+      filled: fillColor != null,
+      fillColor: fillColor
+    );
+
+    EdgeInsets? contentPadding = Utils.optionalInsets(input?['contentPadding']);
+    BorderRadius borderRadius = Utils.getBorderRadius(input?['borderRadius'])
+        ?.getValue() ??
+        const BorderRadius.all(Radius.circular(4));
+    int borderWidth = Utils.optionalInt(input?['borderWidth']) ?? 1;
+
+    Color? borderColor = Utils.getColor(input?['borderColor']);
+    Color? enabledBorderColor = Utils.getColor(input?['enabledBorderColor']);
+    Color? disabledBorderColor = Utils.getColor(input?['disabledBorderColor']);
+    Color? errorBorderColor = Utils.getColor(input?['errorBorderColor']);
+    Color? focusedBorderColor = Utils.getColor(input?['focusedBorderColor']);
+    Color? focusedErrorBorderColor = Utils.getColor(input?['focusedErrorBorderColor']);
+
 
     if (input?['variant'] == 'box') {
-      return _getInputBoxDecoration(
-          focusColor: focusColor,
-          borderColor: borderColor,
-          disabledColor: disabledColor,
-          errorColor: errorColor,
-          backgroundColor: backgroundColor,
-          borderRadius: Utils.optionalInt(input?['borderRadius']) ?? _inputBorderRadius);
+      // we always need to set the base border since user can be setting other
+      // values besides the color
+      OutlineInputBorder baseBorder = OutlineInputBorder(
+          borderRadius: borderRadius,
+          borderSide: BorderSide(
+              color: borderColor ??
+                  (colorScheme.brightness == Brightness.light
+                      ? Colors.black87
+                      : Colors.white70),
+              width: borderWidth.toDouble()));
+
+      return baseInputDecoration.copyWith(
+        contentPadding: contentPadding ?? const EdgeInsets.symmetric(vertical: 5, horizontal: 8),
+
+        border: baseBorder,
+        enabledBorder: _getOutlineInputBorder(
+            borderColor: enabledBorderColor,
+            borderWidth: borderWidth,
+            borderRadius: borderRadius) ?? baseBorder,
+
+        disabledBorder: _getOutlineInputBorder(
+            borderColor: disabledBorderColor,
+            borderWidth: borderWidth,
+            borderRadius: borderRadius),
+        errorBorder: _getOutlineInputBorder(
+            borderColor: errorBorderColor,
+            borderWidth: borderWidth,
+            borderRadius: borderRadius),
+        focusedBorder: _getOutlineInputBorder(
+            borderColor: focusedBorderColor,
+            borderWidth: borderWidth,
+            borderRadius: borderRadius),
+        focusedErrorBorder: _getOutlineInputBorder(
+            borderColor: focusedErrorBorderColor,
+            borderWidth: borderWidth,
+            borderRadius: borderRadius),
+      );
     } else {
-      return _getInputUnderlineDecoration(
-          focusColor: focusColor,
-          borderColor: borderColor,
-          disabledColor: disabledColor,
-          backgroundColor: backgroundColor,
-          errorColor: errorColor);
+      // base border needs to be filled
+      UnderlineInputBorder baseBorder = UnderlineInputBorder(
+          borderSide: BorderSide(
+              color: borderColor ??
+                  (colorScheme.brightness == Brightness.light
+                      ? Colors.black87
+                      : Colors.white70),
+              width: borderWidth.toDouble()));
+      return baseInputDecoration.copyWith(
+        //contentPadding: contentPadding ?? const EdgeInsets.symmetric(vertical: 12, horizontal: 3),
+
+        border: baseBorder,
+        enabledBorder: _getUnderlineInputBorder(
+          borderColor: enabledBorderColor,
+          borderWidth: borderWidth) ?? baseBorder,
+
+        disabledBorder: _getUnderlineInputBorder(
+          borderColor: disabledBorderColor,
+          borderWidth: borderWidth),
+        errorBorder: _getUnderlineInputBorder(
+            borderColor: errorBorderColor,
+            borderWidth: borderWidth),
+        focusedBorder: _getUnderlineInputBorder(
+            borderColor: focusedBorderColor,
+            borderWidth: borderWidth),
+        focusedErrorBorder: _getUnderlineInputBorder(
+            borderColor: focusedErrorBorderColor,
+            borderWidth: borderWidth),
+      );
     }
-  }
-  InputDecorationTheme _getInputBoxDecoration({required Color focusColor, required Color borderColor, required Color disabledColor, required Color errorColor, required int borderRadius , required Color backgroundColor}) {
-    return InputDecorationTheme(
-      focusedBorder: getInputBoxBorder(
-        borderColor: focusColor,
-        borderRadius: borderRadius,
-      ),
-      enabledBorder: getInputBoxBorder(
-        borderColor: borderColor,
-        borderRadius: borderRadius,
-      ),
-      errorBorder: getInputBoxBorder(
-          borderColor: errorColor,
-          borderRadius: borderRadius),
-      focusedErrorBorder: getInputBoxBorder(
-          borderColor: errorColor,
-          borderRadius: borderRadius),
-      disabledBorder: getInputBoxBorder(
-        borderColor: disabledColor,
-        borderRadius: borderRadius,
-      ),
-      isDense: true,
-      filled: true,
-      fillColor: backgroundColor,
-      contentPadding: const EdgeInsets.all(10),
-    );
-  }
-  InputDecorationTheme _getInputUnderlineDecoration({required Color focusColor, required Color borderColor, required Color errorColor, required Color disabledColor, required Color backgroundColor}) {
-    return InputDecorationTheme(
-        focusedBorder: getInputUnderlineBorder(borderColor: focusColor),
-        enabledBorder: getInputUnderlineBorder(borderColor: borderColor),
-        disabledBorder: getInputUnderlineBorder(borderColor: disabledColor),
-        errorBorder:  getInputUnderlineBorder(borderColor: errorColor),
-        focusedErrorBorder: getInputUnderlineBorder(borderColor: errorColor),
-        isDense: false,
-        contentPadding: EdgeInsets.zero,
-        filled: true,
-        fillColor: backgroundColor
-    );
   }
 
   ButtonStyle? _buildButtonTheme(YamlMap? input, {required ColorScheme colorScheme, required bool isOutline}) {
@@ -252,16 +280,22 @@ mixin ThemeLoader {
   }
 
   /// Border requires all attributes to be set
-  OutlineInputBorder getInputBoxBorder({required Color borderColor, required int borderRadius}) {
-    return OutlineInputBorder(
-        borderSide: BorderSide(color: borderColor),
-        borderRadius: BorderRadius.all(Radius.circular(borderRadius.toDouble()))
-    );
+  OutlineInputBorder? _getOutlineInputBorder({Color? borderColor, required int borderWidth, required BorderRadius borderRadius}) {
+    return borderColor == null
+      ? null
+      : OutlineInputBorder(
+          borderRadius: borderRadius,
+          borderSide: BorderSide(
+            color: borderColor,
+            width: borderWidth.toDouble()));
   }
-  UnderlineInputBorder getInputUnderlineBorder({required Color borderColor}) {
-    return UnderlineInputBorder(
-        borderSide: BorderSide(color: borderColor)
-    );
+  UnderlineInputBorder? _getUnderlineInputBorder({Color? borderColor, required int borderWidth}) {
+    return borderColor == null
+      ? null
+      : UnderlineInputBorder(
+          borderSide: BorderSide(
+            color: borderColor,
+            width: borderWidth.toDouble()));
   }
 
 
@@ -296,6 +330,12 @@ mixin ThemeLoader {
     }
 
   }
+
+
+  ///------------  publicly available theme getters -------------
+
+
+
 
 }
 

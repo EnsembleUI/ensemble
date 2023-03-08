@@ -3,8 +3,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
-/// all the functions should resolve to our theme, and fallback to colorScheme.
-/// If anything is hardcoded, they need to be corrected later on.
+/// ThemeManager will resolve the styles at runtime using the BuildContext.
+/// All available methods should take in the BuildContext to resolve the style.
+///
+/// ThemeManager also uses ThemeLoader mixin, which initialize the overall theme
+/// when the App starts for the first time
 class ThemeManager with ThemeLoader {
   static final ThemeManager _instance = ThemeManager._internal();
   ThemeManager._internal();
