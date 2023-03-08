@@ -222,7 +222,16 @@ class FileUploadAction extends EnsembleAction {
   String? overMaxFileSizeMessage;
 }
 
+class CopyToClipboardAction extends EnsembleAction {
+  CopyToClipboardAction({
+    this.value,
+    this.onComplete,
+  });
+  String? value;
+  EnsembleAction? onComplete;
+}
 
-enum ActionType { invokeAPI, navigateScreen, navigateModalScreen, showDialog, startTimer, stopTimer, closeAllDialogs, executeCode, showToast, getLocation, openUrl, openCamera, uploadFiles, navigateBack }
+
+enum ActionType { invokeAPI, navigateScreen, navigateModalScreen, showDialog, startTimer, stopTimer, closeAllDialogs, executeCode, showToast, getLocation, openUrl, openCamera, uploadFiles, navigateBack , copyToClipboard }
 
 enum ToastType { success, error, warning, info, custom }

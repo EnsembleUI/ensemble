@@ -14,6 +14,7 @@ import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/framework/widget/toast.dart';
 import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/util/copyToClipboard_utils.dart';
 import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/util/upload_utils.dart';
@@ -378,6 +379,14 @@ class ScreenController {
       if (scopeManager != null) {
         Navigator.of(context).maybePop();
       }
+    }
+    else if (action is CopyToClipboardAction) {
+      if(action.value != null)
+        {
+          CopyToClipboard.copyText(action.value!).then((value){
+            if (action.onComplete != null) executeAction(context, action.onComplete!);
+          });
+        }
     }
   }
 
