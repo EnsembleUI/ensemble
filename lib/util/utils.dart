@@ -322,6 +322,11 @@ class Utils {
             maxFileSize: Utils.optionalDouble(payload['options']?['maxFileSize']),
             overMaxFileSizeMessage: Utils.optionalString(payload['options']?['overMaxFileSizeMessage']),
          );
+       } else if ( payload['action'] == ActionType.copyToClipboard.name ) {
+         return CopyToClipboardAction(
+           value: Utils.optionalString(payload['value']),
+           onComplete: Utils.getAction(payload['onComplete']),
+         );
        }
     }
     /// short-hand //@code string is same as ExecuteCodeAction
