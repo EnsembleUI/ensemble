@@ -1,3 +1,6 @@
+import 'dart:developer';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 
@@ -16,27 +19,45 @@ class IconModel {
 }
 
 class BackgroundImage {
-  BackgroundImage(this.source, {this.fit, this.alignment});
-  String source;
-  BoxFit? fit;
-  Alignment? alignment;
+  BackgroundImage(this._source, {BoxFit? fit, Alignment? alignment})
+      : _fit = fit ?? BoxFit.cover, _alignment = alignment ?? Alignment.center;
+
+  final String _source;
+  final BoxFit _fit;
+  final Alignment _alignment;
 
   bool _isUrl() {
-    return source.startsWith('https://') || source.startsWith('http://');
+    return _source.startsWith('https://') || _source.startsWith('http://');
   }
 
-  DecorationImage get image {
+  DecorationImage get asDecorationImage {
     ImageProvider imageProvider;
     if (_isUrl()) {
-      imageProvider = NetworkImage(source);
+      imageProvider = NetworkImage(_source);
     } else {
-      imageProvider = AssetImage(Utils.getLocalAssetFullPath(source));
+      imageProvider = AssetImage(Utils.getLocalAssetFullPath(_source));
     }
     return DecorationImage(
       image: imageProvider,
-      fit: fit ?? BoxFit.cover,
-      alignment: alignment ?? Alignment.center
+      fit: _fit,
+      alignment: _alignment
     );
+  }
+
+  Widget get asImageWidget {
+    if (_isUrl()) {
+      return CachedNetworkImage(
+        imageUrl: _source,
+        fit: _fit,
+        alignment: _alignment,
+      );
+    } else {
+      return Image.asset(
+        Utils.getLocalAssetFullPath(_source),
+        fit: _fit,
+        alignment: _alignment,
+      );
+    }
   }
 
 }

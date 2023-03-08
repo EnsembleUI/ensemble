@@ -309,10 +309,8 @@ class PageState extends State<Page>{
       return Stack(
         children: [
           Positioned.fill(
-              child: CachedNetworkImage(
-            imageUrl: backgroundImage.source,
-            fit: BoxFit.cover,
-          )),
+              child: backgroundImage.asImageWidget
+          ),
           rtn
         ],
       );
