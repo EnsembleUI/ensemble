@@ -87,15 +87,25 @@ class ButtonState extends WidgetState<Button> {
 
     Widget? rtn;
     if (isOutlineButton) {
-      rtn = TextButton(
-        onPressed: isEnabled() ? () => onPressed(context) : null,
-        style: getButtonStyle(context, isOutlineButton),
-        child: label);
+      rtn = CustomPaint(
+        foregroundPainter:widget._controller.borderGradient!=null?
+        _Painter(widget._controller.borderGradient!, widget._controller.borderRadius?.getValue(), widget._controller.borderWidth?.toDouble()??Size.zero.width) :
+        null,
+        child: TextButton(
+          onPressed: isEnabled() ? () => onPressed(context) : null,
+          style: getButtonStyle(context, isOutlineButton),
+          child: label),
+      );
     } else {
-      rtn = ElevatedButton(
-        onPressed: isEnabled() ? () => onPressed(context) : null,
-        style: getButtonStyle(context, isOutlineButton),
-        child: label);
+      rtn = CustomPaint(
+        foregroundPainter:widget._controller.borderGradient!=null?
+        _Painter(widget._controller.borderGradient!, widget._controller.borderRadius?.getValue(), widget._controller.borderWidth?.toDouble()??Size.zero.width) :
+        null,
+        child: ElevatedButton(
+          onPressed: isEnabled() ? () => onPressed(context) : null,
+          style: getButtonStyle(context, isOutlineButton),
+          child: label),
+      );
     }
 
     // add margin if specified
@@ -126,7 +136,9 @@ class ButtonState extends WidgetState<Button> {
         borderRadius: widget._controller.borderRadius == null ?
             defaultShape.borderRadius :
             widget._controller.borderRadius!.getValue(),
-        side: borderSide);
+        side: widget._controller.borderGradient!=null?
+              BorderSide.none :
+              borderSide);
     }
         
     // we need to get the button shape from borderRadius, borderColor & borderThickness
@@ -184,4 +196,28 @@ class ButtonState extends WidgetState<Button> {
         ?? true;
   }
 
+}
+
+
+class _Painter extends CustomPainter {
+  final Gradient gradient;
+  final BorderRadiusGeometry? borderRadius;
+  final double strokeWidth;
+  final TextDirection? textDirection;
+
+  _Painter(this.gradient, this.borderRadius, this.strokeWidth, {this.textDirection});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Rect rect = Rect.fromLTWH(strokeWidth / 2, strokeWidth / 2, size.width - strokeWidth, size.height - strokeWidth);
+    final RRect rRect = borderRadius?.resolve(textDirection ?? TextDirection.ltr)?.toRRect(rect) ?? RRect.fromRectAndRadius(rect, Radius.zero);
+    final Paint _paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..shader = gradient.createShader(rect);
+    canvas.drawRRect(rRect, _paint);
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => oldDelegate != this;
 }
