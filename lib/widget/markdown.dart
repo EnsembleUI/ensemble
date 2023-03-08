@@ -68,7 +68,7 @@ class MarkdownState extends framework.WidgetState<Markdown> {
     MarkdownStyleSheet styles = MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
       p: widget._controller.textStyle,
       a: widget._controller.linkStyle??TextStyle(
-        color: ThemeManager.getPrimaryColor(context)
+        color: ThemeManager().getPrimaryColor(context)
       ),
     );
 

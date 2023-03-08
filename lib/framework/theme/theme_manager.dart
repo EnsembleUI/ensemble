@@ -1,38 +1,44 @@
+import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
 /// all the functions should resolve to our theme, and fallback to colorScheme.
 /// If anything is hardcoded, they need to be corrected later on.
-class ThemeManager {
+class ThemeManager with ThemeLoader {
+  static final ThemeManager _instance = ThemeManager._internal();
+  ThemeManager._internal();
+  factory ThemeManager() {
+    return _instance;
+  }
 
 
   // color when clicking on (InkWell)
-  static getSplashColor(BuildContext context) {
+  getSplashColor(BuildContext context) {
     return Theme.of(context).colorScheme.primary;
   }
-  static Color getBorderColor(BuildContext context) {
+  Color getBorderColor(BuildContext context) {
     return Theme.of(context).colorScheme.onSurface;
   }
-  static Color getPrimaryColor(BuildContext context) {
+  Color getPrimaryColor(BuildContext context) {
     return Theme.of(context).colorScheme.primary;
   }
-  static double getBorderThickness(BuildContext context) {
+  double getBorderThickness(BuildContext context) {
     return 1;
   }
 
-  static Color getShadowColor(BuildContext context) {
+  Color getShadowColor(BuildContext context) {
     return Theme.of(context).brightness == Brightness.light
         ? const Color(0xff000000)
         : const Color(0xffffffff);
   }
-  static getShadowRadius(BuildContext context) {
+  getShadowRadius(BuildContext context) {
     return 0;
   }
-  static getShadowOffset(BuildContext context) {
+  getShadowOffset(BuildContext context) {
     return const Offset(0, 0);
   }
-  static getShadowStyle(BuildContext context) {
+  getShadowStyle(BuildContext context) {
     return BlurStyle.normal;
   }
 

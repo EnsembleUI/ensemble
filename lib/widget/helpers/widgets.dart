@@ -68,27 +68,27 @@ class BoxWrapper extends StatelessWidget {
                   ? GradientBorder(
                     gradient: boxController.borderGradient!,
                     width: boxController.borderWidth?.toDouble() ??
-                          ThemeManager.getBorderThickness(context)
+                          ThemeManager().getBorderThickness(context)
                   )
                   : Border.all(
                       color: boxController.borderColor ??
-                          ThemeManager.getBorderColor(context),
+                          ThemeManager().getBorderColor(context),
                       width: boxController.borderWidth?.toDouble() ??
-                          ThemeManager.getBorderThickness(context)),
+                          ThemeManager().getBorderThickness(context)),
               borderRadius: boxController.borderRadius?.getValue(),
               boxShadow: !boxController.hasBoxShadow()
                   ? null
                   : <BoxShadow>[
                       BoxShadow(
                         color: boxController.shadowColor ??
-                            ThemeManager.getShadowColor(context),
+                            ThemeManager().getShadowColor(context),
                         blurRadius:
                             boxController.shadowRadius?.toDouble() ??
-                                ThemeManager.getShadowRadius(context),
+                                ThemeManager().getShadowRadius(context),
                         offset: boxController.shadowOffset ??
-                            ThemeManager.getShadowOffset(context),
+                            ThemeManager().getShadowOffset(context),
                         blurStyle: boxController.shadowStyle ??
-                            ThemeManager.getShadowStyle(context))
+                            ThemeManager().getShadowStyle(context))
                     ]));
   }
 
