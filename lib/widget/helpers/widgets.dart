@@ -3,6 +3,7 @@
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 
 /// wraps around a widget and gives it common box attributes
 class BoxWrapper extends StatelessWidget {
@@ -90,6 +91,46 @@ class BoxWrapper extends StatelessWidget {
                         blurStyle: boxController.shadowStyle ??
                             ThemeManager().getShadowStyle(context))
                     ]));
+  }
+
+}
+
+
+
+/// Display a Text content followed by a clear icon.
+/// Clicking the icon will invoke the callback.
+/// Note that this is a StatelessWidget, so clearing out the value
+/// is the responsibility of the parent widget who uses this.
+class ClearableInput extends StatelessWidget {
+  const ClearableInput({
+    super.key,
+    required this.text,
+    required this.onCleared,
+    this.textStyle
+  });
+  final String text;
+  final TextStyle? textStyle;
+  final dynamic onCleared;
+
+  @override
+  Widget build(BuildContext context) {
+    if (text.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Flexible(
+          child: Text(text, maxLines: 1, style: textStyle)
+        ),
+        const SizedBox(width: 4),
+        InkWell(
+          onTap: onCleared,
+          child: const Icon(
+              Icons.close,
+              size: 20))
+      ]
+    );
   }
 
 }

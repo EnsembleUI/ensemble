@@ -3,6 +3,7 @@ import 'dart:developer';
 
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/framework/widget/icon.dart' as framework;
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -232,7 +233,9 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
     if ((widget.isPassword() || widget._controller.obscureText == true) && widget._controller.obscureToggle == true) {
       decoration = decoration.copyWith(
         suffixIcon: IconButton(
-          icon: Icon(currentlyObscured ? Icons.visibility : Icons.visibility_off),
+          icon: Icon(
+              currentlyObscured ? Icons.visibility : Icons.visibility_off,
+              size: ThemeManager().getInputIconSize(context).toDouble()),
           onPressed: () {
             setState(() {
               currentlyObscured = !currentlyObscured;

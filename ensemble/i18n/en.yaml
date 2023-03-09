@@ -1,3 +1,6 @@
 ensemble:
   input:
     required: This field is required.
+
+    date:
+      placeholder: Select a date

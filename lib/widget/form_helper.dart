@@ -1,6 +1,8 @@
 import 'package:ensemble/ensemble_theme.dart';
+import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/model.dart';
+import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/framework/widget/icon.dart' as framework;
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/form.dart';
@@ -78,7 +80,8 @@ abstract class FormFieldWidgetState<W extends HasController>
       FormFieldController myController = widget
           .controller as FormFieldController;
       return InputDecoration(
-        //contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 3),
+        // consistent with the theme. We need dense so user have granular control of contentPadding
+        isDense: true,
           floatingLabelBehavior: FloatingLabelBehavior.always,
           filled: myController.backgroundColor != null,
           fillColor: myController.backgroundColor,
@@ -87,9 +90,10 @@ abstract class FormFieldWidgetState<W extends HasController>
           icon: myController.icon == null
               ? null
               : framework.Icon(myController.icon!.icon,
-              library: myController.icon!.library,
-              size: myController.icon!.size,
-              color: myController.icon!.color));
+                  library: myController.icon!.library,
+                  size: myController.icon!.size ??
+                      ThemeManager().getInputIconSize(context),
+                  color: myController.icon!.color));
     }
     return const InputDecoration();
   }
@@ -123,10 +127,12 @@ abstract class FormFieldWidgetState<W extends HasController>
     TextStyle textStyle = Theme.of(context).textTheme.titleMedium ?? const TextStyle();
     if (widget.controller is FormFieldController) {
       return textStyle.copyWith(
-        fontSize: (widget.controller as FormFieldController).fontSize?.toDouble()
+        fontSize: (widget.controller as FormFieldController).fontSize?.toDouble(),
+        overflow: TextOverflow.clip
         // TODO: expose color, ... for all form fields here
       );
     }
     return textStyle;
   }
+
 }

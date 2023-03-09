@@ -45,6 +45,10 @@ class ThemeManager with ThemeLoader {
     return BlurStyle.normal;
   }
 
+  /// e.g. sizes for calendar icon for Date widget / visibility icon for Password widget, ...
+  int getInputIconSize(BuildContext context) {
+    return 24;
+  }
 
 
 }
