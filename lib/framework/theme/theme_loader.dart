@@ -190,7 +190,7 @@ mixin ThemeLoader {
               width: borderWidth.toDouble()));
 
       return baseInputDecoration.copyWith(
-        contentPadding: contentPadding ?? const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+        contentPadding: contentPadding ?? const EdgeInsets.symmetric(vertical: 15, horizontal: 8),
 
         border: baseBorder,
         enabledBorder: _getOutlineInputBorder(
