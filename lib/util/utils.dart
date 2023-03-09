@@ -276,9 +276,8 @@ class Utils {
       }
       else if (payload['action'] == ActionType.navigateBack.name) {
         return NavigateBack();
-        
       }
-       else if (payload['action'] == ActionType.showToast.name) {
+      else if (payload['action'] == ActionType.showToast.name) {
         return ShowToastAction(
           type: ToastType.values.from(payload['options']?['type']) ?? ToastType.info,
           message: Utils.optionalString(payload['options']?['message']),
@@ -668,6 +667,11 @@ class Utils {
   static String translateWithFallback(String key, String fallback) {
     String output = FlutterI18n.translate(Utils.globalAppKey.currentContext!, key);
     return output != key ? output : fallback;
+  }
+  // explicitly return null if we can't find the translation key
+  static String? translateOrNull(String key) {
+    String output = FlutterI18n.translate(Utils.globalAppKey.currentContext!, key);
+    return output != key ? output : null;
   }
 
   static String stripEndingArrays(String input) {

@@ -8,6 +8,7 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/camera_manager.dart';
@@ -128,12 +129,20 @@ class ScreenController {
         nextArgs[key] = dataContext.eval(value);
       });
 
+      RouteOption? routeOption;
+      if (action is NavigateScreenAction) {
+        if (action.options?['clearAllScreens'] == true) {
+          routeOption = RouteOption.clearAllScreens;
+        } else if (action.options?['replaceCurrentScreen'] == true) {
+          routeOption = RouteOption.replaceCurrentScreen;
+        }
+      }
+
       PageRouteBuilder routeBuilder = navigateToScreen(
           providedDataContext.buildContext,
           screenName: dataContext.eval(action.screenName),
           asModal: action.asModal,
-          replace: action is NavigateScreenAction &&
-            action.options?['replaceCurrentScreen'] == true,
+          routeOption: routeOption,
           pageArgs: nextArgs);
 
       // process onModalDismiss
@@ -497,7 +506,7 @@ class ScreenController {
   PageRouteBuilder navigateToScreen(BuildContext context, {
     String? screenName,
     bool? asModal,
-    bool? replace,
+    RouteOption? routeOption,
     Map<String, dynamic>? pageArgs,
   }) {
     PageType pageType = asModal == true ? PageType.modal : PageType.regular;
@@ -505,7 +514,10 @@ class ScreenController {
     Widget screenWidget = getScreen(screenName: screenName, asModal: asModal, pageArgs: pageArgs);
 
     PageRouteBuilder route = getScreenBuilder(screenWidget, pageType: pageType);
-    if (replace == true) {
+    // push the new route and remove all existing screens. This is suitable for logging out.
+    if (routeOption == RouteOption.clearAllScreens) {
+      Navigator.pushAndRemoveUntil(context, route, (route) => false);
+    } else if (routeOption == RouteOption.replaceCurrentScreen) {
       Navigator.pushReplacement(context, route);
     } else {
       Navigator.push(context, route);
@@ -594,9 +606,9 @@ class ScreenController {
     }
   }
 
+}
 
-
-
-
-
+enum RouteOption {
+  replaceCurrentScreen,
+  clearAllScreens
 }
