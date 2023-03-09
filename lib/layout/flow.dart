@@ -6,6 +6,7 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/layout_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' as flutter;
@@ -53,7 +54,7 @@ class Flow extends StatefulWidget with UpdatableContainer, Invokable, HasControl
 
 }
 
-class FlowController extends WidgetController {
+class FlowController extends BoxController {
   String? direction;
   WrapAlignment? mainAxis;
   WrapCrossAlignment? crossAxis;
@@ -105,24 +106,34 @@ class FlowState extends WidgetState<Flow> with TemplatedWidgetState {
       children.addAll(templatedChildren!);
     }
 
-    Widget rtn = Wrap(
-      direction: widget._controller.direction == Axis.vertical.name ? Axis.vertical : Axis.horizontal,
-      spacing: widget.controller.gap?.toDouble() ?? 0,
-      runSpacing: widget._controller.lineGap?.toDouble() ?? 0,
-      alignment: widget._controller.mainAxis ?? WrapAlignment.start,
-      crossAxisAlignment: widget._controller.crossAxis ?? WrapCrossAlignment.start,
-      children: children,
+    Widget rtn = BoxWrapper(
+      boxController: widget._controller,
+      ignoresMargin: true,
+      widget: Wrap(
+            direction: widget._controller.direction == Axis.vertical.name ? Axis.vertical : Axis.horizontal,
+            spacing: widget.controller.gap?.toDouble() ?? 0,
+            runSpacing: widget._controller.lineGap?.toDouble() ?? 0,
+            alignment: widget._controller.mainAxis ?? WrapAlignment.start,
+            crossAxisAlignment: widget._controller.crossAxis ?? WrapCrossAlignment.start,
+            children: children,
+          ),
     );
 
-    if (widget._controller.maxWidth != null || widget._controller.maxHeight != null) {
+    if (widget._controller.maxWidth != null || widget._controller.maxHeight != null || widget._controller.margin!=null) {
       return ConstrainedBox(
         constraints: BoxConstraints(
           maxWidth: widget._controller.maxWidth?.toDouble() ?? double.infinity,
           maxHeight: widget._controller.maxHeight?.toDouble() ?? double.infinity
         ),
-        child: rtn
+        child: widget._controller.margin!=null ?
+              Padding(
+              padding: widget._controller.margin!,
+              child: rtn,
+              ) :
+              rtn
       );
     }
+
     return rtn;
   }
 
