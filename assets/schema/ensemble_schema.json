@@ -1358,6 +1358,10 @@
                   "replaceCurrentScreen": {
                     "type": "boolean",
                     "description": "If true, the new screen will replace the current screen on the navigation history. Navigating back from the new screen will skip the current screen."
+                  },
+                  "clearAllScreens": {
+                    "type": "boolean",
+                    "description": "If true, clear out all existing screens in the navigation history. This is useful when navigating to a Logout or similar page where users should not be able to go back to the prior screens."
                   }
                 }
               }
