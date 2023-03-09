@@ -313,7 +313,7 @@ class NativeInvokable with Invokable {
       ActionType.openCamera.name: showCamera,
       ActionType.navigateBack.name: navigateBack,
       'debug': (value) => log('Debug: $value'),
-      'copyToClipboard': (value) => CopyToClipboard.copyText(value)
+      'copyToClipboard': (value) => copyText(value)
     };
   }
 

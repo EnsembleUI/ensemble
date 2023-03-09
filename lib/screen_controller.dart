@@ -383,10 +383,13 @@ class ScreenController {
     else if (action is CopyToClipboardAction) {
       if(action.value != null)
         {
-          CopyToClipboard.copyText(action.value!).then((value){
-            if (action.onComplete != null) executeAction(context, action.onComplete!);
+          copyText(action.value!).then((value){
+            if (action.onSuccess != null) executeAction(context, action.onSuccess!);
           });
         }
+      else{
+        if (action.onFailure != null) executeAction(context, action.onFailure!);
+      }
     }
   }
 
