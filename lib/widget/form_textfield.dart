@@ -256,31 +256,43 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
         if (!widget.isPassword() && value != null) {
           if (widget._controller.inputType == InputType.email.name) {
             if (!EmailValidator.validate(value)) {
-              return "Please enter a valid email address";
+              return Utils.translateWithFallback(
+                'ensemble.input.validation.invalidEmailType',
+                'Please enter a valid email address');
             }
           } else if (widget._controller.inputType == InputType.ipAddress.name) {
             if (!InputValidator.ipAddress(value)) {
-              return "Please enter a valid IP Address";
+              return Utils.translateWithFallback(
+                  'ensemble.input.validation.invalidIPAddressType',
+                  'Please enter a valid IP Address');
             }
           } else if (widget._controller.inputType == InputType.phone.name) {
             if (!InputValidator.phone(value)) {
-              return "Please enter a valid Phone Number";
+              return Utils.translateWithFallback(
+                  'ensemble.input.validation.invalidPhoneType',
+                  "Please enter a valid Phone Number");
             }
           }
         }
         if (widget._controller.validator != null) {
           ValidationBuilder? builder;
           if (widget._controller.validator?.minLength != null) {
-            builder = ValidationBuilder().minLength(widget._controller.validator!.minLength!);
+            builder = ValidationBuilder().minLength(
+                widget._controller.validator!.minLength!,
+                Utils.translateOrNull('ensemble.input.validation.minimumLength'));
           }
           if (widget._controller.validator?.maxLength != null) {
-            builder = (builder ?? ValidationBuilder()).maxLength(widget._controller.validator!.maxLength!);
+            builder = (builder ?? ValidationBuilder()).maxLength(
+                widget._controller.validator!.maxLength!,
+                Utils.translateOrNull('ensemble.input.validation.maximumLength'));
           }
           if (widget._controller.validator?.regex != null) {
             builder = (builder ?? ValidationBuilder()).regExp(
               RegExp(widget._controller.validator!.regex!),
-              widget._controller.validator!.regexError ?? 'This field has invalid value'
-            );
+              widget._controller.validator!.regexError ??
+                Utils.translateWithFallback(
+                    'ensemble.input.validation.invalidInput',
+                    'This field has invalid value'));
           }
           if (builder != null) {
             return builder.build().call(value);
