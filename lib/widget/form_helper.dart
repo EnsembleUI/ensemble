@@ -22,6 +22,12 @@ class FormFieldController extends WidgetController {
   int? fontSize;
   Color? backgroundColor;
 
+  // this is our workaround for the layout error when the user use these
+  // input widgets (which stretch to their parent) inside a Row (which allow
+  // its child to have as much space as it wants) without using expanded flag.
+  // All input widgets will have this default max width, which the user can override
+  int maxWidth = 700;
+
   @override
   Map<String, Function> getBaseGetters() {
     Map<String, Function> getters = super.getBaseGetters();
@@ -41,7 +47,8 @@ class FormFieldController extends WidgetController {
       'hintText': (value) => hintText = Utils.optionalString(value),
       'icon': (value) => icon = Utils.getIcon(value),
       'fontSize': (value) => fontSize = Utils.optionalInt(value),
-      'backgroundColor': (value) => backgroundColor = Utils.getColor(value)
+      'backgroundColor': (value) => backgroundColor = Utils.getColor(value),
+      'maxWidth': (value) => maxWidth = Utils.optionalInt(value, min: 0, max: 5000) ?? maxWidth,
     });
     return setters;
   }
@@ -71,19 +78,32 @@ class FormHelper {
 /// base widget state for FormField widgets
 abstract class FormFieldWidgetState<W extends HasController>
     extends WidgetState<W> {
+
   // the key to validate this FormField
   final validatorKey = GlobalKey<FormFieldState>();
 
   /// return a default InputDecoration if the controller is a FormField
+  /// Note that all fields here are inherited from InputDecorationTheme
+  /// which is defined at the Ensemble theme level. Hence only override
+  /// the attributes that are specified manually by the user at each input.
   InputDecoration get inputDecoration {
     if (widget.controller is FormFieldController) {
       FormFieldController myController = widget
           .controller as FormFieldController;
+
+      // if the theme has fill color, we don't want to disable that just because
+      // the user doesn't manually override the fill color here. Make sure it is
+      // null or true only (never false)
+      bool? filled;
+      if (myController.backgroundColor != null) {
+        filled = true;
+      }
+
       return InputDecoration(
-        // consistent with the theme. We need dense so user have granular control of contentPadding
-        isDense: true,
+          // consistent with the theme. We need dense so user have granular control of contentPadding
+          isDense: true,
           floatingLabelBehavior: FloatingLabelBehavior.always,
-          filled: myController.backgroundColor != null,
+          filled: filled,
           fillColor: myController.backgroundColor,
           labelText: shouldShowLabel() ? myController.label : null,
           hintText: myController.hintText,
@@ -128,7 +148,7 @@ abstract class FormFieldWidgetState<W extends HasController>
     if (widget.controller is FormFieldController) {
       return textStyle.copyWith(
         fontSize: (widget.controller as FormFieldController).fontSize?.toDouble(),
-        overflow: TextOverflow.clip
+        overflow: TextOverflow.ellipsis
         // TODO: expose color, ... for all form fields here
       );
     }

@@ -227,7 +227,9 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
         items: buildItems(widget._controller.items),
         onChanged: isEnabled() ? (item) => onSelectionChanged(item) : null,
         focusNode: focusNode,
+        icon: const Icon(Icons.unfold_more, size: 20),
         decoration: inputDecoration);
+
     }
     return LayoutBuilder(builder: (context, constraints) {
       return RawAutocomplete<SelectOneItem>(
