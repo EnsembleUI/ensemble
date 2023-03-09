@@ -157,7 +157,8 @@ mixin ThemeLoader {
   InputDecorationTheme? _buildInputTheme(YamlMap? input, {required ColorScheme colorScheme}) {
     Color? fillColor = Utils.getColor(input?['fillColor']);
     InputDecorationTheme baseInputDecoration = InputDecorationTheme(
-      //isDense: true,
+      // dense so user can control the contentPadding effectively
+      isDense: true,
       filled: fillColor != null,
       fillColor: fillColor
     );
@@ -189,7 +190,7 @@ mixin ThemeLoader {
               width: borderWidth.toDouble()));
 
       return baseInputDecoration.copyWith(
-        contentPadding: contentPadding ?? const EdgeInsets.symmetric(vertical: 5, horizontal: 8),
+        contentPadding: contentPadding ?? const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
 
         border: baseBorder,
         enabledBorder: _getOutlineInputBorder(
