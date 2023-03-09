@@ -225,10 +225,12 @@ class FileUploadAction extends EnsembleAction {
 class CopyToClipboardAction extends EnsembleAction {
   CopyToClipboardAction({
     this.value,
-    this.onComplete,
+    this.onSuccess,
+    this.onFailure,
   });
   String? value;
-  EnsembleAction? onComplete;
+  EnsembleAction? onSuccess;
+  EnsembleAction? onFailure;
 }
 
 

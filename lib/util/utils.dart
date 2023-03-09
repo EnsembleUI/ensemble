@@ -325,7 +325,8 @@ class Utils {
        } else if ( payload['action'] == ActionType.copyToClipboard.name ) {
          return CopyToClipboardAction(
            value: Utils.optionalString(payload['value']),
-           onComplete: Utils.getAction(payload['onComplete']),
+           onSuccess: Utils.getAction(payload['onSuccess']),
+           onFailure: Utils.getAction(payload['onFailure'])
          );
        }
     }
