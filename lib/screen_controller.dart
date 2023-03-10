@@ -21,6 +21,7 @@ import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:yaml/yaml.dart';
@@ -383,7 +384,7 @@ class ScreenController {
     else if (action is CopyToClipboardAction) {
       if(action.value != null)
         {
-          copyText(action.value!).then((value){
+          Clipboard.setData(ClipboardData(text: action.value)).then((value){
             if (action.onSuccess != null) executeAction(context, action.onSuccess!);
           });
         }
