@@ -1,7 +1,9 @@
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
+import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/framework/widget/icon.dart' as framework;
 import 'package:ensemble/framework/widget/widget.dart';
@@ -20,8 +22,21 @@ class FormFieldController extends WidgetController {
   String? hintText;
   IconModel? icon;
   int? fontSize;
-  Color? backgroundColor;
   int? maxWidth;
+
+  InputVariant? variant;
+  EdgeInsets? contentPadding;
+  Color? fillColor;
+  EBorderRadius? borderRadius;
+  int? borderWidth;
+  Color? borderColor;
+  Color? enabledBorderColor;
+  Color? disabledBorderColor;
+  Color? errorBorderColor;
+  Color? focusedBorderColor;
+  Color? focusedErrorBorderColor;
+
+
 
   @override
   Map<String, Function> getBaseGetters() {
@@ -42,8 +57,19 @@ class FormFieldController extends WidgetController {
       'hintText': (value) => hintText = Utils.optionalString(value),
       'icon': (value) => icon = Utils.getIcon(value),
       'fontSize': (value) => fontSize = Utils.optionalInt(value),
-      'backgroundColor': (value) => backgroundColor = Utils.getColor(value),
       'maxWidth': (value) => maxWidth = Utils.optionalInt(value, min: 0, max: 5000),
+
+      'variant': (type) => variant = InputVariant.values.from(type),
+      'contentPadding': (value) => contentPadding = Utils.optionalInsets(value),
+      'fillColor': (value) => fillColor = Utils.getColor(value),
+      'borderRadius': (value) => borderRadius = Utils.getBorderRadius(value),
+      'borderWidth': (value) => borderWidth = Utils.optionalInt(value, min: 0),
+      'borderColor': (color) => borderColor = Utils.getColor(color),
+      'enabledBorderColor': (color) => enabledBorderColor = Utils.getColor(color),
+      'disabledBorderColor': (color) => disabledBorderColor = Utils.getColor(color),
+      'errorBorderColor': (color) => errorBorderColor = Utils.getColor(color),
+      'focusedBorderColor': (color) => focusedBorderColor = Utils.getColor(color),
+      'focusedErrorBorderColor': (color) => focusedErrorBorderColor = Utils.getColor(color),
     });
     return setters;
   }
@@ -90,16 +116,27 @@ abstract class FormFieldWidgetState<W extends HasController>
       // the user doesn't manually override the fill color here. Make sure it is
       // null or true only (never false)
       bool? filled;
-      if (myController.backgroundColor != null) {
+      if (myController.fillColor != null) {
         filled = true;
       }
+
+      // get override values and fallback to default values from our InputDecorationTheme
+      InputDecorationTheme themeDecoration = Theme.of(context).inputDecorationTheme;
+      int borderWidth = myController.borderWidth ??
+          themeDecoration.border?.borderSide.width.toInt() ?? 1;
+      BorderRadius borderRadius = myController.borderRadius?.getValue() ??
+          (themeDecoration.border is UnderlineInputBorder
+            ? (themeDecoration.border as UnderlineInputBorder).borderRadius
+            : themeDecoration.border is OutlineInputBorder
+                ? (themeDecoration.border as OutlineInputBorder).borderRadius
+                : ThemeManager().inputDefaultBorderRadius);
 
       return InputDecoration(
           // consistent with the theme. We need dense so user have granular control of contentPadding
           isDense: true,
           floatingLabelBehavior: FloatingLabelBehavior.always,
           filled: filled,
-          fillColor: myController.backgroundColor,
+          fillColor: myController.fillColor,
           labelText: shouldShowLabel() ? myController.label : null,
           hintText: myController.hintText,
           icon: myController.icon == null
@@ -108,7 +145,44 @@ abstract class FormFieldWidgetState<W extends HasController>
                   library: myController.icon!.library,
                   size: myController.icon!.size ??
                       ThemeManager().getInputIconSize(context),
-                  color: myController.icon!.color));
+                  color: myController.icon!.color),
+          contentPadding: myController.contentPadding,
+
+          // note that if colors are not override here, they won't be set
+          // and we'll fallback to theme
+          border: ThemeManager().getInputBorder(
+              variant: myController.variant,
+              borderColor: myController.borderColor,
+              borderWidth: borderWidth,
+              borderRadius: borderRadius),
+          enabledBorder: ThemeManager().getInputBorder(
+              variant: myController.variant,
+              borderColor: myController.enabledBorderColor,
+              borderWidth: borderWidth,
+              borderRadius: borderRadius),
+          disabledBorder: ThemeManager().getInputBorder(
+            variant: myController.variant,
+            borderColor: myController.disabledBorderColor,
+            borderWidth: borderWidth,
+            borderRadius: borderRadius),
+          errorBorder: ThemeManager().getInputBorder(
+            variant: myController.variant,
+            borderColor: myController.errorBorderColor,
+            borderWidth: borderWidth,
+            borderRadius: borderRadius),
+          focusedBorder: ThemeManager().getInputBorder(
+            variant: myController.variant,
+            borderColor: myController.focusedBorderColor,
+            borderWidth: borderWidth,
+            borderRadius: borderRadius),
+          focusedErrorBorder: ThemeManager().getInputBorder(
+            variant: myController.variant,
+            borderColor: myController.focusedErrorBorderColor,
+            borderWidth: borderWidth,
+            borderRadius: borderRadius),
+
+
+      );
     }
     return const InputDecoration();
   }
