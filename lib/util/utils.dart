@@ -666,8 +666,12 @@ class Utils {
 
   // temporary workaround for internal translation so we dont have to duplicate the translation files in all repos
   static String translateWithFallback(String key, String fallback) {
-    String output = FlutterI18n.translate(Utils.globalAppKey.currentContext!, key);
-    return output != key ? output : fallback;
+    if (Utils.globalAppKey.currentContext != null) {
+      String output = FlutterI18n.translate(
+          Utils.globalAppKey.currentContext!, key);
+      return output != key ? output : fallback;
+    }
+    return fallback;
   }
 
   static String stripEndingArrays(String input) {

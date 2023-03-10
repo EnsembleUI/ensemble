@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:ensemble/widget/button.dart';
-import 'package:ensemble/widget/form_textfield.dart';
+import 'package:ensemble/widget/input/form_textfield.dart';
 import 'package:ensemble/widget/text.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
