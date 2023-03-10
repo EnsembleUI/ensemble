@@ -21,12 +21,7 @@ class FormFieldController extends WidgetController {
   IconModel? icon;
   int? fontSize;
   Color? backgroundColor;
-
-  // this is our workaround for the layout error when the user use these
-  // input widgets (which stretch to their parent) inside a Row (which allow
-  // its child to have as much space as it wants) without using expanded flag.
-  // All input widgets will have this default max width, which the user can override
-  int maxWidth = 700;
+  int? maxWidth;
 
   @override
   Map<String, Function> getBaseGetters() {
@@ -48,7 +43,7 @@ class FormFieldController extends WidgetController {
       'icon': (value) => icon = Utils.getIcon(value),
       'fontSize': (value) => fontSize = Utils.optionalInt(value),
       'backgroundColor': (value) => backgroundColor = Utils.getColor(value),
-      'maxWidth': (value) => maxWidth = Utils.optionalInt(value, min: 0, max: 5000) ?? maxWidth,
+      'maxWidth': (value) => maxWidth = Utils.optionalInt(value, min: 0, max: 5000),
     });
     return setters;
   }
