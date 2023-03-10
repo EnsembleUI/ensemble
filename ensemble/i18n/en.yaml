@@ -4,3 +4,13 @@ ensemble:
 
     date:
       placeholder: Select a date
+
+    validation:
+      minimumLength: The field must be at least $n characters long
+      maximumLength: The field must be at most $n characters long
+      invalidPhoneType: The field is not a valid phone number
+      invalidEmailType: The field is not a valid email address
+      invalidIPAddressType: The field is not a valid IP address
+      #catch all
+      invalidInput: This field is invalid
+
