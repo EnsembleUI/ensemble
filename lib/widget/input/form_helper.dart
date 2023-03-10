@@ -1,12 +1,13 @@
 import 'package:ensemble/ensemble_theme.dart';
+import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/model.dart';
+import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/framework/widget/icon.dart' as framework;
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/form.dart';
 import 'package:ensemble/layout/form.dart' as ensemble;
 import 'package:ensemble/screen_controller.dart';
-import 'package:ensemble/util/theme_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -20,6 +21,7 @@ class FormFieldController extends WidgetController {
   IconModel? icon;
   int? fontSize;
   Color? backgroundColor;
+  int? maxWidth;
 
   @override
   Map<String, Function> getBaseGetters() {
@@ -40,7 +42,8 @@ class FormFieldController extends WidgetController {
       'hintText': (value) => hintText = Utils.optionalString(value),
       'icon': (value) => icon = Utils.getIcon(value),
       'fontSize': (value) => fontSize = Utils.optionalInt(value),
-      'backgroundColor': (value) => backgroundColor = Utils.getColor(value)
+      'backgroundColor': (value) => backgroundColor = Utils.getColor(value),
+      'maxWidth': (value) => maxWidth = Utils.optionalInt(value, min: 0, max: 5000),
     });
     return setters;
   }
@@ -70,26 +73,42 @@ class FormHelper {
 /// base widget state for FormField widgets
 abstract class FormFieldWidgetState<W extends HasController>
     extends WidgetState<W> {
+
   // the key to validate this FormField
   final validatorKey = GlobalKey<FormFieldState>();
 
   /// return a default InputDecoration if the controller is a FormField
+  /// Note that all fields here are inherited from InputDecorationTheme
+  /// which is defined at the Ensemble theme level. Hence only override
+  /// the attributes that are specified manually by the user at each input.
   InputDecoration get inputDecoration {
     if (widget.controller is FormFieldController) {
       FormFieldController myController = widget
           .controller as FormFieldController;
+
+      // if the theme has fill color, we don't want to disable that just because
+      // the user doesn't manually override the fill color here. Make sure it is
+      // null or true only (never false)
+      bool? filled;
+      if (myController.backgroundColor != null) {
+        filled = true;
+      }
+
       return InputDecoration(
+          // consistent with the theme. We need dense so user have granular control of contentPadding
+          isDense: true,
           floatingLabelBehavior: FloatingLabelBehavior.always,
-          filled: myController.backgroundColor != null,
+          filled: filled,
           fillColor: myController.backgroundColor,
           labelText: shouldShowLabel() ? myController.label : null,
           hintText: myController.hintText,
           icon: myController.icon == null
               ? null
               : framework.Icon(myController.icon!.icon,
-              library: myController.icon!.library,
-              size: myController.icon!.size,
-              color: myController.icon!.color));
+                  library: myController.icon!.library,
+                  size: myController.icon!.size ??
+                      ThemeManager().getInputIconSize(context),
+                  color: myController.icon!.color));
     }
     return const InputDecoration();
   }
@@ -123,10 +142,12 @@ abstract class FormFieldWidgetState<W extends HasController>
     TextStyle textStyle = Theme.of(context).textTheme.titleMedium ?? const TextStyle();
     if (widget.controller is FormFieldController) {
       return textStyle.copyWith(
-        fontSize: (widget.controller as FormFieldController).fontSize?.toDouble()
+        fontSize: (widget.controller as FormFieldController).fontSize?.toDouble(),
+        overflow: TextOverflow.ellipsis
         // TODO: expose color, ... for all form fields here
       );
     }
     return textStyle;
   }
+
 }

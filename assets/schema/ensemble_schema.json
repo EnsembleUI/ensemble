@@ -1177,6 +1177,12 @@
           "type": "string",
           "description": "ID to be referenced later"
         },
+        "maxWidth": {
+          "type": "integer",
+          "description": "The max width of this Input widget (default 700)",
+          "minimum": 0,
+          "maximum": 5000
+        },
         "label": {
           "type": "string",
           "description": "Label for your widget"

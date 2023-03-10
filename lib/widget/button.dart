@@ -1,11 +1,11 @@
 
 import 'package:ensemble/framework/action.dart' as ensemble;
+import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/layout/form.dart';
 import 'package:ensemble/screen_controller.dart';
-import 'package:ensemble/util/theme_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
-import 'package:ensemble/widget/form_helper.dart';
+import 'package:ensemble/widget/input/form_helper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/layout/form.dart' as ensembleForm;
@@ -133,7 +133,7 @@ class ButtonState extends WidgetState<Button> {
     // and we do not want to override the default theme if not specified
     //int borderRadius = widget._controller.borderRadius ?? defaultButtonStyle?.
 
-    return ThemeUtils.getButtonStyle(
+    return ThemeManager().getButtonStyle(
         isOutline: isOutlineButton,
         color: widget._controller.color,
         backgroundColor: widget._controller.backgroundColor,
