@@ -1,4 +1,5 @@
 import 'dart:developer';
+import 'dart:io' as io;
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -682,5 +683,10 @@ class File {
       'path': path,
       'bytes': bytes,
     };
+  }
+
+  io.File? toFile() {
+    if (path == null) return null;
+    return io.File(path!);
   }
 } 
