@@ -216,6 +216,18 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
   Widget buildWidget(BuildContext context) {
     Widget rtn;
     if (widget._controller.autoComplete == false) {
+
+      // if not overrode, decrease the default theme's vertical contentPadding
+      // slightly so the dropdown is the same height as other input widgets
+      EdgeInsetsGeometry? adjustedContentPadding;
+      if (widget._controller.contentPadding == null) {
+        InputDecorationTheme themeDecoration = Theme.of(context).inputDecorationTheme;
+        if (themeDecoration.contentPadding != null) {
+          adjustedContentPadding = themeDecoration.contentPadding!.subtract(
+              const EdgeInsets.only(top: 2, bottom: 3));
+        }
+      }
+
       rtn = DropdownButtonFormField<dynamic>(
         key: validatorKey,
         validator: (value) {
@@ -230,7 +242,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
         onChanged: isEnabled() ? (item) => onSelectionChanged(item) : null,
         focusNode: focusNode,
         icon: const Icon(Icons.unfold_more, size: 20),
-        decoration: inputDecoration);
+        decoration: inputDecoration.copyWith(contentPadding: adjustedContentPadding));
 
     } else {
       rtn = LayoutBuilder(

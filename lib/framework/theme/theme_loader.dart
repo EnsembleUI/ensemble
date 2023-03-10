@@ -164,9 +164,10 @@ mixin ThemeLoader {
       fillColor: fillColor
     );
 
+    InputVariant? variant = InputVariant.values.from(input?['variant']);
     EdgeInsets? contentPadding = Utils.optionalInsets(input?['contentPadding']);
     BorderRadius borderRadius = Utils.getBorderRadius(input?['borderRadius'])
-        ?.getValue() ?? inputDefaultBorderRadius;
+        ?.getValue() ?? getInputDefaultBorderRadius(variant);
     int borderWidth = Utils.optionalInt(input?['borderWidth']) ?? 1;
 
     Color? borderColor = Utils.getColor(input?['borderColor']);
@@ -176,7 +177,6 @@ mixin ThemeLoader {
     Color? focusedBorderColor = Utils.getColor(input?['focusedBorderColor']);
     Color? focusedErrorBorderColor = Utils.getColor(input?['focusedErrorBorderColor']);
 
-    InputVariant? variant = InputVariant.values.from(input?['variant']);
     if (variant == InputVariant.box) {
       // we always need to set the base border since user can be setting other
       // values besides the color
@@ -222,6 +222,7 @@ mixin ThemeLoader {
     } else {
       // base border needs to be filled
       UnderlineInputBorder baseBorder = UnderlineInputBorder(
+          borderRadius: borderRadius,
           borderSide: BorderSide(
               color: borderColor ??
                   (colorScheme.brightness == Brightness.light
@@ -351,8 +352,8 @@ mixin ThemeLoader {
 
 
   ///------------  publicly available theme getters -------------
-  BorderRadius get inputDefaultBorderRadius =>
-      const BorderRadius.all(Radius.circular(4));
+  BorderRadius getInputDefaultBorderRadius(InputVariant? variant) =>
+      BorderRadius.all(Radius.circular(variant == InputVariant.box ? 4 : 0));
 
 
 
