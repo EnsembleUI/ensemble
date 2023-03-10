@@ -99,7 +99,6 @@ abstract class BaseTextInput extends StatefulWidget with Invokable, HasControlle
     return {
       'onKeyPress': (function) => _controller.onKeyPress = Utils.getAction(function, initiator: this),
       'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this),
-      'borderRadius': (value) => _controller.borderRadius = Utils.optionalInt(value),
       'validator': (value) => _controller.validator = Utils.getValidator(value),
       'obscureToggle': (value) => _controller.obscureToggle = Utils.optionalBool(value),
       'keyboardAction': (value) => _controller.keyboardAction = _getKeyboardAction(value),
@@ -152,7 +151,6 @@ class TextInputController extends FormFieldController {
 
   model.InputValidator? validator;
   String? inputType;
-  int? borderRadius;
   int maxLines = 1;
 }
 
