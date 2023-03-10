@@ -138,13 +138,8 @@ class ScreenController {
         });
       }
 
-    }  else if (action is ShowCameraAction)
-    {
-      if(scopeManager != null)
-      {
-        print('Check action options $action');
-        CameraManager().openCamera(context, action , scopeManager);
-      }
+    } else if (action is ShowCameraAction) {
+       CameraManager().openCamera(context, action, scopeManager);
     } else if (action is ShowDialogAction) {
       if (scopeManager != null) {
         Widget content = scopeManager.buildWidgetFromDefinition(action.content);

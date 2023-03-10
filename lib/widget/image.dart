@@ -1,4 +1,6 @@
 
+import 'dart:io';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/event.dart';
@@ -117,14 +119,21 @@ class ImageState extends WidgetState<EnsembleImage> {
                 return placeholderImage();
               });
         }
-      }
-      // else attempt local asset
-      else {
-        // user might use env variables to switch between remote and local images.
-        // Assets might have additional token e.g. my-image.png?x=2343
-        // so we need to strip them out
-        return Image.asset(
+      } else if (widget._controller.source.contains('assets')) {
+          // user might use env variables to switch between remote and local images.
+          // Assets might have additional token e.g. my-image.png?x=2343
+          // so we need to strip them out
+
+          return Image.asset(
             Utils.getLocalAssetFullPath(widget._controller.source),
+            width: widget._controller.width?.toDouble(),
+            height: widget._controller.height?.toDouble(),
+            fit: fit,
+            errorBuilder: (context, error, stacktrace) => placeholderImage());
+      }
+      else {
+        return Image.file(
+            File(widget._controller.source),
             width: widget._controller.width?.toDouble(),
             height: widget._controller.height?.toDouble(),
             fit: fit,

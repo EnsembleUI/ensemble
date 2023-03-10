@@ -1,33 +1,21 @@
 // manage Camera
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/widget/camera.dart';
 import 'package:flutter/material.dart';
 
 class CameraManager {
-  // open camera function to set properties
-  void openCamera(BuildContext context, ShowCameraAction cameraAction , ScopeManager? scopeManager){
-    // if camera action option is null than create camera screen without any setter
-    if (cameraAction.options == null) {
-      if(cameraAction.id == null)
-        {
-          CameraScreen cameraScreen = CameraScreen();
-          scopeManager!.dataContext.addInvokableContext(cameraAction.id!, cameraScreen);
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => cameraScreen,
-            ),
-          );
-        }
+  Future<void> openCamera(BuildContext context, ShowCameraAction cameraAction , ScopeManager? scopeManager) async {
+    
+    Camera camera = Camera();
+    if(cameraAction.id != null) {
+      final previousAction = scopeManager?.dataContext.getContextById(cameraAction.id!) as Camera?;
+      if (previousAction != null) camera = previousAction;
+      scopeManager?.dataContext.addInvokableContext(cameraAction.id!, camera);
     }
-    // if camera action is not null
-    else {
-      // camera instance is created for set properties to setter
-      // if any other camera instance is created already automatically remove beacuse camera instance is dispose
-      // when screen is close
-      print("check camera action ${cameraAction.onComplete}");
-      CameraScreen camera = CameraScreen();
+  
+    if (cameraAction.options != null) {
       cameraAction.options!['mode'] == null
           ? camera.setProperty('mode', CameraMode.both)
           : camera.setProperty('mode', c(cameraAction.options!['mode']));
@@ -42,9 +30,9 @@ class CameraManager {
       cameraAction.options!['preview'] == null
           ? camera.setProperty('preview', false)
           : camera.setProperty('preview', cameraAction.options!['preview']);
-      cameraAction.options!['maxCount'] == null
-          ? camera.setProperty('maxCount', 10)
-          : camera.setProperty('maxCount', cameraAction.options!['maxCount']);
+      if (cameraAction.options!['maxCount'] != null) {
+        camera.setProperty('maxCount', cameraAction.options!['maxCount']);
+      }
       cameraAction.options!['maxCountMessage'] == null
           ? ''
           : camera.setProperty(
@@ -75,21 +63,19 @@ class CameraManager {
               'galleryButtonLabel', cameraAction.options!['galleryButtonLabel']);
       cameraAction.onComplete == null
       ? (){} : camera.setProperty('onComplete', cameraAction.onComplete);
-
-      // when properties is set push on camera screen
-      // res is used when camera is close than return list of image
-      if(cameraAction.id != null)
-      {
-        scopeManager!.dataContext.addInvokableContext(cameraAction.id!, camera);
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => camera,
-          ),
-        );
-      }
-
     }
+    
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => camera,
+      ),
+    );
+
+    if (cameraAction.id != null) {
+      scopeManager?.dispatch(ModelChangeEvent(WidgetBindingSource(cameraAction.id!), camera));
+    }
+    
   }
 
   CameraMode c(String action) {
