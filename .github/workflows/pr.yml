@@ -1,7 +1,8 @@
 name: Execute Tests on PR
 on:
+  push:
   pull_request:
-    types: [opened, reopened]
+    branches: [main]
 
 jobs:
 
