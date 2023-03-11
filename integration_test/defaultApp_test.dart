@@ -1,24 +1,26 @@
 import 'dart:io';
 
+import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/input/form_textfield.dart';
 import 'package:ensemble/widget/text.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:integration_test/integration_test.dart';
-import '../integration_test/framework/main.dart' as testApp;
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
+
+import 'framework/test_helper.dart';
 
 void main() {
-  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
+  EnsembleConfig? config;
+  setUpAll(() async {
+    config = await TestHelper.setupApp(appName: 'defaultApp');
+  });
 
   group('Default App Tests', () {
 
     /// test that binding to a TextInput works properly in the same scope
     /// and also in a custom widget's scope
     testWidgets("Bindings to widget's value", (tester) async {
-      testApp.initTestApp(definition: 'Widget Bindings');
+      await TestHelper.loadScreen(screenName: 'Widget Bindings', config: config);
       await tester.pumpAndSettle();
 
       // TextInput has initial value of 'first'
@@ -74,7 +76,7 @@ void main() {
 
     /// test bindings to API is working properly
     testWidgets('API Binding', (tester) async {
-      testApp.initTestApp(definition: 'API Bindings');
+      await TestHelper.loadScreen(screenName: 'API Bindings', config: config);
       await tester.pumpAndSettle();
 
       // before the API loads
