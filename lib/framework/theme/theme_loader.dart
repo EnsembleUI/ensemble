@@ -1,5 +1,6 @@
 
 
+import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/util/utils.dart';
@@ -163,10 +164,10 @@ mixin ThemeLoader {
       fillColor: fillColor
     );
 
+    InputVariant? variant = InputVariant.values.from(input?['variant']);
     EdgeInsets? contentPadding = Utils.optionalInsets(input?['contentPadding']);
     BorderRadius borderRadius = Utils.getBorderRadius(input?['borderRadius'])
-        ?.getValue() ??
-        const BorderRadius.all(Radius.circular(4));
+        ?.getValue() ?? getInputDefaultBorderRadius(variant);
     int borderWidth = Utils.optionalInt(input?['borderWidth']) ?? 1;
 
     Color? borderColor = Utils.getColor(input?['borderColor']);
@@ -176,8 +177,7 @@ mixin ThemeLoader {
     Color? focusedBorderColor = Utils.getColor(input?['focusedBorderColor']);
     Color? focusedErrorBorderColor = Utils.getColor(input?['focusedErrorBorderColor']);
 
-
-    if (input?['variant'] == 'box') {
+    if (variant == InputVariant.box) {
       // we always need to set the base border since user can be setting other
       // values besides the color
       OutlineInputBorder baseBorder = OutlineInputBorder(
@@ -193,24 +193,28 @@ mixin ThemeLoader {
         contentPadding: contentPadding ?? const EdgeInsets.symmetric(vertical: 15, horizontal: 8),
 
         border: baseBorder,
-        enabledBorder: _getOutlineInputBorder(
+        enabledBorder: getInputBorder(
+            variant: variant,
             borderColor: enabledBorderColor,
             borderWidth: borderWidth,
             borderRadius: borderRadius) ?? baseBorder,
-
-        disabledBorder: _getOutlineInputBorder(
+        disabledBorder: getInputBorder(
+            variant: variant,
             borderColor: disabledBorderColor,
             borderWidth: borderWidth,
             borderRadius: borderRadius),
-        errorBorder: _getOutlineInputBorder(
+        errorBorder: getInputBorder(
+            variant: variant,
             borderColor: errorBorderColor,
             borderWidth: borderWidth,
             borderRadius: borderRadius),
-        focusedBorder: _getOutlineInputBorder(
+        focusedBorder: getInputBorder(
+            variant: variant,
             borderColor: focusedBorderColor,
             borderWidth: borderWidth,
             borderRadius: borderRadius),
-        focusedErrorBorder: _getOutlineInputBorder(
+        focusedErrorBorder: getInputBorder(
+            variant: variant,
             borderColor: focusedErrorBorderColor,
             borderWidth: borderWidth,
             borderRadius: borderRadius),
@@ -218,6 +222,7 @@ mixin ThemeLoader {
     } else {
       // base border needs to be filled
       UnderlineInputBorder baseBorder = UnderlineInputBorder(
+          borderRadius: borderRadius,
           borderSide: BorderSide(
               color: borderColor ??
                   (colorScheme.brightness == Brightness.light
@@ -225,25 +230,34 @@ mixin ThemeLoader {
                       : Colors.white70),
               width: borderWidth.toDouble()));
       return baseInputDecoration.copyWith(
-        //contentPadding: contentPadding ?? const EdgeInsets.symmetric(vertical: 12, horizontal: 3),
+        contentPadding: contentPadding ?? const EdgeInsets.symmetric(vertical: 15 , horizontal: 3),
 
         border: baseBorder,
-        enabledBorder: _getUnderlineInputBorder(
-          borderColor: enabledBorderColor,
-          borderWidth: borderWidth) ?? baseBorder,
-
-        disabledBorder: _getUnderlineInputBorder(
-          borderColor: disabledBorderColor,
-          borderWidth: borderWidth),
-        errorBorder: _getUnderlineInputBorder(
+        enabledBorder: getInputBorder(
+            variant: variant,
+            borderColor: enabledBorderColor,
+            borderWidth: borderWidth,
+            borderRadius: borderRadius) ?? baseBorder,
+        disabledBorder: getInputBorder(
+            variant: variant,
+            borderColor: disabledBorderColor,
+            borderWidth: borderWidth,
+            borderRadius: borderRadius),
+        errorBorder: getInputBorder(
+            variant: variant,
             borderColor: errorBorderColor,
-            borderWidth: borderWidth),
-        focusedBorder: _getUnderlineInputBorder(
+            borderWidth: borderWidth,
+            borderRadius: borderRadius),
+        focusedBorder: getInputBorder(
+            variant: variant,
             borderColor: focusedBorderColor,
-            borderWidth: borderWidth),
-        focusedErrorBorder: _getUnderlineInputBorder(
+            borderWidth: borderWidth,
+            borderRadius: borderRadius),
+        focusedErrorBorder: getInputBorder(
+            variant: variant,
             borderColor: focusedErrorBorderColor,
-            borderWidth: borderWidth),
+            borderWidth: borderWidth,
+            borderRadius: borderRadius),
       );
     }
   }
@@ -280,25 +294,29 @@ mixin ThemeLoader {
     return const SwitchThemeData();
   }
 
-  /// Border requires all attributes to be set
-  OutlineInputBorder? _getOutlineInputBorder({Color? borderColor, required int borderWidth, required BorderRadius borderRadius}) {
-    return borderColor == null
-      ? null
-      : OutlineInputBorder(
+  InputBorder? getInputBorder({
+    InputVariant? variant,
+    Color? borderColor,
+    required int borderWidth,
+    required BorderRadius borderRadius
+  }) {
+    if (borderColor != null) {
+      if (variant == InputVariant.box) {
+        return OutlineInputBorder(
+            borderRadius: borderRadius,
+            borderSide: BorderSide(
+                color: borderColor,
+                width: borderWidth.toDouble()));
+      }
+      // default is underline
+      return UnderlineInputBorder(
           borderRadius: borderRadius,
           borderSide: BorderSide(
-            color: borderColor,
-            width: borderWidth.toDouble()));
+              color: borderColor,
+              width: borderWidth.toDouble()));
+    }
+    return null;
   }
-  UnderlineInputBorder? _getUnderlineInputBorder({Color? borderColor, required int borderWidth}) {
-    return borderColor == null
-      ? null
-      : UnderlineInputBorder(
-          borderSide: BorderSide(
-            color: borderColor,
-            width: borderWidth.toDouble()));
-  }
-
 
   /// this function is also called while building the button, so make sure we don't use any fallback
   /// to ensure the style reverts to the button theming
@@ -334,7 +352,8 @@ mixin ThemeLoader {
 
 
   ///------------  publicly available theme getters -------------
-
+  BorderRadius getInputDefaultBorderRadius(InputVariant? variant) =>
+      BorderRadius.all(Radius.circular(variant == InputVariant.box ? 4 : 0));
 
 
 
@@ -374,3 +393,6 @@ class EnsembleThemeExtension extends ThemeExtension<EnsembleThemeExtension> {
   }
 }
 
+enum InputVariant {
+  box, underline
+}
