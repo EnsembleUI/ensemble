@@ -1234,7 +1234,7 @@
                   "description": "Padding around your input content with CSS-style notation e.g. margin: 5 20 5"
                 },
                 "fillColor": {
-                  "$ref": "#/$defs/Color",
+                  "$ref": "#/$defs/typeColors",
                   "description": "The fill color for this input fields. This property can be defined in the theme to apply to all Input widgets."
                 },
                 "borderRadius": {
@@ -1248,27 +1248,27 @@
                   "description": "The border width for this Input widget. This property can be defined in the theme to apply to all Input widgets."
                 },
                 "borderColor": {
-                  "$ref": "#/$defs/Color",
+                  "$ref": "#/$defs/typeColors",
                   "description": "The base border color for this input widget. This border color determines the look and feel of your input, while the other colors are overrides for different states. This property can be defined in the theme to apply to all Input widgets."
                 },
                 "enabledBorderColor": {
-                  "$ref": "#/$defs/Color",
+                  "$ref": "#/$defs/typeColors",
                   "description": "The border color for this input field if enabled. This property can be defined in the theme to apply to all Input widgets."
                 },
                 "disabledBorderColor": {
-                  "$ref": "#/$defs/Color",
+                  "$ref": "#/$defs/typeColors",
                   "description": "The border color when this input field is disabled. This property can be defined in the theme to apply to all Input widgets."
                 },
                 "errorBorderColor": {
-                  "$ref": "#/$defs/Color",
+                  "$ref": "#/$defs/typeColors",
                   "description": "The border color when there are errors on this input field. This property can be defined in the theme to apply to all Input widgets."
                 },
                 "focusedBorderColor": {
-                  "$ref": "#/$defs/Color",
+                  "$ref": "#/$defs/typeColors",
                   "description": "The border color when this input field is receiving focus. This property can be defined in the theme to apply to all Input widgets."
                 },
                 "focusedErrorBorderColor": {
-                  "$ref": "#/$defs/Color",
+                  "$ref": "#/$defs/typeColors",
                   "description": "The border color of this input field when it is receiving focus in its error state. This property can be defined in the theme to apply to all Input widgets."
                 }
               }
