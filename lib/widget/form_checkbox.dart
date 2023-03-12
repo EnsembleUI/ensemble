@@ -5,8 +5,7 @@ import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
-import 'package:ensemble/widget/input/form_helper.dart';
-import 'package:ensemble/widget/helpers/widgets.dart';
+import 'package:ensemble/widget/form_helper.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:flutter/material.dart';
@@ -128,32 +127,32 @@ class OnOffState extends FormFieldWidgetState<OnOffWidget> {
     }
 
     // wraps around FormField to get all the form effects
-    return InputWrapper(
-        controller: widget._controller,
-        widget: FormField<bool>(
-            key: validatorKey,
-            validator: (value) {
-              if (widget._controller.required && !widget._controller.value) {
-                return Utils.translateWithFallback(
-                    'ensemble.input.required', 'This field is required');
-              }
-              return null;
-            },
-            builder: (FormFieldState<bool> field) {
-              return InputDecorator(
-                decoration: inputDecoration.copyWith(
-                    contentPadding: EdgeInsets.zero,
-                    filled: false,
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    disabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    errorText: field.errorText),
-                child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: children),
-              );
-            }));
+    return FormField<bool>(
+      key: validatorKey,
+      validator: (value) {
+        if (widget._controller.required && !widget._controller.value) {
+          return Utils.translateWithFallback('ensemble.input.required', 'This field is required');
+        }
+        return null;
+      },
+      builder: (FormFieldState<bool> field) {
+        return InputDecorator(
+
+            decoration: inputDecoration.copyWith(
+              contentPadding: EdgeInsets.zero,
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              disabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              errorText: field.errorText),
+            child: Row (
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: children
+            ),
+
+        );
+      }
+    );
   }
 
   /// we adjust the hit area of the checkbox here. 40px is smaller than the default (48px)

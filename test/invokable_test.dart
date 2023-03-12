@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/widget/text.dart' as widget;
-import 'package:ensemble/widget/input/form_textfield.dart';
+import 'package:ensemble/widget/form_textfield.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';

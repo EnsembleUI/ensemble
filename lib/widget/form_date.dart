@@ -1,12 +1,10 @@
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/event.dart';
-import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/input/form_helper.dart';
-import 'package:ensemble/widget/helpers/widgets.dart';
+import 'package:ensemble/widget/form_helper.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
@@ -69,7 +67,7 @@ class DateState extends FormFieldWidgetState<Date> {
   /// the selected date nicely formatted
   String get selectedValue => widget._controller.value != null
       ? DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(widget._controller.value!)
-      : '';
+      : widget._controller.hintText ?? 'Select a date';
 
   @override
   Widget buildWidget(BuildContext context) {
@@ -82,44 +80,22 @@ class DateState extends FormFieldWidgetState<Date> {
         return null;
       },
       builder: (FormFieldState<DateTime> field) {
-        Widget rtn = InkWell(
-          onTap: isEnabled() ? () => _selectDate(context) : null,
-          child: InputDecorator(
-              isEmpty: widget._controller.value == null,
-              decoration: inputDecoration.copyWith(
-                  errorText: field.errorText,
-                  hintText: widget._controller.hintText ??
-                      Utils.translateWithFallback(
-                          'ensemble.input.date.placeholder', 'Select a date'),
-                  suffixIcon: widget._controller.showCalendarIcon != false
-                      ? Icon(
-                          Icons.calendar_month_rounded,
-                          color: formFieldTextStyle.color?.withOpacity(.5),
-                          size: ThemeManager().getInputIconSize(context).toDouble())
-                      : null),
-              child: ClearableInput(
-                text: selectedValue,
-                textStyle: formFieldTextStyle,
-                onCleared: () {
-                  setState(() {
-                    widget._controller.value = null;
-                  });
+        return InputDecorator(
+          decoration: inputDecoration.copyWith(
+            errorText: field.errorText,
+          ),
+          child: InkWell(
+              child: nowBuildWidget(),
+              onTap: isEnabled() ? () => _selectDate(context) : null
+            )
 
-                }
-              )
-          ));
 
-        if (!isEnabled()) {
-          rtn = Opacity(
-            opacity: .5,
-            child: rtn,
-          );
-        }
-        return rtn;
+        );
       }
     );
 
   }
+
 
   void _selectDate(BuildContext context) async {
     // massage the dates to ensure initial date falls between firstDate and lastDate
@@ -139,7 +115,7 @@ class DateState extends FormFieldWidgetState<Date> {
       context: context,
       initialDate: initialDate,
       firstDate: firstDate,
-      lastDate: lastDate,
+      lastDate: lastDate
     );
     if (picked != null) {
       if (widget._controller.value == null || widget._controller.value!.compareTo(picked) != 0) {
@@ -152,6 +128,29 @@ class DateState extends FormFieldWidgetState<Date> {
         }
       }
     }
+  }
+
+
+  Widget nowBuildWidget() {
+    Widget rtn = Text(selectedValue, style: formFieldTextStyle);
+    if (widget._controller.showCalendarIcon != false) {
+      rtn = Row(
+        children: [
+          Expanded(
+            child: rtn
+          ),
+          Icon(Icons.calendar_month_rounded, color: formFieldTextStyle.color?.withOpacity(.5)),
+        ]
+      );
+    }
+
+    if (!isEnabled()) {
+      rtn = Opacity(
+        opacity: .5,
+        child: rtn,
+      );
+    }
+    return rtn;
   }
 
 

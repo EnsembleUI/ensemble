@@ -109,43 +109,26 @@
             }
           ]
         },
-        "fillColor": {
-          "$ref": "#/$defs/Color",
-          "description": "The fill color for applicable input fields (TextInput, Dropdown, ...)"
-        },
         "borderRadius": {
           "type": "integer",
           "minimum": 0,
-          "description": "The border radius for applicable Input widgets."
+          "description": "The border radius for Input widgets with Box variant"
         },
-        "borderWidth": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "The border width for applicable Input widgets."
+        "focusColor": {
+          "$ref": "#/$defs/Color",
+          "description": "The color of the input field when receiving focus"
         },
         "borderColor": {
           "$ref": "#/$defs/Color",
-          "description": "The base border color for applicable input fields. This border color determines the look and feel of your inputs, while the other colors are overrides for different states."
+          "description": "The border color of applicable input fields"
         },
-        "enabledBorderColor": {
+        "borderDisabledColor": {
           "$ref": "#/$defs/Color",
-          "description": "The override border color for enabled input fields."
+          "description": "The disabled border color of applicable input fields"
         },
-        "disabledBorderColor": {
+        "backgroundColor": {
           "$ref": "#/$defs/Color",
-          "description": "The border color when input fields are disabled."
-        },
-        "errorBorderColor": {
-          "$ref": "#/$defs/Color",
-          "description": "The border color when there are errors on the input fields."
-        },
-        "focusedBorderColor": {
-          "$ref": "#/$defs/Color",
-          "description": "The border color of the input field when it is receiving focus"
-        },
-        "focusedErrorBorderColor": {
-          "$ref": "#/$defs/Color",
-          "description": "The border color of the input field when it is receiving focus in its error state."
+          "description": "The backgroundColor is fillColor of applicable input fields"
         }
       }
     },

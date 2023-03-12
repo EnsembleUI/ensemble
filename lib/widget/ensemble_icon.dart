@@ -6,7 +6,7 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
-import 'package:ensemble/framework/theme/theme_manager.dart';
+import 'package:ensemble/widget/helpers/theme_manager.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -73,7 +73,7 @@ class IconState extends WidgetState<EnsembleIcon> {
     if (tapEnabled) {
       icon = InkWell(
           child: icon,
-          splashColor: widget._controller.splashColor ?? ThemeManager().getSplashColor(context),
+          splashColor: widget._controller.splashColor ?? ThemeManager.getSplashColor(context),
           borderRadius: widget._controller.borderRadius?.getValue(),
           onTap: () =>
               ScreenController().executeAction(
