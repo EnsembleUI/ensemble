@@ -119,18 +119,19 @@ class FlowState extends WidgetState<Flow> with TemplatedWidgetState {
           ),
     );
 
-    if (widget._controller.maxWidth != null || widget._controller.maxHeight != null || widget._controller.margin!=null) {
+    if (widget._controller.margin != null) {
+      rtn = Padding(
+          padding: widget._controller.margin!,
+          child: rtn);
+    }
+
+    if (widget._controller.maxWidth != null || widget._controller.maxHeight != null ) {
       return ConstrainedBox(
         constraints: BoxConstraints(
           maxWidth: widget._controller.maxWidth?.toDouble() ?? double.infinity,
           maxHeight: widget._controller.maxHeight?.toDouble() ?? double.infinity
         ),
-        child: widget._controller.margin!=null ?
-              Padding(
-              padding: widget._controller.margin!,
-              child: rtn,
-              ) :
-              rtn
+        child: rtn
       );
     }
 
