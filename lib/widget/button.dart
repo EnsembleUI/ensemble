@@ -87,24 +87,21 @@ class ButtonState extends WidgetState<Button> {
 
     Widget? rtn;
     if (isOutlineButton) {
-      rtn = CustomPaint(
-        foregroundPainter:widget._controller.borderGradient!=null?
-        _Painter(widget._controller.borderGradient!, widget._controller.borderRadius?.getValue(), widget._controller.borderWidth?.toDouble()??Size.zero.width) :
-        null,
-        child: TextButton(
-          onPressed: isEnabled() ? () => onPressed(context) : null,
-          style: getButtonStyle(context, isOutlineButton),
-          child: label),
-      );
+      rtn = TextButton(
+        onPressed: isEnabled() ? () => onPressed(context) : null,
+        style: getButtonStyle(context, isOutlineButton),
+        child: label);
     } else {
-      rtn = CustomPaint(
-        foregroundPainter:widget._controller.borderGradient!=null?
-        _Painter(widget._controller.borderGradient!, widget._controller.borderRadius?.getValue(), widget._controller.borderWidth?.toDouble()??Size.zero.width) :
-        null,
-        child: ElevatedButton(
-          onPressed: isEnabled() ? () => onPressed(context) : null,
-          style: getButtonStyle(context, isOutlineButton),
-          child: label),
+      rtn = ElevatedButton(
+        onPressed: isEnabled() ? () => onPressed(context) : null,
+        style: getButtonStyle(context, isOutlineButton),
+        child: label);
+    }
+
+    if(widget._controller.borderGradient!=null){
+      return CustomPaint(
+        foregroundPainter: _Painter(widget._controller.borderGradient!, widget._controller.borderRadius?.getValue(), widget._controller.borderWidth?.toDouble()??Size.zero.width) ,
+        child: rtn,
       );
     }
 
@@ -136,6 +133,8 @@ class ButtonState extends WidgetState<Button> {
         borderRadius: widget._controller.borderRadius == null ?
             defaultShape.borderRadius :
             widget._controller.borderRadius!.getValue(),
+        // when we give [borderGradient] and [borderColor] it will draw that color also around borderSide
+        // So when the borderGradient is there the side will be none
         side: widget._controller.borderGradient!=null?
               BorderSide.none :
               borderSide);
@@ -210,7 +209,7 @@ class _Painter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final Rect rect = Rect.fromLTWH(strokeWidth / 2, strokeWidth / 2, size.width - strokeWidth, size.height - strokeWidth);
-    final RRect rRect = borderRadius?.resolve(textDirection ?? TextDirection.ltr)?.toRRect(rect) ?? RRect.fromRectAndRadius(rect, Radius.zero);
+    final RRect rRect = borderRadius?.resolve(textDirection ?? TextDirection.ltr).toRRect(rect) ?? RRect.fromRectAndRadius(rect, Radius.zero);
     final Paint _paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
