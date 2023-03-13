@@ -1296,6 +1296,10 @@
                 {
                   "const": "uploadFiles",
                   "description": "Allow users to upload files to an API from the camera or file system"
+                },
+                {
+                  "const": "copyToClipboard",
+                  "description": "Allow users to copy text to clipboard"
                 }
               ]
             }
@@ -1705,6 +1709,31 @@
                     "description": "Error message to show when selected files size is above maxFileSize."
                   }
                 }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "copyToClipboard"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "string",
+                "description": "Enter the value for copy"
+              },
+              "onSuccess": {
+                "$ref": "#/$defs/Action-payload",
+                "description": "Execute another Action upon successful copy to clipboard"
+              },
+              "onFailure": {
+                "$ref": "#/$defs/Action-payload",
+                "description": "Execute an Action when copy to clipboard text fails"
               }
             }
           }
