@@ -1,5 +1,6 @@
 
 
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/box_layout.dart';
@@ -39,7 +40,7 @@ class ListView extends StatefulWidget
   Map<String, Function> setters() {
     return {
       'onItemTap': (funcDefinition) =>
-      _controller.onItemTap = Utils.getAction(funcDefinition, initiator: this),
+      _controller.onItemTap = EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'separatorColor': (value) =>
       _controller.sepratorColor = Utils.getColor(value),
       'separatorWidth': (value) =>

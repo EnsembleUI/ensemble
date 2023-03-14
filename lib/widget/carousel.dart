@@ -44,7 +44,7 @@ class Carousel extends StatefulWidget with UpdatableContainer, Invokable, HasCon
       'indicatorWidth': (w) => _controller.indicatorWidth = Utils.optionalInt(w),
       'indicatorHeight': (h) => _controller.indicatorHeight = Utils.optionalInt(h),
       'indicatorMargin': (value) => _controller.indicatorMargin = Utils.getInsets(value),
-      'onItemChange': (action) => _controller.onItemChange =  Utils.getAction(action, initiator: this),
+      'onItemChange': (action) => _controller.onItemChange =  EnsembleAction.fromYaml(action, initiator: this),
     };
   }
 
