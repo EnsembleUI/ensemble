@@ -99,9 +99,13 @@ class ButtonState extends WidgetState<Button> {
     }
 
     if(widget._controller.borderGradient!=null){
-      return CustomPaint(
-        foregroundPainter: _Painter(widget._controller.borderGradient!, widget._controller.borderRadius?.getValue(), widget._controller.borderWidth?.toDouble()??Size.zero.width) ,
-        child: rtn,
+      return Padding(
+        // add margin if specified when borderGradient is defined
+        padding: widget._controller.margin??EdgeInsets.zero,
+        child: CustomPaint(
+          foregroundPainter: _Painter(widget._controller.borderGradient!, widget._controller.borderRadius?.getValue(), widget._controller.borderWidth?.toDouble()??Size.zero.width) ,
+          child: rtn,
+        ),
       );
     }
 
