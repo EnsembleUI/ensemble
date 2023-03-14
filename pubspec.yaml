@@ -95,7 +95,8 @@ flutter:
 
     # integration tests (TODO - exclude from build)
     - ensemble/integration_tests/
-    - ensemble/integration_tests/default/
+    - ensemble/integration_tests/defaultApp/
+    - ensemble/integration_tests/themedApp/
 
   fonts:
     # semi-custom fonts

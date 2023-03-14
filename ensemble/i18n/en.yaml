@@ -2,6 +2,9 @@ ensemble:
   input:
     required: This field is required.
 
+    date:
+      placeholder: Select a date
+
     validation:
       minimumLength: The field must be at least $n characters long
       maximumLength: The field must be at most $n characters long
@@ -10,3 +13,4 @@ ensemble:
       invalidIPAddressType: The field is not a valid IP address
       #catch all
       invalidInput: This field is invalid
+
