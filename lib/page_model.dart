@@ -4,6 +4,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/menu.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/layout/app_scroller.dart';
 import 'package:ensemble/layout/box_layout.dart';
@@ -87,32 +88,7 @@ abstract class PageModel {
     return subViewDefinitions;
   }
 
-  void _processMenu(YamlMap menuData) {
-    if (menuData['items'] is YamlList) {
-      List<MenuItem> menuItems = [];
-      for (final YamlMap item in (menuData['items'] as YamlList)) {
 
-
-        menuItems.add(MenuItem(
-            item['label'],
-            item['page'],
-            icon: item['icon'],
-            iconLibrary: item['iconLibrary'],
-            selected: item['selected']));
-      }
-      Map<String, dynamic>? menuStyles = ViewUtil.getMap(menuData['styles']);
-
-      WidgetModel? menuHeaderModel;
-      if (menuData['header'] != null) {
-        menuHeaderModel = ViewUtil.buildModel(menuData['header'], customViewDefinitions);
-      }
-      WidgetModel? menuFooterModel;
-      if (menuData['footer'] != null) {
-        menuFooterModel = ViewUtil.buildModel(menuData['footer'], customViewDefinitions);
-      }
-      menu = Menu(menuData['display'], menuStyles, menuItems, headerModel: menuHeaderModel, footerModel: menuFooterModel);
-    }
-  }
 
 
 }
@@ -127,7 +103,7 @@ class PageGroupModel extends PageModel {
   void _processModel(YamlMap docMap) {
     super._processModel(docMap);
 
-    _processMenu(docMap['ViewGroup']);
+    menu = Menu.fromYaml(docMap['ViewGroup'], customViewDefinitions);
   }
 }
 
@@ -170,7 +146,7 @@ class SinglePageModel extends PageModel {
     processHeader(viewMap['header'], viewMap['title']);
 
     if (viewMap['menu'] != null) {
-      _processMenu(viewMap['menu']);
+      menu = Menu.fromYaml(viewMap['menu'], customViewDefinitions);
     }
 
     if (viewMap['styles'] is YamlMap) {
@@ -327,46 +303,7 @@ class HeaderModel {
   Map<String, dynamic>? styles;
 }
 
-class Menu {
-  Menu(this.display, this.styles, this.menuItems, { this.headerModel, this.footerModel });
 
-  Map<String, dynamic>? styles;
-  String? display;
-  List<MenuItem> menuItems;
-  WidgetModel? headerModel;
-  WidgetModel? footerModel;
-}
-enum MenuDisplay {
-  bottomNavBar,   // bottom navigation bar. Default if not specified
-  drawer,         // hamburger drawer menu
-  endDrawer,
-  sidebar,        // side-bar navigation, which will becomes a drawer on low resolution
-  endSidebar,
-
-
-  // legacy for backward compatible
-  leftNavBar,     // fixed navigation to the left. Only recommend for Web
-  navBar,         // bottom nav bar
-  navBar_left,  // fixed navigation on the left of the screen
-  navBar_right  // fixed navigation on the right of the screen
-}
-
-enum MenuItemDisplay {
-  stacked,
-  sideBySide
-}
-
-
-class MenuItem {
-  MenuItem(this.label, this.page, {this.icon, this.iconLibrary, this.selected});
-
-  final String? label;
-  final String page;
-  final dynamic icon;
-  final String? iconLibrary;
-  final dynamic selected;
-
-}
 
 class Footer {
   final List<WidgetModel> children;
