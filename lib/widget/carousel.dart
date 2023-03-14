@@ -5,6 +5,7 @@ import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -45,6 +46,8 @@ class Carousel extends StatefulWidget with UpdatableContainer, Invokable, HasCon
       'indicatorHeight': (h) => _controller.indicatorHeight = Utils.optionalInt(h),
       'indicatorMargin': (value) => _controller.indicatorMargin = Utils.getInsets(value),
       'onItemChange': (action) => _controller.onItemChange =  Utils.getAction(action, initiator: this),
+      'indicatorWidget': (widget) => _controller.indicatorWidget = widget,
+      'selectedIndicatorWidget': (widget) => _controller.selectedIndicatorWidget = widget,
     };
   }
 
@@ -100,6 +103,10 @@ class MyController extends BoxController {
   int? indicatorWidth;
   int? indicatorHeight;
   EdgeInsets? indicatorMargin;
+
+  // Custom Widget
+  dynamic indicatorWidget;
+  dynamic selectedIndicatorWidget;
 
   // for single view the current item index is dispatched,
   // for multi view this dispatch when clicking on a card
@@ -276,22 +283,55 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
     );
   }
 
+  Widget ? customIndicatorWidget;
+
+  Widget defineIndicatorWidget(ScopeManager scopeManager){
+     if(widget._controller.indicatorWidget != null)
+       {
+         customIndicatorWidget ??= scopeManager.buildWidgetFromDefinition(
+          widget._controller.indicatorWidget);
+         return customIndicatorWidget!;
+       }
+     return customIndicatorWidget!;
+  }
+
+  Widget ? customSelectedIndicatorWidget;
+
+  Widget defineSelectedIndicatorWidget(ScopeManager scopeManager){
+    if(widget._controller.selectedIndicatorWidget != null)
+    {
+      customSelectedIndicatorWidget ??= scopeManager.buildWidgetFromDefinition(
+          widget._controller.selectedIndicatorWidget);
+      return customSelectedIndicatorWidget!;
+    }
+    return customSelectedIndicatorWidget!;
+  }
+
   Widget getIndicator(bool selected) {
+
+    return selected
+        ? customSelectedIndicatorWidget ?? defaultIndicator(selected)
+        : customIndicatorWidget ?? defaultIndicator(selected);
+
+  }
+
+  Widget defaultIndicator(bool selected){
     int w = widget._controller.indicatorWidth ?? widget._controller.indicatorHeight ?? 8;
     int h = widget._controller.indicatorHeight ?? widget._controller.indicatorWidth ?? 8;
 
-    return Container(
-      width: w.toDouble(),
-      height: h.toDouble(),
-      margin: widget._controller.indicatorMargin ?? const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
-      decoration: BoxDecoration(
-        shape: widget._controller.indicatorType == IndicatorType.rectangle ? BoxShape.rectangle : BoxShape.circle,
-        color: (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black)
-            .withOpacity(selected ? 0.9 : 0.4)
-      )
-    );
-
+    return
+      Container(
+          width: w.toDouble(),
+          height: h.toDouble(),
+          margin: widget._controller.indicatorMargin ?? const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+          decoration: BoxDecoration(
+              shape: widget._controller.indicatorType == IndicatorType.rectangle ? BoxShape.rectangle : BoxShape.circle,
+              color: (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black)
+                  .withOpacity(selected ? 0.9 : 0.4)
+          )
+      );
   }
+
 }
 
 enum CarouselLayout {
