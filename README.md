@@ -1,6 +1,6 @@
 ## Getting Started
 
-# For detailed instructions on how to run locally or deploy to iOS AppStore or Google Play, see this - https://github.com/EnsembleUI/ensemble_starter
+### For detailed instructions on how to run locally or deploy to iOS AppStore or Google Play, see this - https://github.com/EnsembleUI/ensemble_starter
 
 This is Ensemble Runtime that is essentially an interpreter for the Ensemble Declarative Language (EDL) written in Flutter. 
 
