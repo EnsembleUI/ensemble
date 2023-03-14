@@ -2065,40 +2065,48 @@
     "Menu": {
       "type": "object",
       "description": "Specify the navigation menu for this page",
-      "properties":{
-        "oneOf": [
-          {
+      "oneOf": [
+        {
+          "properties": {
             "BottomNavBar": {
               "description": "Use the bottom navigation bar",
               "$ref": "#/$defs/MenuBase"
             }
-          },
-          {
+          }
+        },
+        {
+          "properties": {
             "Drawer": {
               "description": "Put the menu behind a drawer icon on the header. The drawer icon will be positioned to the 'start' of the header (left for most languages, right for RTL languages).",
               "$ref": "#/$defs/MenuWithHeaderAndFooter"
             }
-          },
-          {
+          }
+        },
+        {
+          "properties": {
             "EndDrawer": {
               "description": "Put the menu behind a drawer icon on the header. The drawer icon will be positioned to the 'end' of the header (right for most languages, left for RTL languages).",
               "$ref": "#/$defs/MenuWithHeaderAndFooter"
             }
-          },
-          {
+          }
+        },
+        {
+          "properties": {
             "Sidebar": {
               "description": "Enable a fixed navigation menu to the 'start' of the screen (left for most languages, right for RTL languages). The menu may become a drawer menu on lower resolution.",
               "$ref": "#/$defs/MenuWithAdditionalStyles"
             }
-          },
-          {
+          }
+        },
+        {
+          "properties": {
             "EndSidebar": {
               "description": "Enable a fixed navigation menu to the 'end' of the screen (right for most languages, left for RTL languages). The menu may become a drawer menu on lower resolution.",
               "$ref": "#/$defs/MenuWithAdditionalStyles"
             }
           }
-        ]
-      }
+        }
+      ]
     },
     "TabBar-payload": {
       "type": "object",
