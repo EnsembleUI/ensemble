@@ -3,12 +3,14 @@ import 'dart:developer';
 
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/framework/widget/icon.dart' as framework;
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/input_validator.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/form_helper.dart';
+import 'package:ensemble/widget/input/form_helper.dart';
+import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -97,7 +99,6 @@ abstract class BaseTextInput extends StatefulWidget with Invokable, HasControlle
     return {
       'onKeyPress': (function) => _controller.onKeyPress = Utils.getAction(function, initiator: this),
       'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this),
-      'borderRadius': (value) => _controller.borderRadius = Utils.optionalInt(value),
       'validator': (value) => _controller.validator = Utils.getValidator(value),
       'obscureToggle': (value) => _controller.obscureToggle = Utils.optionalBool(value),
       'keyboardAction': (value) => _controller.keyboardAction = _getKeyboardAction(value),
@@ -150,7 +151,6 @@ class TextInputController extends FormFieldController {
 
   model.InputValidator? validator;
   String? inputType;
-  int? borderRadius;
   int maxLines = 1;
 }
 
@@ -232,7 +232,9 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
     if ((widget.isPassword() || widget._controller.obscureText == true) && widget._controller.obscureToggle == true) {
       decoration = decoration.copyWith(
         suffixIcon: IconButton(
-          icon: Icon(currentlyObscured ? Icons.visibility : Icons.visibility_off),
+          icon: Icon(
+              currentlyObscured ? Icons.visibility : Icons.visibility_off,
+              size: ThemeManager().getInputIconSize(context).toDouble()),
           onPressed: () {
             setState(() {
               currentlyObscured = !currentlyObscured;
@@ -243,91 +245,92 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
       );
     }
 
+    return InputWrapper(
+        controller: widget._controller,
+        widget: TextFormField(
+            key: validatorKey,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return widget._controller.required ?
+                Utils.translateWithFallback('ensemble.input.required', 'This field is required') :
+                null;
+              }
+              // only applicable for TextInput
+              if (!widget.isPassword() && value != null) {
+                if (widget._controller.inputType == InputType.email.name) {
+                  if (!EmailValidator.validate(value)) {
+                    return Utils.translateWithFallback(
+                        'ensemble.input.validation.invalidEmailType',
+                        'Please enter a valid email address');
+                  }
+                } else if (widget._controller.inputType == InputType.ipAddress.name) {
+                  if (!InputValidator.ipAddress(value)) {
+                    return Utils.translateWithFallback(
+                        'ensemble.input.validation.invalidIPAddressType',
+                        'Please enter a valid IP Address');
+                  }
+                } else if (widget._controller.inputType == InputType.phone.name) {
+                  if (!InputValidator.phone(value)) {
+                    return Utils.translateWithFallback(
+                        'ensemble.input.validation.invalidPhoneType',
+                        "Please enter a valid Phone Number");
+                  }
+                }
+              }
+              if (widget._controller.validator != null) {
+                ValidationBuilder? builder;
+                if (widget._controller.validator?.minLength != null) {
+                  builder = ValidationBuilder().minLength(
+                      widget._controller.validator!.minLength!,
+                      Utils.translateOrNull('ensemble.input.validation.minimumLength'));
+                }
+                if (widget._controller.validator?.maxLength != null) {
+                  builder = (builder ?? ValidationBuilder()).maxLength(
+                      widget._controller.validator!.maxLength!,
+                      Utils.translateOrNull('ensemble.input.validation.maximumLength'));
+                }
+                if (widget._controller.validator?.regex != null) {
+                  builder = (builder ?? ValidationBuilder()).regExp(
+                      RegExp(widget._controller.validator!.regex!),
+                      widget._controller.validator!.regexError ??
+                          Utils.translateWithFallback(
+                              'ensemble.input.validation.invalidInput',
+                              'This field has invalid value'));
+                }
+                if (builder != null) {
+                  return builder.build().call(value);
+                }
+              }
+              return null;
+            },
+            textInputAction: widget._controller.keyboardAction,
+            keyboardType: widget.keyboardType,
+            maxLines: widget._controller.maxLines,
+            obscureText: isObscureOrPlainText(),
+            enableSuggestions: !widget.isPassword(),
+            autocorrect: !widget.isPassword(),
+            controller: widget.textController,
+            focusNode: focusNode,
+            enabled: isEnabled(),
+            onFieldSubmitted: (value) => widget.controller.submitForm(context),
+            onChanged: (String txt) {
+              if (txt != previousText) {
+                // for performance reason, we dispatch onChange (as well as binding to value)
+                // upon EditingComplete (select Done on virtual keyboard) or Focus Out
+                didItChange = true;
+                previousText = txt;
 
-    return TextFormField(
-      key: validatorKey,
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return widget._controller.required ?
-            Utils.translateWithFallback('ensemble.input.required', 'This field is required') :
-            null;
-        }
-        // only applicable for TextInput
-        if (!widget.isPassword() && value != null) {
-          if (widget._controller.inputType == InputType.email.name) {
-            if (!EmailValidator.validate(value)) {
-              return Utils.translateWithFallback(
-                'ensemble.input.validation.invalidEmailType',
-                'Please enter a valid email address');
-            }
-          } else if (widget._controller.inputType == InputType.ipAddress.name) {
-            if (!InputValidator.ipAddress(value)) {
-              return Utils.translateWithFallback(
-                  'ensemble.input.validation.invalidIPAddressType',
-                  'Please enter a valid IP Address');
-            }
-          } else if (widget._controller.inputType == InputType.phone.name) {
-            if (!InputValidator.phone(value)) {
-              return Utils.translateWithFallback(
-                  'ensemble.input.validation.invalidPhoneType',
-                  "Please enter a valid Phone Number");
-            }
-          }
-        }
-        if (widget._controller.validator != null) {
-          ValidationBuilder? builder;
-          if (widget._controller.validator?.minLength != null) {
-            builder = ValidationBuilder().minLength(
-                widget._controller.validator!.minLength!,
-                Utils.translateOrNull('ensemble.input.validation.minimumLength'));
-          }
-          if (widget._controller.validator?.maxLength != null) {
-            builder = (builder ?? ValidationBuilder()).maxLength(
-                widget._controller.validator!.maxLength!,
-                Utils.translateOrNull('ensemble.input.validation.maximumLength'));
-          }
-          if (widget._controller.validator?.regex != null) {
-            builder = (builder ?? ValidationBuilder()).regExp(
-              RegExp(widget._controller.validator!.regex!),
-              widget._controller.validator!.regexError ??
-                Utils.translateWithFallback(
-                    'ensemble.input.validation.invalidInput',
-                    'This field has invalid value'));
-          }
-          if (builder != null) {
-            return builder.build().call(value);
-          }
-        }
-        return null;
-      },
-      textInputAction: widget._controller.keyboardAction,
-      keyboardType: widget.keyboardType,
-      maxLines: widget._controller.maxLines,
-      obscureText: isObscureOrPlainText(),
-      enableSuggestions: !widget.isPassword(),
-      autocorrect: !widget.isPassword(),
-      controller: widget.textController,
-      focusNode: focusNode,
-      enabled: isEnabled(),
-      onFieldSubmitted: (value) => widget.controller.submitForm(context),
-      onChanged: (String txt) {
-        if (txt != previousText) {
-          // for performance reason, we dispatch onChange (as well as binding to value)
-          // upon EditingComplete (select Done on virtual keyboard) or Focus Out
-          didItChange = true;
-          previousText = txt;
-
-          // we dispatch onKeyPress here
-          if (widget._controller.onKeyPress != null) {
-            ScreenController().executeAction(context, widget._controller.onKeyPress!,event: EnsembleEvent(widget));
-          }
-
-        }
-      },
-      style: textStyle,
-      decoration: decoration
-    );
-
+                // we dispatch onKeyPress here
+                if (widget._controller.onKeyPress != null) {
+                  ScreenController().executeAction(
+                      context, widget._controller.onKeyPress!,
+                      event: EnsembleEvent(widget));
+                }
+              }
+            },
+            style: textStyle,
+            decoration: decoration));
+    
   }
 
 }
