@@ -767,6 +767,22 @@
         }
       ]
     },
+    "AutoComplete-payload": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/SelectOne-payload"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "autoComplete": {
+              "type": "boolean",
+              "description": "enable the Input search suggestion option"
+            }
+          }
+        }
+      ]
+    },
     "Date-payload": {
       "allOf": [
         {
@@ -1928,6 +1944,14 @@
             "Dropdown": {
               "$ref": "#/$defs/SelectOne-payload",
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/fb8d28a2-834e-40a9-8419-155272fb0191#"
+            }
+          }
+        },
+        {
+          "properties": {
+            "AutoComplete": {
+              "$ref": "#/$defs/AutoComplete-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/xRuz8uRNikGAObRdBXWu/screen/yCORdmPhYzhBp36Lea8u"
             }
           }
         },
