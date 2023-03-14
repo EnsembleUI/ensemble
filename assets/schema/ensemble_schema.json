@@ -1672,6 +1672,101 @@
       }
     },
 
+
+    "MenuBase": {
+      "type": "object",
+      "required": ["items"],
+      "properties": {
+        "items": {
+          "type": "array",
+          "description": "List of menu items (minimum 2)",
+          "items": {
+            "type": "object",
+            "required": ["icon", "label", "page"],
+            "properties": {
+              "icon": {
+                "type": "string",
+                "description": "Icon name from Material Icons or Font Awesome"
+              },
+              "iconLibrary": {
+                "type": "string",
+                "enum": ["default", "fontAwesome"]
+              },
+              "label": {
+                "type": "string"
+              },
+              "page": {
+                "type": "string",
+                "description": "The new page to navigate to on click"
+              },
+              "selected": {
+                "type": "boolean",
+                "description": "Mark this item as selected. There should only be one selected item per page."
+              }
+            }
+          }
+        },
+        "styles": {
+          "allOf": [
+            { "$ref": "#/$defs/backgroundColor" }
+          ]
+        }
+      }
+    },
+    "MenuWithHeaderAndFooter": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/MenuBase"
+        },
+        {
+          "properties": {
+            "header": {
+              "$ref": "#/$defs/Widget",
+              "description": "The header widget for the menu"
+            },
+            "footer": {
+              "$ref": "#/$defs/Widget",
+              "description": "The footer widget for the menu"
+            }
+          }
+        }
+      ]
+    },
+    "MenuWithAdditionalStyles": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/MenuWithHeaderAndFooter"
+        },
+        {
+          "properties": {
+            "styles": {
+              "properties": {
+                "borderColor": {
+                  "$ref": "#/$defs/typeColors"
+                },
+                "borderWidth": {
+                  "type": "integer"
+                },
+                "itemDisplay": {
+                  "type": "string",
+                  "description": "How to render each navigation item",
+                  "enum": ["stacked", "sideBySide"]
+                },
+                "itemPadding": {
+                  "type": ["integer", "string"],
+                  "description": "Padding for each navigation item with CSS-style value"
+                },
+                "minWidth": {
+                  "type": "integer",
+                  "description": "The minimum width for the menu (default 200)"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+
     "Widgets": {
       "type": "array",
       "description": "List of widgets",
@@ -1970,114 +2065,28 @@
     "Menu": {
       "type": "object",
       "description": "Specify the navigation menu for this page",
-      "allOf": [
-        {
-          "properties": {
-            "display": {
-              "type": "string",
-              "description": "Specify the type of menu",
-              "oneOf": [
-                {
-                  "const": "bottomNavBar",
-                  "description": "Use the bottom navigation bar (default)"
-                },
-                {
-                  "const": "drawer",
-                  "description": "Put the menu behind a drawer icon on the header. The drawer icon will be positioned to the 'start' of the header (left for most languages, right for RTL languages)."
-                },
-                {
-                  "const": "endDrawer",
-                  "description": "Put the menu behind a drawer icon on the header. The drawer icon will be positioned to the 'end' of the header (right for most languages, left for RTL languages)."
-                },
-                {
-                  "const": "sidebar",
-                  "description": "Enable a fixed navigation menu to the 'start' of the screen (left for most languages, right for RTL languages). The menu may become a drawer menu on lower resolution."
-                },
-                {
-                  "const": "endSidebar",
-                  "description": "Enable a fixed navigation menu to the 'end' of the screen (right for most languages, left for RTL languages). The menu may become a drawer menu on lower resolution."
-                }
-              ]
-            },
-            "header": { "$ref": "#/$defs/Widget" },
-            "footer": { "$ref": "#/$defs/Widget" },
-            "styles": {
-              "type": "object",
-              "properties": {
-                "backgroundColor": {
-                  "$ref": "#/$defs/typeColors",
-                  "description": "Background color for our menu starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
-                }
-              }
-            },
-            "items": {
-              "type": "array",
-              "description": "List of menu items (minimum 2)",
-              "items": {
-                "type": "object",
-                "required": ["icon", "label", "page"],
-                "properties": {
-                  "icon": {
-                    "type": "string",
-                    "description": "Icon name from Material Icons or Font Awesome"
-                  },
-                  "iconLibrary": {
-                    "type": "string",
-                    "enum": ["default", "fontAwesome"]
-                  },
-                  "label": {
-                    "type": "string"
-                  },
-                  "page": {
-                    "type": "string",
-                    "description": "The new page to navigate to on click"
-                  },
-                  "selected": {
-                    "type": "boolean",
-                    "description": "Mark this item as selected. There should only be one selected item per page."
-                  }
-                }
-              }
-            }
-          }
+      "properties":{
+        "BottomNavBar": {
+          "description": "Use the bottom navigation bar",
+          "$ref": "#/$defs/MenuBase"
         },
-        {
-          "if": {
-            "properties": {
-              "display": {
-                "const": "sidebar"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "styles": {
-                "properties": {
-                  "borderColor": {
-                    "$ref": "#/$defs/typeColors"
-                  },
-                  "borderWidth": {
-                    "type": "integer"
-                  },
-                  "itemDisplay": {
-                    "type": "string",
-                    "description": "How to render each navigation item",
-                    "enum": ["stacked", "sideBySide"]
-                  },
-                  "itemPadding": {
-                    "type": ["integer", "string"],
-                    "description": "Padding for each navigation item with CSS-style value"
-                  },
-                  "minWidth": {
-                    "type": "integer",
-                    "description": "The minimum width for the menu (default 200)"
-                  }
-                }
-              }
-            }
-          }
+        "Drawer": {
+          "description": "Put the menu behind a drawer icon on the header. The drawer icon will be positioned to the 'start' of the header (left for most languages, right for RTL languages).",
+          "$ref": "#/$defs/MenuWithHeaderAndFooter"
+        },
+        "EndDrawer": {
+          "description": "Put the menu behind a drawer icon on the header. The drawer icon will be positioned to the 'end' of the header (right for most languages, left for RTL languages).",
+          "$ref": "#/$defs/MenuWithHeaderAndFooter"
+        },
+        "Sidebar": {
+          "description": "Enable a fixed navigation menu to the 'start' of the screen (left for most languages, right for RTL languages). The menu may become a drawer menu on lower resolution.",
+          "$ref": "#/$defs/MenuWithAdditionalStyles"
+        },
+        "EndSidebar": {
+          "description": "Enable a fixed navigation menu to the 'end' of the screen (right for most languages, left for RTL languages). The menu may become a drawer menu on lower resolution.",
+          "$ref": "#/$defs/MenuWithAdditionalStyles"
         }
-      ]
+      }
     },
     "TabBar-payload": {
       "type": "object",
