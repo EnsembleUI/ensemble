@@ -6,6 +6,7 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -142,6 +143,8 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
 
   @override
   Widget buildWidget(BuildContext context) {
+
+    ScopeManager? scopeManager = DataScopeWidget.getScope(context);
     // if we should display one at a time or multiple in the slider
     bool singleView = isSingleView();
 
@@ -157,7 +160,7 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
       List<Widget> indicators = [];
       for (int i = 0; i < items.length; i++) {
         indicators.add(GestureDetector(
-          child: getIndicator(i == focusIndex),
+          child: getIndicator(i == focusIndex , scopeManager!),
           onTap: () {
             // MultiView only dispatch itemChange when explicitly clicking on the item
             // But here since we are selecting the indicator, this should be the
@@ -173,7 +176,7 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
       // Carousel requires a fixed height, so to make sure the indicators don't shift the UI, we'll make
       // sure there's at least 1 invisible indicator that takes up the space
       if (indicators.isEmpty) {
-        indicators.add(Opacity(child: getIndicator(false), opacity: 0));
+        indicators.add(Opacity(child: getIndicator(false , scopeManager!), opacity: 0));
       }
 
       List<Widget> children = [
@@ -283,35 +286,29 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
     );
   }
 
-  Widget ? customIndicatorWidget;
-
-  Widget defineIndicatorWidget(ScopeManager scopeManager){
+  Widget? defineIndicatorWidget(ScopeManager scopeManager){
      if(widget._controller.indicatorWidget != null)
        {
-         customIndicatorWidget ??= scopeManager.buildWidgetFromDefinition(
+         return scopeManager.buildWidgetFromDefinition(
           widget._controller.indicatorWidget);
-         return customIndicatorWidget!;
        }
-     return customIndicatorWidget!;
+     return null;
   }
 
-  Widget ? customSelectedIndicatorWidget;
-
-  Widget defineSelectedIndicatorWidget(ScopeManager scopeManager){
+  Widget? defineSelectedIndicatorWidget(ScopeManager scopeManager){
     if(widget._controller.selectedIndicatorWidget != null)
     {
-      customSelectedIndicatorWidget ??= scopeManager.buildWidgetFromDefinition(
+      return scopeManager.buildWidgetFromDefinition(
           widget._controller.selectedIndicatorWidget);
-      return customSelectedIndicatorWidget!;
     }
-    return customSelectedIndicatorWidget!;
+    return null;
   }
 
-  Widget getIndicator(bool selected) {
+  Widget getIndicator(bool selected , ScopeManager scopeManage) {
 
     return selected
-        ? customSelectedIndicatorWidget ?? defaultIndicator(selected)
-        : customIndicatorWidget ?? defaultIndicator(selected);
+        ? defineSelectedIndicatorWidget(scopeManage) ?? defaultIndicator(selected)
+        : defineIndicatorWidget(scopeManage) ?? defaultIndicator(selected);
 
   }
 
