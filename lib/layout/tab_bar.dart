@@ -66,7 +66,7 @@ abstract class BaseTabBar extends StatefulWidget with Invokable, HasController<T
       'indicatorThickness': (thickness) => _controller.indicatorThickness = Utils.optionalInt(thickness),
 
       'selectedIndex': (index) => _controller.selectedIndex = Utils.getInt(index, min: 0, fallback: 0),
-      'onTabSelection': (action) => _controller.onTabSelection = Utils.getAction(action, initiator: this),
+      'onTabSelection': (action) => _controller.onTabSelection = EnsembleAction.fromYaml(action, initiator: this),
       'items': (items) => _controller.items = items,
     };
   }
