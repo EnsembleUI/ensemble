@@ -35,7 +35,7 @@ class EnsembleProgressIndicator extends StatefulWidget with Invokable, HasContro
       'color': (color) => _controller.color = Utils.getColor(color),
       'backgroundColor': (color) => _controller.backgroundColor = Utils.getColor(color),
       'countdown': (seconds) => _controller.countdown = Utils.optionalInt(seconds, min: 0),
-      'onCountdownComplete': (action) => _controller.onCountdownComplete = Utils.getAction(action, initiator: this)
+      'onCountdownComplete': (action) => _controller.onCountdownComplete = EnsembleAction.fromYaml(action, initiator: this)
     };
   }
 

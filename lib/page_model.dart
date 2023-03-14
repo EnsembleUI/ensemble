@@ -165,7 +165,7 @@ class SinglePageModel extends PageModel {
     }
 
     // set the view behavior
-    viewBehavior.onLoad = Utils.getAction(viewMap['onLoad']);
+    viewBehavior.onLoad = EnsembleAction.fromYaml(viewMap['onLoad']);
 
     processHeader(viewMap['header'], viewMap['title']);
 
@@ -295,7 +295,7 @@ class CustomWidgetModel extends WidgetModel {
   }
 
   ViewBehavior getViewBehavior() {
-    return ViewBehavior(onLoad: Utils.getAction(props['onLoad']));
+    return ViewBehavior(onLoad: EnsembleAction.fromYaml(props['onLoad']));
   }
 
 }
