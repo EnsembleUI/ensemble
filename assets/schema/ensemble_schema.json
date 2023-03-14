@@ -2066,26 +2066,38 @@
       "type": "object",
       "description": "Specify the navigation menu for this page",
       "properties":{
-        "BottomNavBar": {
-          "description": "Use the bottom navigation bar",
-          "$ref": "#/$defs/MenuBase"
-        },
-        "Drawer": {
-          "description": "Put the menu behind a drawer icon on the header. The drawer icon will be positioned to the 'start' of the header (left for most languages, right for RTL languages).",
-          "$ref": "#/$defs/MenuWithHeaderAndFooter"
-        },
-        "EndDrawer": {
-          "description": "Put the menu behind a drawer icon on the header. The drawer icon will be positioned to the 'end' of the header (right for most languages, left for RTL languages).",
-          "$ref": "#/$defs/MenuWithHeaderAndFooter"
-        },
-        "Sidebar": {
-          "description": "Enable a fixed navigation menu to the 'start' of the screen (left for most languages, right for RTL languages). The menu may become a drawer menu on lower resolution.",
-          "$ref": "#/$defs/MenuWithAdditionalStyles"
-        },
-        "EndSidebar": {
-          "description": "Enable a fixed navigation menu to the 'end' of the screen (right for most languages, left for RTL languages). The menu may become a drawer menu on lower resolution.",
-          "$ref": "#/$defs/MenuWithAdditionalStyles"
-        }
+        "oneOf": [
+          {
+            "BottomNavBar": {
+              "description": "Use the bottom navigation bar",
+              "$ref": "#/$defs/MenuBase"
+            }
+          },
+          {
+            "Drawer": {
+              "description": "Put the menu behind a drawer icon on the header. The drawer icon will be positioned to the 'start' of the header (left for most languages, right for RTL languages).",
+              "$ref": "#/$defs/MenuWithHeaderAndFooter"
+            }
+          },
+          {
+            "EndDrawer": {
+              "description": "Put the menu behind a drawer icon on the header. The drawer icon will be positioned to the 'end' of the header (right for most languages, left for RTL languages).",
+              "$ref": "#/$defs/MenuWithHeaderAndFooter"
+            }
+          },
+          {
+            "Sidebar": {
+              "description": "Enable a fixed navigation menu to the 'start' of the screen (left for most languages, right for RTL languages). The menu may become a drawer menu on lower resolution.",
+              "$ref": "#/$defs/MenuWithAdditionalStyles"
+            }
+          },
+          {
+            "EndSidebar": {
+              "description": "Enable a fixed navigation menu to the 'end' of the screen (right for most languages, left for RTL languages). The menu may become a drawer menu on lower resolution.",
+              "$ref": "#/$defs/MenuWithAdditionalStyles"
+            }
+          }
+        ]
       }
     },
     "TabBar-payload": {
