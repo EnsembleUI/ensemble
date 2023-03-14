@@ -76,17 +76,12 @@ class ToastController {
     double? shadowRadius = Utils.optionalDouble(toastAction.styles?['shadowRadius'], min: 0);
     Offset? shadowOffset = Utils.getOffset(toastAction.styles?['shadowOffset']);
 
-    Widget content;
-    if (toastAction.type == ToastType.custom) {
-      if (customToastBody == null) {
-        throw LanguageError("Custom Toast requires a valid widget");
-      }
-      content = customToastBody;
-    } else {
+    Widget? content = customToastBody;
+    if (content == null) {
       if (toastAction.message == null) {
-        throw LanguageError("Toast message is required !");
+        throw LanguageError("${ActionType.showToast.name} requires either a message or a valid widget to render.");
       }
-
+      // render the message as the body
       IconData icon;
       if (toastAction.type == ToastType.success) {
         icon = Icons.check_circle_outline;
@@ -102,14 +97,13 @@ class ToastController {
         icon = Icons.info_outline;
         bgColor ??= Colors.white.withOpacity(.9);
       }
-
       content = Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon),
-          const SizedBox(width: 7),
-          Text(toastAction.message!)
-        ]
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon),
+            const SizedBox(width: 7),
+            Text(toastAction.message!)
+          ]
       );
     }
 

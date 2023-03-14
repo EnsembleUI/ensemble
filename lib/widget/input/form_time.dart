@@ -40,7 +40,7 @@ class Time extends StatefulWidget with Invokable, HasController<TimeController, 
   Map<String, Function> setters() {
     return {
       'initialValue': (value) => _controller.initialValue = Utils.getTimeOfDay(value),
-      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this)
+      'onChange': (definition) => _controller.onChange = EnsembleAction.fromYaml(definition, initiator: this)
     };
   }
 

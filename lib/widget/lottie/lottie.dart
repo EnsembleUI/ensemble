@@ -37,7 +37,7 @@ class EnsembleLottie extends StatefulWidget with Invokable, HasController<Lottie
       'source': (value) => _controller.source = Utils.getString(value, fallback: ''),
       'fit': (value) => _controller.fit = Utils.optionalString(value),
       'repeat': (value) => _controller.repeat = Utils.optionalBool(value),
-      'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, initiator: this),
+      'onTap': (funcDefinition) => _controller.onTap = EnsembleAction.fromYaml(funcDefinition, initiator: this),
     };
   }
 

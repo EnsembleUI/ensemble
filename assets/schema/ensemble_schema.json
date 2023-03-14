@@ -1308,473 +1308,457 @@
       ]
     },
     "Action-payload": {
-      "type": ["object", "string"],
-      "allOf": [
-        {
+      "type": "object",
+      "properties": {
+        "navigateScreen": {
+          "type": "object",
+          "description": "Navigating to a new screen",
           "properties": {
-            "action": {
+            "name": {
               "type": "string",
-              "description": "invoke an Ensemble's built-in functions",
-              "oneOf": [
+              "description": "Enter the Name or ID of your Screen"
+            },
+            "inputs": {
+              "type": "object",
+              "description": "Specify the key/value pairs to pass into the next Screen"
+            },
+            "options": {
+              "type": "object",
+              "properties": {
+                "replaceCurrentScreen": {
+                  "type": "boolean",
+                  "description": "If true, the new screen will replace the current screen on the navigation history. Navigating back from the new screen will skip the current screen."
+                },
+                "clearAllScreens": {
+                  "type": "boolean",
+                  "description": "If true, clear out all existing screens in the navigation history. This is useful when navigating to a Logout or similar page where users should not be able to go back to the prior screens."
+                }
+              }
+            }
+          }
+        },
+        "navigateModalScreen": {
+          "type": "object",
+          "description": "Navigating to a new screen as a modal",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Enter the Name or ID of your screen"
+            },
+            "inputs": {
+              "type": "object",
+              "description": "Specify the key/value pairs to pass into the next Screen"
+            },
+            "onModalDismiss": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Execute an Action when the modal screen is dismissed"
+            }
+          }
+        },
+        "navigateBack": {
+          "type": "object",
+          "description": "Navigating back to the previous screen if possible. The current screen will be removed from the navigation history. This also works for a modal screen."
+        },
+        "invokeAPI": {
+          "type": "object",
+          "description": "Calling an API",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Give the API an ID allows you to bind to its result. e.g. ${apiId.body...}"
+            },
+            "name": {
+              "type": "string",
+              "description": "Enter the name of your defined API"
+            },
+            "inputs": {
+              "type": "object",
+              "description": "Specify the key/value pairs to pass to the API"
+            },
+            "onResponse": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Execute another Action upon API's successful response"
+            },
+            "onError": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Execute an Action when the API completes with error(s)"
+            }
+          }
+        },
+        "openCamera": {
+          "type": "object"
+        },
+        "showDialog": {
+          "type": "object",
+          "description": "Opening a dialog",
+          "required": ["widget"],
+          "properties": {
+            "widget": {
+              "$ref": "#/$defs/Widget",
+              "description": "Return an inline widget or specify a custom widget's name to use in the dialog."
+            },
+            "options": {
+              "type": "object",
+              "properties": {
+                "minWidth": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "maxWidth": {
+                  "type": "integer"
+                },
+                "minHeight": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "maxHeight": {
+                  "type": "integer"
+                },
+                "horizontalOffset": {
+                  "description": "Offset the dialog's position horizontally, with -1.0 for the screen's left and 1.0 for the screen's right. (default is 0 for centering horizontally)",
+                  "type": "number",
+                  "minimum": -1.0,
+                  "maximum": 1.0
+                },
+                "verticalOffset": {
+                  "description": "Offset the dialog's position vertically, with -1.0 for the screen's top and 1.0 for the screen's bottom. (default is 0 for centering vertically)",
+                  "type": "number",
+                  "minimum": -1.0,
+                  "maximum": 1.0
+                },
+                "style": {
+                  "type": "string",
+                  "description": "Render the dialog with a default style. You can also specify 'none' and control your own styles in your widget.",
+                  "enum": ["default", "none"]
+                }
+              }
+            },
+            "onDialogDismiss": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Execute an Action when the dialog is dismissed."
+            }
+          }
+        },
+        "closeAllDialogs": {
+          "type": "object",
+          "description": "Closing all opened dialogs"
+        },
+        "startTimer": {
+          "type": "object",
+          "description": "Initiating the start of a timer",
+          "required": ["onTimer"],
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Give this timer an ID so it can be cancelled by a stopTimer action"
+            },
+            "onTimer": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Execute an Action every time the timer triggers"
+            },
+            "onTimerComplete": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Execute an Action when the timer has completed and will terminate"
+            },
+            "options": {
+              "type": "object",
+              "properties": {
+                "isGlobal": {
+                  "type": "boolean",
+                  "description": "Marking this timer as global will ensure the timer, if repeating indefinitely, will continue to run even if the user navigates away from the screen, until explicitly stopped by the stopTimer action. Note that there can only ever be one global timer. Creating a new global timer will automatically cancel the previous global timer."
+                },
+                "startAfter": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Delay the timer's start by this number of seconds. If not specified and repeat is true, repeatInterval will be used. If none is specified, there will be no initial delay"
+                },
+                "repeat": {
+                  "type": "boolean",
+                  "description": "Whether the time should repeat and trigger at every repeatInterval seconds. This Timer will run continuously unless a maxNumberOfTimes is specified"
+                },
+                "repeatInterval": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Trigger the timer periodically at this repeatInterval (in seconds)"
+                },
+                "maxNumberOfTimes": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Set the max number of times the timer will triggers, if repeat is true"
+                }
+              }
+            }
+          }
+        },
+        "stopTimer": {
+          "type": "object",
+          "description": "Stop a timer if it is running",
+          "required": ["id"],
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Stop the timer with this ID if it is running"
+            }
+          }
+        },
+        "showToast": {
+          "type": "object",
+          "description": "Showing a toast message",
+          "properties": {
+            "message": {
+              "type": "string",
+              "description": "The toast message. Either this message or a widget must be provided."
+            },
+            "widget": {
+              "$ref": "#/$defs/Widget",
+              "description": "The custom widget to show as the Toast's body. Either this widget or a toast message must be provided."
+            },
+            "options": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "description": "Select a built-in toast style.",
+                  "enum": [ "success", "error", "warning", "info" ]
+                },
+                "dismissible": {
+                  "type": "boolean",
+                  "description": "Whether to show a dismiss button (default is True)"
+                },
+                "position": {
+                  "type": "string",
+                  "enum": [ "top", "topLeft", "topRight", "center", "centerLeft", "centerRight", "bottom", "bottomLeft", "bottomRight" ]
+                },
+                "duration": {
+                  "type": "integer",
+                  "description": "The number of seconds before the toast is dismissed",
+                  "minimum": 1
+                }
+              }
+            },
+            "styles": {
+              "type": "object",
+              "allOf": [
                 {
-                  "const": "invokeAPI",
-                  "description": "Calling an API"
+                  "$ref": "#/$defs/backgroundColor",
+                  "description": "Toast's background color"
                 },
                 {
-                  "const": "navigateScreen",
-                  "description": "Navigating to a new screen"
+                  "properties": {
+                    "shadowColor": {
+                      "type": ["number", "string"],
+                      "description": "box shadow color starting with '0xFF' for full opacity"
+                    },
+                    "shadowRadius": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "shadowOffset": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer"
+                      }
+                    }
+                  }
                 },
                 {
-                  "const": "navigateModalScreen",
-                  "description": "Opening a new screen as a modal"
+                  "$ref": "#/$defs/stylePadding"
                 },
                 {
-                  "const": "navigateBack",
-                  "description": "Navigating back to the previous screen if possible. The current screen will be removed from the navigation history. This also works for a modal screen."
-                },
-                {
-                  "const": "showDialog",
-                  "description": "Opening a dialog"
-                },
-                {
-                  "const": "closeAllDialogs",
-                  "description": "Closing all opened dialogs"
-                },
-                {
-                  "const": "startTimer",
-                  "description": "Initiating the start of a timer"
-                },
-                {
-                  "const": "stopTimer",
-                  "description": "Stop a timer if it is running"
-                },
-                {
-                  "const": "showToast",
-                  "description": "Showing a toast message"
-                },
-                {
-                  "const": "executeCode",
-                  "description": "Execute a block of code."
-                },
-                {
-                  "const": "getLocation",
-                  "description": "Requesting user's permission to get his/her current location"
-                },
-                {
-                  "const": "uploadFiles",
-                  "description": "Allow users to upload files to an API from the camera or file system"
+                  "$ref": "#/$defs/borderRadius"
                 }
               ]
             }
           }
         },
-        {
-          "if": {
-            "properties": {
-              "action": {
-                "const": "invokeAPI"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "Give the API an ID allows you to bind to its result. e.g. ${apiId.body...}"
-              },
-              "name": {
-                "type": "string",
-                "description": "Enter the name of your defined API"
-              },
-              "inputs": {
-                "type": "object",
-                "description": "Specify the key/value pairs to pass to the API"
-              },
-              "onResponse": {
-                "$ref": "#/$defs/Action-payload",
-                "description": "Execute another Action upon API's successful response"
-              },
-              "onError": {
-                "$ref": "#/$defs/Action-payload",
-                "description": "Execute an Action when the API completes with error(s)"
-              }
+        "executeCode": {
+          "type": "object",
+          "description": "Execute a block of code.",
+          "properties": {
+            "body": {
+              "type": "string",
+              "description": "Define your code block here, starting with //@code"
+            },
+            "onComplete": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Execute another Action when the code body finishes executing"
             }
           }
         },
-        {
-          "if": {
-            "properties": {
-              "action": {
-                "const": "navigateScreen"
+        "getLocation": {
+          "type": "object",
+          "description": "Requesting user's permission to get his/her current location",
+          "properties": {
+            "options": {
+              "type": "object",
+              "properties": {
+                "recurring": {
+                  "type": "boolean",
+                  "description": "Whether to continuously get the device location on this screen. Note that a screen can only have one recurring location listener. Adding multiple recurring location listeners will cancel the previous one."
+                },
+                "recurringDistanceFilter": {
+                  "type": "integer",
+                  "minimum": 50,
+                  "description": "If recurring, the minimum distance (in meters) the device has moved before new location is returned. (default: 1000 meters, minimum: 50 meters)"
+                }
               }
+            },
+            "onLocationReceived": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Callback Action once we get the device location"
+            },
+            "onError": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Callback Action if we are unable to get the device location. Reason is available under 'reason' field"
             }
-          },
-          "then": {
-            "properties": {
-              "name": {
-                "type": "string",
-                "description": "Enter the Name or ID of your Screen"
-              },
-              "inputs": {
-                "type": "object",
-                "description": "Specify the key/value pairs to pass into the next Screen"
-              },
-              "options": {
-                "type": "object",
-                "properties": {
-                  "replaceCurrentScreen": {
-                    "type": "boolean",
-                    "description": "If true, the new screen will replace the current screen on the navigation history. Navigating back from the new screen will skip the current screen."
-                  },
-                  "clearAllScreens": {
-                    "type": "boolean",
-                    "description": "If true, clear out all existing screens in the navigation history. This is useful when navigating to a Logout or similar page where users should not be able to go back to the prior screens."
-                  }
+          }
+        },
+        "uploadFiles": {
+          "type": "object",
+          "description": "Allow users to upload files to an API from the camera or file system",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Give the Uploader an ID allows you to bind to its result. e.g. ${filePicker.files...}, ${filePicker.body...}"
+            },
+            "uploadApi": {
+              "type": "string",
+              "description": "Enter the name of your defined API"
+            },
+            "onComplete": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Execute another Action upon successful upload of files"
+            },
+            "onError": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Execute an Action when uploader fails with error(s)"
+            },
+            "inputs": {
+              "type": "array",
+              "description": "Define the list of input names that upload API accepts"
+            },
+            "fieldName" : {
+              "type": "string",
+              "description": "Field name that your server is expecting (default files)"
+            },
+            "options": {
+              "type": "object",
+              "properties": {
+                "allowMultiple": {
+                  "type": "boolean",
+                  "description" : "Allow users to pick multiple files (default False)"
+                },
+                "allowCompression": {
+                  "type": "boolean",
+                  "description" : "It will allow media to apply the default OS compression (default True)"
+                },
+                "allowedExtensions": {
+                  "type": "array",
+                  "description": "Allow files with specific extension e.g jpg, png, pdf"
+                },
+                "maxFileSize" : {
+                  "type": "integer",
+                  "description": "File size that is allowed (default 100 mb), If multiple is allow then sum of all files"
+                },
+                "overMaxFileSizeMessage" : {
+                  "type": "string",
+                  "description": "Error message to show when selected files size is above maxFileSize."
                 }
               }
             }
           }
-        },
-        {
-          "if": {
+        }
+
+      }
+    },
+
+
+    "MenuBase": {
+      "type": "object",
+      "required": ["items"],
+      "properties": {
+        "items": {
+          "type": "array",
+          "description": "List of menu items (minimum 2)",
+          "items": {
+            "type": "object",
+            "required": ["icon", "label", "page"],
             "properties": {
-              "action": {
-                "const": "navigateModalScreen"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "name": {
+              "icon": {
                 "type": "string",
-                "description": "Enter the Name or ID of your screen"
+                "description": "Icon name from Material Icons or Font Awesome"
               },
-              "inputs": {
-                "type": "object",
-                "description": "Specify the key/value pairs to pass into the next Screen"
+              "iconLibrary": {
+                "type": "string",
+                "enum": ["default", "fontAwesome"]
               },
-              "onModalDismiss": {
-                "$ref": "#/$defs/Action-payload",
-                "description": "Execute an Action when the modal screen is dismissed"
+              "label": {
+                "type": "string"
+              },
+              "page": {
+                "type": "string",
+                "description": "The new page to navigate to on click"
+              },
+              "selected": {
+                "type": "boolean",
+                "description": "Mark this item as selected. There should only be one selected item per page."
               }
             }
           }
         },
+        "styles": {
+          "allOf": [
+            { "$ref": "#/$defs/backgroundColor" }
+          ]
+        }
+      }
+    },
+    "MenuWithHeaderAndFooter": {
+      "allOf": [
         {
-          "if": {
-            "properties": {
-              "action": {
-                "const": "showDialog"
-              }
-            }
-          },
-          "then": {
-            "required": ["widget"],
-            "properties": {
-              "widget": {
-                "$ref": "#/$defs/Widget",
-                "description": "Return an inline widget or specify a custom widget's name to use in the dialog."
-              },
-              "options": {
-                "type": "object",
-                "properties": {
-                  "minWidth": {
-                    "type": "integer",
-                    "minimum": 0
-                  },
-                  "maxWidth": {
-                    "type": "integer"
-                  },
-                  "minHeight": {
-                    "type": "integer",
-                    "minimum": 0
-                  },
-                  "maxHeight": {
-                    "type": "integer"
-                  },
-                  "horizontalOffset": {
-                    "description": "Offset the dialog's position horizontally, with -1.0 for the screen's left and 1.0 for the screen's right. (default is 0 for centering horizontally)",
-                    "type": "number",
-                    "minimum": -1.0,
-                    "maximum": 1.0
-                  },
-                  "verticalOffset": {
-                    "description": "Offset the dialog's position vertically, with -1.0 for the screen's top and 1.0 for the screen's bottom. (default is 0 for centering vertically)",
-                    "type": "number",
-                    "minimum": -1.0,
-                    "maximum": 1.0
-                  },
-                  "style": {
-                    "type": "string",
-                    "description": "Render the dialog with a default style. You can also specify 'none' and control your own styles in your widget.",
-                    "enum": ["default", "none"]
-                  }
-                }
-              },
-              "onDialogDismiss": {
-                "$ref": "#/$defs/Action-payload",
-                "description": "Execute an Action when the dialog is dismissed."
-              }
-            }
-          }
+          "$ref": "#/$defs/MenuBase"
         },
         {
-          "if": {
-            "properties": {
-              "action": {
-                "const": "stopTimer"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "Stop the timer with this ID if it is running"
-              }
+          "properties": {
+            "header": {
+              "$ref": "#/$defs/Widget",
+              "description": "The header widget for the menu"
+            },
+            "footer": {
+              "$ref": "#/$defs/Widget",
+              "description": "The footer widget for the menu"
             }
           }
+        }
+      ]
+    },
+    "MenuWithAdditionalStyles": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/MenuWithHeaderAndFooter"
         },
         {
-          "if": {
-            "properties": {
-              "action": {
-                "const": "startTimer"
-              }
-            }
-          },
-          "then": {
-            "required": ["onTimer"],
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "Give this timer an ID so it can be cancelled by a stopTimer action"
-              },
-              "onTimer": {
-                "$ref": "#/$defs/Action-payload",
-                "description": "Execute an Action every time the timer triggers"
-              },
-              "onTimerComplete": {
-                "$ref": "#/$defs/Action-payload",
-                "description": "Execute an Action when the timer has completed and will terminate"
-              },
-              "options": {
-                "type": "object",
-                "properties": {
-                  "isGlobal": {
-                    "type": "boolean",
-                    "description": "Marking this timer as global will ensure the timer, if repeating indefinitely, will continue to run even if the user navigates away from the screen, until explicitly stopped by the stopTimer action. Note that there can only ever be one global timer. Creating a new global timer will automatically cancel the previous global timer."
-                  },
-                  "startAfter": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "description": "Delay the timer's start by this number of seconds. If not specified and repeat is true, repeatInterval will be used. If none is specified, there will be no initial delay"
-                  },
-                  "repeat": {
-                    "type": "boolean",
-                    "description": "Whether the time should repeat and trigger at every repeatInterval seconds. This Timer will run continuously unless a maxNumberOfTimes is specified"
-                  },
-                  "repeatInterval": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "description": "Trigger the timer periodically at this repeatInterval (in seconds)"
-                  },
-                  "maxNumberOfTimes": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "description": "Set the max number of times the timer will triggers, if repeat is true"
-                  }
-                }
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "action": {
-                "const": "executeCode"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "body": {
-                "type": "string",
-                "description": "Define your code block here, starting with //@code"
-              },
-              "onComplete": {
-                "$ref": "#/$defs/Action-payload",
-                "description": "Execute another Action when the code body finishes executing"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "action": {
-                "const": "showToast"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "options": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "description": "Select a built-in toast or a your own custom toast widget",
-                    "enum": [ "success", "error", "warning", "info" ]
-                  },
-                  "message": {
-                    "type": "string",
-                    "description": "The toast message (required for non-custom toast type)"
-                  },
-                  "dismissible": {
-                    "type": "boolean",
-                    "description": "Whether to show a dismiss button (default is True)"
-                  },
-                  "position": {
-                    "type": "string",
-                    "enum": [ "top", "topLeft", "topRight", "center", "centerLeft", "centerRight", "bottom", "bottomLeft", "bottomRight" ]
-                  },
-                  "duration": {
-                    "type": "integer",
-                    "description": "The number of seconds before the toast is dismissed",
-                    "minimum": 1
-                  }
-                }
-              },
-              "styles": {
-                "type": "object",
-                "allOf": [
-                  {
-                    "$ref": "#/$defs/backgroundColor",
-                    "description": "Toast's background color"
-                  },
-                  {
-                    "properties": {
-                      "shadowColor": {
-                        "type": ["number", "string"],
-                        "description": "box shadow color starting with '0xFF' for full opacity"
-                      },
-                      "shadowRadius": {
-                        "type": "integer",
-                        "minimum": 0
-                      },
-                      "shadowOffset": {
-                        "type": "array",
-                        "items": {
-                          "type": "integer"
-                        }
-                      }
-                    }
-                  },
-                  {
-                    "$ref": "#/$defs/stylePadding"
-                  },
-                  {
-                    "$ref": "#/$defs/borderRadius"
-                  }
-                ]
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "action": {
-                "const": "getLocation"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "options": {
-                "type": "object",
-                "properties": {
-                  "recurring": {
-                    "type": "boolean",
-                    "description": "Whether to continuously get the device location on this screen. Note that a screen can only have one recurring location listener. Adding multiple recurring location listeners will cancel the previous one."
-                  },
-                  "recurringDistanceFilter": {
-                    "type": "integer",
-                    "minimum": 50,
-                    "description": "If recurring, the minimum distance (in meters) the device has moved before new location is returned. (default: 1000 meters, minimum: 50 meters)"
-                  }
-                }
-              },
-              "onLocationReceived": {
-                "$ref": "#/$defs/Action-payload",
-                "description": "Callback Action once we get the device location"
-              },
-              "onError": {
-                "$ref": "#/$defs/Action-payload",
-                "description": "Callback Action if we are unable to get the device location. Reason is available under 'reason' field"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "action": {
-                "const": "uploadFiles"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "Give the Uploader an ID allows you to bind to its result. e.g. ${filePicker.files...}, ${filePicker.body...}"
-              },
-              "uploadApi": {
-                "type": "string",
-                "description": "Enter the name of your defined API"
-              },
-              "onComplete": {
-                "$ref": "#/$defs/Action-payload",
-                "description": "Execute another Action upon successful upload of files"
-              },
-              "onError": {
-                "$ref": "#/$defs/Action-payload",
-                "description": "Execute an Action when uploader fails with error(s)"
-              },
-              "inputs": {
-                "type": "array",
-                "description": "Define the list of input names that upload API accepts"
-              },
-              "fieldName" : {
-                "type": "string",
-                "description": "Field name that your server is expecting (default files)"
-              },
-              "options": {
-                "type": "object",
-                "properties": {
-                  "allowMultiple": {
-                    "type": "boolean",
-                    "description" : "Allow users to pick multiple files (default False)"
-                  },
-                  "allowCompression": {
-                    "type": "boolean",
-                    "description" : "It will allow media to apply the default OS compression (default True)"
-                  },
-                  "allowedExtensions": {
-                    "type": "array",
-                    "description": "Allow files with specific extension e.g jpg, png, pdf"
-                  },
-                  "maxFileSize" : {
-                    "type": "integer",
-                    "description": "File size that is allowed (default 100 mb), If multiple is allow then sum of all files"
-                  },
-                  "overMaxFileSizeMessage" : {
-                    "type": "string",
-                    "description": "Error message to show when selected files size is above maxFileSize."
-                  }
+          "properties": {
+            "styles": {
+              "properties": {
+                "borderColor": {
+                  "$ref": "#/$defs/typeColors"
+                },
+                "borderWidth": {
+                  "type": "integer"
+                },
+                "itemDisplay": {
+                  "type": "string",
+                  "description": "How to render each navigation item",
+                  "enum": ["stacked", "sideBySide"]
+                },
+                "itemPadding": {
+                  "type": ["integer", "string"],
+                  "description": "Padding for each navigation item with CSS-style value"
+                },
+                "minWidth": {
+                  "type": "integer",
+                  "description": "The minimum width for the menu (default 200)"
                 }
               }
             }
@@ -1782,6 +1766,7 @@
         }
       ]
     },
+
     "Widgets": {
       "type": "array",
       "description": "List of widgets",
@@ -2080,114 +2065,28 @@
     "Menu": {
       "type": "object",
       "description": "Specify the navigation menu for this page",
-      "allOf": [
-        {
-          "properties": {
-            "display": {
-              "type": "string",
-              "description": "Specify the type of menu",
-              "oneOf": [
-                {
-                  "const": "bottomNavBar",
-                  "description": "Use the bottom navigation bar (default)"
-                },
-                {
-                  "const": "drawer",
-                  "description": "Put the menu behind a drawer icon on the header. The drawer icon will be positioned to the 'start' of the header (left for most languages, right for RTL languages)."
-                },
-                {
-                  "const": "endDrawer",
-                  "description": "Put the menu behind a drawer icon on the header. The drawer icon will be positioned to the 'end' of the header (right for most languages, left for RTL languages)."
-                },
-                {
-                  "const": "sidebar",
-                  "description": "Enable a fixed navigation menu to the 'start' of the screen (left for most languages, right for RTL languages). The menu may become a drawer menu on lower resolution."
-                },
-                {
-                  "const": "endSidebar",
-                  "description": "Enable a fixed navigation menu to the 'end' of the screen (right for most languages, left for RTL languages). The menu may become a drawer menu on lower resolution."
-                }
-              ]
-            },
-            "header": { "$ref": "#/$defs/Widget" },
-            "footer": { "$ref": "#/$defs/Widget" },
-            "styles": {
-              "type": "object",
-              "properties": {
-                "backgroundColor": {
-                  "$ref": "#/$defs/typeColors",
-                  "description": "Background color for our menu starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
-                }
-              }
-            },
-            "items": {
-              "type": "array",
-              "description": "List of menu items (minimum 2)",
-              "items": {
-                "type": "object",
-                "required": ["icon", "label", "page"],
-                "properties": {
-                  "icon": {
-                    "type": "string",
-                    "description": "Icon name from Material Icons or Font Awesome"
-                  },
-                  "iconLibrary": {
-                    "type": "string",
-                    "enum": ["default", "fontAwesome"]
-                  },
-                  "label": {
-                    "type": "string"
-                  },
-                  "page": {
-                    "type": "string",
-                    "description": "The new page to navigate to on click"
-                  },
-                  "selected": {
-                    "type": "boolean",
-                    "description": "Mark this item as selected. There should only be one selected item per page."
-                  }
-                }
-              }
-            }
-          }
+      "properties":{
+        "BottomNavBar": {
+          "description": "Use the bottom navigation bar",
+          "$ref": "#/$defs/MenuBase"
         },
-        {
-          "if": {
-            "properties": {
-              "display": {
-                "const": "sidebar"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "styles": {
-                "properties": {
-                  "borderColor": {
-                    "$ref": "#/$defs/typeColors"
-                  },
-                  "borderWidth": {
-                    "type": "integer"
-                  },
-                  "itemDisplay": {
-                    "type": "string",
-                    "description": "How to render each navigation item",
-                    "enum": ["stacked", "sideBySide"]
-                  },
-                  "itemPadding": {
-                    "type": ["integer", "string"],
-                    "description": "Padding for each navigation item with CSS-style value"
-                  },
-                  "minWidth": {
-                    "type": "integer",
-                    "description": "The minimum width for the menu (default 200)"
-                  }
-                }
-              }
-            }
-          }
+        "Drawer": {
+          "description": "Put the menu behind a drawer icon on the header. The drawer icon will be positioned to the 'start' of the header (left for most languages, right for RTL languages).",
+          "$ref": "#/$defs/MenuWithHeaderAndFooter"
+        },
+        "EndDrawer": {
+          "description": "Put the menu behind a drawer icon on the header. The drawer icon will be positioned to the 'end' of the header (right for most languages, left for RTL languages).",
+          "$ref": "#/$defs/MenuWithHeaderAndFooter"
+        },
+        "Sidebar": {
+          "description": "Enable a fixed navigation menu to the 'start' of the screen (left for most languages, right for RTL languages). The menu may become a drawer menu on lower resolution.",
+          "$ref": "#/$defs/MenuWithAdditionalStyles"
+        },
+        "EndSidebar": {
+          "description": "Enable a fixed navigation menu to the 'end' of the screen (right for most languages, left for RTL languages). The menu may become a drawer menu on lower resolution.",
+          "$ref": "#/$defs/MenuWithAdditionalStyles"
         }
-      ]
+      }
     },
     "TabBar-payload": {
       "type": "object",
