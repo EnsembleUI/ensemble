@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/view/page.dart';
+import 'package:ensemble/widget/ensemble_icon.dart';
 import 'package:ensemble/widget/text.dart';
 import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/layout/box_layout.dart' as ensemble_row;
@@ -22,13 +23,14 @@ void main() {
     expect(buttonFinder, findsOneWidget);
 
     ElevatedButton textButton = tester.firstWidget(buttonFinder);
-    expect((textButton.child as Text).data, 'hello world');
+    expect(((textButton.child as Row).children.first as Text).data, 'hello world');
   });
 
-  testWidgets("button with label widget", (tester) async {
+  testWidgets("button with starting icon", (tester) async {
     Button widget = Button();
-    YamlMap labelWidget = YamlMap.wrap({'Row': {'children': [{'Text': {'text': 'hello world' }}]}});
-    widget.setProperty('labelWidget', labelWidget);
+    YamlMap startingIcon = YamlMap.wrap({'Icon': {'icon': 'star'}});
+    widget.setProperty('label', 'hello world');
+    widget.setProperty('startingIcon', startingIcon);
 
     await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(widget));
     Finder buttonFinder = find.byType(ElevatedButton);
@@ -38,6 +40,8 @@ void main() {
     expect(buttonFinder, findsOneWidget);
 
     ElevatedButton textButton = tester.firstWidget(buttonFinder);
-    expect((((textButton.child as DataScopeWidget).child as ensemble_row.Row).controller.children?.first as EnsembleText).getProperty('text'), 'hello world');
+    List<Widget> children = (textButton.child as Row).children;
+    expect((children[0] as EnsembleIcon).controller.icon, 'star');
+    expect((children[1] as Text).data, 'hello world');
   });
 }

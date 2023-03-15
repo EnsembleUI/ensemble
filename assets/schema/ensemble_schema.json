@@ -819,9 +819,13 @@
           "type": "string",
           "description": "The button label"
         },
-        "labelWidget": {
-          "$ref": "#/$defs/Row-payload",
-          "description": "A row widget containing the button contents. For example, a Text and an Icon"
+        "startingIcon": {
+          "$ref": "#/$defs/Icon-payload",
+          "description": "Icon placed in front of the label, according to device text alignment"
+        },
+        "endingIcon": {
+          "$ref": "#/$defs/Icon-payload",
+          "description": "Icon placed behind the label, according to device text alignment"
         },
         "enabled": {
           "type": "boolean"
