@@ -214,7 +214,7 @@ class ExecuteCodeAction extends EnsembleAction {
         codeBlock: payload['body'].toString(),
         onComplete: EnsembleAction.fromYaml(
             payload['onComplete'], initiator: initiator),
-        codeBlockSpan: ViewUtil.optDefinition(payload['nodes']['body'])
+        codeBlockSpan: ViewUtil.optDefinition(payload.nodes['body'])
     );
   }
 }

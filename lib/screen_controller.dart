@@ -118,7 +118,7 @@ class ScreenController {
 
         HttpUtils.invokeApi(apiDefinition, dataContext)
             .then((response) => _onAPIComplete(context, dataContext, action, apiDefinition, Response(response), apiMap, scopeManager))
-            .onError((error, stackTrace) => processAPIError(context, dataContext, apiDefinition, error, apiMap, scopeManager));
+            .onError((error, stackTrace) => processAPIError(context, dataContext, action, apiDefinition, error, apiMap, scopeManager));
       } else {
         throw RuntimeError("Unable to find api definition for ${action.apiName}");
       }
@@ -486,13 +486,18 @@ class ScreenController {
   }
 
   /// executing the onError action
-  void processAPIError(BuildContext context, DataContext dataContext, YamlMap apiDefinition, Object? error, Map<String, YamlMap>? apiMap, ScopeManager? scopeManager) {
+  void processAPIError(BuildContext context, DataContext dataContext, InvokeAPIAction action, YamlMap apiDefinition, Object? error, Map<String, YamlMap>? apiMap, ScopeManager? scopeManager) {
     log("Error: $error");
 
     EnsembleAction? onErrorAction = EnsembleAction.fromYaml(apiDefinition['onError']);
     if (onErrorAction != null) {
       // probably want to include the error?
       _executeAction(context, dataContext, onErrorAction, apiMap, scopeManager);
+    }
+
+    // if our Action has onError, invoke that next
+    if (action.onError != null) {
+      _executeAction(context, dataContext, action.onError!, apiMap, scopeManager);
     }
 
     // silently fail if error handle is not defined? or should we alert user?
