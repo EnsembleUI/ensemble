@@ -8,7 +8,8 @@
 
     },
     "ViewGroup": {
-      "$ref": "#/$defs/Menu"
+      "$ref": "#/$defs/Menu",
+      "description": "Group multiple Views together and put them behind a menu."
     },
     "View": {
       "type": "object",
