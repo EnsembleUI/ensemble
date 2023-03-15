@@ -2784,7 +2784,7 @@
         "shadowStyle": {
           "type": "string",
           "description": "The blur style to apply on the shadow",
-          "oneOf": [
+          "anyOf": [
             {
               "const": "normal",
               "description": "Fuzzy inside and outside (default)."
