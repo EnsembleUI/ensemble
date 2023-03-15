@@ -814,11 +814,14 @@
     },
     "Button-payload": {
       "type": "object",
-      "required": ["label"],
       "properties": {
         "label": {
           "type": "string",
           "description": "The button label"
+        },
+        "labelWidget": {
+          "$ref": "#/$defs/Row-payload",
+          "description": "A row widget containing the button contents. For example, a Text and an Icon"
         },
         "enabled": {
           "type": "boolean"
