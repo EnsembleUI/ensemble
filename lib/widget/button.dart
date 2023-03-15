@@ -14,6 +14,7 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import '../framework/event.dart';
 import '../framework/scope.dart';
 import '../framework/view/page.dart';
+import 'ensemble_icon.dart';
 
 class Button extends StatefulWidget with Invokable, HasController<ButtonController, ButtonState> {
   static const type = 'Button';
@@ -31,7 +32,8 @@ class Button extends StatefulWidget with Invokable, HasController<ButtonControll
   Map<String, Function> setters() {
     return {
       'label': (value) => _controller.label = Utils.getString(value, fallback: ''),
-      'labelWidget': (value) => _controller.labelWidget = value,
+      'startingIcon': (value) => _controller.startingIcon = value,
+      'endingIcon': (value) => _controller.endingIcon = value,
       'onTap': (funcDefinition) => _controller.onTap = ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'submitForm': (value) => _controller.submitForm = Utils.optionalBool(value),
       'validateForm': (value) => _controller.validateForm = Utils.optionalBool(value),
@@ -78,7 +80,8 @@ class ButtonController extends BoxController {
   int? buttonWidth;
   int? buttonHeight;
 
-  dynamic labelWidget;
+  dynamic startingIcon;
+  dynamic endingIcon;
 }
 
 
@@ -89,25 +92,37 @@ class ButtonState extends WidgetState<Button> {
     bool isOutlineButton = widget._controller.outline ?? false;
 
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
-    Widget label;
-    if (scopeManager != null && widget._controller.labelWidget != null) {
-      label = scopeManager.buildWidgetWithScopeFromDefinition(widget._controller.labelWidget);
-    } else {
-      label = Text(
-          Utils.translate(widget._controller.label ?? '', context));
+    Widget? startingIcon;
+    Widget? endingIcon;
+    if (widget._controller.startingIcon != null) {
+      startingIcon = scopeManager?.buildWidgetFromDefinition(
+          widget._controller.startingIcon);
     }
+    if (widget._controller.endingIcon != null) {
+      endingIcon = scopeManager?.buildWidgetFromDefinition(widget._controller.endingIcon);
+    }
+    List<Widget> labelParts = [Text(Utils.translate(widget._controller.label ?? '', context))];
+    if (startingIcon != null) {
+      labelParts.insertAll(0, [startingIcon]);
+    }
+    if (endingIcon != null) {
+      labelParts.addAll([endingIcon]);
+    }
+    Widget labelLayout = Row(
+        mainAxisSize: MainAxisSize.min,
+        children: labelParts);
 
     Widget? rtn;
     if (isOutlineButton) {
       rtn = TextButton(
         onPressed: isEnabled() ? () => onPressed(context) : null,
         style: getButtonStyle(context, isOutlineButton),
-        child: label);
+        child: labelLayout);
     } else {
       rtn = ElevatedButton(
         onPressed: isEnabled() ? () => onPressed(context) : null,
         style: getButtonStyle(context, isOutlineButton),
-        child: label);
+        child: labelLayout);
     }
 
     // add margin if specified
