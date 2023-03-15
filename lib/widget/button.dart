@@ -12,6 +12,8 @@ import 'package:ensemble/layout/form.dart' as ensembleForm;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 
 import '../framework/event.dart';
+import '../framework/scope.dart';
+import '../framework/view/page.dart';
 
 class Button extends StatefulWidget with Invokable, HasController<ButtonController, ButtonState> {
   static const type = 'Button';
@@ -29,6 +31,7 @@ class Button extends StatefulWidget with Invokable, HasController<ButtonControll
   Map<String, Function> setters() {
     return {
       'label': (value) => _controller.label = Utils.getString(value, fallback: ''),
+      'labelWidget': (value) => _controller.labelWidget = value,
       'onTap': (funcDefinition) => _controller.onTap = ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'submitForm': (value) => _controller.submitForm = Utils.optionalBool(value),
       'validateForm': (value) => _controller.validateForm = Utils.optionalBool(value),
@@ -74,6 +77,8 @@ class ButtonController extends BoxController {
   FontWeight? fontWeight;
   int? buttonWidth;
   int? buttonHeight;
+
+  dynamic labelWidget;
 }
 
 
@@ -82,8 +87,15 @@ class ButtonState extends WidgetState<Button> {
   @override
   Widget buildWidget(BuildContext context) {
     bool isOutlineButton = widget._controller.outline ?? false;
-    
-    Text label = Text(Utils.translate(widget._controller.label ?? '', context));
+
+    ScopeManager? scopeManager = DataScopeWidget.getScope(context);
+    Widget label;
+    if (scopeManager != null && widget._controller.labelWidget != null) {
+      label = scopeManager.buildWidgetWithScopeFromDefinition(widget._controller.labelWidget);
+    } else {
+      label = Text(
+          Utils.translate(widget._controller.label ?? '', context));
+    }
 
     Widget? rtn;
     if (isOutlineButton) {
