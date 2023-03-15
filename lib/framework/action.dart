@@ -375,65 +375,69 @@ abstract class EnsembleAction {
     if (action is YamlMap) {
 
       ActionType? actionType = ActionType.values.from(action.keys.first);
+      YamlMap? payload = action[action.keys.first];
       if (actionType != null) {
-        YamlMap? payload = action[action.keys.first];
-
-        if (actionType == ActionType.navigateScreen) {
-          return NavigateScreenAction.fromYaml(
-              initiator: initiator, payload: payload);
-        } else if (actionType == ActionType.navigateModalScreen) {
-          return NavigateModalScreenAction.fromYaml(
-              initiator: initiator, payload: payload);
-        } else if (actionType == ActionType.navigateBack) {
-          return NavigateBack();
-        } else if (actionType == ActionType.invokeAPI) {
-          return InvokeAPIAction.fromYaml(
-              initiator: initiator, payload: payload);
-        } else if (actionType == ActionType.openCamera) {
-          return ShowCameraAction(
-            initiator: initiator, options: Utils.getMap(payload?['options']));
-        } else if (actionType == ActionType.showDialog) {
-          return ShowDialogAction.fromYaml(
-              initiator: initiator, payload: payload);
-        } else if (actionType == ActionType.closeAllDialogs) {
-          return CloseAllDialogsAction();
-        } else if (actionType == ActionType.startTimer) {
-          return StartTimerAction.fromYaml(
-              initiator: initiator, payload: payload);
-        } else if (actionType == ActionType.stopTimer) {
-          return StopTimerAction.fromYaml(payload: payload);
-        } else if (actionType == ActionType.showToast) {
-          return ShowToastAction.fromYaml(payload: payload);
-        } else if (actionType == ActionType.executeCode) {
-          return ExecuteCodeAction.fromYaml(
-            initiator: initiator, payload: payload);
-        } else if (actionType == ActionType.getLocation) {
-          return GetLocationAction(
-              onLocationReceived: EnsembleAction.fromYaml(payload?['onLocationReceived']),
-              onError: EnsembleAction.fromYaml(payload?['onError']),
-              recurring: Utils.optionalBool(payload?['options']?['recurring']),
-              recurringDistanceFilter: Utils.optionalInt(payload?['options']?['recurringDistanceFilter'], min: 50)
-          );
-        } else if (actionType == ActionType.uploadFiles) {
-          return FileUploadAction.fromYaml(payload: payload);
-        } else if (actionType == ActionType.openUrl) {
-          return OpenUrlAction.fromYaml(payload: payload);
-        }
-        throw LanguageError("Invalid action.", recovery: "Make sure to use one of Ensemble-provided actions.");
+        return fromActionType(actionType, initiator: initiator, payload: payload);
       }
-
-
     }
-    /// short-hand //@code string is same as ExecuteCodeAction
     else if (action is String) {
-      return ExecuteCodeAction(
-          initiator: initiator,
-          codeBlock: action,
-          codeBlockSpan: ViewUtil.optDefinition(null));
+      /// some actions can be shorthanded by their key, e.g. navigateBack, closeAllDialogs
+      ActionType? actionType = ActionType.values.from(action);
+      if (actionType != null) {
+        return fromActionType(actionType, initiator: initiator);
+      } else {
+        /// short-hand //@code string is same as ExecuteCodeAction
+        return ExecuteCodeAction(
+            initiator: initiator,
+            codeBlock: action,
+            codeBlockSpan: ViewUtil.optDefinition(null));
+      }
     }
     return null;
+  }
 
-
-
+  static EnsembleAction? fromActionType(ActionType actionType, {Invokable? initiator, YamlMap? payload}) {
+    if (actionType == ActionType.navigateScreen) {
+      return NavigateScreenAction.fromYaml(
+          initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.navigateModalScreen) {
+      return NavigateModalScreenAction.fromYaml(
+          initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.navigateBack) {
+      return NavigateBack();
+    } else if (actionType == ActionType.invokeAPI) {
+      return InvokeAPIAction.fromYaml(
+          initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.openCamera) {
+      return ShowCameraAction(
+          initiator: initiator, options: Utils.getMap(payload?['options']));
+    } else if (actionType == ActionType.showDialog) {
+      return ShowDialogAction.fromYaml(
+          initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.closeAllDialogs) {
+      return CloseAllDialogsAction();
+    } else if (actionType == ActionType.startTimer) {
+      return StartTimerAction.fromYaml(
+          initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.stopTimer) {
+      return StopTimerAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.showToast) {
+      return ShowToastAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.executeCode) {
+      return ExecuteCodeAction.fromYaml(
+          initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.getLocation) {
+      return GetLocationAction(
+          onLocationReceived: EnsembleAction.fromYaml(payload?['onLocationReceived']),
+          onError: EnsembleAction.fromYaml(payload?['onError']),
+          recurring: Utils.optionalBool(payload?['options']?['recurring']),
+          recurringDistanceFilter: Utils.optionalInt(payload?['options']?['recurringDistanceFilter'], min: 50)
+      );
+    } else if (actionType == ActionType.uploadFiles) {
+      return FileUploadAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.openUrl) {
+      return OpenUrlAction.fromYaml(payload: payload);
+    }
+    throw LanguageError("Invalid action.", recovery: "Make sure to use one of Ensemble-provided actions.");
   }
 }
