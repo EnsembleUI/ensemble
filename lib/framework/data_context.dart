@@ -20,6 +20,7 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/errors.dart';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
+import 'package:mime/mime.dart';
 import 'package:source_span/source_span.dart';
 import 'package:yaml/yaml.dart';
 
@@ -682,6 +683,7 @@ class File {
       'size': size,
       'path': path,
       'bytes': bytes,
+      'mediaType': getMediaType(),
     };
   }
 
@@ -689,4 +691,28 @@ class File {
     if (path == null) return null;
     return io.File(path!);
   }
+
+  MediaType getMediaType() {
+    if (path == null) return MediaType.unknown;
+    String? mimeType = lookupMimeType(path!);
+    if (mimeType == null) {
+      return MediaType.unknown;
+    }
+    if (mimeType.startsWith('image/')) {
+      return MediaType.image;
+    } else if (mimeType.startsWith('video/')) {
+      return MediaType.video;
+    } else if (mimeType.startsWith('audio/')) {
+      return MediaType.audio;
+    } else {
+      return MediaType.unknown;
+    }
+  }
 } 
+
+enum MediaType {
+  image,
+  video,
+  audio,
+  unknown,
+}

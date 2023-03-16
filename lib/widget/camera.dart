@@ -1,19 +1,22 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:camera/camera.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/camera_manager.dart';
 import 'package:ensemble/framework/widget/icon.dart' as iconframework;
+import 'package:ensemble/framework/widget/toast.dart';
 import 'package:ensemble/framework/widget/widget.dart';
-import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:sensors_plus/sensors_plus.dart';
 import 'package:video_player/video_player.dart';
 
 import '../framework/action.dart';
@@ -74,6 +77,18 @@ class Camera extends StatefulWidget
           _controller.cameraRotateIcon = Utils.getIcon(value),
       'onComplete': (value) =>
           _controller.onComplete = Utils.getAction(value, initiator: this),
+      'assistAngle': (value) =>
+          _controller.assistAngle = Utils.optionalBool(value),
+      'assistSpeed': (value) =>
+          _controller.assistSpeed = Utils.optionalBool(value),
+      'maxAngle': (value) =>
+          _controller.maxAngle = Utils.getDouble(value, fallback: 180),
+      'minAngle': (value) =>
+          _controller.minAngle = Utils.getDouble(value, fallback: -180),
+      'assistAngleMessage': (value) =>
+          _controller.assistAngleMessage = Utils.optionalString(value),
+      'assistSpeedMessage': (value) =>
+          _controller.assistSpeedMessage = Utils.optionalString(value)
     };
   }
 }
@@ -88,10 +103,16 @@ class MyCameraController extends WidgetController {
   bool preview = false;
   String? maxCountMessage;
   String? permissionDeniedMessage;
+  double minAngle = -180;
+  double maxAngle = 180;
+  double maxSpeed = 30; // Speed in km/hr
   String? nextButtonLabel;
   String? accessButtonLabel;
   String? galleryButtonLabel;
-
+  bool? assistAngle;
+  bool? assistSpeed;
+  String? assistAngleMessage;
+  String? assistSpeedMessage;
   IconModel? imagePickerIcon;
   IconModel? cameraRotateIcon;
   EnsembleAction? onComplete;
@@ -119,19 +140,17 @@ class MyCameraController extends WidgetController {
   }
 }
 
-class CameraState extends WidgetState<Camera>
-    with WidgetsBindingObserver {
+class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
   final ImagePicker imagePicker = ImagePicker();
   List<CameraDescription> cameras = [];
   late PageController pageController;
   File? currentFile;
 
   bool isFrontCamera = false;
-  bool isImagePreview = false;
+  bool showPreviewPage = false;
   bool isRecording = false;
-  bool isPermission = false;
-  bool isLoading = false;
-  String errorString = '';
+  bool hasPermission = false;
+  bool isLoading = true;
   int currentModeIndex = 0;
 
   List<CameraMode> modes = [];
@@ -144,55 +163,93 @@ class CameraState extends WidgetState<Camera>
   Timer? timer;
 
   bool _isVideoCameraSelected = false;
-  FocusState _focusState = FocusState.none;
+  final ValueNotifier<FocusState> _focusState = ValueNotifier(FocusState.none);
+
   Offset? _offset;
-  
   bool isFullScreen = true;
+
+  ValueNotifier<double?> phoneAngle = ValueNotifier(null);
+  ValueNotifier<double?> phoneSpeed = ValueNotifier(null);
+  StreamSubscription? accelerometerSub;
+  StreamSubscription? positionSub;
+  final previewPageController = PageController();
+
+  // final _flashPageController = PageController();
+  FlashMode _flashMode = FlashMode.off;
+  final flashModes = [FlashMode.off, FlashMode.auto, FlashMode.always];
+  final flashIcons = [Icons.flash_off, Icons.flash_auto, Icons.flash_on];
+
+  GeolocatorPlatform locator = GeolocatorPlatform.instance;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    getMaxSelectedMessage();
-    initCamera().then((_) {
-      ///initialize camera and choose the back camera as the initial camera in use.
+
+    availableCameras().then((availableCameras) {
+      cameras = availableCameras;
+      setState(() {
+        isLoading = false;
+      });
       setCameraInit();
     }).catchError((Object e) {
       if (e is CameraException) {
         switch (e.code) {
           case 'CameraAccessDenied':
+            hasPermission = false;
             break;
           default:
             break;
         }
       }
     });
-    setCameraMode();
-    pageController = PageController(viewportFraction: 0.25, initialPage: currentModeIndex);
-    setState(() {});
-  }
 
-  Future initCamera() async {
-    cameras = await availableCameras();
-    setState(() {});
-  }
-
-  void getMaxSelectedMessage() {
-    if (widget._controller.mode == CameraMode.photo) {
-      errorString =
-          'Maximum ${widget._controller.maxCount} images may be selected';
-    } else if (widget._controller.mode == CameraMode.video) {
-      errorString =
-          'Maximum ${widget._controller.maxCount} videos may be selected';
-    } else {
-      errorString =
-          'Maximum ${widget._controller.maxCount} images and videos may be selected';
+    if (widget._controller.assistAngle ?? false) {
+      accelerometerSub = accelerometerEvents.listen((AccelerometerEvent event) {
+        double radians = math.atan2(event.y, event.z);
+        phoneAngle.value = radians * 180 / math.pi;
+      });
     }
+
+    if (widget._controller.assistSpeed ?? false) {
+      geoLocatorHandler();
+    }
+
+    setCameraMode();
+    pageController =
+        PageController(viewportFraction: 0.25, initialPage: currentModeIndex);
     setState(() {});
   }
 
-  /// chooses the camera to use, 
-  /// where the front camera has `index` = 1, 
+  Future<void> geoLocatorHandler() async {
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.unableToDetermine) {
+      permission = await GeolocatorPlatform.instance.requestPermission();
+    }
+
+    if (permission == LocationPermission.always ||
+        permission == LocationPermission.whileInUse) {
+      positionSub = locator
+          .getPositionStream(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.high,
+            ),
+          )
+          .listen(
+            (Position position) => _onAccelerate(position),
+          );
+    }
+  }
+
+  Future<void> _onAccelerate(Position previousPosition) async {
+    final updatedPosition = await locator.getCurrentPosition();
+    final _velocity = (previousPosition.speed + updatedPosition.speed) / 2;
+    phoneSpeed.value = _velocity * 18 / 5;
+  }
+
+  /// chooses the camera to use,
+  /// where the front camera has `index` = 1,
   /// and the rear camera has `index` = 0
   void setCamera(
       {bool isNotDefine = false, CameraDescription? cameraDescription}) {
@@ -251,12 +308,15 @@ class CameraState extends WidgetState<Camera>
   void dispose() {
     widget._controller.cameraController?.dispose();
     WidgetsBinding.instance.removeObserver(this);
+    accelerometerSub?.cancel();
+    positionSub?.cancel();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    final CameraController? cameraController = widget._controller.cameraController;
+    final CameraController? cameraController =
+        widget._controller.cameraController;
 
     // App state changed before we got the chance to initialize.
     if (cameraController == null || !cameraController.value.isInitialized) {
@@ -273,8 +333,9 @@ class CameraState extends WidgetState<Camera>
 
   @override
   Widget buildWidget(BuildContext context) {
-    if (isPermission || cameras.isEmpty) {
-      return isImagePreview ? fullImagePreview() : permissionDeniedView();
+    if (isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (hasPermission) {
+      return showPreviewPage ? fullImagePreview() : permissionDeniedView();
     }
     if (widget._controller.cameraController == null ||
         !widget._controller.cameraController!.value.isInitialized) {
@@ -283,15 +344,15 @@ class CameraState extends WidgetState<Camera>
     return SafeArea(
       child: WillPopScope(
         onWillPop: () async {
-          if (isImagePreview) {
+          if (showPreviewPage) {
             if (widget._controller.cameraController == null) {
               setState(() {
-                isImagePreview = false;
+                showPreviewPage = false;
               });
             } else {
               setState(() {
                 widget._controller.cameraController!.resumePreview();
-                isImagePreview = false;
+                showPreviewPage = false;
               });
             }
           } else {
@@ -300,7 +361,7 @@ class CameraState extends WidgetState<Camera>
           return false;
         },
         child: Scaffold(
-          body: isImagePreview ? fullImagePreview() : cameraView(),
+          body: showPreviewPage ? fullImagePreview() : cameraView(),
         ),
       ),
     );
@@ -309,45 +370,106 @@ class CameraState extends WidgetState<Camera>
   Widget cameraView() {
     return Stack(
       children: [
-        SizedBox(
-          height: MediaQuery.of(context).size.height,
-          width: MediaQuery.of(context).size.width,
+        AspectRatio(
+          aspectRatio: MediaQuery.of(context).size.width / MediaQuery.of(context).size.height,
           child: CameraPreview(
             widget._controller.cameraController!,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return GestureDetector(
-                  onTapUp: (details) => onViewFinderTap(details, constraints),
-                  onScaleUpdate: (details) async {
-                    final _zoom = details.scale.clamp(1.0, 2.0);
-                    widget._controller.cameraController?.setZoomLevel(_zoom);
-                  },
-                );
-              }
-            ),
+            child: LayoutBuilder(builder: (context, constraints) {
+              return GestureDetector(
+                onTapUp: kIsWeb ? null : (details) => onViewFinderTap(details, constraints),
+                onScaleUpdate: (details) async {
+                  final _zoom = details.scale.clamp(1.0, 2.0);
+                  widget._controller.cameraController?.setZoomLevel(_zoom);
+                },
+              );
+            }),
           ),
         ),
         imagePreviewButton(),
         Align(
-          alignment: Alignment.bottomCenter,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              widget._controller.mediaList.isEmpty ? const SizedBox.shrink():  mediaThumbnail(),
-              cameraButton(),
-            ],
-          )
+            alignment: Alignment.bottomCenter,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                widget._controller.mediaList.isEmpty
+                    ? const SizedBox.shrink()
+                    : mediaThumbnail(),
+                cameraButton(),
+              ],
+            )),
+        ValueListenableBuilder(
+          valueListenable: _focusState,
+          builder: (context, state, child) {
+            if (state == FocusState.success) {
+              return Positioned(
+                left: _offset!.dx - 24,
+                top: _offset!.dy - 24,
+                child:
+                    Icon(Icons.filter_tilt_shift, color: iconColor, size: 48),
+              );
+            }
+            return const SizedBox.shrink();
+          },
         ),
-        if (_focusState == FocusState.success)
-          Positioned(
-            left: _offset!.dx - 24,
-            top: _offset!.dy - 24,
-            child: Icon(Icons.filter_tilt_shift, color: iconColor, size: 48),
+        if (modes.elementAt(currentModeIndex) == CameraMode.photo)
+          Align(
+            alignment: const Alignment(0.0, -0.8),
+            child: ValueListenableBuilder<double?>(
+              valueListenable: phoneAngle,
+              builder: (context, angle, child) {
+                if (angle != null &&
+                    (angle < widget._controller.minAngle ||
+                        angle > widget._controller.maxAngle)) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: iconColor),
+                        color: Colors.black,
+                      ),
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(
+                        getAssistAngleMessage(),
+                        style: TextStyle(color: iconColor, fontSize: 20),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+        if (modes.elementAt(currentModeIndex) == CameraMode.video)
+          Align(
+            alignment: const Alignment(0.0, -0.8),
+            child: ValueListenableBuilder<double?>(
+              valueListenable: phoneSpeed,
+              builder: (context, speed, child) {
+                if (speed != null && speed > widget._controller.maxSpeed) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: iconColor),
+                        color: Colors.black,
+                      ),
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(
+                        getAssistSpeedMessage(),
+                        style: TextStyle(color: iconColor, fontSize: 20),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
           )
       ],
     );
   }
-  
 
   Widget fullImagePreview() {
     return GestureDetector(
@@ -360,46 +482,72 @@ class CameraState extends WidgetState<Camera>
         height: MediaQuery.of(context).size.height,
         child: Stack(
           children: [
-            Center(
-              child: ['mp4'].contains(currentFile?.path?.split('.').last) 
-                    ? InlineVideoPlayer(file: currentFile!,)
-                    : Image.file(currentFile!.toFile()!),
-            ),
-            isFullScreen ? appbar(
-              backArrowAction: () {
-                if (widget._controller.cameraController != null) {
-                  widget._controller.cameraController!.resumePreview();
-                } 
+            PageView.builder(
+              controller: previewPageController,
+              itemCount: widget._controller.mediaList.length,
+              onPageChanged: (index) {
                 setState(() {
-                  isImagePreview = false;
+                  final reverseIndex =
+                      widget._controller.mediaList.length - index - 1;
+                  currentFile = widget._controller.mediaList[reverseIndex];
                 });
               },
-              deleteButtonAction: deleteImages,
-            ) : const SizedBox.shrink(),
-            isFullScreen ? Align(
-              alignment: Alignment.bottomCenter,
-              child: Container(
-                color: Colors.black.withOpacity(0.4),
-                child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      mediaThumbnail(isBorderView: true),
-                      const SizedBox(height: 12),
-                      ElevatedButton(
-                        onPressed: () {
-                          if (widget._controller.onComplete != null) {
-                            ScreenController().executeAction(
-                                context, widget._controller.onComplete!,
-                                event: EnsembleEvent(widget));
-                          } 
-                          Navigator.pop(context, widget._controller.mediaList);
-                        },
-                        child: const Text('Done'),
+              itemBuilder: (BuildContext context, int index) {
+                final reverseIndex =
+                    widget._controller.mediaList.length - index - 1;
+                final file = widget._controller.mediaList[reverseIndex];
+
+                return Center(
+                  child: file.getMediaType() == MediaType.video
+                      ? InlineVideoPlayer(
+                          file: file,
+                        )
+                      : kIsWeb 
+                          ? Image.network(file.path!)
+                          : Image.file(file.toFile()!),
+                );
+              },
+            ),
+            isFullScreen
+                ? appbar(
+                    backArrowAction: () {
+                      if (widget._controller.cameraController != null) {
+                        widget._controller.cameraController!.resumePreview();
+                      }
+                      setState(() {
+                        showPreviewPage = false;
+                      });
+                    },
+                    deleteButtonAction: deleteImages,
+                  )
+                : const SizedBox.shrink(),
+            isFullScreen
+                ? Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Container(
+                      color: Colors.black.withOpacity(0.4),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          mediaThumbnail(isBorderView: true),
+                          const SizedBox(height: 12),
+                          ElevatedButton(
+                            onPressed: () {
+                              if (widget._controller.onComplete != null) {
+                                ScreenController().executeAction(
+                                    context, widget._controller.onComplete!,
+                                    event: EnsembleEvent(widget));
+                              }
+                              Navigator.pop(
+                                  context, widget._controller.mediaList);
+                            },
+                            child: const Text('Done'),
+                          ),
+                        ],
                       ),
-                    ],
-                ),
-              ),
-            ) : const SizedBox.shrink(),
+                    ),
+                  )
+                : const SizedBox.shrink(),
           ],
         ),
       ),
@@ -418,10 +566,10 @@ class CameraState extends WidgetState<Camera>
                     'To capture photos and videos, allow access to your camera.'),
           ),
           ElevatedButton(
-              child: Text(widget._controller.accessButtonLabel ??
-                  Utils.translateWithFallback(
-                      'ensemble.input.accessButtonLabel', 'Allow access')),
-              onPressed: handlPermission,
+            child: Text(widget._controller.accessButtonLabel ??
+                Utils.translateWithFallback(
+                    'ensemble.input.accessButtonLabel', 'Allow access')),
+            onPressed: handlPermission,
           ),
           const Spacer(),
           mediaThumbnail(),
@@ -454,17 +602,22 @@ class CameraState extends WidgetState<Camera>
               onTap: () {
                 setState(() {
                   currentFile = file;
-                  isImagePreview = true;
+                  showPreviewPage = true;
                 });
+                Future.delayed(
+                  const Duration(milliseconds: 100),
+                  () => previewPageController.animateToPage(index,
+                      duration: const Duration(milliseconds: 500),
+                      curve: Curves.ease),
+                );
               },
               child: Container(
                 width: 72.0,
                 height: 82.0,
                 decoration: BoxDecoration(
-                  color:
-                      file.path?.split('.').contains('mp4') ?? false
-                          ? Colors.black.withOpacity(0.3)
-                          : Colors.transparent,
+                  color: file.getMediaType() == MediaType.video
+                      ? Colors.black.withOpacity(0.3)
+                      : Colors.transparent,
                   border: isBorderView
                       ? currentFile!.path ==
                               widget._controller.mediaList[reverseIndex].path
@@ -477,13 +630,14 @@ class CameraState extends WidgetState<Camera>
                     borderRadius: BorderRadius.all(isBorderView
                         ? const Radius.circular(0.0)
                         : const Radius.circular(5.0)),
-                    child: file.path?.split('.').contains('mp4') ?? false
-                      ?  const Icon(
-                        Icons.play_arrow,
-                        color: Colors.black54,
-                      )
-                      : Image.file(file.toFile()!, fit: BoxFit.cover)
-                    ),
+                    child: file.getMediaType() == MediaType.video
+                        ? const Icon(
+                            Icons.play_arrow,
+                            color: Colors.black54,
+                          )
+                        : kIsWeb 
+                            ? Image.network(file.path!, fit: BoxFit.contain) 
+                            : Image.file(file.toFile()!, fit: BoxFit.cover)),
               ),
             ),
           );
@@ -501,25 +655,23 @@ class CameraState extends WidgetState<Camera>
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           buttons(
-            onPressed: backArrowAction,
-            icon: Icon(
-              Icons.arrow_back,
-              color: Colors.black,
-              size: iconSize,
-            ),
-            backgroundColor: Colors.white,
-            shadowColor: Colors.black54
-          ),
+              onPressed: backArrowAction,
+              icon: Icon(
+                Icons.arrow_back,
+                color: Colors.black,
+                size: iconSize,
+              ),
+              backgroundColor: Colors.white,
+              shadowColor: Colors.black54),
           buttons(
-            onPressed: deleteButtonAction,
-            icon: Icon(
-              Icons.delete_sharp,
-              color: iconColor,
-              size: iconSize,
-            ),
-            backgroundColor: Colors.white,
-            shadowColor: Colors.black54
-          ),
+              onPressed: deleteButtonAction,
+              icon: Icon(
+                Icons.delete_sharp,
+                color: iconColor,
+                size: iconSize,
+              ),
+              backgroundColor: Colors.white,
+              shadowColor: Colors.black54),
         ],
       ),
     );
@@ -534,7 +686,9 @@ class CameraState extends WidgetState<Camera>
           mainAxisSize: MainAxisSize.min,
           children: [
             silderView(),
-            const SizedBox(height: 12,),
+            const SizedBox(
+              height: 12,
+            ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -549,32 +703,54 @@ class CameraState extends WidgetState<Camera>
                         onPressed: selectImage,
                       )
                     : const SizedBox(width: 60),
-              InkWell(
-                  onTap: modes[currentModeIndex] == CameraMode.video
-                      ? () async {
-                          if (isRecording) {
-                            XFile? rawVideo = await stopVideoRecording();
-                            if (rawVideo == null) return;
-                            final bytes = kIsWeb ? await rawVideo.readAsBytes() : null;
-                            final fileSize = await rawVideo.length();
-                            File videoFile = File(rawVideo.name,rawVideo.path.split('.').last,fileSize,  rawVideo.path, bytes );
 
-                            widget._controller.mediaList.add(videoFile);
+                // SizedBox(
+                //   height: 52,
+                //   width: 52,
+                //   child: PageView.builder(
+                //     scrollDirection: Axis.vertical,
+                //     physics: const NeverScrollableScrollPhysics(),
+                //     controller: _flashPageController,
+                //     itemCount: flashIcons.length,
+                //     itemBuilder: (context, index) {
+                //       return IconButton(
+                //         onPressed: () {
+                //           final page = (index + 1) % flashIcons.length;
+                //           _flashPageController.animateToPage(page, duration: const Duration(milliseconds: 400), curve: Curves.ease);
+                //           widget._controller.cameraController?.setFlashMode(flashModes.elementAt(page));
+                //         },
+                //         icon: Icon(flashIcons.elementAt(index)),
+                //         color: Colors.white
 
-                          } else {
-                            await startVideoRecording();
-                          }
-                        }
-                      : () async {
-                          XFile? rawImage = await takePicture();
-                          if (rawImage == null) return;
-                            final bytes = kIsWeb ? await rawImage.readAsBytes() : null;
-                            final fileSize = await rawImage.length();
-                            File imageFile = File(rawImage.name,rawImage.path.split('.').last,fileSize,  rawImage.path, bytes );
+                //       );
+                //     },
+                //   ),
+                // ),
+                InkWell(
+                  onTap: () async {
+                    if (widget._controller.maxCount != null && (widget._controller.mediaList.length + 1) > widget._controller.maxCount! ) {
+                      final errorMessage = widget._controller.maxCountMessage ??
+                          Utils.translateWithFallback(
+                              'ensemble.input.maxCountMessage', 'Maximum ${widget._controller.maxCount} files can be selected');
+                      ToastController().showToast(context, ShowToastAction(type: ToastType.error, message: errorMessage, position: 'top'), null);
+                      return;
+                    }
+                    if (modes[currentModeIndex] == CameraMode.video) {
+                      if (isRecording) {
+                        File? rawVideo = await stopVideoRecording();
+                        if (rawVideo == null) return;
+                        widget._controller.mediaList.add(rawVideo);
+                      } else {
+                        await startVideoRecording();
+                      }
+                    } else {
+                      File? rawImage = await takePicture();
+                      if (rawImage == null) return;
 
-                          widget._controller.mediaList.add(imageFile);
-                          setState(() {});
-                        },
+                      widget._controller.mediaList.add(rawImage);
+                      setState(() {});
+                    }
+                  },
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
@@ -587,9 +763,8 @@ class CameraState extends WidgetState<Camera>
                       ),
                       Icon(
                         Icons.circle,
-                        color: _isVideoCameraSelected
-                            ? Colors.red
-                            : Colors.white,
+                        color:
+                            _isVideoCameraSelected ? Colors.red : Colors.white,
                         size: 65,
                       ),
                       _isVideoCameraSelected && isRecording
@@ -602,7 +777,7 @@ class CameraState extends WidgetState<Camera>
                     ],
                   ),
                 ),
-                
+
                 buttons(
                     icon: widget._controller.cameraRotateIcon != null
                         ? iconframework.Icon.fromModel(
@@ -618,14 +793,12 @@ class CameraState extends WidgetState<Camera>
 
                       if (isFrontCamera) {
                         final back = cameras.firstWhere((camera) =>
-                            camera.lensDirection ==
-                            CameraLensDirection.back);
+                            camera.lensDirection == CameraLensDirection.back);
                         setCamera(cameraDescription: back);
                         isFrontCamera = false;
                       } else {
                         final front = cameras.firstWhere((camera) =>
-                            camera.lensDirection ==
-                            CameraLensDirection.front);
+                            camera.lensDirection == CameraLensDirection.front);
                         setCamera(cameraDescription: front);
                         isFrontCamera = true;
                       }
@@ -656,18 +829,22 @@ class CameraState extends WidgetState<Camera>
         itemBuilder: ((context, index) {
           return AnimatedOpacity(
             duration: const Duration(milliseconds: 300),
-            opacity: index == currentModeIndex || widget._controller.mode == CameraMode.video
+            opacity: index == currentModeIndex ||
+                    widget._controller.mode == CameraMode.video
                 ? 1
                 : 0.5,
             child: Center(
               child: InkWell(
                 onTap: () {
                   if (isRecording) return;
-                  _isVideoCameraSelected = modes.elementAt(index) == CameraMode.video;
+                  _isVideoCameraSelected =
+                      modes.elementAt(index) == CameraMode.video;
                   setState(() {
                     currentModeIndex = index;
                   });
-                  pageController.animateToPage(index, duration: const Duration(milliseconds: 300), curve: Curves.easeIn);
+                  pageController.animateToPage(index,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeIn);
                 },
                 child: Text(
                   modes[index].name.toUpperCase(),
@@ -703,25 +880,23 @@ class CameraState extends WidgetState<Camera>
               Navigator.pop(context, widget._controller.mediaList);
             },
           ),
-          
           isRecording ? timerWidget(seconds) : const SizedBox(),
-          
           widget._controller.mediaList.isNotEmpty
               ? nextButton(
                   buttontitle: widget._controller.preview
                       ? buttonLabel('Next')
                       : buttonLabel('Done'),
-                  imagelength:
-                      widget._controller.mediaList.length.toString(),
+                  imagelength: widget._controller.mediaList.length.toString(),
                   onTap: () {
                     if (widget._controller.preview) {
                       if (widget._controller.cameraController != null) {
                         widget._controller.cameraController!.pausePreview();
-                      } 
-                        setState(() {
-                          isImagePreview = true;
-                          currentFile = widget._controller.mediaList[widget._controller.mediaList.length - 1 ];
-                        });
+                      }
+                      setState(() {
+                        showPreviewPage = true;
+                        currentFile = widget._controller
+                            .mediaList[widget._controller.mediaList.length - 1];
+                      });
                     } else {
                       Navigator.pop(context, widget._controller.mediaList);
                     }
@@ -751,7 +926,7 @@ class CameraState extends WidgetState<Camera>
             Text(
               buttontitle!,
               style: TextStyle(
-                  color: isPermission ? Colors.black : Colors.white,
+                  color: hasPermission ? Colors.black : Colors.white,
                   fontSize: 18.0,
                   fontWeight: FontWeight.w600),
             ),
@@ -808,72 +983,55 @@ class CameraState extends WidgetState<Camera>
 
   void selectImage() async {
     final List<XFile> selectImage = await imagePicker.pickMultiImage();
-
     if (selectImage.isEmpty) return;
+
+    if (widget._controller.maxCount != null) {
+      final totalLength =
+          widget._controller.mediaList.length + selectImage.length;
+      if (totalLength > widget._controller.maxCount!) {
+        final errorMessage = widget._controller.maxCountMessage ??
+              Utils.translateWithFallback(
+                  'ensemble.input.maxCountMessage', 'Maximum ${widget._controller.maxCount} files can be selected');
+        
+        ToastController().showToast(context, ShowToastAction(type: ToastType.error, message: errorMessage, position: 'top'), null);
+        return;
+      }
+    }
+
     for (var element in selectImage) {
       final bytes = kIsWeb ? await element.readAsBytes() : null;
       final fileSize = await element.length();
-      File file = File(element.name,element.path.split('.').last, fileSize,  element.path, bytes );
+      File file = File(element.name, element.path.split('.').last, fileSize,
+          element.path, bytes);
       widget._controller.mediaList.add(file);
     }
     setState(() {});
-    // TODO max file 
   }
-  
+
   void deleteImages() {
-    // TODO
-    int i = widget._controller.mediaList
-        .indexWhere((element) => element.path == currentFile?.path);
-    if (i == 0) {
-      if (widget._controller.mediaList.length > 1) {
-        setState(() {
-          widget._controller.mediaList
-              .removeWhere((element) => element.path == currentFile?.path);
-        });
-        for (int j = 0; j < widget._controller.mediaList.length; j++) {
-          setState(() {
-            currentFile = widget._controller.mediaList[i];
-          });
-        }
-      } else {
-        setState(() {
-          widget._controller.mediaList
-              .removeWhere((element) => element.path == currentFile?.path);
-          isImagePreview = false;
-          if (widget._controller.cameraController != null) {
-            widget._controller.cameraController!.resumePreview();
-          }
-        });
+    final mediaList = widget._controller.mediaList;
+    final currentFilePath = currentFile?.path;
+    final currentFileIndex = mediaList.indexWhere((element) => element.path == currentFilePath);
+
+    if (currentFileIndex < 0) return; 
+    
+    mediaList.removeWhere((element) => element.path == currentFilePath);
+    final newLength = mediaList.length;
+    if (newLength == 0) {
+      showPreviewPage = false;
+      if (widget._controller.cameraController != null) {
+        widget._controller.cameraController!.resumePreview();
       }
-    } else if (i + 1 == widget._controller.mediaList.length) {
-      if (widget._controller.mediaList.length > 1) {
-        widget._controller.mediaList
-            .removeWhere((element) => element.path == currentFile?.path);
-        for (int j = 0; j < widget._controller.mediaList.length; j++) {
-          setState(() {
-            currentFile = widget._controller.mediaList[i - 1];
-          });
-        }
-      } else {
-        setState(() {
-          widget._controller.mediaList
-              .removeWhere((element) => element.path == currentFile?.path);
-          isImagePreview = false;
-          if (widget._controller.cameraController != null) {
-            widget._controller.cameraController!.resumePreview();
-          }
-        });
-      }
+    } else if (currentFileIndex == 0) {
+      currentFile = mediaList[0];
+    } else if (currentFileIndex == newLength) {
+      currentFile = mediaList[currentFileIndex - 1];
     } else {
-      widget._controller.mediaList
-          .removeWhere((element) => element.path == currentFile?.path);
-      for (int j = 0; j < widget._controller.mediaList.length; j++) {
-        setState(() {
-          currentFile = widget._controller.mediaList[i];
-        });
-      }
+      currentFile = mediaList[currentFileIndex];
     }
+    setState(() {});
   }
+
 
   String buttonLabel(String label) {
     if (widget._controller.nextButtonLabel != null) {
@@ -920,13 +1078,12 @@ class CameraState extends WidgetState<Camera>
     timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!isRecording) {
         isTimerRunning = false;
-        timer.cancel(); 
+        timer.cancel();
       }
       setState(() {
         seconds += 1;
       });
     });
- 
   }
 
   String formatDuration(int seconds) {
@@ -941,26 +1098,33 @@ class CameraState extends WidgetState<Camera>
     }
   }
 
-  Future<XFile?> stopVideoRecording() async {
+  Future<File?> stopVideoRecording() async {
     if (!widget._controller.cameraController!.value.isRecordingVideo) {
       return null;
     }
 
     try {
-      XFile file = await widget._controller.cameraController!.stopVideoRecording();
+      XFile file =
+          await widget._controller.cameraController!.stopVideoRecording();
       timer = null;
       setState(() {
         isRecording = false;
         seconds = 0;
       });
-      return file;
+
+      final bytes =
+          kIsWeb ? await file.readAsBytes() : null;
+      final fileSize = await file.length();
+      return File(file.name, file.path.split('.').last,fileSize,file.path,bytes);
+
     } on CameraException catch (_) {
       return null;
     }
   }
-  
+
   Future<void> startVideoRecording() async {
-    final CameraController? cameraController = widget._controller.cameraController;
+    final CameraController? cameraController =
+        widget._controller.cameraController;
 
     if (cameraController!.value.isRecordingVideo) {
       return;
@@ -976,9 +1140,10 @@ class CameraState extends WidgetState<Camera>
       print('Error starting to record video: $e');
     }
   }
-  
-  Future<XFile?> takePicture() async {
-    final CameraController? cameraController = widget._controller.cameraController;
+
+  Future<File?> takePicture() async {
+    final CameraController? cameraController =
+        widget._controller.cameraController;
 
     if (cameraController!.value.isTakingPicture) {
       // A capture is already pending, do nothing.
@@ -987,13 +1152,17 @@ class CameraState extends WidgetState<Camera>
 
     try {
       XFile file = await cameraController.takePicture();
-      return file;
+      final bytes = kIsWeb ? await file.readAsBytes() : null;
+      final fileSize = await file.length();
+  
+      return File(file.name, file.path.split('.').last, fileSize,file.path, bytes);
+      
     } on CameraException catch (e) {
       print('Error occured while taking picture: $e');
       return null;
     }
   }
-  
+
   void onViewFinderTap(TapUpDetails details, BoxConstraints constraints) {
     final controller = widget._controller.cameraController;
     if (controller == null) return;
@@ -1003,25 +1172,52 @@ class CameraState extends WidgetState<Camera>
       details.localPosition.dy / constraints.maxHeight,
     );
 
-    setState(() {
-      _focusState = FocusState.success;
-      _offset = Offset(details.localPosition.dx,details.localPosition.dy);
-    });
+    _offset = Offset(details.localPosition.dx, details.localPosition.dy);
+    _focusState.value = FocusState.success;
 
     Future.delayed(const Duration(milliseconds: 500), () {
-      setState(() {
-        _focusState = FocusState.none;
-      });
+      _focusState.value = FocusState.none;
     });
 
     controller.setExposurePoint(offset);
     controller.setFocusPoint(offset);
-
-
   }
 
   void handlPermission() {
     // TODO
+  }
+
+  void _onFlashTap() {
+    setState(() {
+      if (_flashMode == FlashMode.off) {
+        _flashMode = FlashMode.auto;
+      } else if (_flashMode == FlashMode.auto) {
+        _flashMode = FlashMode.always;
+      } else {
+        _flashMode = FlashMode.off;
+      }
+    });
+    widget._controller.cameraController?.setFlashMode(_flashMode);
+  }
+
+  String getAssistAngleMessage() {
+    const defaultAssistAngleMessage =
+        'Please raise phone to maintain camera angle.';
+
+    return Utils.translateWithFallback(
+      'ensemble.input.overMaxFileSizeMessage',
+      widget._controller.assistAngleMessage ?? defaultAssistAngleMessage,
+    );
+  }
+
+  String getAssistSpeedMessage() {
+    const defaultAssistSpeedMessage =
+        'Please slow to capture a good quality footage.';
+
+    return Utils.translateWithFallback(
+      'ensemble.input.overMaxFileSizeMessage',
+      widget._controller.assistSpeedMessage ?? defaultAssistSpeedMessage,
+    );
   }
 }
 
@@ -1061,10 +1257,11 @@ class _InlineVideoPlayerState extends State<InlineVideoPlayer> {
 
   @override
   void initState() {
-
-    playerController =  kIsWeb ? VideoPlayerController.network(widget.file.path!) : VideoPlayerController.file(widget.file.toFile()!);
+    playerController = kIsWeb
+        ? VideoPlayerController.network(widget.file.path!)
+        : VideoPlayerController.file(widget.file.toFile()!);
     playerController.initialize();
-    
+
     super.initState();
   }
 
@@ -1077,41 +1274,34 @@ class _InlineVideoPlayerState extends State<InlineVideoPlayer> {
   @override
   Widget build(BuildContext context) {
     return AspectRatio(
-      aspectRatio: playerController.value.aspectRatio,
-      child: Stack(
-        alignment: Alignment.bottomCenter,
-        children: [
+        aspectRatio: playerController.value.aspectRatio,
+        child: Stack(alignment: Alignment.bottomCenter, children: [
           VideoPlayer(playerController),
           Center(
-            child: CircleAvatar(
-              backgroundColor: Colors.white.withOpacity(.5),
-              radius: 17,
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                icon: Icon(getVideoIconStatus(playerController)),
-                color: Colors.black54,
-                onPressed: () {
-                  setState(() {
-                    playerController.value.isPlaying ? playerController.pause() : playerController.play();
-                  });
-                }
-              )
-            )
-          )
-        ]
-      )
-    );
+              child: CircleAvatar(
+                  backgroundColor: Colors.white.withOpacity(.5),
+                  radius: 17,
+                  child: IconButton(
+                      padding: EdgeInsets.zero,
+                      icon: Icon(getVideoIconStatus(playerController)),
+                      color: Colors.black54,
+                      onPressed: () {
+                        setState(() {
+                          playerController.value.isPlaying
+                              ? playerController.pause()
+                              : playerController.play();
+                        });
+                      })))
+        ]));
   }
 
   IconData getVideoIconStatus(VideoPlayerController playerController) {
     if (playerController.value.isPlaying) {
       return Icons.pause;
-    } else if (playerController.value.duration > Duration.zero && playerController.value.duration == playerController.value.position) {
+    } else if (playerController.value.duration > Duration.zero &&
+        playerController.value.duration == playerController.value.position) {
       return Icons.restart_alt;
     }
     return Icons.play_arrow;
   }
-
 }
-
-

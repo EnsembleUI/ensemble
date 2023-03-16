@@ -6,15 +6,16 @@ import 'package:ensemble/widget/camera.dart';
 import 'package:flutter/material.dart';
 
 class CameraManager {
-  Future<void> openCamera(BuildContext context, ShowCameraAction cameraAction , ScopeManager? scopeManager) async {
-    
+  Future<void> openCamera(BuildContext context, ShowCameraAction cameraAction,
+      ScopeManager? scopeManager) async {
     Camera camera = Camera();
-    if(cameraAction.id != null) {
-      final previousAction = scopeManager?.dataContext.getContextById(cameraAction.id!) as Camera?;
+    if (cameraAction.id != null) {
+      final previousAction =
+          scopeManager?.dataContext.getContextById(cameraAction.id!) as Camera?;
       if (previousAction != null) camera = previousAction;
       scopeManager?.dataContext.addInvokableContext(cameraAction.id!, camera);
     }
-  
+
     if (cameraAction.options != null) {
       cameraAction.options!['mode'] == null
           ? camera.setProperty('mode', CameraMode.both)
@@ -47,24 +48,49 @@ class CameraManager {
               'cameraRotateIcon', cameraAction.options!['cameraRotateIcon']);
       cameraAction.options!['permissionDeniedMessage'] == null
           ? ''
-          : camera.setProperty(
-              'permissionDeniedMessage', cameraAction.options!['permissionDeniedMessage']);
+          : camera.setProperty('permissionDeniedMessage',
+              cameraAction.options!['permissionDeniedMessage']);
       cameraAction.options!['nextButtonLabel'] == null
           ? ''
           : camera.setProperty(
-              'nextButtonLabel', cameraAction.options!['nextButtonLabel']);                      
+              'nextButtonLabel', cameraAction.options!['nextButtonLabel']);
       cameraAction.options!['accessButtonLabel'] == null
           ? ''
           : camera.setProperty(
-              'accessButtonLabel', cameraAction.options!['accessButtonLabel']); 
+              'accessButtonLabel', cameraAction.options!['accessButtonLabel']);
       cameraAction.options!['galleryButtonLabel'] == null
           ? ''
-          : camera.setProperty(
-              'galleryButtonLabel', cameraAction.options!['galleryButtonLabel']);
+          : camera.setProperty('galleryButtonLabel',
+              cameraAction.options!['galleryButtonLabel']);
       cameraAction.onComplete == null
-      ? (){} : camera.setProperty('onComplete', cameraAction.onComplete);
+          ? () {}
+          : camera.setProperty('onComplete', cameraAction.onComplete);
+      if (cameraAction.options!['assistAngle'] != null) {
+        camera.setProperty('assistAngle', cameraAction.options!['assistAngle']);
+      }
+      if (cameraAction.options!['assistAngleMessage'] != null) {
+        camera.setProperty('assistAngleMessage', cameraAction.options!['assistAngleMessage']);
+      }
+      if (cameraAction.options!['maxAngle'] != null) {
+        camera.setProperty('maxAngle', cameraAction.options!['maxAngle']);
+      }
+      if (cameraAction.options!['minAngle'] != null) {
+        camera.setProperty('minAngle', cameraAction.options!['minAngle']);
+      }
+
+      if (cameraAction.options!['assistSpeed'] != null) {
+        camera.setProperty('assistSpeed', cameraAction.options!['assistSpeed']);
+      }
+      if (cameraAction.options!['assistSpeedMessage'] != null) {
+        camera.setProperty('assistSpeedMessage', cameraAction.options!['assistSpeedMessage']);
+      }
+      if (cameraAction.options!['maxSpeed'] != null) {
+        camera.setProperty('maxSpeed', cameraAction.options!['maxSpeed']);
+      }
+
     }
-    
+
+
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -73,9 +99,9 @@ class CameraManager {
     );
 
     if (cameraAction.id != null) {
-      scopeManager?.dispatch(ModelChangeEvent(WidgetBindingSource(cameraAction.id!), camera));
+      scopeManager?.dispatch(
+          ModelChangeEvent(WidgetBindingSource(cameraAction.id!), camera));
     }
-    
   }
 
   CameraMode c(String action) {
