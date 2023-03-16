@@ -57,7 +57,7 @@ class GridView extends StatefulWidget
       'itemAspectRatio': (value) =>
           _controller.itemAspectRatio = Utils.optionalDouble(value, min: 0),
       'onItemTap': (funcDefinition) => _controller.onItemTap =
-          Utils.getAction(funcDefinition, initiator: this),
+          EnsembleAction.fromYaml(funcDefinition, initiator: this),
     };
   }
 

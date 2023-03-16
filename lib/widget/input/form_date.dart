@@ -44,7 +44,7 @@ class Date extends StatefulWidget with Invokable, HasController<DateController, 
       'firstDate': (value) => _controller.firstDate = Utils.getDate(value),
       'lastDate': (value) => _controller.lastDate = Utils.getDate(value),
       'showCalendarIcon': (shouldShow) => _controller.showCalendarIcon = Utils.optionalBool(shouldShow),
-      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this)
+      'onChange': (definition) => _controller.onChange = EnsembleAction.fromYaml(definition, initiator: this)
     };
   }
 
