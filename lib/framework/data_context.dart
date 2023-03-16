@@ -94,8 +94,8 @@ class DataContext {
   }
 
 
-  /// evaluate single inline binding expression (getters only) e.g ${myVar.text}.
-  /// Note that this expects the variable to be surrounded by ${...}
+  /// evaluate single inline binding expression (getters only) e.g Hello ${myVar.name}.
+  /// Note that this expects the variable (if any) to be inside ${...}
   dynamic eval(dynamic expression) {
     if (expression is YamlMap) {
       return _evalMap(expression);
@@ -113,14 +113,20 @@ class DataContext {
     }
 
     // if just have single standalone expression, return the actual type (e.g integer)
+    // this is the distinction here so we can continue to walk down the path
+    // if the return type is JSON
     RegExpMatch? simpleExpression = Utils.onlyExpression.firstMatch(expression);
     if (simpleExpression != null) {
-      return evalVariable(simpleExpression.group(1)!);
+      return asObject(evalVariable(simpleExpression.group(1)!));
     }
     // if we have multiple expressions, or mixing with text, return as String
     // greedy match anything inside a $() with letters, digits, period, square brackets.
-    return expression.replaceAllMapped(Utils.containExpression,
-            (match) => evalVariable("${match[1]}").toString());
+    // Note that since we combine multiple expressions together, the end result
+    // has to be a string.
+    return expression.replaceAllMapped(
+        Utils.containExpression,
+        (match) => asString(evalVariable("${match[1]}"))
+    );
 
     /*return replaceAllMappedAsync(
         expression,
@@ -150,6 +156,24 @@ class DataContext {
       map[k] = value;
     });
     return map;
+  }
+
+  /// format the expression result for user consumption
+  /// Here we make sure the output is purely string and
+  /// is friendly (not null or InvokableNull)
+  String asString(dynamic input) {
+    if (input is InvokableNull) {
+      return '';
+    }
+    return input?.toString() ?? '';
+  }
+  /// return the input as its original object, but also inject
+  /// some user-friendliness output (not null, not InvokableNull)
+  dynamic asObject(dynamic input) {
+    if (input is InvokableNull) {
+      return '';
+    }
+    return input ?? '';
   }
 
 
@@ -242,8 +266,11 @@ class DataContext {
   /// Note: use eval() if your variable are surrounded by ${...}
   dynamic evalVariable(String variable) {
     try {
-      return JSInterpreter.fromCode(variable, _contextMap).evaluate() ?? '';
+      return JSInterpreter.fromCode(variable, _contextMap).evaluate();
     } catch (error) {
+      // TODO: we want to show errors in most case
+      //  Exception: 1) API has not been loaded, 2) Custom widget input (also awaiting API)
+      // perhaps don't process if we know API has not been called
       log('JS Parsing Error: $error');
     }
     return null;
@@ -312,9 +339,9 @@ class NativeInvokable with Invokable {
         asModal: true);
     // how do we handle onModalDismiss in Typescript?
   }
-  void showDialog(dynamic content) {
+  void showDialog(dynamic widget) {
     ScreenController().executeAction(_buildContext, ShowDialogAction(
-        content: content)
+        widget: widget)
     );
   }
   void invokeAPI(String apiName, [dynamic inputs]) {
@@ -670,6 +697,8 @@ class File {
 
 
   final String name;
+  /// The file size in bytes. Defaults to `0` if the file size could not be
+  /// determined.
   final int size;
   final String? ext;
   final String? path;

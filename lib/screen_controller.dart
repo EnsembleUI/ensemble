@@ -8,7 +8,9 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/camera_manager.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/framework/widget/toast.dart';
@@ -51,6 +53,12 @@ class ScreenController {
     if (scopeManager == null && context.widget is ensemble.Page) {
       scopeManager = (context.widget as ensemble.Page).rootScopeManager;
     }
+
+    // If we still can't find a ScopeManager, look into the PageGroupWidget
+    // which extends the DataScopeWidget. We have to do this again since
+    // Unfortunately look up only works by exact type (and not inherited type)
+    scopeManager ??= PageGroupWidget.getScope(context);
+
     return scopeManager;
   }
 
@@ -121,10 +129,20 @@ class ScreenController {
         nextArgs[key] = dataContext.eval(value);
       });
 
+      RouteOption? routeOption;
+      if (action is NavigateScreenAction) {
+        if (action.options?['clearAllScreens'] == true) {
+          routeOption = RouteOption.clearAllScreens;
+        } else if (action.options?['replaceCurrentScreen'] == true) {
+          routeOption = RouteOption.replaceCurrentScreen;
+        }
+      }
+
       PageRouteBuilder routeBuilder = navigateToScreen(
           providedDataContext.buildContext,
           screenName: dataContext.eval(action.screenName),
           asModal: action.asModal,
+          routeOption: routeOption,
           pageArgs: nextArgs);
 
       // process onModalDismiss
@@ -142,7 +160,7 @@ class ScreenController {
        CameraManager().openCamera(context, action, scopeManager);
     } else if (action is ShowDialogAction) {
       if (scopeManager != null) {
-        Widget content = scopeManager.buildWidgetFromDefinition(action.content);
+        Widget widget = scopeManager.buildWidgetFromDefinition(action.widget);
 
         // get styles. TODO: make bindable
         Map<String, dynamic> dialogStyles = {};
@@ -150,6 +168,7 @@ class ScreenController {
           dialogStyles[key] = dataContext.eval(value);
         });
 
+        bool useDefaultStyle = dialogStyles['style'] != 'none';
         BuildContext? dialogContext;
 
         showGeneralDialog(
@@ -157,7 +176,7 @@ class ScreenController {
             context: context,
             barrierDismissible: true,
             barrierLabel: "Barrier",
-            barrierColor: Colors.black54,
+            barrierColor: Colors.black54,   // this has some transparency so the bottom shown through
 
             pageBuilder: (context, animation, secondaryAnimation) {
               // save a reference to the builder's context so we can close it programmatically
@@ -179,19 +198,22 @@ class ScreenController {
                               maxHeight: Utils.getDouble(dialogStyles['maxHeight'], fallback: double.infinity)
                           ),
                           child: Container(
-                              decoration: const BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.all(Radius.circular(5)),
-                                  boxShadow: <BoxShadow>[
-                                    BoxShadow(
-                                      color: Colors.white38,
-                                      blurRadius: 5,
-                                      offset: Offset(0, 0),
-                                    )
-                                  ]
-                              ),
+                              decoration: useDefaultStyle
+                                ? const BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.all(Radius.circular(5)),
+                                    boxShadow: <BoxShadow>[
+                                      BoxShadow(
+                                        color: Colors.white38,
+                                        blurRadius: 5,
+                                        offset: Offset(0, 0),
+                                      )
+                                    ])
+                                : null,
+                              margin: useDefaultStyle ? const EdgeInsets.all(20) : null,
+                              padding: useDefaultStyle ? const EdgeInsets.all(20) : null,
                               child: SingleChildScrollView (
-                                child: content,
+                                child: widget,
                               )
                           )
                       )
@@ -316,17 +338,47 @@ class ScreenController {
         allowMultiple: action.allowMultiple ?? false,
       ).then((result) async {
 
-        if (result==null || result.files.isEmpty) return;
+        const defaultMaxFileSize = 100000;
+        const defaultOverMaxFileSizeMessage = 'The size of is which is larger than the maximum allowed';
+
+        if (result==null || result.files.isEmpty) {
+          if (action.onError != null) executeAction(context, action.onError!);
+          return null;
+        }
 
         final selectedFiles = result.files.map((file) => File.fromPlatformFile(file)).toList();
+        int totalSize = selectedFiles.fold<int>(0, (previousValue, element) => previousValue + element.size);
+        totalSize = totalSize ~/ 1000;
+
+        final message = Utils.translateWithFallback(
+          'ensemble.input.overMaxFileSizeMessage', 
+          action.overMaxFileSizeMessage ?? defaultOverMaxFileSizeMessage,
+        );
+
+        if (totalSize > (action.maxFileSize ?? defaultMaxFileSize)) {
+          ToastController().showToast(context, ShowToastAction(type: ToastType.error, message: message, position: 'bottom'), null);
+          if (action.onError != null) executeAction(context, action.onError!);
+          return;
+        }
+
         if (action.id != null && scopeManager != null) {
           scopeManager.dataContext.addInvokableContext(action.id!, FileData(files: selectedFiles));
         }
-        
-        if (action.uploadUrl == null) throw RuntimeException('Enter URL');
+        YamlMap? apiDefinition = apiMap?[action.uploadApi];
+        if (apiDefinition == null) throw LanguageError('Unable to find api definition for ${action.uploadApi}');
+        if (apiDefinition['inputs'] is YamlList && action.inputs != null) {
+          for (var input in apiDefinition['inputs']) {
+            dynamic value = dataContext.eval(action.inputs![input]);
+            if (value != null) {
+              dataContext.addDataContextById(input, value);
+            }
+          }
+        }
         final response = await UploadUtils.uploadFiles(
-          action.uploadUrl!, 
-          selectedFiles,
+          api: apiDefinition, 
+          eContext: dataContext,
+          files: selectedFiles,
+          fieldName: action.fieldName,
           onError: action.onError == null ? null : (error) => executeAction(context, action.onError!),
         );
         if (response == null || action.id == null || scopeManager == null) return;
@@ -445,10 +497,13 @@ class ScreenController {
   /// Navigate to another screen
   /// [screenName] - navigate to the screen if specified, otherwise to appHome
   /// [asModal] - shows the App in a regular or modal screen
+  /// [replace] - whether to replace the current route on the stack, such that
+  /// navigating back will skip the current route.
   /// [pageArgs] - Key/Value pairs to send to the screen if it takes input parameters
   PageRouteBuilder navigateToScreen(BuildContext context, {
     String? screenName,
     bool? asModal,
+    RouteOption? routeOption,
     Map<String, dynamic>? pageArgs,
   }) {
     PageType pageType = asModal == true ? PageType.modal : PageType.regular;
@@ -456,7 +511,14 @@ class ScreenController {
     Widget screenWidget = getScreen(screenName: screenName, asModal: asModal, pageArgs: pageArgs);
 
     PageRouteBuilder route = getScreenBuilder(screenWidget, pageType: pageType);
-    Navigator.push(context, route);
+    // push the new route and remove all existing screens. This is suitable for logging out.
+    if (routeOption == RouteOption.clearAllScreens) {
+      Navigator.pushAndRemoveUntil(context, route, (route) => false);
+    } else if (routeOption == RouteOption.replaceCurrentScreen) {
+      Navigator.pushReplacement(context, route);
+    } else {
+      Navigator.push(context, route);
+    }
     return route;
   }
 
@@ -541,9 +603,9 @@ class ScreenController {
     }
   }
 
+}
 
-
-
-
-
+enum RouteOption {
+  replaceCurrentScreen,
+  clearAllScreens
 }

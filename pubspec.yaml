@@ -77,9 +77,12 @@ dependencies:
   cached_network_image: ^3.2.3
   sensors_plus: ^2.0.2
   mime: ^1.0.4
-  
+  flutter_cache_manager: ^3.3.0
+
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+  integration_test:
     sdk: flutter
   flutter_lints: ^1.0.0
 
@@ -91,6 +94,11 @@ flutter:
 
   assets:
     - assets/images/
+
+    # integration tests (TODO - exclude from build)
+    - ensemble/integration_tests/
+    - ensemble/integration_tests/defaultApp/
+    - ensemble/integration_tests/themedApp/
 
   fonts:
     # semi-custom fonts
