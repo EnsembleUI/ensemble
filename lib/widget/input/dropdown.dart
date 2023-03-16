@@ -6,14 +6,15 @@ import 'package:ensemble/framework/widget/icon.dart' as iconframework;
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
-import 'package:ensemble/widget/form_helper.dart';
+import 'package:ensemble/widget/input/form_helper.dart';
+import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
 
-import '../framework/model.dart';
+import '../../framework/model.dart';
 //import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class Dropdown extends SelectOne {
@@ -213,8 +214,21 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
 
   @override
   Widget buildWidget(BuildContext context) {
+    Widget rtn;
     if (widget._controller.autoComplete == false) {
-      return DropdownButtonFormField<dynamic>(
+
+      // if not overrode, decrease the default theme's vertical contentPadding
+      // slightly so the dropdown is the same height as other input widgets
+      EdgeInsetsGeometry? adjustedContentPadding;
+      if (widget._controller.contentPadding == null) {
+        InputDecorationTheme themeDecoration = Theme.of(context).inputDecorationTheme;
+        if (themeDecoration.contentPadding != null) {
+          adjustedContentPadding = themeDecoration.contentPadding!.subtract(
+              const EdgeInsets.only(top: 2, bottom: 3));
+        }
+      }
+
+      rtn = DropdownButtonFormField<dynamic>(
         key: validatorKey,
         validator: (value) {
           if (widget._controller.required && widget.getValue() == null) {
@@ -227,41 +241,44 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
         items: buildItems(widget._controller.items),
         onChanged: isEnabled() ? (item) => onSelectionChanged(item) : null,
         focusNode: focusNode,
-        decoration: inputDecoration);
+        icon: const Icon(Icons.unfold_more, size: 20),
+        decoration: inputDecoration.copyWith(contentPadding: adjustedContentPadding));
+
+    } else {
+      rtn = LayoutBuilder(
+          builder: (context, constraints) =>
+              RawAutocomplete<SelectOneItem>(
+                optionsBuilder: (TextEditingValue textEditingValue) =>
+                    buildAutoCompleteOptions(textEditingValue),
+                displayStringForOption: (SelectOneItem option) =>
+                option.label ?? option.value,
+                fieldViewBuilder: (BuildContext context,
+                    TextEditingController fieldTextEditingController,
+                    FocusNode fieldFocusNode,
+                    VoidCallback onFieldSubmitted) =>
+                    TextField(
+                        enabled: isEnabled(),
+                        showCursor: true,
+                        style: const TextStyle(
+                            color: Colors.black, fontWeight: FontWeight.w500),
+                        controller: fieldTextEditingController,
+                        focusNode: fieldFocusNode,
+                        decoration: inputDecoration),
+                onSelected: (SelectOneItem selection) {
+                  onSelectionChanged(selection.value);
+                  if (kDebugMode) {
+                    print('Selected: ${selection.value}');
+                  }
+                },
+                optionsViewBuilder: (BuildContext context,
+                    AutocompleteOnSelected<SelectOneItem> onSelected,
+                    Iterable<SelectOneItem> options) {
+                  return buildAutoCompleteItems(
+                      constraints, options, onSelected);
+                },
+              ));
     }
-    return LayoutBuilder(builder: (context, constraints) {
-      return RawAutocomplete<SelectOneItem>(
-        optionsBuilder: (TextEditingValue textEditingValue) {
-          return buildAutoCompleteOptions(textEditingValue);
-        },
-        displayStringForOption: (SelectOneItem option) =>
-        option.label ?? option.value,
-        fieldViewBuilder: (BuildContext context,
-            TextEditingController fieldTextEditingController,
-            FocusNode fieldFocusNode,
-            VoidCallback onFieldSubmitted) {
-          return TextField(
-              enabled: isEnabled(),
-              showCursor: true,
-              style: const TextStyle(
-                  color: Colors.black, fontWeight: FontWeight.w500),
-              controller: fieldTextEditingController,
-              focusNode: fieldFocusNode,
-              decoration: inputDecoration);
-        },
-        onSelected: (SelectOneItem selection) {
-          onSelectionChanged(selection.value);
-          if (kDebugMode) {
-            print('Selected: ${selection.value}');
-          }
-        },
-        optionsViewBuilder: (BuildContext context,
-            AutocompleteOnSelected<SelectOneItem> onSelected,
-            Iterable<SelectOneItem> options) {
-          return buildAutoCompleteItems(constraints, options, onSelected);
-        },
-      );
-    });
+    return InputWrapper(widget: rtn, controller: widget._controller);
   }
 
   // ---------------------- Search From the List if [AUTOCOMPLETE] is true ---------------------------------

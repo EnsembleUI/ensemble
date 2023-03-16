@@ -1,16 +1,19 @@
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/layout_utils.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/helpers/theme_manager.dart';
+import 'package:ensemble/framework/theme/theme_manager.dart';
+import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' as flutter;
 import 'package:ensemble/util/platform.dart';
+import 'package:flutter/material.dart';
 
 import '../widget/helpers/controllers.dart';
 
@@ -219,30 +222,28 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
         IntrinsicHeight(child: boxWidget);
     }
 
-    // html-renderer has terrible scrolling performance when clipping is on, so disable it for now
-    Clip clipBehavior = Clip.hardEdge;
-    if (kIsWeb && isHtmlRenderer) {
-      clipBehavior = Clip.none;
-    }
 
-    Widget rtn = Container(
-        width: widget._controller.width != null ? widget._controller.width!.toDouble() : null,
-        height: widget._controller.height != null ? widget._controller.height!.toDouble() : null,
-        margin: widget._controller.margin,
-
-        clipBehavior: clipBehavior,
-        decoration: _buildBoxDecoration(),
-
-        child: flutter.InkWell(
-            splashColor: flutter.Colors.transparent,
-            onTap: widget._controller.onTap == null ? null : () =>
-                ScreenController().executeAction(context, widget._controller.onTap!),
-            child: Padding(
-                padding: widget._controller.padding ?? const EdgeInsets.all(0),
-                child: boxWidget
-            )
-        )
+    Widget rtn = BoxWrapper(
+        boxController: widget._controller,
+        widget: boxWidget,
+        ignoresMargin: true,
     );
+
+
+     if (widget._controller.onTap != null) {
+      rtn = flutter.InkWell(
+        splashColor: Colors.transparent,
+        child: rtn,
+        onTap: () =>  ScreenController().executeAction(context, widget._controller.onTap!),
+      );
+    }
+    
+    
+    if (widget._controller.margin != null) {
+      rtn = Padding(
+          padding: widget._controller.margin!,
+          child: rtn);
+    }
 
     return !widget._controller.scrollable ?
         rtn :
@@ -309,25 +310,6 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
         ),
         child: boxWidget);
 
-  }
-
-  BoxDecoration _buildBoxDecoration() {
-    return BoxDecoration(
-        color: widget._controller.backgroundColor,
-        image: widget._controller.backgroundImage?.image,
-        gradient: widget._controller.backgroundGradient,
-        border: !widget._controller.hasBorder() ? null : Border.all(
-            color: widget._controller.borderColor ?? flutter.Colors.black26,
-            width: (widget._controller.borderWidth ?? 1).toDouble()),
-        borderRadius: widget._controller.borderRadius != null ? widget._controller.borderRadius!.getValue() : null,
-        boxShadow: widget._controller.shadowColor == null ? null : <BoxShadow>[
-          BoxShadow(
-            color: widget._controller.shadowColor ?? ThemeManager.getShadowColor(context),
-            blurRadius: (widget._controller.shadowRadius ?? 0).toDouble(),
-            offset: widget._controller.shadowOffset ?? const Offset(0, 0),
-          )
-        ]
-    );
   }
 
 }

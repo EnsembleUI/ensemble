@@ -29,6 +29,8 @@ class Flow extends StatefulWidget with UpdatableContainer, Invokable, HasControl
   Map<String, Function> setters() {
     return {
       'direction': (value) => _controller.direction = Utils.optionalString(value),
+      'mainAxis': (value) => _controller.mainAxis = LayoutUtils.getWrapAlignment(value),
+      'crossAxis': (value) => _controller.crossAxis = LayoutUtils.getWrapCrossAlignment(value),
       'gap': (value) => _controller.gap = Utils.optionalInt(value),
       'lineGap': (value) => _controller.lineGap = Utils.optionalInt(value),
       'maxWidth': (value) => _controller.maxWidth = Utils.optionalInt(value, min: 0),
@@ -53,6 +55,8 @@ class Flow extends StatefulWidget with UpdatableContainer, Invokable, HasControl
 
 class FlowController extends WidgetController {
   String? direction;
+  WrapAlignment? mainAxis;
+  WrapCrossAlignment? crossAxis;
   int? gap;
   int? lineGap;
   int? maxWidth;
@@ -105,6 +109,8 @@ class FlowState extends WidgetState<Flow> with TemplatedWidgetState {
       direction: widget._controller.direction == Axis.vertical.name ? Axis.vertical : Axis.horizontal,
       spacing: widget.controller.gap?.toDouble() ?? 0,
       runSpacing: widget._controller.lineGap?.toDouble() ?? 0,
+      alignment: widget._controller.mainAxis ?? WrapAlignment.start,
+      crossAxisAlignment: widget._controller.crossAxis ?? WrapCrossAlignment.start,
       children: children,
     );
 

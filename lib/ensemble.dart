@@ -8,6 +8,7 @@ import 'package:ensemble/ensemble_provider.dart';
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/provider.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -253,7 +254,7 @@ class EnsembleConfig {
 
   /// pass our custom theme from the appBundle and build the App Theme
   ThemeData getAppTheme() {
-    return EnsembleTheme.getAppTheme(appBundle?.theme);
+    return ThemeManager().getAppTheme(appBundle?.theme);
   }
 
   FlutterI18nDelegate getI18NDelegate() {

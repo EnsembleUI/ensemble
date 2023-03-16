@@ -47,6 +47,7 @@ class BoxController extends WidgetController {
   Color? backgroundColor;
   BackgroundImage? backgroundImage;
   LinearGradient? backgroundGradient;
+  LinearGradient? borderGradient;
 
   Color? borderColor;
   int? borderWidth;
@@ -73,6 +74,8 @@ class BoxController extends WidgetController {
           backgroundImage = Utils.getBackgroundImage(value),
       'backgroundGradient': (value) =>
           backgroundGradient = Utils.getBackgroundGradient(value),
+      'borderGradient': (value) =>
+          borderGradient = Utils.getBackgroundGradient(value),
 
       'borderColor': (value) => borderColor = Utils.getColor(value),
       'borderWidth': (value) => borderWidth = Utils.optionalInt(value),
@@ -87,10 +90,13 @@ class BoxController extends WidgetController {
   }
 
   /// optimization. This is important to review if more properties are added
-  bool requiresBox(bool ignoresMargin, bool ignoresDimension) =>
+  bool requiresBox({
+    required bool ignoresMargin,
+    required bool ignoresPadding,
+    required bool ignoresDimension}) =>
       (!ignoresDimension && hasDimension()) ||
       (!ignoresMargin && margin != null) ||
-      padding != null ||
+      (!ignoresPadding && padding != null) ||
       hasBoxDecoration();
 
   bool hasDimension() =>
@@ -109,6 +115,7 @@ class BoxController extends WidgetController {
       backgroundGradient != null;
 
   bool hasBorder() =>
+      borderGradient != null ||
       borderColor != null ||
       borderWidth != null;
 

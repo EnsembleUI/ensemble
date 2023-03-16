@@ -7,6 +7,7 @@ import 'package:ensemble/layout/form.dart';
 import 'package:ensemble/layout/list_view.dart';
 import 'package:ensemble/layout/stack.dart';
 import 'package:ensemble/layout/tab_bar.dart';
+import 'package:ensemble/layout/grid_view.dart';
 import 'package:ensemble/widget/fintech/finicityconnect/finicityconnect.dart';
 import 'package:ensemble/widget/text.dart';
 // import 'package:ensemble/widget/camera_widget.dart';
@@ -16,13 +17,13 @@ import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/carousel.dart';
 import 'package:ensemble/widget/chart_highcharts_builder.dart';
 import 'package:ensemble/widget/divider.dart';
-import 'package:ensemble/widget/dropdown.dart';
+import 'package:ensemble/widget/input/dropdown.dart';
 import 'package:ensemble/widget/ensemble_icon.dart';
-import 'package:ensemble/widget/form_checkbox.dart';
-import 'package:ensemble/widget/form_date.dart';
+import 'package:ensemble/widget/input/form_checkbox.dart';
+import 'package:ensemble/widget/input/form_date.dart';
 import 'package:ensemble/widget/form_daterange.dart';
-import 'package:ensemble/widget/form_textfield.dart';
-import 'package:ensemble/widget/form_time.dart';
+import 'package:ensemble/widget/input/form_textfield.dart';
+import 'package:ensemble/widget/input/form_time.dart';
 import 'package:ensemble/widget/image.dart';
 import 'package:ensemble/widget/lottie/lottie.dart';
 import 'package:ensemble/widget/map.dart';
@@ -87,6 +88,7 @@ class WidgetRegistry {
     Column.type: () => Column(),
     Row.type: () => Row(),
     ListView.type: () => ListView(),
+    GridView.type: () => GridView(),
     Flex.type: () => Flex(),
     EnsembleStack.type: () => EnsembleStack(),
     Flow.type: () => Flow(),
