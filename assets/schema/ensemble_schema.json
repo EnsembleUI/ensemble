@@ -820,11 +820,11 @@
           "description": "The button label"
         },
         "startingIcon": {
-          "$ref": "#/$defs/Icon-payload",
+          "$ref": "#/$defs/HasIcon",
           "description": "Icon placed in front of the label, according to device text alignment"
         },
         "endingIcon": {
-          "$ref": "#/$defs/Icon-payload",
+          "$ref": "#/$defs/HasIcon",
           "description": "Icon placed behind the label, according to device text alignment"
         },
         "enabled": {
