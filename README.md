@@ -1,6 +1,10 @@
 ## Getting Started
 
-This is Ensemble Runtime that is essentially an interpreter for the Ensemble declarative language written in Flutter. Signup for Ensemble studio here - https://studio.ensembleui.com to see how the EDL (Ensemble Declarative Language) is used to build front-ends. 
+### For detailed instructions on how to run locally or deploy to iOS AppStore or Google Play, see this - https://github.com/EnsembleUI/ensemble_starter
+
+This is Ensemble Runtime that is essentially an interpreter for the Ensemble Declarative Language (EDL) written in Flutter. 
+
+Signup for Ensemble studio here - https://studio.ensembleui.com to see how the EDL is used to build front-ends. 
 
 To run Ensemble locally using Android Studio or VCS, you will need to download the Ensemble Starter repo here - https://github.com/EnsembleUI/ensemble_starter
 

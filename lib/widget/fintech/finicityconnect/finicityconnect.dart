@@ -55,12 +55,12 @@ class FinicityConnect extends StatefulWidget with Invokable, HasController<Finic
       'top': (value) => _controller.top = Utils.getInt(value, fallback: _controller.top),
       'position': (value) => _controller.position = Utils.getString(value, fallback: _controller.position),
       'uri': (value) => _controller.uri = Utils.getString(value, fallback: _controller.uri),
-      'onSuccess': (funcDefinition) => _controller.onSuccess = Utils.getAction(funcDefinition, initiator: this),
-      'onCancel': (funcDefinition) => _controller.onCancel = Utils.getAction(funcDefinition, initiator: this),
-      'onError': (funcDefinition) => _controller.onError = Utils.getAction(funcDefinition, initiator: this),
-      'onRoute': (funcDefinition) => _controller.onRoute = Utils.getAction(funcDefinition, initiator: this),
-      'onUser': (funcDefinition) => _controller.onUser = Utils.getAction(funcDefinition, initiator: this),
-      'onLoaded': (funcDefinition) => _controller.onLoaded = Utils.getAction(funcDefinition, initiator: this),
+      'onSuccess': (funcDefinition) => _controller.onSuccess = EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onCancel': (funcDefinition) => _controller.onCancel = EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onError': (funcDefinition) => _controller.onError = EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onRoute': (funcDefinition) => _controller.onRoute = EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onUser': (funcDefinition) => _controller.onUser = EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onLoaded': (funcDefinition) => _controller.onLoaded = EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'overlay': (value) => _controller.overlay = value,
     };
   }

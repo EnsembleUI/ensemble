@@ -29,7 +29,7 @@ class Button extends StatefulWidget with Invokable, HasController<ButtonControll
   Map<String, Function> setters() {
     return {
       'label': (value) => _controller.label = Utils.getString(value, fallback: ''),
-      'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, initiator: this),
+      'onTap': (funcDefinition) => _controller.onTap = ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'submitForm': (value) => _controller.submitForm = Utils.optionalBool(value),
       'validateForm': (value) => _controller.validateForm = Utils.optionalBool(value),
       'validateFields': (items) => _controller.validateFields = Utils.getList(items),

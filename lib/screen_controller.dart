@@ -118,7 +118,7 @@ class ScreenController {
 
         HttpUtils.invokeApi(apiDefinition, dataContext)
             .then((response) => _onAPIComplete(context, dataContext, action, apiDefinition, Response(response), apiMap, scopeManager))
-            .onError((error, stackTrace) => processAPIError(context, dataContext, apiDefinition, error, apiMap, scopeManager));
+            .onError((error, stackTrace) => processAPIError(context, dataContext, action, apiDefinition, error, apiMap, scopeManager));
       } else {
         throw RuntimeError("Unable to find api definition for ${action.apiName}");
       }
@@ -325,8 +325,8 @@ class ScreenController {
       }
     } else if (action is ShowToastAction) {
       Widget? customToastBody;
-      if (scopeManager != null && action.type == ToastType.custom && action.body != null) {
-        customToastBody = scopeManager.buildWidgetFromDefinition(action.body);
+      if (scopeManager != null && action.widget != null) {
+        customToastBody = scopeManager.buildWidgetFromDefinition(action.widget);
       }
       ToastController().showToast(context, action, customToastBody);
     } else if ( action is OpenUrlAction ) {
@@ -409,7 +409,7 @@ class ScreenController {
   /// e.g upon return of API result
   void _onAPIComplete(BuildContext context, DataContext dataContext, InvokeAPIAction action, YamlMap apiDefinition, Response response, Map<String, YamlMap>? apiMap, ScopeManager? scopeManager) {
     // first execute API's onResponse code block
-    EnsembleAction? onResponse = Utils.getAction(apiDefinition['onResponse'], initiator: action.initiator);
+    EnsembleAction? onResponse = EnsembleAction.fromYaml(apiDefinition['onResponse'], initiator: action.initiator);
     if (onResponse != null) {
       processAPIResponse(context, dataContext, onResponse, response, apiMap, scopeManager, apiChangeHandler: dispatchAPIChanges, action: action, modifiableAPIResponse: true);
     }
@@ -486,13 +486,18 @@ class ScreenController {
   }
 
   /// executing the onError action
-  void processAPIError(BuildContext context, DataContext dataContext, YamlMap apiDefinition, Object? error, Map<String, YamlMap>? apiMap, ScopeManager? scopeManager) {
+  void processAPIError(BuildContext context, DataContext dataContext, InvokeAPIAction action, YamlMap apiDefinition, Object? error, Map<String, YamlMap>? apiMap, ScopeManager? scopeManager) {
     log("Error: $error");
 
-    EnsembleAction? onErrorAction = Utils.getAction(apiDefinition['onError']);
+    EnsembleAction? onErrorAction = EnsembleAction.fromYaml(apiDefinition['onError']);
     if (onErrorAction != null) {
       // probably want to include the error?
       _executeAction(context, dataContext, onErrorAction, apiMap, scopeManager);
+    }
+
+    // if our Action has onError, invoke that next
+    if (action.onError != null) {
+      _executeAction(context, dataContext, action.onError!, apiMap, scopeManager);
     }
 
     // silently fail if error handle is not defined? or should we alert user?

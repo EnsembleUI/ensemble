@@ -62,7 +62,7 @@ abstract class SelectOne extends StatefulWidget with Invokable, HasController<Se
     return {
       'value': (value) => _controller.maybeValue = value,
       'items': (values) => updateItems(values),
-      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this),
+      'onChange': (definition) => _controller.onChange = framework.EnsembleAction.fromYaml(definition, initiator: this),
       'itemsFromString': (dynamic strValues) => setItemsFromString(strValues),
       'itemsFromArray': (dynamic arrValues) => setItemsFromArray(arrValues),
       'autoComplete': (value) => _controller.autoComplete = Utils.getBool(value, fallback: false),
