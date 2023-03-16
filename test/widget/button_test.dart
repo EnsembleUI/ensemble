@@ -28,7 +28,7 @@ void main() {
 
   testWidgets("button with starting icon", (tester) async {
     Button widget = Button();
-    YamlMap startingIcon = YamlMap.wrap({'Icon': {'icon': 'star'}});
+    YamlMap startingIcon = YamlMap.wrap({'name': 'star'});
     widget.setProperty('label', 'hello world');
     widget.setProperty('startingIcon', startingIcon);
 
@@ -41,7 +41,7 @@ void main() {
 
     ElevatedButton textButton = tester.firstWidget(buttonFinder);
     List<Widget> children = (textButton.child as Row).children;
-    expect((children[0] as EnsembleIcon).controller.icon, 'star');
-    expect((children[1] as Text).data, 'hello world');
+    expect((children[0] as Icon).icon, Icons.star);
+    expect((children[2] as Text).data, 'hello world');
   });
 }
