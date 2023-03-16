@@ -1,0 +1,36 @@
+View:
+  styles:
+    useSafeArea: true
+    backgroundColor: 0xFFF0F0F0
+  Column:
+    styles:
+      mainAxis: center
+      crossAxis: center
+    children:
+      - Text:
+          text: Second Screen
+          styles:
+            fontSize: 30
+            fontWeight: bold
+            color: 0xFF000000
+      - Text:
+          text: ${passedValue}
+          styles:
+            fontSize: 24
+            fontWeight: normal
+            color: 0xFF000000
+      - Button:
+          label: Go back to First Screen
+          styles:
+            mainAxis: center
+            crossAxis: center
+            backgroundColor: 0xFF7356BF
+            padding: 12 16
+            borderRadius: 8
+            fontSize: 18
+            color: 0xFFFFFFFF
+          onTap:
+            navigateScreen:
+              name: FirstScreen
+              options:
+                clearAllScreens: true

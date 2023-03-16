@@ -96,6 +96,7 @@ flutter:
     # integration tests (TODO - exclude from build)
     - ensemble/integration_tests/
     - ensemble/integration_tests/defaultApp/
+    - ensemble/integration_tests/navigateToScreen/
     - ensemble/integration_tests/themedApp/
 
   fonts:

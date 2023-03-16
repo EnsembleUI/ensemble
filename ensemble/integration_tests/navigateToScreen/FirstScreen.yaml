@@ -1,0 +1,29 @@
+View:
+  styles:
+    useSafeArea: true
+    backgroundColor: 0xFFF0F0F0
+  Column:
+    styles:
+      mainAxis: center
+      crossAxis: center
+    children:
+      - Text:
+          text: First Screen
+          styles:
+            fontSize: 30
+            fontWeight: bold
+            color: 0xFF000000
+      - Button:
+          label: Navigate to new screen and pass some data
+          onTap:
+            navigateScreen:
+              name: SecondScreen
+              inputs:
+                passedValue: Value from first screen
+      - Button:
+          label: Navigate to new screen and replace the current screen
+          onTap:
+            navigateScreen:
+              name: SecondScreen
+              options:
+                replaceCurrentScreen: true
