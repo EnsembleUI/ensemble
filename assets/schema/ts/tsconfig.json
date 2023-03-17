@@ -1,0 +1,12 @@
+{
+"compilerOptions": {
+    "skipLibCheck": true,
+    "noEmit": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "target": "ES5",
+    "module": "CommonJS",
+    "strictNullChecks": false,
+    "allowJs": true
+}
+}

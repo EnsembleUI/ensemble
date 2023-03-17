@@ -13,6 +13,7 @@ import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/widget_util.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_svg/svg.dart';
@@ -46,7 +47,7 @@ class EnsembleImage extends StatefulWidget with Invokable, HasController<ImageCo
       'resizedWidth': (width) => _controller.resizedWidth = Utils.optionalInt(width, min: 0, max: 2000),
       'resizedHeight': (height) => _controller.resizedHeight = Utils.optionalInt(height, min: 0, max: 2000),
       'placeholderColor': (value) => _controller.placeholderColor = Utils.getColor(value),
-      'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, initiator: this)
+      'onTap': (funcDefinition) => _controller.onTap = EnsembleAction.fromYaml(funcDefinition, initiator: this)
     };
   }
 
@@ -147,12 +148,19 @@ class ImageState extends WidgetState<EnsembleImage> {
             fit: fit,
             errorBuilder: (context, error, stacktrace) => errorFallback());
       } else {
-        return Image.file(
-            File(widget._controller.source),
-            width: widget._controller.width?.toDouble(),
-            height: widget._controller.height?.toDouble(),
-            fit: fit,
-            errorBuilder: (context, error, stacktrace) => errorFallback());
+        return kIsWeb 
+          ? Image.network(
+              widget._controller.source,
+              width: widget._controller.width?.toDouble(),
+              height: widget._controller.height?.toDouble(),
+              fit: fit,
+              errorBuilder: (context, error, stacktrace) => errorFallback())
+          : Image.file(
+              File(widget._controller.source),
+              width: widget._controller.width?.toDouble(),
+              height: widget._controller.height?.toDouble(),
+              fit: fit,
+              errorBuilder: (context, error, stacktrace) => errorFallback());
       }
   }
 

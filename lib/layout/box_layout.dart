@@ -80,7 +80,7 @@ abstract class BoxLayout extends StatefulWidget with UpdatableContainer, Invokab
   @override
   Map<String, Function> setters() {
     return {
-      'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, initiator: this),
+      'onTap': (funcDefinition) => _controller.onTap = EnsembleAction.fromYaml(funcDefinition, initiator: this),
     };
   }
   @override

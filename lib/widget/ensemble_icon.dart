@@ -34,7 +34,7 @@ class EnsembleIcon extends StatefulWidget with Invokable, HasController<IconCont
       'size': (value) => _controller.size = Utils.optionalInt(value),
       'color': (value) => _controller.color = Utils.getColor(value),
       'splashColor': (value) => _controller.splashColor = Utils.getColor(value),
-      'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, initiator: this),
+      'onTap': (funcDefinition) => _controller.onTap = EnsembleAction.fromYaml(funcDefinition, initiator: this),
     };
   }
   @override

@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/menu.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/page_model.dart';
@@ -88,7 +89,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
 
     // init the pages (TODO: need to update if definition changes)
     for (int i = 0; i < widget.menu.menuItems.length; i++) {
-      model.MenuItem menuItem = widget.menu.menuItems[i];
+      MenuItem menuItem = widget.menu.menuItems[i];
       pageWidgets.add(ScreenController().getScreen(
           key: UniqueKey(),
           // ensure each screen is different for Flutter not to optimize
@@ -107,26 +108,23 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     if (widget.menu.menuItems.length == 1) {
       return pageWidgets[0];
     } else if (widget.menu.menuItems.length >= 2) {
-      MenuDisplay display = _getPreferredMenuDisplay(widget.menu);
-
       // drawer menu will be injected in the child Page since the icon
       // has to be on the header, which only exists on the Page.
       // Here we wrap the widget in a provider such that its children
       // can get access to the drawer menu.
-      if (display == MenuDisplay.drawer || display == MenuDisplay.endDrawer) {
+      if (widget.menu is DrawerMenu) {
         Drawer? drawer = _buildDrawer(context, widget.menu);
+        bool atStart = (widget.menu as DrawerMenu).atStart;
         return PageGroupWidget(
             scopeManager: _scopeManager,
-            navigationDrawer: display == MenuDisplay.drawer ? drawer : null,
-            navigationEndDrawer:
-                display == MenuDisplay.endDrawer ? drawer : null,
+            navigationDrawer: atStart ? drawer : null,
+            navigationEndDrawer: !atStart ? drawer : null,
             child: pageWidgets[selectedPage]);
-      } else if (display == MenuDisplay.sidebar ||
-          display == MenuDisplay.endSidebar) {
+      } else if (widget.menu is SidebarMenu) {
         return PageGroupWidget(
             scopeManager: _scopeManager,
-            child: buildSidebarNavigation(context, display, widget.menu));
-      } else if (display == MenuDisplay.bottomNavBar) {
+            child: buildSidebarNavigation(context, widget.menu as SidebarMenu));
+      } else if (widget.menu is BottomNavBarMenu) {
         return Scaffold(
             // image background shouldn't resized when keyboard is up. The inner
             // scaffold will have the keyboard, this one is outside.
@@ -143,7 +141,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
 
   /// build the sidebar and its children content
   Widget buildSidebarNavigation(
-      BuildContext context, MenuDisplay preferredMenuDisplay, Menu menu) {
+      BuildContext context, SidebarMenu menu) {
     Widget sidebar = _buildSidebar(context, menu);
     Widget? separator = _buildSidebarSeparator(menu);
     Widget content = Expanded(child: pageWidgets[selectedPage]);
@@ -151,8 +149,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     // figuring out the direction to lay things out
     bool rtlLocale = Directionality.of(context) == TextDirection.rtl;
     // standard layout is the sidebar menu then content
-    bool standardLayout =
-        preferredMenuDisplay == MenuDisplay.sidebar ? !rtlLocale : rtlLocale;
+    bool standardLayout = menu.atStart ? !rtlLocale : rtlLocale;
 
     List<Widget> children = [];
     if (standardLayout) {
@@ -260,7 +257,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
   BottomNavigationBar? _buildBottomNavBar(BuildContext context, Menu menu) {
     List<BottomNavigationBarItem> navItems = [];
     for (int i = 0; i < menu.menuItems.length; i++) {
-      model.MenuItem item = menu.menuItems[i];
+      MenuItem item = menu.menuItems[i];
       navItems.add(BottomNavigationBarItem(
           icon: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
           label: Utils.translate(item.label ?? '', context)));
@@ -280,7 +277,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
   Drawer? _buildDrawer(BuildContext context, Menu menu) {
     List<ListTile> navItems = [];
     for (var i = 0; i < menu.menuItems.length; i++) {
-      model.MenuItem item = menu.menuItems[i];
+      MenuItem item = menu.menuItems[i];
       navItems.add(ListTile(
         selected: i == selectedPage,
         title: Text(Utils.translate(item.label ?? '', context)),
@@ -303,20 +300,21 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     );
   }
 
+  /// TODO: can't do this anymore without Conditional widget
   /// get the menu mode depending on user spec + device types / screen resolutions
-  MenuDisplay _getPreferredMenuDisplay(Menu menu) {
-    MenuDisplay? display =
-        MenuDisplay.values.from(_scopeManager.dataContext.eval(menu.display));
-    // left nav becomes drawer in lower resolution. TODO: take in user settings
-    if (screenWidth < 1024) {
-      if (display == MenuDisplay.sidebar) {
-        display = MenuDisplay.drawer;
-      } else if (display == MenuDisplay.endSidebar) {
-        display = MenuDisplay.endDrawer;
-      }
-    }
-    display ??= MenuDisplay.bottomNavBar;
-
-    return display;
-  }
+  // MenuDisplay _getPreferredMenuDisplay(Menu menu) {
+  //   MenuDisplay? display =
+  //       MenuDisplay.values.from(_scopeManager.dataContext.eval(menu.display));
+  //   // left nav becomes drawer in lower resolution. TODO: take in user settings
+  //   if (screenWidth < 1024) {
+  //     if (display == MenuDisplay.sidebar) {
+  //       display = MenuDisplay.drawer;
+  //     } else if (display == MenuDisplay.endSidebar) {
+  //       display = MenuDisplay.endDrawer;
+  //     }
+  //   }
+  //   display ??= MenuDisplay.bottomNavBar;
+  //
+  //   return display;
+  // }
 }

@@ -53,10 +53,10 @@ class AppScroller extends StatefulWidget with Invokable, HasController<AppScroll
 
       // others
       'headerBackgroundColor': (color) => _controller.headerBackgroundColor = Utils.getColor(color),
-      'onHeaderStretch': (action) => _controller.onHeaderStretch = Utils.getAction(action, initiator: this),
+      'onHeaderStretch': (action) => _controller.onHeaderStretch = EnsembleAction.fromYaml(action, initiator: this),
 
       // temp
-      'onExpandedHeightReset': (action) => _controller.onExpandedHeightReset = Utils.getAction(action, initiator: this),
+      'onExpandedHeightReset': (action) => _controller.onExpandedHeightReset = EnsembleAction.fromYaml(action, initiator: this),
     };
   }
 }

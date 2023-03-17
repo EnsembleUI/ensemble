@@ -97,8 +97,8 @@ abstract class BaseTextInput extends StatefulWidget with Invokable, HasControlle
   Map<String, Function> setters() {
     // set value is not specified here for safety in case of PasswordInput
     return {
-      'onKeyPress': (function) => _controller.onKeyPress = Utils.getAction(function, initiator: this),
-      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this),
+      'onKeyPress': (function) => _controller.onKeyPress = EnsembleAction.fromYaml(function, initiator: this),
+      'onChange': (definition) => _controller.onChange = EnsembleAction.fromYaml(definition, initiator: this),
       'validator': (value) => _controller.validator = Utils.getValidator(value),
       'obscureToggle': (value) => _controller.obscureToggle = Utils.optionalBool(value),
       'keyboardAction': (value) => _controller.keyboardAction = _getKeyboardAction(value),
