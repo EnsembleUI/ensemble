@@ -57,7 +57,7 @@ abstract class OnOffWidget extends StatefulWidget with Invokable, HasController<
       'leadingText': (text) => _controller.leadingText = Utils.optionalString(text),
       'trailingText': (text) => _controller.trailingText = Utils.optionalString(text),
 
-      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this)
+      'onChange': (definition) => _controller.onChange = framework.EnsembleAction.fromYaml(definition, initiator: this)
     };
   }
 

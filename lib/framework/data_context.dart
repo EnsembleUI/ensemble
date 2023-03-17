@@ -695,6 +695,13 @@ class File {
     path = kIsWeb ? null : file.path,
     bytes = file.bytes;
 
+  File.fromJson(Map<String, dynamic> file):
+    name = file['name'],
+    ext = file['extension'],
+    size = file['size'],
+    path = file['path'],
+    bytes = file['bytes'];
+
 
   final String name;
   /// The file size in bytes. Defaults to `0` if the file size could not be
@@ -712,9 +719,10 @@ class File {
       'size': size,
       'path': path,
       'bytes': bytes,
-      'mediaType': getMediaType(),
+      'mediaType': getMediaType().name,
     };
   }
+  
 
   io.File? toFile() {
     if (path == null) return null;

@@ -34,10 +34,10 @@ class EnsembleWebView extends StatefulWidget with Invokable, HasController<Ensem
       'url': (value) => _controller.url = Utils.getUrl(value),
       'height': (value) => _controller.height = Utils.optionalDouble(value),
       'width':(value) => _controller.width = Utils.optionalDouble(value),
-      'onPageStart': (funcDefinition) => _controller.onPageStart = Utils.getAction(funcDefinition, initiator: this),
-      'onPageFinished': (funcDefinition) => _controller.onPageFinished = Utils.getAction(funcDefinition, initiator: this),
-      'onNavigationRequest': (funcDefinition) => _controller.onNavigationRequest = Utils.getAction(funcDefinition, initiator: this),
-      'onWebResourceError': (funcDefinition) => _controller.onWebResourceError = Utils.getAction(funcDefinition, initiator: this),
+      'onPageStart': (funcDefinition) => _controller.onPageStart = ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onPageFinished': (funcDefinition) => _controller.onPageFinished = ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onNavigationRequest': (funcDefinition) => _controller.onNavigationRequest = ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onWebResourceError': (funcDefinition) => _controller.onWebResourceError = ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
       // legacy
       'uri': (value) => _controller.url = Utils.getUrl(value),
     };
