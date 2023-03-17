@@ -118,6 +118,9 @@ class MyController extends BoxController {
 class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
   List<Widget>? templatedChildren;
 
+  Widget? customIndicator;
+  Widget? selectedCustomIndicator;
+
   // this is used to highlight the correct indicator index
   int focusIndex = 0;
 
@@ -142,6 +145,9 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
   @override
   Widget buildWidget(BuildContext context) {
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
+
+    customIndicator = defineIndicatorWidget(scopeManager!);
+    selectedCustomIndicator = defineSelectedIndicatorWidget(scopeManager);
     // if we should display one at a time or multiple in the slider
     bool singleView = isSingleView();
 
@@ -153,11 +159,11 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
     );
 
     // show indicators
-    if (widget._controller.indicatorType != null && widget._controller.indicatorType != IndicatorType.none) {
+    if (widget._controller.indicatorType != null && widget._controller.indicatorType != IndicatorType.none || customIndicator != null || selectedCustomIndicator != null) {
       List<Widget> indicators = [];
       for (int i = 0; i < items.length; i++) {
         indicators.add(GestureDetector(
-          child: getIndicator(i == focusIndex , scopeManager!),
+          child: getIndicator(i == focusIndex),
           onTap: () {
             // MultiView only dispatch itemChange when explicitly clicking on the item
             // But here since we are selecting the indicator, this should be the
@@ -173,7 +179,7 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
       // Carousel requires a fixed height, so to make sure the indicators don't shift the UI, we'll make
       // sure there's at least 1 invisible indicator that takes up the space
       if (indicators.isEmpty) {
-        indicators.add(Opacity(child: getIndicator(false , scopeManager!), opacity: 0));
+        indicators.add(Opacity(child: getIndicator(false), opacity: 0));
       }
 
       List<Widget> children = [
@@ -301,11 +307,11 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
     return null;
   }
 
-  Widget getIndicator(bool selected , ScopeManager scopeManage) {
+  Widget getIndicator(bool selected) {
 
     return selected
-        ? defineSelectedIndicatorWidget(scopeManage) ?? defaultIndicator(selected)
-        : defineIndicatorWidget(scopeManage) ?? defaultIndicator(selected);
+        ? selectedCustomIndicator ?? defaultIndicator(selected)
+        : customIndicator ?? defaultIndicator(selected);
 
   }
 
