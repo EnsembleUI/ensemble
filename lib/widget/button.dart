@@ -4,6 +4,7 @@ import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/layout/form.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/framework/widget/icon.dart' as ensembleIcon;
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/widget/input/form_helper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
@@ -12,6 +13,9 @@ import 'package:ensemble/layout/form.dart' as ensembleForm;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 
 import '../framework/event.dart';
+import '../framework/model.dart';
+import '../framework/scope.dart';
+import '../framework/view/page.dart';
 
 class Button extends StatefulWidget with Invokable, HasController<ButtonController, ButtonState> {
   static const type = 'Button';
@@ -29,6 +33,8 @@ class Button extends StatefulWidget with Invokable, HasController<ButtonControll
   Map<String, Function> setters() {
     return {
       'label': (value) => _controller.label = Utils.getString(value, fallback: ''),
+      'startingIcon': (value) => _controller.startingIcon = Utils.getIcon(value),
+      'endingIcon': (value) => _controller.endingIcon = Utils.getIcon(value),
       'onTap': (funcDefinition) => _controller.onTap = ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'submitForm': (value) => _controller.submitForm = Utils.optionalBool(value),
       'validateForm': (value) => _controller.validateForm = Utils.optionalBool(value),
@@ -74,6 +80,9 @@ class ButtonController extends BoxController {
   FontWeight? fontWeight;
   int? buttonWidth;
   int? buttonHeight;
+
+  IconModel? startingIcon;
+  IconModel? endingIcon;
 }
 
 
@@ -82,20 +91,39 @@ class ButtonState extends WidgetState<Button> {
   @override
   Widget buildWidget(BuildContext context) {
     bool isOutlineButton = widget._controller.outline ?? false;
-    
-    Text label = Text(Utils.translate(widget._controller.label ?? '', context));
+
+    ScopeManager? scopeManager = DataScopeWidget.getScope(context);
+    Widget? startingIcon;
+    Widget? endingIcon;
+    if (widget._controller.startingIcon != null) {
+      startingIcon = ensembleIcon.Icon.fromModel(widget._controller.startingIcon!);
+    }
+    if (widget._controller.endingIcon != null) {
+      endingIcon = ensembleIcon.Icon.fromModel(widget._controller.endingIcon!);
+    }
+    List<Widget> labelParts = [Text(Utils.translate(widget._controller.label ?? '', context))];
+    if (startingIcon != null) {
+      // TODO: follow up on icon layout options https://github.com/EnsembleUI/ensemble/pull/358#discussion_r1139023000
+      labelParts.insertAll(0, [startingIcon, const SizedBox(width: 0)]);
+    }
+    if (endingIcon != null) {
+      labelParts.addAll([const SizedBox(width: 0), endingIcon]);
+    }
+    Widget labelLayout = Row(
+        mainAxisSize: MainAxisSize.min,
+        children: labelParts);
 
     Widget? rtn;
     if (isOutlineButton) {
       rtn = TextButton(
         onPressed: isEnabled() ? () => onPressed(context) : null,
         style: getButtonStyle(context, isOutlineButton),
-        child: label);
+        child: labelLayout);
     } else {
       rtn = ElevatedButton(
         onPressed: isEnabled() ? () => onPressed(context) : null,
         style: getButtonStyle(context, isOutlineButton),
-        child: label);
+        child: labelLayout);
     }
 
     // add margin if specified
