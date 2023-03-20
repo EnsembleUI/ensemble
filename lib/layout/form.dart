@@ -5,7 +5,7 @@ import 'package:ensemble/util/layout_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/ensemble_icon.dart';
-import 'package:ensemble/widget/form_helper.dart';
+import 'package:ensemble/widget/input/form_helper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/widget_util.dart' as util;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -42,7 +42,7 @@ class EnsembleForm extends StatefulWidget with UpdatableContainer, Invokable, Ha
   @override
   Map<String, Function> setters() {
     return {
-      'onSubmit': (funcDefinition) => _controller.onSubmit = Utils.getAction(funcDefinition, initiator: this),
+      'onSubmit': (funcDefinition) => _controller.onSubmit = EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'labelPosition': (value) => handleLabelPosition(Utils.optionalString(value)),
       'labelOverflow': (value) => _controller.labelOverflow = Utils.optionalString(value),
       'enabled': (value) => _controller.enabled = Utils.optionalBool(value),

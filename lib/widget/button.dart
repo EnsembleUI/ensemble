@@ -1,11 +1,11 @@
 
 import 'package:ensemble/framework/action.dart' as ensemble;
+import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/layout/form.dart';
 import 'package:ensemble/screen_controller.dart';
-import 'package:ensemble/util/theme_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
-import 'package:ensemble/widget/form_helper.dart';
+import 'package:ensemble/widget/input/form_helper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/layout/form.dart' as ensembleForm;
@@ -29,7 +29,7 @@ class Button extends StatefulWidget with Invokable, HasController<ButtonControll
   Map<String, Function> setters() {
     return {
       'label': (value) => _controller.label = Utils.getString(value, fallback: ''),
-      'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, initiator: this),
+      'onTap': (funcDefinition) => _controller.onTap = ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'submitForm': (value) => _controller.submitForm = Utils.optionalBool(value),
       'validateForm': (value) => _controller.validateForm = Utils.optionalBool(value),
       'validateFields': (items) => _controller.validateFields = Utils.getList(items),
@@ -39,6 +39,8 @@ class Button extends StatefulWidget with Invokable, HasController<ButtonControll
       'color': (value) => _controller.color = Utils.getColor(value),
       'fontSize': (value) => _controller.fontSize = Utils.optionalInt(value),
       'fontWeight': (value) => _controller.fontWeight = Utils.getFontWeight(value),
+      'width': (value) => _controller.buttonWidth = Utils.optionalInt(value),
+      'height': (value) => _controller.buttonHeight = Utils.optionalInt(value),
     };
   }
   @override
@@ -70,6 +72,8 @@ class ButtonController extends BoxController {
   Color? color;
   int? fontSize;
   FontWeight? fontWeight;
+  int? buttonWidth;
+  int? buttonHeight;
 }
 
 
@@ -129,11 +133,13 @@ class ButtonState extends WidgetState<Button> {
     // and we do not want to override the default theme if not specified
     //int borderRadius = widget._controller.borderRadius ?? defaultButtonStyle?.
 
-    return ThemeUtils.getButtonStyle(
+    return ThemeManager().getButtonStyle(
         isOutline: isOutlineButton,
         color: widget._controller.color,
         backgroundColor: widget._controller.backgroundColor,
         border: border,
+        buttonHeight: widget._controller.buttonHeight?.toDouble(),
+        buttonWidth: widget._controller.buttonWidth?.toDouble(),
         padding: widget._controller.padding,
         fontSize: widget._controller.fontSize,
         fontWeight: widget._controller.fontWeight

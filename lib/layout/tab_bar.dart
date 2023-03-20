@@ -65,8 +65,8 @@ abstract class BaseTabBar extends StatefulWidget with Invokable, HasController<T
       'indicatorColor': (color) => _controller.indicatorColor = Utils.getColor(color),
       'indicatorThickness': (thickness) => _controller.indicatorThickness = Utils.optionalInt(thickness),
 
-      'selectedIndex': (index) => _controller.selectedIndex = Utils.getInt(index, fallback: 0),
-      'onTabSelection': (action) => _controller.onTabSelection = Utils.getAction(action, initiator: this),
+      'selectedIndex': (index) => _controller.selectedIndex = Utils.getInt(index, min: 0, fallback: 0),
+      'onTabSelection': (action) => _controller.onTabSelection = EnsembleAction.fromYaml(action, initiator: this),
       'items': (items) => _controller.items = items,
     };
   }
@@ -110,6 +110,10 @@ class TabBarState extends WidgetState<BaseTabBar> with SingleTickerProviderState
 
   @override
   void initState() {
+    // ensure the selectedIndex is valid, otherwise reset
+    if (widget._controller.selectedIndex >= widget._controller._items.length) {
+      widget._controller.selectedIndex = 0;
+    }
     _tabController = TabController(
         initialIndex: widget._controller.selectedIndex,
         length: widget._controller._items.length,

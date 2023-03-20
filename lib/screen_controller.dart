@@ -8,7 +8,9 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/camera_manager.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/framework/widget/toast.dart';
@@ -52,6 +54,12 @@ class ScreenController {
     if (scopeManager == null && context.widget is ensemble.Page) {
       scopeManager = (context.widget as ensemble.Page).rootScopeManager;
     }
+
+    // If we still can't find a ScopeManager, look into the PageGroupWidget
+    // which extends the DataScopeWidget. We have to do this again since
+    // Unfortunately look up only works by exact type (and not inherited type)
+    scopeManager ??= PageGroupWidget.getScope(context);
+
     return scopeManager;
   }
 
@@ -111,7 +119,7 @@ class ScreenController {
 
         HttpUtils.invokeApi(apiDefinition, dataContext)
             .then((response) => _onAPIComplete(context, dataContext, action, apiDefinition, Response(response), apiMap, scopeManager))
-            .onError((error, stackTrace) => processAPIError(context, dataContext, apiDefinition, error, apiMap, scopeManager));
+            .onError((error, stackTrace) => processAPIError(context, dataContext, action, apiDefinition, error, apiMap, scopeManager));
       } else {
         throw RuntimeError("Unable to find api definition for ${action.apiName}");
       }
@@ -122,12 +130,20 @@ class ScreenController {
         nextArgs[key] = dataContext.eval(value);
       });
 
+      RouteOption? routeOption;
+      if (action is NavigateScreenAction) {
+        if (action.options?['clearAllScreens'] == true) {
+          routeOption = RouteOption.clearAllScreens;
+        } else if (action.options?['replaceCurrentScreen'] == true) {
+          routeOption = RouteOption.replaceCurrentScreen;
+        }
+      }
+
       PageRouteBuilder routeBuilder = navigateToScreen(
           providedDataContext.buildContext,
           screenName: dataContext.eval(action.screenName),
           asModal: action.asModal,
-          replace: action is NavigateScreenAction &&
-            action.options?['replaceCurrentScreen'] == true,
+          routeOption: routeOption,
           pageArgs: nextArgs);
 
       // process onModalDismiss
@@ -310,8 +326,8 @@ class ScreenController {
       }
     } else if (action is ShowToastAction) {
       Widget? customToastBody;
-      if (scopeManager != null && action.type == ToastType.custom && action.body != null) {
-        customToastBody = scopeManager.buildWidgetFromDefinition(action.body);
+      if (scopeManager != null && action.widget != null) {
+        customToastBody = scopeManager.buildWidgetFromDefinition(action.widget);
       }
       ToastController().showToast(context, action, customToastBody);
     } else if ( action is OpenUrlAction ) {
@@ -405,7 +421,7 @@ class ScreenController {
   /// e.g upon return of API result
   void _onAPIComplete(BuildContext context, DataContext dataContext, InvokeAPIAction action, YamlMap apiDefinition, Response response, Map<String, YamlMap>? apiMap, ScopeManager? scopeManager) {
     // first execute API's onResponse code block
-    EnsembleAction? onResponse = Utils.getAction(apiDefinition['onResponse'], initiator: action.initiator);
+    EnsembleAction? onResponse = EnsembleAction.fromYaml(apiDefinition['onResponse'], initiator: action.initiator);
     if (onResponse != null) {
       processAPIResponse(context, dataContext, onResponse, response, apiMap, scopeManager, apiChangeHandler: dispatchAPIChanges, action: action, modifiableAPIResponse: true);
     }
@@ -482,13 +498,18 @@ class ScreenController {
   }
 
   /// executing the onError action
-  void processAPIError(BuildContext context, DataContext dataContext, YamlMap apiDefinition, Object? error, Map<String, YamlMap>? apiMap, ScopeManager? scopeManager) {
+  void processAPIError(BuildContext context, DataContext dataContext, InvokeAPIAction action, YamlMap apiDefinition, Object? error, Map<String, YamlMap>? apiMap, ScopeManager? scopeManager) {
     log("Error: $error");
 
-    EnsembleAction? onErrorAction = Utils.getAction(apiDefinition['onError']);
+    EnsembleAction? onErrorAction = EnsembleAction.fromYaml(apiDefinition['onError']);
     if (onErrorAction != null) {
       // probably want to include the error?
       _executeAction(context, dataContext, onErrorAction, apiMap, scopeManager);
+    }
+
+    // if our Action has onError, invoke that next
+    if (action.onError != null) {
+      _executeAction(context, dataContext, action.onError!, apiMap, scopeManager);
     }
 
     // silently fail if error handle is not defined? or should we alert user?
@@ -502,7 +523,7 @@ class ScreenController {
   PageRouteBuilder navigateToScreen(BuildContext context, {
     String? screenName,
     bool? asModal,
-    bool? replace,
+    RouteOption? routeOption,
     Map<String, dynamic>? pageArgs,
   }) {
     PageType pageType = asModal == true ? PageType.modal : PageType.regular;
@@ -510,7 +531,10 @@ class ScreenController {
     Widget screenWidget = getScreen(screenName: screenName, asModal: asModal, pageArgs: pageArgs);
 
     PageRouteBuilder route = getScreenBuilder(screenWidget, pageType: pageType);
-    if (replace == true) {
+    // push the new route and remove all existing screens. This is suitable for logging out.
+    if (routeOption == RouteOption.clearAllScreens) {
+      Navigator.pushAndRemoveUntil(context, route, (route) => false);
+    } else if (routeOption == RouteOption.replaceCurrentScreen) {
       Navigator.pushReplacement(context, route);
     } else {
       Navigator.push(context, route);
@@ -599,9 +623,9 @@ class ScreenController {
     }
   }
 
+}
 
-
-
-
-
+enum RouteOption {
+  replaceCurrentScreen,
+  clearAllScreens
 }

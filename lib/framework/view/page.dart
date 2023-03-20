@@ -5,6 +5,7 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/menu.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/page_group.dart';
@@ -44,7 +45,6 @@ class Page extends StatefulWidget {
 
 
 class PageState extends State<Page>{
-  String menuDisplay = MenuDisplay.navBar.name;
   late Widget rootWidget;
   late ScopeManager _scopeManager;
 
@@ -230,15 +230,17 @@ class PageState extends State<Page>{
 
     // build the navigation menu (bottom nav bar or drawer). Note that menu is not applicable on modal pages
     if (widget._pageModel.menu != null && widget._pageModel.screenOptions?.pageType != PageType.modal) {
-      menuDisplay = _scopeManager.dataContext.eval(widget._pageModel.menu!.display);
-      if (menuDisplay == null || menuDisplay == MenuDisplay.bottomNavBar.name || menuDisplay == MenuDisplay.navBar.name) {
-        _bottomNavBar = _buildBottomNavBar(context, widget._pageModel.menu!);
-      } else if (menuDisplay == MenuDisplay.drawer.name) {
-        _drawer ??= _buildDrawer(context, widget._pageModel.menu!);
-      } else if (menuDisplay == MenuDisplay.endDrawer.name) {
-        _endDrawer ??= _buildDrawer(context, widget._pageModel.menu!);
+      if (widget._pageModel.menu is BottomNavBarMenu) {
+        _bottomNavBar = _buildBottomNavBar(context, widget._pageModel.menu as BottomNavBarMenu);
+      } else if (widget._pageModel.menu is DrawerMenu) {
+        if (!(widget._pageModel.menu as DrawerMenu).atStart) {
+          _endDrawer ??= _buildDrawer(context, widget._pageModel.menu as DrawerMenu);
+
+        } else {
+          _drawer ??= _buildDrawer(context, widget._pageModel.menu as DrawerMenu);
+        }
       }
-      // left/right navBar will be rendered as part of the body
+      // sidebar navBar will be rendered as part of the body
     }
 
     Color? backgroundColor = Utils.getColor(widget._pageModel.pageStyles?['backgroundColor']);
@@ -309,10 +311,8 @@ class PageState extends State<Page>{
       return Stack(
         children: [
           Positioned.fill(
-              child: CachedNetworkImage(
-            imageUrl: backgroundImage.source,
-            fit: BoxFit.cover,
-          )),
+              child: backgroundImage.asImageWidget
+          ),
           rtn
         ],
       );
@@ -364,14 +364,15 @@ class PageState extends State<Page>{
     // ignore safe area is only applicable if we don't have an AppBar
     bool _useSafeArea = !hasAppBar && useSafeArea();
 
+    if (widget._pageModel.menu is SidebarMenu) {
+      SidebarMenu sidebarMenu = widget._pageModel.menu as SidebarMenu;
 
-    if (menuDisplay == MenuDisplay.leftNavBar.name || menuDisplay == MenuDisplay.navBar_left.name) {
-      List<model.MenuItem> menuItems = widget._pageModel.menu!.menuItems;
+      List<MenuItem> menuItems = sidebarMenu.menuItems;
       List<NavigationRailDestination> navItems = [];
       for (int i=0; i<menuItems.length; i++) {
-        model.MenuItem item = menuItems[i];
+        MenuItem item = menuItems[i];
         navItems.add(NavigationRailDestination(
-          padding: Utils.getInsets(widget._pageModel.menu!.styles?['itemPadding']),
+          padding: Utils.getInsets(sidebarMenu.styles?['itemPadding']),
           icon: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
           label: Text(Utils.translate(item.label ?? '', context))));
       }
@@ -379,8 +380,8 @@ class PageState extends State<Page>{
       // TODO: consolidate buildWidget into 1 place
       double paddingFromSafeSpace = 15;
       Widget? headerWidget;
-      if (widget._pageModel.menu!.headerModel != null) {
-        headerWidget = _scopeManager.buildWidget(widget._pageModel.menu!.headerModel!);
+      if (sidebarMenu.headerModel != null) {
+        headerWidget = _scopeManager.buildWidget(sidebarMenu.headerModel!);
       }
       Widget menuHeader = Column(children: [
        SizedBox(height: paddingFromSafeSpace),
@@ -390,30 +391,30 @@ class PageState extends State<Page>{
       ]);
 
       Widget? menuFooter;
-      if (widget._pageModel.menu!.footerModel != null) {
+      if (sidebarMenu.footerModel != null) {
         // push footer to the bottom of the rail
         menuFooter = Expanded(
           child: Align(
             alignment: Alignment.bottomCenter,
-            child: _scopeManager.buildWidget(widget._pageModel.menu!.footerModel!)
+            child: _scopeManager.buildWidget(sidebarMenu.footerModel!)
           ),
         );
       }
 
-      MenuItemDisplay itemDisplay = MenuItemDisplay.values.from(widget._pageModel.menu!.styles?['itemDisplay']) ?? MenuItemDisplay.stacked;
+      MenuItemDisplay itemDisplay = MenuItemDisplay.values.from(sidebarMenu.styles?['itemDisplay']) ?? MenuItemDisplay.stacked;
 
       // stacked's min gap seems to be 72 regardless of what we set. For side by side optimal min gap is around 40
       // we set this minGap and let user controls with itemPadding
       int minGap = itemDisplay == MenuItemDisplay.sideBySide ? 40 : 72;
 
       // minExtendedWidth is applicable only for side by side, and should never be below minWidth (or exception)
-      int minWidth = Utils.optionalInt(widget._pageModel.menu!.styles?['minWidth'], min: minGap) ?? 200;
+      int minWidth = Utils.optionalInt(sidebarMenu.styles?['minWidth'], min: minGap) ?? 200;
 
 
 
       List<Widget> content = [];
       // process menu styles
-      Color? menuBackground = Utils.getColor(widget._pageModel.menu!.styles?['backgroundColor']);
+      Color? menuBackground = Utils.getColor(sidebarMenu.styles?['backgroundColor']);
       content.add(NavigationRail(
         extended: itemDisplay == MenuItemDisplay.sideBySide ? true : false,
         minExtendedWidth: minWidth.toDouble(),
@@ -457,10 +458,10 @@ class PageState extends State<Page>{
 
 
 
-  Drawer? _buildDrawer(BuildContext context, Menu menu) {
+  Drawer? _buildDrawer(BuildContext context, DrawerMenu menu) {
     List<ListTile> navItems = [];
     for (int i=0; i<menu.menuItems.length; i++) {
-      model.MenuItem item = menu.menuItems[i];
+      MenuItem item = menu.menuItems[i];
       navItems.add(ListTile(
         selected: i == selectedPage,
         title: Text(Utils.translate(item.label ?? '', context)),
@@ -478,15 +479,10 @@ class PageState extends State<Page>{
   }
 
   /// Build a Bottom Navigation Bar (default if display is not specified)
-  BottomNavigationBar? _buildBottomNavBar(BuildContext context, Menu menu) {
-    // need to have at least 2 items
-    if (menu.menuItems.length < 2) {
-      throw LanguageError("Menu requires at least 2 items.");
-    }
-
+  BottomNavigationBar? _buildBottomNavBar(BuildContext context, BottomNavBarMenu menu) {
     List<BottomNavigationBarItem> navItems = [];
     for (int i=0; i<menu.menuItems.length; i++) {
-      model.MenuItem item = menu.menuItems[i];
+      MenuItem item = menu.menuItems[i];
       navItems.add(BottomNavigationBarItem(
           icon: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
           label: Utils.translate(item.label ?? '', context)));
@@ -501,10 +497,9 @@ class PageState extends State<Page>{
           }
         },
         currentIndex: selectedPage);
-
   }
 
-  void selectNavigationIndex(BuildContext context, model.MenuItem menuItem) {
+  void selectNavigationIndex(BuildContext context, MenuItem menuItem) {
     ScreenController().navigateToScreen(context, screenName: menuItem.page);
   }
 
