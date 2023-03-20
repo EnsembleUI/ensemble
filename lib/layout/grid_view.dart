@@ -8,7 +8,7 @@ import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
-import 'package:ensemble/widget/helpers/theme_manager.dart';
+import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
@@ -57,7 +57,7 @@ class GridView extends StatefulWidget
       'itemAspectRatio': (value) =>
           _controller.itemAspectRatio = Utils.optionalDouble(value, min: 0),
       'onItemTap': (funcDefinition) => _controller.onItemTap =
-          Utils.getAction(funcDefinition, initiator: this),
+          EnsembleAction.fromYaml(funcDefinition, initiator: this),
     };
   }
 

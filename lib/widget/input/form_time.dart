@@ -4,7 +4,8 @@ import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/form_helper.dart';
+import 'package:ensemble/widget/input/form_helper.dart';
+import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
@@ -39,7 +40,7 @@ class Time extends StatefulWidget with Invokable, HasController<TimeController, 
   Map<String, Function> setters() {
     return {
       'initialValue': (value) => _controller.initialValue = Utils.getTimeOfDay(value),
-      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this)
+      'onChange': (definition) => _controller.onChange = EnsembleAction.fromYaml(definition, initiator: this)
     };
   }
 
@@ -61,35 +62,32 @@ class TimeController extends FormFieldController {
 class TimeState extends FormFieldWidgetState<Time> {
   @override
   Widget buildWidget(BuildContext context) {
-    return FormField<DateTime>(
-      key: validatorKey,
-      validator: (value) {
-        if (widget._controller.required && widget._controller.value == null) {
-          return Utils.translateWithFallback('ensemble.input.required', 'This field is required');
-        }
-        return null;
-      },
-      builder: (FormFieldState<DateTime> field) {
-        return InputDecorator(
-          decoration: inputDecoration.copyWith(
-            border: InputBorder.none,
-            enabledBorder: InputBorder.none,
-            disabledBorder: InputBorder.none,
-            focusedBorder: InputBorder.none,
-            errorText: field.errorText
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              InkWell(
-                child: nowBuildWidget(),
-                onTap: isEnabled() ? () => _selectTime(context) : null
-              )
-            ]
-          )
-        );
-      }
-    );
+    return InputWrapper(
+        controller: widget.controller,
+        widget: FormField<DateTime>(
+            key: validatorKey,
+            validator: (value) {
+              if (widget._controller.required &&
+                  widget._controller.value == null) {
+                return Utils.translateWithFallback(
+                    'ensemble.input.required', 'This field is required');
+              }
+              return null;
+            },
+            builder: (FormFieldState<DateTime> field) {
+              return InputDecorator(
+                  decoration: inputDecoration.copyWith(
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      errorText: field.errorText),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    InkWell(
+                        child: nowBuildWidget(),
+                        onTap: isEnabled() ? () => _selectTime(context) : null)
+                  ]));
+            }));
 
   }
 

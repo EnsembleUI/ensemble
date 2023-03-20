@@ -1,0 +1,6 @@
+Widgets:
+  Input:
+    # default variant is Underline
+    borderRadius: 5
+    borderColor: 0xFF404040
+    focusedBorderColor: 0xFF49DEFF

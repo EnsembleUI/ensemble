@@ -45,7 +45,7 @@ class EnsembleMap extends StatefulWidget with Invokable, HasController<MyControl
       'markerHeight': (height) => _controller.markerHeight = height,
       'boundaryPadding': (padding) => _controller.boundaryPadding = Utils.optionalInsets(padding),
       'selectedMarker': (index) => _controller.updateSelectedMarker(Utils.optionalInt(index)),
-      'onMarkerTap': (action) => _controller.onMarkerTap = Utils.getAction(action, initiator: this),
+      'onMarkerTap': (action) => _controller.onMarkerTap = EnsembleAction.fromYaml(action, initiator: this),
 
     };
   }

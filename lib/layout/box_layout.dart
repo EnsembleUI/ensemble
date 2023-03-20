@@ -6,7 +6,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/layout_utils.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/helpers/theme_manager.dart';
+import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
@@ -80,7 +80,7 @@ abstract class BoxLayout extends StatefulWidget with UpdatableContainer, Invokab
   @override
   Map<String, Function> setters() {
     return {
-      'onTap': (funcDefinition) => _controller.onTap = Utils.getAction(funcDefinition, initiator: this),
+      'onTap': (funcDefinition) => _controller.onTap = EnsembleAction.fromYaml(funcDefinition, initiator: this),
     };
   }
   @override

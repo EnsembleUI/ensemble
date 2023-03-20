@@ -2,7 +2,7 @@ import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/form_helper.dart';
+import 'package:ensemble/widget/input/form_helper.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
@@ -42,7 +42,7 @@ class DateRange extends StatefulWidget with Invokable, HasController<DateRangeCo
   Map<String, Function> setters() {
     return {
       'fontSize': (value) => _controller.fontSize = Utils.optionalInt(value),
-      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this)
+      'onChange': (definition) => _controller.onChange = EnsembleAction.fromYaml(definition, initiator: this)
     };
   }
 

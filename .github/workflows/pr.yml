@@ -1,0 +1,27 @@
+name: Execute Tests on PR
+on:
+  push:
+  pull_request:
+    branches: [main]
+
+jobs:
+
+  runUnitTest:
+    name: Execute Unit/Widget tests
+  
+    runs-on: macos-latest
+    steps:
+    
+    - name: Checkout Code
+      uses: actions/checkout@v3
+      
+    - name: Setup Flutter SDK
+      uses: subosito/flutter-action@v2
+      with:
+        channel: 'stable'
+
+    - name: Pub Upgrade
+      run: flutter pub upgrade
+
+    - name: Run Unit Tests / Widget Tests
+      run: flutter test
