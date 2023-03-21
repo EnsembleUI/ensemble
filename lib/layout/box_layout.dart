@@ -200,11 +200,14 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
         SizedBox(width: widget._controller.gap!.toDouble());
 
       List<Widget> updatedChildren = [];
-      for (var i=0; i<children.length; i++) {
+      for (var i = 0; i < children.length; i++) {
         updatedChildren.add(children[i]);
-        final visibleChild = children[i] is HasController && ((children[i] as HasController).controller as WidgetController).visible;
-        if (i != children.length - 1 && visibleChild) {
-          updatedChildren.add(gapWidget);
+        final isWidgetController = children[i] is HasController && ((children[i] as HasController).controller is WidgetController);
+        if (isWidgetController) {
+          final visibleChild = ((children[i] as HasController).controller as WidgetController).visible;
+          if (i != children.length - 1 && visibleChild) {
+            updatedChildren.add(gapWidget);
+          }
         }
       }
       children = updatedChildren;
