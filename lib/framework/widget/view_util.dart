@@ -237,7 +237,7 @@ class ViewUtil {
       // processed, so wraps it in a CustomView widget
       return w;
     }
-    return const Text("Unsupported Widget");
+    throw LanguageError("Unsupported Widget: ${model.type}");
   }
 
   /// traverse the scope breath-first and propagate all data from the root down
