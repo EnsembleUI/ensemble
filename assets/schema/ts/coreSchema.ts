@@ -13,6 +13,7 @@ export interface Widgets extends RootWidgets {
   Text?:widgets.Text;
   
 }
+
 export interface ItemTemplate {
   data: string;
   name: string;
@@ -22,8 +23,12 @@ export interface TemplatedWidget {
   "item-template"?: ItemTemplate;
 }
 
+type ExclusiveUnion<A, B> = (A | B) extends object
+  ? (Exclude<keyof A, keyof B> extends never ? B : A & B)
+  : A | B;
+
 export interface ViewGroup extends RootWidgets {
-  menu?: {BottomNavBar: BottomNavBar} | {SideBar: SideBar} 
+  menu?: ExclusiveUnion<{BottomNavBar: BottomNavBar}, {SideBar: SideBar}>;
   header?: string | Widgets;
   
 }
