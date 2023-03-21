@@ -6,7 +6,6 @@ import 'package:ensemble/util/utils.dart';
 
 /// utility for our Widgets
 class WidgetUtils {
-
   /// wrap our widget in a Box, which supports margin, padding, border, ...
   @Deprecated('use BoxWrapper instead')
   static Widget wrapInBox(Widget widget, BoxController boxController) {
@@ -21,17 +20,14 @@ class WidgetUtils {
     return Container(
         margin: boxController.margin,
         decoration: BoxDecoration(
-            border: !boxController.hasBorder() ?
-            null :
-            Border.all(
-                color: boxController.borderColor ?? Colors.black26,
-                width: (boxController.borderWidth ?? 1).toDouble()),
-            borderRadius: borderRadius
-        ),
+            border: !boxController.hasBorder()
+                ? null
+                : Border.all(
+                    color: boxController.borderColor ?? Colors.black26,
+                    width: (boxController.borderWidth ?? 1).toDouble()),
+            borderRadius: borderRadius),
         padding: boxController.padding,
-        child: realWidget
-    );
-
+        child: realWidget);
   }
 
   static BoxFit? getBoxFit(String? inputFit) {
@@ -74,8 +70,8 @@ class WidgetUtils {
     }
     return shape;
   }
-
 }
+
 class TextController extends BoxController {
   // set from caller
   String? text;
@@ -83,7 +79,7 @@ class TextController extends BoxController {
   String? textAlign;
 
   // use our setters
-  String? font;   // pre-defined font styles
+  String? font; // pre-defined font styles
   String? fontFamily;
   int? fontSize;
   FontWeight? fontWeight;
@@ -91,28 +87,35 @@ class TextController extends BoxController {
   String? lineHeight;
   String? textStyle;
 }
+
 class TextUtils {
-  static void setStyles(Map styles,TextController controller) {
-    Map<String,Function> setters = styleSetters(controller);
+  static void setStyles(Map styles, TextController controller) {
+    Map<String, Function> setters = styleSetters(controller);
     styles.forEach((key, value) {
-      if ( setters.containsKey(key) ) {
-        if ( setters[key] != null ) {
+      if (setters.containsKey(key)) {
+        if (setters[key] != null) {
           setters[key]!.call(value);
         }
       }
     });
   }
-  static Map<String,Function> styleSetters(TextController _controller) {
+
+  static Map<String, Function> styleSetters(TextController _controller) {
     return {
       'font': (value) => _controller.font = Utils.optionalString(value),
-      'fontFamily': (value) => _controller.fontFamily = Utils.optionalString(value),
+      'fontFamily': (value) =>
+          _controller.fontFamily = Utils.optionalString(value),
       'fontSize': (value) => _controller.fontSize = Utils.optionalInt(value),
-      'fontWeight': (value) => _controller.fontWeight = Utils.getFontWeight(value),
+      'fontWeight': (value) =>
+          _controller.fontWeight = Utils.getFontWeight(value),
       'color': (value) => _controller.color = Utils.getColor(value),
-      'lineHeight': (value) => _controller.lineHeight = Utils.optionalString(value),
-      'textStyle': (value) => _controller.textStyle = Utils.optionalString(value),
+      'lineHeight': (value) =>
+          _controller.lineHeight = Utils.optionalString(value),
+      'textStyle': (value) =>
+          _controller.textStyle = Utils.optionalString(value),
     };
   }
+
   static flutter.Text buildText(TextController controller) {
     FontWeight? fontWeight;
     double? fontSize;
@@ -205,9 +208,7 @@ class TextUtils {
         lineHeight = 2.5;
         break;
     }
-    return flutter.Text(
-
-        controller.text ?? '',
+    return flutter.Text(controller.text ?? '',
         textAlign: textAlign,
         overflow: textOverflow.overflow,
         maxLines: textOverflow.maxLine,
@@ -220,14 +221,9 @@ class TextUtils {
             decoration: textDecoration,
             fontSize: fontSize,
             color: fontColor,
-            height: lineHeight)
-    );
-
+            height: lineHeight));
   }
 }
-
-
-
 
 class TextOverflow {
   TextOverflow(this.overflow, this.maxLine, this.softWrap);
@@ -239,7 +235,7 @@ class TextOverflow {
     flutter.TextOverflow? textOverflow;
     int? maxLine = 1;
     bool? softWrap = false;
-    switch(overflow) {
+    switch (overflow) {
       case 'visible':
         textOverflow = flutter.TextOverflow.visible;
         break;
