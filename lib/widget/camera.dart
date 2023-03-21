@@ -82,6 +82,8 @@ class Camera extends StatefulWidget
           _controller.imagePickerIcon = Utils.getIcon(value),
       'cameraRotateIcon': (value) =>
           _controller.cameraRotateIcon = Utils.getIcon(value),
+      'focusIcon': (value) =>
+          _controller.focusIcon = Utils.getIcon(value),
       'onComplete': (value) => _controller.onComplete =
           EnsembleAction.fromYaml(value, initiator: this),
       'assistAngle': (value) =>
@@ -126,6 +128,7 @@ class MyCameraController extends WidgetController {
   String? assistSpeedMessage;
   IconModel? imagePickerIcon;
   IconModel? cameraRotateIcon;
+  IconModel? focusIcon;
   EnsembleAction? onComplete;
 
   List<File> mediaList = [];
@@ -428,8 +431,9 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
               return Positioned(
                 left: _offset!.dx - 24,
                 top: _offset!.dy - 24,
-                child:
-                    Icon(Icons.filter_tilt_shift, color: iconColor, size: 48),
+                child: widget._controller.focusIcon != null 
+                        ? iconframework.Icon.fromModel(widget._controller.focusIcon!)
+                        : Icon(Icons.filter_tilt_shift, color: iconColor, size: 48),
               );
             }
             return const SizedBox.shrink();
@@ -600,12 +604,6 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
           Text(
             widget._controller.permissionDeniedMessage ??
                 'To capture photos and videos, allow access to your camera.',
-          ),
-          ElevatedButton(
-            child: Text(widget._controller.accessButtonLabel ??
-                Utils.translateWithFallback(
-                    'ensemble.input.accessButtonLabel', 'Allow access')),
-            onPressed: handlPermission,
           ),
           const Spacer(),
           mediaThumbnail(),
@@ -1206,23 +1204,6 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
 
     controller.setExposurePoint(offset);
     controller.setFocusPoint(offset);
-  }
-
-  void handlPermission() {
-    // TODO
-  }
-
-  void _onFlashTap() {
-    setState(() {
-      if (_flashMode == FlashMode.off) {
-        _flashMode = FlashMode.auto;
-      } else if (_flashMode == FlashMode.auto) {
-        _flashMode = FlashMode.always;
-      } else {
-        _flashMode = FlashMode.off;
-      }
-    });
-    widget._controller.cameraController?.setFlashMode(_flashMode);
   }
 
   String getAssistAngleMessage() {

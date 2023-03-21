@@ -19,6 +19,7 @@ const optionMappings = {
   'nextButtonLabel': 'nextButtonLabel',
   'cameraRotateIcon': 'cameraRotateIcon',
   'galleryPickerIcon': 'galleryPickerIcon',
+  'focusIcon': 'focusIcon',
   'maxCountMessage': 'maxCountMessage',
 };
 
