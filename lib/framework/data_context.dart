@@ -657,18 +657,11 @@ class FileData with Invokable {
   FileData({List<File>? files}) : _files = files;
 
   final List<File>? _files;
-  Response? _response;
-
-  setResponse(Response response) {
-    _response = response;
-  }
 
   @override
   Map<String, Function> getters() {
     return {
       'files': () => _files?.map((file) => file.toJson()).toList(),
-      'body': () => _response?.body,
-      'headers': () => _response?.headers
     };
   }
 
@@ -693,6 +686,12 @@ class File {
     path = kIsWeb ? null : file.path,
     bytes = file.bytes;
 
+  File.fromJson(Map<String, dynamic> file):
+    name = file['name'],
+    ext = file['extension'],
+    size = file['size'],
+    path = file['path'],
+    bytes = file['bytes'];
 
   final String name;
   /// The file size in bytes. Defaults to `0` if the file size could not be

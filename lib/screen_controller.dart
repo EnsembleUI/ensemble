@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:developer';
+import 'dart:ffi';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/bindings.dart';
@@ -74,7 +75,7 @@ class ScreenController {
   }
 
   /// internally execute an Action
-  void _executeAction(BuildContext context, DataContext providedDataContext, EnsembleAction action, Map<String, YamlMap>? apiMap, ScopeManager? scopeManager,{EnsembleEvent? event}) {
+  Future<void> _executeAction(BuildContext context, DataContext providedDataContext, EnsembleAction action, Map<String, YamlMap>? apiMap, ScopeManager? scopeManager,{EnsembleEvent? event}) async {
     /// Actions are short-live so we don't need a childScope, simply create a localized context from the given context
     /// Note that scopeManager may starts out without Invokable IDs (as widgets may yet to render), but at the time
     /// of API returns, they will be populated. For this reason, always rebuild data context from scope manager.
@@ -334,22 +335,23 @@ class ScreenController {
       value ??= '';
       launchUrl(Uri.parse(value),mode: (action.openInExternalApp)?LaunchMode.externalApplication:LaunchMode.platformDefault );
     } else if (action is FileUploadAction) {
-      FilePicker.platform.pickFiles(
-        type: action.allowedExtensions == null ? FileType.any: FileType.custom,
-        allowedExtensions: action.allowedExtensions,
-        allowCompression: action.allowCompression ?? true,
-        allowMultiple: action.allowMultiple ?? false,
-      ).then((result) async {
 
+        List<File>? selectedFiles;
         const defaultMaxFileSize = 100000;
         const defaultOverMaxFileSizeMessage = 'The size of is which is larger than the maximum allowed';
 
-        if (result==null || result.files.isEmpty) {
+        final rawFiles = scopeManager?.dataContext.eval(action.files) as List<dynamic>?;
+        if (rawFiles == null) {
           if (action.onError != null) executeAction(context, action.onError!);
-          return null;
+          return;
         }
 
-        final selectedFiles = result.files.map((file) => File.fromPlatformFile(file)).toList();
+        selectedFiles = rawFiles.map((data) => File.fromJson(data)).toList().cast<File>();
+        if (selectedFiles.isEmpty) {
+          if (action.onError != null) executeAction(context, action.onError!);
+          return;
+        }
+
         int totalSize = selectedFiles.fold<int>(0, (previousValue, element) => previousValue + element.size);
         totalSize = totalSize ~/ 1000;
 
@@ -365,7 +367,7 @@ class ScreenController {
         }
 
         if (action.id != null && scopeManager != null) {
-          scopeManager.dataContext.addInvokableContext(action.id!, FileData(files: selectedFiles));
+          scopeManager.dataContext.addInvokableContext(action.id!, APIResponse());
         }
         YamlMap? apiDefinition = apiMap?[action.uploadApi];
         if (apiDefinition == null) throw LanguageError('Unable to find api definition for ${action.uploadApi}');
@@ -385,12 +387,27 @@ class ScreenController {
           onError: action.onError == null ? null : (error) => executeAction(context, action.onError!),
         );
         if (response == null || action.id == null || scopeManager == null) return;
-        final fileData = scopeManager.dataContext.getContextById(action.id!) as FileData;
-        fileData.setResponse(response);
+        
+        final fileResponse = scopeManager.dataContext.getContextById(action.id!) as APIResponse;
+        fileResponse.setAPIResponse(response);
+        scopeManager.dispatch(ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
         if (action.onComplete != null) executeAction(context, action.onComplete!);
+        
+    } else if (action is FilePickerAction) {
+      FilePicker.platform.pickFiles(
+        type: action.allowedExtensions == null ? FileType.any: FileType.custom,
+        allowedExtensions: action.allowedExtensions,
+        allowCompression: action.allowCompression ?? true,
+        allowMultiple: action.allowMultiple ?? false,
+      ).then((result) {
+          if (result == null || result.files.isEmpty) return;
+          final selectedFiles = result.files.map((file) => File.fromPlatformFile(file)).toList();
+          final fileData = FileData(files: selectedFiles);
+          if (action.id == null || scopeManager == null) return;
+          scopeManager.dataContext.addDataContextById(action.id!, fileData);
+          scopeManager.dispatch(ModelChangeEvent(SimpleBindingSource(action.id!), fileData));
       });
-    }
-    else if (action is NavigateBack) {
+    } else if (action is NavigateBack) {
       if (scopeManager != null) {
         Navigator.of(context).maybePop();
       }

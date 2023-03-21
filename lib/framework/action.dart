@@ -312,12 +312,32 @@ class TimerPayload {
   final bool? isGlobal;        // if global is marked, only 1 instance is available for the entire app
 }
 
-class FileUploadAction extends EnsembleAction {
-  FileUploadAction({
-    Map<String, dynamic>? inputs,
+class FilePickerAction extends EnsembleAction {
+  FilePickerAction({
+    this.id,
     this.allowedExtensions, 
     this.allowMultiple, 
     this.allowCompression,
+  });
+
+  String? id;
+  List<String>? allowedExtensions;
+  bool? allowMultiple;
+  bool? allowCompression;
+
+  factory FilePickerAction.fromYaml({YamlMap? payload}) {
+    return FilePickerAction(
+      id: Utils.optionalString(payload?['id']),
+      allowedExtensions: (payload?['allowedExtensions'] as YamlList?)?.cast<String>().toList(),
+      allowMultiple: Utils.optionalBool(payload?['allowMultiple']),
+      allowCompression: Utils.optionalBool(payload?['allowCompression']),
+    );
+  }
+}
+
+class FileUploadAction extends EnsembleAction {
+  FileUploadAction({
+    Map<String, dynamic>? inputs,    
     this.id,
     this.onComplete,
     this.onError,
@@ -325,11 +345,9 @@ class FileUploadAction extends EnsembleAction {
     required this.fieldName,
     this.maxFileSize,
     this.overMaxFileSizeMessage,
+    required this.files,
   }) : super(inputs: inputs);
 
-  List<String>? allowedExtensions;
-  bool? allowMultiple;
-  bool? allowCompression;
   String? id;
   EnsembleAction? onComplete;
   EnsembleAction? onError;
@@ -337,6 +355,7 @@ class FileUploadAction extends EnsembleAction {
   String fieldName;
   double? maxFileSize;
   String? overMaxFileSizeMessage;
+  String files;
 
   factory FileUploadAction.fromYaml({YamlMap? payload}) {
     if (payload == null || payload['uploadApi'] == null) {
@@ -344,9 +363,6 @@ class FileUploadAction extends EnsembleAction {
     }
     return FileUploadAction(
       id: Utils.optionalString(payload['id']),
-      allowedExtensions: (payload['options']?['allowedExtensions'] as YamlList?)?.cast<String>().toList(),
-      allowMultiple: Utils.optionalBool(payload['options']?['allowMultiple']),
-      allowCompression: Utils.optionalBool(payload['options']?['allowCompression']),
       onComplete: EnsembleAction.fromYaml(payload['onComplete']),
       onError: EnsembleAction.fromYaml(payload['onError']),
       uploadApi: payload['uploadApi'],
@@ -354,12 +370,13 @@ class FileUploadAction extends EnsembleAction {
       fieldName: Utils.getString(payload['fieldName'], fallback: 'files'),
       maxFileSize: Utils.optionalDouble(payload['options']?['maxFileSize']),
       overMaxFileSizeMessage: Utils.optionalString(payload['options']?['overMaxFileSizeMessage']),
+      files: payload['files'],
     );
   }
 }
 
 
-enum ActionType { invokeAPI, navigateScreen, navigateModalScreen, showDialog, startTimer, stopTimer, closeAllDialogs, executeCode, showToast, getLocation, openUrl, openCamera, uploadFiles, navigateBack }
+enum ActionType { invokeAPI, navigateScreen, navigateModalScreen, showDialog, startTimer, stopTimer, closeAllDialogs, executeCode, showToast, getLocation, openUrl, openCamera, uploadFiles, navigateBack, pickFiles }
 
 enum ToastType { success, error, warning, info }
 
@@ -437,6 +454,8 @@ abstract class EnsembleAction {
       return FileUploadAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.openUrl) {
       return OpenUrlAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.pickFiles) {
+      return FilePickerAction.fromYaml(payload: payload);
     }
     throw LanguageError("Invalid action.", recovery: "Make sure to use one of Ensemble-provided actions.");
   }
