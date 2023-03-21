@@ -108,15 +108,13 @@ class _ErrorScreenState extends State<ErrorScreen> {
         // Align is used to position the highlight overlay
         // relative to the NavigationBar destination.
         return Scaffold(
-          body: SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.only(left: 40, right: 40, top: 40),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: children)
-            )
-          )
-        );
+            body: SafeArea(
+                child: SingleChildScrollView(
+                    padding:
+                        const EdgeInsets.only(left: 40, right: 40, top: 40),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: children))));
       },
     );
 
