@@ -814,11 +814,18 @@
     },
     "Button-payload": {
       "type": "object",
-      "required": ["label"],
       "properties": {
         "label": {
           "type": "string",
           "description": "The button label"
+        },
+        "startingIcon": {
+          "$ref": "#/$defs/HasIcon",
+          "description": "Icon placed in front of the label, according to device text alignment"
+        },
+        "endingIcon": {
+          "$ref": "#/$defs/HasIcon",
+          "description": "Icon placed behind the label, according to device text alignment"
         },
         "enabled": {
           "type": "boolean"
