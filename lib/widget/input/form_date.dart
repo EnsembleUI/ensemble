@@ -73,51 +73,55 @@ class DateState extends FormFieldWidgetState<Date> {
 
   @override
   Widget buildWidget(BuildContext context) {
-    return FormField<DateTime>(
-      key: validatorKey,
-      validator: (value) {
-        if (widget._controller.required && widget._controller.value == null) {
-          return Utils.translateWithFallback('ensemble.input.required', 'This field is required');
-        }
-        return null;
-      },
-      builder: (FormFieldState<DateTime> field) {
-        Widget rtn = InkWell(
-          onTap: isEnabled() ? () => _selectDate(context) : null,
-          child: InputDecorator(
-              isEmpty: widget._controller.value == null,
-              decoration: inputDecoration.copyWith(
-                  errorText: field.errorText,
-                  hintText: widget._controller.hintText ??
-                      Utils.translateWithFallback(
-                          'ensemble.input.date.placeholder', 'Select a date'),
-                  suffixIcon: widget._controller.showCalendarIcon != false
-                      ? Icon(
-                          Icons.calendar_month_rounded,
-                          color: formFieldTextStyle.color?.withOpacity(.5),
-                          size: ThemeManager().getInputIconSize(context).toDouble())
-                      : null),
-              child: ClearableInput(
-                text: selectedValue,
-                textStyle: formFieldTextStyle,
-                onCleared: () {
-                  setState(() {
-                    widget._controller.value = null;
-                  });
+    return InputWrapper(
+        controller: widget.controller,
+        widget: FormField<DateTime>(
+            key: validatorKey,
+            validator: (value) {
+              if (widget._controller.required &&
+                  widget._controller.value == null) {
+                return Utils.translateWithFallback(
+                    'ensemble.input.required', 'This field is required');
+              }
+              return null;
+            },
+            builder: (FormFieldState<DateTime> field) {
+              Widget rtn = InkWell(
+                  onTap: isEnabled() ? () => _selectDate(context) : null,
+                  child: InputDecorator(
+                      isEmpty: widget._controller.value == null,
+                      decoration: inputDecoration.copyWith(
+                          errorText: field.errorText,
+                          hintText: widget._controller.hintText ??
+                              Utils.translateWithFallback(
+                                  'ensemble.input.date.placeholder',
+                                  'Select a date'),
+                          suffixIcon: widget._controller.showCalendarIcon !=
+                                  false
+                              ? Icon(Icons.calendar_month_rounded,
+                                  color:
+                                      formFieldTextStyle.color?.withOpacity(.5),
+                                  size: ThemeManager()
+                                      .getInputIconSize(context)
+                                      .toDouble())
+                              : null),
+                      child: ClearableInput(
+                          text: selectedValue,
+                          textStyle: formFieldTextStyle,
+                          onCleared: () {
+                            setState(() {
+                              widget._controller.value = null;
+                            });
+                          })));
 
-                }
-              )
-          ));
-
-        if (!isEnabled()) {
-          rtn = Opacity(
-            opacity: .5,
-            child: rtn,
-          );
-        }
-        return rtn;
-      }
-    );
+              if (!isEnabled()) {
+                rtn = Opacity(
+                  opacity: .5,
+                  child: rtn,
+                );
+              }
+              return rtn;
+            }));
 
   }
 
