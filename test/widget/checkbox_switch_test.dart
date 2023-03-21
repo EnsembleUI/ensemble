@@ -29,7 +29,8 @@ void main() {
     // tap and confirm the checkbox is now checked
     await tester.tap(checkboxFinder);
     await tester.pump();
-    checkbox = tester.firstWidget(checkboxFinder);    // need to get the widget's new reference or it won't work
+    checkbox = tester.firstWidget(
+        checkboxFinder); // need to get the widget's new reference or it won't work
     expect(checkbox.value, true);
   });
 
@@ -56,7 +57,4 @@ void main() {
     aSwitch = tester.firstWidget(switchFinder);
     expect(aSwitch.value, false);
   });
-
-
-
 }

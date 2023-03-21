@@ -2,12 +2,9 @@ import 'package:flutter/material.dart';
 
 /// a wrapper around Screen and make it modal
 class ModalScreen extends StatelessWidget {
-  const ModalScreen({
-    Key? key,
-    required this.screenWidget}) : super(key: key);
+  const ModalScreen({Key? key, required this.screenWidget}) : super(key: key);
 
   final Widget screenWidget;
-
 
   @override
   Widget build(BuildContext context) {
@@ -52,6 +49,4 @@ class ModalScreen extends StatelessWidget {
 
     return screenWidget;
   }
-
-
 }

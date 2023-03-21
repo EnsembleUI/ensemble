@@ -16,9 +16,6 @@ mixin UpdatableContainer<T extends Widget> {
   void initChildren({List<T>? children, ItemTemplate? itemTemplate});
 }
 
-
-
-
 /// base class for widgets that want to participate in Ensemble layout
 abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
   ScopeManager? _scopeManager;
@@ -56,18 +53,15 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
     super.changeState();
     // dispatch changes, so anything binding to this will be notified
     if (widget.controller.lastSetterProperty != null) {
-      if (_scopeManager != null && widget is Invokable && (widget as Invokable).id != null) {
+      if (_scopeManager != null &&
+          widget is Invokable &&
+          (widget as Invokable).id != null) {
         _scopeManager!.dispatch(ModelChangeEvent(
-            WidgetBindingSource(
-                (widget as Invokable).id!,
-                property: widget.controller.lastSetterProperty!.key
-            ),
-            widget.controller.lastSetterProperty!.value
-        ));
+            WidgetBindingSource((widget as Invokable).id!,
+                property: widget.controller.lastSetterProperty!.key),
+            widget.controller.lastSetterProperty!.value));
       }
       widget.controller.lastSetterProperty = null;
     }
   }
 }
-
-
