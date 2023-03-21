@@ -1,32 +1,45 @@
 import * as widgets from './widgetSchema';
 import * as actions from './actionSchema';
 
-export interface Screen {
-  ViewGroup?: ViewGroup;
+export type App = {View: View} | {ViewGroup: ViewGroup};
+export type RootWidget = widgets.Column | widgets.Row;
+
+/* This is the root view */
+export interface View extends widgets.HasChildren {
+// 	menu?: {BottomNavBar: BottomNavBar} | {SideBar: SideBar};
+}
+export interface ViewGroup {
 
 }
-export interface RootWidgets {
-  Column?: widgets.Column
-}
-export interface Widgets extends RootWidgets {
-  Row?:widgets.Row;
-  Text?:widgets.Text;
-  
-}
-export interface ItemTemplate {
-  data: string;
-  name: string;
-  template: Widgets | string;
-}
-export interface TemplatedWidget {
-  "item-template"?: ItemTemplate;
-}
 
-export interface ViewGroup extends RootWidgets {
-  menu?: {BottomNavBar: BottomNavBar} | {SideBar: SideBar} 
-  header?: string | Widgets;
-  
-}
+
+
+
+
+
+
+
+
+
+// export interface Screen {
+//   ViewGroup?: ViewGroup;
+//
+// }
+// export interface RootWidgets {
+//   Column?: widgets.Column
+// }
+// export interface Widgets extends RootWidgets {
+//   Row?:widgets.Row;
+//   Text?:widgets.Text;
+//
+// }
+
+//
+// export interface ViewGroup extends RootWidgets {
+//   menu?: {BottomNavBar: BottomNavBar} | {SideBar: SideBar}
+//   header?: string | Widgets;
+//
+// }
 //menu widgets
 /**
  * Use the bottom navigation bar (default)
@@ -37,7 +50,7 @@ export interface BottomNavBar {
   label: string;
   page: string;
   selected: boolean;
-  onTap: actions.Action;
+//   onTap: actions.Action;
 }
 export interface SideBar {
   icon: string;
@@ -45,7 +58,7 @@ export interface SideBar {
   label: string;
   page: string;
   selected: boolean;
-  onTap: actions.Action;    
+//   onTap: actions.Action;
 }
 
 

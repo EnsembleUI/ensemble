@@ -8,7 +8,7 @@ const config = {
     path: "./coreSchema.ts",
     tsconfig: "./tsconfig.json",
    
-    type: "Screen", // Or <type-name> if you want to generate schema for that one type only,
+    type: "App", // Or <type-name> if you want to generate schema for that one type only,
     expose: "all",
     strictTuples: true,
     skipTypeCheck: false
