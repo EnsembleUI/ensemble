@@ -13,12 +13,11 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' as foundation;
 import 'package:firebase_core/firebase_core.dart';
 
-
 abstract class DefinitionProvider {
-  static Map<String,dynamic> cache = {};
+  static Map<String, dynamic> cache = {};
   final I18nProps i18nProps;
   bool cacheEnabled = false;
-  DefinitionProvider(this.i18nProps,{this.cacheEnabled=false});
+  DefinitionProvider(this.i18nProps, {this.cacheEnabled = false});
   Future<YamlMap> getDefinition({String? screenId, String? screenName});
   FlutterI18nDelegate getI18NDelegate();
 
@@ -32,7 +31,8 @@ abstract class DefinitionProvider {
 }
 
 class LocalDefinitionProvider extends DefinitionProvider {
-  LocalDefinitionProvider(this.path, this.appHome,I18nProps i18nProps): super(i18nProps);
+  LocalDefinitionProvider(this.path, this.appHome, I18nProps i18nProps)
+      : super(i18nProps);
   final String path;
   final String appHome;
   UserAppConfig? appConfig;
@@ -42,12 +42,12 @@ class LocalDefinitionProvider extends DefinitionProvider {
   FlutterI18nDelegate getI18NDelegate() {
     _i18nDelegate ??= FlutterI18nDelegate(
         translationLoader: FileTranslationLoader(
-          useCountryCode: false,
-          fallbackFile: i18nProps.fallbackLocale,
-          basePath: i18nProps.path,
-          forcedLocale: Locale(i18nProps.defaultLocale),
-          decodeStrategies: [YamlDecodeStrategy()],)
-    );
+      useCountryCode: false,
+      fallbackFile: i18nProps.fallbackLocale,
+      basePath: i18nProps.path,
+      forcedLocale: Locale(i18nProps.defaultLocale),
+      decodeStrategies: [YamlDecodeStrategy()],
+    ));
     return _i18nDelegate!;
   }
 
@@ -77,16 +77,13 @@ class LocalDefinitionProvider extends DefinitionProvider {
       config = await loadYaml(value);
       if (config != null) {
         appConfig = UserAppConfig(
-          baseUrl: config['app']?['baseUrl'],
-          useBrowserUrl: Utils.optionalBool(config['app']?['useBrowserUrl'])
-        );
+            baseUrl: config['app']?['baseUrl'],
+            useBrowserUrl: Utils.optionalBool(config['app']?['useBrowserUrl']));
       }
     } catch (error) {
       // ignore error
     }
-    return AppBundle(
-      theme: theme
-    );
+    return AppBundle(theme: theme);
   }
 
   @override
@@ -95,11 +92,11 @@ class LocalDefinitionProvider extends DefinitionProvider {
   }
 }
 
-
-
 class RemoteDefinitionProvider extends DefinitionProvider {
   // TODO: we can fetch the whole App bundle here
-  RemoteDefinitionProvider(this.path, this.appHome,bool cacheEnabled,I18nProps i18nProps): super(i18nProps,cacheEnabled:cacheEnabled);
+  RemoteDefinitionProvider(
+      this.path, this.appHome, bool cacheEnabled, I18nProps i18nProps)
+      : super(i18nProps, cacheEnabled: cacheEnabled);
   final String path;
   final String appHome;
   FlutterI18nDelegate? _i18nDelegate;
@@ -111,25 +108,24 @@ class RemoteDefinitionProvider extends DefinitionProvider {
             forcedLocale: Locale(i18nProps.defaultLocale),
             fallbackFile: i18nProps.fallbackLocale,
             useCountryCode: i18nProps.useCountryCode,
-            decodeStrategies: [YamlDecodeStrategy()])
-    );
+            decodeStrategies: [YamlDecodeStrategy()]));
     return _i18nDelegate!;
   }
+
   @override
   Future<YamlMap> getDefinition({String? screenId, String? screenName}) async {
     String screen = screenId ?? screenName ?? appHome;
 
     Completer<YamlMap> completer = Completer();
     dynamic res = DefinitionProvider.cache[screen];
-    if ( res != null ) {
+    if (res != null) {
       completer.complete(res);
       return completer.future;
     }
-    http.Response response = await http.get(
-        Uri.parse('$path$screen.yaml'));
+    http.Response response = await http.get(Uri.parse('$path$screen.yaml'));
     if (response.statusCode == 200) {
       dynamic res = loadYaml(response.body);
-      if ( cacheEnabled ) {
+      if (cacheEnabled) {
         DefinitionProvider.cache[screen] = res;
       }
       completer.complete(res);
@@ -143,8 +139,7 @@ class RemoteDefinitionProvider extends DefinitionProvider {
   Future<AppBundle> getAppBundle() async {
     // theme config is optional
     Completer<AppBundle> completer = Completer();
-    http.Response response = await http.get(
-        Uri.parse('${path}theme.config'));
+    http.Response response = await http.get(Uri.parse('${path}theme.config'));
     if (response.statusCode == 200) {
       AppBundle appBundle = AppBundle(theme: await loadYaml(response.body));
       completer.complete(appBundle);
@@ -153,6 +148,7 @@ class RemoteDefinitionProvider extends DefinitionProvider {
     }
     return completer.future;
   }
+
   // TODO: to be implemented
   @override
   UserAppConfig? getAppConfig() {
@@ -160,11 +156,10 @@ class RemoteDefinitionProvider extends DefinitionProvider {
   }
 }
 
-
-
 class LegacyDefinitionProvider extends DefinitionProvider {
-
-  LegacyDefinitionProvider(this.url, this.appId,bool cacheEnabled,I18nProps i18nProps): super(i18nProps,cacheEnabled:cacheEnabled);
+  LegacyDefinitionProvider(
+      this.url, this.appId, bool cacheEnabled, I18nProps i18nProps)
+      : super(i18nProps, cacheEnabled: cacheEnabled);
   final String url;
   final String appId;
   String? appHome;
@@ -178,10 +173,10 @@ class LegacyDefinitionProvider extends DefinitionProvider {
             forcedLocale: Locale(i18nProps.defaultLocale),
             fallbackFile: i18nProps.fallbackLocale,
             useCountryCode: i18nProps.useCountryCode,
-            decodeStrategies: [YamlDecodeStrategy()])
-    );
+            decodeStrategies: [YamlDecodeStrategy()]));
     return _i18nDelegate!;
   }
+
   @override
   Future<YamlMap> getDefinition({String? screenId, String? screenName}) async {
     String params = 'ast=false&expression_to_ast=false';
@@ -196,19 +191,21 @@ class LegacyDefinitionProvider extends DefinitionProvider {
     }
     Completer<YamlMap> completer = Completer();
     dynamic res = DefinitionProvider.cache[params];
-    if ( res != null ) {
+    if (res != null) {
       completer.complete(res);
       return completer.future;
     }
-    http.Response response = await http.get(Uri.parse('$url/screen/content?$params'));
+    http.Response response =
+        await http.get(Uri.parse('$url/screen/content?$params'));
     if (response.statusCode == 200) {
       dynamic res = loadYaml(response.body);
-      if ( cacheEnabled ) {
+      if (cacheEnabled) {
         DefinitionProvider.cache[params] = res;
       }
       completer.complete(res);
     } else {
-      completer.completeError("Error loading Ensemble page: ${screenId ?? screenName ?? 'Home'}");
+      completer.completeError(
+          "Error loading Ensemble page: ${screenId ?? screenName ?? 'Home'}");
     }
     return completer.future;
   }
@@ -246,7 +243,8 @@ class LegacyDefinitionProvider extends DefinitionProvider {
   @override
   Future<AppBundle> getAppBundle() async {
     Completer<AppBundle> completer = Completer();
-    http.Response response = await http.get(Uri.parse('$url/app/def?id=$appId'));
+    http.Response response =
+        await http.get(Uri.parse('$url/app/def?id=$appId'));
     if (response.statusCode == 200) {
       Map<String, dynamic> result = json.decode(response.body);
 
@@ -277,9 +275,4 @@ class LegacyDefinitionProvider extends DefinitionProvider {
   UserAppConfig? getAppConfig() {
     return null;
   }
-
 }
-
-
-
-

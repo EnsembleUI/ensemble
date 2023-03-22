@@ -1,4 +1,3 @@
-
 import 'dart:io';
 
 import 'package:ensemble/framework/data_context.dart';
@@ -62,23 +61,24 @@ void main() {
     expect(processed['payload']['age'], 25);
     expect(processed['payload']['skills'], ['eating', 'flying', 'drinking']);
     expect(processed['payload']['superhero'], true);
-
   });
 
   test('url', () {
-    expect(getBaseContext().eval("https://site.com/age/\${result.age}/detail"), "https://site.com/age/25/detail");
+    expect(getBaseContext().eval("https://site.com/age/\${result.age}/detail"),
+        "https://site.com/age/25/detail");
   });
 
   test('multiple matches', () {
     DataContext context = getBaseContext();
     expect(context.eval("hello \${result.name}"), "hello Peter Parker");
-    expect(context.eval("\${result.name}'s age is \${result.age}"), "Peter Parker's age is 25");
+    expect(context.eval("\${result.name}'s age is \${result.age}"),
+        "Peter Parker's age is 25");
   });
-
 
   test('Parsing expressions', () {
     // empty context returns original
-    DataContext context = DataContext(buildContext: MockBuildContext(), initialMap: {});
+    DataContext context =
+        DataContext(buildContext: MockBuildContext(), initialMap: {});
     expect(context.eval(r'${blah}'), '');
     expect(context.eval(r'${result.name}'), '');
 
@@ -90,7 +90,6 @@ void main() {
     expect(context.eval('hello'), 'hello');
   });
 
-
   test('Parsing variables', () {
     DataContext context = getBaseContext();
     expect(context.evalVariable('blah'), null);
@@ -98,15 +97,15 @@ void main() {
 
     expect(context.evalVariable('result.name'), 'Peter Parker');
     expect(context.evalVariable('result.age'), 25);
-    expect(context.evalVariable('result').toString(), dataMap['result'].toString());
+    expect(context.evalVariable('result').toString(),
+        dataMap['result'].toString());
   });
 
-
-  
   test("Widget getters", () {
     DataContext context = getDataAndWidgetContext();
-    
-    expect(context.eval(r'${myText.text} there ${result.name}'), 'Hello there Peter Parker');
+
+    expect(context.eval(r'${myText.text} there ${result.name}'),
+        'Hello there Peter Parker');
     //expect(context.eval(r'$(myTextField.value)'), 'Ronald');
 
     // invalid getter
@@ -128,7 +127,8 @@ void main() {
 
   test("Code block", () {
     DataContext context = getDataAndWidgetContext();
-    expect(context.eval(r'${myText.text} ${myTextField.value}'), 'Hello Ronald');
+    expect(
+        context.eval(r'${myText.text} ${myTextField.value}'), 'Hello Ronald');
 
     // TODO: use AST instead of code
     //context.evalCode('myText.text = "Goodbye"; myTextField.value = "Peter";');
@@ -140,7 +140,8 @@ void main() {
     context.addInvokableContext("ensemble", EnsembleMockLibrary());
     expect(context.eval(r'${ensemble.storage.get("username")}'), 'admin');
     expect(context.eval(r"${ensemble.storage.get('username')}"), 'admin');
-    expect(context.eval(r'Psst ${ensemble.storage.get("password")}'), 'Psst pass');
+    expect(
+        context.eval(r'Psst ${ensemble.storage.get("password")}'), 'Psst pass');
   });
 
   // need to re-work date time formatter
@@ -163,35 +164,33 @@ void main() {
 
   test('currency formatter', () {
     DataContext context = getBaseContext();
-    context.addInvokableContext("ensemble", NativeInvokable(MockBuildContext()));
+    context.addInvokableContext(
+        "ensemble", NativeInvokable(MockBuildContext()));
 
-    expect(context.eval(r'${result.power_for_hire.prettyCurrency()}'), '\$6,400.12');
+    expect(context.eval(r'${result.power_for_hire.prettyCurrency()}'),
+        '\$6,400.12');
     expect(context.eval(r'${result.currency_1.prettyCurrency()}'), '\$24.00');
     expect(context.eval(r'${result.currency_2.prettyCurrency()}'), '\$25.00');
     expect(context.eval(r'${result.currency_3.prettyCurrency()}'), '\$25.30');
   });
 
-  test('now', ()
-  {
+  test('now', () {
     UserDateTime userDT = MockUserDateTime("2022-09-06T13:05:00");
     expect(InvokableController.getMethods(userDT)['getYear']!.call(), 2022);
     expect(InvokableController.getMethods(userDT)['getMonth']!.call(), 9);
     expect(InvokableController.getMethods(userDT)['getDay']!.call(), 6);
-    expect(InvokableController.getMethods(userDT)['getDayOfWeek']!.call(), 2);   // Tuesday = 2
+    expect(InvokableController.getMethods(userDT)['getDayOfWeek']!.call(),
+        2); // Tuesday = 2
     expect(InvokableController.getMethods(userDT)['getHour']!.call(), 13);
     expect(InvokableController.getMethods(userDT)['getMinute']!.call(), 5);
     expect(InvokableController.getMethods(userDT)['getSecond']!.call(), 0);
   });
-
-
 }
 
 class EnsembleMockLibrary with Invokable {
   @override
   Map<String, Function> getters() {
-    return {
-      'storage': () => MockStorage()
-    };
+    return {'storage': () => MockStorage()};
   }
 
   @override
@@ -203,14 +202,10 @@ class EnsembleMockLibrary with Invokable {
   Map<String, Function> setters() {
     return {};
   }
-
 }
 
 class MockStorage with Invokable {
-  final Map<String, dynamic> data = {
-    'username': 'admin',
-    'password': 'pass'
-  };
+  final Map<String, dynamic> data = {'username': 'admin', 'password': 'pass'};
 
   @override
   Map<String, Function> getters() {
@@ -231,7 +226,6 @@ class MockStorage with Invokable {
   Map<String, Function> setters() {
     return {};
   }
-
 }
 
 class MockUserDateTime extends UserDateTime {
