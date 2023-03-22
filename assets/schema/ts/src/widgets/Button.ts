@@ -1,5 +1,5 @@
 import { Widget } from "../widgetSchema";
-import { BaseStyles, BoxStyles, fontWeight, FormInput } from "../styles";
+import { BaseStyles, BoxStyles, fontWeight } from "../styles";
 import { Action } from "../actionSchema";
 
 export interface Button extends Widget {

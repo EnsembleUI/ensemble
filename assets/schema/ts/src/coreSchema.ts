@@ -1,12 +1,18 @@
 import * as widgets from "./widgetSchema";
 import * as actions from "./actionSchema";
 import * as widgetsDef from "./widgets";
+import { Menu } from "./widgets";
 
 export interface Screen {
   ViewGroup?: ViewGroup;
 }
 export interface RootWidgets {
   Column?: widgets.Column;
+  Flow?: widgets.Flow;
+  Flex?: widgets.Flex;
+  Stack?: widgets.Stack;
+  ListView?: widgets.ListView;
+  Carousel?: widgets.Carousel;
 }
 export interface Widgets extends RootWidgets {
   Row?: widgets.Row;
@@ -27,6 +33,10 @@ export interface Widgets extends RootWidgets {
   SelectOne?: widgetsDef.SelectOne;
   Spacer?: widgetsDef.Spacer;
   Time?: widgetsDef.Time;
+  TabBar?: widgetsDef.TabBar;
+  GridView?: widgetsDef.GridView;
+  Form?: widgetsDef.Form;
+  Menu?: widgetsDef.Menu;
 }
 export interface ItemTemplate {
   data: string;
@@ -37,27 +47,11 @@ export interface TemplatedWidget {
   "item-template"?: ItemTemplate;
 }
 
-export interface ViewGroup extends RootWidgets {
-  menu?: { BottomNavBar: BottomNavBar } | { SideBar: SideBar };
-  header?: string | Widgets;
-}
+/**
+ * Group multiple Views together and put them behind a menu.
+ * */
+export type ViewGroup = Menu;
 //menu widgets
 /**
  * Use the bottom navigation bar (default)
  */
-export interface BottomNavBar {
-  icon: string;
-  iconLibrary?: string;
-  label: string;
-  page: string;
-  selected: boolean;
-  onTap: actions.Action;
-}
-export interface SideBar {
-  icon: string;
-  iconLibrary?: string;
-  label: string;
-  page: string;
-  selected: boolean;
-  onTap: actions.Action;
-}

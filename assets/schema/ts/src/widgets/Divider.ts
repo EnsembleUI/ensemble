@@ -1,10 +1,6 @@
 import { Widget } from "../widgetSchema";
 import * as styles from "../styles";
-
-enum directionEnum {
-  horizontal = "horizontal",
-  vertical = "vertical",
-}
+import { directionEnum } from "../styles";
 
 export interface Divider extends Widget {
   styles?: styles.BaseStyles &

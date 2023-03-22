@@ -11,6 +11,11 @@ enum generalColors {
   green = "green",
 }
 
+export enum directionEnum {
+  vertical = "vertical",
+  horizontal = "horizontal",
+}
+
 /**
  * Specify the action key on native device's soft keyboard
  * */

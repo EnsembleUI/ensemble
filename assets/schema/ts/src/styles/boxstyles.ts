@@ -1,7 +1,8 @@
-import { Colors, iconLibrary } from "./common";
+import { Colors, directionEnum, iconLibrary } from "./common";
 import { BaseStyles } from "./baseStyles";
+import { Widget } from "../widgetSchema";
 
-enum alignment {
+export enum alignmentEnum {
   topLeft = "topLeft",
   topCenter = "topCenter",
   topRight = "topRight",
@@ -11,6 +12,45 @@ enum alignment {
   bottomLeft = "bottomLeft",
   bottomCenter = "bottomCenter",
   bottomRight = "bottomRight",
+}
+
+enum indicatorEnum {
+  none = "none",
+  circle = "circle",
+  rectangle = "rectangle",
+}
+
+enum indicatorPositionEnum {
+  bottom = "bottom",
+  top = "top",
+}
+
+enum layoutEnum {
+  auto = "auto",
+  single = "single",
+  multiple = "multiple",
+}
+
+enum mainAxisEnum {
+  start = "start",
+  center = "center",
+  end = "end",
+  spaceBetween = "spaceBetween",
+  spaceAround = "spaceAround",
+  spaceEvenly = "spaceEvenly",
+}
+
+enum mainAxisSizeEnum {
+  min = "min",
+  max = "max",
+}
+
+enum crossAxisEnum {
+  start = "start",
+  center = "center",
+  end = "end",
+  stretch = "stretch",
+  baseline = "baseline",
 }
 
 enum shadowEnum {
@@ -32,6 +72,11 @@ export enum fitEnum {
   fitHeight = "fitHeight",
   none = "none",
   scaleDown = "scaleDown",
+}
+
+enum itemDisplayEnum {
+  stacked = "stacked",
+  sideBySide = "sideBySide",
 }
 
 type borderProperties = {
@@ -100,11 +145,11 @@ type backgroundGradient = {
     /**
      * The starting position of the gradient
      */
-    start?: alignment;
+    start?: alignmentEnum;
     /**
      * The ending position of the gradient
      */
-    end?: alignment;
+    end?: alignmentEnum;
   };
 };
 
@@ -118,12 +163,236 @@ type backgroundImage = {
      * How to fit the image within our width/height or our parent (if dimension is not specified)
      */
     fit?: fitEnum;
-    alignment?: alignment;
+    alignment?: alignmentEnum;
   };
 };
+type itemType = {
+  /**
+   * Icon name from Material Icons or Font Awesome
+   * */
+  icon: string;
+  iconLibrary?: iconLibrary;
+  label: string;
+  /**
+   * The new page to navigate to on click
+   * */
+  page: string;
+  /**
+   * Mark this item as selected. There should only be one selected item per page.
+   * */
+  selected?: boolean;
+};
+export type MenuBase = {
+  /**
+   * List of menu items (minimum 2)
+   * */
+  items: itemType[];
+  styles?: backgroundColor;
+};
+
+export type MenuWithHeaderAndFooter = MenuBase & {
+  /**
+   * The header widget for the menu
+   * */
+  header?: Widget;
+  /*
+   * The footer widget for the menu
+   * */
+  footer?: Widget;
+};
+
+export type MenuWithAdditionalStyles = MenuWithHeaderAndFooter & {
+  styles?: borderProperties & {
+    /**
+     * How to render each navigation item
+     * */
+    itemDisplay?: itemDisplayEnum;
+    /**
+     * Padding for each navigation item with CSS-style value
+     * */
+    itemPadding?: string | number;
+    /**
+     * The minimum width for the menu (default 200)
+     * */
+    minWidth?: number;
+  };
+};
+export type boxLayoutStyles = BoxStyles & {
+  /**
+   * @minimum 0
+   * */
+  gap?: number;
+  /**
+   * Set the font family applicable for all widgets inside this container
+   * */
+  fontFamily?: string;
+  /**
+   * @minimum 0
+   * */
+  fontSize?: number;
+};
+
+export type stylesColumn = BaseStyles &
+  boxLayoutStyles & {
+    /**
+     * Control our children's layout vertically
+     * */
+    mainAxis?: mainAxisEnum;
+    /**
+     * Control the horizontal alignment of the children
+     * */
+    crossAxis?: crossAxisEnum;
+    /**
+     * Stretch to the max vertically or only fit the vertical space
+     * */
+    mainAxisSize?: mainAxisSizeEnum;
+    /**
+     * Set to true so content can scroll vertically as needed
+     * */
+    scrollable?: boolean;
+    /**
+     * Explicitly make the column's width as wide as the largest child, but only if our column's parent does not already
+     * assign a width. This attribute is useful for sizing children who don't have a width (e.g Divider)
+     * */
+    autoFit?: boolean;
+  };
+
+export type stylesRow = BaseStyles &
+  boxLayoutStyles & {
+    /**
+     * Control our children's layout horizontally
+     * */
+    mainAxis?: mainAxisEnum;
+    /**
+     * Control the vertical alignment of the children
+     * */
+    crossAxis?: crossAxisEnum;
+    /**
+     * Stretch to the max horizontally or only fit the horizontal space
+     * */
+    mainAxisSize?: mainAxisSizeEnum;
+    /**
+     * Set to true so content can scroll horizontally as needed
+     * */
+    scrollable?: boolean;
+    /**
+     * Explicitly make the row's height as tall as the largest child, but only if the row's parent does not already
+     * assign us a height. This attribute is useful for sizing children who don't have a width (e.g vertical Divider)
+     * */
+    autoFit?: boolean;
+  };
 
 export type styleFlow = BaseStyles & {
-  mainAxis?: any;
+  /**
+   * Control our children's layout vertically
+   * */
+  mainAxis?: mainAxisEnum;
+  /**
+   *The gap between the children in the main direction
+   * @minimum 0
+   * */
+  gap?: number;
+  /**
+   * The gap between the lines if the children start wrapping
+   * @minimum 0
+   * */
+  lineGap?: number;
+  /**
+   * @minimum 0
+   * */
+  maxWidth?: number;
+  /**
+   * @minimum 0
+   * */
+  maxHeight?: number;
+};
+
+export type styleFlex = BaseStyles &
+  boxLayoutStyles & {
+    /**
+     * Lay out the children vertically or horizontally
+     * */
+    direction?: directionEnum;
+    /**
+     * Control how to lay out the children, in the direction specified by the 'direction' attribute
+     * */
+    mainAxis?: mainAxisEnum;
+    /**
+     * Control the alignment of the children on the secondary axis (depending on the 'direction' attribute)
+     * */
+    crossAxis?: crossAxisEnum;
+    /**
+     * stretch to the max or only fit the available space of the main axis (depending on the 'direction' attribute)
+     * */
+    mainAxisSize?: mainAxisSizeEnum;
+    /**
+     * Set to true so content can scroll vertically or horizontally as needed
+     * */
+    scrollable?: boolean;
+    /**
+     * Explicitly match the width or height to the largest child's size, but only if the parent does not already assign
+     * a width or height. This attribute is useful for sizing children who don't have a width or height (e.g Divider)
+     * */
+    autoFit?: boolean;
+  };
+
+export type styleCarousel = WithoutDimension & {
+  /**
+   * Show a SingleView (on screen one at a time), MultiView (scrolling items), or automatically switch between the views
+   * with autoLayoutBreakpoint
+   * */
+  layout?: layoutEnum;
+  /**
+   *  Show multiple views on the carousel if the breakpoint is equal or larger than this threshold, otherwise show
+   *  single view. (default 768)
+   * */
+  autoLayoutBreakpoint?: number;
+  /**
+   * The height of each view
+   * */
+  height?: number;
+  /**
+   * The gap between each views, but also act as a left-right margin in a single view
+   * */
+  gap?: number;
+  /**
+   * The space before the first item. Note that the left edge of the scroll area is still controlled by padding or
+   * margin.
+   * */
+  leadingGap?: number;
+  /**
+   * The space after the last item. Note that the right edge of the scroll area is still controlled by padding or
+   * margin.
+   * */
+  trailingGap?: number;
+  /**
+   * The screen width ratio for each carousel item (in single item mode). Value ranges from 0.0 to 1.0 for the full
+   * width. (default 1.0)
+   * @minimum 0
+   * @maximum 1
+   * */
+  singleItemWidthRatio?: number;
+  /**
+   * The screen width ratio for each carousel item (in multiple item mode). Value ranges from 0.0 to 1.0 for the
+   * full width (default 0.6)
+   * @minimum 0
+   * @maximum 1
+   * */
+  multipleItemWidthRatio?: number;
+  /**
+   * How the view indicator should be displayed
+   * */
+  indicatorType?: indicatorEnum;
+  /**
+   * Where to display the indicator if specified
+   * */
+  indicatorPosition?: indicatorPositionEnum;
+  indicatorWidth?: number;
+  indicatorHeight?: number;
+  /**
+   * The margin around each indicator
+   * */
+  indicatorMargin?: number | string;
 };
 
 export interface HasBackground extends backgroundGradient {

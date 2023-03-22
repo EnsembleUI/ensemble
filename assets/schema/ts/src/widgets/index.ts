@@ -1,7 +1,6 @@
 export * from "./Text";
 export * from "./Image";
 export * from "./Lottie";
-export * from "./Markdown";
 export * from "./Html";
 export * from "./Icon";
 export * from "./Button";
@@ -16,3 +15,7 @@ export * from "./SelectOne";
 export * from "./Spacer";
 export * from "./TextInput";
 export * from "./Time";
+export * from "./TabBar";
+export * from "./GridView";
+export * from "./Form";
+export * from "./Menu";
