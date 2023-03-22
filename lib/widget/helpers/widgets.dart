@@ -98,7 +98,10 @@ class BoxWrapper extends StatelessWidget {
 /// the case where it is put inside a Row without expanded flag.
 class InputWrapper extends StatelessWidget {
   const InputWrapper(
-      {super.key, required this.type, required this.widget, required this.controller});
+      {super.key,
+      required this.type,
+      required this.widget,
+      required this.controller});
   final String type;
   final Widget widget;
   final FormFieldController controller;
@@ -106,20 +109,23 @@ class InputWrapper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
-
       // inside a e.g. Row but not wrapping inside Expanded.
       // This is the error condition we need to advise the user
       if (!constraints.hasBoundedWidth && !controller.expanded) {
         // throw Error when input widgets (which stretch to their parent) are
         // inside a Row (which allow its child to have as much space as it wants)
         // without using expanded flag.
-        throw LanguageError("${type} widget requires a width when used inside a parent like Row.", recovery: "Consider using 'expanded: true' on the ${type} to fill the parent's available width.");
+        throw LanguageError(
+            "${type} widget requires a width when used inside a parent like Row.",
+            recovery:
+                "Consider using 'expanded: true' on the ${type} to fill the parent's available width.");
       }
 
       return controller.maxWidth == null
           ? widget
           : ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: controller.maxWidth!.toDouble()),
+              constraints:
+                  BoxConstraints(maxWidth: controller.maxWidth!.toDouble()),
               child: widget);
     });
   }
