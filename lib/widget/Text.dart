@@ -1,4 +1,3 @@
-
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart' as framework;
 import 'package:ensemble/widget/helpers/widgets.dart';
@@ -7,7 +6,8 @@ import 'package:ensemble/widget/widget_util.dart' as util;
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 
-class EnsembleText extends StatefulWidget with Invokable, HasController<TextController, EnsembleTextState> {
+class EnsembleText extends StatefulWidget
+    with Invokable, HasController<TextController, EnsembleTextState> {
   static const type = 'Text';
   EnsembleText({Key? key}) : super(key: key);
 
@@ -17,9 +17,7 @@ class EnsembleText extends StatefulWidget with Invokable, HasController<TextCont
 
   @override
   Map<String, Function> getters() {
-    return {
-      'text': () => _controller.text
-    };
+    return {'text': () => _controller.text};
   }
 
   @override
@@ -28,7 +26,8 @@ class EnsembleText extends StatefulWidget with Invokable, HasController<TextCont
     setters.addAll({
       'text': (newValue) => _controller.text = Utils.optionalString(newValue),
       'overflow': (value) => _controller.overflow = Utils.optionalString(value),
-      'textAlign': (value) => _controller.textAlign = Utils.optionalString(value),
+      'textAlign': (value) =>
+          _controller.textAlign = Utils.optionalString(value),
     });
     return setters;
   }
@@ -40,7 +39,6 @@ class EnsembleText extends StatefulWidget with Invokable, HasController<TextCont
 
   @override
   EnsembleTextState createState() => EnsembleTextState();
-
 }
 
 class EnsembleTextState extends framework.WidgetState<EnsembleText> {
@@ -50,5 +48,4 @@ class EnsembleTextState extends framework.WidgetState<EnsembleText> {
         widget: util.TextUtils.buildText(widget.controller),
         boxController: widget.controller);
   }
-
 }

@@ -12,11 +12,7 @@ import 'package:yaml/yaml.dart';
 import 'package:provider/provider.dart';
 
 class Screen extends StatefulWidget {
-  const Screen({
-    super.key,
-    required this.appProvider,
-    this.screenPayload
-  });
+  const Screen({super.key, required this.appProvider, this.screenPayload});
 
   final AppProvider appProvider;
   final ScreenPayload? screenPayload;
@@ -31,50 +27,43 @@ class _ScreenState extends State<Screen> {
   @override
   void initState() {
     super.initState();
-    screenRequester = widget.appProvider.getDefinition(payload: widget.screenPayload);
+    screenRequester =
+        widget.appProvider.getDefinition(payload: widget.screenPayload);
   }
 
   @override
   Widget build(BuildContext context) {
     //log("Screen build() - $hashCode (${Ensemble().deviceInfo.size.width} x ${Ensemble().deviceInfo.size.height})");
     return FutureBuilder(
-      future: screenRequester,
-      builder: (context, snapshot) {
-        // show error
-        if (snapshot.hasError) {
-          return ErrorScreen(
-            LanguageError(
-              "I'm not able to read your page definition",
-              detailError: snapshot.error.toString()
-            )
-          );
+        future: screenRequester,
+        builder: (context, snapshot) {
+          // show error
+          if (snapshot.hasError) {
+            return ErrorScreen(LanguageError(
+                "I'm not able to read your page definition",
+                detailError: snapshot.error.toString()));
+          }
+          // show progress bar
+          else if (!snapshot.hasData) {
+            return Scaffold(
+                backgroundColor: Theme.of(context)
+                    .extension<EnsembleThemeExtension>()
+                    ?.loadingScreenBackgroundColor,
+                body: Center(
+                    child: CircularProgressIndicator(
+                        color: Theme.of(context)
+                            .extension<EnsembleThemeExtension>()
+                            ?.loadingScreenIndicatorColor)));
+          }
 
-        }
-        // show progress bar
-        else if (!snapshot.hasData) {
-          return Scaffold(
-            backgroundColor: Theme.of(context).extension<EnsembleThemeExtension>()?.loadingScreenBackgroundColor,
-            body: Center(
-              child: CircularProgressIndicator(
-                color: Theme.of(context).extension<EnsembleThemeExtension>()?.loadingScreenIndicatorColor
-              )
-            )
-          );
-        }
-
-        return renderScreen(PageModel.fromYaml(snapshot.data as YamlMap));
-
-
-      }
-    );
+          return renderScreen(PageModel.fromYaml(snapshot.data as YamlMap));
+        });
   }
 
   Widget renderScreen(PageModel pageModel) {
     // build the data context
     DataContext dataContext = DataContext(
-      buildContext: context,
-      initialMap: widget.screenPayload?.arguments
-    );
+        buildContext: context, initialMap: widget.screenPayload?.arguments);
 
     // add all the API names to our context as Invokable, even though their result
     // will be null. This is so we can always reference it API responses come back
@@ -92,7 +81,6 @@ class _ScreenState extends State<Screen> {
           initialDataContext: dataContext,
           model: pageModel,
           menu: pageModel.menu!);
-
     } else if (pageModel is SinglePageModel) {
       // overwrite the pageType as modal only if specified in the payload
       if (widget.screenPayload?.pageType == PageType.modal) {
@@ -103,13 +91,9 @@ class _ScreenState extends State<Screen> {
               ScreenOptions(pageType: widget.screenPayload!.pageType!);
         }
       }
-      return ensemble.Page(
-          dataContext: dataContext,
-          pageModel: pageModel
-      );
+      return ensemble.Page(dataContext: dataContext, pageModel: pageModel);
     }
 
     throw LanguageError("Invalid Screen Definition");
   }
 }
-

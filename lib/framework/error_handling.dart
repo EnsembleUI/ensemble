@@ -8,20 +8,24 @@ class ConfigError extends EnsembleError {
   String toString() => 'Config Error: $error';
 }
 
-
 /// Language Error will be exposed on Studio
 class LanguageError extends EnsembleError {
-  LanguageError (super.error, {super.recovery, super.detailError});
+  LanguageError(super.error, {super.recovery, super.detailError});
 
   @override
   String toString() => 'Language Error: $error\n$recovery';
 }
 
 class CodeError extends EnsembleError {
-  CodeError(JSException exception,SourceLocation yamlLocation): super(exception.message,line:exception.line,recovery: exception.recovery,detailError: exception.detailedError) {
+  CodeError(JSException exception, SourceLocation yamlLocation)
+      : super(exception.message,
+            line: exception.line,
+            recovery: exception.recovery,
+            detailError: exception.detailedError) {
     line = yamlLocation.line;
     line = line! + exception.line;
-    error = 'Line: $line in YAML and Line: ${exception.line} within the code block. Error Message: $error';
+    error =
+        'Line: $line in YAML and Line: ${exception.line} within the code block. Error Message: $error';
   }
 }
 
@@ -33,12 +37,7 @@ class RuntimeError extends EnsembleError {
 }
 
 abstract class EnsembleError extends Error {
-  EnsembleError(
-    this.error, {
-      this.line,
-      this.recovery,
-      this.detailError
-  });
+  EnsembleError(this.error, {this.line, this.recovery, this.detailError});
   int? line;
   int? column;
   String error;
@@ -46,9 +45,8 @@ abstract class EnsembleError extends Error {
   String? detailError;
 
   @override
-  String toString() => "$error${recovery??''}${detailError??''}";
+  String toString() => "$error${recovery ?? ''}${detailError ?? ''}";
 }
-
 
 /// All Exceptions will be written to a running log of some sort
 class RuntimeException implements Exception {
