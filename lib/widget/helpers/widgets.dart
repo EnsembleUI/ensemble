@@ -1,5 +1,6 @@
 /// This class contains common widgets for use with Ensemble widgets.
 
+import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/widget/input/form_helper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
@@ -97,30 +98,28 @@ class BoxWrapper extends StatelessWidget {
 /// the case where it is put inside a Row without expanded flag.
 class InputWrapper extends StatelessWidget {
   const InputWrapper(
-      {super.key, required this.widget, required this.controller});
+      {super.key, required this.type, required this.widget, required this.controller});
+  final String type;
   final Widget widget;
   final FormFieldController controller;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
-      int? maxWidth = controller.maxWidth;
 
       // inside a e.g. Row but not wrapping inside Expanded.
-      // This is the error condition we need to fix
+      // This is the error condition we need to advise the user
       if (!constraints.hasBoundedWidth && !controller.expanded) {
-        // this is our workaround for the layout error when the user use these
-        // input widgets (which stretch to their parent) inside a Row (which allow
-        // its child to have as much space as it wants) without using expanded flag.
-        // We'll cap their max width so the user can adjust it
-        // instead of seeing a blank screen
-        maxWidth ??= 700;
+        // throw Error when input widgets (which stretch to their parent) are
+        // inside a Row (which allow its child to have as much space as it wants)
+        // without using expanded flag.
+        throw LanguageError("${type} widget requires a width when used inside a parent like Row.", recovery: "Consider using 'expanded: true' on the ${type} to fill the parent's available width.");
       }
 
-      return maxWidth == null
+      return controller.maxWidth == null
           ? widget
           : ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: maxWidth.toDouble()),
+              constraints: BoxConstraints(maxWidth: controller.maxWidth!.toDouble()),
               child: widget);
     });
   }

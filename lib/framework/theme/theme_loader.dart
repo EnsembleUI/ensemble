@@ -160,7 +160,6 @@ mixin ThemeLoader {
     int borderWidth = Utils.optionalInt(input?['borderWidth']) ?? 1;
 
     Color? borderColor = Utils.getColor(input?['borderColor']);
-    Color? enabledBorderColor = Utils.getColor(input?['enabledBorderColor']);
     Color? disabledBorderColor = Utils.getColor(input?['disabledBorderColor']);
     Color? errorBorderColor = Utils.getColor(input?['errorBorderColor']);
     Color? focusedBorderColor = Utils.getColor(input?['focusedBorderColor']);
@@ -175,7 +174,7 @@ mixin ThemeLoader {
           borderSide: BorderSide(
               color: borderColor ??
                   (colorScheme.brightness == Brightness.light
-                      ? Colors.black87
+                      ? Colors.black54
                       : Colors.white70),
               width: borderWidth.toDouble()));
 
@@ -183,12 +182,6 @@ mixin ThemeLoader {
         contentPadding: contentPadding ??
             const EdgeInsets.symmetric(vertical: 15, horizontal: 8),
         border: baseBorder,
-        enabledBorder: getInputBorder(
-                variant: variant,
-                borderColor: enabledBorderColor,
-                borderWidth: borderWidth,
-                borderRadius: borderRadius) ??
-            baseBorder,
         disabledBorder: getInputBorder(
             variant: variant,
             borderColor: disabledBorderColor,
@@ -224,12 +217,6 @@ mixin ThemeLoader {
         contentPadding: contentPadding ??
             const EdgeInsets.symmetric(vertical: 15, horizontal: 3),
         border: baseBorder,
-        enabledBorder: getInputBorder(
-                variant: variant,
-                borderColor: enabledBorderColor,
-                borderWidth: borderWidth,
-                borderRadius: borderRadius) ??
-            baseBorder,
         disabledBorder: getInputBorder(
             variant: variant,
             borderColor: disabledBorderColor,
