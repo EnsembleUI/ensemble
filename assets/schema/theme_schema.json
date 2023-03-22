@@ -127,10 +127,6 @@
           "$ref": "#/$defs/Color",
           "description": "The base border color for applicable input fields. This border color determines the look and feel of your inputs, while the other colors are overrides for different states."
         },
-        "enabledBorderColor": {
-          "$ref": "#/$defs/Color",
-          "description": "The override border color for enabled input fields."
-        },
         "disabledBorderColor": {
           "$ref": "#/$defs/Color",
           "description": "The border color when input fields are disabled."
