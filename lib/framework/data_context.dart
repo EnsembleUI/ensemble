@@ -686,19 +686,19 @@ class FileData with Invokable {
 class File {
   File(this.name, this.ext, this.size, this.path, this.bytes);
 
-  File.fromPlatformFile(PlatformFile file)
-      : name = file.name,
-        ext = file.extension,
-        size = file.size,
-        path = kIsWeb ? null : file.path,
-        bytes = file.bytes;
+  File.fromPlatformFile(PlatformFile file):
+    name = file.name,
+    ext = file.extension,
+    size = file.size,
+    path = kIsWeb ? null : file.path,
+    bytes = file.bytes;
 
-  File.fromJson(Map<String, dynamic> file)
-      : name = file['name'],
-        ext = file['extension'],
-        size = file['size'],
-        path = file['path'],
-        bytes = file['bytes'];
+  File.fromJson(Map<String, dynamic> file):
+    name = file['name'],
+    ext = file['extension'],
+    size = file['size'],
+    path = file['path'],
+    bytes = file['bytes'];
 
   final String name;
 

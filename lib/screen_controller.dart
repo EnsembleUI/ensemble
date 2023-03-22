@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:developer';
-import 'dart:ffi';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/bindings.dart';
@@ -17,6 +16,7 @@ import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/framework/widget/toast.dart';
 import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/util/upload_utils.dart';
@@ -80,13 +80,13 @@ class ScreenController {
   }
 
   /// internally execute an Action
-  void _executeAction(
+  Future<void> _executeAction(
       BuildContext context,
       DataContext providedDataContext,
       EnsembleAction action,
       Map<String, YamlMap>? apiMap,
       ScopeManager? scopeManager,
-      {EnsembleEvent? event}) {
+      {EnsembleEvent? event}) async {
     /// Actions are short-live so we don't need a childScope, simply create a localized context from the given context
     /// Note that scopeManager may starts out without Invokable IDs (as widgets may yet to render), but at the time
     /// of API returns, they will be populated. For this reason, always rebuild data context from scope manager.
@@ -363,79 +363,70 @@ class ScreenController {
               : LaunchMode.platformDefault);
     } else if (action is FileUploadAction) {
 
-        List<File>? selectedFiles;
-        const defaultMaxFileSize = 100000;
-        const defaultOverMaxFileSizeMessage =
-            'The size of is which is larger than the maximum allowed';
+      List<File>? selectedFiles;
+      int defaultMaxFileSize = 100.mb;
+      const defaultOverMaxFileSizeMessage = 'The size of is which is larger than the maximum allowed';
 
-        if (result==null || result.files.isEmpty) {
-          if (action.onError != null) executeAction(context, action.onError!);
-          return;
-        }
+      final rawFiles = scopeManager?.dataContext.eval(action.files) as List<dynamic>?;
+      selectedFiles = rawFiles?.map((data) => File.fromJson(data)).toList().cast<File>();
+      if (selectedFiles == null) {
+        if (action.onError != null) executeAction(context, action.onError!);
+        return;
+      }
+      double totalSize = selectedFiles.fold<double>(0, (previousValue, element) => previousValue + element.size);
 
-        final selectedFiles = result.files.map((file) => File.fromPlatformFile(file)).toList();
-        int totalSize = selectedFiles.fold<int>(0, (previousValue, element) => previousValue + element.size);
-        totalSize = totalSize ~/ 1000;
+      final message = Utils.translateWithFallback(
+        'ensemble.input.overMaxFileSizeMessage',
+        action.overMaxFileSizeMessage ?? defaultOverMaxFileSizeMessage,
+      );
 
-        final message = Utils.translateWithFallback(
-          'ensemble.input.overMaxFileSizeMessage',
-          action.overMaxFileSizeMessage ?? defaultOverMaxFileSizeMessage,
-        );
+      if (totalSize > (action.maxFileSize?.kb ?? defaultMaxFileSize)) {
+        ToastController().showToast(
+            context, ShowToastAction(type: ToastType.error, message: message, position: 'bottom', duration: 3), null);
+        if (action.onError != null) executeAction(context, action.onError!);
+        return;
+      }
 
-        if (totalSize > (action.maxFileSize ?? defaultMaxFileSize)) {
-          ToastController().showToast(
-              context,
-              ShowToastAction(
-                  type: ToastType.error, message: message, position: 'bottom'),
-              null);
-          if (action.onError != null) executeAction(context, action.onError!);
-          return;
-        }
-
-        if (action.id != null && scopeManager != null) {
-          scopeManager.dataContext.addInvokableContext(action.id!, FileData(files: selectedFiles));
-        }
-        YamlMap? apiDefinition = apiMap?[action.uploadApi];
-        if (apiDefinition == null)
-          throw LanguageError(
-              'Unable to find api definition for ${action.uploadApi}');
-        if (apiDefinition['inputs'] is YamlList && action.inputs != null) {
-          for (var input in apiDefinition['inputs']) {
-            dynamic value = dataContext.eval(action.inputs![input]);
-            if (value != null) {
-              dataContext.addDataContextById(input, value);
-            }
+      if (action.id != null && scopeManager != null) {
+        scopeManager.dataContext.addInvokableContext(action.id!, APIResponse());
+      }
+      YamlMap? apiDefinition = apiMap?[action.uploadApi];
+      if (apiDefinition == null) throw LanguageError('Unable to find api definition for ${action.uploadApi}');
+      if (apiDefinition['inputs'] is YamlList && action.inputs != null) {
+        for (var input in apiDefinition['inputs']) {
+          dynamic value = dataContext.eval(action.inputs![input]);
+          if (value != null) {
+            dataContext.addDataContextById(input, value);
           }
         }
-        final response = await UploadUtils.uploadFiles(
-          api: apiDefinition,
-          eContext: dataContext,
-          files: selectedFiles,
-          fieldName: action.fieldName,
-          onError: action.onError == null
-              ? null
-              : (error) => executeAction(context, action.onError!),
-        );
-        if (response == null || action.id == null || scopeManager == null) return;
-        
-        final fileResponse = scopeManager.dataContext.getContextById(action.id!) as APIResponse;
-        fileResponse.setAPIResponse(response);
-        scopeManager.dispatch(ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
-        if (action.onComplete != null) executeAction(context, action.onComplete!);
-        
+      }
+      final response = await UploadUtils.uploadFiles(
+        api: apiDefinition,
+        eContext: dataContext,
+        files: selectedFiles,
+        fieldName: action.fieldName,
+        onError: action.onError == null ? null : (error) => executeAction(context, action.onError!),
+      );
+      if (response == null || action.id == null || scopeManager == null) return;
+
+      final fileResponse = scopeManager.dataContext.getContextById(action.id!) as APIResponse;
+      fileResponse.setAPIResponse(response);
+      scopeManager.dispatch(ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
+      if (action.onComplete != null) executeAction(context, action.onComplete!);
     } else if (action is FilePickerAction) {
-      FilePicker.platform.pickFiles(
-        type: action.allowedExtensions == null ? FileType.any: FileType.custom,
+      FilePicker.platform
+          .pickFiles(
+        type: action.allowedExtensions == null ? FileType.any : FileType.custom,
         allowedExtensions: action.allowedExtensions,
         allowCompression: action.allowCompression ?? true,
         allowMultiple: action.allowMultiple ?? false,
       ).then((result) {
-          if (result == null || result.files.isEmpty) return;
-          final selectedFiles = result.files.map((file) => File.fromPlatformFile(file)).toList();
-          final fileData = FileData(files: selectedFiles);
-          if (action.id == null || scopeManager == null) return;
-          scopeManager.dataContext.addDataContextById(action.id!, fileData);
-          scopeManager.dispatch(ModelChangeEvent(SimpleBindingSource(action.id!), fileData));
+        if (result == null || result.files.isEmpty) return;
+        final selectedFiles = result.files.map((file) => File.fromPlatformFile(file)).toList();
+        final fileData = FileData(files: selectedFiles);
+        if (scopeManager == null) return;
+        scopeManager.dataContext.addDataContextById(action.id, fileData);
+        scopeManager.dispatch(ModelChangeEvent(SimpleBindingSource(action.id), fileData));
       });
     } else if (action is NavigateBack) {
       if (scopeManager != null) {

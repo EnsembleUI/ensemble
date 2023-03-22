@@ -1690,7 +1690,7 @@
               "properties": {
                 "id": {
                   "type": "string",
-                  "description": "Give the Uploader an ID allows you to bind to its result. e.g. ${filePicker.files...}, ${filePicker.body...}"
+                  "description": "Give the uploadApi an ID, allows you to bind to its result. e.g. ${apiId.body...}"
                 },
                 "uploadApi": {
                   "type": "string",
@@ -1725,7 +1725,12 @@
             "pickFiles": {
               "type": "object",
               "description": "Pick files using system picker",
+              "required": ["id"],
               "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Give the picker an ID allows you to bind to its result, which can be access anywhere e.g. ${filePicker.files...}"
+                },
                 "allowMultiple": {
                   "type": "boolean",
                   "description" : "Allow users to pick multiple files (default False)"
