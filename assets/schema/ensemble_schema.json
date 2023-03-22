@@ -1259,10 +1259,6 @@
                   "$ref": "#/$defs/typeColors",
                   "description": "The base border color for this input widget. This border color determines the look and feel of your input, while the other colors are overrides for different states. This property can be defined in the theme to apply to all Input widgets."
                 },
-                "enabledBorderColor": {
-                  "$ref": "#/$defs/typeColors",
-                  "description": "The border color for this input field if enabled. This property can be defined in the theme to apply to all Input widgets."
-                },
                 "disabledBorderColor": {
                   "$ref": "#/$defs/typeColors",
                   "description": "The border color when this input field is disabled. This property can be defined in the theme to apply to all Input widgets."
