@@ -8,22 +8,21 @@ import 'package:flutter/material.dart';
 
 /// wraps around a widget and gives it common box attributes
 class BoxWrapper extends StatelessWidget {
-  const BoxWrapper({
-    super.key,
-    required this.widget,
-    required this.boxController,
+  const BoxWrapper(
+      {super.key,
+      required this.widget,
+      required this.boxController,
 
-    // internal widget may want to handle padding itself (e.g. ListView so
-    // its scrollbar lays on top of the padding and not the content)
-    this.ignoresPadding = false,
+      // internal widget may want to handle padding itself (e.g. ListView so
+      // its scrollbar lays on top of the padding and not the content)
+      this.ignoresPadding = false,
 
-    // sometimes our widget may register a gesture. Such gesture should not
-    // include the margin. This allows it to handle the margin on its own.
-    this.ignoresMargin = false,
+      // sometimes our widget may register a gesture. Such gesture should not
+      // include the margin. This allows it to handle the margin on its own.
+      this.ignoresMargin = false,
 
-    // width/height maybe applied at the child, or not applicable
-    this.ignoresDimension = false
-  });
+      // width/height maybe applied at the child, or not applicable
+      this.ignoresDimension = false});
   final Widget widget;
   final BoxController boxController;
 
@@ -52,58 +51,53 @@ class BoxWrapper extends StatelessWidget {
     }
 
     return Container(
-      width: ignoresDimension ? null : boxController.width?.toDouble(),
-      height: ignoresDimension ? null : boxController.height?.toDouble(),
-      margin: ignoresMargin ? null : boxController.margin,
-      padding: ignoresPadding ? null : boxController.padding,
-      clipBehavior: clip,
-      child: widget,
-      decoration: !boxController.hasBoxDecoration()
-          ? null
-          : BoxDecoration(
-              color: boxController.backgroundColor,
-              image: boxController.backgroundImage?.asDecorationImage,
-              gradient: boxController.backgroundGradient,
-              border: !boxController.hasBorder() 
-              ? null 
-              : boxController.borderGradient !=null
-                  ? GradientBorder(
-                    gradient: boxController.borderGradient!,
-                    width: boxController.borderWidth?.toDouble() ??
-                          ThemeManager().getBorderThickness(context)
-                  )
-                  : Border.all(
-                      color: boxController.borderColor ??
-                          ThemeManager().getBorderColor(context),
-                      width: boxController.borderWidth?.toDouble() ??
-                          ThemeManager().getBorderThickness(context)),
-              borderRadius: boxController.borderRadius?.getValue(),
-              boxShadow: !boxController.hasBoxShadow()
-                  ? null
-                  : <BoxShadow>[
-                      BoxShadow(
-                        color: boxController.shadowColor ??
-                            ThemeManager().getShadowColor(context),
-                        blurRadius:
-                            boxController.shadowRadius?.toDouble() ??
-                                ThemeManager().getShadowRadius(context),
-                        offset: boxController.shadowOffset ??
-                            ThemeManager().getShadowOffset(context),
-                        blurStyle: boxController.shadowStyle ??
-                            ThemeManager().getShadowStyle(context))
-                    ]));
+        width: ignoresDimension ? null : boxController.width?.toDouble(),
+        height: ignoresDimension ? null : boxController.height?.toDouble(),
+        margin: ignoresMargin ? null : boxController.margin,
+        padding: ignoresPadding ? null : boxController.padding,
+        clipBehavior: clip,
+        child: widget,
+        decoration: !boxController.hasBoxDecoration()
+            ? null
+            : BoxDecoration(
+                color: boxController.backgroundColor,
+                image: boxController.backgroundImage?.asDecorationImage,
+                gradient: boxController.backgroundGradient,
+                border: !boxController.hasBorder()
+                    ? null
+                    : boxController.borderGradient != null
+                        ? GradientBorder(
+                            gradient: boxController.borderGradient!,
+                            width: boxController.borderWidth?.toDouble() ??
+                                ThemeManager().getBorderThickness(context))
+                        : Border.all(
+                            color: boxController.borderColor ??
+                                ThemeManager().getBorderColor(context),
+                            width: boxController.borderWidth?.toDouble() ??
+                                ThemeManager().getBorderThickness(context)),
+                borderRadius: boxController.borderRadius?.getValue(),
+                boxShadow: !boxController.hasBoxShadow()
+                    ? null
+                    : <BoxShadow>[
+                        BoxShadow(
+                            color: boxController.shadowColor ??
+                                ThemeManager().getShadowColor(context),
+                            blurRadius:
+                                boxController.shadowRadius?.toDouble() ??
+                                    ThemeManager().getShadowRadius(context),
+                            offset: boxController.shadowOffset ??
+                                ThemeManager().getShadowOffset(context),
+                            blurStyle: boxController.shadowStyle ??
+                                ThemeManager().getShadowStyle(context))
+                      ]));
   }
-
 }
 
 /// wrap the input widget (which stretches 100% to its parent) to guard against
 /// the case where it is put inside a Row without expanded flag.
 class InputWrapper extends StatelessWidget {
-  const InputWrapper({
-    super.key,
-    required this.widget,
-    required this.controller
-  });
+  const InputWrapper(
+      {super.key, required this.widget, required this.controller});
   final Widget widget;
   final FormFieldController controller;
 
@@ -130,22 +124,15 @@ class InputWrapper extends StatelessWidget {
               child: widget);
     });
   }
-  
 }
-
-
 
 /// Display a Text content followed by a clear icon.
 /// Clicking the icon will invoke the callback.
 /// Note that this is a StatelessWidget, so clearing out the value
 /// is the responsibility of the parent widget who uses this.
 class ClearableInput extends StatelessWidget {
-  const ClearableInput({
-    super.key,
-    required this.text,
-    required this.onCleared,
-    this.textStyle
-  });
+  const ClearableInput(
+      {super.key, required this.text, required this.onCleared, this.textStyle});
   final String text;
   final TextStyle? textStyle;
   final dynamic onCleared;
@@ -155,27 +142,16 @@ class ClearableInput extends StatelessWidget {
     if (text.isEmpty) {
       return const SizedBox.shrink();
     }
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Flexible(
-          child: Text(text, maxLines: 1, style: textStyle)
-        ),
-        const SizedBox(width: 4),
-        InkWell(
-          onTap: onCleared,
-          child: const Icon(
-              Icons.close,
-              size: 20))
-      ]
-    );
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Flexible(child: Text(text, maxLines: 1, style: textStyle)),
+      const SizedBox(width: 4),
+      InkWell(onTap: onCleared, child: const Icon(Icons.close, size: 20))
+    ]);
   }
-
 }
 
-
 class GradientBorder extends BoxBorder {
-  const GradientBorder({required this.gradient,  required this.width});
+  const GradientBorder({required this.gradient, required this.width});
 
   final LinearGradient gradient;
 
@@ -201,11 +177,11 @@ class GradientBorder extends BoxBorder {
     BoxShape shape = BoxShape.rectangle,
     BorderRadius? borderRadius,
   }) {
-     if (borderRadius != null) {
-          _paintRRect(canvas, rect, borderRadius);
-          return;
-        }
-        _paintRect(canvas, rect);
+    if (borderRadius != null) {
+      _paintRRect(canvas, rect, borderRadius);
+      return;
+    }
+    _paintRect(canvas, rect);
   }
 
   void _paintRect(Canvas canvas, Rect rect) {
@@ -224,7 +200,7 @@ class GradientBorder extends BoxBorder {
 
   Paint _getPaint(Rect rect) {
     return Paint()
-      ..strokeWidth = width 
+      ..strokeWidth = width
       ..shader = gradient.createShader(rect)
       ..style = PaintingStyle.stroke;
   }

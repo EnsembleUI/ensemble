@@ -15,17 +15,19 @@ class ThemeManager with ThemeLoader {
     return _instance;
   }
 
-
   // color when clicking on (InkWell)
   getSplashColor(BuildContext context) {
     return Theme.of(context).colorScheme.primary;
   }
+
   Color getBorderColor(BuildContext context) {
     return Theme.of(context).colorScheme.onSurface;
   }
+
   Color getPrimaryColor(BuildContext context) {
     return Theme.of(context).colorScheme.primary;
   }
+
   double getBorderThickness(BuildContext context) {
     return 1;
   }
@@ -35,12 +37,15 @@ class ThemeManager with ThemeLoader {
         ? const Color(0xff000000)
         : const Color(0xffffffff);
   }
+
   getShadowRadius(BuildContext context) {
     return 0;
   }
+
   getShadowOffset(BuildContext context) {
     return const Offset(0, 0);
   }
+
   getShadowStyle(BuildContext context) {
     return BlurStyle.normal;
   }
@@ -49,17 +54,10 @@ class ThemeManager with ThemeLoader {
   int getInputIconSize(BuildContext context) {
     return 24;
   }
-
-
 }
 
-enum ResponsiveBreakpoint {
-  xSmall,
-  small,
-  medium,
-  large,
-  xLarge
-}
+enum ResponsiveBreakpoint { xSmall, small, medium, large, xLarge }
+
 extension BoxConstraintsExtension on BoxConstraints {
   bool isXSmall() => maxWidth <= 480;
   bool isSmall() => maxWidth > 480 && maxWidth <= 800;

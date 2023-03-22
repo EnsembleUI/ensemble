@@ -17,7 +17,11 @@ import 'package:ensemble/widget/widget_util.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 
-class Carousel extends StatefulWidget with UpdatableContainer, Invokable, HasController<MyController, CarouselState> {
+class Carousel extends StatefulWidget
+    with
+        UpdatableContainer,
+        Invokable,
+        HasController<MyController, CarouselState> {
   static const type = 'Carousel';
   Carousel({Key? key}) : super(key: key);
 
@@ -31,20 +35,30 @@ class Carousel extends StatefulWidget with UpdatableContainer, Invokable, HasCon
   @override
   Map<String, Function> setters() {
     return {
-      'layout': (input) => _controller.layout = CarouselLayout.values.from(input),
-      'autoLayoutBreakpoint': (value) => _controller.autoLayoutBreakpoint = Utils.optionalInt(value, min: 0),
+      'layout': (input) =>
+          _controller.layout = CarouselLayout.values.from(input),
+      'autoLayoutBreakpoint': (value) =>
+          _controller.autoLayoutBreakpoint = Utils.optionalInt(value, min: 0),
       'height': (height) => _controller.height = Utils.optionalInt(height),
       'gap': (gap) => _controller.gap = Utils.optionalInt(gap),
       'leadingGap': (gap) => _controller.leadingGap = Utils.optionalInt(gap),
       'trailingGap': (gap) => _controller.trailingGap = Utils.optionalInt(gap),
-      'singleItemWidthRatio': (value) => _controller.singleItemWidthRatio = Utils.optionalDouble(value, min: 0, max: 1),
-      'multipleItemWidthRatio': (value) => _controller.multipleItemWidthRatio = Utils.optionalDouble(value, min: 0, max: 1),
-      'indicatorType': (type) => _controller.indicatorType = IndicatorType.values.from(type),
-      'indicatorPosition': (position) => _controller.indicatorPosition = IndicatorPosition.values.from(position),
-      'indicatorWidth': (w) => _controller.indicatorWidth = Utils.optionalInt(w),
-      'indicatorHeight': (h) => _controller.indicatorHeight = Utils.optionalInt(h),
-      'indicatorMargin': (value) => _controller.indicatorMargin = Utils.getInsets(value),
-      'onItemChange': (action) => _controller.onItemChange =  EnsembleAction.fromYaml(action, initiator: this),
+      'singleItemWidthRatio': (value) => _controller.singleItemWidthRatio =
+          Utils.optionalDouble(value, min: 0, max: 1),
+      'multipleItemWidthRatio': (value) => _controller.multipleItemWidthRatio =
+          Utils.optionalDouble(value, min: 0, max: 1),
+      'indicatorType': (type) =>
+          _controller.indicatorType = IndicatorType.values.from(type),
+      'indicatorPosition': (position) => _controller.indicatorPosition =
+          IndicatorPosition.values.from(position),
+      'indicatorWidth': (w) =>
+          _controller.indicatorWidth = Utils.optionalInt(w),
+      'indicatorHeight': (h) =>
+          _controller.indicatorHeight = Utils.optionalInt(h),
+      'indicatorMargin': (value) =>
+          _controller.indicatorMargin = Utils.getInsets(value),
+      'onItemChange': (action) => _controller.onItemChange =
+          EnsembleAction.fromYaml(action, initiator: this),
     };
   }
 
@@ -61,7 +75,7 @@ class Carousel extends StatefulWidget with UpdatableContainer, Invokable, HasCon
       'next': () {
         _controller._carouselController.nextPage();
       },
-      'previous' : (){
+      'previous': () {
         _controller._carouselController.previousPage();
       }
     };
@@ -93,7 +107,7 @@ class MyController extends BoxController {
   double? multipleItemWidthRatio;
 
   CarouselLayout? layout;
-  int? autoLayoutBreakpoint;    // applicable only for auto layout
+  int? autoLayoutBreakpoint; // applicable only for auto layout
 
   IndicatorType? indicatorType;
   IndicatorPosition? indicatorPosition;
@@ -121,14 +135,12 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
 
     // evaluate item-template's initial value & listen for changes
     if (widget._controller.itemTemplate != null) {
-      registerItemTemplate(
-        context,
-        widget._controller.itemTemplate!,
-        evaluateInitialValue: true,
-        onDataChanged: (List dataList) {
-          setState(() {
-            templatedChildren = buildWidgetsFromTemplate(context, dataList, widget._controller.itemTemplate!);
-          });
+      registerItemTemplate(context, widget._controller.itemTemplate!,
+          evaluateInitialValue: true, onDataChanged: (List dataList) {
+        setState(() {
+          templatedChildren = buildWidgetsFromTemplate(
+              context, dataList, widget._controller.itemTemplate!);
+        });
       });
     }
   }
@@ -146,7 +158,8 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
     );
 
     // show indicators
-    if (widget._controller.indicatorType != null && widget._controller.indicatorType != IndicatorType.none) {
+    if (widget._controller.indicatorType != null &&
+        widget._controller.indicatorType != IndicatorType.none) {
       List<Widget> indicators = [];
       for (int i = 0; i < items.length; i++) {
         indicators.add(GestureDetector(
@@ -171,21 +184,21 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
 
       List<Widget> children = [
         carousel,
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: indicators
-        )
+        Row(mainAxisAlignment: MainAxisAlignment.center, children: indicators)
       ];
 
       carousel = Column(
-        children: widget._controller.indicatorPosition == IndicatorPosition.top ? children.reversed.toList() : children
-      );
+          children:
+              widget._controller.indicatorPosition == IndicatorPosition.top
+                  ? children.reversed.toList()
+                  : children);
     }
 
     return BoxWrapper(
-        widget: carousel,
-        boxController: widget._controller,
-        ignoresDimension: true,   // width/height shouldn't be apply in the container
+      widget: carousel,
+      boxController: widget._controller,
+      ignoresDimension:
+          true, // width/height shouldn't be apply in the container
     );
   }
 
@@ -212,33 +225,33 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
     }
 
     // wrap each child inside Container to add padding and gap
-    double gap = widget._controller.gap?.toDouble() ?? MyController.defaultItemGap;
+    double gap =
+        widget._controller.gap?.toDouble() ?? MyController.defaultItemGap;
     double leadingGap = widget._controller.leadingGap?.toDouble() ?? gap / 2;
     double trailingGap = widget._controller.trailingGap?.toDouble() ?? gap / 2;
     List<Widget> items = [];
-    for (int i=0; i<children.length; i++) {
+    for (int i = 0; i < children.length; i++) {
       Widget child = children[i];
 
       items.add(GestureDetector(
-        child: Container(
-          padding: EdgeInsets.only(
-            left: i==0 ? leadingGap : gap / 2,
-            right: i==children.length-1 ? trailingGap : gap / 2
+          child: Container(
+            padding: EdgeInsets.only(
+                left: i == 0 ? leadingGap : gap / 2,
+                right: i == children.length - 1 ? trailingGap : gap / 2),
+            child: child,
           ),
-          child: child,
-        ),
-        onTap: (() => _onItemChange(i))
-      ));
-
+          onTap: (() => _onItemChange(i))));
     }
     return items;
   }
 
   _onItemChange(int index) {
-    if (index != widget._controller.selectedIndex && widget._controller.onItemChange != null) {
+    if (index != widget._controller.selectedIndex &&
+        widget._controller.onItemChange != null) {
       widget._controller.selectedIndex = index;
       //log("Changed to index $index");
-      ScreenController().executeAction(context, widget._controller.onItemChange!);
+      ScreenController()
+          .executeAction(context, widget._controller.onItemChange!);
     }
   }
 
@@ -257,16 +270,15 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
 
   CarouselOptions _getMultiViewOptions() {
     return _getBaseCarouselOptions().copyWith(
-      disableCenter: true,
-      padEnds: false,
-      pageSnapping: false,
-      viewportFraction: widget._controller.multipleItemWidthRatio ?? 0.6,
-      onPageChanged: (index, _) {
-        setState(() {
-          focusIndex = index;
+        disableCenter: true,
+        padEnds: false,
+        pageSnapping: false,
+        viewportFraction: widget._controller.multipleItemWidthRatio ?? 0.6,
+        onPageChanged: (index, _) {
+          setState(() {
+            focusIndex = index;
+          });
         });
-      }
-    );
   }
 
   CarouselOptions _getBaseCarouselOptions() {
@@ -277,20 +289,26 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
   }
 
   Widget getIndicator(bool selected) {
-    int w = widget._controller.indicatorWidth ?? widget._controller.indicatorHeight ?? 8;
-    int h = widget._controller.indicatorHeight ?? widget._controller.indicatorWidth ?? 8;
+    int w = widget._controller.indicatorWidth ??
+        widget._controller.indicatorHeight ??
+        8;
+    int h = widget._controller.indicatorHeight ??
+        widget._controller.indicatorWidth ??
+        8;
 
     return Container(
-      width: w.toDouble(),
-      height: h.toDouble(),
-      margin: widget._controller.indicatorMargin ?? const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
-      decoration: BoxDecoration(
-        shape: widget._controller.indicatorType == IndicatorType.rectangle ? BoxShape.rectangle : BoxShape.circle,
-        color: (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black)
-            .withOpacity(selected ? 0.9 : 0.4)
-      )
-    );
-
+        width: w.toDouble(),
+        height: h.toDouble(),
+        margin: widget._controller.indicatorMargin ??
+            const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+        decoration: BoxDecoration(
+            shape: widget._controller.indicatorType == IndicatorType.rectangle
+                ? BoxShape.rectangle
+                : BoxShape.circle,
+            color: (Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : Colors.black)
+                .withOpacity(selected ? 0.9 : 0.4)));
   }
 }
 
@@ -299,12 +317,11 @@ enum CarouselLayout {
   single,
   multiple,
 }
+
 enum IndicatorType {
   none,
   circle,
   rectangle,
 }
-enum IndicatorPosition {
-  bottom,
-  top
-}
+
+enum IndicatorPosition { bottom, top }

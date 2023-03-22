@@ -12,7 +12,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' as flutter;
 import 'package:flutter/rendering.dart';
 
-class Flow extends StatefulWidget with UpdatableContainer, Invokable, HasController<FlowController, FlowState> {
+class Flow extends StatefulWidget
+    with
+        UpdatableContainer,
+        Invokable,
+        HasController<FlowController, FlowState> {
   static const type = 'Flow';
   Flow({Key? key}) : super(key: key);
 
@@ -26,18 +30,25 @@ class Flow extends StatefulWidget with UpdatableContainer, Invokable, HasControl
   Map<String, Function> getters() {
     return {};
   }
+
   @override
   Map<String, Function> setters() {
     return {
-      'direction': (value) => _controller.direction = Utils.optionalString(value),
-      'mainAxis': (value) => _controller.mainAxis = LayoutUtils.getWrapAlignment(value),
-      'crossAxis': (value) => _controller.crossAxis = LayoutUtils.getWrapCrossAlignment(value),
+      'direction': (value) =>
+          _controller.direction = Utils.optionalString(value),
+      'mainAxis': (value) =>
+          _controller.mainAxis = LayoutUtils.getWrapAlignment(value),
+      'crossAxis': (value) =>
+          _controller.crossAxis = LayoutUtils.getWrapCrossAlignment(value),
       'gap': (value) => _controller.gap = Utils.optionalInt(value),
       'lineGap': (value) => _controller.lineGap = Utils.optionalInt(value),
-      'maxWidth': (value) => _controller.maxWidth = Utils.optionalInt(value, min: 0),
-      'maxHeight': (value) => _controller.maxHeight = Utils.optionalInt(value, min: 0),
+      'maxWidth': (value) =>
+          _controller.maxWidth = Utils.optionalInt(value, min: 0),
+      'maxHeight': (value) =>
+          _controller.maxHeight = Utils.optionalInt(value, min: 0),
     };
   }
+
   @override
   Map<String, Function> methods() {
     return {};
@@ -51,7 +62,6 @@ class Flow extends StatefulWidget with UpdatableContainer, Invokable, HasControl
 
   @override
   State<StatefulWidget> createState() => FlowState();
-
 }
 
 class FlowController extends BoxController {
@@ -76,12 +86,15 @@ class FlowState extends WidgetState<Flow> with TemplatedWidgetState {
     if (widget.itemTemplate != null) {
       // initial value
       if (widget.itemTemplate!.initialValue != null) {
-        templatedChildren = buildWidgetsFromTemplate(context, widget.itemTemplate!.initialValue!, widget.itemTemplate!);
+        templatedChildren = buildWidgetsFromTemplate(
+            context, widget.itemTemplate!.initialValue!, widget.itemTemplate!);
       }
       // listen for changes
-      registerItemTemplate(context, widget.itemTemplate!,  evaluateInitialValue: true, onDataChanged: (List dataList) {
+      registerItemTemplate(context, widget.itemTemplate!,
+          evaluateInitialValue: true, onDataChanged: (List dataList) {
         setState(() {
-          templatedChildren = buildWidgetsFromTemplate(context, dataList, widget.itemTemplate!);
+          templatedChildren =
+              buildWidgetsFromTemplate(context, dataList, widget.itemTemplate!);
         });
       });
     }
@@ -93,10 +106,8 @@ class FlowState extends WidgetState<Flow> with TemplatedWidgetState {
     templatedChildren = null;
   }
 
-
   @override
   Widget buildWidget(BuildContext context) {
-
     // children will be rendered before templated children
     List<Widget> children = [];
     if (widget._controller.children != null) {
@@ -110,33 +121,33 @@ class FlowState extends WidgetState<Flow> with TemplatedWidgetState {
       boxController: widget._controller,
       ignoresMargin: true,
       widget: Wrap(
-            direction: widget._controller.direction == Axis.vertical.name ? Axis.vertical : Axis.horizontal,
-            spacing: widget.controller.gap?.toDouble() ?? 0,
-            runSpacing: widget._controller.lineGap?.toDouble() ?? 0,
-            alignment: widget._controller.mainAxis ?? WrapAlignment.start,
-            crossAxisAlignment: widget._controller.crossAxis ?? WrapCrossAlignment.start,
-            children: children,
-          ),
+        direction: widget._controller.direction == Axis.vertical.name
+            ? Axis.vertical
+            : Axis.horizontal,
+        spacing: widget.controller.gap?.toDouble() ?? 0,
+        runSpacing: widget._controller.lineGap?.toDouble() ?? 0,
+        alignment: widget._controller.mainAxis ?? WrapAlignment.start,
+        crossAxisAlignment:
+            widget._controller.crossAxis ?? WrapCrossAlignment.start,
+        children: children,
+      ),
     );
 
     if (widget._controller.margin != null) {
-      rtn = Padding(
-          padding: widget._controller.margin!,
-          child: rtn);
+      rtn = Padding(padding: widget._controller.margin!, child: rtn);
     }
 
-    if (widget._controller.maxWidth != null || widget._controller.maxHeight != null ) {
+    if (widget._controller.maxWidth != null ||
+        widget._controller.maxHeight != null) {
       return ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: widget._controller.maxWidth?.toDouble() ?? double.infinity,
-          maxHeight: widget._controller.maxHeight?.toDouble() ?? double.infinity
-        ),
-        child: rtn
-      );
+          constraints: BoxConstraints(
+              maxWidth:
+                  widget._controller.maxWidth?.toDouble() ?? double.infinity,
+              maxHeight:
+                  widget._controller.maxHeight?.toDouble() ?? double.infinity),
+          child: rtn);
     }
 
     return rtn;
   }
-
-
 }

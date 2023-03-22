@@ -7,7 +7,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/framework/action.dart' as ensemble;
 
-class EnsembleWebView extends StatefulWidget with Invokable, HasController<EnsembleWebViewController, WebViewState> {
+class EnsembleWebView extends StatefulWidget
+    with Invokable, HasController<EnsembleWebViewController, WebViewState> {
   static const type = 'WebView';
   EnsembleWebView({Key? key}) : super(key: key);
 
@@ -33,26 +34,36 @@ class EnsembleWebView extends StatefulWidget with Invokable, HasController<Ensem
     return {
       'url': (value) => _controller.url = Utils.getUrl(value),
       'height': (value) => _controller.height = Utils.optionalDouble(value),
-      'width':(value) => _controller.width = Utils.optionalDouble(value),
-      'onPageStart': (funcDefinition) => _controller.onPageStart = ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
-      'onPageFinished': (funcDefinition) => _controller.onPageFinished = ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
-      'onNavigationRequest': (funcDefinition) => _controller.onNavigationRequest = ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
-      'onWebResourceError': (funcDefinition) => _controller.onWebResourceError = ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'width': (value) => _controller.width = Utils.optionalDouble(value),
+      'onPageStart': (funcDefinition) => _controller.onPageStart =
+          ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onPageFinished': (funcDefinition) => _controller.onPageFinished =
+          ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onNavigationRequest': (funcDefinition) =>
+          _controller.onNavigationRequest =
+              ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onWebResourceError': (funcDefinition) => _controller.onWebResourceError =
+          ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
       // legacy
       'uri': (value) => _controller.url = Utils.getUrl(value),
     };
   }
 }
+
 abstract class ViewController {
   void loadUrl(String url);
 }
+
 class EnsembleWebViewController extends WidgetController {
   // params for each URI set
   int? loadingPercent = 0;
   String? error;
 
   ViewController? webViewController;
-  ensemble.EnsembleAction? onPageStart,onPageFinished,onNavigationRequest,onWebResourceError;
+  ensemble.EnsembleAction? onPageStart,
+      onPageFinished,
+      onNavigationRequest,
+      onWebResourceError;
   String? _url;
   String? get url => _url;
   set url(String? url) {
@@ -63,7 +74,7 @@ class EnsembleWebViewController extends WidgetController {
       webViewController?.loadUrl(url);
     }
   }
+
   double? height;
   double? width;
-
 }

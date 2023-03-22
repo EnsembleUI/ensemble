@@ -1,4 +1,3 @@
-
 import 'dart:developer';
 
 import 'package:ensemble/ensemble_theme.dart';
@@ -28,8 +27,10 @@ class TextInput extends BaseTextInput {
   Map<String, Function> setters() {
     Map<String, Function> setters = super.setters();
     setters.addAll({
-      'value': (newValue) => textController.text = Utils.getString(newValue, fallback: ''),
-      'obscureText': (obscure) => _controller.obscureText = Utils.optionalBool(obscure),
+      'value': (newValue) =>
+          textController.text = Utils.getString(newValue, fallback: ''),
+      'obscureText': (obscure) =>
+          _controller.obscureText = Utils.optionalBool(obscure),
       'inputType': (type) => _controller.inputType = Utils.optionalString(type),
     });
     return setters;
@@ -50,7 +51,6 @@ class TextInput extends BaseTextInput {
     }
     return null;
   }
-
 }
 
 /// PasswordInput
@@ -70,14 +70,16 @@ class PasswordInput extends BaseTextInput {
   Map<String, Function> setters() {
     Map<String, Function> setters = super.setters();
     setters.addAll({
-      'value': (newValue) => textController.text = Utils.getString(newValue, fallback: '')
+      'value': (newValue) =>
+          textController.text = Utils.getString(newValue, fallback: '')
     });
     return setters;
   }
 }
 
 /// Base StatefulWidget for both TextInput and Password
-abstract class BaseTextInput extends StatefulWidget with Invokable, HasController<TextInputController, TextInputState> {
+abstract class BaseTextInput extends StatefulWidget
+    with Invokable, HasController<TextInputController, TextInputState> {
   BaseTextInput({Key? key}) : super(key: key);
 
   // textController manages 'value', while _controller manages the rest
@@ -97,12 +99,17 @@ abstract class BaseTextInput extends StatefulWidget with Invokable, HasControlle
   Map<String, Function> setters() {
     // set value is not specified here for safety in case of PasswordInput
     return {
-      'onKeyPress': (function) => _controller.onKeyPress = EnsembleAction.fromYaml(function, initiator: this),
-      'onChange': (definition) => _controller.onChange = EnsembleAction.fromYaml(definition, initiator: this),
+      'onKeyPress': (function) => _controller.onKeyPress =
+          EnsembleAction.fromYaml(function, initiator: this),
+      'onChange': (definition) => _controller.onChange =
+          EnsembleAction.fromYaml(definition, initiator: this),
       'validator': (value) => _controller.validator = Utils.getValidator(value),
-      'obscureToggle': (value) => _controller.obscureToggle = Utils.optionalBool(value),
-      'keyboardAction': (value) => _controller.keyboardAction = _getKeyboardAction(value),
-      'maxLines' : (value) =>  _controller.maxLines = Utils.getInt(value, min: 1, fallback: _controller.maxLines),
+      'obscureToggle': (value) =>
+          _controller.obscureToggle = Utils.optionalBool(value),
+      'keyboardAction': (value) =>
+          _controller.keyboardAction = _getKeyboardAction(value),
+      'maxLines': (value) => _controller.maxLines =
+          Utils.getInt(value, min: 1, fallback: _controller.maxLines),
     };
   }
 
@@ -112,7 +119,7 @@ abstract class BaseTextInput extends StatefulWidget with Invokable, HasControlle
   }
 
   TextInputAction? _getKeyboardAction(dynamic value) {
-    switch(value) {
+    switch (value) {
       case 'done':
         return TextInputAction.done;
       case 'go':
@@ -134,7 +141,6 @@ abstract class BaseTextInput extends StatefulWidget with Invokable, HasControlle
 
   bool isPassword();
   TextInputType? get keyboardType;
-
 }
 
 /// controller for both TextField and Password
@@ -170,7 +176,8 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
 
       // call onChange
       if (widget._controller.onChange != null) {
-        ScreenController().executeAction(context, widget._controller.onChange!,event: EnsembleEvent(widget));
+        ScreenController().executeAction(context, widget._controller.onChange!,
+            event: EnsembleEvent(widget));
       }
       didItChange = false;
     }
@@ -181,7 +188,8 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
 
   @override
   void initState() {
-    currentlyObscured = widget.isPassword() || widget._controller.obscureText == true;
+    currentlyObscured =
+        widget.isPassword() || widget._controller.obscureText == true;
 
     focusNode.addListener(() {
       // on focus lost
@@ -214,35 +222,31 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
 
   @override
   Widget buildWidget(BuildContext context) {
-
     // TextField doesn't take the global disabled color for some reason,
     // so we have to account for it here
     TextStyle textStyle;
     if (isEnabled()) {
-      textStyle = TextStyle(
-          fontSize: widget.controller.fontSize?.toDouble());
+      textStyle = TextStyle(fontSize: widget.controller.fontSize?.toDouble());
     } else {
       textStyle = TextStyle(
-        color: Theme.of(context).disabledColor,
-        fontSize: widget.controller.fontSize?.toDouble());
+          color: Theme.of(context).disabledColor,
+          fontSize: widget.controller.fontSize?.toDouble());
     }
 
     // for password, show the toggle plain text/obscure text
     InputDecoration decoration = inputDecoration;
-    if ((widget.isPassword() || widget._controller.obscureText == true) && widget._controller.obscureToggle == true) {
+    if ((widget.isPassword() || widget._controller.obscureText == true) &&
+        widget._controller.obscureToggle == true) {
       decoration = decoration.copyWith(
-        suffixIcon: IconButton(
-          icon: Icon(
-              currentlyObscured ? Icons.visibility : Icons.visibility_off,
-              size: ThemeManager().getInputIconSize(context).toDouble()),
-          onPressed: () {
-            setState(() {
-              currentlyObscured = !currentlyObscured;
-            });
-          },
-
-        )
-      );
+          suffixIcon: IconButton(
+        icon: Icon(currentlyObscured ? Icons.visibility : Icons.visibility_off,
+            size: ThemeManager().getInputIconSize(context).toDouble()),
+        onPressed: () {
+          setState(() {
+            currentlyObscured = !currentlyObscured;
+          });
+        },
+      ));
     }
 
     return InputWrapper(
@@ -251,9 +255,10 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
             key: validatorKey,
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return widget._controller.required ?
-                Utils.translateWithFallback('ensemble.input.required', 'This field is required') :
-                null;
+                return widget._controller.required
+                    ? Utils.translateWithFallback(
+                        'ensemble.input.required', 'This field is required')
+                    : null;
               }
               // only applicable for TextInput
               if (!widget.isPassword() && value != null) {
@@ -263,13 +268,15 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
                         'ensemble.input.validation.invalidEmailType',
                         'Please enter a valid email address');
                   }
-                } else if (widget._controller.inputType == InputType.ipAddress.name) {
+                } else if (widget._controller.inputType ==
+                    InputType.ipAddress.name) {
                   if (!InputValidator.ipAddress(value)) {
                     return Utils.translateWithFallback(
                         'ensemble.input.validation.invalidIPAddressType',
                         'Please enter a valid IP Address');
                   }
-                } else if (widget._controller.inputType == InputType.phone.name) {
+                } else if (widget._controller.inputType ==
+                    InputType.phone.name) {
                   if (!InputValidator.phone(value)) {
                     return Utils.translateWithFallback(
                         'ensemble.input.validation.invalidPhoneType',
@@ -282,12 +289,14 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
                 if (widget._controller.validator?.minLength != null) {
                   builder = ValidationBuilder().minLength(
                       widget._controller.validator!.minLength!,
-                      Utils.translateOrNull('ensemble.input.validation.minimumLength'));
+                      Utils.translateOrNull(
+                          'ensemble.input.validation.minimumLength'));
                 }
                 if (widget._controller.validator?.maxLength != null) {
                   builder = (builder ?? ValidationBuilder()).maxLength(
                       widget._controller.validator!.maxLength!,
-                      Utils.translateOrNull('ensemble.input.validation.maximumLength'));
+                      Utils.translateOrNull(
+                          'ensemble.input.validation.maximumLength'));
                 }
                 if (widget._controller.validator?.regex != null) {
                   builder = (builder ?? ValidationBuilder()).regExp(
@@ -330,14 +339,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
             },
             style: textStyle,
             decoration: decoration));
-    
   }
-
 }
 
-enum InputType {
-  email,
-  phone,
-  ipAddress
-}
-
+enum InputType { email, phone, ipAddress }

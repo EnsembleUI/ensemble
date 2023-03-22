@@ -53,20 +53,20 @@ class CameraManager {
               'cameraRotateIcon', cameraAction.options!['cameraRotateIcon']);
       cameraAction.options!['permissionDeniedMessage'] == null
           ? ''
-          : camera.setProperty(
-              'permissionDeniedMessage', cameraAction.options!['permissionDeniedMessage']);
+          : camera.setProperty('permissionDeniedMessage',
+              cameraAction.options!['permissionDeniedMessage']);
       cameraAction.options!['nextButtonLabel'] == null
           ? ''
           : camera.setProperty(
-              'nextButtonLabel', cameraAction.options!['nextButtonLabel']);                      
+              'nextButtonLabel', cameraAction.options!['nextButtonLabel']);
       cameraAction.options!['accessButtonLabel'] == null
           ? ''
           : camera.setProperty(
-              'accessButtonLabel', cameraAction.options!['accessButtonLabel']); 
+              'accessButtonLabel', cameraAction.options!['accessButtonLabel']);
       cameraAction.options!['galleryButtonLabel'] == null
           ? ''
-          : camera.setProperty(
-              'galleryButtonLabel', cameraAction.options!['galleryButtonLabel']);                
+          : camera.setProperty('galleryButtonLabel',
+              cameraAction.options!['galleryButtonLabel']);
 
       // when properties is set push on camera screen
       // res is used when camera is close than return list of image
