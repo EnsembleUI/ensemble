@@ -892,6 +892,10 @@
                 "wrap", "visible", "clip", "ellipsis"
               ]
             },
+            "labelMaxWidth": {
+              "type": "integer",
+              "description": "Cap the label's width, useful on larger screen. This property only works on labelPosition=start."
+            },
             "width": {
               "type": "integer",
               "minimum": 0
