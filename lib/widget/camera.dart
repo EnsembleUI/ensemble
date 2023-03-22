@@ -57,8 +57,8 @@ class CameraScreen extends StatefulWidget
           Utils.optionalBool(value) ?? _controller.preview,
       'maxCountMessage': (value) =>
           _controller.maxCountMessage = Utils.optionalString(value),
-      'permissionDeniedMessage': (value) => _controller
-          .permissionDeniedMessage = Utils.optionalString(value),
+      'permissionDeniedMessage': (value) =>
+          _controller.permissionDeniedMessage = Utils.optionalString(value),
       'nextButtonLabel': (value) =>
           _controller.nextButtonLabel = Utils.optionalString(value),
       'accessButtonLabel': (value) =>
@@ -89,7 +89,6 @@ class MyCameraController extends WidgetController {
 
   IconModel? imagePickerIcon;
   IconModel? cameraRotateIcon;
-
 
   void initCameraOption(dynamic data) {
     if (data != null) {
@@ -711,7 +710,7 @@ class CameraScreenState extends WidgetState<CameraScreen>
       ),
     );
   }
-  
+
   Widget silderView() {
     return SizedBox(
       height: 20,
@@ -971,7 +970,7 @@ class CameraScreenState extends WidgetState<CameraScreen>
       return widget._controller.nextButtonLabel!;
     }
     return Utils.translateWithFallback('ensemble.input.nextButtonLabel', label);
-}
+  }
 
   Widget timerWidget(int min, int sec) {
     return Container(

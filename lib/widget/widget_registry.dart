@@ -1,4 +1,3 @@
-
 import 'package:ensemble/layout/app_scroller.dart';
 import 'package:ensemble/layout/box_layout.dart';
 import 'package:ensemble/layout/data_grid.dart';
@@ -41,73 +40,69 @@ import 'package:ensemble/widget/visualization/line_area_chart.dart';
 import 'package:ensemble/widget/webview/webview.dart';
 
 class WidgetRegistry {
-  WidgetRegistry({
-    this.debugLabel
-  });
+  WidgetRegistry({this.debugLabel});
   final String? debugLabel;
 
   static final WidgetRegistry instance = WidgetRegistry(
     debugLabel: 'default',
   );
 
-  static Map<String, Function> get widgetMap => <String, Function> {
-    EnsembleText.type: () => EnsembleText(),
-    Markdown.type: () => Markdown(),
-    EnsembleHtml.type: () => EnsembleHtml(),
-    EnsembleIcon.type: () => EnsembleIcon(),
-    EnsembleImage.type: () => EnsembleImage(),
-    EnsembleDivider.type: () => EnsembleDivider(),
-    EnsembleSpacer.type: () => EnsembleSpacer(),
+  static Map<String, Function> get widgetMap => <String, Function>{
+        EnsembleText.type: () => EnsembleText(),
+        Markdown.type: () => Markdown(),
+        EnsembleHtml.type: () => EnsembleHtml(),
+        EnsembleIcon.type: () => EnsembleIcon(),
+        EnsembleImage.type: () => EnsembleImage(),
+        EnsembleDivider.type: () => EnsembleDivider(),
+        EnsembleSpacer.type: () => EnsembleSpacer(),
 
-    // misc widgets
-    Rating.type: () => Rating(),
-    EnsembleWebView.type: () => EnsembleWebView(),
-    QRCode.type: () => QRCode(),
-    EnsembleProgressIndicator.type: () => EnsembleProgressIndicator(),
-    EnsembleMap.type: () => EnsembleMap(),
-    Carousel.type: () => Carousel(),
-    Video.type: () => Video(),
-    EnsembleLottie.type: () => EnsembleLottie(),
-    EnsembleSignature.type: () => EnsembleSignature(),
-    WeeklyScheduler.type: () => WeeklyScheduler(),
-    // Camera.type: () => Camera(),
+        // misc widgets
+        Rating.type: () => Rating(),
+        EnsembleWebView.type: () => EnsembleWebView(),
+        QRCode.type: () => QRCode(),
+        EnsembleProgressIndicator.type: () => EnsembleProgressIndicator(),
+        EnsembleMap.type: () => EnsembleMap(),
+        Carousel.type: () => Carousel(),
+        Video.type: () => Video(),
+        EnsembleLottie.type: () => EnsembleLottie(),
+        EnsembleSignature.type: () => EnsembleSignature(),
+        WeeklyScheduler.type: () => WeeklyScheduler(),
+        // Camera.type: () => Camera(),
 
-    // form fields
-    EnsembleForm.type: () => EnsembleForm(),
-    TextInput.type: () => TextInput(),
-    Date.type: () => Date(),
-    Time.type: () => Time(),
-    DateRange.type: () => DateRange(),
-    PasswordInput.type: () => PasswordInput(),
-    EnsembleCheckbox.type: () => EnsembleCheckbox(),
-    EnsembleSwitch.type: () => EnsembleSwitch(),
-    Dropdown.type: () => Dropdown(),
-    Button.type: () => Button(),
+        // form fields
+        EnsembleForm.type: () => EnsembleForm(),
+        TextInput.type: () => TextInput(),
+        Date.type: () => Date(),
+        Time.type: () => Time(),
+        DateRange.type: () => DateRange(),
+        PasswordInput.type: () => PasswordInput(),
+        EnsembleCheckbox.type: () => EnsembleCheckbox(),
+        EnsembleSwitch.type: () => EnsembleSwitch(),
+        Dropdown.type: () => Dropdown(),
+        Button.type: () => Button(),
 
-    // containers
-    Column.type: () => Column(),
-    Row.type: () => Row(),
-    ListView.type: () => ListView(),
-    GridView.type: () => GridView(),
-    Flex.type: () => Flex(),
-    EnsembleStack.type: () => EnsembleStack(),
-    Flow.type: () => Flow(),
-    DataGrid.type: () => DataGrid(),
-    EnsembleDataRow.type: () => EnsembleDataRow(),
-    TabBarOnly.type: () => TabBarOnly(),
-    TabBarContainer.type: () => TabBarContainer(),
-    AppScroller.type: () => AppScroller(),
+        // containers
+        Column.type: () => Column(),
+        Row.type: () => Row(),
+        ListView.type: () => ListView(),
+        GridView.type: () => GridView(),
+        Flex.type: () => Flex(),
+        EnsembleStack.type: () => EnsembleStack(),
+        Flow.type: () => Flow(),
+        DataGrid.type: () => DataGrid(),
+        EnsembleDataRow.type: () => EnsembleDataRow(),
+        TabBarOnly.type: () => TabBarOnly(),
+        TabBarContainer.type: () => TabBarContainer(),
+        AppScroller.type: () => AppScroller(),
 
-    // charts
-    Highcharts.type: () => Highcharts(),
-    EnsembleLineChart.type: () => EnsembleLineChart(),
-    EnsembleBarChart.type: () => EnsembleBarChart(),
-    ChartJs.type: () => ChartJs(),
-    TopologyChart.type: () => TopologyChart(),
+        // charts
+        Highcharts.type: () => Highcharts(),
+        EnsembleLineChart.type: () => EnsembleLineChart(),
+        EnsembleBarChart.type: () => EnsembleBarChart(),
+        ChartJs.type: () => ChartJs(),
+        TopologyChart.type: () => TopologyChart(),
 
-    //domain specific or custom widgets
-    FinicityConnect.type: () => FinicityConnect()
-  };
-
+        //domain specific or custom widgets
+        FinicityConnect.type: () => FinicityConnect()
+      };
 }
-

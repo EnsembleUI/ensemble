@@ -1,5 +1,3 @@
-
-
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/util/utils.dart';
@@ -13,8 +11,8 @@ abstract class BindingSource {
   BindingSource(this.modelId, {this.property, this.type});
 
   String modelId;
-  String? property;   // property can be empty for custom widget inputs
-  String? type;       // an additional type to match regardless of modelId
+  String? property; // property can be empty for custom widget inputs
+  String? type; // an additional type to match regardless of modelId
 
   /// convert an expression ${..} into a BindingSource
   /// TODO: use AST to get all bindable sources
@@ -29,13 +27,13 @@ abstract class BindingSource {
       // storage bindable
       String storageExpr = 'ensemble.storage.';
       if (variable.startsWith(storageExpr)) {
-        RegExpMatch? match = variableNameRegex.firstMatch(variable.substring(storageExpr.length));
+        RegExpMatch? match = variableNameRegex
+            .firstMatch(variable.substring(storageExpr.length));
         if (match != null) {
           String storageKey = match.group(0)!;
           return StorageBindingSource(storageKey);
         }
       } else {
-
         // if syntax is ${model.property}
         int dotIndex = variable.indexOf('.');
         if (dotIndex != -1) {
@@ -82,8 +80,6 @@ abstract class BindingSource {
               return SimpleBindingSource(firstVariable);
             }
           }
-
-
         }
       }
       // we have a binding expression but not able to look up the model
@@ -94,24 +90,23 @@ abstract class BindingSource {
     }
     return null;
   }
-
-
-
-
 }
 
 /// a bindable source backed by Storage
 class StorageBindingSource extends BindingSource {
   StorageBindingSource(super.modelId);
 }
+
 /// bindable source backed by API
 class APIBindingSource extends BindingSource {
   APIBindingSource(super.modelId);
 }
+
 /// simple binding (e.g. custom widget's input variable ${myVar} )
 class SimpleBindingSource extends BindingSource {
   SimpleBindingSource(super.modelId);
 }
+
 // for source that are widgets (e.g. myText.value )
 class WidgetBindingSource extends BindingSource {
   WidgetBindingSource(super.modelId, {super.property});
@@ -120,8 +115,6 @@ class WidgetBindingSource extends BindingSource {
 class DeferredBindingSource extends BindingSource {
   DeferredBindingSource(super.modelId);
 }
-
-
 
 /// Binding Destination represents the left predicate of a binding expression
 /// myText.text: $(myTextInput.value)
@@ -140,7 +133,6 @@ class ModelChangeEvent {
   BindingSource source;
   dynamic payload;
   ScopeManager? bindingScope;
-
 
   @override
   String toString() {

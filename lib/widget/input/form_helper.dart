@@ -36,8 +36,6 @@ class FormFieldController extends WidgetController {
   Color? focusedBorderColor;
   Color? focusedErrorBorderColor;
 
-
-
   @override
   Map<String, Function> getBaseGetters() {
     Map<String, Function> getters = super.getBaseGetters();
@@ -57,19 +55,23 @@ class FormFieldController extends WidgetController {
       'hintText': (value) => hintText = Utils.optionalString(value),
       'icon': (value) => icon = Utils.getIcon(value),
       'fontSize': (value) => fontSize = Utils.optionalInt(value),
-      'maxWidth': (value) => maxWidth = Utils.optionalInt(value, min: 0, max: 5000),
-
+      'maxWidth': (value) =>
+          maxWidth = Utils.optionalInt(value, min: 0, max: 5000),
       'variant': (type) => variant = InputVariant.values.from(type),
       'contentPadding': (value) => contentPadding = Utils.optionalInsets(value),
       'fillColor': (value) => fillColor = Utils.getColor(value),
       'borderRadius': (value) => borderRadius = Utils.getBorderRadius(value),
       'borderWidth': (value) => borderWidth = Utils.optionalInt(value, min: 0),
       'borderColor': (color) => borderColor = Utils.getColor(color),
-      'enabledBorderColor': (color) => enabledBorderColor = Utils.getColor(color),
-      'disabledBorderColor': (color) => disabledBorderColor = Utils.getColor(color),
+      'enabledBorderColor': (color) =>
+          enabledBorderColor = Utils.getColor(color),
+      'disabledBorderColor': (color) =>
+          disabledBorderColor = Utils.getColor(color),
       'errorBorderColor': (color) => errorBorderColor = Utils.getColor(color),
-      'focusedBorderColor': (color) => focusedBorderColor = Utils.getColor(color),
-      'focusedErrorBorderColor': (color) => focusedErrorBorderColor = Utils.getColor(color),
+      'focusedBorderColor': (color) =>
+          focusedBorderColor = Utils.getColor(color),
+      'focusedErrorBorderColor': (color) =>
+          focusedErrorBorderColor = Utils.getColor(color),
     });
     return setters;
   }
@@ -90,7 +92,8 @@ class FormHelper {
       }
       if (formState.widget.controller.onSubmit != null) {
         ScreenController().executeAction(
-            context, formState.widget.controller.onSubmit!,event: EnsembleEvent(formState.widget));
+            context, formState.widget.controller.onSubmit!,
+            event: EnsembleEvent(formState.widget));
       }
     }
   }
@@ -99,7 +102,6 @@ class FormHelper {
 /// base widget state for FormField widgets
 abstract class FormFieldWidgetState<W extends HasController>
     extends WidgetState<W> {
-
   // the key to validate this FormField
   final validatorKey = GlobalKey<FormFieldState>();
 
@@ -109,8 +111,8 @@ abstract class FormFieldWidgetState<W extends HasController>
   /// the attributes that are specified manually by the user at each input.
   InputDecoration get inputDecoration {
     if (widget.controller is FormFieldController) {
-      FormFieldController myController = widget
-          .controller as FormFieldController;
+      FormFieldController myController =
+          widget.controller as FormFieldController;
       InputDecorationTheme themeDecoration =
           Theme.of(context).inputDecorationTheme;
 
@@ -134,32 +136,34 @@ abstract class FormFieldWidgetState<W extends HasController>
       InputVariant? _themeVariant = themeDecoration.border is OutlineInputBorder
           ? InputVariant.box
           : null;
-      if (myController.variant != null && myController.variant != _themeVariant) {
+      if (myController.variant != null &&
+          myController.variant != _themeVariant) {
         redrawAllBorders = true;
       }
       InputVariant? variant = myController.variant ?? _themeVariant;
 
       // resolve borderWidth
       int? _themeBorderWidth = themeDecoration.border?.borderSide.width.toInt();
-      if (myController.borderWidth != null && myController.borderWidth != _themeBorderWidth) {
+      if (myController.borderWidth != null &&
+          myController.borderWidth != _themeBorderWidth) {
         redrawAllBorders = true;
       }
       int borderWidth = myController.borderWidth ?? _themeBorderWidth ?? 1;
 
       // resolve borderRadius
       BorderRadius? _themeBorderRadius =
-        themeDecoration.border is UnderlineInputBorder
-            ? (themeDecoration.border as UnderlineInputBorder).borderRadius
-            : themeDecoration.border is OutlineInputBorder
-                ? (themeDecoration.border as OutlineInputBorder).borderRadius
-                : null;
-      if (myController.borderRadius != null && myController.borderRadius!.getValue() != _themeBorderRadius) {
+          themeDecoration.border is UnderlineInputBorder
+              ? (themeDecoration.border as UnderlineInputBorder).borderRadius
+              : themeDecoration.border is OutlineInputBorder
+                  ? (themeDecoration.border as OutlineInputBorder).borderRadius
+                  : null;
+      if (myController.borderRadius != null &&
+          myController.borderRadius!.getValue() != _themeBorderRadius) {
         redrawAllBorders = true;
       }
       BorderRadius borderRadius = myController.borderRadius?.getValue() ??
           _themeBorderRadius ??
           ThemeManager().getInputDefaultBorderRadius(variant);
-
 
       return InputDecoration(
           // consistent with the theme. We need dense so user have granular control of contentPadding
@@ -221,16 +225,14 @@ abstract class FormFieldWidgetState<W extends HasController>
                   borderRadius: borderRadius,
                   borderColor: myController.focusedBorderColor ??
                       themeDecoration.focusedBorder?.borderSide.color),
-          focusedErrorBorder: myController.focusedErrorBorderColor == null && !redrawAllBorders
-              ? null
-              : ThemeManager().getInputBorder(
-                  variant: variant,
-                  borderWidth: borderWidth,
-                  borderRadius: borderRadius,
-                  borderColor: myController.focusedErrorBorderColor ??
-                      themeDecoration.focusedErrorBorder?.borderSide.color)
-          
-      );
+          focusedErrorBorder:
+              myController.focusedErrorBorderColor == null && !redrawAllBorders
+                  ? null
+                  : ThemeManager().getInputBorder(
+                      variant: variant,
+                      borderWidth: borderWidth,
+                      borderRadius: borderRadius,
+                      borderColor: myController.focusedErrorBorderColor ?? themeDecoration.focusedErrorBorder?.borderSide.color));
     }
     return const InputDecoration();
   }
@@ -239,13 +241,9 @@ abstract class FormFieldWidgetState<W extends HasController>
   /// then fallback to TRUE
   bool isEnabled() {
     if (widget.controller is FormFieldController) {
-      return (widget.controller as FormFieldController).enabled
-          ?? EnsembleForm
-              .of(context)
-              ?.widget
-              .controller
-              .enabled
-          ?? true;
+      return (widget.controller as FormFieldController).enabled ??
+          EnsembleForm.of(context)?.widget.controller.enabled ??
+          true;
     }
     return true;
   }
@@ -261,15 +259,16 @@ abstract class FormFieldWidgetState<W extends HasController>
   /// return the TextStyle for a form field (TextField, ....)
   TextStyle get formFieldTextStyle {
     // MaterialSpec - titleMedium maps to FormField textStyle
-    TextStyle textStyle = Theme.of(context).textTheme.titleMedium ?? const TextStyle();
+    TextStyle textStyle =
+        Theme.of(context).textTheme.titleMedium ?? const TextStyle();
     if (widget.controller is FormFieldController) {
       return textStyle.copyWith(
-        fontSize: (widget.controller as FormFieldController).fontSize?.toDouble(),
-        overflow: TextOverflow.ellipsis
-        // TODO: expose color, ... for all form fields here
-      );
+          fontSize:
+              (widget.controller as FormFieldController).fontSize?.toDouble(),
+          overflow: TextOverflow.ellipsis
+          // TODO: expose color, ... for all form fields here
+          );
     }
     return textStyle;
   }
-
 }
