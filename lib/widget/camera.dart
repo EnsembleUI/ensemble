@@ -486,7 +486,7 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
                 return kIsWeb
                     ? DisplayMediaWeb(file: file)
                     : Center(
-                        child: file.getMediaType() == MediaType.video
+                        child: file.getMediaType() == MediaType.image
                             ? Image.file(file.toFile()!)
                             : InlineVideoPlayer(
                                 file: file,
@@ -612,7 +612,7 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
                         BorderRadius.all(isBorderView ? const Radius.circular(0.0) : const Radius.circular(5.0)),
                     child: kIsWeb
                         ? DisplayMediaWeb(file: file, isThumbnail: true)
-                        : file.getMediaType() == MediaType.video
+                        : file.getMediaType() == MediaType.image
                             ? Image.file(
                                 file.toFile()!,
                                 fit: BoxFit.cover,
@@ -772,6 +772,9 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
   }
 
   Widget silderView() {
+    if (_isVideoCameraSelected) {
+      Future.delayed(const Duration(milliseconds: 100), () => pageController.animateToPage(1, duration: const Duration(milliseconds: 100), curve: Curves.easeIn),);
+    }
     return SizedBox(
       height: 20,
       child: PageView.builder(

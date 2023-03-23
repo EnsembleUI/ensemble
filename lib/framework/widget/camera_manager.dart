@@ -63,7 +63,7 @@ class CameraManager {
       if (cameraAction.options!['assistSpeed'] != null) {
         camera.setProperty('assistSpeed', true);
         for (var option in cameraAction.options!['assistSpeed'].keys) {
-          final property = angleAssistOptions[option];
+          final property = speedAssistOptions[option];
           if (property != null) {
             camera.setProperty(property, cameraAction.options!['assistSpeed']![option]);
           }
