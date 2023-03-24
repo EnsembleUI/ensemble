@@ -279,9 +279,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
               ));
     }
     return InputWrapper(
-        type: Dropdown.type,
-        controller: widget._controller,
-        widget: rtn);
+        type: Dropdown.type, controller: widget._controller, widget: rtn);
   }
 
   // ---------------------- Search From the List if [AUTOCOMPLETE] is true ---------------------------------
