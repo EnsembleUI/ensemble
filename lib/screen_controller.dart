@@ -24,6 +24,8 @@ import 'package:ensemble/widget/widget_registry.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:url_launcher/url_launcher_string.dart';
+import 'package:walletconnect_dart/walletconnect_dart.dart';
 import 'package:yaml/yaml.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:file_picker/file_picker.dart';
@@ -436,6 +438,52 @@ class ScreenController {
       if (scopeManager != null) {
         Navigator.of(context).maybePop();
       }
+    } else if (action is WalletConnectAction) {
+      //  TODO store session:  WalletConnectSession? session = await sessionStorage.getSession();
+
+      final WalletConnect walletConnect = WalletConnect(
+        bridge: 'https://bridge.walletconnect.org',
+        clientMeta: PeerMeta(
+          name: action.appName,
+          description: action.appDescription,
+          url: action.appUrl,
+          icons: action.appIconUrl != null ? <String>[action.appIconUrl!] : null,
+        ),
+      );
+
+      if (action.id != null && scopeManager != null) {
+        scopeManager.dataContext.addDataContextById(action.id!, WalletData(walletConnect));
+      }
+
+      if (walletConnect.connected) {
+        // TODO works when session is stored
+        return;
+      }
+      walletConnect.on('connect', (SessionStatus? session) {
+        if (action.id != null && scopeManager != null) {
+          final walletData = scopeManager.dataContext.getContextById(action.id!);
+          scopeManager.dispatch(ModelChangeEvent(SimpleBindingSource(action.id!), walletData));
+        }
+      });
+      walletConnect.on('session_update', (Object? session) {
+        if (action.id != null && scopeManager != null) {
+          final walletData = scopeManager.dataContext.getContextById(action.id!);
+          scopeManager.dispatch(ModelChangeEvent(SimpleBindingSource(action.id!), walletData));
+        }
+      });
+      walletConnect.on('disconnect', (Object? session) {
+
+      });
+
+      try {
+        walletConnect.createSession(onDisplayUri: (String uri) async {
+          launchUrlString(uri, mode: LaunchMode.externalApplication);
+        });
+      } on Exception catch (_) {
+        throw LanguageError(
+              'Unable to create wallet connect session');
+      }
+
     }
   }
 

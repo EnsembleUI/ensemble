@@ -76,6 +76,7 @@ dependencies:
   file_picker: ^5.2.5
   cached_network_image: ^3.2.3
   flutter_cache_manager: ^3.3.0
+  walletconnect_dart: ^0.0.11
 
 dev_dependencies:
   flutter_test:

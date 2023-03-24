@@ -20,6 +20,7 @@ import 'package:ensemble_ts_interpreter/errors.dart';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:source_span/source_span.dart';
+import 'package:walletconnect_dart/walletconnect_dart.dart';
 import 'package:yaml/yaml.dart';
 
 /// manages Data and Invokables within the current data scope.
@@ -718,4 +719,36 @@ class File {
       'bytes': bytes,
     };
   }
+}
+
+class WalletData with Invokable {
+  WalletData(this.walletConnect);
+
+  final WalletConnect walletConnect;
+
+  @override
+  Map<String, Function> getters() {
+    return {
+      'addresses': () => walletConnect.session.accounts,
+      'connectionUri': () =>  walletConnect.session.toUri().toString(),
+    };
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {
+      'closeConnection': () => closeConnection(),
+    };
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
+  }
+
+  void closeConnection() {
+    walletConnect.killSession();
+    walletConnect.close();
+  }
+  
 }
