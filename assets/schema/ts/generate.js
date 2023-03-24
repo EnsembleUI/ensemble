@@ -7,8 +7,8 @@ const fs = require("fs");
 const config = {
   path: "./src/coreSchema.ts",
   tsconfig: "./tsconfig.json",
-
-  type: "Screen", // Or <type-name> if you want to generate schema for that one type only,
+  additionalProperties: true,
+  type: "*", // Or <type-name> if you want to generate schema for that one type only,
   expose: "all",
   strictTuples: true,
   skipTypeCheck: false,

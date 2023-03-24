@@ -19,3 +19,7 @@ export * from "./TabBar";
 export * from "./GridView";
 export * from "./Form";
 export * from "./Menu";
+export * from "./ChartJS";
+export * from "./Map";
+export * from "./WebView";
+export * from "./Video";

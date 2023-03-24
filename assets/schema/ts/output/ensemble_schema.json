@@ -1,6 +1,5 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$ref": "#/definitions/Screen",
   "definitions": {
     "Screen": {
       "type": "object",
@@ -8,8 +7,7 @@
         "ViewGroup": {
           "$ref": "#/definitions/ViewGroup"
         }
-      },
-      "additionalProperties": false
+      }
     },
     "ViewGroup": {
       "$ref": "#/definitions/Menu",
@@ -26,8 +24,7 @@
           },
           "required": [
             "BottomNavBar"
-          ],
-          "additionalProperties": false
+          ]
         },
         {
           "type": "object",
@@ -38,8 +35,7 @@
           },
           "required": [
             "Drawer"
-          ],
-          "additionalProperties": false
+          ]
         },
         {
           "type": "object",
@@ -50,8 +46,7 @@
           },
           "required": [
             "EndDrawer"
-          ],
-          "additionalProperties": false
+          ]
         },
         {
           "type": "object",
@@ -62,8 +57,7 @@
           },
           "required": [
             "Sidebar"
-          ],
-          "additionalProperties": false
+          ]
         },
         {
           "type": "object",
@@ -74,8 +68,7 @@
           },
           "required": [
             "EndSidebar"
-          ],
-          "additionalProperties": false
+          ]
         }
       ],
       "description": "Specify the navigation menu for this page"
@@ -100,8 +93,7 @@
       },
       "required": [
         "items"
-      ],
-      "additionalProperties": false
+      ]
     },
     "itemType": {
       "type": "object",
@@ -129,8 +121,7 @@
         "icon",
         "label",
         "page"
-      ],
-      "additionalProperties": false
+      ]
     },
     "iconLibrary": {
       "type": "string",
@@ -175,7 +166,6 @@
     },
     "MenuWithHeaderAndFooter": {
       "type": "object",
-      "additionalProperties": false,
       "properties": {
         "header": {
           "$ref": "#/definitions/Widget",
@@ -203,10 +193,10 @@
       "type": "object",
       "properties": {
         "id": {
-          "type": "string"
+          "type": "string",
+          "description": "ID to be referenced later"
         }
-      },
-      "additionalProperties": false
+      }
     },
     "EndDrawer": {
       "$ref": "#/definitions/MenuWithHeaderAndFooter",
@@ -218,7 +208,6 @@
     },
     "MenuWithAdditionalStyles": {
       "type": "object",
-      "additionalProperties": false,
       "properties": {
         "styles": {
           "$ref": "#/definitions/backgroundColor"
@@ -242,9 +231,4662 @@
         "items"
       ]
     },
+    "borderProperties": {
+      "type": "object",
+      "properties": {
+        "borderColor": {
+          "$ref": "#/definitions/Colors",
+          "description": "Border color, starting with '0xFF' for full opacity"
+        },
+        "borderWidth": {
+          "type": "number",
+          "description": "The thickness of the border",
+          "minimum": 0
+        }
+      }
+    },
+    "itemDisplayEnum": {
+      "type": "string",
+      "enum": [
+        "stacked",
+        "sideBySide"
+      ]
+    },
     "EndSidebar": {
       "$ref": "#/definitions/MenuWithAdditionalStyles",
       "description": "Enable a fixed navigation menu to the 'end' of the screen (right for most languages, left for RTL languages). The menu may become a drawer menu on lower resolution."
+    },
+    "RootWidgets": {
+      "type": "object",
+      "properties": {
+        "Column": {
+          "$ref": "#/definitions/Column"
+        },
+        "Flow": {
+          "$ref": "#/definitions/Flow"
+        },
+        "Flex": {
+          "$ref": "#/definitions/Flex"
+        },
+        "Stack": {
+          "$ref": "#/definitions/Stack"
+        },
+        "ListView": {
+          "$ref": "#/definitions/ListView"
+        },
+        "Carousel": {
+          "$ref": "#/definitions/Carousel"
+        }
+      }
+    },
+    "Column": {
+      "type": "object",
+      "properties": {
+        "mainAxis": {
+          "$ref": "#/definitions/mainAxisEnum",
+          "description": "Control our children's layout vertically"
+        },
+        "crossAxis": {
+          "$ref": "#/definitions/crossAxisEnum",
+          "description": "Control the horizontal alignment of the children"
+        },
+        "mainAxisSize": {
+          "$ref": "#/definitions/mainAxisSizeEnum",
+          "description": "Stretch to the max vertically or only fit the vertical space"
+        },
+        "scrollable": {
+          "type": "boolean",
+          "description": "Set to true so content can scroll vertically as needed"
+        },
+        "autoFit": {
+          "type": "boolean",
+          "description": "Explicitly make the column's width as wide as the largest child, but only if our column's parent does not already assign a width. This attribute is useful for sizing children who don't have a width (e.g Divider)"
+        },
+        "gap": {
+          "type": "number",
+          "minimum": 0
+        },
+        "fontFamily": {
+          "type": "string",
+          "description": "Set the font family applicable for all widgets inside this container"
+        },
+        "fontSize": {
+          "type": "number",
+          "minimum": 0
+        },
+        "shadowColor": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Box shadow color starting with '0xFF' for full opacity"
+        },
+        "shadowOffset": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "shadowRadius": {
+          "type": "number",
+          "minimum": 0
+        },
+        "shadowStyle": {
+          "$ref": "#/definitions/shadowEnum",
+          "description": "The blur style to apply on the shadow"
+        },
+        "borderRadius": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Border Radius with CSS-like notation (1 to 4 integers)",
+          "minimum": 0
+        },
+        "borderColor": {
+          "$ref": "#/definitions/Colors",
+          "description": "Border color, starting with '0xFF' for full opacity"
+        },
+        "borderWidth": {
+          "type": "number",
+          "description": "The thickness of the border",
+          "minimum": 0
+        },
+        "backgroundGradient": {
+          "type": "object",
+          "properties": {
+            "colors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Colors"
+              },
+              "description": "The list of colors used for the gradient"
+            },
+            "start": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The starting position of the gradient"
+            },
+            "end": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The ending position of the gradient"
+            }
+          }
+        },
+        "backgroundColor": {
+          "$ref": "#/definitions/Colors"
+        },
+        "backgroundImage": {
+          "$ref": "#/definitions/backgroundImage"
+        },
+        "padding": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Padding with CSS-style value e.g. padding: 5 20 5"
+        },
+        "margin": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0
+        },
+        "expanded": {
+          "type": "boolean",
+          "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+        },
+        "item-template": {
+          "$ref": "#/definitions/ItemTemplate"
+        },
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Widgets"
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "Container": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Widgets"
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "Widgets": {
+      "type": "object",
+      "properties": {
+        "Column": {
+          "$ref": "#/definitions/Column"
+        },
+        "Flow": {
+          "$ref": "#/definitions/Flow"
+        },
+        "Flex": {
+          "$ref": "#/definitions/Flex"
+        },
+        "Stack": {
+          "$ref": "#/definitions/Stack"
+        },
+        "ListView": {
+          "$ref": "#/definitions/ListView"
+        },
+        "Carousel": {
+          "$ref": "#/definitions/Carousel"
+        },
+        "Row": {
+          "$ref": "#/definitions/Row"
+        },
+        "Text": {
+          "$ref": "#/definitions/Text"
+        },
+        "Markdown": {
+          "$ref": "#/definitions/Markdown"
+        },
+        "Image": {
+          "$ref": "#/definitions/Image"
+        },
+        "Lottie": {
+          "$ref": "#/definitions/Lottie"
+        },
+        "Icon": {
+          "$ref": "#/definitions/Icon"
+        },
+        "Button": {
+          "$ref": "#/definitions/Button"
+        },
+        "Date": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "Divider": {
+          "$ref": "#/definitions/Divider"
+        },
+        "Html": {
+          "$ref": "#/definitions/Html"
+        },
+        "OnOff": {
+          "$ref": "#/definitions/OnOff"
+        },
+        "PasswordInput": {
+          "$ref": "#/definitions/PasswordInput"
+        },
+        "TextInput": {
+          "$ref": "#/definitions/TextInput"
+        },
+        "Progress": {
+          "$ref": "#/definitions/Progress"
+        },
+        "QRCode": {
+          "$ref": "#/definitions/QRCode"
+        },
+        "SelectOne": {
+          "$ref": "#/definitions/SelectOne"
+        },
+        "Spacer": {
+          "$ref": "#/definitions/Spacer"
+        },
+        "Time": {
+          "$ref": "#/definitions/Time"
+        },
+        "TabBar": {
+          "$ref": "#/definitions/TabBar"
+        },
+        "GridView": {
+          "$ref": "#/definitions/GridView"
+        },
+        "Form": {
+          "$ref": "#/definitions/Form"
+        },
+        "Menu": {
+          "$ref": "#/definitions/Menu"
+        },
+        "Map": {
+          "$ref": "#/definitions/Menu"
+        },
+        "ChartJS": {
+          "$ref": "#/definitions/ChartJS"
+        },
+        "Video": {
+          "$ref": "#/definitions/Video"
+        },
+        "WebView": {
+          "$ref": "#/definitions/WebView"
+        }
+      }
+    },
+    "Row": {
+      "type": "object",
+      "properties": {
+        "mainAxis": {
+          "$ref": "#/definitions/mainAxisEnum",
+          "description": "Control our children's layout horizontally"
+        },
+        "crossAxis": {
+          "$ref": "#/definitions/crossAxisEnum",
+          "description": "Control the vertical alignment of the children"
+        },
+        "mainAxisSize": {
+          "$ref": "#/definitions/mainAxisSizeEnum",
+          "description": "Stretch to the max horizontally or only fit the horizontal space"
+        },
+        "scrollable": {
+          "type": "boolean",
+          "description": "Set to true so content can scroll horizontally as needed"
+        },
+        "autoFit": {
+          "type": "boolean",
+          "description": "Explicitly make the row's height as tall as the largest child, but only if the row's parent does not already assign us a height. This attribute is useful for sizing children who don't have a width (e.g vertical Divider)"
+        },
+        "gap": {
+          "type": "number",
+          "minimum": 0
+        },
+        "fontFamily": {
+          "type": "string",
+          "description": "Set the font family applicable for all widgets inside this container"
+        },
+        "fontSize": {
+          "type": "number",
+          "minimum": 0
+        },
+        "shadowColor": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Box shadow color starting with '0xFF' for full opacity"
+        },
+        "shadowOffset": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "shadowRadius": {
+          "type": "number",
+          "minimum": 0
+        },
+        "shadowStyle": {
+          "$ref": "#/definitions/shadowEnum",
+          "description": "The blur style to apply on the shadow"
+        },
+        "borderRadius": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Border Radius with CSS-like notation (1 to 4 integers)",
+          "minimum": 0
+        },
+        "borderColor": {
+          "$ref": "#/definitions/Colors",
+          "description": "Border color, starting with '0xFF' for full opacity"
+        },
+        "borderWidth": {
+          "type": "number",
+          "description": "The thickness of the border",
+          "minimum": 0
+        },
+        "backgroundGradient": {
+          "type": "object",
+          "properties": {
+            "colors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Colors"
+              },
+              "description": "The list of colors used for the gradient"
+            },
+            "start": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The starting position of the gradient"
+            },
+            "end": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The ending position of the gradient"
+            }
+          }
+        },
+        "backgroundColor": {
+          "$ref": "#/definitions/Colors"
+        },
+        "backgroundImage": {
+          "$ref": "#/definitions/backgroundImage"
+        },
+        "padding": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Padding with CSS-style value e.g. padding: 5 20 5"
+        },
+        "margin": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0
+        },
+        "expanded": {
+          "type": "boolean",
+          "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+        },
+        "item-template": {
+          "$ref": "#/definitions/ItemTemplate"
+        },
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Widgets"
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "TemplatedWidget": {
+      "type": "object",
+      "properties": {
+        "item-template": {
+          "$ref": "#/definitions/ItemTemplate"
+        }
+      }
+    },
+    "ItemTemplate": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "template": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Widgets"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "required": [
+        "data",
+        "name",
+        "template"
+      ]
+    },
+    "stylesRow": {
+      "type": "object",
+      "properties": {
+        "mainAxis": {
+          "$ref": "#/definitions/mainAxisEnum",
+          "description": "Control our children's layout horizontally"
+        },
+        "crossAxis": {
+          "$ref": "#/definitions/crossAxisEnum",
+          "description": "Control the vertical alignment of the children"
+        },
+        "mainAxisSize": {
+          "$ref": "#/definitions/mainAxisSizeEnum",
+          "description": "Stretch to the max horizontally or only fit the horizontal space"
+        },
+        "scrollable": {
+          "type": "boolean",
+          "description": "Set to true so content can scroll horizontally as needed"
+        },
+        "autoFit": {
+          "type": "boolean",
+          "description": "Explicitly make the row's height as tall as the largest child, but only if the row's parent does not already assign us a height. This attribute is useful for sizing children who don't have a width (e.g vertical Divider)"
+        },
+        "gap": {
+          "type": "number",
+          "minimum": 0
+        },
+        "fontFamily": {
+          "type": "string",
+          "description": "Set the font family applicable for all widgets inside this container"
+        },
+        "fontSize": {
+          "type": "number",
+          "minimum": 0
+        },
+        "shadowColor": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Box shadow color starting with '0xFF' for full opacity"
+        },
+        "shadowOffset": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "shadowRadius": {
+          "type": "number",
+          "minimum": 0
+        },
+        "shadowStyle": {
+          "$ref": "#/definitions/shadowEnum",
+          "description": "The blur style to apply on the shadow"
+        },
+        "borderRadius": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Border Radius with CSS-like notation (1 to 4 integers)",
+          "minimum": 0
+        },
+        "borderColor": {
+          "$ref": "#/definitions/Colors",
+          "description": "Border color, starting with '0xFF' for full opacity"
+        },
+        "borderWidth": {
+          "type": "number",
+          "description": "The thickness of the border",
+          "minimum": 0
+        },
+        "backgroundGradient": {
+          "type": "object",
+          "properties": {
+            "colors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Colors"
+              },
+              "description": "The list of colors used for the gradient"
+            },
+            "start": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The starting position of the gradient"
+            },
+            "end": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The ending position of the gradient"
+            }
+          }
+        },
+        "backgroundColor": {
+          "$ref": "#/definitions/Colors"
+        },
+        "backgroundImage": {
+          "$ref": "#/definitions/backgroundImage"
+        },
+        "padding": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Padding with CSS-style value e.g. padding: 5 20 5"
+        },
+        "margin": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0
+        },
+        "expanded": {
+          "type": "boolean",
+          "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+        }
+      }
+    },
+    "BaseStyles": {
+      "type": "object",
+      "properties": {
+        "expanded": {
+          "type": "boolean",
+          "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+        }
+      }
+    },
+    "boxLayoutStyles": {
+      "type": "object",
+      "properties": {
+        "gap": {
+          "type": "number",
+          "minimum": 0
+        },
+        "fontFamily": {
+          "type": "string",
+          "description": "Set the font family applicable for all widgets inside this container"
+        },
+        "fontSize": {
+          "type": "number",
+          "minimum": 0
+        },
+        "shadowColor": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Box shadow color starting with '0xFF' for full opacity"
+        },
+        "shadowOffset": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "shadowRadius": {
+          "type": "number",
+          "minimum": 0
+        },
+        "shadowStyle": {
+          "$ref": "#/definitions/shadowEnum",
+          "description": "The blur style to apply on the shadow"
+        },
+        "borderRadius": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Border Radius with CSS-like notation (1 to 4 integers)",
+          "minimum": 0
+        },
+        "borderColor": {
+          "$ref": "#/definitions/Colors",
+          "description": "Border color, starting with '0xFF' for full opacity"
+        },
+        "borderWidth": {
+          "type": "number",
+          "description": "The thickness of the border",
+          "minimum": 0
+        },
+        "backgroundGradient": {
+          "type": "object",
+          "properties": {
+            "colors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Colors"
+              },
+              "description": "The list of colors used for the gradient"
+            },
+            "start": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The starting position of the gradient"
+            },
+            "end": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The ending position of the gradient"
+            }
+          }
+        },
+        "backgroundColor": {
+          "$ref": "#/definitions/Colors"
+        },
+        "backgroundImage": {
+          "$ref": "#/definitions/backgroundImage"
+        },
+        "padding": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Padding with CSS-style value e.g. padding: 5 20 5"
+        },
+        "margin": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "BoxStyles": {
+      "type": "object",
+      "properties": {
+        "shadowColor": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Box shadow color starting with '0xFF' for full opacity"
+        },
+        "shadowOffset": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "shadowRadius": {
+          "type": "number",
+          "minimum": 0
+        },
+        "shadowStyle": {
+          "$ref": "#/definitions/shadowEnum",
+          "description": "The blur style to apply on the shadow"
+        },
+        "borderRadius": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Border Radius with CSS-like notation (1 to 4 integers)",
+          "minimum": 0
+        },
+        "borderColor": {
+          "$ref": "#/definitions/Colors",
+          "description": "Border color, starting with '0xFF' for full opacity"
+        },
+        "borderWidth": {
+          "type": "number",
+          "description": "The thickness of the border",
+          "minimum": 0
+        },
+        "backgroundGradient": {
+          "type": "object",
+          "properties": {
+            "colors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Colors"
+              },
+              "description": "The list of colors used for the gradient"
+            },
+            "start": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The starting position of the gradient"
+            },
+            "end": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The ending position of the gradient"
+            }
+          }
+        },
+        "backgroundColor": {
+          "$ref": "#/definitions/Colors"
+        },
+        "backgroundImage": {
+          "$ref": "#/definitions/backgroundImage"
+        },
+        "padding": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Padding with CSS-style value e.g. padding: 5 20 5"
+        },
+        "margin": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "HasDimension": {
+      "type": "object",
+      "properties": {
+        "width": {
+          "type": "number",
+          "minimum": 0
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "WithoutDimension": {
+      "type": "object",
+      "properties": {
+        "shadowColor": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Box shadow color starting with '0xFF' for full opacity"
+        },
+        "shadowOffset": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "shadowRadius": {
+          "type": "number",
+          "minimum": 0
+        },
+        "shadowStyle": {
+          "$ref": "#/definitions/shadowEnum",
+          "description": "The blur style to apply on the shadow"
+        },
+        "borderRadius": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Border Radius with CSS-like notation (1 to 4 integers)",
+          "minimum": 0
+        },
+        "borderColor": {
+          "$ref": "#/definitions/Colors",
+          "description": "Border color, starting with '0xFF' for full opacity"
+        },
+        "borderWidth": {
+          "type": "number",
+          "description": "The thickness of the border",
+          "minimum": 0
+        },
+        "backgroundGradient": {
+          "type": "object",
+          "properties": {
+            "colors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Colors"
+              },
+              "description": "The list of colors used for the gradient"
+            },
+            "start": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The starting position of the gradient"
+            },
+            "end": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The ending position of the gradient"
+            }
+          }
+        },
+        "backgroundColor": {
+          "$ref": "#/definitions/Colors"
+        },
+        "backgroundImage": {
+          "$ref": "#/definitions/backgroundImage"
+        },
+        "padding": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Padding with CSS-style value e.g. padding: 5 20 5"
+        },
+        "margin": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
+        }
+      }
+    },
+    "styleMargin": {
+      "type": "object",
+      "properties": {
+        "margin": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
+        }
+      }
+    },
+    "stylePadding": {
+      "type": "object",
+      "properties": {
+        "padding": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Padding with CSS-style value e.g. padding: 5 20 5"
+        }
+      }
+    },
+    "HasBackground": {
+      "type": "object",
+      "properties": {
+        "backgroundGradient": {
+          "type": "object",
+          "properties": {
+            "colors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Colors"
+              },
+              "description": "The list of colors used for the gradient"
+            },
+            "start": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The starting position of the gradient"
+            },
+            "end": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The ending position of the gradient"
+            }
+          }
+        },
+        "backgroundColor": {
+          "$ref": "#/definitions/Colors"
+        },
+        "backgroundImage": {
+          "$ref": "#/definitions/backgroundImage"
+        }
+      }
+    },
+    "backgroundGradient": {
+      "type": "object",
+      "properties": {
+        "backgroundGradient": {
+          "type": "object",
+          "properties": {
+            "colors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Colors"
+              },
+              "description": "The list of colors used for the gradient"
+            },
+            "start": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The starting position of the gradient"
+            },
+            "end": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The ending position of the gradient"
+            }
+          }
+        }
+      }
+    },
+    "alignmentEnum": {
+      "type": "string",
+      "enum": [
+        "topLeft",
+        "topCenter",
+        "topRight",
+        "centerLeft",
+        "center",
+        "centerRight",
+        "bottomLeft",
+        "bottomCenter",
+        "bottomRight"
+      ]
+    },
+    "backgroundImage": {
+      "type": "object",
+      "properties": {
+        "backgroundGradient": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string",
+              "description": "The Image URL to fill the background"
+            },
+            "fit": {
+              "$ref": "#/definitions/fitEnum",
+              "description": "How to fit the image within our width/height or our parent (if dimension is not specified)"
+            },
+            "alignment": {
+              "$ref": "#/definitions/alignmentEnum"
+            }
+          }
+        }
+      },
+      "required": [
+        "backgroundGradient"
+      ]
+    },
+    "fitEnum": {
+      "type": "string",
+      "enum": [
+        "fill",
+        "contain",
+        "cover",
+        "fitWidth",
+        "fitHeight",
+        "none",
+        "scaleDown"
+      ]
+    },
+    "styleBorder": {
+      "type": "object",
+      "properties": {
+        "borderRadius": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Border Radius with CSS-like notation (1 to 4 integers)",
+          "minimum": 0
+        },
+        "borderColor": {
+          "$ref": "#/definitions/Colors",
+          "description": "Border color, starting with '0xFF' for full opacity"
+        },
+        "borderWidth": {
+          "type": "number",
+          "description": "The thickness of the border",
+          "minimum": 0
+        }
+      }
+    },
+    "borderRadius": {
+      "type": "object",
+      "properties": {
+        "borderRadius": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Border Radius with CSS-like notation (1 to 4 integers)",
+          "minimum": 0
+        }
+      }
+    },
+    "styleShadow": {
+      "type": "object",
+      "properties": {
+        "shadowColor": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Box shadow color starting with '0xFF' for full opacity"
+        },
+        "shadowOffset": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "shadowRadius": {
+          "type": "number",
+          "minimum": 0
+        },
+        "shadowStyle": {
+          "$ref": "#/definitions/shadowEnum",
+          "description": "The blur style to apply on the shadow"
+        }
+      }
+    },
+    "shadowEnum": {
+      "type": "string",
+      "enum": [
+        "normal",
+        "solid"
+      ]
+    },
+    "mainAxisEnum": {
+      "type": "string",
+      "enum": [
+        "start",
+        "center",
+        "end",
+        "spaceBetween",
+        "spaceAround",
+        "spaceEvenly"
+      ]
+    },
+    "crossAxisEnum": {
+      "type": "string",
+      "enum": [
+        "start",
+        "center",
+        "end",
+        "stretch",
+        "baseline"
+      ]
+    },
+    "mainAxisSizeEnum": {
+      "type": "string",
+      "enum": [
+        "min",
+        "max"
+      ]
+    },
+    "Text": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "text": {
+          "type": "string",
+          "default": "add your text"
+        },
+        "styles": {
+          "$ref": "#/definitions/TextStyles"
+        }
+      }
+    },
+    "TextStyles": {
+      "type": "object",
+      "properties": {
+        "font": {
+          "$ref": "#/definitions/fontName",
+          "description": "Default built-in style for this text"
+        },
+        "fontSize": {
+          "type": "number",
+          "minimum": 6
+        },
+        "fontWeight": {
+          "$ref": "#/definitions/fontWeight"
+        },
+        "color": {
+          "$ref": "#/definitions/Colors"
+        },
+        "overflow": {
+          "$ref": "#/definitions/overflow",
+          "description": "Set treatment of text longer than available space"
+        },
+        "textAlign": {
+          "$ref": "#/definitions/textAlign"
+        },
+        "textStyle": {
+          "$ref": "#/definitions/textStyle"
+        },
+        "lineHeight": {
+          "$ref": "#/definitions/lineHeight"
+        },
+        "expanded": {
+          "type": "boolean",
+          "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+        },
+        "shadowColor": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Box shadow color starting with '0xFF' for full opacity"
+        },
+        "shadowOffset": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "shadowRadius": {
+          "type": "number",
+          "minimum": 0
+        },
+        "shadowStyle": {
+          "$ref": "#/definitions/shadowEnum",
+          "description": "The blur style to apply on the shadow"
+        },
+        "borderRadius": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Border Radius with CSS-like notation (1 to 4 integers)",
+          "minimum": 0
+        },
+        "borderColor": {
+          "$ref": "#/definitions/Colors",
+          "description": "Border color, starting with '0xFF' for full opacity"
+        },
+        "borderWidth": {
+          "type": "number",
+          "description": "The thickness of the border",
+          "minimum": 0
+        },
+        "backgroundGradient": {
+          "type": "object",
+          "properties": {
+            "colors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Colors"
+              },
+              "description": "The list of colors used for the gradient"
+            },
+            "start": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The starting position of the gradient"
+            },
+            "end": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The ending position of the gradient"
+            }
+          }
+        },
+        "backgroundColor": {
+          "$ref": "#/definitions/Colors"
+        },
+        "backgroundImage": {
+          "$ref": "#/definitions/backgroundImage"
+        },
+        "padding": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Padding with CSS-style value e.g. padding: 5 20 5"
+        },
+        "margin": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "Partial<TextStyles>": {
+      "type": "object",
+      "properties": {
+        "font": {
+          "$ref": "#/definitions/fontName",
+          "description": "Default built-in style for this text"
+        },
+        "fontSize": {
+          "type": "number",
+          "minimum": 6
+        },
+        "fontWeight": {
+          "$ref": "#/definitions/fontWeight"
+        },
+        "color": {
+          "$ref": "#/definitions/Colors"
+        },
+        "overflow": {
+          "$ref": "#/definitions/overflow",
+          "description": "Set treatment of text longer than available space"
+        },
+        "textAlign": {
+          "$ref": "#/definitions/textAlign"
+        },
+        "textStyle": {
+          "$ref": "#/definitions/textStyle"
+        },
+        "lineHeight": {
+          "$ref": "#/definitions/lineHeight"
+        }
+      }
+    },
+    "fontName": {
+      "type": "string",
+      "enum": [
+        "heading",
+        "title",
+        "subtitle"
+      ]
+    },
+    "fontWeight": {
+      "type": "string",
+      "enum": [
+        "light",
+        "normal",
+        "bold",
+        "w100",
+        "w200",
+        "w300",
+        "w400",
+        "w500",
+        "w600",
+        "w700",
+        "w800",
+        "w900"
+      ]
+    },
+    "overflow": {
+      "type": "string",
+      "enum": [
+        "wrap",
+        "visible",
+        "clip",
+        "ellipsis"
+      ]
+    },
+    "textAlign": {
+      "type": "string",
+      "enum": [
+        "start",
+        "end",
+        "center",
+        "justify"
+      ]
+    },
+    "textStyle": {
+      "type": "string",
+      "enum": [
+        "normal",
+        "italic",
+        "underline",
+        "strikethrough",
+        "italic_underline",
+        "italic_strikethrough"
+      ]
+    },
+    "lineHeight": {
+      "type": "string",
+      "enum": [
+        "default",
+        "1.0",
+        "1.15",
+        "1.25",
+        "1.5",
+        "2.0",
+        "2.5"
+      ]
+    },
+    "Markdown": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "text": {
+          "type": "string",
+          "description": "Your text in markdown format"
+        },
+        "styles": {
+          "$ref": "#/definitions/MarkdownStyles"
+        }
+      }
+    },
+    "MarkdownStyles": {
+      "type": "object",
+      "properties": {
+        "expanded": {
+          "type": "boolean",
+          "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+        },
+        "textStyle": {
+          "$ref": "#/definitions/styleText",
+          "description": "Styling for regular text. Default to theme's bodyMedium styling"
+        },
+        "linkStyle": {
+          "$ref": "#/definitions/styleText",
+          "description": "Styling for URL"
+        }
+      }
+    },
+    "styleText": {
+      "type": "object",
+      "properties": {
+        "fontSize": {
+          "$ref": "#/definitions/integer"
+        },
+        "color": {
+          "$ref": "#/definitions/Colors"
+        },
+        "decoration": {
+          "$ref": "#/definitions/decoration"
+        }
+      }
+    },
+    "integer": {
+      "type": "number"
+    },
+    "decoration": {
+      "type": "string",
+      "enum": [
+        "none",
+        "lineThrough",
+        "underline",
+        "overline"
+      ]
+    },
+    "Image": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "source": {
+          "type": "string",
+          "description": "URL to or asset name of the image. If the URL is used, it is highly recommended that the dimensions is set (either with width/height or other means) to prevent the UI jerkiness while loading"
+        },
+        "onTap": {
+          "$ref": "#/definitions/Action",
+          "description": "Call Ensemble's built-in functions or execute code"
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "placeholderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The placeholder color while the image is loading."
+            },
+            "fit": {
+              "$ref": "#/definitions/fitEnum",
+              "description": "How to fit the image within our width/height or our parent (if dimension is not specified)"
+            },
+            "resizedWidth": {
+              "type": "number",
+              "description": "Images will be automatically resized (default to 800 width with no height set) before rendering. If you know the rough image width, set this number to be the same or a slightly larger width to optimize the loading time. To maintain the original aspect ratio, set either resizedWidth or resizedHeight, but not both. This setting is not supported on Web.",
+              "minimum": 0,
+              "maximum": 2000
+            },
+            "resizedHeight": {
+              "type": "number",
+              "description": "Images will be automatically resized (default to 800 width with no height set) before rendering. If you know the rough image height, set this number to be the same or a slightly larger height to optimize the loading time. To maintain the original aspect ratio, set either resizedWidth or resizedHeight, but not both. This setting is not supported on Web.",
+              "minimum": 0,
+              "maximum": 2000
+            },
+            "shadowColor": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Box shadow color starting with '0xFF' for full opacity"
+            },
+            "shadowOffset": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            "shadowRadius": {
+              "type": "number",
+              "minimum": 0
+            },
+            "shadowStyle": {
+              "$ref": "#/definitions/shadowEnum",
+              "description": "The blur style to apply on the shadow"
+            },
+            "borderRadius": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Border Radius with CSS-like notation (1 to 4 integers)",
+              "minimum": 0
+            },
+            "borderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "Border color, starting with '0xFF' for full opacity"
+            },
+            "borderWidth": {
+              "type": "number",
+              "description": "The thickness of the border",
+              "minimum": 0
+            },
+            "backgroundGradient": {
+              "type": "object",
+              "properties": {
+                "colors": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Colors"
+                  },
+                  "description": "The list of colors used for the gradient"
+                },
+                "start": {
+                  "$ref": "#/definitions/alignmentEnum",
+                  "description": "The starting position of the gradient"
+                },
+                "end": {
+                  "$ref": "#/definitions/alignmentEnum",
+                  "description": "The ending position of the gradient"
+                }
+              }
+            },
+            "backgroundColor": {
+              "$ref": "#/definitions/Colors"
+            },
+            "backgroundImage": {
+              "$ref": "#/definitions/backgroundImage"
+            },
+            "padding": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Padding with CSS-style value e.g. padding: 5 20 5"
+            },
+            "margin": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
+            },
+            "width": {
+              "type": "number",
+              "minimum": 0
+            },
+            "height": {
+              "type": "number",
+              "minimum": 0
+            },
+            "expanded": {
+              "type": "boolean",
+              "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+            }
+          }
+        }
+      },
+      "required": [
+        "source"
+      ]
+    },
+    "Action": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "invokeAPIAction": {
+              "$ref": "#/definitions/InvokeAPIAction"
+            }
+          },
+          "required": [
+            "invokeAPIAction"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "executeCodeAction": {
+              "$ref": "#/definitions/ExecuteCodeAction"
+            }
+          },
+          "required": [
+            "executeCodeAction"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "navigateScreenAction": {
+              "$ref": "#/definitions/NavigateScreenAction"
+            }
+          },
+          "required": [
+            "navigateScreenAction"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "navigateModalScreenAction": {
+              "$ref": "#/definitions/NavigateModalScreenAction"
+            }
+          },
+          "required": [
+            "navigateModalScreenAction"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "navigateBackAction": {
+              "$ref": "#/definitions/NavigateBackAction"
+            }
+          },
+          "required": [
+            "navigateBackAction"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "openCameraAction": {
+              "$ref": "#/definitions/OpenCameraAction"
+            }
+          },
+          "required": [
+            "openCameraAction"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "showDialogAction": {
+              "$ref": "#/definitions/ShowDialogAction"
+            }
+          },
+          "required": [
+            "showDialogAction"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "closeAllDialogsAction": {
+              "$ref": "#/definitions/CloseAllDialogsAction"
+            }
+          },
+          "required": [
+            "closeAllDialogsAction"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "startTimerAction": {
+              "$ref": "#/definitions/StartTimerAction"
+            }
+          },
+          "required": [
+            "startTimerAction"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "stopTimerAction": {
+              "$ref": "#/definitions/StopTimerAction"
+            }
+          },
+          "required": [
+            "stopTimerAction"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "showToastAction": {
+              "$ref": "#/definitions/ShowToastAction"
+            }
+          },
+          "required": [
+            "showToastAction"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "getLocationActionAction": {
+              "$ref": "#/definitions/GetLocationActionAction"
+            }
+          },
+          "required": [
+            "getLocationActionAction"
+          ]
+        }
+      ]
+    },
+    "InvokeAPIAction": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "inputs": {
+          "type": "object"
+        },
+        "onResponse": {
+          "$ref": "#/definitions/Action"
+        },
+        "onError": {
+          "$ref": "#/definitions/Action"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "ExecuteCodeAction": {
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "string"
+        },
+        "onComplete": {
+          "$ref": "#/definitions/Action"
+        }
+      },
+      "required": [
+        "body"
+      ]
+    },
+    "NavigateScreenAction": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "inputs": {
+          "type": "object"
+        },
+        "options": {
+          "type": "object",
+          "properties": {
+            "replaceCurrentScreen": {
+              "type": "boolean"
+            },
+            "clearAllScreens": {
+              "type": "boolean"
+            }
+          }
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "NavigateModalScreenAction": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "inputs": {
+          "type": "object"
+        },
+        "onModalDismiss": {
+          "$ref": "#/definitions/Action"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "NavigateBackAction": {
+      "type": "object"
+    },
+    "OpenCameraAction": {
+      "type": "object"
+    },
+    "ShowDialogAction": {
+      "type": "object",
+      "properties": {
+        "widget": {
+          "$ref": "#/definitions/Widgets"
+        },
+        "options": {
+          "$ref": "#/definitions/DialogOptions"
+        },
+        "onDialogDismiss": {
+          "$ref": "#/definitions/Action"
+        }
+      },
+      "required": [
+        "widget"
+      ]
+    },
+    "DialogOptions": {
+      "type": "object",
+      "properties": {
+        "minWidth": {
+          "$ref": "#/definitions/integer",
+          "minimum": 0
+        },
+        "maxWidth": {
+          "$ref": "#/definitions/integer"
+        },
+        "minHeight": {
+          "$ref": "#/definitions/integer",
+          "minimum": 0
+        },
+        "maxHeight": {
+          "$ref": "#/definitions/integer"
+        },
+        "horizontalOffset": {
+          "type": "number",
+          "description": "Offset the dialog's position horizontally, with -1.0 for the screen's left and 1.0 for the screen's right. (default is 0 for centering horizontally)",
+          "minimum": -1,
+          "maximum": 1
+        },
+        "verticalOffset": {
+          "type": "number",
+          "description": "Offset the dialog's position vertically, with -1.0 for the screen's top and 1.0 for the screen's bottom. (default is 0 for centering vertically)",
+          "minimum": -1,
+          "maximum": 1
+        },
+        "style": {
+          "$ref": "#/definitions/styleSelection"
+        }
+      }
+    },
+    "styleSelection": {
+      "type": "string",
+      "enum": [
+        "default",
+        "none"
+      ]
+    },
+    "CloseAllDialogsAction": {
+      "type": "object"
+    },
+    "StartTimerAction": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "onTimer": {
+          "$ref": "#/definitions/Action"
+        },
+        "onTimerComplete": {
+          "$ref": "#/definitions/Action"
+        },
+        "options": {
+          "$ref": "#/definitions/TimerOptions"
+        }
+      },
+      "required": [
+        "onTimer"
+      ]
+    },
+    "TimerOptions": {
+      "type": "object",
+      "properties": {
+        "isGlobal": {
+          "type": "boolean"
+        },
+        "startAfter": {
+          "$ref": "#/definitions/integer",
+          "description": "Delay the timer's start by this number of seconds. If not specified and repeat is true, repeatInterval will be used. If none is specified, there will be no initial delay",
+          "minimum": 0
+        },
+        "repeat": {
+          "type": "boolean"
+        },
+        "repeatInterval": {
+          "$ref": "#/definitions/integer",
+          "description": "Trigger the timer periodically at this repeatInterval (in seconds)",
+          "minimum": 1
+        },
+        "maxNumberOfTimes": {
+          "$ref": "#/definitions/integer",
+          "description": "Set the max number of times the timer will triggers, if repeat is true",
+          "minimum": 1
+        }
+      }
+    },
+    "StopTimerAction": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "ShowToastAction": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Widgets"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "message"
+              ]
+            }
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "widget": {
+          "$ref": "#/definitions/Widgets"
+        },
+        "options": {
+          "$ref": "#/definitions/ShowToastOptions"
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "shadowColor": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Box shadow color starting with '0xFF' for full opacity"
+            },
+            "shadowRadius": {
+              "type": "number",
+              "minimum": 0
+            },
+            "shadowOffset": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            "borderRadius": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Border Radius with CSS-like notation (1 to 4 integers)",
+              "minimum": 0
+            },
+            "padding": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Padding with CSS-style value e.g. padding: 5 20 5"
+            },
+            "backgroundColor": {
+              "$ref": "#/definitions/Colors"
+            }
+          }
+        }
+      },
+      "required": [
+        "value"
+      ]
+    },
+    "ShowToastOptions": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/definitions/toastStyle"
+        },
+        "dismissible": {
+          "type": "boolean"
+        },
+        "position": {
+          "$ref": "#/definitions/toastPosition"
+        },
+        "duration": {
+          "$ref": "#/definitions/integer",
+          "description": "The number of seconds after the toast is dismissed",
+          "minimum": 1
+        }
+      }
+    },
+    "toastStyle": {
+      "type": "string",
+      "enum": [
+        "success",
+        "error",
+        "warning",
+        "info"
+      ]
+    },
+    "toastPosition": {
+      "type": "string",
+      "enum": [
+        "top",
+        "topLeft",
+        "topRight",
+        "center",
+        "centerLeft",
+        "centerRight",
+        "bottom",
+        "bottomLeft",
+        "bottomRight"
+      ]
+    },
+    "Pick<styleShadow,(\"shadowColor\"|\"shadowRadius\"|\"shadowOffset\")>": {
+      "type": "object",
+      "properties": {
+        "shadowColor": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Box shadow color starting with '0xFF' for full opacity"
+        },
+        "shadowRadius": {
+          "type": "number",
+          "minimum": 0
+        },
+        "shadowOffset": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "GetLocationActionAction": {
+      "type": "object",
+      "properties": {
+        "options": {
+          "type": "object",
+          "properties": {
+            "recurring": {
+              "type": "boolean"
+            },
+            "recurringDistanceFilter": {
+              "type": "number",
+              "description": "If recurring, the minimum distance (in meters) the device has moved before new location is returned. (default: 1000 meters, minimum: 50 meters)",
+              "minimum": 50
+            }
+          }
+        },
+        "onLocationReceived": {
+          "$ref": "#/definitions/Action"
+        },
+        "onError": {
+          "$ref": "#/definitions/Action"
+        }
+      }
+    },
+    "Lottie": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "source": {
+          "type": "string",
+          "description": "URL or asset name of the Lottie json file"
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "repeat": {
+              "type": "boolean",
+              "description": "Whether we should repeat the animation (default true)"
+            },
+            "fit": {
+              "$ref": "#/definitions/fitEnum",
+              "description": "How to fit the Lottie animation within our width/height or our parent (if dimension is not specified)"
+            },
+            "width": {
+              "type": "number",
+              "minimum": 0
+            },
+            "height": {
+              "type": "number",
+              "minimum": 0
+            },
+            "shadowColor": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Box shadow color starting with '0xFF' for full opacity"
+            },
+            "shadowOffset": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            "shadowRadius": {
+              "type": "number",
+              "minimum": 0
+            },
+            "shadowStyle": {
+              "$ref": "#/definitions/shadowEnum",
+              "description": "The blur style to apply on the shadow"
+            },
+            "borderRadius": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Border Radius with CSS-like notation (1 to 4 integers)",
+              "minimum": 0
+            },
+            "borderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "Border color, starting with '0xFF' for full opacity"
+            },
+            "borderWidth": {
+              "type": "number",
+              "description": "The thickness of the border",
+              "minimum": 0
+            },
+            "backgroundGradient": {
+              "type": "object",
+              "properties": {
+                "colors": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Colors"
+                  },
+                  "description": "The list of colors used for the gradient"
+                },
+                "start": {
+                  "$ref": "#/definitions/alignmentEnum",
+                  "description": "The starting position of the gradient"
+                },
+                "end": {
+                  "$ref": "#/definitions/alignmentEnum",
+                  "description": "The ending position of the gradient"
+                }
+              }
+            },
+            "backgroundColor": {
+              "$ref": "#/definitions/Colors"
+            },
+            "backgroundImage": {
+              "$ref": "#/definitions/backgroundImage"
+            },
+            "padding": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Padding with CSS-style value e.g. padding: 5 20 5"
+            },
+            "margin": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
+            },
+            "expanded": {
+              "type": "boolean",
+              "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+            }
+          }
+        }
+      },
+      "required": [
+        "source"
+      ]
+    },
+    "Icon": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "icon": {
+          "type": "string",
+          "description": "Icon name from Material Icons or Font Awesome"
+        },
+        "library": {
+          "$ref": "#/definitions/iconLibrary"
+        },
+        "onTap": {
+          "$ref": "#/definitions/Action",
+          "description": "Call Ensemble's built-in functions or execute code"
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "size": {
+              "type": "number"
+            },
+            "color": {
+              "$ref": "#/definitions/Colors",
+              "description": "The color of the icon"
+            },
+            "splashColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "If onTap is defined, this color will show up as a splash effect upon tapping the icon. Note that the effect only  happens if backgroundColor is not set."
+            },
+            "shadowColor": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Box shadow color starting with '0xFF' for full opacity"
+            },
+            "shadowOffset": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            "shadowRadius": {
+              "type": "number",
+              "minimum": 0
+            },
+            "shadowStyle": {
+              "$ref": "#/definitions/shadowEnum",
+              "description": "The blur style to apply on the shadow"
+            },
+            "borderRadius": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Border Radius with CSS-like notation (1 to 4 integers)",
+              "minimum": 0
+            },
+            "borderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "Border color, starting with '0xFF' for full opacity"
+            },
+            "borderWidth": {
+              "type": "number",
+              "description": "The thickness of the border",
+              "minimum": 0
+            },
+            "backgroundGradient": {
+              "type": "object",
+              "properties": {
+                "colors": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Colors"
+                  },
+                  "description": "The list of colors used for the gradient"
+                },
+                "start": {
+                  "$ref": "#/definitions/alignmentEnum",
+                  "description": "The starting position of the gradient"
+                },
+                "end": {
+                  "$ref": "#/definitions/alignmentEnum",
+                  "description": "The ending position of the gradient"
+                }
+              }
+            },
+            "backgroundColor": {
+              "$ref": "#/definitions/Colors"
+            },
+            "backgroundImage": {
+              "$ref": "#/definitions/backgroundImage"
+            },
+            "padding": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Padding with CSS-style value e.g. padding: 5 20 5"
+            },
+            "margin": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
+            },
+            "expanded": {
+              "type": "boolean",
+              "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+            }
+          }
+        }
+      },
+      "required": [
+        "icon"
+      ]
+    },
+    "Button": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "label": {
+          "type": "string",
+          "description": "The button label"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "submitForm": {
+          "type": "boolean",
+          "description": "If the button is inside a Form and upon on tap, it will execute the form's onSubmit action if this property is TRUE"
+        },
+        "onTap": {
+          "$ref": "#/definitions/Action",
+          "description": "Call Ensemble's built-in functions or execute code"
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "outline": {
+              "type": "boolean",
+              "description": "Whether the button should have an outline border instead of filled background"
+            },
+            "color": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Set the color for the button label starting with '0xFF' for full opacity"
+            },
+            "fontSize": {
+              "type": "number",
+              "minimum": 6
+            },
+            "fontWeight": {
+              "$ref": "#/definitions/fontWeight"
+            },
+            "shadowColor": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Box shadow color starting with '0xFF' for full opacity"
+            },
+            "shadowOffset": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            "shadowRadius": {
+              "type": "number",
+              "minimum": 0
+            },
+            "shadowStyle": {
+              "$ref": "#/definitions/shadowEnum",
+              "description": "The blur style to apply on the shadow"
+            },
+            "borderRadius": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Border Radius with CSS-like notation (1 to 4 integers)",
+              "minimum": 0
+            },
+            "borderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "Border color, starting with '0xFF' for full opacity"
+            },
+            "borderWidth": {
+              "type": "number",
+              "description": "The thickness of the border",
+              "minimum": 0
+            },
+            "backgroundGradient": {
+              "type": "object",
+              "properties": {
+                "colors": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Colors"
+                  },
+                  "description": "The list of colors used for the gradient"
+                },
+                "start": {
+                  "$ref": "#/definitions/alignmentEnum",
+                  "description": "The starting position of the gradient"
+                },
+                "end": {
+                  "$ref": "#/definitions/alignmentEnum",
+                  "description": "The ending position of the gradient"
+                }
+              }
+            },
+            "backgroundColor": {
+              "$ref": "#/definitions/Colors"
+            },
+            "backgroundImage": {
+              "$ref": "#/definitions/backgroundImage"
+            },
+            "padding": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Padding with CSS-style value e.g. padding: 5 20 5"
+            },
+            "margin": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
+            },
+            "width": {
+              "type": "number",
+              "minimum": 0
+            },
+            "height": {
+              "type": "number",
+              "minimum": 0
+            },
+            "expanded": {
+              "type": "boolean",
+              "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+            }
+          }
+        }
+      },
+      "required": [
+        "label"
+      ]
+    },
+    "Divider": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "direction": {
+              "$ref": "#/definitions/directionEnum",
+              "description": "Whether to display a horizontal divider (default) or vertical divider."
+            },
+            "thickness": {
+              "type": "number"
+            },
+            "color": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "The line color starting with '0xFF' for full opacity"
+            },
+            "indent": {
+              "type": "number",
+              "description": "The leading gap before the line starts"
+            },
+            "endIndent": {
+              "type": "number",
+              "description": "The ending gap after the line ends"
+            },
+            "margin": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
+            },
+            "expanded": {
+              "type": "boolean",
+              "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+            }
+          }
+        }
+      }
+    },
+    "directionEnum": {
+      "type": "string",
+      "enum": [
+        "vertical",
+        "horizontal"
+      ]
+    },
+    "Html": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "text": {
+          "type": "string",
+          "description": "Enter the HTML text"
+        }
+      }
+    },
+    "OnOff": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "maxWidth": {
+          "$ref": "#/definitions/integer",
+          "description": "The max width of this Input widget (default 700)",
+          "minimum": 0,
+          "maximum": 5000
+        },
+        "label": {
+          "type": "string",
+          "description": "Label for your widget"
+        },
+        "labelHint": {
+          "type": "string",
+          "description": "Hint text on your label"
+        },
+        "hintText": {
+          "type": "string",
+          "description": "Hint text explaining your widget"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "icon": {
+          "$ref": "#/definitions/HasIcon",
+          "description": "The icon to show before the Input field"
+        },
+        "onChange": {
+          "$ref": "#/definitions/Action",
+          "description": "Call Ensemble's built-in functions or execute code when the input changes. Note for free-form text input, this event only dispatches if the text changes AND the focus is lost (e.g. clicking on button)"
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "variant": {
+              "$ref": "#/definitions/inputVariant",
+              "description": "Select a pre-defined look and feel for this Input widget. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "contentPadding": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/integer"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "description": "Padding around your input content with CSS-style notation e.g. margin: 5 20 5"
+            },
+            "fillColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The fill color for this input fields. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "borderRadius": {
+              "$ref": "#/definitions/integer",
+              "description": "The border radius for this Input widget. This property can be defined in the theme to apply to all Input widgets.",
+              "minimum": 0
+            },
+            "borderWidth": {
+              "$ref": "#/definitions/integer",
+              "description": "The border width for this Input widget. This property can be defined in the theme to apply to all Input widgets.",
+              "minimum": 0
+            },
+            "borderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The base border color for this input widget. This border color determines the look and feel of your input, while the other colors are overrides for different states. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "enabledBorderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The border color for this input field if enabled. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "disabledBorderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The border color for this input field if disabled. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "errorBorderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The border color  when there are errors on this input field. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "focusedBorderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The border color when this input field is receiving focus. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "focusedErrorBorderColor": {
+              "$ref": "#/definitions/Colors"
+            },
+            "fontSize": {
+              "type": "number",
+              "minimum": 6
+            },
+            "expanded": {
+              "type": "boolean",
+              "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+            }
+          }
+        },
+        "value": {
+          "type": "boolean"
+        },
+        "leadingText": {
+          "type": "string"
+        },
+        "trailingText": {
+          "type": "string"
+        }
+      }
+    },
+    "FormInput": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "maxWidth": {
+          "$ref": "#/definitions/integer",
+          "description": "The max width of this Input widget (default 700)",
+          "minimum": 0,
+          "maximum": 5000
+        },
+        "label": {
+          "type": "string",
+          "description": "Label for your widget"
+        },
+        "labelHint": {
+          "type": "string",
+          "description": "Hint text on your label"
+        },
+        "hintText": {
+          "type": "string",
+          "description": "Hint text explaining your widget"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "icon": {
+          "$ref": "#/definitions/HasIcon",
+          "description": "The icon to show before the Input field"
+        },
+        "onChange": {
+          "$ref": "#/definitions/Action",
+          "description": "Call Ensemble's built-in functions or execute code when the input changes. Note for free-form text input, this event only dispatches if the text changes AND the focus is lost (e.g. clicking on button)"
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "variant": {
+              "$ref": "#/definitions/inputVariant",
+              "description": "Select a pre-defined look and feel for this Input widget. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "contentPadding": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/integer"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "description": "Padding around your input content with CSS-style notation e.g. margin: 5 20 5"
+            },
+            "fillColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The fill color for this input fields. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "borderRadius": {
+              "$ref": "#/definitions/integer",
+              "description": "The border radius for this Input widget. This property can be defined in the theme to apply to all Input widgets.",
+              "minimum": 0
+            },
+            "borderWidth": {
+              "$ref": "#/definitions/integer",
+              "description": "The border width for this Input widget. This property can be defined in the theme to apply to all Input widgets.",
+              "minimum": 0
+            },
+            "borderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The base border color for this input widget. This border color determines the look and feel of your input, while the other colors are overrides for different states. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "enabledBorderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The border color for this input field if enabled. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "disabledBorderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The border color for this input field if disabled. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "errorBorderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The border color  when there are errors on this input field. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "focusedBorderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The border color when this input field is receiving focus. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "focusedErrorBorderColor": {
+              "$ref": "#/definitions/Colors"
+            },
+            "fontSize": {
+              "type": "number",
+              "minimum": 6
+            },
+            "expanded": {
+              "type": "boolean",
+              "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+            }
+          }
+        }
+      }
+    },
+    "HasIcon": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": [
+            "string",
+            "number"
+          ],
+          "description": "The name of the icon"
+        },
+        "library": {
+          "$ref": "#/definitions/iconLibrary",
+          "description": "Which icon library to use."
+        },
+        "color": {
+          "$ref": "#/definitions/Colors"
+        },
+        "size": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "description": "Specifies the icon to use. You can also use the short-handed syntax 'iconName iconLibrary')"
+    },
+    "inputVariant": {
+      "type": "string",
+      "enum": [
+        "underline",
+        "box"
+      ]
+    },
+    "PasswordInput": {
+      "type": "object",
+      "properties": {
+        "validator": {
+          "type": "object",
+          "properties": {
+            "minLength": {
+              "$ref": "#/definitions/integer",
+              "description": "The minimum number of characters",
+              "minimum": 0
+            },
+            "maxLength": {
+              "$ref": "#/definitions/integer",
+              "description": "The maximum number of characters",
+              "minimum": 0
+            },
+            "regex": {
+              "type": "string",
+              "description": "The Regular Expression the input will need to match"
+            },
+            "regexError": {
+              "type": "string",
+              "description": "The customized error message to show when the input does not match the provided regex."
+            }
+          }
+        },
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "maxWidth": {
+          "$ref": "#/definitions/integer",
+          "description": "The max width of this Input widget (default 700)",
+          "minimum": 0,
+          "maximum": 5000
+        },
+        "label": {
+          "type": "string",
+          "description": "Label for your widget"
+        },
+        "labelHint": {
+          "type": "string",
+          "description": "Hint text on your label"
+        },
+        "hintText": {
+          "type": "string",
+          "description": "Hint text explaining your widget"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "icon": {
+          "$ref": "#/definitions/HasIcon",
+          "description": "The icon to show before the Input field"
+        },
+        "onChange": {
+          "$ref": "#/definitions/Action",
+          "description": "Call Ensemble's built-in functions or execute code when the input changes. Note for free-form text input, this event only dispatches if the text changes AND the focus is lost (e.g. clicking on button)"
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "variant": {
+              "$ref": "#/definitions/inputVariant",
+              "description": "Select a pre-defined look and feel for this Input widget. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "contentPadding": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/integer"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "description": "Padding around your input content with CSS-style notation e.g. margin: 5 20 5"
+            },
+            "fillColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The fill color for this input fields. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "borderRadius": {
+              "$ref": "#/definitions/integer",
+              "description": "The border radius for this Input widget. This property can be defined in the theme to apply to all Input widgets.",
+              "minimum": 0
+            },
+            "borderWidth": {
+              "$ref": "#/definitions/integer",
+              "description": "The border width for this Input widget. This property can be defined in the theme to apply to all Input widgets.",
+              "minimum": 0
+            },
+            "borderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The base border color for this input widget. This border color determines the look and feel of your input, while the other colors are overrides for different states. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "enabledBorderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The border color for this input field if enabled. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "disabledBorderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The border color for this input field if disabled. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "errorBorderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The border color  when there are errors on this input field. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "focusedBorderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The border color when this input field is receiving focus. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "focusedErrorBorderColor": {
+              "$ref": "#/definitions/Colors"
+            },
+            "fontSize": {
+              "type": "number",
+              "minimum": 6
+            },
+            "expanded": {
+              "type": "boolean",
+              "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+            }
+          }
+        },
+        "onKeyPress": {
+          "$ref": "#/definitions/Action",
+          "description": "On every keystroke, call Ensemble's built-in functions or execute code"
+        },
+        "keyboardAction": {
+          "$ref": "#/definitions/keyboardAction"
+        },
+        "obscureToggle": {
+          "type": "boolean",
+          "description": "enable the toggling between plain and obscure text."
+        }
+      }
+    },
+    "inputValidator": {
+      "type": "object",
+      "properties": {
+        "validator": {
+          "type": "object",
+          "properties": {
+            "minLength": {
+              "$ref": "#/definitions/integer",
+              "description": "The minimum number of characters",
+              "minimum": 0
+            },
+            "maxLength": {
+              "$ref": "#/definitions/integer",
+              "description": "The maximum number of characters",
+              "minimum": 0
+            },
+            "regex": {
+              "type": "string",
+              "description": "The Regular Expression the input will need to match"
+            },
+            "regexError": {
+              "type": "string",
+              "description": "The customized error message to show when the input does not match the provided regex."
+            }
+          }
+        }
+      }
+    },
+    "keyboardAction": {
+      "type": "string",
+      "enum": [
+        "done",
+        "go",
+        "search",
+        "send",
+        "next",
+        "previous"
+      ],
+      "description": "Specify the action key on native device's soft keyboard"
+    },
+    "TextInput": {
+      "type": "object",
+      "properties": {
+        "validator": {
+          "type": "object",
+          "properties": {
+            "minLength": {
+              "$ref": "#/definitions/integer",
+              "description": "The minimum number of characters",
+              "minimum": 0
+            },
+            "maxLength": {
+              "$ref": "#/definitions/integer",
+              "description": "The maximum number of characters",
+              "minimum": 0
+            },
+            "regex": {
+              "type": "string",
+              "description": "The Regular Expression the input will need to match"
+            },
+            "regexError": {
+              "type": "string",
+              "description": "The customized error message to show when the input does not match the provided regex."
+            }
+          }
+        },
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "maxWidth": {
+          "$ref": "#/definitions/integer",
+          "description": "The max width of this Input widget (default 700)",
+          "minimum": 0,
+          "maximum": 5000
+        },
+        "label": {
+          "type": "string",
+          "description": "Label for your widget"
+        },
+        "labelHint": {
+          "type": "string",
+          "description": "Hint text on your label"
+        },
+        "hintText": {
+          "type": "string",
+          "description": "Hint text explaining your widget"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "icon": {
+          "$ref": "#/definitions/HasIcon",
+          "description": "The icon to show before the Input field"
+        },
+        "onChange": {
+          "$ref": "#/definitions/Action",
+          "description": "Call Ensemble's built-in functions or execute code when the input changes. Note for free-form text input, this event only dispatches if the text changes AND the focus is lost (e.g. clicking on button)"
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "fontSize": {
+              "type": "number",
+              "minimum": 6
+            }
+          }
+        },
+        "onKeyPress": {
+          "$ref": "#/definitions/Action",
+          "description": "On every keystroke, call Ensemble's built-in functions or execute code"
+        },
+        "value": {
+          "type": "string",
+          "description": "Specifying the value of your Text Input"
+        },
+        "inputType": {
+          "$ref": "#/definitions/inputType",
+          "description": "Pick a predefined input type"
+        },
+        "keyboardAction": {
+          "$ref": "#/definitions/keyboardAction"
+        },
+        "obscureText": {
+          "type": "boolean"
+        },
+        "obscureToggle": {
+          "type": "boolean",
+          "description": "enable the toggling between plain and obscure text."
+        }
+      }
+    },
+    "inputType": {
+      "type": "string",
+      "enum": [
+        "default",
+        "email",
+        "phone",
+        "ipAddress"
+      ]
+    },
+    "Progress": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "display": {
+          "$ref": "#/definitions/progressEnum"
+        },
+        "countdown": {
+          "type": "number",
+          "description": "Show the progress percentage based on the number of seconds specified here",
+          "minimum": 0
+        },
+        "onCountdownComplete": {
+          "$ref": "#/definitions/Action",
+          "description": "Execute this Action when the countdown comes to 0"
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "backgroundColor": {
+              "$ref": "#/definitions/Colors"
+            },
+            "size": {
+              "type": "number",
+              "description": "Specifies the width (progress bar) or the diameter (circular progress indicator)",
+              "minimum": 10
+            },
+            "thickness": {
+              "type": "number",
+              "description": "Specifies the thickness of the indicator (for progress bar this is the height)",
+              "minimum": 1
+            },
+            "color": {
+              "$ref": "#/definitions/Colors"
+            },
+            "expanded": {
+              "type": "boolean",
+              "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+            }
+          }
+        }
+      }
+    },
+    "progressEnum": {
+      "type": "string",
+      "enum": [
+        "linear",
+        "circular"
+      ]
+    },
+    "QRCode": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "value": {
+          "type": "string",
+          "description": "The data to generate the QR code"
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "size": {
+              "type": "number",
+              "description": "Specify the width/height of the QR Code. Default: 160"
+            },
+            "color": {
+              "$ref": "#/definitions/Colors",
+              "description": "Set the color for the QR code drawing"
+            },
+            "shadowColor": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Box shadow color starting with '0xFF' for full opacity"
+            },
+            "shadowOffset": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            "shadowRadius": {
+              "type": "number",
+              "minimum": 0
+            },
+            "shadowStyle": {
+              "$ref": "#/definitions/shadowEnum",
+              "description": "The blur style to apply on the shadow"
+            },
+            "borderRadius": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Border Radius with CSS-like notation (1 to 4 integers)",
+              "minimum": 0
+            },
+            "borderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "Border color, starting with '0xFF' for full opacity"
+            },
+            "borderWidth": {
+              "type": "number",
+              "description": "The thickness of the border",
+              "minimum": 0
+            },
+            "backgroundGradient": {
+              "type": "object",
+              "properties": {
+                "colors": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Colors"
+                  },
+                  "description": "The list of colors used for the gradient"
+                },
+                "start": {
+                  "$ref": "#/definitions/alignmentEnum",
+                  "description": "The starting position of the gradient"
+                },
+                "end": {
+                  "$ref": "#/definitions/alignmentEnum",
+                  "description": "The ending position of the gradient"
+                }
+              }
+            },
+            "backgroundColor": {
+              "$ref": "#/definitions/Colors"
+            },
+            "backgroundImage": {
+              "$ref": "#/definitions/backgroundImage"
+            },
+            "padding": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Padding with CSS-style value e.g. padding: 5 20 5"
+            },
+            "margin": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
+            },
+            "expanded": {
+              "type": "boolean",
+              "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+            }
+          }
+        }
+      },
+      "required": [
+        "value"
+      ]
+    },
+    "SelectOne": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "maxWidth": {
+          "$ref": "#/definitions/integer",
+          "description": "The max width of this Input widget (default 700)",
+          "minimum": 0,
+          "maximum": 5000
+        },
+        "label": {
+          "type": "string",
+          "description": "Label for your widget"
+        },
+        "labelHint": {
+          "type": "string",
+          "description": "Hint text on your label"
+        },
+        "hintText": {
+          "type": "string",
+          "description": "Hint text explaining your widget"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "icon": {
+          "$ref": "#/definitions/HasIcon",
+          "description": "The icon to show before the Input field"
+        },
+        "onChange": {
+          "$ref": "#/definitions/Action",
+          "description": "Call Ensemble's built-in functions or execute code when the input changes. Note for free-form text input, this event only dispatches if the text changes AND the focus is lost (e.g. clicking on button)"
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "variant": {
+              "$ref": "#/definitions/inputVariant",
+              "description": "Select a pre-defined look and feel for this Input widget. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "contentPadding": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/integer"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "description": "Padding around your input content with CSS-style notation e.g. margin: 5 20 5"
+            },
+            "fillColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The fill color for this input fields. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "borderRadius": {
+              "$ref": "#/definitions/integer",
+              "description": "The border radius for this Input widget. This property can be defined in the theme to apply to all Input widgets.",
+              "minimum": 0
+            },
+            "borderWidth": {
+              "$ref": "#/definitions/integer",
+              "description": "The border width for this Input widget. This property can be defined in the theme to apply to all Input widgets.",
+              "minimum": 0
+            },
+            "borderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The base border color for this input widget. This border color determines the look and feel of your input, while the other colors are overrides for different states. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "enabledBorderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The border color for this input field if enabled. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "disabledBorderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The border color for this input field if disabled. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "errorBorderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The border color  when there are errors on this input field. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "focusedBorderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The border color when this input field is receiving focus. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "focusedErrorBorderColor": {
+              "$ref": "#/definitions/Colors"
+            },
+            "fontSize": {
+              "type": "number",
+              "minimum": 6
+            },
+            "expanded": {
+              "type": "boolean",
+              "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+            }
+          }
+        },
+        "value": {
+          "description": "Select a value that matches one of the items. If Items are Objects, it should match the value key"
+        },
+        "items": {
+          "type": "array",
+          "items": {},
+          "description": "List of values, or Objects with value/label pairs"
+        }
+      }
+    },
+    "Spacer": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "size": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
+    "Time": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "maxWidth": {
+          "$ref": "#/definitions/integer",
+          "description": "The max width of this Input widget (default 700)",
+          "minimum": 0,
+          "maximum": 5000
+        },
+        "label": {
+          "type": "string",
+          "description": "Label for your widget"
+        },
+        "labelHint": {
+          "type": "string",
+          "description": "Hint text on your label"
+        },
+        "hintText": {
+          "type": "string",
+          "description": "Hint text explaining your widget"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "icon": {
+          "$ref": "#/definitions/HasIcon",
+          "description": "The icon to show before the Input field"
+        },
+        "onChange": {
+          "$ref": "#/definitions/Action",
+          "description": "Call Ensemble's built-in functions or execute code when the input changes. Note for free-form text input, this event only dispatches if the text changes AND the focus is lost (e.g. clicking on button)"
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "variant": {
+              "$ref": "#/definitions/inputVariant",
+              "description": "Select a pre-defined look and feel for this Input widget. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "contentPadding": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/integer"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "description": "Padding around your input content with CSS-style notation e.g. margin: 5 20 5"
+            },
+            "fillColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The fill color for this input fields. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "borderRadius": {
+              "$ref": "#/definitions/integer",
+              "description": "The border radius for this Input widget. This property can be defined in the theme to apply to all Input widgets.",
+              "minimum": 0
+            },
+            "borderWidth": {
+              "$ref": "#/definitions/integer",
+              "description": "The border width for this Input widget. This property can be defined in the theme to apply to all Input widgets.",
+              "minimum": 0
+            },
+            "borderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The base border color for this input widget. This border color determines the look and feel of your input, while the other colors are overrides for different states. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "enabledBorderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The border color for this input field if enabled. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "disabledBorderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The border color for this input field if disabled. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "errorBorderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The border color  when there are errors on this input field. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "focusedBorderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The border color when this input field is receiving focus. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "focusedErrorBorderColor": {
+              "$ref": "#/definitions/Colors"
+            },
+            "fontSize": {
+              "type": "number",
+              "minimum": 6
+            },
+            "expanded": {
+              "type": "boolean",
+              "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+            }
+          }
+        },
+        "initialValue": {
+          "type": "string",
+          "description": "The highlighted initial time in the time picker. Use format HH:MM"
+        }
+      }
+    },
+    "TabBar": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "selectedIndex": {
+          "type": "number",
+          "description": "Selecting a Tab based on its index order",
+          "minimum": 0
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/tabItemType"
+          },
+          "description": "Define each of your Tab here"
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "tabPosition": {
+              "$ref": "#/definitions/tabPosition",
+              "description": "How to lay out the Tab labels"
+            },
+            "tabPadding": {
+              "type": [
+                "string",
+                "number"
+              ],
+              "description": "Padding for each tab labels with CSS-style value. Default: 0 30 0 0 (right padding only)"
+            },
+            "tabFontSize": {
+              "type": "number",
+              "description": "Font size for the tab text"
+            },
+            "tabFontWeight": {
+              "$ref": "#/definitions/fontWeight",
+              "description": "Font weight for the tab text"
+            },
+            "tabBackgroundColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The background color of the tab's navigation bar"
+            },
+            "activeTabColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The color of the selected tab's text"
+            },
+            "inactiveTabColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The color of the un-selected tabs' text"
+            },
+            "indicatorColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The color of the selected tab's indicator"
+            },
+            "indicatorThickness": {
+              "type": "number",
+              "description": "The thickness of the selected tab's indicator"
+            },
+            "margin": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
+            }
+          }
+        }
+      }
+    },
+    "tabItemType": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "Setting the tab label"
+        },
+        "icon": {
+          "$ref": "#/definitions/HasIcon"
+        },
+        "widget": {
+          "$ref": "#/definitions/Widgets",
+          "description": "Return an inline widget or specify a custom widget to be rendered as this tab's content"
+        }
+      },
+      "required": [
+        "label",
+        "widget"
+      ]
+    },
+    "tabPosition": {
+      "type": "string",
+      "enum": [
+        "start",
+        "stretch"
+      ]
+    },
+    "GridView": {
+      "type": "object",
+      "properties": {
+        "item-template": {
+          "$ref": "#/definitions/ItemTemplate"
+        },
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "onItemTap": {
+          "$ref": "#/definitions/Action",
+          "description": "Call Ensemble's built-in functions or execute code when tapping on an item in the list."
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "horizontalTileCount": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "The number of horizontal tiles (max 5) to show. If not specified, the number of tiles will automatically be determined by the screen size. You may also specify a single number (for all breakpoints), three numbers (for small, medium, large breakpoints), or five numbers (xSmall, small, medium, large, xLarge).",
+              "minimum": 1,
+              "maximum": 5
+            },
+            "horizontalGap": {
+              "type": "number",
+              "description": "The gap between the horizontal tiles if there are more than one (default: 10).",
+              "minimum": 0
+            },
+            "verticalGap": {
+              "type": "number",
+              "description": "The gap between the vertical tiles if there are more than one (default: 10).",
+              "minimum": 0
+            },
+            "itemHeight": {
+              "type": "number",
+              "description": "Set a fixed height for each item in the tile. If each tile item comprises of many widgets vertically, setting this attribute may require you to stretch (expand) at least one inner widget.",
+              "minimum": 0
+            },
+            "itemAspectRatio": {
+              "type": "number",
+              "description": "Instead of itemHeight, you can set the tile's dimension as a ratio of (item width / item height). For example, a tile with 3x width and 2x height is 3/2 = 1.5. This attribute will be ignored if itemHeight is set.",
+              "minimum": 0
+            },
+            "gap": {
+              "type": "number",
+              "minimum": 0
+            },
+            "fontFamily": {
+              "type": "string",
+              "description": "Set the font family applicable for all widgets inside this container"
+            },
+            "fontSize": {
+              "type": "number",
+              "minimum": 0
+            },
+            "shadowColor": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Box shadow color starting with '0xFF' for full opacity"
+            },
+            "shadowOffset": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            "shadowRadius": {
+              "type": "number",
+              "minimum": 0
+            },
+            "shadowStyle": {
+              "$ref": "#/definitions/shadowEnum",
+              "description": "The blur style to apply on the shadow"
+            },
+            "borderRadius": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Border Radius with CSS-like notation (1 to 4 integers)",
+              "minimum": 0
+            },
+            "borderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "Border color, starting with '0xFF' for full opacity"
+            },
+            "borderWidth": {
+              "type": "number",
+              "description": "The thickness of the border",
+              "minimum": 0
+            },
+            "backgroundGradient": {
+              "type": "object",
+              "properties": {
+                "colors": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Colors"
+                  },
+                  "description": "The list of colors used for the gradient"
+                },
+                "start": {
+                  "$ref": "#/definitions/alignmentEnum",
+                  "description": "The starting position of the gradient"
+                },
+                "end": {
+                  "$ref": "#/definitions/alignmentEnum",
+                  "description": "The ending position of the gradient"
+                }
+              }
+            },
+            "backgroundColor": {
+              "$ref": "#/definitions/Colors"
+            },
+            "backgroundImage": {
+              "$ref": "#/definitions/backgroundImage"
+            },
+            "padding": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Padding with CSS-style value e.g. padding: 5 20 5"
+            },
+            "margin": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
+            },
+            "width": {
+              "type": "number",
+              "minimum": 0
+            },
+            "height": {
+              "type": "number",
+              "minimum": 0
+            },
+            "expanded": {
+              "type": "boolean",
+              "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+            }
+          }
+        }
+      }
+    },
+    "Form": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "onSubmit": {
+          "$ref": "#/definitions/Action",
+          "description": "Action to execute when the form is submitted"
+        },
+        "children": {
+          "$ref": "#/definitions/Widgets"
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "labelPosition": {
+              "$ref": "#/definitions/labelEnum",
+              "description": "Where the position the FormField's label"
+            },
+            "labelOverflow": {
+              "$ref": "#/definitions/labelOverflowEnum",
+              "description": "Treatment of text longer than available space"
+            },
+            "width": {
+              "type": "number",
+              "minimum": 0
+            },
+            "height": {
+              "type": "number",
+              "minimum": 0
+            },
+            "gap": {
+              "type": "number",
+              "description": "Vertical gap to insert between the children (default is 10)",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "labelEnum": {
+      "type": "string",
+      "enum": [
+        "top",
+        "start",
+        "none"
+      ]
+    },
+    "labelOverflowEnum": {
+      "type": "string",
+      "enum": [
+        "wrap",
+        "visible",
+        "clip",
+        "ellipsis"
+      ]
+    },
+    "ChartJS": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "width": {
+              "type": "number",
+              "minimum": 0
+            },
+            "height": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "config": {
+          "type": "string",
+          "description": "Chartjs config. \\nSee this for an example - https://www.chartjs.org/docs/latest/configuration/"
+        }
+      }
+    },
+    "Video": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "source": {
+          "type": "string",
+          "description": "The URL source to the media file"
+        }
+      }
+    },
+    "WebView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "url": {
+          "type": "string"
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "width": {
+              "type": "number",
+              "description": "By default the width will match its parent's available width, but you can set an explicit width here."
+            },
+            "height": {
+              "type": "number",
+              "description": "If no height is specified, the web view will stretch its height to fit its content, in which case a scrollable parent is required to scroll the content. You may override this behavior by explicitly set the web view's height here, or uses 'expanded' to fill the available height."
+            },
+            "expanded": {
+              "type": "boolean",
+              "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+            }
+          }
+        }
+      }
+    },
+    "stylesColumn": {
+      "type": "object",
+      "properties": {
+        "mainAxis": {
+          "$ref": "#/definitions/mainAxisEnum",
+          "description": "Control our children's layout vertically"
+        },
+        "crossAxis": {
+          "$ref": "#/definitions/crossAxisEnum",
+          "description": "Control the horizontal alignment of the children"
+        },
+        "mainAxisSize": {
+          "$ref": "#/definitions/mainAxisSizeEnum",
+          "description": "Stretch to the max vertically or only fit the vertical space"
+        },
+        "scrollable": {
+          "type": "boolean",
+          "description": "Set to true so content can scroll vertically as needed"
+        },
+        "autoFit": {
+          "type": "boolean",
+          "description": "Explicitly make the column's width as wide as the largest child, but only if our column's parent does not already assign a width. This attribute is useful for sizing children who don't have a width (e.g Divider)"
+        },
+        "gap": {
+          "type": "number",
+          "minimum": 0
+        },
+        "fontFamily": {
+          "type": "string",
+          "description": "Set the font family applicable for all widgets inside this container"
+        },
+        "fontSize": {
+          "type": "number",
+          "minimum": 0
+        },
+        "shadowColor": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Box shadow color starting with '0xFF' for full opacity"
+        },
+        "shadowOffset": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "shadowRadius": {
+          "type": "number",
+          "minimum": 0
+        },
+        "shadowStyle": {
+          "$ref": "#/definitions/shadowEnum",
+          "description": "The blur style to apply on the shadow"
+        },
+        "borderRadius": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Border Radius with CSS-like notation (1 to 4 integers)",
+          "minimum": 0
+        },
+        "borderColor": {
+          "$ref": "#/definitions/Colors",
+          "description": "Border color, starting with '0xFF' for full opacity"
+        },
+        "borderWidth": {
+          "type": "number",
+          "description": "The thickness of the border",
+          "minimum": 0
+        },
+        "backgroundGradient": {
+          "type": "object",
+          "properties": {
+            "colors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Colors"
+              },
+              "description": "The list of colors used for the gradient"
+            },
+            "start": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The starting position of the gradient"
+            },
+            "end": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The ending position of the gradient"
+            }
+          }
+        },
+        "backgroundColor": {
+          "$ref": "#/definitions/Colors"
+        },
+        "backgroundImage": {
+          "$ref": "#/definitions/backgroundImage"
+        },
+        "padding": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Padding with CSS-style value e.g. padding: 5 20 5"
+        },
+        "margin": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0
+        },
+        "expanded": {
+          "type": "boolean",
+          "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+        }
+      }
+    },
+    "Flow": {
+      "type": "object",
+      "properties": {
+        "item-template": {
+          "$ref": "#/definitions/ItemTemplate"
+        },
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Widgets"
+          },
+          "minItems": 1
+        },
+        "direction": {
+          "$ref": "#/definitions/directionEnum",
+          "description": "The main direction to lay out the children before wrapping"
+        },
+        "styles": {
+          "$ref": "#/definitions/styleFlow"
+        }
+      }
+    },
+    "styleFlow": {
+      "type": "object",
+      "properties": {
+        "mainAxis": {
+          "$ref": "#/definitions/mainAxisEnum",
+          "description": "Control our children's layout vertically"
+        },
+        "gap": {
+          "type": "number",
+          "description": "The gap between the children in the main direction",
+          "minimum": 0
+        },
+        "lineGap": {
+          "type": "number",
+          "description": "The gap between the lines if the children start wrapping",
+          "minimum": 0
+        },
+        "maxWidth": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maxHeight": {
+          "type": "number",
+          "minimum": 0
+        },
+        "expanded": {
+          "type": "boolean",
+          "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+        }
+      }
+    },
+    "Flex": {
+      "type": "object",
+      "properties": {
+        "direction": {
+          "$ref": "#/definitions/directionEnum",
+          "description": "Lay out the children vertically or horizontally"
+        },
+        "mainAxis": {
+          "$ref": "#/definitions/mainAxisEnum",
+          "description": "Control how to lay out the children, in the direction specified by the 'direction' attribute"
+        },
+        "crossAxis": {
+          "$ref": "#/definitions/crossAxisEnum",
+          "description": "Control the alignment of the children on the secondary axis (depending on the 'direction' attribute)"
+        },
+        "mainAxisSize": {
+          "$ref": "#/definitions/mainAxisSizeEnum",
+          "description": "stretch to the max or only fit the available space of the main axis (depending on the 'direction' attribute)"
+        },
+        "scrollable": {
+          "type": "boolean",
+          "description": "Set to true so content can scroll vertically or horizontally as needed"
+        },
+        "autoFit": {
+          "type": "boolean",
+          "description": "Explicitly match the width or height to the largest child's size, but only if the parent does not already assign a width or height. This attribute is useful for sizing children who don't have a width or height (e.g Divider)"
+        },
+        "gap": {
+          "type": "number",
+          "minimum": 0
+        },
+        "fontFamily": {
+          "type": "string",
+          "description": "Set the font family applicable for all widgets inside this container"
+        },
+        "fontSize": {
+          "type": "number",
+          "minimum": 0
+        },
+        "shadowColor": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Box shadow color starting with '0xFF' for full opacity"
+        },
+        "shadowOffset": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "shadowRadius": {
+          "type": "number",
+          "minimum": 0
+        },
+        "shadowStyle": {
+          "$ref": "#/definitions/shadowEnum",
+          "description": "The blur style to apply on the shadow"
+        },
+        "borderRadius": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Border Radius with CSS-like notation (1 to 4 integers)",
+          "minimum": 0
+        },
+        "borderColor": {
+          "$ref": "#/definitions/Colors",
+          "description": "Border color, starting with '0xFF' for full opacity"
+        },
+        "borderWidth": {
+          "type": "number",
+          "description": "The thickness of the border",
+          "minimum": 0
+        },
+        "backgroundGradient": {
+          "type": "object",
+          "properties": {
+            "colors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Colors"
+              },
+              "description": "The list of colors used for the gradient"
+            },
+            "start": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The starting position of the gradient"
+            },
+            "end": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The ending position of the gradient"
+            }
+          }
+        },
+        "backgroundColor": {
+          "$ref": "#/definitions/Colors"
+        },
+        "backgroundImage": {
+          "$ref": "#/definitions/backgroundImage"
+        },
+        "padding": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Padding with CSS-style value e.g. padding: 5 20 5"
+        },
+        "margin": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0
+        },
+        "expanded": {
+          "type": "boolean",
+          "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+        },
+        "item-template": {
+          "$ref": "#/definitions/ItemTemplate"
+        },
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Widgets"
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "styleFlex": {
+      "type": "object",
+      "properties": {
+        "direction": {
+          "$ref": "#/definitions/directionEnum",
+          "description": "Lay out the children vertically or horizontally"
+        },
+        "mainAxis": {
+          "$ref": "#/definitions/mainAxisEnum",
+          "description": "Control how to lay out the children, in the direction specified by the 'direction' attribute"
+        },
+        "crossAxis": {
+          "$ref": "#/definitions/crossAxisEnum",
+          "description": "Control the alignment of the children on the secondary axis (depending on the 'direction' attribute)"
+        },
+        "mainAxisSize": {
+          "$ref": "#/definitions/mainAxisSizeEnum",
+          "description": "stretch to the max or only fit the available space of the main axis (depending on the 'direction' attribute)"
+        },
+        "scrollable": {
+          "type": "boolean",
+          "description": "Set to true so content can scroll vertically or horizontally as needed"
+        },
+        "autoFit": {
+          "type": "boolean",
+          "description": "Explicitly match the width or height to the largest child's size, but only if the parent does not already assign a width or height. This attribute is useful for sizing children who don't have a width or height (e.g Divider)"
+        },
+        "gap": {
+          "type": "number",
+          "minimum": 0
+        },
+        "fontFamily": {
+          "type": "string",
+          "description": "Set the font family applicable for all widgets inside this container"
+        },
+        "fontSize": {
+          "type": "number",
+          "minimum": 0
+        },
+        "shadowColor": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Box shadow color starting with '0xFF' for full opacity"
+        },
+        "shadowOffset": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "shadowRadius": {
+          "type": "number",
+          "minimum": 0
+        },
+        "shadowStyle": {
+          "$ref": "#/definitions/shadowEnum",
+          "description": "The blur style to apply on the shadow"
+        },
+        "borderRadius": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Border Radius with CSS-like notation (1 to 4 integers)",
+          "minimum": 0
+        },
+        "borderColor": {
+          "$ref": "#/definitions/Colors",
+          "description": "Border color, starting with '0xFF' for full opacity"
+        },
+        "borderWidth": {
+          "type": "number",
+          "description": "The thickness of the border",
+          "minimum": 0
+        },
+        "backgroundGradient": {
+          "type": "object",
+          "properties": {
+            "colors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Colors"
+              },
+              "description": "The list of colors used for the gradient"
+            },
+            "start": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The starting position of the gradient"
+            },
+            "end": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The ending position of the gradient"
+            }
+          }
+        },
+        "backgroundColor": {
+          "$ref": "#/definitions/Colors"
+        },
+        "backgroundImage": {
+          "$ref": "#/definitions/backgroundImage"
+        },
+        "padding": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Padding with CSS-style value e.g. padding: 5 20 5"
+        },
+        "margin": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0
+        },
+        "expanded": {
+          "type": "boolean",
+          "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+        }
+      }
+    },
+    "Stack": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Widgets"
+          },
+          "minItems": 1
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "alignment": {
+              "$ref": "#/definitions/alignmentEnum"
+            }
+          }
+        }
+      }
+    },
+    "ListView": {
+      "type": "object",
+      "properties": {
+        "item-template": {
+          "$ref": "#/definitions/ItemTemplate"
+        },
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Widgets"
+          },
+          "minItems": 1
+        },
+        "onItemTap": {
+          "$ref": "#/definitions/Action",
+          "description": "Dispatch when an ListView item is selected/tapped.The event dispatches only when you tap on the item. The index of the item can be retrieved using 'selectedItemIndex'."
+        },
+        "selectedItemIndex": {
+          "type": "number",
+          "description": "Selecting a ListView item gives the index of selected item"
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "separatorColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "Set the color for the separator between items"
+            },
+            "separatorWidth": {
+              "type": "number",
+              "description": "The thickness of the separator between items"
+            },
+            "separatorPadding": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Padding with CSS-style value e.g. padding: 5 20 5 Default 0 0 0"
+            },
+            "gap": {
+              "type": "number",
+              "minimum": 0
+            },
+            "fontFamily": {
+              "type": "string",
+              "description": "Set the font family applicable for all widgets inside this container"
+            },
+            "fontSize": {
+              "type": "number",
+              "minimum": 0
+            },
+            "shadowColor": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Box shadow color starting with '0xFF' for full opacity"
+            },
+            "shadowOffset": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            "shadowRadius": {
+              "type": "number",
+              "minimum": 0
+            },
+            "shadowStyle": {
+              "$ref": "#/definitions/shadowEnum",
+              "description": "The blur style to apply on the shadow"
+            },
+            "borderRadius": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Border Radius with CSS-like notation (1 to 4 integers)",
+              "minimum": 0
+            },
+            "borderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "Border color, starting with '0xFF' for full opacity"
+            },
+            "borderWidth": {
+              "type": "number",
+              "description": "The thickness of the border",
+              "minimum": 0
+            },
+            "backgroundGradient": {
+              "type": "object",
+              "properties": {
+                "colors": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Colors"
+                  },
+                  "description": "The list of colors used for the gradient"
+                },
+                "start": {
+                  "$ref": "#/definitions/alignmentEnum",
+                  "description": "The starting position of the gradient"
+                },
+                "end": {
+                  "$ref": "#/definitions/alignmentEnum",
+                  "description": "The ending position of the gradient"
+                }
+              }
+            },
+            "backgroundColor": {
+              "$ref": "#/definitions/Colors"
+            },
+            "backgroundImage": {
+              "$ref": "#/definitions/backgroundImage"
+            },
+            "padding": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Padding with CSS-style value e.g. padding: 5 20 5"
+            },
+            "margin": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
+            },
+            "width": {
+              "type": "number",
+              "minimum": 0
+            },
+            "height": {
+              "type": "number",
+              "minimum": 0
+            },
+            "expanded": {
+              "type": "boolean",
+              "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+            }
+          }
+        }
+      }
+    },
+    "Carousel": {
+      "type": "object",
+      "properties": {
+        "item-template": {
+          "$ref": "#/definitions/ItemTemplate"
+        },
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Widgets"
+          },
+          "minItems": 1
+        },
+        "onItemChange": {
+          "$ref": "#/definitions/Action",
+          "description": "Dispatch when an carousel item is in focus. For SingleView, this happens when the item is scroll into view. For scrolling MultiView, the event dispatches only when you tap on the item. The index of the item can be retrieved using 'selectedIndex'."
+        },
+        "styles": {
+          "$ref": "#/definitions/styleCarousel"
+        }
+      }
+    },
+    "styleCarousel": {
+      "type": "object",
+      "properties": {
+        "layout": {
+          "$ref": "#/definitions/layoutEnum",
+          "description": "Show a SingleView (on screen one at a time), MultiView (scrolling items), or automatically switch between the views with autoLayoutBreakpoint"
+        },
+        "autoLayoutBreakpoint": {
+          "type": "number",
+          "description": "Show multiple views on the carousel if the breakpoint is equal or larger than this threshold, otherwise show single view. (default 768)"
+        },
+        "height": {
+          "type": "number",
+          "description": "The height of each view"
+        },
+        "gap": {
+          "type": "number",
+          "description": "The gap between each views, but also act as a left-right margin in a single view"
+        },
+        "leadingGap": {
+          "type": "number",
+          "description": "The space before the first item. Note that the left edge of the scroll area is still controlled by padding or margin."
+        },
+        "trailingGap": {
+          "type": "number",
+          "description": "The space after the last item. Note that the right edge of the scroll area is still controlled by padding or margin."
+        },
+        "singleItemWidthRatio": {
+          "type": "number",
+          "description": "The screen width ratio for each carousel item (in single item mode). Value ranges from 0.0 to 1.0 for the full width. (default 1.0)",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "multipleItemWidthRatio": {
+          "type": "number",
+          "description": "The screen width ratio for each carousel item (in multiple item mode). Value ranges from 0.0 to 1.0 for the full width (default 0.6)",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "indicatorType": {
+          "$ref": "#/definitions/indicatorEnum",
+          "description": "How the view indicator should be displayed"
+        },
+        "indicatorPosition": {
+          "$ref": "#/definitions/indicatorPositionEnum",
+          "description": "Where to display the indicator if specified"
+        },
+        "indicatorWidth": {
+          "type": "number"
+        },
+        "indicatorHeight": {
+          "type": "number"
+        },
+        "indicatorMargin": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "The margin around each indicator"
+        },
+        "shadowColor": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Box shadow color starting with '0xFF' for full opacity"
+        },
+        "shadowOffset": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "shadowRadius": {
+          "type": "number",
+          "minimum": 0
+        },
+        "shadowStyle": {
+          "$ref": "#/definitions/shadowEnum",
+          "description": "The blur style to apply on the shadow"
+        },
+        "borderRadius": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Border Radius with CSS-like notation (1 to 4 integers)",
+          "minimum": 0
+        },
+        "borderColor": {
+          "$ref": "#/definitions/Colors",
+          "description": "Border color, starting with '0xFF' for full opacity"
+        },
+        "borderWidth": {
+          "type": "number",
+          "description": "The thickness of the border",
+          "minimum": 0
+        },
+        "backgroundGradient": {
+          "type": "object",
+          "properties": {
+            "colors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Colors"
+              },
+              "description": "The list of colors used for the gradient"
+            },
+            "start": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The starting position of the gradient"
+            },
+            "end": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The ending position of the gradient"
+            }
+          }
+        },
+        "backgroundColor": {
+          "$ref": "#/definitions/Colors"
+        },
+        "backgroundImage": {
+          "$ref": "#/definitions/backgroundImage"
+        },
+        "padding": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Padding with CSS-style value e.g. padding: 5 20 5"
+        },
+        "margin": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
+        }
+      }
+    },
+    "layoutEnum": {
+      "type": "string",
+      "enum": [
+        "auto",
+        "single",
+        "multiple"
+      ]
+    },
+    "indicatorEnum": {
+      "type": "string",
+      "enum": [
+        "none",
+        "circle",
+        "rectangle"
+      ]
+    },
+    "indicatorPositionEnum": {
+      "type": "string",
+      "enum": [
+        "bottom",
+        "top"
+      ]
     }
   }
 }

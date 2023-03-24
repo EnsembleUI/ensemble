@@ -3,9 +3,13 @@ import * as actions from "./actionSchema";
 import * as widgetsDef from "./widgets";
 import { Menu } from "./widgets";
 
+/**
+ * @additionalProperties true
+ * */
 export interface Screen {
   ViewGroup?: ViewGroup;
 }
+
 export interface RootWidgets {
   Column?: widgets.Column;
   Flow?: widgets.Flow;
@@ -37,6 +41,10 @@ export interface Widgets extends RootWidgets {
   GridView?: widgetsDef.GridView;
   Form?: widgetsDef.Form;
   Menu?: widgetsDef.Menu;
+  Map?: widgetsDef.Menu;
+  ChartJS?: widgetsDef.ChartJS;
+  Video?: widgetsDef.Video;
+  WebView?: widgetsDef.WebView;
 }
 export interface ItemTemplate {
   data: string;

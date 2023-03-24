@@ -13,6 +13,9 @@ import {
 } from "./styles";
 import { Action } from "./actionSchema";
 export interface Widget {
+  /**
+   * ID to be referenced later
+   * */
   id?: string;
 }
 
