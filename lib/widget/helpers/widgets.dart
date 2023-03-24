@@ -104,7 +104,6 @@ class InputWrapper extends StatelessWidget {
       required this.type,
       required this.widget,
       required this.controller});
-
   final String type;
   final Widget widget;
   final FormFieldController controller;
