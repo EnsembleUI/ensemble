@@ -16,6 +16,24 @@ export enum directionEnum {
   horizontal = "horizontal",
 }
 
+export enum screenType {
+  regular = "regular",
+  modal = "modal",
+}
+
+export enum navIconPosition {
+  start = "start",
+  end = "end",
+}
+
+export enum httpMethod {
+  GET = "GET",
+  PUT = "PUT",
+  POST = "POST",
+  PATCH = "PATCH",
+  DELETE = "DELETE",
+}
+
 /**
  * Specify the action key on native device's soft keyboard
  * */

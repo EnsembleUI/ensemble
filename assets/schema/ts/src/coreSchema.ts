@@ -2,6 +2,7 @@ import * as widgets from "./widgetSchema";
 import * as actions from "./actionSchema";
 import * as widgetsDef from "./widgets";
 import { Menu } from "./widgets";
+import { API, Functions, GlobalType, View } from "./widgetSchema";
 
 /**
  * @additionalProperties true
@@ -60,6 +61,16 @@ export interface TemplatedWidget {
  * */
 export type ViewGroup = Menu;
 //menu widgets
-/**
- * Use the bottom navigation bar (default)
- */
+
+export interface properties {
+  Import?: {};
+  ViewGroup?: Menu;
+  View?: View;
+  Action?: {};
+  Model?: {};
+  App?: {};
+  Variable?: {};
+  Functions?: Functions;
+  Global?: GlobalType;
+  API?: API;
+}

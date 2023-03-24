@@ -134,7 +134,7 @@ export type stylePadding = {
  *
  * Background color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC
  */
-type backgroundColor = Colors;
+export type backgroundColor = Colors;
 
 type backgroundGradient = {
   backgroundGradient?: {
@@ -153,7 +153,7 @@ type backgroundGradient = {
   };
 };
 
-type backgroundImage = {
+export type backgroundImage = {
   backgroundGradient: {
     /**
      * The Image URL to fill the background
