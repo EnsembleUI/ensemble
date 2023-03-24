@@ -359,6 +359,49 @@ class FileUploadAction extends EnsembleAction {
   }
 }
 
+class WalletConnectAction extends EnsembleAction {
+  WalletConnectAction({
+    this.id,
+    required this.wcProjectId,
+    required this.appName,
+    this.appDescription,
+    this.appUrl,
+    this.appIconUrl,
+    this.onComplete,
+    this.onError,
+  });
+
+  String? id;
+  String wcProjectId;
+  String appName;
+  String? appDescription;
+  String? appUrl;
+  String? appIconUrl;
+  EnsembleAction? onComplete;
+  EnsembleAction? onError;
+
+
+  factory WalletConnectAction.fromYaml({YamlMap? payload}) {
+    if (payload == null ||
+        (payload['wcProjectId'] == null && payload['name'] == null)) {
+      throw LanguageError(
+          "${ActionType.connectWallet.name} requires either a wcProjectId, appName, appDescription, appUrl, appIconUrl.");
+    }
+    return WalletConnectAction(
+      id: Utils.optionalString(payload['id']),
+      wcProjectId: payload['wcProjectId'],
+      appName: payload['appMetaData']['name'],
+      appDescription: Utils.optionalString(payload['appMetaData']['description']),
+      appUrl: Utils.optionalString(payload['appMetaData']?['url']),
+      appIconUrl: Utils.optionalString(payload['appMetaData']?['iconUrl']),
+      onComplete: EnsembleAction.fromYaml(payload['onComplete']),
+      onError: EnsembleAction.fromYaml(payload['onError']),
+    );
+  }
+
+}
+
+
 enum ActionType {
   invokeAPI,
   navigateScreen,
@@ -373,7 +416,8 @@ enum ActionType {
   openUrl,
   openCamera,
   uploadFiles,
-  navigateBack
+  navigateBack,
+  connectWallet,
 }
 
 enum ToastType { success, error, warning, info }
@@ -450,6 +494,8 @@ abstract class EnsembleAction {
       return FileUploadAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.openUrl) {
       return OpenUrlAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.connectWallet) {
+      return WalletConnectAction.fromYaml(payload: payload);
     }
     throw LanguageError("Invalid action.",
         recovery: "Make sure to use one of Ensemble-provided actions.");
