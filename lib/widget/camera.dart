@@ -167,69 +167,85 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
   GeolocatorPlatform locator = GeolocatorPlatform.instance;
 
   late int currentIndex;
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
-    availableCameras().then((availableCameras) {
-      cameras = availableCameras;
-      setState(() {
-        isLoading = false;
-      });
-      setCameraInit();
-    }).catchError((Object e) {
-      if (e is CameraException) {
-        switch (e.code) {
-          case 'CameraAccessDenied':
-            hasPermission = false;
-            break;
-          default:
-            break;
-        }
-      }
-    });
+    initCameras();
 
     if (widget._controller.assistAngle ?? false) {
-      accelerometerSub = accelerometerEvents.listen((AccelerometerEvent event) {
-        double radians = math.atan2(event.y, event.z);
-        phoneAngle.value = radians * 180 / math.pi;
-      });
+      initAccelerometerSub();
     }
 
     if (widget._controller.assistSpeed ?? false) {
-      geoLocatorHandler();
+      initGeoLocator();
     }
 
-    setCameraMode();
-    pageController = PageController(viewportFraction: 0.25, initialPage: currentModeIndex);
-    setState(() {});
+    initPageController();
   }
 
-  Future<void> geoLocatorHandler() async {
+  void initCameras() async {
+    try {
+      cameras = await availableCameras();
+      setCameraInit();
+      setState(() {
+        isLoading = false;
+      });
+    } catch (e) {
+      if (e is CameraException && e.code == 'CameraAccessDenied') {
+        hasPermission = false;
+      }
+    }
+  }
+
+  void initAccelerometerSub() {
+    accelerometerSub = accelerometerEvents.listen((AccelerometerEvent event) {
+      double radians = math.atan2(event.y, event.z);
+      phoneAngle.value = radians * 180 / math.pi;
+    });
+  }
+
+  void initPageController() {
+    setCameraMode();
+    pageController = PageController(viewportFraction: 0.25, initialPage: currentModeIndex);
+  }
+
+  Future<void> initGeoLocator() async {
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied || permission == LocationPermission.unableToDetermine) {
       permission = await GeolocatorPlatform.instance.requestPermission();
     }
 
     if (permission == LocationPermission.always || permission == LocationPermission.whileInUse) {
-      positionSub = locator
-          .getPositionStream(
-            locationSettings: const LocationSettings(
-              accuracy: LocationAccuracy.high,
-            ),
-          )
-          .listen(
-            (Position position) => _onAccelerate(position),
-          );
+      startLocationStream();
+      bool isLocationEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!isLocationEnabled) {
+        int count = 0;
+        Timer.periodic(const Duration(seconds: 2), (timer) async {
+          isLocationEnabled = await Geolocator.isLocationServiceEnabled();
+          if (isLocationEnabled) {
+            startLocationStream();
+            timer.cancel();
+          } else if (++count >= 5) {
+            timer.cancel();
+          }
+        });
+      }
     }
   }
 
-  Future<void> _onAccelerate(Position previousPosition) async {
-    final updatedPosition = await locator.getCurrentPosition();
-    final _velocity = (previousPosition.speed + updatedPosition.speed) / 2;
-    phoneSpeed.value = _velocity * 18 / 5;
+  Future<void> startLocationStream() async {
+    await positionSub?.cancel();
+    positionSub = locator
+        .getPositionStream(
+      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+    )
+        .listen((Position position) async {
+      final updatedPosition = await locator.getCurrentPosition();
+      final _velocity = (position.speed + updatedPosition.speed) / 2;
+      phoneSpeed.value = _velocity * 18 / 5;
+    });
   }
 
   Future<void> setCamera({CameraDescription? cameraDescription}) async {
@@ -773,7 +789,10 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
 
   Widget silderView() {
     if (_isVideoCameraSelected) {
-      Future.delayed(const Duration(milliseconds: 100), () => pageController.animateToPage(1, duration: const Duration(milliseconds: 100), curve: Curves.easeIn),);
+      Future.delayed(
+        const Duration(milliseconds: 100),
+        () => pageController.animateToPage(1, duration: const Duration(milliseconds: 100), curve: Curves.easeIn),
+      );
     }
     return SizedBox(
       height: 20,

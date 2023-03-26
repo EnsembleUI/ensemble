@@ -13,16 +13,15 @@ import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:yaml/yaml.dart';
 import 'package:ensemble/framework/action.dart';
 
-
 class Utils {
   /// global appKey to get the context
-  static final GlobalKey<NavigatorState> globalAppKey = GlobalKey<NavigatorState>();
+  static final GlobalKey<NavigatorState> globalAppKey =
+      GlobalKey<NavigatorState>();
 
   /// some Flutter widgets (TextInput) has no width constraint, so using them inside
   /// Rows will cause layout exception. We'll just artificially cap them at a max width,
   /// such that they'll overflow the UI instead of layout exception
   static const double widgetMaxWidth = 2000;
-
 
   /// return an Integer if it is, or null if not
   static int? optionalInt(dynamic value, {int? min, int? max}) {
@@ -35,23 +34,28 @@ class Utils {
     }
     return rtn;
   }
+
   static bool? optionalBool(dynamic value) {
     return value is bool ? value : null;
   }
+
   /// return anything as a string if exists, or null if not
   static String? optionalString(dynamic value) {
     String? val = value?.toString();
-    if ( val != null ) {
+    if (val != null) {
       return translate(val, null);
     }
     return val;
   }
+
   static double? optionalDouble(dynamic value, {double? min, double? max}) {
-    double? rtn =
-      value is double ? value :
-      value is int ? value.toDouble() :
-      value is String ? double.tryParse(value) :
-      null;
+    double? rtn = value is double
+        ? value
+        : value is int
+            ? value.toDouble()
+            : value is String
+                ? double.tryParse(value)
+                : null;
     if (rtn != null && min != null && rtn < min) {
       rtn = null;
     }
@@ -60,14 +64,13 @@ class Utils {
     }
     return rtn;
   }
+
   static BackgroundImage? getBackgroundImage(dynamic value) {
     if (value is Map) {
       if (value['source'] != null) {
-        return BackgroundImage(
-          value['source'].toString(),
-          fit: BoxFit.values.from(value['fit']),
-          alignment: getAlignment(value['alignment'])
-        );
+        return BackgroundImage(value['source'].toString(),
+            fit: BoxFit.values.from(value['fit']),
+            alignment: getAlignment(value['alignment']));
       }
     }
     // legacy, just a simply URL string
@@ -90,15 +93,15 @@ class Utils {
         // only valid if have at least 2 colors
         if (colors.length >= 2) {
           return LinearGradient(
-            colors: colors,
-            begin: getAlignment(value['start']) ?? Alignment.centerLeft,
-            end: getAlignment(value['end']) ?? Alignment.centerRight
-          );
+              colors: colors,
+              begin: getAlignment(value['start']) ?? Alignment.centerLeft,
+              end: getAlignment(value['end']) ?? Alignment.centerRight);
         }
       }
     }
     return null;
   }
+
   static Alignment? getAlignment(dynamic value) {
     switch (value) {
       case 'topLeft':
@@ -122,8 +125,8 @@ class Utils {
     }
     return null;
   }
-  static  WrapAlignment? getWrapAlignment(dynamic value)
-  {
+
+  static WrapAlignment? getWrapAlignment(dynamic value) {
     switch (value) {
       case 'center':
         return WrapAlignment.center;
@@ -139,6 +142,7 @@ class Utils {
         return WrapAlignment.spaceEvenly;
     }
   }
+
   static InputValidator? getValidator(dynamic value) {
     if (value is Map) {
       int? minLength = Utils.optionalInt(value['minLength']);
@@ -146,7 +150,11 @@ class Utils {
       String? regex = Utils.optionalString(value['regex']);
       String? regexError = Utils.optionalString(value['regexError']);
       if (minLength != null || maxLength != null || regex != null) {
-        return InputValidator(minLength: minLength, maxLength: maxLength, regex: regex, regexError: regexError);
+        return InputValidator(
+            minLength: minLength,
+            maxLength: maxLength,
+            regex: regex,
+            regexError: regexError);
       }
     }
     return null;
@@ -184,11 +192,13 @@ class Utils {
     return value is bool ? value : fallback;
   }
 
-  static int getInt(dynamic value, {required int fallback, int? min, int? max}) {
+  static int getInt(dynamic value,
+      {required int fallback, int? min, int? max}) {
     return optionalInt(value, min: min, max: max) ?? fallback;
   }
 
-  static double getDouble(dynamic value, {required double fallback, double? min, double? max}) {
+  static double getDouble(dynamic value,
+      {required double fallback, double? min, double? max}) {
     return optionalDouble(value, min: min, max: max) ?? fallback;
   }
 
@@ -202,11 +212,12 @@ class Utils {
     }
     return null;
   }
+
   static List<String>? getListOfStrings(dynamic value) {
     if (value is YamlList) {
       List<String> results = [];
       for (var item in value) {
-        if ( item is String ) {
+        if (item is String) {
           results.add(item);
         } else {
           results.add(item.toString());
@@ -216,6 +227,7 @@ class Utils {
     }
     return null;
   }
+
   static Map<String, dynamic>? getMap(dynamic value) {
     if (value is Map) {
       Map<String, dynamic> results = {};
@@ -229,7 +241,7 @@ class Utils {
 
   static Color? getColor(dynamic value) {
     if (value is String) {
-      switch(value) {
+      switch (value) {
         case '.transparent':
         case 'transparent':
           return Colors.transparent;
@@ -280,20 +292,16 @@ class Utils {
     if (value is String) {
       List<dynamic> tokens = value.split(RegExp(r'\s+'));
       if (tokens.isNotEmpty) {
-        return IconModel(
-          tokens[0],
-          library: tokens.length >= 2 ? tokens[1].toString() : null
-        );
+        return IconModel(tokens[0],
+            library: tokens.length >= 2 ? tokens[1].toString() : null);
       }
     }
     // key/value
     else if (value is Map && value['name'] != null) {
-      return IconModel(
-        value['name'],
-        library: Utils.optionalString(value['library']),
-        color: Utils.getColor(value['color']),
-        size: Utils.optionalInt(value['size'])
-      );
+      return IconModel(value['name'],
+          library: Utils.optionalString(value['library']),
+          color: Utils.getColor(value['color']),
+          size: Utils.optionalInt(value['size']));
     }
     return null;
   }
@@ -307,17 +315,17 @@ class Utils {
           return FontWeight.w200;
         case 'w300':
         case 'light':
-        return FontWeight.w300;
+          return FontWeight.w300;
         case 'w400':
         case 'normal':
-        return FontWeight.w400;
+          return FontWeight.w400;
         case 'w500':
           return FontWeight.w500;
         case 'w600':
           return FontWeight.w600;
         case 'w700':
         case 'bold':
-        return FontWeight.w700;
+          return FontWeight.w700;
         case 'w800':
           return FontWeight.w800;
         case 'w900':
@@ -330,12 +338,13 @@ class Utils {
   static TextStyle? getTextStyle(dynamic textStyle) {
     if (textStyle is YamlMap) {
       String? fontFamily = Utils.optionalString(textStyle['fontFamily']);
-      int? fontSize = Utils.optionalInt(textStyle['fontSize'], min: 1, max: 100);
+      int? fontSize =
+          Utils.optionalInt(textStyle['fontSize'], min: 1, max: 100);
       Color? color = Utils.getColor(textStyle['color']);
       FontWeight? fontWeight = getFontWeight(textStyle['fontWeight']);
 
       TextDecoration? decoration;
-      switch(textStyle['decoration']) {
+      switch (textStyle['decoration']) {
         case 'underline':
           decoration = TextDecoration.underline;
           break;
@@ -352,29 +361,29 @@ class Utils {
 
       if (fontSize != null || color != null) {
         return TextStyle(
-          fontFamily: fontFamily,
-          fontSize: fontSize?.toDouble(),
-          color: color,
-          decoration: decoration,
-          fontWeight: fontWeight
-        );
+            fontFamily: fontFamily,
+            fontSize: fontSize?.toDouble(),
+            color: color,
+            decoration: decoration,
+            fontWeight: fontWeight);
       }
     }
     return null;
   }
 
-
   /// return the padding/margin value
   static EdgeInsets getInsets(dynamic value, {EdgeInsets? fallback}) {
     return optionalInsets(value) ?? fallback ?? const EdgeInsets.all(0);
   }
+
   static EdgeInsets? optionalInsets(dynamic value) {
     if (value is int && value >= 0) {
       return EdgeInsets.all(value.toDouble());
     } else if (value is String) {
       List<String> values = value.split(' ');
       if (values.isEmpty || values.length > 4) {
-        throw LanguageError("shorthand notion top/right/bottom/left requires 1 to 4 integers");
+        throw LanguageError(
+            "shorthand notion top/right/bottom/left requires 1 to 4 integers");
       }
       double top = (parseIntFromString(values[0]) ?? 0).toDouble(),
           right = 0,
@@ -391,7 +400,8 @@ class Utils {
         left = right = (parseIntFromString(values[1]) ?? 0).toDouble();
         bottom = top;
       }
-      return EdgeInsets.only(top: top, right: right, bottom: bottom, left: left);
+      return EdgeInsets.only(
+          top: top, right: right, bottom: bottom, left: left);
     }
     return null;
   }
@@ -411,15 +421,14 @@ class Utils {
       } else if (numbers.length == 3) {
         return EBorderRadius.three(numbers[0], numbers[1], numbers[2]);
       } else if (numbers.length == 4) {
-        return EBorderRadius.only(numbers[0], numbers[1], numbers[2], numbers[3]);
+        return EBorderRadius.only(
+            numbers[0], numbers[1], numbers[2], numbers[3]);
       } else {
         throw LanguageError('borderRadius requires 1 to 4 integers');
       }
     }
     return null;
   }
-
-
 
   static Offset? getOffset(dynamic offset) {
     if (offset is YamlList) {
@@ -466,43 +475,55 @@ class Utils {
     return int.tryParse(value);
   }
 
-  static final onlyExpression = RegExp(r'''^\${([a-z_-\d\s.,:?!$@&|<>\+/*|%^="'\(\)\[\]]+)}$''', caseSensitive: false);
-  static final containExpression = RegExp(r'''\${([a-z_-\d\s.,:?!$@&|<>\+/*|%^="'\(\)\[\]]+)}''', caseSensitive: false);
+  static final onlyExpression = RegExp(
+      r'''^\${([a-z_-\d\s.,:?!$@&|<>\+/*|%^="'\(\)\[\]]+)}$''',
+      caseSensitive: false);
+  static final containExpression = RegExp(
+      r'''\${([a-z_-\d\s.,:?!$@&|<>\+/*|%^="'\(\)\[\]]+)}''',
+      caseSensitive: false);
 
-  static final i18nExpression = RegExp(r'r@[a-zA-Z0-9.-_]+',caseSensitive: false);
+  static final i18nExpression =
+      RegExp(r'r@[a-zA-Z0-9.-_]+', caseSensitive: false);
 
   // extract only the code after the comment and expression e.g //@code <expression>\n
-  static final codeAfterComment = RegExp(r'^//@code[^\n]*\n+((.|\n)+)', caseSensitive: false);
+  static final codeAfterComment =
+      RegExp(r'^//@code[^\n]*\n+((.|\n)+)', caseSensitive: false);
 
   // match an expression and AST e.g //@code <expression>\n<AST> in group1 and group2
-  static final expressionAndAst = RegExp(r'^//@code\s+([^\n]+)\s*\n+((.|\n)+)', caseSensitive: false);
+  static final expressionAndAst =
+      RegExp(r'^//@code\s+([^\n]+)\s*\n+((.|\n)+)', caseSensitive: false);
 
   //expect r@mystring or r@myapp.myscreen.mystring as long as r@ is there. If r@ is not there, returns the string as-is
-  static String translate(String val,BuildContext? ctx) {
+  static String translate(String val, BuildContext? ctx) {
     BuildContext? context;
-    if ( WidgetsBinding.instance != null ) {
+    if (WidgetsBinding.instance != null) {
       context = globalAppKey.currentContext;
     }
     context ??= ctx;
     String rtn = val;
-    if ( val.trim().isNotEmpty && context != null ) {
+    if (val.trim().isNotEmpty && context != null) {
       rtn = val.replaceAllMapped(i18nExpression, (match) {
-        String str = match.input.substring(match.start,match.end);//get rid of the @
+        String str =
+            match.input.substring(match.start, match.end); //get rid of the @
         String strToAppend = '';
-        if ( str.length > 2 ) {
+        if (str.length > 2) {
           String _s = str.substring(2);
-          if ( _s.endsWith(']') ) {
-            _s = _s.substring(0,_s.length-1);
+          if (_s.endsWith(']')) {
+            _s = _s.substring(0, _s.length - 1);
             strToAppend = ']';
           }
           try {
             str = FlutterI18n.translate(context!, _s);
-          } catch ( e) {//if resource is not defined
+          } catch (e) {
+            //if resource is not defined
             //log it
-            debugPrint('unable to get translated string for the '+str+'; exception='+e.toString());
+            debugPrint('unable to get translated string for the ' +
+                str +
+                '; exception=' +
+                e.toString());
           }
         }
-        return str+strToAppend;
+        return str + strToAppend;
       });
     }
     return rtn;
@@ -511,15 +532,17 @@ class Utils {
   // temporary workaround for internal translation so we dont have to duplicate the translation files in all repos
   static String translateWithFallback(String key, String fallback) {
     if (Utils.globalAppKey.currentContext != null) {
-      String output = FlutterI18n.translate(
-          Utils.globalAppKey.currentContext!, key);
+      String output =
+          FlutterI18n.translate(Utils.globalAppKey.currentContext!, key);
       return output != key ? output : fallback;
     }
     return fallback;
   }
+
   // explicitly return null if we can't find the translation key
   static String? translateOrNull(String key) {
-    String output = FlutterI18n.translate(Utils.globalAppKey.currentContext!, key);
+    String output =
+        FlutterI18n.translate(Utils.globalAppKey.currentContext!, key);
     return output != key ? output : null;
   }
 
@@ -545,9 +568,7 @@ class Utils {
   /// [input]: Hello $(firstname) $(lastname)
   /// @return [ $(firstname), $(lastname) ]
   static List<String> getExpressionTokens(String input) {
-    return containExpression.allMatches(input)
-        .map((e) => e.group(0)!)
-        .toList();
+    return containExpression.allMatches(input).map((e) => e.group(0)!).toList();
   }
 
   /// parse an Expression and AST into a DataExpression object.
@@ -567,9 +588,7 @@ class Utils {
     // fallback to match <expression> only. This is if we don't turn on AST
     List<String> tokens = getExpressionTokens(input);
     if (tokens.isNotEmpty) {
-      return DataExpression(
-        rawExpression: input,
-        expressions: tokens);
+      return DataExpression(rawExpression: input, expressions: tokens);
     }
     return null;
   }
@@ -595,5 +614,4 @@ class Utils {
     RegExpMatch? match = RegExp('^([^?]*)\\??').firstMatch(asset);
     return match?.group(1) ?? asset;
   }
-
 }

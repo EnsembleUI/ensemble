@@ -7,11 +7,7 @@ import 'package:flutter/material.dart';
 /// misc models
 
 class IconModel {
-  IconModel(this.icon, {
-    this.library,
-    this.size,
-    this.color
-  });
+  IconModel(this.icon, {this.library, this.size, this.color});
   dynamic icon;
   String? library;
   int? size;
@@ -20,7 +16,8 @@ class IconModel {
 
 class BackgroundImage {
   BackgroundImage(this._source, {BoxFit? fit, Alignment? alignment})
-      : _fit = fit ?? BoxFit.cover, _alignment = alignment ?? Alignment.center;
+      : _fit = fit ?? BoxFit.cover,
+        _alignment = alignment ?? Alignment.center;
 
   final String _source;
   final BoxFit _fit;
@@ -38,10 +35,7 @@ class BackgroundImage {
       imageProvider = AssetImage(Utils.getLocalAssetFullPath(_source));
     }
     return DecorationImage(
-      image: imageProvider,
-      fit: _fit,
-      alignment: _alignment
-    );
+        image: imageProvider, fit: _fit, alignment: _alignment);
   }
 
   Widget get asImageWidget {
@@ -59,15 +53,22 @@ class BackgroundImage {
       );
     }
   }
-
 }
 
 class EBorderRadius {
-  EBorderRadius._(int _topLeft, int _topRight, int _bottomRight, int _bottomLeft) :
-    topLeft = _topLeft == 0 ? Radius.zero : Radius.circular(_topLeft.toDouble()),
-    topRight = _topRight == 0 ? Radius.zero : Radius.circular(_topRight.toDouble()),
-    bottomRight = _bottomRight == 0 ? Radius.zero : Radius.circular(_bottomRight.toDouble()),
-    bottomLeft = _bottomLeft == 0 ? Radius.zero : Radius.circular(_bottomLeft.toDouble());
+  EBorderRadius._(
+      int _topLeft, int _topRight, int _bottomRight, int _bottomLeft)
+      : topLeft =
+            _topLeft == 0 ? Radius.zero : Radius.circular(_topLeft.toDouble()),
+        topRight = _topRight == 0
+            ? Radius.zero
+            : Radius.circular(_topRight.toDouble()),
+        bottomRight = _bottomRight == 0
+            ? Radius.zero
+            : Radius.circular(_bottomRight.toDouble()),
+        bottomLeft = _bottomLeft == 0
+            ? Radius.zero
+            : Radius.circular(_bottomLeft.toDouble());
 
   Radius topLeft, topRight, bottomRight, bottomLeft;
 
@@ -85,7 +86,8 @@ class EBorderRadius {
   factory EBorderRadius.three(int first, int second, int third) {
     return EBorderRadius._(first, second, third, second);
   }
-  factory EBorderRadius.only(int topLeft, int topRight, int bottomRight, int bottomLeft) {
+  factory EBorderRadius.only(
+      int topLeft, int topRight, int bottomRight, int bottomLeft) {
     return EBorderRadius._(topLeft, topRight, bottomRight, bottomLeft);
   }
 
@@ -94,8 +96,7 @@ class EBorderRadius {
         topLeft: topLeft,
         topRight: topRight,
         bottomLeft: bottomLeft,
-        bottomRight: bottomRight
-    );
+        bottomRight: bottomRight);
   }
 }
 

@@ -35,20 +35,16 @@ const speedAssistOptions = {
 };
 
 class CameraManager {
-  Future<void> openCamera(BuildContext context, ShowCameraAction cameraAction,
-      ScopeManager? scopeManager) async {
+  Future<void> openCamera(BuildContext context, ShowCameraAction cameraAction, ScopeManager? scopeManager) async {
     Camera camera = Camera();
     if (cameraAction.id != null) {
-      final previousAction =
-          scopeManager?.dataContext.getContextById(cameraAction.id!) as Camera?;
+      final previousAction = scopeManager?.dataContext.getContextById(cameraAction.id!) as Camera?;
       if (previousAction != null) camera = previousAction;
       scopeManager?.dataContext.addInvokableContext(cameraAction.id!, camera);
     }
 
-    if (cameraAction.options != null) {      
-      cameraAction.onComplete == null
-          ? () {}
-          : camera.setProperty('onComplete', cameraAction.onComplete);
+    if (cameraAction.options != null) {
+      cameraAction.onComplete == null ? () {} : camera.setProperty('onComplete', cameraAction.onComplete);
 
       if (cameraAction.options!['assistAngle'] != null) {
         camera.setProperty('assistAngle', true);
@@ -59,7 +55,7 @@ class CameraManager {
           }
         }
       }
-      
+
       if (cameraAction.options!['assistSpeed'] != null) {
         camera.setProperty('assistSpeed', true);
         for (var option in cameraAction.options!['assistSpeed'].keys) {
@@ -70,14 +66,13 @@ class CameraManager {
         }
       }
 
-       for (var option in cameraAction.options!.keys) {
-          final property = optionMappings[option];
-          if (property != null) {
-            camera.setProperty(property, cameraAction.options![option]);
-          }
+      for (var option in cameraAction.options!.keys) {
+        final property = optionMappings[option];
+        if (property != null) {
+          camera.setProperty(property, cameraAction.options![option]);
         }
+      }
     }
-
 
     await Navigator.push(
       context,
@@ -87,9 +82,7 @@ class CameraManager {
     );
 
     if (cameraAction.id != null) {
-      scopeManager?.dispatch(
-          ModelChangeEvent(WidgetBindingSource(cameraAction.id!), camera));
+      scopeManager?.dispatch(ModelChangeEvent(WidgetBindingSource(cameraAction.id!), camera));
     }
   }
-
 }

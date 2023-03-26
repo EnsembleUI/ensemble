@@ -3,34 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
 
 class EnsembleTheme {
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   /// legacy stuff
   static const Color notWhite = Color(0xFFEDF0F2);
   static const Color nearlyWhite = Color(0xFFFFFFFF);
@@ -47,39 +19,27 @@ class EnsembleTheme {
   static const Color chipBackground = Color(0xFFEEF1F3);
   static const Color spacer = Color(0xFFF2F2F2);
 
-
   static ThemeData get lightTheme {
     return ThemeData(
-        disabledColor: const Color(0xffE0E0E0),
+      disabledColor: const Color(0xffE0E0E0),
     );
   }
 
   static ThemeData get payAppTheme {
     return ThemeData(
-      colorScheme: const ColorScheme(
-        brightness: Brightness.light,
-        primary: Color(0xFF08B48F),
-        onPrimary: Colors.white,
-
-        secondary: Color(0xFFED5742),
-        onSecondary: Colors.white,
-
-        error: Color(0xFFB00020),
-        onError: Colors.white,
-
-        background: Colors.white,
-        onBackground: Color(0xFF404040),
-
-        surface: Colors.white,
-        onSurface: Color(0xFF404040)
-
-
-
-      )
-    );
+        colorScheme: const ColorScheme(
+            brightness: Brightness.light,
+            primary: Color(0xFF08B48F),
+            onPrimary: Colors.white,
+            secondary: Color(0xFFED5742),
+            onSecondary: Colors.white,
+            error: Color(0xFFB00020),
+            onError: Colors.white,
+            background: Colors.white,
+            onBackground: Color(0xFF404040),
+            surface: Colors.white,
+            onSurface: Color(0xFF404040)));
   }
-
-
 
   static const TextTheme textTheme = TextTheme(
     headline4: display1,
@@ -155,7 +115,6 @@ class EnsembleTheme {
     color: lightText, // was lightText
   );
 
-
   static TextTheme _buildTextThemeOld(TextTheme base) {
     const String fontName = 'WorkSans';
     return base.copyWith(
@@ -205,7 +164,6 @@ class EnsembleTheme {
     );
   }
 }
-
 
 class HexColor extends Color {
   HexColor(final String hexColor) : super(_getColorFromHex(hexColor));

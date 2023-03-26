@@ -140,8 +140,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
   }
 
   /// build the sidebar and its children content
-  Widget buildSidebarNavigation(
-      BuildContext context, SidebarMenu menu) {
+  Widget buildSidebarNavigation(BuildContext context, SidebarMenu menu) {
     Widget sidebar = _buildSidebar(context, menu);
     Widget? separator = _buildSidebarSeparator(menu);
     Widget content = Expanded(child: pageWidgets[selectedPage]);
