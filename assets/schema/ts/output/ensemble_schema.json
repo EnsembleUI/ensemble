@@ -1,25 +1,47 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "definitions": {
-    "Screen": {
-      "type": "object",
-      "properties": {
-        "ViewGroup": {
-          "$ref": "#/definitions/ViewGroup"
-        }
-      }
+  "type": "object",
+  "properties": {
+    "Import": {
+      "type": "object"
     },
     "ViewGroup": {
-      "$ref": "#/definitions/Menu",
-      "description": "Group multiple Views together and put them behind a menu."
+      "$ref": "#/definitions/Menu"
     },
+    "View": {
+      "$ref": "#/definitions/View"
+    },
+    "Action": {
+      "type": "object"
+    },
+    "Model": {
+      "type": "object"
+    },
+    "App": {
+      "type": "object"
+    },
+    "Variable": {
+      "type": "object"
+    },
+    "Functions": {
+      "$ref": "#/definitions/Functions"
+    },
+    "Global": {
+      "$ref": "#/definitions/GlobalType"
+    },
+    "API": {
+      "$ref": "#/definitions/API"
+    }
+  },
+  "definitions": {
     "Menu": {
       "anyOf": [
         {
           "type": "object",
           "properties": {
             "BottomNavBar": {
-              "$ref": "#/definitions/BottomNavBar"
+              "$ref": "#/definitions/MenuBase",
+              "description": "Use the bottom navigation bar"
             }
           },
           "required": [
@@ -30,7 +52,8 @@
           "type": "object",
           "properties": {
             "Drawer": {
-              "$ref": "#/definitions/Drawer"
+              "$ref": "#/definitions/MenuWithHeaderAndFooter",
+              "description": "Put the menu behind a drawer icon on the header. The drawer icon will be positioned to the 'start' of the header (left for most languages, right for RTL languages)."
             }
           },
           "required": [
@@ -41,7 +64,8 @@
           "type": "object",
           "properties": {
             "EndDrawer": {
-              "$ref": "#/definitions/EndDrawer"
+              "$ref": "#/definitions/MenuWithHeaderAndFooter",
+              "description": "Put the menu behind a drawer icon on the header. The drawer icon will be positioned to the 'end' of the header (right for most languages, left for RTL languages)."
             }
           },
           "required": [
@@ -52,7 +76,8 @@
           "type": "object",
           "properties": {
             "Sidebar": {
-              "$ref": "#/definitions/Sidebar"
+              "$ref": "#/definitions/MenuWithAdditionalStyles",
+              "description": "Enable a fixed navigation menu to the 'start' of the screen (left for most languages, right for RTL languages). The menu may become a drawer menu on lower resolution."
             }
           },
           "required": [
@@ -63,7 +88,8 @@
           "type": "object",
           "properties": {
             "EndSidebar": {
-              "$ref": "#/definitions/EndSidebar"
+              "$ref": "#/definitions/MenuWithAdditionalStyles",
+              "description": "Enable a fixed navigation menu to the 'end' of the screen (right for most languages, left for RTL languages). The menu may become a drawer menu on lower resolution."
             }
           },
           "required": [
@@ -73,17 +99,38 @@
       ],
       "description": "Specify the navigation menu for this page"
     },
-    "BottomNavBar": {
-      "$ref": "#/definitions/MenuBase",
-      "description": "Use the bottom navigation bar"
-    },
     "MenuBase": {
       "type": "object",
       "properties": {
         "items": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/itemType"
+            "type": "object",
+            "properties": {
+              "icon": {
+                "type": "string",
+                "description": "Icon name from Material Icons or Font Awesome"
+              },
+              "iconLibrary": {
+                "$ref": "#/definitions/iconLibrary"
+              },
+              "label": {
+                "type": "string"
+              },
+              "page": {
+                "type": "string",
+                "description": "The new page to navigate to on click"
+              },
+              "selected": {
+                "type": "boolean",
+                "description": "Mark this item as selected. There should only be one selected item per page."
+              }
+            },
+            "required": [
+              "icon",
+              "label",
+              "page"
+            ]
           },
           "description": "List of menu items (minimum 2)"
         },
@@ -93,34 +140,6 @@
       },
       "required": [
         "items"
-      ]
-    },
-    "itemType": {
-      "type": "object",
-      "properties": {
-        "icon": {
-          "type": "string",
-          "description": "Icon name from Material Icons or Font Awesome"
-        },
-        "iconLibrary": {
-          "$ref": "#/definitions/iconLibrary"
-        },
-        "label": {
-          "type": "string"
-        },
-        "page": {
-          "type": "string",
-          "description": "The new page to navigate to on click"
-        },
-        "selected": {
-          "type": "boolean",
-          "description": "Mark this item as selected. There should only be one selected item per page."
-        }
-      },
-      "required": [
-        "icon",
-        "label",
-        "page"
       ]
     },
     "iconLibrary": {
@@ -140,29 +159,19 @@
           "type": "number"
         },
         {
-          "$ref": "#/definitions/generalColors"
+          "type": "string",
+          "enum": [
+            "black",
+            "red",
+            "green"
+          ]
         },
         {
-          "$ref": "#/definitions/colorPattern"
+          "type": "string",
+          "pattern": "^0x"
         }
       ],
       "default": "black"
-    },
-    "generalColors": {
-      "type": "string",
-      "enum": [
-        "black",
-        "red",
-        "green"
-      ]
-    },
-    "colorPattern": {
-      "type": "string",
-      "pattern": "^0x"
-    },
-    "Drawer": {
-      "$ref": "#/definitions/MenuWithHeaderAndFooter",
-      "description": "Put the menu behind a drawer icon on the header. The drawer icon will be positioned to the 'start' of the header (left for most languages, right for RTL languages)."
     },
     "MenuWithHeaderAndFooter": {
       "type": "object",
@@ -177,7 +186,32 @@
         "items": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/itemType"
+            "type": "object",
+            "properties": {
+              "icon": {
+                "type": "string",
+                "description": "Icon name from Material Icons or Font Awesome"
+              },
+              "iconLibrary": {
+                "$ref": "#/definitions/iconLibrary"
+              },
+              "label": {
+                "type": "string"
+              },
+              "page": {
+                "type": "string",
+                "description": "The new page to navigate to on click"
+              },
+              "selected": {
+                "type": "boolean",
+                "description": "Mark this item as selected. There should only be one selected item per page."
+              }
+            },
+            "required": [
+              "icon",
+              "label",
+              "page"
+            ]
           },
           "description": "List of menu items (minimum 2)"
         },
@@ -198,14 +232,6 @@
         }
       }
     },
-    "EndDrawer": {
-      "$ref": "#/definitions/MenuWithHeaderAndFooter",
-      "description": "Put the menu behind a drawer icon on the header. The drawer icon will be positioned to the 'end' of the header (right for most languages, left for RTL languages)."
-    },
-    "Sidebar": {
-      "$ref": "#/definitions/MenuWithAdditionalStyles",
-      "description": "Enable a fixed navigation menu to the 'start' of the screen (left for most languages, right for RTL languages). The menu may become a drawer menu on lower resolution."
-    },
     "MenuWithAdditionalStyles": {
       "type": "object",
       "properties": {
@@ -222,7 +248,32 @@
         "items": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/itemType"
+            "type": "object",
+            "properties": {
+              "icon": {
+                "type": "string",
+                "description": "Icon name from Material Icons or Font Awesome"
+              },
+              "iconLibrary": {
+                "$ref": "#/definitions/iconLibrary"
+              },
+              "label": {
+                "type": "string"
+              },
+              "page": {
+                "type": "string",
+                "description": "The new page to navigate to on click"
+              },
+              "selected": {
+                "type": "boolean",
+                "description": "Mark this item as selected. There should only be one selected item per page."
+              }
+            },
+            "required": [
+              "icon",
+              "label",
+              "page"
+            ]
           },
           "description": "List of menu items (minimum 2)"
         }
@@ -231,32 +282,7 @@
         "items"
       ]
     },
-    "borderProperties": {
-      "type": "object",
-      "properties": {
-        "borderColor": {
-          "$ref": "#/definitions/Colors",
-          "description": "Border color, starting with '0xFF' for full opacity"
-        },
-        "borderWidth": {
-          "type": "number",
-          "description": "The thickness of the border",
-          "minimum": 0
-        }
-      }
-    },
-    "itemDisplayEnum": {
-      "type": "string",
-      "enum": [
-        "stacked",
-        "sideBySide"
-      ]
-    },
-    "EndSidebar": {
-      "$ref": "#/definitions/MenuWithAdditionalStyles",
-      "description": "Enable a fixed navigation menu to the 'end' of the screen (right for most languages, left for RTL languages). The menu may become a drawer menu on lower resolution."
-    },
-    "RootWidgets": {
+    "View": {
       "type": "object",
       "properties": {
         "Column": {
@@ -276,6 +302,166 @@
         },
         "Carousel": {
           "$ref": "#/definitions/Carousel"
+        },
+        "header": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/definitions/Widgets"
+                }
+              ],
+              "description": "A simple text or a custom widget for the App's title"
+            },
+            "flexibleBackground": {
+              "$ref": "#/definitions/Widgets",
+              "description": "This widget (typically used as an background image) acts as the header's background, with the title bar and the bottom widget overlaid on top. On non-scrollable screen, its dimensions is dictated by the header's width and height."
+            },
+            "styles": {
+              "type": "object",
+              "properties": {
+                "backgroundColor": {
+                  "$ref": "#/definitions/Colors",
+                  "description": "By default the background color uses the theme's 'primary' color. You can override the header's background color here."
+                },
+                "color": {
+                  "$ref": "#/definitions/Colors",
+                  "description": "By default the navigation icon, title, and action icons uses the theme's 'onPrimary' color. You can override their colors here."
+                },
+                "elevation": {
+                  "type": "number",
+                  "description": "Raise the header on its z-coordinates relative to the body. This effectively creates a drop shadow on the header's bottom edge.",
+                  "minimum": 0
+                },
+                "shadowColor": {
+                  "$ref": "#/definitions/Colors",
+                  "description": "If elevation is non-zero, this will override the drop shadow color of the header's bottom edge."
+                },
+                "centerTitle": {
+                  "type": "boolean",
+                  "description": "Whether to align the title in the title bar's center horizontally (default: true)"
+                },
+                "titleBarHeight": {
+                  "type": "number",
+                  "description": "For consistency, the header's title bar has the default fixed height of 56 regardless of its content. You may adjust its height here.",
+                  "minimum": 0
+                },
+                "flexibleMinHeight": {
+                  "type": "number",
+                  "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's min height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). Note that this attribute will be ignored if smaller than the titleBarHeight"
+                },
+                "flexibleMaxHeight": {
+                  "type": "number",
+                  "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's max height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). This attribute will be ignored if smaller than the flexibleMinHeight"
+                }
+              }
+            }
+          },
+          "description": "Configure the application header"
+        },
+        "onLoad": {
+          "$ref": "#/definitions/Action",
+          "description": "Execute an Action when the screen loads"
+        },
+        "options": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "$ref": "#/definitions/screenType",
+              "description": "Specify if this is a regular (default) or modal screen"
+            }
+          }
+        },
+        "style": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "useSafeArea": {
+                  "type": "boolean",
+                  "description": "Applicable only when we don't have a header. If true, insert paddings around the body content to account for the the devices' Safe Area (e.g. iPhone notch). Default is false."
+                },
+                "scrollableView": {
+                  "type": "boolean",
+                  "description": "Specify if the content of this screen is scrollable with a global scrollbar. Using this also allow you to customize the scrolling experience of the header."
+                },
+                "showNavigationIcon": {
+                  "type": "boolean",
+                  "description": "For a screen with header, the App will automatically show the Menu, Back, or Close icon (for modal screen) before the title. On modal screen without the header, the Close icon will be shown. Set this flag to false if you wish to hide the icons and handle the navigation yourself."
+                },
+                "navigationIconPosition": {
+                  "$ref": "#/definitions/navIconPosition",
+                  "description": "On modal screen without a header, you can position the close button at the start or end of the screen. For left-to-right languages like English, start is on the left and end is on the right. This property has no effect on a screen with header."
+                },
+                "backgroundGradient": {
+                  "type": "object",
+                  "properties": {
+                    "source": {
+                      "type": "string",
+                      "description": "The Image URL to fill the background"
+                    },
+                    "fit": {
+                      "$ref": "#/definitions/fitEnum",
+                      "description": "How to fit the image within our width/height or our parent (if dimension is not specified)"
+                    },
+                    "alignment": {
+                      "$ref": "#/definitions/alignmentEnum"
+                    }
+                  }
+                }
+              },
+              "required": [
+                "backgroundGradient"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "useSafeArea": {
+                  "type": "boolean",
+                  "description": "Applicable only when we don't have a header. If true, insert paddings around the body content to account for the the devices' Safe Area (e.g. iPhone notch). Default is false."
+                },
+                "scrollableView": {
+                  "type": "boolean",
+                  "description": "Specify if the content of this screen is scrollable with a global scrollbar. Using this also allow you to customize the scrolling experience of the header."
+                },
+                "showNavigationIcon": {
+                  "type": "boolean",
+                  "description": "For a screen with header, the App will automatically show the Menu, Back, or Close icon (for modal screen) before the title. On modal screen without the header, the Close icon will be shown. Set this flag to false if you wish to hide the icons and handle the navigation yourself."
+                },
+                "navigationIconPosition": {
+                  "$ref": "#/definitions/navIconPosition",
+                  "description": "On modal screen without a header, you can position the close button at the start or end of the screen. For left-to-right languages like English, start is on the left and end is on the right. This property has no effect on a screen with header."
+                },
+                "backgroundGradient": {
+                  "type": "object",
+                  "properties": {
+                    "source": {
+                      "type": "string",
+                      "description": "The Image URL to fill the background"
+                    },
+                    "fit": {
+                      "$ref": "#/definitions/fitEnum",
+                      "description": "How to fit the image within our width/height or our parent (if dimension is not specified)"
+                    },
+                    "alignment": {
+                      "$ref": "#/definitions/alignmentEnum"
+                    }
+                  }
+                }
+              },
+              "required": [
+                "backgroundGradient"
+              ]
+            }
+          ]
         }
       }
     },
@@ -283,15 +469,34 @@
       "type": "object",
       "properties": {
         "mainAxis": {
-          "$ref": "#/definitions/mainAxisEnum",
+          "type": "string",
+          "enum": [
+            "start",
+            "center",
+            "end",
+            "spaceBetween",
+            "spaceAround",
+            "spaceEvenly"
+          ],
           "description": "Control our children's layout vertically"
         },
         "crossAxis": {
-          "$ref": "#/definitions/crossAxisEnum",
+          "type": "string",
+          "enum": [
+            "start",
+            "center",
+            "end",
+            "stretch",
+            "baseline"
+          ],
           "description": "Control the horizontal alignment of the children"
         },
         "mainAxisSize": {
-          "$ref": "#/definitions/mainAxisSizeEnum",
+          "type": "string",
+          "enum": [
+            "min",
+            "max"
+          ],
           "description": "Stretch to the max vertically or only fit the vertical space"
         },
         "scrollable": {
@@ -332,7 +537,11 @@
           "minimum": 0
         },
         "shadowStyle": {
-          "$ref": "#/definitions/shadowEnum",
+          "type": "string",
+          "enum": [
+            "normal",
+            "solid"
+          ],
           "description": "The blur style to apply on the shadow"
         },
         "borderRadius": {
@@ -420,21 +629,81 @@
         }
       }
     },
-    "Container": {
+    "alignmentEnum": {
+      "type": "string",
+      "enum": [
+        "topLeft",
+        "topCenter",
+        "topRight",
+        "centerLeft",
+        "center",
+        "centerRight",
+        "bottomLeft",
+        "bottomCenter",
+        "bottomRight"
+      ]
+    },
+    "backgroundImage": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "ID to be referenced later"
-        },
-        "children": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Widgets"
-          },
-          "minItems": 1
+        "backgroundGradient": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string",
+              "description": "The Image URL to fill the background"
+            },
+            "fit": {
+              "$ref": "#/definitions/fitEnum",
+              "description": "How to fit the image within our width/height or our parent (if dimension is not specified)"
+            },
+            "alignment": {
+              "$ref": "#/definitions/alignmentEnum"
+            }
+          }
         }
-      }
+      },
+      "required": [
+        "backgroundGradient"
+      ]
+    },
+    "fitEnum": {
+      "type": "string",
+      "enum": [
+        "fill",
+        "contain",
+        "cover",
+        "fitWidth",
+        "fitHeight",
+        "none",
+        "scaleDown"
+      ]
+    },
+    "ItemTemplate": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "template": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Widgets"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "required": [
+        "data",
+        "name",
+        "template"
+      ]
     },
     "Widgets": {
       "type": "object",
@@ -538,28 +807,123 @@
         }
       }
     },
-    "Row": {
+    "Flow": {
+      "type": "object",
+      "properties": {
+        "item-template": {
+          "$ref": "#/definitions/ItemTemplate"
+        },
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Widgets"
+          },
+          "minItems": 1
+        },
+        "direction": {
+          "$ref": "#/definitions/directionEnum",
+          "description": "The main direction to lay out the children before wrapping"
+        },
+        "styles": {
+          "$ref": "#/definitions/styleFlow"
+        }
+      }
+    },
+    "directionEnum": {
+      "type": "string",
+      "enum": [
+        "vertical",
+        "horizontal"
+      ]
+    },
+    "styleFlow": {
       "type": "object",
       "properties": {
         "mainAxis": {
-          "$ref": "#/definitions/mainAxisEnum",
-          "description": "Control our children's layout horizontally"
+          "type": "string",
+          "enum": [
+            "start",
+            "center",
+            "end",
+            "spaceBetween",
+            "spaceAround",
+            "spaceEvenly"
+          ],
+          "description": "Control our children's layout vertically"
+        },
+        "gap": {
+          "type": "number",
+          "description": "The gap between the children in the main direction",
+          "minimum": 0
+        },
+        "lineGap": {
+          "type": "number",
+          "description": "The gap between the lines if the children start wrapping",
+          "minimum": 0
+        },
+        "maxWidth": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maxHeight": {
+          "type": "number",
+          "minimum": 0
+        },
+        "expanded": {
+          "type": "boolean",
+          "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+        }
+      }
+    },
+    "Flex": {
+      "type": "object",
+      "properties": {
+        "direction": {
+          "$ref": "#/definitions/directionEnum",
+          "description": "Lay out the children vertically or horizontally"
+        },
+        "mainAxis": {
+          "type": "string",
+          "enum": [
+            "start",
+            "center",
+            "end",
+            "spaceBetween",
+            "spaceAround",
+            "spaceEvenly"
+          ],
+          "description": "Control how to lay out the children, in the direction specified by the 'direction' attribute"
         },
         "crossAxis": {
-          "$ref": "#/definitions/crossAxisEnum",
-          "description": "Control the vertical alignment of the children"
+          "type": "string",
+          "enum": [
+            "start",
+            "center",
+            "end",
+            "stretch",
+            "baseline"
+          ],
+          "description": "Control the alignment of the children on the secondary axis (depending on the 'direction' attribute)"
         },
         "mainAxisSize": {
-          "$ref": "#/definitions/mainAxisSizeEnum",
-          "description": "Stretch to the max horizontally or only fit the horizontal space"
+          "type": "string",
+          "enum": [
+            "min",
+            "max"
+          ],
+          "description": "stretch to the max or only fit the available space of the main axis (depending on the 'direction' attribute)"
         },
         "scrollable": {
           "type": "boolean",
-          "description": "Set to true so content can scroll horizontally as needed"
+          "description": "Set to true so content can scroll vertically or horizontally as needed"
         },
         "autoFit": {
           "type": "boolean",
-          "description": "Explicitly make the row's height as tall as the largest child, but only if the row's parent does not already assign us a height. This attribute is useful for sizing children who don't have a width (e.g vertical Divider)"
+          "description": "Explicitly match the width or height to the largest child's size, but only if the parent does not already assign a width or height. This attribute is useful for sizing children who don't have a width or height (e.g Divider)"
         },
         "gap": {
           "type": "number",
@@ -591,7 +955,11 @@
           "minimum": 0
         },
         "shadowStyle": {
-          "$ref": "#/definitions/shadowEnum",
+          "type": "string",
+          "enum": [
+            "normal",
+            "solid"
+          ],
           "description": "The blur style to apply on the shadow"
         },
         "borderRadius": {
@@ -679,1024 +1047,84 @@
         }
       }
     },
-    "TemplatedWidget": {
+    "Stack": {
       "type": "object",
       "properties": {
-        "item-template": {
-          "$ref": "#/definitions/ItemTemplate"
-        }
-      }
-    },
-    "ItemTemplate": {
-      "type": "object",
-      "properties": {
-        "data": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "template": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Widgets"
-            },
-            {
-              "type": "string"
-            }
-          ]
-        }
-      },
-      "required": [
-        "data",
-        "name",
-        "template"
-      ]
-    },
-    "stylesRow": {
-      "type": "object",
-      "properties": {
-        "mainAxis": {
-          "$ref": "#/definitions/mainAxisEnum",
-          "description": "Control our children's layout horizontally"
-        },
-        "crossAxis": {
-          "$ref": "#/definitions/crossAxisEnum",
-          "description": "Control the vertical alignment of the children"
-        },
-        "mainAxisSize": {
-          "$ref": "#/definitions/mainAxisSizeEnum",
-          "description": "Stretch to the max horizontally or only fit the horizontal space"
-        },
-        "scrollable": {
-          "type": "boolean",
-          "description": "Set to true so content can scroll horizontally as needed"
-        },
-        "autoFit": {
-          "type": "boolean",
-          "description": "Explicitly make the row's height as tall as the largest child, but only if the row's parent does not already assign us a height. This attribute is useful for sizing children who don't have a width (e.g vertical Divider)"
-        },
-        "gap": {
-          "type": "number",
-          "minimum": 0
-        },
-        "fontFamily": {
+        "id": {
           "type": "string",
-          "description": "Set the font family applicable for all widgets inside this container"
+          "description": "ID to be referenced later"
         },
-        "fontSize": {
-          "type": "number",
-          "minimum": 0
-        },
-        "shadowColor": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Box shadow color starting with '0xFF' for full opacity"
-        },
-        "shadowOffset": {
+        "children": {
           "type": "array",
           "items": {
-            "type": "number"
-          }
+            "$ref": "#/definitions/Widgets"
+          },
+          "minItems": 1
         },
-        "shadowRadius": {
-          "type": "number",
-          "minimum": 0
-        },
-        "shadowStyle": {
-          "$ref": "#/definitions/shadowEnum",
-          "description": "The blur style to apply on the shadow"
-        },
-        "borderRadius": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Border Radius with CSS-like notation (1 to 4 integers)",
-          "minimum": 0
-        },
-        "borderColor": {
-          "$ref": "#/definitions/Colors",
-          "description": "Border color, starting with '0xFF' for full opacity"
-        },
-        "borderWidth": {
-          "type": "number",
-          "description": "The thickness of the border",
-          "minimum": 0
-        },
-        "backgroundGradient": {
+        "styles": {
           "type": "object",
           "properties": {
-            "colors": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Colors"
-              },
-              "description": "The list of colors used for the gradient"
-            },
-            "start": {
-              "$ref": "#/definitions/alignmentEnum",
-              "description": "The starting position of the gradient"
-            },
-            "end": {
-              "$ref": "#/definitions/alignmentEnum",
-              "description": "The ending position of the gradient"
-            }
-          }
-        },
-        "backgroundColor": {
-          "$ref": "#/definitions/Colors"
-        },
-        "backgroundImage": {
-          "$ref": "#/definitions/backgroundImage"
-        },
-        "padding": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Padding with CSS-style value e.g. padding: 5 20 5"
-        },
-        "margin": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
-        },
-        "width": {
-          "type": "number",
-          "minimum": 0
-        },
-        "height": {
-          "type": "number",
-          "minimum": 0
-        },
-        "expanded": {
-          "type": "boolean",
-          "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
-        }
-      }
-    },
-    "BaseStyles": {
-      "type": "object",
-      "properties": {
-        "expanded": {
-          "type": "boolean",
-          "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
-        }
-      }
-    },
-    "boxLayoutStyles": {
-      "type": "object",
-      "properties": {
-        "gap": {
-          "type": "number",
-          "minimum": 0
-        },
-        "fontFamily": {
-          "type": "string",
-          "description": "Set the font family applicable for all widgets inside this container"
-        },
-        "fontSize": {
-          "type": "number",
-          "minimum": 0
-        },
-        "shadowColor": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Box shadow color starting with '0xFF' for full opacity"
-        },
-        "shadowOffset": {
-          "type": "array",
-          "items": {
-            "type": "number"
-          }
-        },
-        "shadowRadius": {
-          "type": "number",
-          "minimum": 0
-        },
-        "shadowStyle": {
-          "$ref": "#/definitions/shadowEnum",
-          "description": "The blur style to apply on the shadow"
-        },
-        "borderRadius": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Border Radius with CSS-like notation (1 to 4 integers)",
-          "minimum": 0
-        },
-        "borderColor": {
-          "$ref": "#/definitions/Colors",
-          "description": "Border color, starting with '0xFF' for full opacity"
-        },
-        "borderWidth": {
-          "type": "number",
-          "description": "The thickness of the border",
-          "minimum": 0
-        },
-        "backgroundGradient": {
-          "type": "object",
-          "properties": {
-            "colors": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Colors"
-              },
-              "description": "The list of colors used for the gradient"
-            },
-            "start": {
-              "$ref": "#/definitions/alignmentEnum",
-              "description": "The starting position of the gradient"
-            },
-            "end": {
-              "$ref": "#/definitions/alignmentEnum",
-              "description": "The ending position of the gradient"
-            }
-          }
-        },
-        "backgroundColor": {
-          "$ref": "#/definitions/Colors"
-        },
-        "backgroundImage": {
-          "$ref": "#/definitions/backgroundImage"
-        },
-        "padding": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Padding with CSS-style value e.g. padding: 5 20 5"
-        },
-        "margin": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
-        },
-        "width": {
-          "type": "number",
-          "minimum": 0
-        },
-        "height": {
-          "type": "number",
-          "minimum": 0
-        }
-      }
-    },
-    "BoxStyles": {
-      "type": "object",
-      "properties": {
-        "shadowColor": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Box shadow color starting with '0xFF' for full opacity"
-        },
-        "shadowOffset": {
-          "type": "array",
-          "items": {
-            "type": "number"
-          }
-        },
-        "shadowRadius": {
-          "type": "number",
-          "minimum": 0
-        },
-        "shadowStyle": {
-          "$ref": "#/definitions/shadowEnum",
-          "description": "The blur style to apply on the shadow"
-        },
-        "borderRadius": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Border Radius with CSS-like notation (1 to 4 integers)",
-          "minimum": 0
-        },
-        "borderColor": {
-          "$ref": "#/definitions/Colors",
-          "description": "Border color, starting with '0xFF' for full opacity"
-        },
-        "borderWidth": {
-          "type": "number",
-          "description": "The thickness of the border",
-          "minimum": 0
-        },
-        "backgroundGradient": {
-          "type": "object",
-          "properties": {
-            "colors": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Colors"
-              },
-              "description": "The list of colors used for the gradient"
-            },
-            "start": {
-              "$ref": "#/definitions/alignmentEnum",
-              "description": "The starting position of the gradient"
-            },
-            "end": {
-              "$ref": "#/definitions/alignmentEnum",
-              "description": "The ending position of the gradient"
-            }
-          }
-        },
-        "backgroundColor": {
-          "$ref": "#/definitions/Colors"
-        },
-        "backgroundImage": {
-          "$ref": "#/definitions/backgroundImage"
-        },
-        "padding": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Padding with CSS-style value e.g. padding: 5 20 5"
-        },
-        "margin": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
-        },
-        "width": {
-          "type": "number",
-          "minimum": 0
-        },
-        "height": {
-          "type": "number",
-          "minimum": 0
-        }
-      }
-    },
-    "HasDimension": {
-      "type": "object",
-      "properties": {
-        "width": {
-          "type": "number",
-          "minimum": 0
-        },
-        "height": {
-          "type": "number",
-          "minimum": 0
-        }
-      }
-    },
-    "WithoutDimension": {
-      "type": "object",
-      "properties": {
-        "shadowColor": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Box shadow color starting with '0xFF' for full opacity"
-        },
-        "shadowOffset": {
-          "type": "array",
-          "items": {
-            "type": "number"
-          }
-        },
-        "shadowRadius": {
-          "type": "number",
-          "minimum": 0
-        },
-        "shadowStyle": {
-          "$ref": "#/definitions/shadowEnum",
-          "description": "The blur style to apply on the shadow"
-        },
-        "borderRadius": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Border Radius with CSS-like notation (1 to 4 integers)",
-          "minimum": 0
-        },
-        "borderColor": {
-          "$ref": "#/definitions/Colors",
-          "description": "Border color, starting with '0xFF' for full opacity"
-        },
-        "borderWidth": {
-          "type": "number",
-          "description": "The thickness of the border",
-          "minimum": 0
-        },
-        "backgroundGradient": {
-          "type": "object",
-          "properties": {
-            "colors": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Colors"
-              },
-              "description": "The list of colors used for the gradient"
-            },
-            "start": {
-              "$ref": "#/definitions/alignmentEnum",
-              "description": "The starting position of the gradient"
-            },
-            "end": {
-              "$ref": "#/definitions/alignmentEnum",
-              "description": "The ending position of the gradient"
-            }
-          }
-        },
-        "backgroundColor": {
-          "$ref": "#/definitions/Colors"
-        },
-        "backgroundImage": {
-          "$ref": "#/definitions/backgroundImage"
-        },
-        "padding": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Padding with CSS-style value e.g. padding: 5 20 5"
-        },
-        "margin": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
-        }
-      }
-    },
-    "styleMargin": {
-      "type": "object",
-      "properties": {
-        "margin": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
-        }
-      }
-    },
-    "stylePadding": {
-      "type": "object",
-      "properties": {
-        "padding": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Padding with CSS-style value e.g. padding: 5 20 5"
-        }
-      }
-    },
-    "HasBackground": {
-      "type": "object",
-      "properties": {
-        "backgroundGradient": {
-          "type": "object",
-          "properties": {
-            "colors": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Colors"
-              },
-              "description": "The list of colors used for the gradient"
-            },
-            "start": {
-              "$ref": "#/definitions/alignmentEnum",
-              "description": "The starting position of the gradient"
-            },
-            "end": {
-              "$ref": "#/definitions/alignmentEnum",
-              "description": "The ending position of the gradient"
-            }
-          }
-        },
-        "backgroundColor": {
-          "$ref": "#/definitions/Colors"
-        },
-        "backgroundImage": {
-          "$ref": "#/definitions/backgroundImage"
-        }
-      }
-    },
-    "backgroundGradient": {
-      "type": "object",
-      "properties": {
-        "backgroundGradient": {
-          "type": "object",
-          "properties": {
-            "colors": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Colors"
-              },
-              "description": "The list of colors used for the gradient"
-            },
-            "start": {
-              "$ref": "#/definitions/alignmentEnum",
-              "description": "The starting position of the gradient"
-            },
-            "end": {
-              "$ref": "#/definitions/alignmentEnum",
-              "description": "The ending position of the gradient"
-            }
-          }
-        }
-      }
-    },
-    "alignmentEnum": {
-      "type": "string",
-      "enum": [
-        "topLeft",
-        "topCenter",
-        "topRight",
-        "centerLeft",
-        "center",
-        "centerRight",
-        "bottomLeft",
-        "bottomCenter",
-        "bottomRight"
-      ]
-    },
-    "backgroundImage": {
-      "type": "object",
-      "properties": {
-        "backgroundGradient": {
-          "type": "object",
-          "properties": {
-            "source": {
-              "type": "string",
-              "description": "The Image URL to fill the background"
-            },
-            "fit": {
-              "$ref": "#/definitions/fitEnum",
-              "description": "How to fit the image within our width/height or our parent (if dimension is not specified)"
-            },
             "alignment": {
               "$ref": "#/definitions/alignmentEnum"
             }
           }
         }
-      },
-      "required": [
-        "backgroundGradient"
-      ]
-    },
-    "fitEnum": {
-      "type": "string",
-      "enum": [
-        "fill",
-        "contain",
-        "cover",
-        "fitWidth",
-        "fitHeight",
-        "none",
-        "scaleDown"
-      ]
-    },
-    "styleBorder": {
-      "type": "object",
-      "properties": {
-        "borderRadius": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Border Radius with CSS-like notation (1 to 4 integers)",
-          "minimum": 0
-        },
-        "borderColor": {
-          "$ref": "#/definitions/Colors",
-          "description": "Border color, starting with '0xFF' for full opacity"
-        },
-        "borderWidth": {
-          "type": "number",
-          "description": "The thickness of the border",
-          "minimum": 0
-        }
       }
     },
-    "borderRadius": {
+    "ListView": {
       "type": "object",
       "properties": {
-        "borderRadius": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Border Radius with CSS-like notation (1 to 4 integers)",
-          "minimum": 0
-        }
-      }
-    },
-    "styleShadow": {
-      "type": "object",
-      "properties": {
-        "shadowColor": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Box shadow color starting with '0xFF' for full opacity"
+        "item-template": {
+          "$ref": "#/definitions/ItemTemplate"
         },
-        "shadowOffset": {
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "children": {
           "type": "array",
           "items": {
-            "type": "number"
-          }
+            "$ref": "#/definitions/Widgets"
+          },
+          "minItems": 1
         },
-        "shadowRadius": {
-          "type": "number",
-          "minimum": 0
-        },
-        "shadowStyle": {
-          "$ref": "#/definitions/shadowEnum",
-          "description": "The blur style to apply on the shadow"
-        }
-      }
-    },
-    "shadowEnum": {
-      "type": "string",
-      "enum": [
-        "normal",
-        "solid"
-      ]
-    },
-    "mainAxisEnum": {
-      "type": "string",
-      "enum": [
-        "start",
-        "center",
-        "end",
-        "spaceBetween",
-        "spaceAround",
-        "spaceEvenly"
-      ]
-    },
-    "crossAxisEnum": {
-      "type": "string",
-      "enum": [
-        "start",
-        "center",
-        "end",
-        "stretch",
-        "baseline"
-      ]
-    },
-    "mainAxisSizeEnum": {
-      "type": "string",
-      "enum": [
-        "min",
-        "max"
-      ]
-    },
-    "Text": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "ID to be referenced later"
-        },
-        "text": {
-          "type": "string",
-          "default": "add your text"
-        },
-        "styles": {
-          "$ref": "#/definitions/TextStyles"
-        }
-      }
-    },
-    "TextStyles": {
-      "type": "object",
-      "properties": {
-        "font": {
-          "$ref": "#/definitions/fontName",
-          "description": "Default built-in style for this text"
-        },
-        "fontSize": {
-          "type": "number",
-          "minimum": 6
-        },
-        "fontWeight": {
-          "$ref": "#/definitions/fontWeight"
-        },
-        "color": {
-          "$ref": "#/definitions/Colors"
-        },
-        "overflow": {
-          "$ref": "#/definitions/overflow",
-          "description": "Set treatment of text longer than available space"
-        },
-        "textAlign": {
-          "$ref": "#/definitions/textAlign"
-        },
-        "textStyle": {
-          "$ref": "#/definitions/textStyle"
-        },
-        "lineHeight": {
-          "$ref": "#/definitions/lineHeight"
-        },
-        "expanded": {
-          "type": "boolean",
-          "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
-        },
-        "shadowColor": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Box shadow color starting with '0xFF' for full opacity"
-        },
-        "shadowOffset": {
-          "type": "array",
-          "items": {
-            "type": "number"
-          }
-        },
-        "shadowRadius": {
-          "type": "number",
-          "minimum": 0
-        },
-        "shadowStyle": {
-          "$ref": "#/definitions/shadowEnum",
-          "description": "The blur style to apply on the shadow"
-        },
-        "borderRadius": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Border Radius with CSS-like notation (1 to 4 integers)",
-          "minimum": 0
-        },
-        "borderColor": {
-          "$ref": "#/definitions/Colors",
-          "description": "Border color, starting with '0xFF' for full opacity"
-        },
-        "borderWidth": {
-          "type": "number",
-          "description": "The thickness of the border",
-          "minimum": 0
-        },
-        "backgroundGradient": {
-          "type": "object",
-          "properties": {
-            "colors": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Colors"
-              },
-              "description": "The list of colors used for the gradient"
-            },
-            "start": {
-              "$ref": "#/definitions/alignmentEnum",
-              "description": "The starting position of the gradient"
-            },
-            "end": {
-              "$ref": "#/definitions/alignmentEnum",
-              "description": "The ending position of the gradient"
-            }
-          }
-        },
-        "backgroundColor": {
-          "$ref": "#/definitions/Colors"
-        },
-        "backgroundImage": {
-          "$ref": "#/definitions/backgroundImage"
-        },
-        "padding": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Padding with CSS-style value e.g. padding: 5 20 5"
-        },
-        "margin": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
-        },
-        "width": {
-          "type": "number",
-          "minimum": 0
-        },
-        "height": {
-          "type": "number",
-          "minimum": 0
-        }
-      }
-    },
-    "Partial<TextStyles>": {
-      "type": "object",
-      "properties": {
-        "font": {
-          "$ref": "#/definitions/fontName",
-          "description": "Default built-in style for this text"
-        },
-        "fontSize": {
-          "type": "number",
-          "minimum": 6
-        },
-        "fontWeight": {
-          "$ref": "#/definitions/fontWeight"
-        },
-        "color": {
-          "$ref": "#/definitions/Colors"
-        },
-        "overflow": {
-          "$ref": "#/definitions/overflow",
-          "description": "Set treatment of text longer than available space"
-        },
-        "textAlign": {
-          "$ref": "#/definitions/textAlign"
-        },
-        "textStyle": {
-          "$ref": "#/definitions/textStyle"
-        },
-        "lineHeight": {
-          "$ref": "#/definitions/lineHeight"
-        }
-      }
-    },
-    "fontName": {
-      "type": "string",
-      "enum": [
-        "heading",
-        "title",
-        "subtitle"
-      ]
-    },
-    "fontWeight": {
-      "type": "string",
-      "enum": [
-        "light",
-        "normal",
-        "bold",
-        "w100",
-        "w200",
-        "w300",
-        "w400",
-        "w500",
-        "w600",
-        "w700",
-        "w800",
-        "w900"
-      ]
-    },
-    "overflow": {
-      "type": "string",
-      "enum": [
-        "wrap",
-        "visible",
-        "clip",
-        "ellipsis"
-      ]
-    },
-    "textAlign": {
-      "type": "string",
-      "enum": [
-        "start",
-        "end",
-        "center",
-        "justify"
-      ]
-    },
-    "textStyle": {
-      "type": "string",
-      "enum": [
-        "normal",
-        "italic",
-        "underline",
-        "strikethrough",
-        "italic_underline",
-        "italic_strikethrough"
-      ]
-    },
-    "lineHeight": {
-      "type": "string",
-      "enum": [
-        "default",
-        "1.0",
-        "1.15",
-        "1.25",
-        "1.5",
-        "2.0",
-        "2.5"
-      ]
-    },
-    "Markdown": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "ID to be referenced later"
-        },
-        "text": {
-          "type": "string",
-          "description": "Your text in markdown format"
-        },
-        "styles": {
-          "$ref": "#/definitions/MarkdownStyles"
-        }
-      }
-    },
-    "MarkdownStyles": {
-      "type": "object",
-      "properties": {
-        "expanded": {
-          "type": "boolean",
-          "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
-        },
-        "textStyle": {
-          "$ref": "#/definitions/styleText",
-          "description": "Styling for regular text. Default to theme's bodyMedium styling"
-        },
-        "linkStyle": {
-          "$ref": "#/definitions/styleText",
-          "description": "Styling for URL"
-        }
-      }
-    },
-    "styleText": {
-      "type": "object",
-      "properties": {
-        "fontSize": {
-          "$ref": "#/definitions/integer"
-        },
-        "color": {
-          "$ref": "#/definitions/Colors"
-        },
-        "decoration": {
-          "$ref": "#/definitions/decoration"
-        }
-      }
-    },
-    "integer": {
-      "type": "number"
-    },
-    "decoration": {
-      "type": "string",
-      "enum": [
-        "none",
-        "lineThrough",
-        "underline",
-        "overline"
-      ]
-    },
-    "Image": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "ID to be referenced later"
-        },
-        "source": {
-          "type": "string",
-          "description": "URL to or asset name of the image. If the URL is used, it is highly recommended that the dimensions is set (either with width/height or other means) to prevent the UI jerkiness while loading"
-        },
-        "onTap": {
+        "onItemTap": {
           "$ref": "#/definitions/Action",
-          "description": "Call Ensemble's built-in functions or execute code"
+          "description": "Dispatch when an ListView item is selected/tapped.The event dispatches only when you tap on the item. The index of the item can be retrieved using 'selectedItemIndex'."
+        },
+        "selectedItemIndex": {
+          "type": "number",
+          "description": "Selecting a ListView item gives the index of selected item"
         },
         "styles": {
           "type": "object",
           "properties": {
-            "placeholderColor": {
+            "separatorColor": {
               "$ref": "#/definitions/Colors",
-              "description": "The placeholder color while the image is loading."
+              "description": "Set the color for the separator between items"
             },
-            "fit": {
-              "$ref": "#/definitions/fitEnum",
-              "description": "How to fit the image within our width/height or our parent (if dimension is not specified)"
-            },
-            "resizedWidth": {
+            "separatorWidth": {
               "type": "number",
-              "description": "Images will be automatically resized (default to 800 width with no height set) before rendering. If you know the rough image width, set this number to be the same or a slightly larger width to optimize the loading time. To maintain the original aspect ratio, set either resizedWidth or resizedHeight, but not both. This setting is not supported on Web.",
-              "minimum": 0,
-              "maximum": 2000
+              "description": "The thickness of the separator between items"
             },
-            "resizedHeight": {
+            "separatorPadding": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Padding with CSS-style value e.g. padding: 5 20 5 Default 0 0 0"
+            },
+            "gap": {
               "type": "number",
-              "description": "Images will be automatically resized (default to 800 width with no height set) before rendering. If you know the rough image height, set this number to be the same or a slightly larger height to optimize the loading time. To maintain the original aspect ratio, set either resizedWidth or resizedHeight, but not both. This setting is not supported on Web.",
-              "minimum": 0,
-              "maximum": 2000
+              "minimum": 0
+            },
+            "fontFamily": {
+              "type": "string",
+              "description": "Set the font family applicable for all widgets inside this container"
+            },
+            "fontSize": {
+              "type": "number",
+              "minimum": 0
             },
             "shadowColor": {
               "type": [
@@ -1716,7 +1144,11 @@
               "minimum": 0
             },
             "shadowStyle": {
-              "$ref": "#/definitions/shadowEnum",
+              "type": "string",
+              "enum": [
+                "normal",
+                "solid"
+              ],
               "description": "The blur style to apply on the shadow"
             },
             "borderRadius": {
@@ -1790,10 +1222,7 @@
             }
           }
         }
-      },
-      "required": [
-        "source"
-      ]
+      }
     },
     "Action": {
       "anyOf": [
@@ -2037,18 +1466,18 @@
       "type": "object",
       "properties": {
         "minWidth": {
-          "$ref": "#/definitions/integer",
+          "type": "number",
           "minimum": 0
         },
         "maxWidth": {
-          "$ref": "#/definitions/integer"
+          "type": "number"
         },
         "minHeight": {
-          "$ref": "#/definitions/integer",
+          "type": "number",
           "minimum": 0
         },
         "maxHeight": {
-          "$ref": "#/definitions/integer"
+          "type": "number"
         },
         "horizontalOffset": {
           "type": "number",
@@ -2063,16 +1492,13 @@
           "maximum": 1
         },
         "style": {
-          "$ref": "#/definitions/styleSelection"
+          "type": "string",
+          "enum": [
+            "default",
+            "none"
+          ]
         }
       }
-    },
-    "styleSelection": {
-      "type": "string",
-      "enum": [
-        "default",
-        "none"
-      ]
     },
     "CloseAllDialogsAction": {
       "type": "object"
@@ -2104,7 +1530,7 @@
           "type": "boolean"
         },
         "startAfter": {
-          "$ref": "#/definitions/integer",
+          "type": "number",
           "description": "Delay the timer's start by this number of seconds. If not specified and repeat is true, repeatInterval will be used. If none is specified, there will be no initial delay",
           "minimum": 0
         },
@@ -2112,12 +1538,12 @@
           "type": "boolean"
         },
         "repeatInterval": {
-          "$ref": "#/definitions/integer",
+          "type": "number",
           "description": "Trigger the timer periodically at this repeatInterval (in seconds)",
           "minimum": 1
         },
         "maxNumberOfTimes": {
-          "$ref": "#/definitions/integer",
+          "type": "number",
           "description": "Set the max number of times the timer will triggers, if repeat is true",
           "minimum": 1
         }
@@ -2213,63 +1639,35 @@
       "type": "object",
       "properties": {
         "type": {
-          "$ref": "#/definitions/toastStyle"
+          "type": "string",
+          "enum": [
+            "success",
+            "error",
+            "warning",
+            "info"
+          ]
         },
         "dismissible": {
           "type": "boolean"
         },
         "position": {
-          "$ref": "#/definitions/toastPosition"
+          "type": "string",
+          "enum": [
+            "top",
+            "topLeft",
+            "topRight",
+            "center",
+            "centerLeft",
+            "centerRight",
+            "bottom",
+            "bottomLeft",
+            "bottomRight"
+          ]
         },
         "duration": {
-          "$ref": "#/definitions/integer",
+          "type": "number",
           "description": "The number of seconds after the toast is dismissed",
           "minimum": 1
-        }
-      }
-    },
-    "toastStyle": {
-      "type": "string",
-      "enum": [
-        "success",
-        "error",
-        "warning",
-        "info"
-      ]
-    },
-    "toastPosition": {
-      "type": "string",
-      "enum": [
-        "top",
-        "topLeft",
-        "topRight",
-        "center",
-        "centerLeft",
-        "centerRight",
-        "bottom",
-        "bottomLeft",
-        "bottomRight"
-      ]
-    },
-    "Pick<styleShadow,(\"shadowColor\"|\"shadowRadius\"|\"shadowOffset\")>": {
-      "type": "object",
-      "properties": {
-        "shadowColor": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Box shadow color starting with '0xFF' for full opacity"
-        },
-        "shadowRadius": {
-          "type": "number",
-          "minimum": 0
-        },
-        "shadowOffset": {
-          "type": "array",
-          "items": {
-            "type": "number"
-          }
         }
       }
     },
@@ -2296,6 +1694,733 @@
           "$ref": "#/definitions/Action"
         }
       }
+    },
+    "Carousel": {
+      "type": "object",
+      "properties": {
+        "item-template": {
+          "$ref": "#/definitions/ItemTemplate"
+        },
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Widgets"
+          },
+          "minItems": 1
+        },
+        "onItemChange": {
+          "$ref": "#/definitions/Action",
+          "description": "Dispatch when an carousel item is in focus. For SingleView, this happens when the item is scroll into view. For scrolling MultiView, the event dispatches only when you tap on the item. The index of the item can be retrieved using 'selectedIndex'."
+        },
+        "styles": {
+          "$ref": "#/definitions/styleCarousel"
+        }
+      }
+    },
+    "styleCarousel": {
+      "type": "object",
+      "properties": {
+        "layout": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "single",
+            "multiple"
+          ],
+          "description": "Show a SingleView (on screen one at a time), MultiView (scrolling items), or automatically switch between the views with autoLayoutBreakpoint"
+        },
+        "autoLayoutBreakpoint": {
+          "type": "number",
+          "description": "Show multiple views on the carousel if the breakpoint is equal or larger than this threshold, otherwise show single view. (default 768)"
+        },
+        "height": {
+          "type": "number",
+          "description": "The height of each view"
+        },
+        "gap": {
+          "type": "number",
+          "description": "The gap between each views, but also act as a left-right margin in a single view"
+        },
+        "leadingGap": {
+          "type": "number",
+          "description": "The space before the first item. Note that the left edge of the scroll area is still controlled by padding or margin."
+        },
+        "trailingGap": {
+          "type": "number",
+          "description": "The space after the last item. Note that the right edge of the scroll area is still controlled by padding or margin."
+        },
+        "singleItemWidthRatio": {
+          "type": "number",
+          "description": "The screen width ratio for each carousel item (in single item mode). Value ranges from 0.0 to 1.0 for the full width. (default 1.0)",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "multipleItemWidthRatio": {
+          "type": "number",
+          "description": "The screen width ratio for each carousel item (in multiple item mode). Value ranges from 0.0 to 1.0 for the full width (default 0.6)",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "indicatorType": {
+          "type": "string",
+          "enum": [
+            "none",
+            "circle",
+            "rectangle"
+          ],
+          "description": "How the view indicator should be displayed"
+        },
+        "indicatorPosition": {
+          "type": "string",
+          "enum": [
+            "bottom",
+            "top"
+          ],
+          "description": "Where to display the indicator if specified"
+        },
+        "indicatorWidth": {
+          "type": "number"
+        },
+        "indicatorHeight": {
+          "type": "number"
+        },
+        "indicatorMargin": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "The margin around each indicator"
+        },
+        "shadowColor": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Box shadow color starting with '0xFF' for full opacity"
+        },
+        "shadowOffset": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "shadowRadius": {
+          "type": "number",
+          "minimum": 0
+        },
+        "shadowStyle": {
+          "type": "string",
+          "enum": [
+            "normal",
+            "solid"
+          ],
+          "description": "The blur style to apply on the shadow"
+        },
+        "borderRadius": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Border Radius with CSS-like notation (1 to 4 integers)",
+          "minimum": 0
+        },
+        "borderColor": {
+          "$ref": "#/definitions/Colors",
+          "description": "Border color, starting with '0xFF' for full opacity"
+        },
+        "borderWidth": {
+          "type": "number",
+          "description": "The thickness of the border",
+          "minimum": 0
+        },
+        "backgroundGradient": {
+          "type": "object",
+          "properties": {
+            "colors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Colors"
+              },
+              "description": "The list of colors used for the gradient"
+            },
+            "start": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The starting position of the gradient"
+            },
+            "end": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The ending position of the gradient"
+            }
+          }
+        },
+        "backgroundColor": {
+          "$ref": "#/definitions/Colors"
+        },
+        "backgroundImage": {
+          "$ref": "#/definitions/backgroundImage"
+        },
+        "padding": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Padding with CSS-style value e.g. padding: 5 20 5"
+        },
+        "margin": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
+        }
+      }
+    },
+    "Row": {
+      "type": "object",
+      "properties": {
+        "mainAxis": {
+          "type": "string",
+          "enum": [
+            "start",
+            "center",
+            "end",
+            "spaceBetween",
+            "spaceAround",
+            "spaceEvenly"
+          ],
+          "description": "Control our children's layout horizontally"
+        },
+        "crossAxis": {
+          "type": "string",
+          "enum": [
+            "start",
+            "center",
+            "end",
+            "stretch",
+            "baseline"
+          ],
+          "description": "Control the vertical alignment of the children"
+        },
+        "mainAxisSize": {
+          "type": "string",
+          "enum": [
+            "min",
+            "max"
+          ],
+          "description": "Stretch to the max horizontally or only fit the horizontal space"
+        },
+        "scrollable": {
+          "type": "boolean",
+          "description": "Set to true so content can scroll horizontally as needed"
+        },
+        "autoFit": {
+          "type": "boolean",
+          "description": "Explicitly make the row's height as tall as the largest child, but only if the row's parent does not already assign us a height. This attribute is useful for sizing children who don't have a width (e.g vertical Divider)"
+        },
+        "gap": {
+          "type": "number",
+          "minimum": 0
+        },
+        "fontFamily": {
+          "type": "string",
+          "description": "Set the font family applicable for all widgets inside this container"
+        },
+        "fontSize": {
+          "type": "number",
+          "minimum": 0
+        },
+        "shadowColor": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Box shadow color starting with '0xFF' for full opacity"
+        },
+        "shadowOffset": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "shadowRadius": {
+          "type": "number",
+          "minimum": 0
+        },
+        "shadowStyle": {
+          "type": "string",
+          "enum": [
+            "normal",
+            "solid"
+          ],
+          "description": "The blur style to apply on the shadow"
+        },
+        "borderRadius": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Border Radius with CSS-like notation (1 to 4 integers)",
+          "minimum": 0
+        },
+        "borderColor": {
+          "$ref": "#/definitions/Colors",
+          "description": "Border color, starting with '0xFF' for full opacity"
+        },
+        "borderWidth": {
+          "type": "number",
+          "description": "The thickness of the border",
+          "minimum": 0
+        },
+        "backgroundGradient": {
+          "type": "object",
+          "properties": {
+            "colors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Colors"
+              },
+              "description": "The list of colors used for the gradient"
+            },
+            "start": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The starting position of the gradient"
+            },
+            "end": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The ending position of the gradient"
+            }
+          }
+        },
+        "backgroundColor": {
+          "$ref": "#/definitions/Colors"
+        },
+        "backgroundImage": {
+          "$ref": "#/definitions/backgroundImage"
+        },
+        "padding": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Padding with CSS-style value e.g. padding: 5 20 5"
+        },
+        "margin": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0
+        },
+        "expanded": {
+          "type": "boolean",
+          "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+        },
+        "item-template": {
+          "$ref": "#/definitions/ItemTemplate"
+        },
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Widgets"
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "Text": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "text": {
+          "type": "string",
+          "default": "add your text"
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "font": {
+              "type": "string",
+              "enum": [
+                "heading",
+                "title",
+                "subtitle"
+              ],
+              "description": "Default built-in style for this text"
+            },
+            "fontSize": {
+              "type": "number",
+              "minimum": 6
+            },
+            "fontWeight": {
+              "$ref": "#/definitions/fontWeight"
+            },
+            "color": {
+              "$ref": "#/definitions/Colors"
+            },
+            "overflow": {
+              "type": "string",
+              "enum": [
+                "wrap",
+                "visible",
+                "clip",
+                "ellipsis"
+              ],
+              "description": "Set treatment of text longer than available space"
+            },
+            "textAlign": {
+              "type": "string",
+              "enum": [
+                "start",
+                "end",
+                "center",
+                "justify"
+              ]
+            },
+            "textStyle": {
+              "type": "string",
+              "enum": [
+                "normal",
+                "italic",
+                "underline",
+                "strikethrough",
+                "italic_underline",
+                "italic_strikethrough"
+              ]
+            },
+            "lineHeight": {
+              "type": "string",
+              "enum": [
+                "default",
+                "1.0",
+                "1.15",
+                "1.25",
+                "1.5",
+                "2.0",
+                "2.5"
+              ]
+            },
+            "expanded": {
+              "type": "boolean",
+              "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+            },
+            "shadowColor": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Box shadow color starting with '0xFF' for full opacity"
+            },
+            "shadowOffset": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            "shadowRadius": {
+              "type": "number",
+              "minimum": 0
+            },
+            "shadowStyle": {
+              "type": "string",
+              "enum": [
+                "normal",
+                "solid"
+              ],
+              "description": "The blur style to apply on the shadow"
+            },
+            "borderRadius": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Border Radius with CSS-like notation (1 to 4 integers)",
+              "minimum": 0
+            },
+            "borderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "Border color, starting with '0xFF' for full opacity"
+            },
+            "borderWidth": {
+              "type": "number",
+              "description": "The thickness of the border",
+              "minimum": 0
+            },
+            "backgroundGradient": {
+              "type": "object",
+              "properties": {
+                "colors": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Colors"
+                  },
+                  "description": "The list of colors used for the gradient"
+                },
+                "start": {
+                  "$ref": "#/definitions/alignmentEnum",
+                  "description": "The starting position of the gradient"
+                },
+                "end": {
+                  "$ref": "#/definitions/alignmentEnum",
+                  "description": "The ending position of the gradient"
+                }
+              }
+            },
+            "backgroundColor": {
+              "$ref": "#/definitions/Colors"
+            },
+            "backgroundImage": {
+              "$ref": "#/definitions/backgroundImage"
+            },
+            "padding": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Padding with CSS-style value e.g. padding: 5 20 5"
+            },
+            "margin": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
+            },
+            "width": {
+              "type": "number",
+              "minimum": 0
+            },
+            "height": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "fontWeight": {
+      "type": "string",
+      "enum": [
+        "light",
+        "normal",
+        "bold",
+        "w100",
+        "w200",
+        "w300",
+        "w400",
+        "w500",
+        "w600",
+        "w700",
+        "w800",
+        "w900"
+      ]
+    },
+    "Markdown": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "text": {
+          "type": "string",
+          "description": "Your text in markdown format"
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "expanded": {
+              "type": "boolean",
+              "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+            },
+            "textStyle": {
+              "$ref": "#/definitions/styleText",
+              "description": "Styling for regular text. Default to theme's bodyMedium styling"
+            },
+            "linkStyle": {
+              "$ref": "#/definitions/styleText",
+              "description": "Styling for URL"
+            }
+          }
+        }
+      }
+    },
+    "styleText": {
+      "type": "object",
+      "properties": {
+        "fontSize": {
+          "type": "number"
+        },
+        "color": {
+          "$ref": "#/definitions/Colors"
+        },
+        "decoration": {
+          "type": "string",
+          "enum": [
+            "none",
+            "lineThrough",
+            "underline",
+            "overline"
+          ]
+        }
+      }
+    },
+    "Image": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "source": {
+          "type": "string",
+          "description": "URL to or asset name of the image. If the URL is used, it is highly recommended that the dimensions is set (either with width/height or other means) to prevent the UI jerkiness while loading"
+        },
+        "onTap": {
+          "$ref": "#/definitions/Action",
+          "description": "Call Ensemble's built-in functions or execute code"
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "placeholderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "The placeholder color while the image is loading."
+            },
+            "fit": {
+              "$ref": "#/definitions/fitEnum",
+              "description": "How to fit the image within our width/height or our parent (if dimension is not specified)"
+            },
+            "resizedWidth": {
+              "type": "number",
+              "description": "Images will be automatically resized (default to 800 width with no height set) before rendering. If you know the rough image width, set this number to be the same or a slightly larger width to optimize the loading time. To maintain the original aspect ratio, set either resizedWidth or resizedHeight, but not both. This setting is not supported on Web.",
+              "minimum": 0,
+              "maximum": 2000
+            },
+            "resizedHeight": {
+              "type": "number",
+              "description": "Images will be automatically resized (default to 800 width with no height set) before rendering. If you know the rough image height, set this number to be the same or a slightly larger height to optimize the loading time. To maintain the original aspect ratio, set either resizedWidth or resizedHeight, but not both. This setting is not supported on Web.",
+              "minimum": 0,
+              "maximum": 2000
+            },
+            "shadowColor": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Box shadow color starting with '0xFF' for full opacity"
+            },
+            "shadowOffset": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            "shadowRadius": {
+              "type": "number",
+              "minimum": 0
+            },
+            "shadowStyle": {
+              "type": "string",
+              "enum": [
+                "normal",
+                "solid"
+              ],
+              "description": "The blur style to apply on the shadow"
+            },
+            "borderRadius": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Border Radius with CSS-like notation (1 to 4 integers)",
+              "minimum": 0
+            },
+            "borderColor": {
+              "$ref": "#/definitions/Colors",
+              "description": "Border color, starting with '0xFF' for full opacity"
+            },
+            "borderWidth": {
+              "type": "number",
+              "description": "The thickness of the border",
+              "minimum": 0
+            },
+            "backgroundGradient": {
+              "type": "object",
+              "properties": {
+                "colors": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Colors"
+                  },
+                  "description": "The list of colors used for the gradient"
+                },
+                "start": {
+                  "$ref": "#/definitions/alignmentEnum",
+                  "description": "The starting position of the gradient"
+                },
+                "end": {
+                  "$ref": "#/definitions/alignmentEnum",
+                  "description": "The ending position of the gradient"
+                }
+              }
+            },
+            "backgroundColor": {
+              "$ref": "#/definitions/Colors"
+            },
+            "backgroundImage": {
+              "$ref": "#/definitions/backgroundImage"
+            },
+            "padding": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Padding with CSS-style value e.g. padding: 5 20 5"
+            },
+            "margin": {
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
+            },
+            "width": {
+              "type": "number",
+              "minimum": 0
+            },
+            "height": {
+              "type": "number",
+              "minimum": 0
+            },
+            "expanded": {
+              "type": "boolean",
+              "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+            }
+          }
+        }
+      },
+      "required": [
+        "source"
+      ]
     },
     "Lottie": {
       "type": "object",
@@ -2345,7 +2470,11 @@
               "minimum": 0
             },
             "shadowStyle": {
-              "$ref": "#/definitions/shadowEnum",
+              "type": "string",
+              "enum": [
+                "normal",
+                "solid"
+              ],
               "description": "The blur style to apply on the shadow"
             },
             "borderRadius": {
@@ -2466,7 +2595,11 @@
               "minimum": 0
             },
             "shadowStyle": {
-              "$ref": "#/definitions/shadowEnum",
+              "type": "string",
+              "enum": [
+                "normal",
+                "solid"
+              ],
               "description": "The blur style to apply on the shadow"
             },
             "borderRadius": {
@@ -2598,7 +2731,11 @@
               "minimum": 0
             },
             "shadowStyle": {
-              "$ref": "#/definitions/shadowEnum",
+              "type": "string",
+              "enum": [
+                "normal",
+                "solid"
+              ],
               "description": "The blur style to apply on the shadow"
             },
             "borderRadius": {
@@ -2724,13 +2861,6 @@
         }
       }
     },
-    "directionEnum": {
-      "type": "string",
-      "enum": [
-        "vertical",
-        "horizontal"
-      ]
-    },
     "Html": {
       "type": "object",
       "properties": {
@@ -2752,7 +2882,7 @@
           "description": "ID to be referenced later"
         },
         "maxWidth": {
-          "$ref": "#/definitions/integer",
+          "type": "number",
           "description": "The max width of this Input widget (default 700)",
           "minimum": 0,
           "maximum": 5000
@@ -2787,13 +2917,17 @@
           "type": "object",
           "properties": {
             "variant": {
-              "$ref": "#/definitions/inputVariant",
+              "type": "string",
+              "enum": [
+                "underline",
+                "box"
+              ],
               "description": "Select a pre-defined look and feel for this Input widget. This property can be defined in the theme to apply to all Input widgets."
             },
             "contentPadding": {
               "anyOf": [
                 {
-                  "$ref": "#/definitions/integer"
+                  "type": "number"
                 },
                 {
                   "type": "string"
@@ -2806,12 +2940,12 @@
               "description": "The fill color for this input fields. This property can be defined in the theme to apply to all Input widgets."
             },
             "borderRadius": {
-              "$ref": "#/definitions/integer",
+              "type": "number",
               "description": "The border radius for this Input widget. This property can be defined in the theme to apply to all Input widgets.",
               "minimum": 0
             },
             "borderWidth": {
-              "$ref": "#/definitions/integer",
+              "type": "number",
               "description": "The border width for this Input widget. This property can be defined in the theme to apply to all Input widgets.",
               "minimum": 0
             },
@@ -2859,112 +2993,6 @@
         }
       }
     },
-    "FormInput": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "ID to be referenced later"
-        },
-        "maxWidth": {
-          "$ref": "#/definitions/integer",
-          "description": "The max width of this Input widget (default 700)",
-          "minimum": 0,
-          "maximum": 5000
-        },
-        "label": {
-          "type": "string",
-          "description": "Label for your widget"
-        },
-        "labelHint": {
-          "type": "string",
-          "description": "Hint text on your label"
-        },
-        "hintText": {
-          "type": "string",
-          "description": "Hint text explaining your widget"
-        },
-        "required": {
-          "type": "boolean"
-        },
-        "enabled": {
-          "type": "boolean"
-        },
-        "icon": {
-          "$ref": "#/definitions/HasIcon",
-          "description": "The icon to show before the Input field"
-        },
-        "onChange": {
-          "$ref": "#/definitions/Action",
-          "description": "Call Ensemble's built-in functions or execute code when the input changes. Note for free-form text input, this event only dispatches if the text changes AND the focus is lost (e.g. clicking on button)"
-        },
-        "styles": {
-          "type": "object",
-          "properties": {
-            "variant": {
-              "$ref": "#/definitions/inputVariant",
-              "description": "Select a pre-defined look and feel for this Input widget. This property can be defined in the theme to apply to all Input widgets."
-            },
-            "contentPadding": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/integer"
-                },
-                {
-                  "type": "string"
-                }
-              ],
-              "description": "Padding around your input content with CSS-style notation e.g. margin: 5 20 5"
-            },
-            "fillColor": {
-              "$ref": "#/definitions/Colors",
-              "description": "The fill color for this input fields. This property can be defined in the theme to apply to all Input widgets."
-            },
-            "borderRadius": {
-              "$ref": "#/definitions/integer",
-              "description": "The border radius for this Input widget. This property can be defined in the theme to apply to all Input widgets.",
-              "minimum": 0
-            },
-            "borderWidth": {
-              "$ref": "#/definitions/integer",
-              "description": "The border width for this Input widget. This property can be defined in the theme to apply to all Input widgets.",
-              "minimum": 0
-            },
-            "borderColor": {
-              "$ref": "#/definitions/Colors",
-              "description": "The base border color for this input widget. This border color determines the look and feel of your input, while the other colors are overrides for different states. This property can be defined in the theme to apply to all Input widgets."
-            },
-            "enabledBorderColor": {
-              "$ref": "#/definitions/Colors",
-              "description": "The border color for this input field if enabled. This property can be defined in the theme to apply to all Input widgets."
-            },
-            "disabledBorderColor": {
-              "$ref": "#/definitions/Colors",
-              "description": "The border color for this input field if disabled. This property can be defined in the theme to apply to all Input widgets."
-            },
-            "errorBorderColor": {
-              "$ref": "#/definitions/Colors",
-              "description": "The border color  when there are errors on this input field. This property can be defined in the theme to apply to all Input widgets."
-            },
-            "focusedBorderColor": {
-              "$ref": "#/definitions/Colors",
-              "description": "The border color when this input field is receiving focus. This property can be defined in the theme to apply to all Input widgets."
-            },
-            "focusedErrorBorderColor": {
-              "$ref": "#/definitions/Colors"
-            },
-            "fontSize": {
-              "type": "number",
-              "minimum": 6
-            },
-            "expanded": {
-              "type": "boolean",
-              "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
-            }
-          }
-        }
-      }
-    },
     "HasIcon": {
       "type": "object",
       "properties": {
@@ -2989,13 +3017,6 @@
       },
       "description": "Specifies the icon to use. You can also use the short-handed syntax 'iconName iconLibrary')"
     },
-    "inputVariant": {
-      "type": "string",
-      "enum": [
-        "underline",
-        "box"
-      ]
-    },
     "PasswordInput": {
       "type": "object",
       "properties": {
@@ -3003,12 +3024,12 @@
           "type": "object",
           "properties": {
             "minLength": {
-              "$ref": "#/definitions/integer",
+              "type": "number",
               "description": "The minimum number of characters",
               "minimum": 0
             },
             "maxLength": {
-              "$ref": "#/definitions/integer",
+              "type": "number",
               "description": "The maximum number of characters",
               "minimum": 0
             },
@@ -3027,7 +3048,7 @@
           "description": "ID to be referenced later"
         },
         "maxWidth": {
-          "$ref": "#/definitions/integer",
+          "type": "number",
           "description": "The max width of this Input widget (default 700)",
           "minimum": 0,
           "maximum": 5000
@@ -3062,13 +3083,17 @@
           "type": "object",
           "properties": {
             "variant": {
-              "$ref": "#/definitions/inputVariant",
+              "type": "string",
+              "enum": [
+                "underline",
+                "box"
+              ],
               "description": "Select a pre-defined look and feel for this Input widget. This property can be defined in the theme to apply to all Input widgets."
             },
             "contentPadding": {
               "anyOf": [
                 {
-                  "$ref": "#/definitions/integer"
+                  "type": "number"
                 },
                 {
                   "type": "string"
@@ -3081,12 +3106,12 @@
               "description": "The fill color for this input fields. This property can be defined in the theme to apply to all Input widgets."
             },
             "borderRadius": {
-              "$ref": "#/definitions/integer",
+              "type": "number",
               "description": "The border radius for this Input widget. This property can be defined in the theme to apply to all Input widgets.",
               "minimum": 0
             },
             "borderWidth": {
-              "$ref": "#/definitions/integer",
+              "type": "number",
               "description": "The border width for this Input widget. This property can be defined in the theme to apply to all Input widgets.",
               "minimum": 0
             },
@@ -3136,34 +3161,6 @@
         }
       }
     },
-    "inputValidator": {
-      "type": "object",
-      "properties": {
-        "validator": {
-          "type": "object",
-          "properties": {
-            "minLength": {
-              "$ref": "#/definitions/integer",
-              "description": "The minimum number of characters",
-              "minimum": 0
-            },
-            "maxLength": {
-              "$ref": "#/definitions/integer",
-              "description": "The maximum number of characters",
-              "minimum": 0
-            },
-            "regex": {
-              "type": "string",
-              "description": "The Regular Expression the input will need to match"
-            },
-            "regexError": {
-              "type": "string",
-              "description": "The customized error message to show when the input does not match the provided regex."
-            }
-          }
-        }
-      }
-    },
     "keyboardAction": {
       "type": "string",
       "enum": [
@@ -3183,12 +3180,12 @@
           "type": "object",
           "properties": {
             "minLength": {
-              "$ref": "#/definitions/integer",
+              "type": "number",
               "description": "The minimum number of characters",
               "minimum": 0
             },
             "maxLength": {
-              "$ref": "#/definitions/integer",
+              "type": "number",
               "description": "The maximum number of characters",
               "minimum": 0
             },
@@ -3207,7 +3204,7 @@
           "description": "ID to be referenced later"
         },
         "maxWidth": {
-          "$ref": "#/definitions/integer",
+          "type": "number",
           "description": "The max width of this Input widget (default 700)",
           "minimum": 0,
           "maximum": 5000
@@ -3256,7 +3253,13 @@
           "description": "Specifying the value of your Text Input"
         },
         "inputType": {
-          "$ref": "#/definitions/inputType",
+          "type": "string",
+          "enum": [
+            "default",
+            "email",
+            "phone",
+            "ipAddress"
+          ],
           "description": "Pick a predefined input type"
         },
         "keyboardAction": {
@@ -3271,15 +3274,6 @@
         }
       }
     },
-    "inputType": {
-      "type": "string",
-      "enum": [
-        "default",
-        "email",
-        "phone",
-        "ipAddress"
-      ]
-    },
     "Progress": {
       "type": "object",
       "properties": {
@@ -3288,7 +3282,11 @@
           "description": "ID to be referenced later"
         },
         "display": {
-          "$ref": "#/definitions/progressEnum"
+          "type": "string",
+          "enum": [
+            "linear",
+            "circular"
+          ]
         },
         "countdown": {
           "type": "number",
@@ -3325,13 +3323,6 @@
           }
         }
       }
-    },
-    "progressEnum": {
-      "type": "string",
-      "enum": [
-        "linear",
-        "circular"
-      ]
     },
     "QRCode": {
       "type": "object",
@@ -3373,7 +3364,11 @@
               "minimum": 0
             },
             "shadowStyle": {
-              "$ref": "#/definitions/shadowEnum",
+              "type": "string",
+              "enum": [
+                "normal",
+                "solid"
+              ],
               "description": "The blur style to apply on the shadow"
             },
             "borderRadius": {
@@ -3452,7 +3447,7 @@
           "description": "ID to be referenced later"
         },
         "maxWidth": {
-          "$ref": "#/definitions/integer",
+          "type": "number",
           "description": "The max width of this Input widget (default 700)",
           "minimum": 0,
           "maximum": 5000
@@ -3487,13 +3482,17 @@
           "type": "object",
           "properties": {
             "variant": {
-              "$ref": "#/definitions/inputVariant",
+              "type": "string",
+              "enum": [
+                "underline",
+                "box"
+              ],
               "description": "Select a pre-defined look and feel for this Input widget. This property can be defined in the theme to apply to all Input widgets."
             },
             "contentPadding": {
               "anyOf": [
                 {
-                  "$ref": "#/definitions/integer"
+                  "type": "number"
                 },
                 {
                   "type": "string"
@@ -3506,12 +3505,12 @@
               "description": "The fill color for this input fields. This property can be defined in the theme to apply to all Input widgets."
             },
             "borderRadius": {
-              "$ref": "#/definitions/integer",
+              "type": "number",
               "description": "The border radius for this Input widget. This property can be defined in the theme to apply to all Input widgets.",
               "minimum": 0
             },
             "borderWidth": {
-              "$ref": "#/definitions/integer",
+              "type": "number",
               "description": "The border width for this Input widget. This property can be defined in the theme to apply to all Input widgets.",
               "minimum": 0
             },
@@ -3583,7 +3582,7 @@
           "description": "ID to be referenced later"
         },
         "maxWidth": {
-          "$ref": "#/definitions/integer",
+          "type": "number",
           "description": "The max width of this Input widget (default 700)",
           "minimum": 0,
           "maximum": 5000
@@ -3618,13 +3617,17 @@
           "type": "object",
           "properties": {
             "variant": {
-              "$ref": "#/definitions/inputVariant",
+              "type": "string",
+              "enum": [
+                "underline",
+                "box"
+              ],
               "description": "Select a pre-defined look and feel for this Input widget. This property can be defined in the theme to apply to all Input widgets."
             },
             "contentPadding": {
               "anyOf": [
                 {
-                  "$ref": "#/definitions/integer"
+                  "type": "number"
                 },
                 {
                   "type": "string"
@@ -3637,12 +3640,12 @@
               "description": "The fill color for this input fields. This property can be defined in the theme to apply to all Input widgets."
             },
             "borderRadius": {
-              "$ref": "#/definitions/integer",
+              "type": "number",
               "description": "The border radius for this Input widget. This property can be defined in the theme to apply to all Input widgets.",
               "minimum": 0
             },
             "borderWidth": {
-              "$ref": "#/definitions/integer",
+              "type": "number",
               "description": "The border width for this Input widget. This property can be defined in the theme to apply to all Input widgets.",
               "minimum": 0
             },
@@ -3700,7 +3703,24 @@
         "items": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/tabItemType"
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "description": "Setting the tab label"
+              },
+              "icon": {
+                "$ref": "#/definitions/HasIcon"
+              },
+              "widget": {
+                "$ref": "#/definitions/Widgets",
+                "description": "Return an inline widget or specify a custom widget to be rendered as this tab's content"
+              }
+            },
+            "required": [
+              "label",
+              "widget"
+            ]
           },
           "description": "Define each of your Tab here"
         },
@@ -3708,7 +3728,11 @@
           "type": "object",
           "properties": {
             "tabPosition": {
-              "$ref": "#/definitions/tabPosition",
+              "type": "string",
+              "enum": [
+                "start",
+                "stretch"
+              ],
               "description": "How to lay out the Tab labels"
             },
             "tabPadding": {
@@ -3756,33 +3780,6 @@
           }
         }
       }
-    },
-    "tabItemType": {
-      "type": "object",
-      "properties": {
-        "label": {
-          "type": "string",
-          "description": "Setting the tab label"
-        },
-        "icon": {
-          "$ref": "#/definitions/HasIcon"
-        },
-        "widget": {
-          "$ref": "#/definitions/Widgets",
-          "description": "Return an inline widget or specify a custom widget to be rendered as this tab's content"
-        }
-      },
-      "required": [
-        "label",
-        "widget"
-      ]
-    },
-    "tabPosition": {
-      "type": "string",
-      "enum": [
-        "start",
-        "stretch"
-      ]
     },
     "GridView": {
       "type": "object",
@@ -3860,7 +3857,11 @@
               "minimum": 0
             },
             "shadowStyle": {
-              "$ref": "#/definitions/shadowEnum",
+              "type": "string",
+              "enum": [
+                "normal",
+                "solid"
+              ],
               "description": "The blur style to apply on the shadow"
             },
             "borderRadius": {
@@ -3957,11 +3958,22 @@
           "type": "object",
           "properties": {
             "labelPosition": {
-              "$ref": "#/definitions/labelEnum",
+              "type": "string",
+              "enum": [
+                "top",
+                "start",
+                "none"
+              ],
               "description": "Where the position the FormField's label"
             },
             "labelOverflow": {
-              "$ref": "#/definitions/labelOverflowEnum",
+              "type": "string",
+              "enum": [
+                "wrap",
+                "visible",
+                "clip",
+                "ellipsis"
+              ],
               "description": "Treatment of text longer than available space"
             },
             "width": {
@@ -3980,23 +3992,6 @@
           }
         }
       }
-    },
-    "labelEnum": {
-      "type": "string",
-      "enum": [
-        "top",
-        "start",
-        "none"
-      ]
-    },
-    "labelOverflowEnum": {
-      "type": "string",
-      "enum": [
-        "wrap",
-        "visible",
-        "clip",
-        "ellipsis"
-      ]
     },
     "ChartJS": {
       "type": "object",
@@ -4063,1046 +4058,6 @@
               "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
             }
           }
-        }
-      }
-    },
-    "stylesColumn": {
-      "type": "object",
-      "properties": {
-        "mainAxis": {
-          "$ref": "#/definitions/mainAxisEnum",
-          "description": "Control our children's layout vertically"
-        },
-        "crossAxis": {
-          "$ref": "#/definitions/crossAxisEnum",
-          "description": "Control the horizontal alignment of the children"
-        },
-        "mainAxisSize": {
-          "$ref": "#/definitions/mainAxisSizeEnum",
-          "description": "Stretch to the max vertically or only fit the vertical space"
-        },
-        "scrollable": {
-          "type": "boolean",
-          "description": "Set to true so content can scroll vertically as needed"
-        },
-        "autoFit": {
-          "type": "boolean",
-          "description": "Explicitly make the column's width as wide as the largest child, but only if our column's parent does not already assign a width. This attribute is useful for sizing children who don't have a width (e.g Divider)"
-        },
-        "gap": {
-          "type": "number",
-          "minimum": 0
-        },
-        "fontFamily": {
-          "type": "string",
-          "description": "Set the font family applicable for all widgets inside this container"
-        },
-        "fontSize": {
-          "type": "number",
-          "minimum": 0
-        },
-        "shadowColor": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Box shadow color starting with '0xFF' for full opacity"
-        },
-        "shadowOffset": {
-          "type": "array",
-          "items": {
-            "type": "number"
-          }
-        },
-        "shadowRadius": {
-          "type": "number",
-          "minimum": 0
-        },
-        "shadowStyle": {
-          "$ref": "#/definitions/shadowEnum",
-          "description": "The blur style to apply on the shadow"
-        },
-        "borderRadius": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Border Radius with CSS-like notation (1 to 4 integers)",
-          "minimum": 0
-        },
-        "borderColor": {
-          "$ref": "#/definitions/Colors",
-          "description": "Border color, starting with '0xFF' for full opacity"
-        },
-        "borderWidth": {
-          "type": "number",
-          "description": "The thickness of the border",
-          "minimum": 0
-        },
-        "backgroundGradient": {
-          "type": "object",
-          "properties": {
-            "colors": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Colors"
-              },
-              "description": "The list of colors used for the gradient"
-            },
-            "start": {
-              "$ref": "#/definitions/alignmentEnum",
-              "description": "The starting position of the gradient"
-            },
-            "end": {
-              "$ref": "#/definitions/alignmentEnum",
-              "description": "The ending position of the gradient"
-            }
-          }
-        },
-        "backgroundColor": {
-          "$ref": "#/definitions/Colors"
-        },
-        "backgroundImage": {
-          "$ref": "#/definitions/backgroundImage"
-        },
-        "padding": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Padding with CSS-style value e.g. padding: 5 20 5"
-        },
-        "margin": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
-        },
-        "width": {
-          "type": "number",
-          "minimum": 0
-        },
-        "height": {
-          "type": "number",
-          "minimum": 0
-        },
-        "expanded": {
-          "type": "boolean",
-          "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
-        }
-      }
-    },
-    "Flow": {
-      "type": "object",
-      "properties": {
-        "item-template": {
-          "$ref": "#/definitions/ItemTemplate"
-        },
-        "id": {
-          "type": "string",
-          "description": "ID to be referenced later"
-        },
-        "children": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Widgets"
-          },
-          "minItems": 1
-        },
-        "direction": {
-          "$ref": "#/definitions/directionEnum",
-          "description": "The main direction to lay out the children before wrapping"
-        },
-        "styles": {
-          "$ref": "#/definitions/styleFlow"
-        }
-      }
-    },
-    "styleFlow": {
-      "type": "object",
-      "properties": {
-        "mainAxis": {
-          "$ref": "#/definitions/mainAxisEnum",
-          "description": "Control our children's layout vertically"
-        },
-        "gap": {
-          "type": "number",
-          "description": "The gap between the children in the main direction",
-          "minimum": 0
-        },
-        "lineGap": {
-          "type": "number",
-          "description": "The gap between the lines if the children start wrapping",
-          "minimum": 0
-        },
-        "maxWidth": {
-          "type": "number",
-          "minimum": 0
-        },
-        "maxHeight": {
-          "type": "number",
-          "minimum": 0
-        },
-        "expanded": {
-          "type": "boolean",
-          "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
-        }
-      }
-    },
-    "Flex": {
-      "type": "object",
-      "properties": {
-        "direction": {
-          "$ref": "#/definitions/directionEnum",
-          "description": "Lay out the children vertically or horizontally"
-        },
-        "mainAxis": {
-          "$ref": "#/definitions/mainAxisEnum",
-          "description": "Control how to lay out the children, in the direction specified by the 'direction' attribute"
-        },
-        "crossAxis": {
-          "$ref": "#/definitions/crossAxisEnum",
-          "description": "Control the alignment of the children on the secondary axis (depending on the 'direction' attribute)"
-        },
-        "mainAxisSize": {
-          "$ref": "#/definitions/mainAxisSizeEnum",
-          "description": "stretch to the max or only fit the available space of the main axis (depending on the 'direction' attribute)"
-        },
-        "scrollable": {
-          "type": "boolean",
-          "description": "Set to true so content can scroll vertically or horizontally as needed"
-        },
-        "autoFit": {
-          "type": "boolean",
-          "description": "Explicitly match the width or height to the largest child's size, but only if the parent does not already assign a width or height. This attribute is useful for sizing children who don't have a width or height (e.g Divider)"
-        },
-        "gap": {
-          "type": "number",
-          "minimum": 0
-        },
-        "fontFamily": {
-          "type": "string",
-          "description": "Set the font family applicable for all widgets inside this container"
-        },
-        "fontSize": {
-          "type": "number",
-          "minimum": 0
-        },
-        "shadowColor": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Box shadow color starting with '0xFF' for full opacity"
-        },
-        "shadowOffset": {
-          "type": "array",
-          "items": {
-            "type": "number"
-          }
-        },
-        "shadowRadius": {
-          "type": "number",
-          "minimum": 0
-        },
-        "shadowStyle": {
-          "$ref": "#/definitions/shadowEnum",
-          "description": "The blur style to apply on the shadow"
-        },
-        "borderRadius": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Border Radius with CSS-like notation (1 to 4 integers)",
-          "minimum": 0
-        },
-        "borderColor": {
-          "$ref": "#/definitions/Colors",
-          "description": "Border color, starting with '0xFF' for full opacity"
-        },
-        "borderWidth": {
-          "type": "number",
-          "description": "The thickness of the border",
-          "minimum": 0
-        },
-        "backgroundGradient": {
-          "type": "object",
-          "properties": {
-            "colors": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Colors"
-              },
-              "description": "The list of colors used for the gradient"
-            },
-            "start": {
-              "$ref": "#/definitions/alignmentEnum",
-              "description": "The starting position of the gradient"
-            },
-            "end": {
-              "$ref": "#/definitions/alignmentEnum",
-              "description": "The ending position of the gradient"
-            }
-          }
-        },
-        "backgroundColor": {
-          "$ref": "#/definitions/Colors"
-        },
-        "backgroundImage": {
-          "$ref": "#/definitions/backgroundImage"
-        },
-        "padding": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Padding with CSS-style value e.g. padding: 5 20 5"
-        },
-        "margin": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
-        },
-        "width": {
-          "type": "number",
-          "minimum": 0
-        },
-        "height": {
-          "type": "number",
-          "minimum": 0
-        },
-        "expanded": {
-          "type": "boolean",
-          "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
-        },
-        "item-template": {
-          "$ref": "#/definitions/ItemTemplate"
-        },
-        "id": {
-          "type": "string",
-          "description": "ID to be referenced later"
-        },
-        "children": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Widgets"
-          },
-          "minItems": 1
-        }
-      }
-    },
-    "styleFlex": {
-      "type": "object",
-      "properties": {
-        "direction": {
-          "$ref": "#/definitions/directionEnum",
-          "description": "Lay out the children vertically or horizontally"
-        },
-        "mainAxis": {
-          "$ref": "#/definitions/mainAxisEnum",
-          "description": "Control how to lay out the children, in the direction specified by the 'direction' attribute"
-        },
-        "crossAxis": {
-          "$ref": "#/definitions/crossAxisEnum",
-          "description": "Control the alignment of the children on the secondary axis (depending on the 'direction' attribute)"
-        },
-        "mainAxisSize": {
-          "$ref": "#/definitions/mainAxisSizeEnum",
-          "description": "stretch to the max or only fit the available space of the main axis (depending on the 'direction' attribute)"
-        },
-        "scrollable": {
-          "type": "boolean",
-          "description": "Set to true so content can scroll vertically or horizontally as needed"
-        },
-        "autoFit": {
-          "type": "boolean",
-          "description": "Explicitly match the width or height to the largest child's size, but only if the parent does not already assign a width or height. This attribute is useful for sizing children who don't have a width or height (e.g Divider)"
-        },
-        "gap": {
-          "type": "number",
-          "minimum": 0
-        },
-        "fontFamily": {
-          "type": "string",
-          "description": "Set the font family applicable for all widgets inside this container"
-        },
-        "fontSize": {
-          "type": "number",
-          "minimum": 0
-        },
-        "shadowColor": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Box shadow color starting with '0xFF' for full opacity"
-        },
-        "shadowOffset": {
-          "type": "array",
-          "items": {
-            "type": "number"
-          }
-        },
-        "shadowRadius": {
-          "type": "number",
-          "minimum": 0
-        },
-        "shadowStyle": {
-          "$ref": "#/definitions/shadowEnum",
-          "description": "The blur style to apply on the shadow"
-        },
-        "borderRadius": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Border Radius with CSS-like notation (1 to 4 integers)",
-          "minimum": 0
-        },
-        "borderColor": {
-          "$ref": "#/definitions/Colors",
-          "description": "Border color, starting with '0xFF' for full opacity"
-        },
-        "borderWidth": {
-          "type": "number",
-          "description": "The thickness of the border",
-          "minimum": 0
-        },
-        "backgroundGradient": {
-          "type": "object",
-          "properties": {
-            "colors": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Colors"
-              },
-              "description": "The list of colors used for the gradient"
-            },
-            "start": {
-              "$ref": "#/definitions/alignmentEnum",
-              "description": "The starting position of the gradient"
-            },
-            "end": {
-              "$ref": "#/definitions/alignmentEnum",
-              "description": "The ending position of the gradient"
-            }
-          }
-        },
-        "backgroundColor": {
-          "$ref": "#/definitions/Colors"
-        },
-        "backgroundImage": {
-          "$ref": "#/definitions/backgroundImage"
-        },
-        "padding": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Padding with CSS-style value e.g. padding: 5 20 5"
-        },
-        "margin": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
-        },
-        "width": {
-          "type": "number",
-          "minimum": 0
-        },
-        "height": {
-          "type": "number",
-          "minimum": 0
-        },
-        "expanded": {
-          "type": "boolean",
-          "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
-        }
-      }
-    },
-    "Stack": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "ID to be referenced later"
-        },
-        "children": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Widgets"
-          },
-          "minItems": 1
-        },
-        "styles": {
-          "type": "object",
-          "properties": {
-            "alignment": {
-              "$ref": "#/definitions/alignmentEnum"
-            }
-          }
-        }
-      }
-    },
-    "ListView": {
-      "type": "object",
-      "properties": {
-        "item-template": {
-          "$ref": "#/definitions/ItemTemplate"
-        },
-        "id": {
-          "type": "string",
-          "description": "ID to be referenced later"
-        },
-        "children": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Widgets"
-          },
-          "minItems": 1
-        },
-        "onItemTap": {
-          "$ref": "#/definitions/Action",
-          "description": "Dispatch when an ListView item is selected/tapped.The event dispatches only when you tap on the item. The index of the item can be retrieved using 'selectedItemIndex'."
-        },
-        "selectedItemIndex": {
-          "type": "number",
-          "description": "Selecting a ListView item gives the index of selected item"
-        },
-        "styles": {
-          "type": "object",
-          "properties": {
-            "separatorColor": {
-              "$ref": "#/definitions/Colors",
-              "description": "Set the color for the separator between items"
-            },
-            "separatorWidth": {
-              "type": "number",
-              "description": "The thickness of the separator between items"
-            },
-            "separatorPadding": {
-              "type": [
-                "number",
-                "string"
-              ],
-              "description": "Padding with CSS-style value e.g. padding: 5 20 5 Default 0 0 0"
-            },
-            "gap": {
-              "type": "number",
-              "minimum": 0
-            },
-            "fontFamily": {
-              "type": "string",
-              "description": "Set the font family applicable for all widgets inside this container"
-            },
-            "fontSize": {
-              "type": "number",
-              "minimum": 0
-            },
-            "shadowColor": {
-              "type": [
-                "number",
-                "string"
-              ],
-              "description": "Box shadow color starting with '0xFF' for full opacity"
-            },
-            "shadowOffset": {
-              "type": "array",
-              "items": {
-                "type": "number"
-              }
-            },
-            "shadowRadius": {
-              "type": "number",
-              "minimum": 0
-            },
-            "shadowStyle": {
-              "$ref": "#/definitions/shadowEnum",
-              "description": "The blur style to apply on the shadow"
-            },
-            "borderRadius": {
-              "type": [
-                "number",
-                "string"
-              ],
-              "description": "Border Radius with CSS-like notation (1 to 4 integers)",
-              "minimum": 0
-            },
-            "borderColor": {
-              "$ref": "#/definitions/Colors",
-              "description": "Border color, starting with '0xFF' for full opacity"
-            },
-            "borderWidth": {
-              "type": "number",
-              "description": "The thickness of the border",
-              "minimum": 0
-            },
-            "backgroundGradient": {
-              "type": "object",
-              "properties": {
-                "colors": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/definitions/Colors"
-                  },
-                  "description": "The list of colors used for the gradient"
-                },
-                "start": {
-                  "$ref": "#/definitions/alignmentEnum",
-                  "description": "The starting position of the gradient"
-                },
-                "end": {
-                  "$ref": "#/definitions/alignmentEnum",
-                  "description": "The ending position of the gradient"
-                }
-              }
-            },
-            "backgroundColor": {
-              "$ref": "#/definitions/Colors"
-            },
-            "backgroundImage": {
-              "$ref": "#/definitions/backgroundImage"
-            },
-            "padding": {
-              "type": [
-                "number",
-                "string"
-              ],
-              "description": "Padding with CSS-style value e.g. padding: 5 20 5"
-            },
-            "margin": {
-              "type": [
-                "number",
-                "string"
-              ],
-              "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
-            },
-            "width": {
-              "type": "number",
-              "minimum": 0
-            },
-            "height": {
-              "type": "number",
-              "minimum": 0
-            },
-            "expanded": {
-              "type": "boolean",
-              "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
-            }
-          }
-        }
-      }
-    },
-    "Carousel": {
-      "type": "object",
-      "properties": {
-        "item-template": {
-          "$ref": "#/definitions/ItemTemplate"
-        },
-        "id": {
-          "type": "string",
-          "description": "ID to be referenced later"
-        },
-        "children": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Widgets"
-          },
-          "minItems": 1
-        },
-        "onItemChange": {
-          "$ref": "#/definitions/Action",
-          "description": "Dispatch when an carousel item is in focus. For SingleView, this happens when the item is scroll into view. For scrolling MultiView, the event dispatches only when you tap on the item. The index of the item can be retrieved using 'selectedIndex'."
-        },
-        "styles": {
-          "$ref": "#/definitions/styleCarousel"
-        }
-      }
-    },
-    "styleCarousel": {
-      "type": "object",
-      "properties": {
-        "layout": {
-          "$ref": "#/definitions/layoutEnum",
-          "description": "Show a SingleView (on screen one at a time), MultiView (scrolling items), or automatically switch between the views with autoLayoutBreakpoint"
-        },
-        "autoLayoutBreakpoint": {
-          "type": "number",
-          "description": "Show multiple views on the carousel if the breakpoint is equal or larger than this threshold, otherwise show single view. (default 768)"
-        },
-        "height": {
-          "type": "number",
-          "description": "The height of each view"
-        },
-        "gap": {
-          "type": "number",
-          "description": "The gap between each views, but also act as a left-right margin in a single view"
-        },
-        "leadingGap": {
-          "type": "number",
-          "description": "The space before the first item. Note that the left edge of the scroll area is still controlled by padding or margin."
-        },
-        "trailingGap": {
-          "type": "number",
-          "description": "The space after the last item. Note that the right edge of the scroll area is still controlled by padding or margin."
-        },
-        "singleItemWidthRatio": {
-          "type": "number",
-          "description": "The screen width ratio for each carousel item (in single item mode). Value ranges from 0.0 to 1.0 for the full width. (default 1.0)",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "multipleItemWidthRatio": {
-          "type": "number",
-          "description": "The screen width ratio for each carousel item (in multiple item mode). Value ranges from 0.0 to 1.0 for the full width (default 0.6)",
-          "minimum": 0,
-          "maximum": 1
-        },
-        "indicatorType": {
-          "$ref": "#/definitions/indicatorEnum",
-          "description": "How the view indicator should be displayed"
-        },
-        "indicatorPosition": {
-          "$ref": "#/definitions/indicatorPositionEnum",
-          "description": "Where to display the indicator if specified"
-        },
-        "indicatorWidth": {
-          "type": "number"
-        },
-        "indicatorHeight": {
-          "type": "number"
-        },
-        "indicatorMargin": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "The margin around each indicator"
-        },
-        "shadowColor": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Box shadow color starting with '0xFF' for full opacity"
-        },
-        "shadowOffset": {
-          "type": "array",
-          "items": {
-            "type": "number"
-          }
-        },
-        "shadowRadius": {
-          "type": "number",
-          "minimum": 0
-        },
-        "shadowStyle": {
-          "$ref": "#/definitions/shadowEnum",
-          "description": "The blur style to apply on the shadow"
-        },
-        "borderRadius": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Border Radius with CSS-like notation (1 to 4 integers)",
-          "minimum": 0
-        },
-        "borderColor": {
-          "$ref": "#/definitions/Colors",
-          "description": "Border color, starting with '0xFF' for full opacity"
-        },
-        "borderWidth": {
-          "type": "number",
-          "description": "The thickness of the border",
-          "minimum": 0
-        },
-        "backgroundGradient": {
-          "type": "object",
-          "properties": {
-            "colors": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Colors"
-              },
-              "description": "The list of colors used for the gradient"
-            },
-            "start": {
-              "$ref": "#/definitions/alignmentEnum",
-              "description": "The starting position of the gradient"
-            },
-            "end": {
-              "$ref": "#/definitions/alignmentEnum",
-              "description": "The ending position of the gradient"
-            }
-          }
-        },
-        "backgroundColor": {
-          "$ref": "#/definitions/Colors"
-        },
-        "backgroundImage": {
-          "$ref": "#/definitions/backgroundImage"
-        },
-        "padding": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Padding with CSS-style value e.g. padding: 5 20 5"
-        },
-        "margin": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
-        }
-      }
-    },
-    "layoutEnum": {
-      "type": "string",
-      "enum": [
-        "auto",
-        "single",
-        "multiple"
-      ]
-    },
-    "indicatorEnum": {
-      "type": "string",
-      "enum": [
-        "none",
-        "circle",
-        "rectangle"
-      ]
-    },
-    "indicatorPositionEnum": {
-      "type": "string",
-      "enum": [
-        "bottom",
-        "top"
-      ]
-    },
-    "properties": {
-      "type": "object",
-      "properties": {
-        "Import": {
-          "type": "object"
-        },
-        "ViewGroup": {
-          "$ref": "#/definitions/Menu"
-        },
-        "View": {
-          "$ref": "#/definitions/View"
-        },
-        "Action": {
-          "type": "object"
-        },
-        "Model": {
-          "type": "object"
-        },
-        "App": {
-          "type": "object"
-        },
-        "Variable": {
-          "type": "object"
-        },
-        "Functions": {
-          "$ref": "#/definitions/Functions"
-        },
-        "Global": {
-          "$ref": "#/definitions/GlobalType"
-        },
-        "API": {
-          "$ref": "#/definitions/API"
-        }
-      }
-    },
-    "View": {
-      "type": "object",
-      "properties": {
-        "Column": {
-          "$ref": "#/definitions/Column"
-        },
-        "Flow": {
-          "$ref": "#/definitions/Flow"
-        },
-        "Flex": {
-          "$ref": "#/definitions/Flex"
-        },
-        "Stack": {
-          "$ref": "#/definitions/Stack"
-        },
-        "ListView": {
-          "$ref": "#/definitions/ListView"
-        },
-        "Carousel": {
-          "$ref": "#/definitions/Carousel"
-        },
-        "header": {
-          "type": "object",
-          "properties": {
-            "title": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "$ref": "#/definitions/Widgets"
-                }
-              ],
-              "description": "A simple text or a custom widget for the App's title"
-            },
-            "flexibleBackground": {
-              "$ref": "#/definitions/Widgets",
-              "description": "This widget (typically used as an background image) acts as the header's background, with the title bar and the bottom widget overlaid on top. On non-scrollable screen, its dimensions is dictated by the header's width and height."
-            },
-            "styles": {
-              "type": "object",
-              "properties": {
-                "backgroundColor": {
-                  "$ref": "#/definitions/Colors",
-                  "description": "By default the background color uses the theme's 'primary' color. You can override the header's background color here."
-                },
-                "color": {
-                  "$ref": "#/definitions/Colors",
-                  "description": "By default the navigation icon, title, and action icons uses the theme's 'onPrimary' color. You can override their colors here."
-                },
-                "elevation": {
-                  "type": "number",
-                  "description": "Raise the header on its z-coordinates relative to the body. This effectively creates a drop shadow on the header's bottom edge.",
-                  "minimum": 0
-                },
-                "shadowColor": {
-                  "$ref": "#/definitions/Colors",
-                  "description": "If elevation is non-zero, this will override the drop shadow color of the header's bottom edge."
-                },
-                "centerTitle": {
-                  "type": "boolean",
-                  "description": "Whether to align the title in the title bar's center horizontally (default: true)"
-                },
-                "titleBarHeight": {
-                  "type": "number",
-                  "description": "For consistency, the header's title bar has the default fixed height of 56 regardless of its content. You may adjust its height here.",
-                  "minimum": 0
-                },
-                "flexibleMinHeight": {
-                  "type": "number",
-                  "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's min height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). Note that this attribute will be ignored if smaller than the titleBarHeight"
-                },
-                "flexibleMaxHeight": {
-                  "type": "number",
-                  "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's max height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). This attribute will be ignored if smaller than the flexibleMinHeight"
-                }
-              }
-            }
-          },
-          "description": "Configure the application header"
-        },
-        "onLoad": {
-          "$ref": "#/definitions/Action",
-          "description": "Execute an Action when the screen loads"
-        },
-        "options": {
-          "type": "object",
-          "properties": {
-            "type": {
-              "$ref": "#/definitions/screenType",
-              "description": "Specify if this is a regular (default) or modal screen"
-            }
-          }
-        },
-        "style": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "object",
-              "properties": {
-                "useSafeArea": {
-                  "type": "boolean",
-                  "description": "Applicable only when we don't have a header. If true, insert paddings around the body content to account for the the devices' Safe Area (e.g. iPhone notch). Default is false."
-                },
-                "scrollableView": {
-                  "type": "boolean",
-                  "description": "Specify if the content of this screen is scrollable with a global scrollbar. Using this also allow you to customize the scrolling experience of the header."
-                },
-                "showNavigationIcon": {
-                  "type": "boolean",
-                  "description": "For a screen with header, the App will automatically show the Menu, Back, or Close icon (for modal screen) before the title. On modal screen without the header, the Close icon will be shown. Set this flag to false if you wish to hide the icons and handle the navigation yourself."
-                },
-                "navigationIconPosition": {
-                  "$ref": "#/definitions/navIconPosition",
-                  "description": "On modal screen without a header, you can position the close button at the start or end of the screen. For left-to-right languages like English, start is on the left and end is on the right. This property has no effect on a screen with header."
-                },
-                "backgroundGradient": {
-                  "type": "object",
-                  "properties": {
-                    "source": {
-                      "type": "string",
-                      "description": "The Image URL to fill the background"
-                    },
-                    "fit": {
-                      "$ref": "#/definitions/fitEnum",
-                      "description": "How to fit the image within our width/height or our parent (if dimension is not specified)"
-                    },
-                    "alignment": {
-                      "$ref": "#/definitions/alignmentEnum"
-                    }
-                  }
-                }
-              },
-              "required": [
-                "backgroundGradient"
-              ]
-            },
-            {
-              "type": "object",
-              "properties": {
-                "useSafeArea": {
-                  "type": "boolean",
-                  "description": "Applicable only when we don't have a header. If true, insert paddings around the body content to account for the the devices' Safe Area (e.g. iPhone notch). Default is false."
-                },
-                "scrollableView": {
-                  "type": "boolean",
-                  "description": "Specify if the content of this screen is scrollable with a global scrollbar. Using this also allow you to customize the scrolling experience of the header."
-                },
-                "showNavigationIcon": {
-                  "type": "boolean",
-                  "description": "For a screen with header, the App will automatically show the Menu, Back, or Close icon (for modal screen) before the title. On modal screen without the header, the Close icon will be shown. Set this flag to false if you wish to hide the icons and handle the navigation yourself."
-                },
-                "navigationIconPosition": {
-                  "$ref": "#/definitions/navIconPosition",
-                  "description": "On modal screen without a header, you can position the close button at the start or end of the screen. For left-to-right languages like English, start is on the left and end is on the right. This property has no effect on a screen with header."
-                },
-                "backgroundGradient": {
-                  "type": "object",
-                  "properties": {
-                    "source": {
-                      "type": "string",
-                      "description": "The Image URL to fill the background"
-                    },
-                    "fit": {
-                      "$ref": "#/definitions/fitEnum",
-                      "description": "How to fit the image within our width/height or our parent (if dimension is not specified)"
-                    },
-                    "alignment": {
-                      "$ref": "#/definitions/alignmentEnum"
-                    }
-                  }
-                }
-              },
-              "required": [
-                "backgroundGradient"
-              ]
-            }
-          ]
         }
       }
     },

@@ -8,10 +8,11 @@ const config = {
   path: "./src/coreSchema.ts",
   tsconfig: "./tsconfig.json",
   additionalProperties: true,
-  type: "*", // Or <type-name> if you want to generate schema for that one type only,
-  expose: "all",
+  type: "properties", // Or <type-name> if you want to generate schema for that one type only,
+  expose: "export",
   strictTuples: true,
   skipTypeCheck: false,
+  topRef: false,
 };
 
 const output_path = "./output/ensemble_schema.json";

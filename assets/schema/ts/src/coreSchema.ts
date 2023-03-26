@@ -62,7 +62,7 @@ export interface TemplatedWidget {
 export type ViewGroup = Menu;
 //menu widgets
 
-export interface properties {
+export type properties = {
   Import?: {};
   ViewGroup?: Menu;
   View?: View;
@@ -73,4 +73,4 @@ export interface properties {
   Functions?: Functions;
   Global?: GlobalType;
   API?: API;
-}
+};
