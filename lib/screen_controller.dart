@@ -178,9 +178,7 @@ class ScreenController {
         });
       }
     } else if (action is ShowCameraAction) {
-      if (scopeManager != null) {
-        CameraManager().openCamera(context, action);
-      }
+      CameraManager().openCamera(context, action, scopeManager);
     } else if (action is ShowDialogAction) {
       if (scopeManager != null) {
         Widget widget = scopeManager.buildWidgetFromDefinition(action.widget);

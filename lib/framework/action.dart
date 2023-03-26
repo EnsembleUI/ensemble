@@ -40,10 +40,23 @@ class InvokeAPIAction extends EnsembleAction {
 
 class ShowCameraAction extends EnsembleAction {
   ShowCameraAction({
-    super.initiator,
+    Invokable? initiator,
     this.options,
-  });
+    this.id,
+    this.onComplete,
+  }) : super(initiator: initiator);
   final Map<String, dynamic>? options;
+  String? id;
+  EnsembleAction? onComplete;
+
+  factory ShowCameraAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
+    return ShowCameraAction(
+      initiator: initiator,
+      options: Utils.getMap(payload?['options']),
+      id: Utils.optionalString(payload?['id']),
+      onComplete: EnsembleAction.fromYaml(payload?['onComplete']),
+    );
+  }
 }
 
 /// TODO: support inputs for Dialog
@@ -423,8 +436,7 @@ abstract class EnsembleAction {
     } else if (actionType == ActionType.invokeAPI) {
       return InvokeAPIAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.openCamera) {
-      return ShowCameraAction(
-          initiator: initiator, options: Utils.getMap(payload?['options']));
+      return ShowCameraAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.showDialog) {
       return ShowDialogAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.closeAllDialogs) {
