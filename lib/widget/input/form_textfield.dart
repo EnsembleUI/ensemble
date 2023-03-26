@@ -250,6 +250,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
     }
 
     return InputWrapper(
+        type: TextInput.type,
         controller: widget._controller,
         widget: TextFormField(
             key: validatorKey,

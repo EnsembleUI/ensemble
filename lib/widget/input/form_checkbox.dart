@@ -116,6 +116,9 @@ class OnOffState extends FormFieldWidgetState<OnOffWidget> {
 
     // wraps around FormField to get all the form effects
     return InputWrapper(
+        type: widget.getType() == OnOffType.toggle
+            ? EnsembleSwitch.type
+            : EnsembleCheckbox.type,
         controller: widget._controller,
         widget: FormField<bool>(
             key: validatorKey,
