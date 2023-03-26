@@ -14,7 +14,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:ensemble/util/extensions.dart';
 
-class Date extends StatefulWidget with Invokable, HasController<DateController, DateState> {
+class Date extends StatefulWidget
+    with Invokable, HasController<DateController, DateState> {
   static const type = 'Date';
   Date({Key? key}) : super(key: key);
 
@@ -43,12 +44,12 @@ class Date extends StatefulWidget with Invokable, HasController<DateController, 
       'initialValue': (value) => _controller.value ??= Utils.getDate(value),
       'firstDate': (value) => _controller.firstDate = Utils.getDate(value),
       'lastDate': (value) => _controller.lastDate = Utils.getDate(value),
-      'showCalendarIcon': (shouldShow) => _controller.showCalendarIcon = Utils.optionalBool(shouldShow),
-      'onChange': (definition) => _controller.onChange = EnsembleAction.fromYaml(definition, initiator: this)
+      'showCalendarIcon': (shouldShow) =>
+          _controller.showCalendarIcon = Utils.optionalBool(shouldShow),
+      'onChange': (definition) => _controller.onChange =
+          EnsembleAction.fromYaml(definition, initiator: this)
     };
   }
-
-
 }
 
 class DateController extends FormFieldController {
@@ -60,7 +61,6 @@ class DateController extends FormFieldController {
 
   bool? showCalendarIcon;
   EnsembleAction? onChange;
-
 }
 
 class DateState extends FormFieldWidgetState<Date> {
@@ -68,12 +68,14 @@ class DateState extends FormFieldWidgetState<Date> {
 
   /// the selected date nicely formatted
   String get selectedValue => widget._controller.value != null
-      ? DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(widget._controller.value!)
+      ? DateFormat.yMMMd(Localizations.localeOf(context).toString())
+          .format(widget._controller.value!)
       : '';
 
   @override
   Widget buildWidget(BuildContext context) {
     return InputWrapper(
+        type: Date.type,
         controller: widget.controller,
         widget: FormField<DateTime>(
             key: validatorKey,
@@ -122,7 +124,6 @@ class DateState extends FormFieldWidgetState<Date> {
               }
               return rtn;
             }));
-
   }
 
   void _selectDate(BuildContext context) async {
@@ -146,17 +147,17 @@ class DateState extends FormFieldWidgetState<Date> {
       lastDate: lastDate,
     );
     if (picked != null) {
-      if (widget._controller.value == null || widget._controller.value!.compareTo(picked) != 0) {
+      if (widget._controller.value == null ||
+          widget._controller.value!.compareTo(picked) != 0) {
         setState(() {
           widget._controller.value = picked;
         });
         if (isEnabled() && widget._controller.onChange != null) {
           ScreenController().executeAction(
-              context, widget._controller.onChange!,event: EnsembleEvent(widget));
+              context, widget._controller.onChange!,
+              event: EnsembleEvent(widget));
         }
       }
     }
   }
-
-
 }

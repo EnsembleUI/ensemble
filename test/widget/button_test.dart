@@ -23,7 +23,8 @@ void main() {
     expect(buttonFinder, findsOneWidget);
 
     ElevatedButton textButton = tester.firstWidget(buttonFinder);
-    expect(((textButton.child as Row).children.first as Text).data, 'hello world');
+    expect(
+        ((textButton.child as Row).children.first as Text).data, 'hello world');
   });
 
   testWidgets("button with starting icon", (tester) async {
