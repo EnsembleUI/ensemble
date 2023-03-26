@@ -605,7 +605,7 @@ class Utils {
   /// prefix the asset with the root directory (i.e. ensemble/assets/), plus
   /// stripping any unecessary query params (e.g. anything after the first ?)
   static String getLocalAssetFullPath(String asset) {
-    return 'ensemble/assets/${stripQueryParamsFromAsset(asset)}';
+    return 'ensemble/${stripQueryParamsFromAsset(asset)}';
   }
 
   /// strip any query params (anything after the first ?) from our assets e.g. my-image?x=abc

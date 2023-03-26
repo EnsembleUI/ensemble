@@ -1,19 +1,12 @@
 import 'dart:developer';
+import 'dart:io';
 
-import 'package:ensemble/ensemble_theme.dart';
-import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/widget/widget.dart';
-import 'package:ensemble/page_model.dart';
-import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/input/form_helper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
-import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:intl/intl.dart';
-import 'package:ensemble/util/extensions.dart';
 import 'package:video_player/video_player.dart';
 
 class Video extends StatefulWidget
@@ -49,18 +42,33 @@ class Video extends StatefulWidget
 class MyController extends WidgetController {
   VideoPlayerController? _playerController;
 
-  String? _source;
   void updateSource(String? value) {
     // always invalidate the old controller
     _playerController?.dispose();
 
     if (value != null) {
-      _playerController = VideoPlayerController.network(value)
-        ..initialize().then((_) {
-          VideoPlayerValue value = _playerController!.value;
-          log(value.toString());
-          notifyListeners();
-        });
+      if (value.startsWith('https://') || value.startsWith('http://')) {
+        _playerController = VideoPlayerController.network(value)
+          ..initialize().then((_) {
+            VideoPlayerValue value = _playerController!.value;
+            log(value.toString());
+            notifyListeners();
+          });
+      } else if (value.contains('assets')) {
+        _playerController = VideoPlayerController.asset(value)
+          ..initialize().then((_) {
+            VideoPlayerValue value = _playerController!.value;
+            log(value.toString());
+            notifyListeners();
+          });
+      } else {
+        _playerController = VideoPlayerController.file(File(value))
+          ..initialize().then((_) {
+            VideoPlayerValue value = _playerController!.value;
+            log(value.toString());
+            notifyListeners();
+          });
+      }
 
       _playerController!.addListener(() {
         // finish playing, call setState() to update the status
