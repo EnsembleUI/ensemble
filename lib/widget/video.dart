@@ -49,27 +49,27 @@ class MyController extends WidgetController {
     if (value != null) {
       if (value.startsWith('https://') || value.startsWith('http://')) {
         _playerController = VideoPlayerController.network(value)
-                ..initialize().then((_) {
-                  VideoPlayerValue value = _playerController!.value;
-                  log(value.toString());
-                  notifyListeners();
+          ..initialize().then((_) {
+            VideoPlayerValue value = _playerController!.value;
+            log(value.toString());
+            notifyListeners();
           });
       } else if (value.contains('assets')) {
         _playerController = VideoPlayerController.asset(value)
-                ..initialize().then((_) {
-                  VideoPlayerValue value = _playerController!.value;
-                  log(value.toString());
-                  notifyListeners();
+          ..initialize().then((_) {
+            VideoPlayerValue value = _playerController!.value;
+            log(value.toString());
+            notifyListeners();
           });
       } else {
         _playerController = VideoPlayerController.file(File(value))
-                ..initialize().then((_) {
-                  VideoPlayerValue value = _playerController!.value;
-                  log(value.toString());
-                  notifyListeners();
+          ..initialize().then((_) {
+            VideoPlayerValue value = _playerController!.value;
+            log(value.toString());
+            notifyListeners();
           });
       }
-      
+
       _playerController!.addListener(() {
         // finish playing, call setState() to update the status
         if (_playerController!.value.position ==

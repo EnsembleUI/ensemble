@@ -17,7 +17,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_svg/svg.dart';
 
-class EnsembleImage extends StatefulWidget with Invokable, HasController<ImageController, ImageState> {
+class EnsembleImage extends StatefulWidget
+    with Invokable, HasController<ImageController, ImageState> {
   static const type = 'Image';
   EnsembleImage({Key? key}) : super(key: key);
 
@@ -41,12 +42,17 @@ class EnsembleImage extends StatefulWidget with Invokable, HasController<ImageCo
   @override
   Map<String, Function> setters() {
     return {
-      'source': (value) => _controller.source = Utils.getString(value, fallback: ''),
+      'source': (value) =>
+          _controller.source = Utils.getString(value, fallback: ''),
       'fit': (value) => _controller.fit = Utils.optionalString(value),
-      'resizedWidth': (width) => _controller.resizedWidth = Utils.optionalInt(width, min: 0, max: 2000),
-      'resizedHeight': (height) => _controller.resizedHeight = Utils.optionalInt(height, min: 0, max: 2000),
-      'placeholderColor': (value) => _controller.placeholderColor = Utils.getColor(value),
-      'onTap': (funcDefinition) => _controller.onTap = EnsembleAction.fromYaml(funcDefinition, initiator: this)
+      'resizedWidth': (width) => _controller.resizedWidth =
+          Utils.optionalInt(width, min: 0, max: 2000),
+      'resizedHeight': (height) => _controller.resizedHeight =
+          Utils.optionalInt(height, min: 0, max: 2000),
+      'placeholderColor': (value) =>
+          _controller.placeholderColor = Utils.getColor(value),
+      'onTap': (funcDefinition) => _controller.onTap =
+          EnsembleAction.fromYaml(funcDefinition, initiator: this)
     };
   }
 }
@@ -97,8 +103,9 @@ class ImageState extends WidgetState<EnsembleImage> {
     if (widget._controller.onTap != null) {
       rtn = GestureDetector(
           child: rtn,
-          onTap: () =>
-              ScreenController().executeAction(context, widget._controller.onTap!, event: EnsembleEvent(widget)));
+          onTap: () => ScreenController().executeAction(
+              context, widget._controller.onTap!,
+              event: EnsembleEvent(widget)));
     }
     if (widget._controller.margin != null) {
       rtn = Padding(padding: widget._controller.margin!, child: rtn);
@@ -165,7 +172,8 @@ class ImageState extends WidgetState<EnsembleImage> {
           placeholderBuilder: (_) => placeholder);
     }
     // attempt local assets
-    return SvgPicture.asset(Utils.getLocalAssetFullPath(widget._controller.source),
+    return SvgPicture.asset(
+        Utils.getLocalAssetFullPath(widget._controller.source),
         width: widget._controller.width?.toDouble(),
         height: widget._controller.height?.toDouble(),
         fit: fit ?? BoxFit.contain);
@@ -177,17 +185,26 @@ class ImageState extends WidgetState<EnsembleImage> {
 
   /// display if the image cannot be loaded
   Widget errorFallback() {
-    return Image.asset('assets/images/img_placeholder.png', package: 'ensemble', fit: BoxFit.cover);
+    return Image.asset('assets/images/img_placeholder.png',
+        package: 'ensemble', fit: BoxFit.cover);
   }
 
   // use modern colors as background placeholder while images are being loaded
-  final placeholderColors = [0xffD9E3E5, 0xffBBCBD2, 0xffA79490, 0xffD7BFA8, 0xffEAD9C9, 0xffEEEAE7];
+  final placeholderColors = [
+    0xffD9E3E5,
+    0xffBBCBD2,
+    0xffA79490,
+    0xffD7BFA8,
+    0xffEAD9C9,
+    0xffEEEAE7
+  ];
   Widget getPlaceholder() {
     // container without child will get the size of its parent
     return Container(
         decoration: BoxDecoration(
             color: widget._controller.placeholderColor ??
-                Color(placeholderColors[Random().nextInt(placeholderColors.length)])));
+                Color(placeholderColors[
+                    Random().nextInt(placeholderColors.length)])));
   }
 }
 
