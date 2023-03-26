@@ -23,24 +23,40 @@ class InvokeAPIAction extends EnsembleAction {
 
   factory InvokeAPIAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
     if (payload == null || payload['name'] == null) {
-      throw LanguageError("${ActionType.invokeAPI.name} requires the 'name' of the API.");
+      throw LanguageError(
+          "${ActionType.invokeAPI.name} requires the 'name' of the API.");
     }
     return InvokeAPIAction(
         initiator: initiator,
         apiName: payload['name'],
         id: Utils.optionalString(payload['id']),
         inputs: Utils.getMap(payload['inputs']),
-        onResponse: EnsembleAction.fromYaml(payload['onResponse'], initiator: initiator),
-        onError: EnsembleAction.fromYaml(payload['onError'], initiator: initiator));
+        onResponse: EnsembleAction.fromYaml(payload['onResponse'],
+            initiator: initiator),
+        onError:
+            EnsembleAction.fromYaml(payload['onError'], initiator: initiator));
   }
 }
 
 class ShowCameraAction extends EnsembleAction {
   ShowCameraAction({
-    super.initiator,
+    Invokable? initiator,
     this.options,
-  });
+    this.id,
+    this.onComplete,
+  }) : super(initiator: initiator);
   final Map<String, dynamic>? options;
+  String? id;
+  EnsembleAction? onComplete;
+
+  factory ShowCameraAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
+    return ShowCameraAction(
+      initiator: initiator,
+      options: Utils.getMap(payload?['options']),
+      id: Utils.optionalString(payload?['id']),
+      onComplete: EnsembleAction.fromYaml(payload?['onComplete']),
+    );
+  }
 }
 
 /// TODO: support inputs for Dialog
@@ -59,7 +75,8 @@ class ShowDialogAction extends EnsembleAction {
 
   factory ShowDialogAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
     if (payload == null || payload['widget'] == null) {
-      throw LanguageError("${ActionType.showDialog.name} requires the 'widget' for the Dialog's content.");
+      throw LanguageError(
+          "${ActionType.showDialog.name} requires the 'widget' for the Dialog's content.");
     }
     return ShowDialogAction(
         initiator: initiator,
@@ -71,12 +88,15 @@ class ShowDialogAction extends EnsembleAction {
 }
 
 class NavigateScreenAction extends BaseNavigateScreenAction {
-  NavigateScreenAction({super.initiator, required super.screenName, super.inputs, super.options})
+  NavigateScreenAction(
+      {super.initiator, required super.screenName, super.inputs, super.options})
       : super(asModal: false);
 
-  factory NavigateScreenAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
+  factory NavigateScreenAction.fromYaml(
+      {Invokable? initiator, YamlMap? payload}) {
     if (payload == null || payload['name'] == null) {
-      throw LanguageError("${ActionType.navigateScreen.name} requires the 'name' of the screen to navigate to.");
+      throw LanguageError(
+          "${ActionType.navigateScreen.name} requires the 'name' of the screen to navigate to.");
     }
     return NavigateScreenAction(
         initiator: initiator,
@@ -95,9 +115,11 @@ class NavigateModalScreenAction extends BaseNavigateScreenAction {
   }) : super(asModal: true);
   EnsembleAction? onModalDismiss;
 
-  factory NavigateModalScreenAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
+  factory NavigateModalScreenAction.fromYaml(
+      {Invokable? initiator, YamlMap? payload}) {
     if (payload == null || payload['name'] == null) {
-      throw LanguageError("${ActionType.navigateModalScreen.name} requires the 'name' of the screen to navigate to.");
+      throw LanguageError(
+          "${ActionType.navigateModalScreen.name} requires the 'name' of the screen to navigate to.");
     }
     return NavigateModalScreenAction(
         initiator: initiator,
@@ -109,7 +131,11 @@ class NavigateModalScreenAction extends BaseNavigateScreenAction {
 
 abstract class BaseNavigateScreenAction extends EnsembleAction {
   BaseNavigateScreenAction(
-      {super.initiator, required this.screenName, required this.asModal, super.inputs, this.options});
+      {super.initiator,
+      required this.screenName,
+      required this.asModal,
+      super.inputs,
+      this.options});
 
   String screenName;
   bool asModal;
@@ -301,19 +327,26 @@ class FilePickerAction extends EnsembleAction {
     this.allowedExtensions,
     this.allowMultiple,
     this.allowCompression,
+    this.onComplete,
+    this.onError,
   });
 
   String id;
   List<String>? allowedExtensions;
   bool? allowMultiple;
   bool? allowCompression;
+  EnsembleAction? onComplete;
+  EnsembleAction? onError;
 
   factory FilePickerAction.fromYaml({YamlMap? payload}) {
     return FilePickerAction(
       id: payload?['id'],
-      allowedExtensions: (payload?['allowedExtensions'] as YamlList?)?.cast<String>().toList(),
+      allowedExtensions:
+          (payload?['allowedExtensions'] as YamlList?)?.cast<String>().toList(),
       allowMultiple: Utils.optionalBool(payload?['allowMultiple']),
       allowCompression: Utils.optionalBool(payload?['allowCompression']),
+      onComplete: EnsembleAction.fromYaml(payload?['onComplete']),
+      onError: EnsembleAction.fromYaml(payload?['onError']),
     );
   }
 }
@@ -342,7 +375,8 @@ class FileUploadAction extends EnsembleAction {
 
   factory FileUploadAction.fromYaml({YamlMap? payload}) {
     if (payload == null || payload['uploadApi'] == null) {
-      throw LanguageError("${ActionType.uploadFiles.name} requires 'uploadApi'.");
+      throw LanguageError(
+          "${ActionType.uploadFiles.name} requires 'uploadApi'.");
     }
     if (payload['files'] == null) {
       throw LanguageError("${ActionType.uploadFiles.name} requires 'files'.");
@@ -355,7 +389,8 @@ class FileUploadAction extends EnsembleAction {
       inputs: Utils.getMap(payload['inputs']),
       fieldName: Utils.getString(payload['fieldName'], fallback: 'files'),
       maxFileSize: Utils.optionalInt(payload['maxFileSize']),
-      overMaxFileSizeMessage: Utils.optionalString(payload['overMaxFileSizeMessage']),
+      overMaxFileSizeMessage:
+          Utils.optionalString(payload['overMaxFileSizeMessage']),
       files: payload['files'],
     );
   }
@@ -392,8 +427,8 @@ abstract class EnsembleAction {
   static EnsembleAction? fromYaml(dynamic action, {Invokable? initiator}) {
     if (action is YamlMap) {
       ActionType? actionType = ActionType.values.from(action.keys.first);
-      YamlMap? payload = action[action.keys.first];
-      if (actionType != null) {
+      dynamic payload = action[action.keys.first];
+      if (actionType != null && payload is YamlMap) {
         return fromActionType(actionType,
             initiator: initiator, payload: payload);
       }
@@ -426,8 +461,7 @@ abstract class EnsembleAction {
     } else if (actionType == ActionType.invokeAPI) {
       return InvokeAPIAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.openCamera) {
-      return ShowCameraAction(
-          initiator: initiator, options: Utils.getMap(payload?['options']));
+      return ShowCameraAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.showDialog) {
       return ShowDialogAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.closeAllDialogs) {

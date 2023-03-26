@@ -58,6 +58,8 @@ class EnsembleForm extends StatefulWidget
       'gap': (value) => _controller.gap =
           Utils.getInt(value, fallback: FormController._defaultGap),
       'maxWidth': (value) => _controller.maxWidth = Utils.optionalInt(value),
+      'labelMaxWidth': (value) =>
+          _controller.labelMaxWidth = Utils.optionalInt(value),
     };
   }
 
@@ -91,6 +93,8 @@ class FormController extends WidgetController {
   String? labelOverflow;
   bool? enabled;
 
+  // labelMaxWidth applicable only to labelPosition=start
+  int? labelMaxWidth;
   int? maxWidth;
 
   int? width;
@@ -167,53 +171,57 @@ class FormState extends WidgetState<EnsembleForm> {
 
   Widget buildGrid(List<Widget> formItems) {
     bool hasAtLeastOneLabel = false;
-    List<Widget> children = [];
+    List<Widget> rows = [];
     for (int i = 0; i < formItems.length; i++) {
       Widget child = formItems[i];
-      // add the label
+
+      // build the label
+      Widget label;
       if (child is HasController &&
           child.controller is WidgetController &&
-          !inExcludedList(child.controller as WidgetController) &&
-          (child.controller as WidgetController).label != null) {
-        children.add(GridPlacement(
-            child: stretchAndVerticallyAlignLabel(
-                (child.controller as WidgetController).label!,
-                (child.controller as WidgetController).labelHint)));
+          (child.controller as WidgetController).label != null &&
+          !inExcludedList(child.controller as WidgetController)) {
+        label = buildLabel((child.controller as WidgetController).label!,
+            (child.controller as WidgetController).labelHint);
         hasAtLeastOneLabel = true;
       } else {
-        children.add(const GridPlacement(child: SizedBox.shrink()));
+        // empty label needs special treatment to line up with other labels
+        label = widget._controller.labelMaxWidth == null
+            ? const SizedBox.shrink()
+            : SizedBox(width: widget._controller.labelMaxWidth!.toDouble());
       }
-      // add the widget
-      children.add(GridPlacement(child: child));
+
+      // add the input field and its label
+      rows.add(Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+        // make the label takes 1/3 of the available space, subjected to its labelMaxWidth
+        widget._controller.labelMaxWidth == null
+            ? Expanded(flex: 1, child: label)
+            : Flexible(
+                flex: 1,
+                child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                        // constraint the label to the labelMaxWidth
+                        minWidth: widget._controller.labelMaxWidth!.toDouble(),
+                        maxWidth: widget._controller.labelMaxWidth!.toDouble()),
+                    child: label)),
+        // small gap after the label
+        const SizedBox(width: 5),
+        // make the widget takes 2/3 of the available space
+        Expanded(flex: 2, child: child)
+      ]));
 
       // add gap
       if (widget._controller.gap > 0 && i != formItems.length - 1) {
-        for (int j = 0; j < 2; j++) {
-          children.add(GridPlacement(
-              child: flutter.SizedBox(
-                  width: widget._controller.gap.toDouble(),
-                  height: widget._controller.gap.toDouble())));
-        }
+        rows.add(flutter.SizedBox(
+            width: widget._controller.gap.toDouble(),
+            height: widget._controller.gap.toDouble()));
       }
     }
 
-    // we only use the Grid if there exists at least 1 label
-    if (hasAtLeastOneLabel) {
-      // account for gaps
-      int rowCount = formItems.length;
-      if (widget._controller.gap > 0 && rowCount > 0) {
-        rowCount = formItems.length * 2 - 1;
-      }
-
-      return LayoutGrid(
-          columnSizes: [1.fr, 2.fr], // ratio of form fields to its label
-          rowSizes: List.filled(rowCount, auto), // automatic row height
-          children: children);
-    }
-    return buildColumn(formItems);
+    return hasAtLeastOneLabel ? Column(children: rows) : buildColumn(formItems);
   }
 
-  Widget stretchAndVerticallyAlignLabel(String label, String? labelHint) {
+  Widget buildLabel(String label, String? labelHint) {
     util.TextOverflow textOverflow =
         util.TextOverflow.from(widget._controller.labelOverflow);
 
@@ -223,29 +231,23 @@ class FormState extends WidgetState<EnsembleForm> {
       maxLines: textOverflow.maxLine,
       softWrap: textOverflow.softWrap,
     );
-    // if label has hint, overlay the hint icon to its right, but still
-    // keep the label sizing so all the text properties still work
-    if (labelHint != null) {
-      labelWidget = Stack(
-        children: [
-          Padding(
-              padding: const EdgeInsets.only(right: 20), child: labelWidget),
-          flutter.Positioned(
-              right: 0,
-              child: Tooltip(
-                triggerMode: TooltipTriggerMode.tap,
-                message: labelHint,
-                preferBelow: true,
-                child: const Icon(Icons.info_outline, size: 18),
-                showDuration: const Duration(seconds: 5),
-              ))
-        ],
-      );
+    if (labelHint == null) {
+      return labelWidget;
     }
-
-    return Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      Expanded(
-          child: Align(alignment: Alignment.centerLeft, child: labelWidget))
+    return Stack(children: [
+      Padding(padding: const EdgeInsets.only(right: 20), child: labelWidget),
+      flutter.Positioned(
+          right: 0,
+          // align vertically
+          top: 0,
+          bottom: 0,
+          child: Tooltip(
+            triggerMode: TooltipTriggerMode.tap,
+            message: labelHint,
+            preferBelow: true,
+            child: const Icon(Icons.info_outline, size: 18),
+            showDuration: const Duration(seconds: 5),
+          ))
     ]);
   }
 

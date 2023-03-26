@@ -242,12 +242,10 @@ class TextOverflow {
       case 'clip':
         textOverflow = flutter.TextOverflow.clip;
         break;
-
-      // fade is not working correctly on web renderer. https://github.com/flutter/flutter/issues/71413
-      // case 'fade':
-      //   textOverflow = flutter.TextOverflow.fade;
-      //   break;
-
+      // NOTE: fade is not working correctly on web renderer. https://github.com/flutter/flutter/issues/71413
+      case 'fade':
+        textOverflow = flutter.TextOverflow.fade;
+        break;
       case 'ellipsis':
         textOverflow = flutter.TextOverflow.ellipsis;
         break;
