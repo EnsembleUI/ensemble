@@ -77,9 +77,9 @@ class FittedBoxLayoutState extends WidgetState<FittedBoxLayout>
       Widget child = widget._controller.children![i];
 
       // default flex is 1 if not specified
-      BoxFlex flex = widget._controller.childrenFlex != null &&
-              i < widget._controller.childrenFlex!.length
-          ? widget._controller.childrenFlex![i]
+      BoxFlex flex = widget._controller.childrenFits != null &&
+              i < widget._controller.childrenFits!.length
+          ? widget._controller.childrenFits![i]
           : BoxFlex.asFlex(1);
 
       if (flex.auto) {

@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/layout_utils.dart';
@@ -44,13 +45,13 @@ class BoxLayoutWrapper extends StatelessWidget {
 
 /// controller for FittedRow/FittedColumn
 class FittedBoxLayoutController extends BaseBoxLayoutController {
-  List<dynamic>? childrenFlex;
+  List<BoxFlex>? childrenFits;
 
   @override
   Map<String, Function> getBaseSetters() {
     Map<String, Function> setters = super.getBaseSetters();
     setters.addAll({
-      'childrenFlex': (value) => childrenFlex = BoxUtils.getChildrenFlex(value)
+      'childrenFits': (value) => childrenFits = BoxUtils.getChildrenFits(value)
     });
     return setters;
   }
