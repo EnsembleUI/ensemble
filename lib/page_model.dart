@@ -190,28 +190,34 @@ class SinglePageModel extends PageModel {
   // Let's manually select what can be specified here (really just styles/item-template/children)
   WidgetModel buildRootModel(
       YamlMap viewMap, Map<String, dynamic>? customViewDefinitions) {
-    WidgetModel? rootModel = getRootModel(viewMap, customViewDefinitions!);
-    if (rootModel != null) {
-      if (![
-        Column.type,
-        Row.type,
-        Flex.type,
-        EnsembleStack.type,
-        AppScroller.type,
-      ].contains(rootModel.type)) {
-        throw LanguageError(
-            'Root widget type should only be Row, Column, Flex or Stack.');
+    if (viewMap['body'] != null) {
+      return ViewUtil.buildModel(viewMap['body'], customViewDefinitions);
+    }
+    // backward compatible
+    else {
+      WidgetModel? rootModel = getRootModel(viewMap, customViewDefinitions);
+      if (rootModel != null) {
+        if (![
+          Column.type,
+          Row.type,
+          Flex.type,
+          EnsembleStack.type,
+          AppScroller.type,
+        ].contains(rootModel.type)) {
+          throw LanguageError(
+              'Root widget type should only be Row, Column, Flex or Stack.');
+        }
+        return rootModel;
       }
-      return rootModel;
     }
     throw LanguageError("View requires a child widget !");
   }
 
   WidgetModel? getRootModel(
-      YamlMap rootTree, Map<String, dynamic> customViewDefinitions) {
+      YamlMap rootTree, Map<String, dynamic>? customViewDefinitions) {
     for (MapEntry<dynamic, dynamic> entry in rootTree.entries) {
       if (WidgetRegistry.widgetMap[entry.key] != null ||
-          customViewDefinitions[entry.key] != null) {
+          customViewDefinitions?[entry.key] != null) {
         return ViewUtil.buildModel(entry, customViewDefinitions);
       }
     }

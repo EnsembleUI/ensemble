@@ -44,7 +44,7 @@ class BoxUtils {
   }
 
   /// get the flex value for each child of FittedRow or FittedColumn
-  static List<BoxFlex> getChildrenFlex(dynamic input) {
+  static List<BoxFlex> getChildrenFits(dynamic input) {
     if (input is! YamlList) {
       throw LanguageError(
           "BoxLayout's childrenFlex requires a list of non-zero integers or 'auto'.");
