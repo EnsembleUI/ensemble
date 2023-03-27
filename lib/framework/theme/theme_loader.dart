@@ -87,6 +87,7 @@ mixin ThemeLoader {
 
     ThemeData themeData = ThemeData(
       // color scheme
+      useMaterial3: true,
       colorScheme: colorScheme,
       // disabled inputs / button
       disabledColor:
