@@ -21,14 +21,19 @@ import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_registry.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:walletconnect_dart/walletconnect_dart.dart';
 import 'package:yaml/yaml.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:file_picker/file_picker.dart';
+
+import 'framework/widget/wallet_connect_modal.dart';
 
 /// Singleton that holds the page model definition
 /// and operations for the current screen
@@ -447,12 +452,14 @@ class ScreenController {
           name: action.appName,
           description: action.appDescription,
           url: action.appUrl,
-          icons: action.appIconUrl != null ? <String>[action.appIconUrl!] : null,
+          icons:
+              action.appIconUrl != null ? <String>[action.appIconUrl!] : null,
         ),
       );
 
       if (action.id != null && scopeManager != null) {
-        scopeManager.dataContext.addDataContextById(action.id!, WalletData(walletConnect));
+        scopeManager.dataContext
+            .addDataContextById(action.id!, WalletData(walletConnect));
       }
 
       if (walletConnect.connected) {
@@ -460,30 +467,45 @@ class ScreenController {
         return;
       }
       walletConnect.on('connect', (SessionStatus? session) {
-        if (action.id != null && scopeManager != null) {
-          final walletData = scopeManager.dataContext.getContextById(action.id!);
-          scopeManager.dispatch(ModelChangeEvent(SimpleBindingSource(action.id!), walletData));
-        }
+        updateWalletData(action, scopeManager, context);
       });
       walletConnect.on('session_update', (Object? session) {
-        if (action.id != null && scopeManager != null) {
-          final walletData = scopeManager.dataContext.getContextById(action.id!);
-          scopeManager.dispatch(ModelChangeEvent(SimpleBindingSource(action.id!), walletData));
-        }
+        updateWalletData(action, scopeManager, context);
       });
-      walletConnect.on('disconnect', (Object? session) {
-
-      });
+      walletConnect.on('disconnect', (Object? session) {});
 
       try {
         walletConnect.createSession(onDisplayUri: (String uri) async {
+          if (kIsWeb) {
+            showDialog(
+              context: context,
+              builder: (context) {
+                return Dialog(
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24)),
+                  child: WalletConnectModal(qrData: uri),
+                );
+              },
+            );
+            return;
+          }
           launchUrlString(uri, mode: LaunchMode.externalApplication);
         });
       } on Exception catch (_) {
-        throw LanguageError(
-              'Unable to create wallet connect session');
+        if (action.onError != null) executeAction(context, action.onError!);
+        throw LanguageError('Unable to create wallet connect session');
       }
+    }
+  }
 
+  void updateWalletData(WalletConnectAction action, ScopeManager? scopeManager,
+      BuildContext context) {
+    if (action.id != null && scopeManager != null) {
+      final walletData = scopeManager.dataContext.getContextById(action.id!);
+      scopeManager.dispatch(
+          ModelChangeEvent(SimpleBindingSource(action.id!), walletData));
+      if (action.onComplete != null) executeAction(context, action.onComplete!);
     }
   }
 

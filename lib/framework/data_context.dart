@@ -730,7 +730,7 @@ class WalletData with Invokable {
   Map<String, Function> getters() {
     return {
       'addresses': () => walletConnect.session.accounts,
-      'connectionUri': () =>  walletConnect.session.toUri().toString(),
+      'connectionUri': () => walletConnect.session.toUri().toString(),
     };
   }
 
@@ -750,5 +750,4 @@ class WalletData with Invokable {
     walletConnect.killSession();
     walletConnect.close();
   }
-  
 }

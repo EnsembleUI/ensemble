@@ -380,10 +380,9 @@ class WalletConnectAction extends EnsembleAction {
   EnsembleAction? onComplete;
   EnsembleAction? onError;
 
-
   factory WalletConnectAction.fromYaml({YamlMap? payload}) {
     if (payload == null ||
-        (payload['wcProjectId'] == null && payload['name'] == null)) {
+        (payload['wcProjectId'] == null && payload['']['name'] == null)) {
       throw LanguageError(
           "${ActionType.connectWallet.name} requires either a wcProjectId, appName, appDescription, appUrl, appIconUrl.");
     }
@@ -391,16 +390,15 @@ class WalletConnectAction extends EnsembleAction {
       id: Utils.optionalString(payload['id']),
       wcProjectId: payload['wcProjectId'],
       appName: payload['appMetaData']['name'],
-      appDescription: Utils.optionalString(payload['appMetaData']['description']),
+      appDescription:
+          Utils.optionalString(payload['appMetaData']['description']),
       appUrl: Utils.optionalString(payload['appMetaData']?['url']),
       appIconUrl: Utils.optionalString(payload['appMetaData']?['iconUrl']),
       onComplete: EnsembleAction.fromYaml(payload['onComplete']),
       onError: EnsembleAction.fromYaml(payload['onError']),
     );
   }
-
 }
-
 
 enum ActionType {
   invokeAPI,
