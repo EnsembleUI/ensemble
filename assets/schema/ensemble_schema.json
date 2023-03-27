@@ -2644,6 +2644,18 @@
                 "childrenFits": {
                   "type": "array",
                   "description": "specify each child's fit as 'auto' (child determines its size), or as a non-zero integer (specify a space multiple). The 'auto' children will be laid out first and get as much space as they need, then the left-over space will be distributed to the other children based on their space multiples.",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "const": "auto"
+                      },
+                      {
+                        "type": "integer",
+                        "minimum": 1
+                      }
+                    ]
+                  },
                   "enum": [
                     "auto", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
                   ]
