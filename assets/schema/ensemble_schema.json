@@ -1740,6 +1740,55 @@
               }
             }
           }
+        },
+        {
+          "properties": {
+            "walletConnect": {
+              "type": "object",
+              "description": "Allow users connect to crypto wallet",
+              "required": ["wcProjectId", "appMetaData"],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "ID allows you to bind to its result. e.g. ${wallet.addresses...},"
+                },
+                "wcProjectId": {
+                  "type": "string",
+                  "description": "Wallet connect project Id, get it from wallet connect dashboard"
+                },
+                "onComplete": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute another Action upon successful upload of files"
+                },
+                "onError": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action when uploader fails with error(s)"
+                },
+                "appMetaData": {
+                  "type": "object",
+                  "required": ["name"],
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description" : "Your app name, that will be shared to crypto wallet"
+                    },
+                    "description": {
+                      "type": "string",
+                      "description" : "Your app's description, that will be shared to crypto wallet"
+                    },
+                    "url": {
+                      "type": "string",
+                      "description": "You app's / company's url"
+                    },
+                    "iconUrl" : {
+                      "type": "string",
+                      "description": "Url path of your app's icon"
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       ]
     },
