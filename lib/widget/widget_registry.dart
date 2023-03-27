@@ -1,6 +1,7 @@
 import 'package:ensemble/layout/app_scroller.dart';
-import 'package:ensemble/layout/box_layout.dart';
+import 'package:ensemble/layout/box/box_layout.dart';
 import 'package:ensemble/layout/data_grid.dart';
+import 'package:ensemble/layout/box/fitted_box_layout.dart';
 import 'package:ensemble/layout/flow.dart';
 import 'package:ensemble/layout/form.dart';
 import 'package:ensemble/layout/list_view.dart';
@@ -82,6 +83,8 @@ class WidgetRegistry {
         Button.type: () => Button(),
 
         // containers
+        FittedRow.type: () => FittedRow(),
+        FittedColumn.type: () => FittedColumn(),
         Column.type: () => Column(),
         Row.type: () => Row(),
         ListView.type: () => ListView(),
