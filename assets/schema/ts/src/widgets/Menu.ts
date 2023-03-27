@@ -36,9 +36,10 @@ type EndSidebar = MenuWithAdditionalStyles;
 /**
  * Specify the navigation menu for this page
  * */
-export type Menu =
-  | { BottomNavBar: BottomNavBar }
-  | { Drawer: Drawer }
-  | { EndDrawer: EndDrawer }
-  | { Sidebar: Sidebar }
-  | { EndSidebar: EndSidebar };
+export type Menu = {
+  BottomNavBar?: BottomNavBar;
+  Drawer?: Drawer;
+  EndDrawer?: EndDrawer;
+  Sidebar?: Sidebar;
+  EndSidebar?: EndSidebar;
+};

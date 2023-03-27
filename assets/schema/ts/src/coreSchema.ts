@@ -3,13 +3,14 @@ import * as actions from "./actionSchema";
 import * as widgetsDef from "./widgets";
 import { Menu } from "./widgets";
 import { API, Functions, GlobalType, View } from "./widgetSchema";
+import { Action } from "./actionSchema";
 
-/**
- * @additionalProperties true
- * */
-export interface Screen {
-  ViewGroup?: ViewGroup;
-}
+// /**
+//  * @additionalProperties true
+//  * */
+// export interface Screen {
+//   ViewGroup?: ViewGroup;
+// }
 
 export interface RootWidgets {
   Column?: widgets.Column;
@@ -41,7 +42,6 @@ export interface Widgets extends RootWidgets {
   TabBar?: widgetsDef.TabBar;
   GridView?: widgetsDef.GridView;
   Form?: widgetsDef.Form;
-  Menu?: widgetsDef.Menu;
   Map?: widgetsDef.Menu;
   ChartJS?: widgetsDef.ChartJS;
   Video?: widgetsDef.Video;
@@ -62,6 +62,9 @@ export interface TemplatedWidget {
 export type ViewGroup = Menu;
 //menu widgets
 
+/**
+ * @additionalProperties true
+ */
 export type properties = {
   Import?: {};
   ViewGroup?: Menu;
@@ -73,4 +76,4 @@ export type properties = {
   Functions?: Functions;
   Global?: GlobalType;
   API?: API;
-};
+} & { [key: string]: string };

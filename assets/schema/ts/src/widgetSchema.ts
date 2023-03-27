@@ -2,6 +2,7 @@ import * as core from "./coreSchema";
 import {
   alignmentEnum,
   backgroundColor,
+  backgroundGradient,
   backgroundImage,
   BaseStyles,
   boxLayoutStyles,
@@ -95,44 +96,44 @@ export interface View extends RootWidgets {
      * */
     type?: screenType;
   };
-  style?: backgroundImage &
-    backgroundColor & {
-      /**
-       * Applicable only when we don't have a header. If true, insert paddings around the body content to account for
-       * the the devices' Safe Area (e.g. iPhone notch). Default is false.
-       * */
-      useSafeArea?: boolean;
-      /**
-       * Specify if the content of this screen is scrollable with a global scrollbar. Using this also allow you to
-       * customize the scrolling experience of the header.
-       * */
-      scrollableView?: boolean;
-      /**
-       * For a screen with header, the App will automatically show the Menu, Back, or Close icon (for modal screen)
-       * before the title. On modal screen without the header, the Close icon will be shown. Set this flag to false if
-       * you wish to hide the icons and handle the navigation yourself.
-       * */
-      showNavigationIcon?: boolean;
-      /**
-       * On modal screen without a header, you can position the close button at the start or end of the screen.
-       * For left-to-right languages like English, start is on the left and end is on the right. This property has
-       * no effect on a screen with header.
-       * */
-      navigationIconPosition?: navIconPosition;
-    };
+  styles?: {
+    backgroundColor?: backgroundColor;
+    backgroundImage?: backgroundImage;
+    /**
+     * Applicable only when we don't have a header. If true, insert paddings around the body content to account for
+     * the the devices' Safe Area (e.g. iPhone notch). Default is false.
+     * */
+    useSafeArea?: boolean;
+    /**
+     * Specify if the content of this screen is scrollable with a global scrollbar. Using this also allow you to
+     * customize the scrolling experience of the header.
+     * */
+    scrollableView?: boolean;
+    /**
+     * For a screen with header, the App will automatically show the Menu, Back, or Close icon (for modal screen)
+     * before the title. On modal screen without the header, the Close icon will be shown. Set this flag to false if
+     * you wish to hide the icons and handle the navigation yourself.
+     * */
+    showNavigationIcon?: boolean;
+    /**
+     * On modal screen without a header, you can position the close button at the start or end of the screen.
+     * For left-to-right languages like English, start is on the left and end is on the right. This property has
+     * no effect on a screen with header.
+     * */
+    navigationIconPosition?: navIconPosition;
+  };
 }
 /**
  * Javascript snippet for declaring variables and reusable functions, visible anywhere within this screen
  * */
 export type Functions = string;
 
+/**
+ * Declare Javascript variables and functions that are visible globally within this screen.  \n//@code  \n
+ * var myGlobalVar = 'hello';  \nfunction myGlobalFunc() {  \n  }
+ * */
 export type GlobalType = {
-  defaultSnippets: [
-    {
-      label: "Define variables and functions in Javascript";
-      body: "|-\n\t//@code\n\t";
-    }
-  ];
+  value: `|- \\n \\t//@code\\n\\t`;
 };
 
 export type API = {
@@ -170,9 +171,15 @@ export interface Container extends Widget {
   children?: [core.Widgets, ...core.Widgets[]];
 }
 
-export interface Column extends Container, core.TemplatedWidget, stylesColumn {}
-export interface Row extends Container, core.TemplatedWidget, stylesRow {}
-export interface Flex extends Container, core.TemplatedWidget, styleFlex {}
+export interface Column extends Container, core.TemplatedWidget {
+  styles?: stylesColumn;
+}
+export interface Row extends Container, core.TemplatedWidget {
+  styles?: stylesRow;
+}
+export interface Flex extends Container, core.TemplatedWidget {
+  styles?: styleFlex;
+}
 export interface Stack extends Container {
   styles?: {
     alignment?: alignmentEnum;

@@ -35,68 +35,29 @@
   },
   "definitions": {
     "Menu": {
-      "anyOf": [
-        {
-          "type": "object",
-          "properties": {
-            "BottomNavBar": {
-              "$ref": "#/definitions/MenuBase",
-              "description": "Use the bottom navigation bar"
-            }
-          },
-          "required": [
-            "BottomNavBar"
-          ]
+      "type": "object",
+      "properties": {
+        "BottomNavBar": {
+          "$ref": "#/definitions/MenuBase",
+          "description": "Use the bottom navigation bar"
         },
-        {
-          "type": "object",
-          "properties": {
-            "Drawer": {
-              "$ref": "#/definitions/MenuWithHeaderAndFooter",
-              "description": "Put the menu behind a drawer icon on the header. The drawer icon will be positioned to the 'start' of the header (left for most languages, right for RTL languages)."
-            }
-          },
-          "required": [
-            "Drawer"
-          ]
+        "Drawer": {
+          "$ref": "#/definitions/MenuWithHeaderAndFooter",
+          "description": "Put the menu behind a drawer icon on the header. The drawer icon will be positioned to the 'start' of the header (left for most languages, right for RTL languages)."
         },
-        {
-          "type": "object",
-          "properties": {
-            "EndDrawer": {
-              "$ref": "#/definitions/MenuWithHeaderAndFooter",
-              "description": "Put the menu behind a drawer icon on the header. The drawer icon will be positioned to the 'end' of the header (right for most languages, left for RTL languages)."
-            }
-          },
-          "required": [
-            "EndDrawer"
-          ]
+        "EndDrawer": {
+          "$ref": "#/definitions/MenuWithHeaderAndFooter",
+          "description": "Put the menu behind a drawer icon on the header. The drawer icon will be positioned to the 'end' of the header (right for most languages, left for RTL languages)."
         },
-        {
-          "type": "object",
-          "properties": {
-            "Sidebar": {
-              "$ref": "#/definitions/MenuWithAdditionalStyles",
-              "description": "Enable a fixed navigation menu to the 'start' of the screen (left for most languages, right for RTL languages). The menu may become a drawer menu on lower resolution."
-            }
-          },
-          "required": [
-            "Sidebar"
-          ]
+        "Sidebar": {
+          "$ref": "#/definitions/MenuWithAdditionalStyles",
+          "description": "Enable a fixed navigation menu to the 'start' of the screen (left for most languages, right for RTL languages). The menu may become a drawer menu on lower resolution."
         },
-        {
-          "type": "object",
-          "properties": {
-            "EndSidebar": {
-              "$ref": "#/definitions/MenuWithAdditionalStyles",
-              "description": "Enable a fixed navigation menu to the 'end' of the screen (right for most languages, left for RTL languages). The menu may become a drawer menu on lower resolution."
-            }
-          },
-          "required": [
-            "EndSidebar"
-          ]
+        "EndSidebar": {
+          "$ref": "#/definitions/MenuWithAdditionalStyles",
+          "description": "Enable a fixed navigation menu to the 'end' of the screen (right for most languages, left for RTL languages). The menu may become a drawer menu on lower resolution."
         }
-      ],
+      },
       "description": "Specify the navigation menu for this page"
     },
     "MenuBase": {
@@ -376,243 +337,38 @@
             }
           }
         },
-        "style": {
-          "anyOf": [
-            {
-              "type": "number"
+        "styles": {
+          "type": "object",
+          "properties": {
+            "backgroundColor": {
+              "$ref": "#/definitions/backgroundColor"
             },
-            {
-              "type": "object",
-              "properties": {
-                "useSafeArea": {
-                  "type": "boolean",
-                  "description": "Applicable only when we don't have a header. If true, insert paddings around the body content to account for the the devices' Safe Area (e.g. iPhone notch). Default is false."
-                },
-                "scrollableView": {
-                  "type": "boolean",
-                  "description": "Specify if the content of this screen is scrollable with a global scrollbar. Using this also allow you to customize the scrolling experience of the header."
-                },
-                "showNavigationIcon": {
-                  "type": "boolean",
-                  "description": "For a screen with header, the App will automatically show the Menu, Back, or Close icon (for modal screen) before the title. On modal screen without the header, the Close icon will be shown. Set this flag to false if you wish to hide the icons and handle the navigation yourself."
-                },
-                "navigationIconPosition": {
-                  "$ref": "#/definitions/navIconPosition",
-                  "description": "On modal screen without a header, you can position the close button at the start or end of the screen. For left-to-right languages like English, start is on the left and end is on the right. This property has no effect on a screen with header."
-                },
-                "backgroundGradient": {
-                  "type": "object",
-                  "properties": {
-                    "source": {
-                      "type": "string",
-                      "description": "The Image URL to fill the background"
-                    },
-                    "fit": {
-                      "$ref": "#/definitions/fitEnum",
-                      "description": "How to fit the image within our width/height or our parent (if dimension is not specified)"
-                    },
-                    "alignment": {
-                      "$ref": "#/definitions/alignmentEnum"
-                    }
-                  }
-                }
-              },
-              "required": [
-                "backgroundGradient"
-              ]
+            "backgroundImage": {
+              "$ref": "#/definitions/backgroundImage"
             },
-            {
-              "type": "object",
-              "properties": {
-                "useSafeArea": {
-                  "type": "boolean",
-                  "description": "Applicable only when we don't have a header. If true, insert paddings around the body content to account for the the devices' Safe Area (e.g. iPhone notch). Default is false."
-                },
-                "scrollableView": {
-                  "type": "boolean",
-                  "description": "Specify if the content of this screen is scrollable with a global scrollbar. Using this also allow you to customize the scrolling experience of the header."
-                },
-                "showNavigationIcon": {
-                  "type": "boolean",
-                  "description": "For a screen with header, the App will automatically show the Menu, Back, or Close icon (for modal screen) before the title. On modal screen without the header, the Close icon will be shown. Set this flag to false if you wish to hide the icons and handle the navigation yourself."
-                },
-                "navigationIconPosition": {
-                  "$ref": "#/definitions/navIconPosition",
-                  "description": "On modal screen without a header, you can position the close button at the start or end of the screen. For left-to-right languages like English, start is on the left and end is on the right. This property has no effect on a screen with header."
-                },
-                "backgroundGradient": {
-                  "type": "object",
-                  "properties": {
-                    "source": {
-                      "type": "string",
-                      "description": "The Image URL to fill the background"
-                    },
-                    "fit": {
-                      "$ref": "#/definitions/fitEnum",
-                      "description": "How to fit the image within our width/height or our parent (if dimension is not specified)"
-                    },
-                    "alignment": {
-                      "$ref": "#/definitions/alignmentEnum"
-                    }
-                  }
-                }
-              },
-              "required": [
-                "backgroundGradient"
-              ]
+            "useSafeArea": {
+              "type": "boolean",
+              "description": "Applicable only when we don't have a header. If true, insert paddings around the body content to account for the the devices' Safe Area (e.g. iPhone notch). Default is false."
+            },
+            "scrollableView": {
+              "type": "boolean",
+              "description": "Specify if the content of this screen is scrollable with a global scrollbar. Using this also allow you to customize the scrolling experience of the header."
+            },
+            "showNavigationIcon": {
+              "type": "boolean",
+              "description": "For a screen with header, the App will automatically show the Menu, Back, or Close icon (for modal screen) before the title. On modal screen without the header, the Close icon will be shown. Set this flag to false if you wish to hide the icons and handle the navigation yourself."
+            },
+            "navigationIconPosition": {
+              "$ref": "#/definitions/navIconPosition",
+              "description": "On modal screen without a header, you can position the close button at the start or end of the screen. For left-to-right languages like English, start is on the left and end is on the right. This property has no effect on a screen with header."
             }
-          ]
+          }
         }
       }
     },
     "Column": {
       "type": "object",
       "properties": {
-        "mainAxis": {
-          "type": "string",
-          "enum": [
-            "start",
-            "center",
-            "end",
-            "spaceBetween",
-            "spaceAround",
-            "spaceEvenly"
-          ],
-          "description": "Control our children's layout vertically"
-        },
-        "crossAxis": {
-          "type": "string",
-          "enum": [
-            "start",
-            "center",
-            "end",
-            "stretch",
-            "baseline"
-          ],
-          "description": "Control the horizontal alignment of the children"
-        },
-        "mainAxisSize": {
-          "type": "string",
-          "enum": [
-            "min",
-            "max"
-          ],
-          "description": "Stretch to the max vertically or only fit the vertical space"
-        },
-        "scrollable": {
-          "type": "boolean",
-          "description": "Set to true so content can scroll vertically as needed"
-        },
-        "autoFit": {
-          "type": "boolean",
-          "description": "Explicitly make the column's width as wide as the largest child, but only if our column's parent does not already assign a width. This attribute is useful for sizing children who don't have a width (e.g Divider)"
-        },
-        "gap": {
-          "type": "number",
-          "minimum": 0
-        },
-        "fontFamily": {
-          "type": "string",
-          "description": "Set the font family applicable for all widgets inside this container"
-        },
-        "fontSize": {
-          "type": "number",
-          "minimum": 0
-        },
-        "shadowColor": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Box shadow color starting with '0xFF' for full opacity"
-        },
-        "shadowOffset": {
-          "type": "array",
-          "items": {
-            "type": "number"
-          }
-        },
-        "shadowRadius": {
-          "type": "number",
-          "minimum": 0
-        },
-        "shadowStyle": {
-          "type": "string",
-          "enum": [
-            "normal",
-            "solid"
-          ],
-          "description": "The blur style to apply on the shadow"
-        },
-        "borderRadius": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Border Radius with CSS-like notation (1 to 4 integers)",
-          "minimum": 0
-        },
-        "borderColor": {
-          "$ref": "#/definitions/Colors",
-          "description": "Border color, starting with '0xFF' for full opacity"
-        },
-        "borderWidth": {
-          "type": "number",
-          "description": "The thickness of the border",
-          "minimum": 0
-        },
-        "backgroundGradient": {
-          "type": "object",
-          "properties": {
-            "colors": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Colors"
-              },
-              "description": "The list of colors used for the gradient"
-            },
-            "start": {
-              "$ref": "#/definitions/alignmentEnum",
-              "description": "The starting position of the gradient"
-            },
-            "end": {
-              "$ref": "#/definitions/alignmentEnum",
-              "description": "The ending position of the gradient"
-            }
-          }
-        },
-        "backgroundColor": {
-          "$ref": "#/definitions/Colors"
-        },
-        "backgroundImage": {
-          "$ref": "#/definitions/backgroundImage"
-        },
-        "padding": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Padding with CSS-style value e.g. padding: 5 20 5"
-        },
-        "margin": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
-        },
-        "width": {
-          "type": "number",
-          "minimum": 0
-        },
-        "height": {
-          "type": "number",
-          "minimum": 0
-        },
-        "expanded": {
-          "type": "boolean",
-          "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
-        },
         "item-template": {
           "$ref": "#/definitions/ItemTemplate"
         },
@@ -626,58 +382,11 @@
             "$ref": "#/definitions/Widgets"
           },
           "minItems": 1
+        },
+        "styles": {
+          "$ref": "#/definitions/stylesColumn"
         }
       }
-    },
-    "alignmentEnum": {
-      "type": "string",
-      "enum": [
-        "topLeft",
-        "topCenter",
-        "topRight",
-        "centerLeft",
-        "center",
-        "centerRight",
-        "bottomLeft",
-        "bottomCenter",
-        "bottomRight"
-      ]
-    },
-    "backgroundImage": {
-      "type": "object",
-      "properties": {
-        "backgroundGradient": {
-          "type": "object",
-          "properties": {
-            "source": {
-              "type": "string",
-              "description": "The Image URL to fill the background"
-            },
-            "fit": {
-              "$ref": "#/definitions/fitEnum",
-              "description": "How to fit the image within our width/height or our parent (if dimension is not specified)"
-            },
-            "alignment": {
-              "$ref": "#/definitions/alignmentEnum"
-            }
-          }
-        }
-      },
-      "required": [
-        "backgroundGradient"
-      ]
-    },
-    "fitEnum": {
-      "type": "string",
-      "enum": [
-        "fill",
-        "contain",
-        "cover",
-        "fitWidth",
-        "fitHeight",
-        "none",
-        "scaleDown"
-      ]
     },
     "ItemTemplate": {
       "type": "object",
@@ -790,9 +499,6 @@
         "Form": {
           "$ref": "#/definitions/Form"
         },
-        "Menu": {
-          "$ref": "#/definitions/Menu"
-        },
         "Map": {
           "$ref": "#/definitions/Menu"
         },
@@ -880,6 +586,28 @@
       }
     },
     "Flex": {
+      "type": "object",
+      "properties": {
+        "item-template": {
+          "$ref": "#/definitions/ItemTemplate"
+        },
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Widgets"
+          },
+          "minItems": 1
+        },
+        "styles": {
+          "$ref": "#/definitions/styleFlex"
+        }
+      }
+    },
+    "styleFlex": {
       "type": "object",
       "properties": {
         "direction": {
@@ -979,25 +707,20 @@
           "description": "The thickness of the border",
           "minimum": 0
         },
-        "backgroundGradient": {
-          "type": "object",
-          "properties": {
-            "colors": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Colors"
-              },
-              "description": "The list of colors used for the gradient"
-            },
-            "start": {
-              "$ref": "#/definitions/alignmentEnum",
-              "description": "The starting position of the gradient"
-            },
-            "end": {
-              "$ref": "#/definitions/alignmentEnum",
-              "description": "The ending position of the gradient"
-            }
-          }
+        "colors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Colors"
+          },
+          "description": "The list of colors used for the gradient"
+        },
+        "start": {
+          "$ref": "#/definitions/alignmentEnum",
+          "description": "The starting position of the gradient"
+        },
+        "end": {
+          "$ref": "#/definitions/alignmentEnum",
+          "description": "The ending position of the gradient"
         },
         "backgroundColor": {
           "$ref": "#/definitions/Colors"
@@ -1030,22 +753,50 @@
         "expanded": {
           "type": "boolean",
           "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
-        },
-        "item-template": {
-          "$ref": "#/definitions/ItemTemplate"
-        },
-        "id": {
-          "type": "string",
-          "description": "ID to be referenced later"
-        },
-        "children": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Widgets"
-          },
-          "minItems": 1
         }
       }
+    },
+    "alignmentEnum": {
+      "type": "string",
+      "enum": [
+        "topLeft",
+        "topCenter",
+        "topRight",
+        "centerLeft",
+        "center",
+        "centerRight",
+        "bottomLeft",
+        "bottomCenter",
+        "bottomRight"
+      ]
+    },
+    "backgroundImage": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "description": "The Image URL to fill the background"
+        },
+        "fit": {
+          "$ref": "#/definitions/fitEnum",
+          "description": "How to fit the image within our width/height or our parent (if dimension is not specified)"
+        },
+        "alignment": {
+          "$ref": "#/definitions/alignmentEnum"
+        }
+      }
+    },
+    "fitEnum": {
+      "type": "string",
+      "enum": [
+        "fill",
+        "contain",
+        "cover",
+        "fitWidth",
+        "fitHeight",
+        "none",
+        "scaleDown"
+      ]
     },
     "Stack": {
       "type": "object",
@@ -1168,25 +919,20 @@
               "description": "The thickness of the border",
               "minimum": 0
             },
-            "backgroundGradient": {
-              "type": "object",
-              "properties": {
-                "colors": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/definitions/Colors"
-                  },
-                  "description": "The list of colors used for the gradient"
-                },
-                "start": {
-                  "$ref": "#/definitions/alignmentEnum",
-                  "description": "The starting position of the gradient"
-                },
-                "end": {
-                  "$ref": "#/definitions/alignmentEnum",
-                  "description": "The ending position of the gradient"
-                }
-              }
+            "colors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Colors"
+              },
+              "description": "The list of colors used for the gradient"
+            },
+            "start": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The starting position of the gradient"
+            },
+            "end": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The ending position of the gradient"
             },
             "backgroundColor": {
               "$ref": "#/definitions/Colors"
@@ -1225,140 +971,45 @@
       }
     },
     "Action": {
-      "anyOf": [
-        {
-          "type": "object",
-          "properties": {
-            "invokeAPIAction": {
-              "$ref": "#/definitions/InvokeAPIAction"
-            }
-          },
-          "required": [
-            "invokeAPIAction"
-          ]
+      "type": "object",
+      "properties": {
+        "invokeAPIAction": {
+          "$ref": "#/definitions/InvokeAPIAction"
         },
-        {
-          "type": "object",
-          "properties": {
-            "executeCodeAction": {
-              "$ref": "#/definitions/ExecuteCodeAction"
-            }
-          },
-          "required": [
-            "executeCodeAction"
-          ]
+        "executeCodeAction": {
+          "$ref": "#/definitions/ExecuteCodeAction"
         },
-        {
-          "type": "object",
-          "properties": {
-            "navigateScreenAction": {
-              "$ref": "#/definitions/NavigateScreenAction"
-            }
-          },
-          "required": [
-            "navigateScreenAction"
-          ]
+        "navigateScreenAction": {
+          "$ref": "#/definitions/NavigateScreenAction"
         },
-        {
-          "type": "object",
-          "properties": {
-            "navigateModalScreenAction": {
-              "$ref": "#/definitions/NavigateModalScreenAction"
-            }
-          },
-          "required": [
-            "navigateModalScreenAction"
-          ]
+        "navigateModalScreenAction": {
+          "$ref": "#/definitions/NavigateModalScreenAction"
         },
-        {
-          "type": "object",
-          "properties": {
-            "navigateBackAction": {
-              "$ref": "#/definitions/NavigateBackAction"
-            }
-          },
-          "required": [
-            "navigateBackAction"
-          ]
+        "navigateBackAction": {
+          "$ref": "#/definitions/NavigateBackAction"
         },
-        {
-          "type": "object",
-          "properties": {
-            "openCameraAction": {
-              "$ref": "#/definitions/OpenCameraAction"
-            }
-          },
-          "required": [
-            "openCameraAction"
-          ]
+        "openCameraAction": {
+          "$ref": "#/definitions/OpenCameraAction"
         },
-        {
-          "type": "object",
-          "properties": {
-            "showDialogAction": {
-              "$ref": "#/definitions/ShowDialogAction"
-            }
-          },
-          "required": [
-            "showDialogAction"
-          ]
+        "showDialogAction": {
+          "$ref": "#/definitions/ShowDialogAction"
         },
-        {
-          "type": "object",
-          "properties": {
-            "closeAllDialogsAction": {
-              "$ref": "#/definitions/CloseAllDialogsAction"
-            }
-          },
-          "required": [
-            "closeAllDialogsAction"
-          ]
+        "closeAllDialogsAction": {
+          "$ref": "#/definitions/CloseAllDialogsAction"
         },
-        {
-          "type": "object",
-          "properties": {
-            "startTimerAction": {
-              "$ref": "#/definitions/StartTimerAction"
-            }
-          },
-          "required": [
-            "startTimerAction"
-          ]
+        "startTimerAction": {
+          "$ref": "#/definitions/StartTimerAction"
         },
-        {
-          "type": "object",
-          "properties": {
-            "stopTimerAction": {
-              "$ref": "#/definitions/StopTimerAction"
-            }
-          },
-          "required": [
-            "stopTimerAction"
-          ]
+        "stopTimerAction": {
+          "$ref": "#/definitions/StopTimerAction"
         },
-        {
-          "type": "object",
-          "properties": {
-            "showToastAction": {
-              "$ref": "#/definitions/ShowToastAction"
-            }
-          },
-          "required": [
-            "showToastAction"
-          ]
+        "showToastAction": {
+          "$ref": "#/definitions/ShowToastAction"
         },
-        {
-          "type": "object",
-          "properties": {
-            "getLocationActionAction": {
-              "$ref": "#/definitions/GetLocationActionAction"
-            }
-          },
-          "required": [
-            "getLocationActionAction"
-          ]
+        "getLocationActionAction": {
+          "$ref": "#/definitions/GetLocationActionAction"
         }
-      ]
+      }
     },
     "InvokeAPIAction": {
       "type": "object",
@@ -1837,25 +1488,20 @@
           "description": "The thickness of the border",
           "minimum": 0
         },
-        "backgroundGradient": {
-          "type": "object",
-          "properties": {
-            "colors": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Colors"
-              },
-              "description": "The list of colors used for the gradient"
-            },
-            "start": {
-              "$ref": "#/definitions/alignmentEnum",
-              "description": "The starting position of the gradient"
-            },
-            "end": {
-              "$ref": "#/definitions/alignmentEnum",
-              "description": "The ending position of the gradient"
-            }
-          }
+        "colors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Colors"
+          },
+          "description": "The list of colors used for the gradient"
+        },
+        "start": {
+          "$ref": "#/definitions/alignmentEnum",
+          "description": "The starting position of the gradient"
+        },
+        "end": {
+          "$ref": "#/definitions/alignmentEnum",
+          "description": "The ending position of the gradient"
         },
         "backgroundColor": {
           "$ref": "#/definitions/Colors"
@@ -1880,6 +1526,28 @@
       }
     },
     "Row": {
+      "type": "object",
+      "properties": {
+        "item-template": {
+          "$ref": "#/definitions/ItemTemplate"
+        },
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Widgets"
+          },
+          "minItems": 1
+        },
+        "styles": {
+          "$ref": "#/definitions/stylesRow"
+        }
+      }
+    },
+    "stylesRow": {
       "type": "object",
       "properties": {
         "mainAxis": {
@@ -1975,25 +1643,20 @@
           "description": "The thickness of the border",
           "minimum": 0
         },
-        "backgroundGradient": {
-          "type": "object",
-          "properties": {
-            "colors": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Colors"
-              },
-              "description": "The list of colors used for the gradient"
-            },
-            "start": {
-              "$ref": "#/definitions/alignmentEnum",
-              "description": "The starting position of the gradient"
-            },
-            "end": {
-              "$ref": "#/definitions/alignmentEnum",
-              "description": "The ending position of the gradient"
-            }
-          }
+        "colors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Colors"
+          },
+          "description": "The list of colors used for the gradient"
+        },
+        "start": {
+          "$ref": "#/definitions/alignmentEnum",
+          "description": "The starting position of the gradient"
+        },
+        "end": {
+          "$ref": "#/definitions/alignmentEnum",
+          "description": "The ending position of the gradient"
         },
         "backgroundColor": {
           "$ref": "#/definitions/Colors"
@@ -2026,20 +1689,6 @@
         "expanded": {
           "type": "boolean",
           "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
-        },
-        "item-template": {
-          "$ref": "#/definitions/ItemTemplate"
-        },
-        "id": {
-          "type": "string",
-          "description": "ID to be referenced later"
-        },
-        "children": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Widgets"
-          },
-          "minItems": 1
         }
       }
     },
@@ -2164,25 +1813,20 @@
               "description": "The thickness of the border",
               "minimum": 0
             },
-            "backgroundGradient": {
-              "type": "object",
-              "properties": {
-                "colors": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/definitions/Colors"
-                  },
-                  "description": "The list of colors used for the gradient"
-                },
-                "start": {
-                  "$ref": "#/definitions/alignmentEnum",
-                  "description": "The starting position of the gradient"
-                },
-                "end": {
-                  "$ref": "#/definitions/alignmentEnum",
-                  "description": "The ending position of the gradient"
-                }
-              }
+            "colors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Colors"
+              },
+              "description": "The list of colors used for the gradient"
+            },
+            "start": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The starting position of the gradient"
+            },
+            "end": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The ending position of the gradient"
             },
             "backgroundColor": {
               "$ref": "#/definitions/Colors"
@@ -2363,25 +2007,20 @@
               "description": "The thickness of the border",
               "minimum": 0
             },
-            "backgroundGradient": {
-              "type": "object",
-              "properties": {
-                "colors": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/definitions/Colors"
-                  },
-                  "description": "The list of colors used for the gradient"
-                },
-                "start": {
-                  "$ref": "#/definitions/alignmentEnum",
-                  "description": "The starting position of the gradient"
-                },
-                "end": {
-                  "$ref": "#/definitions/alignmentEnum",
-                  "description": "The ending position of the gradient"
-                }
-              }
+            "colors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Colors"
+              },
+              "description": "The list of colors used for the gradient"
+            },
+            "start": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The starting position of the gradient"
+            },
+            "end": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The ending position of the gradient"
             },
             "backgroundColor": {
               "$ref": "#/definitions/Colors"
@@ -2494,25 +2133,20 @@
               "description": "The thickness of the border",
               "minimum": 0
             },
-            "backgroundGradient": {
-              "type": "object",
-              "properties": {
-                "colors": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/definitions/Colors"
-                  },
-                  "description": "The list of colors used for the gradient"
-                },
-                "start": {
-                  "$ref": "#/definitions/alignmentEnum",
-                  "description": "The starting position of the gradient"
-                },
-                "end": {
-                  "$ref": "#/definitions/alignmentEnum",
-                  "description": "The ending position of the gradient"
-                }
-              }
+            "colors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Colors"
+              },
+              "description": "The list of colors used for the gradient"
+            },
+            "start": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The starting position of the gradient"
+            },
+            "end": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The ending position of the gradient"
             },
             "backgroundColor": {
               "$ref": "#/definitions/Colors"
@@ -2619,25 +2253,20 @@
               "description": "The thickness of the border",
               "minimum": 0
             },
-            "backgroundGradient": {
-              "type": "object",
-              "properties": {
-                "colors": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/definitions/Colors"
-                  },
-                  "description": "The list of colors used for the gradient"
-                },
-                "start": {
-                  "$ref": "#/definitions/alignmentEnum",
-                  "description": "The starting position of the gradient"
-                },
-                "end": {
-                  "$ref": "#/definitions/alignmentEnum",
-                  "description": "The ending position of the gradient"
-                }
-              }
+            "colors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Colors"
+              },
+              "description": "The list of colors used for the gradient"
+            },
+            "start": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The starting position of the gradient"
+            },
+            "end": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The ending position of the gradient"
             },
             "backgroundColor": {
               "$ref": "#/definitions/Colors"
@@ -2755,25 +2384,20 @@
               "description": "The thickness of the border",
               "minimum": 0
             },
-            "backgroundGradient": {
-              "type": "object",
-              "properties": {
-                "colors": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/definitions/Colors"
-                  },
-                  "description": "The list of colors used for the gradient"
-                },
-                "start": {
-                  "$ref": "#/definitions/alignmentEnum",
-                  "description": "The starting position of the gradient"
-                },
-                "end": {
-                  "$ref": "#/definitions/alignmentEnum",
-                  "description": "The ending position of the gradient"
-                }
-              }
+            "colors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Colors"
+              },
+              "description": "The list of colors used for the gradient"
+            },
+            "start": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The starting position of the gradient"
+            },
+            "end": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The ending position of the gradient"
             },
             "backgroundColor": {
               "$ref": "#/definitions/Colors"
@@ -3388,25 +3012,20 @@
               "description": "The thickness of the border",
               "minimum": 0
             },
-            "backgroundGradient": {
-              "type": "object",
-              "properties": {
-                "colors": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/definitions/Colors"
-                  },
-                  "description": "The list of colors used for the gradient"
-                },
-                "start": {
-                  "$ref": "#/definitions/alignmentEnum",
-                  "description": "The starting position of the gradient"
-                },
-                "end": {
-                  "$ref": "#/definitions/alignmentEnum",
-                  "description": "The ending position of the gradient"
-                }
-              }
+            "colors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Colors"
+              },
+              "description": "The list of colors used for the gradient"
+            },
+            "start": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The starting position of the gradient"
+            },
+            "end": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The ending position of the gradient"
             },
             "backgroundColor": {
               "$ref": "#/definitions/Colors"
@@ -3881,25 +3500,20 @@
               "description": "The thickness of the border",
               "minimum": 0
             },
-            "backgroundGradient": {
-              "type": "object",
-              "properties": {
-                "colors": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/definitions/Colors"
-                  },
-                  "description": "The list of colors used for the gradient"
-                },
-                "start": {
-                  "$ref": "#/definitions/alignmentEnum",
-                  "description": "The starting position of the gradient"
-                },
-                "end": {
-                  "$ref": "#/definitions/alignmentEnum",
-                  "description": "The ending position of the gradient"
-                }
-              }
+            "colors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Colors"
+              },
+              "description": "The list of colors used for the gradient"
+            },
+            "start": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The starting position of the gradient"
+            },
+            "end": {
+              "$ref": "#/definitions/alignmentEnum",
+              "description": "The ending position of the gradient"
             },
             "backgroundColor": {
               "$ref": "#/definitions/Colors"
@@ -4061,6 +3675,151 @@
         }
       }
     },
+    "stylesColumn": {
+      "type": "object",
+      "properties": {
+        "mainAxis": {
+          "type": "string",
+          "enum": [
+            "start",
+            "center",
+            "end",
+            "spaceBetween",
+            "spaceAround",
+            "spaceEvenly"
+          ],
+          "description": "Control our children's layout vertically"
+        },
+        "crossAxis": {
+          "type": "string",
+          "enum": [
+            "start",
+            "center",
+            "end",
+            "stretch",
+            "baseline"
+          ],
+          "description": "Control the horizontal alignment of the children"
+        },
+        "mainAxisSize": {
+          "type": "string",
+          "enum": [
+            "min",
+            "max"
+          ],
+          "description": "Stretch to the max vertically or only fit the vertical space"
+        },
+        "scrollable": {
+          "type": "boolean",
+          "description": "Set to true so content can scroll vertically as needed"
+        },
+        "autoFit": {
+          "type": "boolean",
+          "description": "Explicitly make the column's width as wide as the largest child, but only if our column's parent does not already assign a width. This attribute is useful for sizing children who don't have a width (e.g Divider)"
+        },
+        "gap": {
+          "type": "number",
+          "minimum": 0
+        },
+        "fontFamily": {
+          "type": "string",
+          "description": "Set the font family applicable for all widgets inside this container"
+        },
+        "fontSize": {
+          "type": "number",
+          "minimum": 0
+        },
+        "shadowColor": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Box shadow color starting with '0xFF' for full opacity"
+        },
+        "shadowOffset": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "shadowRadius": {
+          "type": "number",
+          "minimum": 0
+        },
+        "shadowStyle": {
+          "type": "string",
+          "enum": [
+            "normal",
+            "solid"
+          ],
+          "description": "The blur style to apply on the shadow"
+        },
+        "borderRadius": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Border Radius with CSS-like notation (1 to 4 integers)",
+          "minimum": 0
+        },
+        "borderColor": {
+          "$ref": "#/definitions/Colors",
+          "description": "Border color, starting with '0xFF' for full opacity"
+        },
+        "borderWidth": {
+          "type": "number",
+          "description": "The thickness of the border",
+          "minimum": 0
+        },
+        "colors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Colors"
+          },
+          "description": "The list of colors used for the gradient"
+        },
+        "start": {
+          "$ref": "#/definitions/alignmentEnum",
+          "description": "The starting position of the gradient"
+        },
+        "end": {
+          "$ref": "#/definitions/alignmentEnum",
+          "description": "The ending position of the gradient"
+        },
+        "backgroundColor": {
+          "$ref": "#/definitions/Colors"
+        },
+        "backgroundImage": {
+          "$ref": "#/definitions/backgroundImage"
+        },
+        "padding": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Padding with CSS-style value e.g. padding: 5 20 5"
+        },
+        "margin": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0
+        },
+        "expanded": {
+          "type": "boolean",
+          "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+        }
+      }
+    },
     "screenType": {
       "type": "string",
       "enum": [
@@ -4082,32 +3841,15 @@
     "GlobalType": {
       "type": "object",
       "properties": {
-        "defaultSnippets": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "label": {
-                "type": "string",
-                "const": "Define variables and functions in Javascript"
-              },
-              "body": {
-                "type": "string",
-                "const": "|-\n\t//@code\n\t"
-              }
-            },
-            "required": [
-              "label",
-              "body"
-            ]
-          },
-          "minItems": 1,
-          "maxItems": 1
+        "value": {
+          "type": "string",
+          "const": "|- \\n \\t//@code\\n\\t"
         }
       },
       "required": [
-        "defaultSnippets"
-      ]
+        "value"
+      ],
+      "description": "Declare Javascript variables and functions that are visible globally within this screen.  \\n//@code  \\n var myGlobalVar = 'hello';  \\nfunction myGlobalFunc() {  \\n  }"
     },
     "API": {
       "type": "object",

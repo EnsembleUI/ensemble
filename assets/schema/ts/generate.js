@@ -11,6 +11,7 @@ const config = {
   type: "properties", // Or <type-name> if you want to generate schema for that one type only,
   expose: "export",
   strictTuples: true,
+  encodeRefs: true,
   skipTypeCheck: false,
   topRef: false,
 };

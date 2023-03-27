@@ -136,35 +136,31 @@ export type stylePadding = {
  */
 export type backgroundColor = Colors;
 
-type backgroundGradient = {
-  backgroundGradient?: {
-    /**
-     *The list of colors used for the gradient
-     */
-    colors?: Colors[];
-    /**
-     * The starting position of the gradient
-     */
-    start?: alignmentEnum;
-    /**
-     * The ending position of the gradient
-     */
-    end?: alignmentEnum;
-  };
+export type backgroundGradient = {
+  /**
+   *The list of colors used for the gradient
+   */
+  colors?: Colors[];
+  /**
+   * The starting position of the gradient
+   */
+  start?: alignmentEnum;
+  /**
+   * The ending position of the gradient
+   */
+  end?: alignmentEnum;
 };
 
 export type backgroundImage = {
-  backgroundGradient: {
-    /**
-     * The Image URL to fill the background
-     */
-    source?: string;
-    /**
-     * How to fit the image within our width/height or our parent (if dimension is not specified)
-     */
-    fit?: fitEnum;
-    alignment?: alignmentEnum;
-  };
+  /**
+   * The Image URL to fill the background
+   */
+  source?: string;
+  /**
+   * How to fit the image within our width/height or our parent (if dimension is not specified)
+   */
+  fit?: fitEnum;
+  alignment?: alignmentEnum;
 };
 type itemType = {
   /**
@@ -395,7 +391,7 @@ export type styleCarousel = WithoutDimension & {
   indicatorMargin?: number | string;
 };
 
-export interface HasBackground extends backgroundGradient {
+export interface HasBackground extends Partial<backgroundGradient> {
   backgroundColor?: Colors;
   backgroundImage?: backgroundImage;
 }

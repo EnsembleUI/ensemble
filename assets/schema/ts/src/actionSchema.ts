@@ -9,19 +9,20 @@ import {
   TimerOptions,
 } from "./styles";
 
-export type Action =
-  | { invokeAPIAction: InvokeAPIAction }
-  | { executeCodeAction: ExecuteCodeAction }
-  | { navigateScreenAction: NavigateScreenAction }
-  | { navigateModalScreenAction: NavigateModalScreenAction }
-  | { navigateBackAction: NavigateBackAction }
-  | { openCameraAction: OpenCameraAction }
-  | { showDialogAction: ShowDialogAction }
-  | { closeAllDialogsAction: CloseAllDialogsAction }
-  | { startTimerAction: StartTimerAction }
-  | { stopTimerAction: StopTimerAction }
-  | { showToastAction: ShowToastAction }
-  | { getLocationActionAction: GetLocationActionAction };
+export type Action = {
+  invokeAPIAction?: InvokeAPIAction;
+  executeCodeAction?: ExecuteCodeAction;
+  navigateScreenAction?: NavigateScreenAction;
+  navigateModalScreenAction?: NavigateModalScreenAction;
+  navigateBackAction?: NavigateBackAction;
+  openCameraAction?: OpenCameraAction;
+  showDialogAction?: ShowDialogAction;
+  closeAllDialogsAction?: CloseAllDialogsAction;
+  startTimerAction?: StartTimerAction;
+  stopTimerAction?: StopTimerAction;
+  showToastAction?: ShowToastAction;
+  getLocationActionAction?: GetLocationActionAction;
+};
 
 /*
  * Navigating to a new screen
