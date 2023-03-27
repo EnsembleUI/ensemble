@@ -2651,17 +2651,10 @@
                         "description": "Allow this selected child to determine its own size. This may give an error if the child doesn't have a dimension."
                       },
                       {
-                        "const": 1,
-                        "description": "If not specified this is the default. The left-over space (after laying out 'auto' children) will be divided up based on this multiple."
-                      },
-                      { "const": 2 },
-                      { "const": 3 },
-                      { "const": 4 },
-                      { "const": 5 },
-                      { "const": 6 },
-                      { "const": 7 },
-                      { "const": 8 },
-                      { "const": 9 }
+                        "type": "integer",
+                        "description": "Default 1. After laying out the 'auto' children, the left-over space will be divided up based on this multiple.",
+                        "minimum": 1
+                      }
                     ]
                   }
                 }
