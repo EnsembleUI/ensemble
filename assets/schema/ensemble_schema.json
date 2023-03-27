@@ -2647,7 +2647,6 @@
                   "items": {
                     "anyOf": [
                       {
-                        "type": "string",
                         "const": "auto",
                         "description": "Allow this selected child to determine its own size. This may give an error if the child doesn't have a dimension."
                       },
