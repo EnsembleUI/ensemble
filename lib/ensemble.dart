@@ -238,8 +238,8 @@ class EnsembleConfig {
 
   /// Update the appBundle using our definitionProvider
   /// return the same EnsembleConfig once completed for convenience
-  Future<EnsembleConfig> updateAppBundle() async {
-    appBundle = await definitionProvider.getAppBundle();
+  Future<EnsembleConfig> updateAppBundle({bool bypassCache = false}) async {
+    appBundle = await definitionProvider.getAppBundle(bypassCache: bypassCache);
     return this;
   }
 
