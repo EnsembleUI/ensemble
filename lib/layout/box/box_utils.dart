@@ -42,11 +42,9 @@ class BoxUtils {
 
   static bool _checkVisibleChild(Widget child) {
     Widget view = child;
-    if (view is DataScopeWidget) {
-      if (view.child is CustomView) {
-        final CustomView customView = view.child as CustomView;
-        view = customView.childWidget;
-      }
+    if (view is DataScopeWidget && view.child is CustomView) {
+      final CustomView customView = view.child as CustomView;
+      view = customView.childWidget;
     }
 
     final isWidgetController =
