@@ -387,8 +387,9 @@ class ScreenController {
         scopeManager.dataContext.addDataContextById(action.id, fileData);
         scopeManager.dispatch(
             ModelChangeEvent(SimpleBindingSource(action.id), fileData));
-        if (action.onComplete != null)
+        if (action.onComplete != null) {
           executeAction(context, action.onComplete!);
+        }
       });
     } else if (action is NavigateBack) {
       if (scopeManager != null) {
