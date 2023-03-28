@@ -57,12 +57,13 @@ class FittedBoxLayoutController extends BaseBoxLayoutController {
   }
 }
 
-/// controller for Column/Row
+/// controller for Column/Row/Flex
 class BoxLayoutController extends BaseBoxLayoutController {
   ItemTemplate? itemTemplate;
 
   bool scrollable = false;
   bool autoFit = false;
+  String? mainAxisSize;
   int? maxWidth;
   int? maxHeight;
 
@@ -82,6 +83,7 @@ class BoxLayoutController extends BaseBoxLayoutController {
       'scrollable': (value) =>
           scrollable = Utils.getBool(value, fallback: false),
       'autoFit': (value) => autoFit = Utils.getBool(value, fallback: false),
+      'mainAxisSize': (value) => mainAxisSize = Utils.optionalString(value),
       'maxWidth': (value) => maxWidth = Utils.optionalInt(value),
       'maxHeight': (value) => maxHeight = Utils.optionalInt(value),
     });
