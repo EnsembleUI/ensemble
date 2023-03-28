@@ -6,6 +6,9 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
 
+import '../../framework/view/page.dart';
+import '../../framework/widget/custom_view.dart';
+
 class BoxUtils {
   /// combine the children and templated children,
   /// plus the gap in between if specified
@@ -26,21 +29,33 @@ class BoxUtils {
         items.add(children[i]);
 
         // then add the gap
-        final isWidgetController = children[i] is HasController &&
-            ((children[i] as HasController).controller is WidgetController);
-        if (isWidgetController) {
-          final visibleChild =
-              ((children[i] as HasController).controller as WidgetController)
-                  .visible;
-          if (i != children.length - 1 && visibleChild) {
-            items.add(gap);
-          }
+        final visibleChild = _checkVisibleChild(children[i]);
+        if (i != children.length - 1 && visibleChild) {
+          items.add(gap);
         }
       }
     } else {
       items = children;
     }
     return items;
+  }
+
+  static bool _checkVisibleChild(Widget child) {
+    Widget view = child;
+    if (view is DataScopeWidget) {
+      if (view.child is CustomView) {
+        final CustomView customView = view.child as CustomView;
+        view = customView.childWidget;
+      }
+    }
+
+    final isWidgetController =
+        view is HasController && (view.controller is WidgetController);
+    if (isWidgetController) {
+      final visibleChild = (view.controller as WidgetController).visible;
+      return visibleChild;
+    }
+    return false;
   }
 
   /// get the flex value for each child of FittedRow or FittedColumn
