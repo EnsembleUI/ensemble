@@ -2722,7 +2722,7 @@
             },
             "mainAxisSize": {
               "type": "string",
-              "description": "Stretch to the max vertically or only fit the vertical space",
+              "description": "If 'max', stretch the Column to fill its parent's height. Otherwise (min) the column's height will be its children's combined.",
               "enum": ["min", "max"]
             },
             "scrollable": {
@@ -2760,7 +2760,7 @@
             },
             "mainAxisSize": {
               "type": "string",
-              "description": "Stretch to the max horizontally or only fit the horizontal space",
+              "description": "If 'max', stretch the Row to fill its parent's width. Otherwise (min) the Row's width will be its children's combined.",
               "enum": ["min", "max"]
             },
             "scrollable": {
@@ -2804,7 +2804,7 @@
             },
             "mainAxisSize": {
               "type": "string",
-              "description": "stretch to the max or only fit the available space of the main axis (depending on the 'direction' attribute)",
+              "description": "If 'max', stretch the Flex to fill its parent's dimension (width or height based on the direction). Otherwise (min) the Flex's dimension will be its children's combined.",
               "enum": ["min", "max"]
             },
             "scrollable": {
