@@ -372,6 +372,17 @@ class FileUploadAction extends EnsembleAction {
   }
 }
 
+class CopyToClipboardAction extends EnsembleAction {
+  CopyToClipboardAction({
+    this.value,
+    this.onSuccess,
+    this.onFailure,
+  });
+  String? value;
+  EnsembleAction? onSuccess;
+  EnsembleAction? onFailure;
+}
+
 enum ActionType {
   invokeAPI,
   navigateScreen,
@@ -386,8 +397,10 @@ enum ActionType {
   openUrl,
   openCamera,
   uploadFiles,
-  navigateBack
+  navigateBack,
+  copyToClipboard
 }
+
 
 enum ToastType { success, error, warning, info }
 

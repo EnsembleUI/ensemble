@@ -7,6 +7,7 @@ import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/services.dart';
 import 'package:get_storage/get_storage.dart';
 
 import 'package:ensemble/framework/action.dart';
@@ -316,7 +317,8 @@ class NativeInvokable with Invokable {
       ActionType.stopTimer.name: stopTimer,
       ActionType.openCamera.name: showCamera,
       ActionType.navigateBack.name: navigateBack,
-      'debug': (value) => log('Debug: $value')
+      'debug': (value) => log('Debug: $value'),
+      'copyToClipboard': (value) => Clipboard.setData(ClipboardData(text: value))
     };
   }
 
