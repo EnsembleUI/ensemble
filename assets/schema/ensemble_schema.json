@@ -1841,6 +1841,28 @@
               }
             }
           }
+        },
+        {
+          "properties": {
+            "copyToClipboard": {
+              "type": "object",
+              "description": "Copy the text to the clipboard",
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "description": "The text to copy to clipboard"
+                },
+                "onSuccess": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute another Action upon successful copy to clipboard"
+                },
+                "onFailure": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action when copy to clipboard fails"
+                }
+              }
+            }
+          }
         }
       ]
     },
@@ -1933,31 +1955,6 @@
                   "type": "integer",
                   "description": "The minimum width for the menu (default 200)"
                 }
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "action": {
-                "const": "copyToClipboard"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "value": {
-                "type": "string",
-                "description": "Enter the value for copy"
-              },
-              "onSuccess": {
-                "$ref": "#/$defs/Action-payload",
-                "description": "Execute another Action upon successful copy to clipboard"
-              },
-              "onFailure": {
-                "$ref": "#/$defs/Action-payload",
-                "description": "Execute an Action when copy to clipboard text fails"
               }
             }
           }
