@@ -4,6 +4,7 @@ import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -271,7 +272,7 @@ class EnsembleToggleButtonsState extends WidgetState<EnsembleToggleButtons> {
   }
 }
 
-class ToggleButtonController extends BoxLayoutController {
+class ToggleButtonController extends BoxController {
   List<SelectOneItem>? items;
 
   Color? color;
@@ -286,8 +287,18 @@ class ToggleButtonController extends BoxLayoutController {
   // @override
   // int? gap = 0;
   bool autoComplete = false;
+  int? gap;
 
   framework.EnsembleAction? onChange;
+
+  @override
+  Map<String, Function> getBaseSetters() {
+    Map<String, Function> setters = super.getBaseSetters();
+    setters.addAll({
+      'gap': (value) => gap = Utils.optionalInt(value),
+    });
+    return setters;
+  }
 }
 
 class ToggleItem extends SelectOneItem {
