@@ -759,7 +759,12 @@
             "items": {
               "type": "array",
               "description": "List of values, or Objects with value/label pairs"
+            },
+            "autoComplete": {
+              "type": "boolean",
+              "description": "Enable the Input search suggestion option"
             }
+
           }
         }
       ]
