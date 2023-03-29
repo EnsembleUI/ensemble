@@ -12,8 +12,8 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' as foundation;
 
 class HttpUtils {
-
-  static Future<http.Response> invokeApi(YamlMap api, DataContext eContext) async {
+  static Future<http.Response> invokeApi(
+      YamlMap api, DataContext eContext) async {
     // headers
     Map<String, String> headers = {};
     if (api['headers'] is YamlMap) {
@@ -74,13 +74,15 @@ class HttpUtils {
     http.Response? response;
     switch (method) {
       case 'POST':
-        response = await http.post(Uri.parse(url), headers: headers, body: body);
+        response =
+            await http.post(Uri.parse(url), headers: headers, body: body);
         break;
       case 'PUT':
         response = await http.put(Uri.parse(url), headers: headers, body: body);
         break;
       case 'PATCH':
-        response = await http.patch(Uri.parse(url), headers: headers, body: body);
+        response =
+            await http.patch(Uri.parse(url), headers: headers, body: body);
         break;
       case 'DELETE':
         response = await http.delete(Uri.parse(url), headers: headers);
@@ -107,7 +109,8 @@ class HttpUtils {
   static String resolveUrl(DataContext dataContext, String rawUrl) {
     RegExp regExp = RegExp(r'^\${app.baseUrl}');
     if (regExp.hasMatch(rawUrl)) {
-      UserAppConfig? appConfig = Ensemble().getConfig()?.definitionProvider.getAppConfig();
+      UserAppConfig? appConfig =
+          Ensemble().getConfig()?.definitionProvider.getAppConfig();
 
       // non-Web will need the baseUrl
       String? baseUrl = appConfig?.baseUrl;
@@ -115,10 +118,13 @@ class HttpUtils {
       // on Web we can get the base url from the browser even if baseUrl is not set.
       // Furthermore if told to use browser url, we'll get it and override the baseUrl
       if (kIsWeb &&
-          (baseUrl == null || baseUrl.isEmpty || appConfig?.useBrowserUrl == true)) {
+          (baseUrl == null ||
+              baseUrl.isEmpty ||
+              appConfig?.useBrowserUrl == true)) {
         baseUrl = '${Uri.base.scheme}://${Uri.base.host}' +
             (Uri.base.hasPort ? ':${Uri.base.port}' : '');
-        log("baseUrl: $baseUrl. Port " + (Uri.base.hasPort ? Uri.base.port.toString() : ''));
+        log("baseUrl: $baseUrl. Port " +
+            (Uri.base.hasPort ? Uri.base.port.toString() : ''));
       }
 
       if (baseUrl != null) {
@@ -127,7 +133,8 @@ class HttpUtils {
       }
 
       // throw exception if we can't resolve base url
-      throw ConfigError("Base Url cannot be resolved. Please define baseUrl in your app configuration");
+      throw ConfigError(
+          "Base Url cannot be resolved. Please define baseUrl in your app configuration");
     }
     // simply eval and return
     else {
@@ -155,7 +162,6 @@ class HttpUtils {
     }
     return null;
   }
-
 }
 
 /// a wrapper class around the http Response

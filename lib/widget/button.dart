@@ -1,4 +1,3 @@
-
 import 'package:ensemble/framework/action.dart' as ensemble;
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/layout/form.dart';
@@ -17,7 +16,8 @@ import '../framework/model.dart';
 import '../framework/scope.dart';
 import '../framework/view/page.dart';
 
-class Button extends StatefulWidget with Invokable, HasController<ButtonController, ButtonState> {
+class Button extends StatefulWidget
+    with Invokable, HasController<ButtonController, ButtonState> {
   static const type = 'Button';
   Button({Key? key}) : super(key: key);
 
@@ -29,26 +29,34 @@ class Button extends StatefulWidget with Invokable, HasController<ButtonControll
   Map<String, Function> getters() {
     return {};
   }
+
   @override
   Map<String, Function> setters() {
     return {
-      'label': (value) => _controller.label = Utils.getString(value, fallback: ''),
-      'startingIcon': (value) => _controller.startingIcon = Utils.getIcon(value),
+      'label': (value) =>
+          _controller.label = Utils.getString(value, fallback: ''),
+      'startingIcon': (value) =>
+          _controller.startingIcon = Utils.getIcon(value),
       'endingIcon': (value) => _controller.endingIcon = Utils.getIcon(value),
-      'onTap': (funcDefinition) => _controller.onTap = ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
-      'submitForm': (value) => _controller.submitForm = Utils.optionalBool(value),
-      'validateForm': (value) => _controller.validateForm = Utils.optionalBool(value),
-      'validateFields': (items) => _controller.validateFields = Utils.getList(items),
-
+      'onTap': (funcDefinition) => _controller.onTap =
+          ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'submitForm': (value) =>
+          _controller.submitForm = Utils.optionalBool(value),
+      'validateForm': (value) =>
+          _controller.validateForm = Utils.optionalBool(value),
+      'validateFields': (items) =>
+          _controller.validateFields = Utils.getList(items),
       'enabled': (value) => _controller.enabled = Utils.optionalBool(value),
       'outline': (value) => _controller.outline = Utils.optionalBool(value),
       'color': (value) => _controller.color = Utils.getColor(value),
       'fontSize': (value) => _controller.fontSize = Utils.optionalInt(value),
-      'fontWeight': (value) => _controller.fontWeight = Utils.getFontWeight(value),
+      'fontWeight': (value) =>
+          _controller.fontWeight = Utils.getFontWeight(value),
       'width': (value) => _controller.buttonWidth = Utils.optionalInt(value),
       'height': (value) => _controller.buttonHeight = Utils.optionalInt(value),
     };
   }
+
   @override
   Map<String, Function> methods() {
     return {};
@@ -56,7 +64,6 @@ class Button extends StatefulWidget with Invokable, HasController<ButtonControll
 
   @override
   State<StatefulWidget> createState() => ButtonState();
-
 }
 
 class ButtonController extends BoxController {
@@ -85,9 +92,7 @@ class ButtonController extends BoxController {
   IconModel? endingIcon;
 }
 
-
 class ButtonState extends WidgetState<Button> {
-
   @override
   Widget buildWidget(BuildContext context) {
     bool isOutlineButton = widget._controller.outline ?? false;
@@ -96,12 +101,15 @@ class ButtonState extends WidgetState<Button> {
     Widget? startingIcon;
     Widget? endingIcon;
     if (widget._controller.startingIcon != null) {
-      startingIcon = ensembleIcon.Icon.fromModel(widget._controller.startingIcon!);
+      startingIcon =
+          ensembleIcon.Icon.fromModel(widget._controller.startingIcon!);
     }
     if (widget._controller.endingIcon != null) {
       endingIcon = ensembleIcon.Icon.fromModel(widget._controller.endingIcon!);
     }
-    List<Widget> labelParts = [Text(Utils.translate(widget._controller.label ?? '', context))];
+    List<Widget> labelParts = [
+      Text(Utils.translate(widget._controller.label ?? '', context))
+    ];
     if (startingIcon != null) {
       // TODO: follow up on icon layout options https://github.com/EnsembleUI/ensemble/pull/358#discussion_r1139023000
       labelParts.insertAll(0, [startingIcon, const SizedBox(width: 0)]);
@@ -109,54 +117,55 @@ class ButtonState extends WidgetState<Button> {
     if (endingIcon != null) {
       labelParts.addAll([const SizedBox(width: 0), endingIcon]);
     }
-    Widget labelLayout = Row(
-        mainAxisSize: MainAxisSize.min,
-        children: labelParts);
+    Widget labelLayout =
+        Row(mainAxisSize: MainAxisSize.min, children: labelParts);
 
     Widget? rtn;
     if (isOutlineButton) {
       rtn = TextButton(
-        onPressed: isEnabled() ? () => onPressed(context) : null,
-        style: getButtonStyle(context, isOutlineButton),
-        child: labelLayout);
+          onPressed: isEnabled() ? () => onPressed(context) : null,
+          style: getButtonStyle(context, isOutlineButton),
+          child: labelLayout);
     } else {
       rtn = ElevatedButton(
-        onPressed: isEnabled() ? () => onPressed(context) : null,
-        style: getButtonStyle(context, isOutlineButton),
-        child: labelLayout);
+          onPressed: isEnabled() ? () => onPressed(context) : null,
+          style: getButtonStyle(context, isOutlineButton),
+          child: labelLayout);
     }
 
     // add margin if specified
-    return widget._controller.margin != null ?
-      Padding(padding: widget._controller.margin!, child: rtn) :
-      rtn;
+    return widget._controller.margin != null
+        ? Padding(padding: widget._controller.margin!, child: rtn)
+        : rtn;
   }
-  
+
   ButtonStyle getButtonStyle(BuildContext context, bool isOutlineButton) {
     // we need to build a border which requires valid borderColor, borderThickness & borderRadius.
     // Let's get the default theme so we can overwrite only necessary styles
     RoundedRectangleBorder? border;
-    OutlinedBorder? defaultShape = isOutlineButton ?
-      Theme.of(context).textButtonTheme.style?.shape?.resolve({}) :
-        Theme.of(context).elevatedButtonTheme.style?.shape?.resolve({});
+    OutlinedBorder? defaultShape = isOutlineButton
+        ? Theme.of(context).textButtonTheme.style?.shape?.resolve({})
+        : Theme.of(context).elevatedButtonTheme.style?.shape?.resolve({});
     if (defaultShape is RoundedRectangleBorder) {
       // if we don't specify borderColor here, and the default border is none, stick with that
       BorderSide borderSide;
-      if (widget._controller.borderColor == null && defaultShape.side.style == BorderStyle.none) {
+      if (widget._controller.borderColor == null &&
+          defaultShape.side.style == BorderStyle.none) {
         borderSide = defaultShape.side;
       } else {
         borderSide = BorderSide(
             color: widget._controller.borderColor ?? defaultShape.side.color,
-            width: widget._controller.borderWidth?.toDouble() ?? defaultShape.side.width);
+            width: widget._controller.borderWidth?.toDouble() ??
+                defaultShape.side.width);
       }
 
       border = RoundedRectangleBorder(
-        borderRadius: widget._controller.borderRadius == null ?
-            defaultShape.borderRadius :
-            widget._controller.borderRadius!.getValue(),
-        side: borderSide);
+          borderRadius: widget._controller.borderRadius == null
+              ? defaultShape.borderRadius
+              : widget._controller.borderRadius!.getValue(),
+          side: borderSide);
     }
-        
+
     // we need to get the button shape from borderRadius, borderColor & borderThickness
     // and we do not want to override the default theme if not specified
     //int borderRadius = widget._controller.borderRadius ?? defaultButtonStyle?.
@@ -170,13 +179,13 @@ class ButtonState extends WidgetState<Button> {
         buttonWidth: widget._controller.buttonWidth?.toDouble(),
         padding: widget._controller.padding,
         fontSize: widget._controller.fontSize,
-        fontWeight: widget._controller.fontWeight
-    );
+        fontWeight: widget._controller.fontWeight);
   }
 
   void onPressed(BuildContext context) {
     // validate if we are inside a Form
-    if (widget._controller.validateForm != null && widget._controller.validateForm!) {
+    if (widget._controller.validateForm != null &&
+        widget._controller.validateForm!) {
       ensembleForm.FormState? formState = EnsembleForm.of(context);
       if (formState != null) {
         // don't continue if validation fails
@@ -186,9 +195,7 @@ class ButtonState extends WidgetState<Button> {
       }
     }
     // else validate specified fields
-    else if (widget._controller.validateFields != null) {
-
-    }
+    else if (widget._controller.validateFields != null) {}
 
     // if focus in on a formfield (e.g. TextField), clicking on button will
     // not remove focus, so its value is never updated. Unfocus here before
@@ -202,14 +209,14 @@ class ButtonState extends WidgetState<Button> {
 
     // execute the onTap action
     if (widget._controller.onTap != null) {
-      ScreenController().executeAction(context, widget._controller.onTap!,event: EnsembleEvent(widget));
+      ScreenController().executeAction(context, widget._controller.onTap!,
+          event: EnsembleEvent(widget));
     }
   }
 
   bool isEnabled() {
-    return widget._controller.enabled
-        ?? EnsembleForm.of(context)?.widget.controller.enabled
-        ?? true;
+    return widget._controller.enabled ??
+        EnsembleForm.of(context)?.widget.controller.enabled ??
+        true;
   }
-
 }

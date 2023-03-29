@@ -24,7 +24,8 @@ void main() {
     await tester.pumpWidget(TestUtils.wrapTestWidget(dateWidget));
 
     // confirm the initial date is properly shown and formatted
-    expect(find.text(DateFormat.yMMMd().format(DateTime.parse(date))), findsOneWidget);
+    expect(find.text(DateFormat.yMMMd().format(DateTime.parse(date))),
+        findsOneWidget);
 
     // confirm the value is in ISO format (same as what we set)
     expect(dateWidget.getProperty('value').toString(), date);
