@@ -7,7 +7,7 @@ import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/menu.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/layout/app_scroller.dart';
-import 'package:ensemble/layout/box_layout.dart';
+import 'package:ensemble/layout/box/box_layout.dart';
 import 'package:ensemble/layout/stack.dart';
 import 'package:ensemble/provider.dart';
 import 'package:ensemble/util/utils.dart';
@@ -45,17 +45,15 @@ abstract class PageModel {
       }
       return SinglePageModel._init(data);
     } on Error catch (e) {
-      throw LanguageError(
-          "Invalid page definition.",
+      throw LanguageError("Invalid page definition.",
           recovery: "Please double check your page syntax.",
-          detailError: e.toString() + "\n" + (e.stackTrace?.toString() ?? '')
-      );
+          detailError: e.toString() + "\n" + (e.stackTrace?.toString() ?? ''));
     }
   }
   void _processModel(YamlMap docMap) {
     _processAPI(docMap['API']);
     YamlNode? globalCodeNode = docMap.nodes['Global'];
-    if ( globalCodeNode != null ) {
+    if (globalCodeNode != null) {
       globalCode = Utils.optionalString(globalCodeNode.value);
       globalCodeSpan = ViewUtil.getDefinition(globalCodeNode);
     }
@@ -81,21 +79,15 @@ abstract class PageModel {
         if (value != null) {
           subViewDefinitions[key] = value;
         }
-
-
       }
     });
     return subViewDefinitions;
   }
-
-
-
-
 }
 
 /// a screen list grouped together by a menu
 class PageGroupModel extends PageModel {
-  PageGroupModel._init (YamlMap docMap) {
+  PageGroupModel._init(YamlMap docMap) {
     _processModel(docMap);
   }
 
@@ -107,13 +99,11 @@ class PageGroupModel extends PageModel {
   }
 }
 
-
 /// represents an individual screen translated from the YAML definition
 class SinglePageModel extends PageModel {
-  SinglePageModel._init (YamlMap docMap) {
+  SinglePageModel._init(YamlMap docMap) {
     _processModel(docMap);
   }
-
 
   ViewBehavior viewBehavior = ViewBehavior();
   HeaderModel? headerModel;
@@ -122,9 +112,6 @@ class SinglePageModel extends PageModel {
   ScreenOptions? screenOptions;
   late WidgetModel rootWidgetModel;
   Footer? footer;
-
-
-
 
   @override
   _processModel(YamlMap docMap) {
@@ -136,8 +123,7 @@ class SinglePageModel extends PageModel {
       PageType pageType = viewMap['options']['type'] == PageType.modal.name
           ? PageType.modal
           : PageType.regular;
-      screenOptions = ScreenOptions(
-          pageType: pageType);
+      screenOptions = ScreenOptions(pageType: pageType);
     }
 
     // set the view behavior
@@ -157,11 +143,11 @@ class SinglePageModel extends PageModel {
     }
 
     if (viewMap['footer'] != null && viewMap['footer']['children'] != null) {
-      footer = Footer(ViewUtil.buildModels(viewMap['footer']['children'], customViewDefinitions));
+      footer = Footer(ViewUtil.buildModels(
+          viewMap['footer']['children'], customViewDefinitions));
     }
 
     rootWidgetModel = buildRootModel(viewMap, customViewDefinitions);
-
   }
 
   void processHeader(YamlMap? headerData, String? legacyTitle) {
@@ -186,8 +172,15 @@ class SinglePageModel extends PageModel {
       styles = ViewUtil.getMap(headerData['styles']);
     }
 
-    if (titleWidget != null || titleText != null || background != null || styles != null) {
-      headerModel = HeaderModel(titleText: titleText, titleWidget: titleWidget, flexibleBackground: background, styles: styles);
+    if (titleWidget != null ||
+        titleText != null ||
+        background != null ||
+        styles != null) {
+      headerModel = HeaderModel(
+          titleText: titleText,
+          titleWidget: titleWidget,
+          flexibleBackground: background,
+          styles: styles);
     }
   }
 
@@ -195,21 +188,36 @@ class SinglePageModel extends PageModel {
   // where as the root body (e.g Column) should be more restrictive
   // (e.g the whole body shouldn't be click-enable)
   // Let's manually select what can be specified here (really just styles/item-template/children)
-  WidgetModel buildRootModel(YamlMap viewMap, Map<String, dynamic>? customViewDefinitions) {
-    WidgetModel? rootModel = getRootModel(viewMap, customViewDefinitions!);
-    if (rootModel != null) {
-      if (![Column.type, Row.type, Flex.type, EnsembleStack.type, AppScroller.type,].contains(rootModel.type)) {
-        throw LanguageError('Root widget type should only be Row, Column, Flex or Stack.');
+  WidgetModel buildRootModel(
+      YamlMap viewMap, Map<String, dynamic>? customViewDefinitions) {
+    if (viewMap['body'] != null) {
+      return ViewUtil.buildModel(viewMap['body'], customViewDefinitions);
+    }
+    // backward compatible
+    else {
+      WidgetModel? rootModel = getRootModel(viewMap, customViewDefinitions);
+      if (rootModel != null) {
+        if (![
+          Column.type,
+          Row.type,
+          Flex.type,
+          EnsembleStack.type,
+          AppScroller.type,
+        ].contains(rootModel.type)) {
+          throw LanguageError(
+              'Root widget type should only be Row, Column, Flex or Stack.');
+        }
+        return rootModel;
       }
-      return rootModel;
     }
     throw LanguageError("View requires a child widget !");
   }
 
-  WidgetModel? getRootModel(YamlMap rootTree, Map<String, dynamic> customViewDefinitions) {
-    for ( MapEntry<dynamic,dynamic> entry in rootTree.entries ) {
+  WidgetModel? getRootModel(
+      YamlMap rootTree, Map<String, dynamic>? customViewDefinitions) {
+    for (MapEntry<dynamic, dynamic> entry in rootTree.entries) {
       if (WidgetRegistry.widgetMap[entry.key] != null ||
-          customViewDefinitions[entry.key] != null) {
+          customViewDefinitions?[entry.key] != null) {
         return ViewUtil.buildModel(entry, customViewDefinitions);
       }
     }
@@ -235,9 +243,6 @@ class SinglePageModel extends PageModel {
 
      */
   }
-
-
-
 }
 
 class WidgetModel {
@@ -250,17 +255,14 @@ class WidgetModel {
   final List<WidgetModel>? children;
   final ItemTemplate? itemTemplate;
 
-  WidgetModel(this.definition,this.type, this.styles, this.props, {this.children, this.itemTemplate});
+  WidgetModel(this.definition, this.type, this.styles, this.props,
+      {this.children, this.itemTemplate});
 }
 
 class CustomWidgetModel extends WidgetModel {
-  CustomWidgetModel(
-      this.widgetModel,
-      Map<String, dynamic> props,
-      {
-        this.parameters,
-        this.inputs
-  }) : super(widgetModel.definition,'', {}, props);
+  CustomWidgetModel(this.widgetModel, Map<String, dynamic> props,
+      {this.parameters, this.inputs})
+      : super(widgetModel.definition, '', {}, props);
 
   WidgetModel widgetModel;
   List<String>? parameters;
@@ -273,7 +275,6 @@ class CustomWidgetModel extends WidgetModel {
   ViewBehavior getViewBehavior() {
     return ViewBehavior(onLoad: EnsembleAction.fromYaml(props['onLoad']));
   }
-
 }
 
 /// special behaviors for RootView (View) and Custom Views
@@ -293,7 +294,8 @@ class ItemTemplate {
 }
 
 class HeaderModel {
-  HeaderModel({this.titleText, this.titleWidget, this.flexibleBackground, this.styles});
+  HeaderModel(
+      {this.titleText, this.titleWidget, this.flexibleBackground, this.styles});
 
   // header title can be text or a widget
   String? titleText;
@@ -303,37 +305,28 @@ class HeaderModel {
   Map<String, dynamic>? styles;
 }
 
-
-
 class Footer {
   final List<WidgetModel> children;
   Footer(this.children);
 }
 
-enum PageType {
-  regular, modal
-}
+enum PageType { regular, modal }
 
 /// provider that gets passed into every screen
 class AppProvider {
-  AppProvider({
-    required this.definitionProvider
-  });
+  AppProvider({required this.definitionProvider});
   DefinitionProvider definitionProvider;
 
   Future<YamlMap> getDefinition({ScreenPayload? payload}) {
-    return definitionProvider.getDefinition(screenId: payload?.screenId, screenName: payload?.screenName);
+    return definitionProvider.getDefinition(
+        screenId: payload?.screenId, screenName: payload?.screenName);
   }
 }
 
 /// payload to pass to the Screen
 class ScreenPayload {
-  ScreenPayload({
-    this.screenId,
-    this.screenName,
-    this.arguments,
-    this.pageType
-  });
+  ScreenPayload(
+      {this.screenId, this.screenName, this.arguments, this.pageType});
 
   // screen ID is optional as the App always have a default screen
   String? screenId;

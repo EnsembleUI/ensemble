@@ -1,9 +1,8 @@
-
-
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/widget.dart';
-import 'package:ensemble/layout/box_layout.dart';
+import 'package:ensemble/layout/box/base_box_layout.dart';
+import 'package:ensemble/layout/box/box_layout.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
@@ -13,7 +12,6 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' as flutter;
 import 'package:ensemble/screen_controller.dart';
-
 
 class ListView extends StatefulWidget
     with
@@ -39,14 +37,14 @@ class ListView extends StatefulWidget
   @override
   Map<String, Function> setters() {
     return {
-      'onItemTap': (funcDefinition) =>
-      _controller.onItemTap = EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onItemTap': (funcDefinition) => _controller.onItemTap =
+          EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'separatorColor': (value) =>
-      _controller.sepratorColor = Utils.getColor(value),
+          _controller.sepratorColor = Utils.getColor(value),
       'separatorWidth': (value) =>
-      _controller.sepratorWidth = Utils.optionalDouble(value),
+          _controller.sepratorWidth = Utils.optionalDouble(value),
       'separatorPadding': (value) =>
-      _controller.sepratorPadding = Utils.optionalInsets(value),
+          _controller.sepratorPadding = Utils.optionalInsets(value),
     };
   }
 
@@ -69,20 +67,19 @@ class ListView extends StatefulWidget
 
 class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
   List<Widget>? templatedChildren;
-  List _listViewChildren=[];
+  List _listViewChildren = [];
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
 
     if (widget.itemTemplate != null) {
-      
       registerItemTemplate(context, widget.itemTemplate!,
           evaluateInitialValue: true, onDataChanged: (List dataList) {
-            setState(() {
-              _listViewChildren=dataList;
-            });
-          });
+        setState(() {
+          _listViewChildren = dataList;
+        });
+      });
     }
   }
 
@@ -100,13 +97,12 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
   Widget _buildBoxWidget() {
     // propagate text styling to all its children
     return DefaultTextStyle.merge(
-      style: TextStyle(
-          fontFamily: widget._controller.fontFamily,
-          fontSize: widget._controller.fontSize != null
-              ? widget._controller.fontSize!.toDouble()
-              : null),
-      child: _buildListViewWidget());
-
+        style: TextStyle(
+            fontFamily: widget._controller.fontFamily,
+            fontSize: widget._controller.fontSize != null
+                ? widget._controller.fontSize!.toDouble()
+                : null),
+        child: _buildListViewWidget());
   }
 
   // ------------------ Build Widgets for the childrens displayed in YAML ----------------
@@ -124,10 +120,11 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
           shrinkWrap: false,
           itemBuilder: (BuildContext context, int index) {
             return GestureDetector(
-               onTap: widget._controller.onItemTap == null
+                onTap: widget._controller.onItemTap == null
                     ? null
                     : () => _onItemTapped(index),
-                child: buildWidgetForIndex(context, _listViewChildren, widget.itemTemplate!, index));
+                child: buildWidgetForIndex(
+                    context, _listViewChildren, widget.itemTemplate!, index));
           }),
     );
   }
@@ -152,8 +149,8 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
       widget._controller.selectedItemIndex = index;
       //log("Changed to index $index");
       ScreenController().executeAction(context, widget._controller.onItemTap!);
-      print("The Selected index in data array of ListView is ${widget._controller.selectedItemIndex}");
+      print(
+          "The Selected index in data array of ListView is ${widget._controller.selectedItemIndex}");
     }
   }
-
 }

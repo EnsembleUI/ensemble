@@ -12,7 +12,12 @@ import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 
 /// get device information as well as requesting device permissions
-class Device with Invokable, MediaQueryCapability, LocationCapability, DeviceInfoCapability {
+class Device
+    with
+        Invokable,
+        MediaQueryCapability,
+        LocationCapability,
+        DeviceInfoCapability {
   static final Device _instance = Device._internal();
   Device._internal();
   factory Device() {
@@ -46,10 +51,6 @@ class Device with Invokable, MediaQueryCapability, LocationCapability, DeviceInf
   Map<String, Function> setters() {
     return {};
   }
-
-
-
-  
 }
 
 mixin MediaQueryCapability {
@@ -62,12 +63,15 @@ mixin MediaQueryCapability {
   int get screenWidth {
     return _getData().size.width.toInt();
   }
+
   int get screenHeight {
     return _getData().size.height.toInt();
   }
+
   int get safeAreaTop {
     return _getData().padding.top.toInt();
   }
+
   int get safeAreaBottom {
     return _getData().padding.bottom.toInt();
   }
@@ -94,7 +98,8 @@ mixin LocationCapability {
         permission = await Geolocator.requestPermission();
       }
 
-      if (![LocationPermission.denied, LocationPermission.deniedForever].contains(permission)) {
+      if (![LocationPermission.denied, LocationPermission.deniedForever]
+          .contains(permission)) {
         return LocationStatus.ready;
       } else {
         return LocationStatus.denied;
@@ -118,8 +123,6 @@ mixin LocationCapability {
     lastLocation = await Geolocator.getCurrentPosition();
     return lastLocation!;
   }
-  
-
 }
 
 /// retrieve basic device info
@@ -139,13 +142,10 @@ mixin DeviceInfoCapability {
       } else {
         if (Platform.isAndroid) {
           platform = DevicePlatform.android;
-
         } else if (Platform.isIOS) {
           platform = DevicePlatform.ios;
-
         } else if (Platform.isMacOS) {
           platform = DevicePlatform.macos;
-
         } else if (Platform.isWindows) {
           platform = DevicePlatform.windows;
         }
@@ -161,7 +161,9 @@ class DeviceWebInfo with Invokable {
   Map<String, Function> getters() {
     WebBrowserInfo? browserInfo = DeviceInfoCapability.browserInfo;
     return {
-      'browserName': () => browserInfo?.browserName == null ? null : describeEnum(browserInfo!.browserName),
+      'browserName': () => browserInfo?.browserName == null
+          ? null
+          : describeEnum(browserInfo!.browserName),
       'appCodeName': () => browserInfo?.appCodeName,
       'appName': () => browserInfo?.appName,
       'appVersion': () => browserInfo?.appVersion,
@@ -218,7 +220,9 @@ class Location with Invokable {
   /// return distance between 2 coordinates in miles
   double? getDistance(double lat, double lng) {
     if (location != null) {
-      return Geolocator.distanceBetween(location!.latitude, location!.longitude, lat, lng) / 1609.344;
+      return Geolocator.distanceBetween(
+              location!.latitude, location!.longitude, lat, lng) /
+          1609.344;
     }
     return null;
   }
@@ -231,14 +235,9 @@ class Location with Invokable {
     }
     return '';
   }
-
-
-
 }
 
-enum DevicePlatform {
-  web, android, ios, macos, windows, other
-}
+enum DevicePlatform { web, android, ios, macos, windows, other }
 
 // the wrapper class for location request that includes other info
 class DeviceLocation {
@@ -248,7 +247,7 @@ class DeviceLocation {
 }
 
 enum LocationStatus {
-  ready,    // ready to fetch location
+  ready, // ready to fetch location
   disabled,
   denied,
   unknown

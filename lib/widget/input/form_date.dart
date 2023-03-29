@@ -14,7 +14,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:ensemble/util/extensions.dart';
 
-class Date extends StatefulWidget with Invokable, HasController<DateController, DateState> {
+class Date extends StatefulWidget
+    with Invokable, HasController<DateController, DateState> {
   static const type = 'Date';
   Date({Key? key}) : super(key: key);
 
@@ -43,12 +44,12 @@ class Date extends StatefulWidget with Invokable, HasController<DateController, 
       'initialValue': (value) => _controller.value ??= Utils.getDate(value),
       'firstDate': (value) => _controller.firstDate = Utils.getDate(value),
       'lastDate': (value) => _controller.lastDate = Utils.getDate(value),
-      'showCalendarIcon': (shouldShow) => _controller.showCalendarIcon = Utils.optionalBool(shouldShow),
-      'onChange': (definition) => _controller.onChange = EnsembleAction.fromYaml(definition, initiator: this)
+      'showCalendarIcon': (shouldShow) =>
+          _controller.showCalendarIcon = Utils.optionalBool(shouldShow),
+      'onChange': (definition) => _controller.onChange =
+          EnsembleAction.fromYaml(definition, initiator: this)
     };
   }
-
-
 }
 
 class DateController extends FormFieldController {
@@ -60,7 +61,6 @@ class DateController extends FormFieldController {
 
   bool? showCalendarIcon;
   EnsembleAction? onChange;
-
 }
 
 class DateState extends FormFieldWidgetState<Date> {
@@ -68,57 +68,62 @@ class DateState extends FormFieldWidgetState<Date> {
 
   /// the selected date nicely formatted
   String get selectedValue => widget._controller.value != null
-      ? DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(widget._controller.value!)
+      ? DateFormat.yMMMd(Localizations.localeOf(context).toString())
+          .format(widget._controller.value!)
       : '';
 
   @override
   Widget buildWidget(BuildContext context) {
-    return FormField<DateTime>(
-      key: validatorKey,
-      validator: (value) {
-        if (widget._controller.required && widget._controller.value == null) {
-          return Utils.translateWithFallback('ensemble.input.required', 'This field is required');
-        }
-        return null;
-      },
-      builder: (FormFieldState<DateTime> field) {
-        Widget rtn = InkWell(
-          onTap: isEnabled() ? () => _selectDate(context) : null,
-          child: InputDecorator(
-              isEmpty: widget._controller.value == null,
-              decoration: inputDecoration.copyWith(
-                  errorText: field.errorText,
-                  hintText: widget._controller.hintText ??
-                      Utils.translateWithFallback(
-                          'ensemble.input.date.placeholder', 'Select a date'),
-                  suffixIcon: widget._controller.showCalendarIcon != false
-                      ? Icon(
-                          Icons.calendar_month_rounded,
-                          color: formFieldTextStyle.color?.withOpacity(.5),
-                          size: ThemeManager().getInputIconSize(context).toDouble())
-                      : null),
-              child: ClearableInput(
-                text: selectedValue,
-                textStyle: formFieldTextStyle,
-                onCleared: () {
-                  setState(() {
-                    widget._controller.value = null;
-                  });
+    return InputWrapper(
+        type: Date.type,
+        controller: widget.controller,
+        widget: FormField<DateTime>(
+            key: validatorKey,
+            validator: (value) {
+              if (widget._controller.required &&
+                  widget._controller.value == null) {
+                return Utils.translateWithFallback(
+                    'ensemble.input.required', 'This field is required');
+              }
+              return null;
+            },
+            builder: (FormFieldState<DateTime> field) {
+              Widget rtn = InkWell(
+                  onTap: isEnabled() ? () => _selectDate(context) : null,
+                  child: InputDecorator(
+                      isEmpty: widget._controller.value == null,
+                      decoration: inputDecoration.copyWith(
+                          errorText: field.errorText,
+                          hintText: widget._controller.hintText ??
+                              Utils.translateWithFallback(
+                                  'ensemble.input.date.placeholder',
+                                  'Select a date'),
+                          suffixIcon: widget._controller.showCalendarIcon !=
+                                  false
+                              ? Icon(Icons.calendar_month_rounded,
+                                  color:
+                                      formFieldTextStyle.color?.withOpacity(.5),
+                                  size: ThemeManager()
+                                      .getInputIconSize(context)
+                                      .toDouble())
+                              : null),
+                      child: ClearableInput(
+                          text: selectedValue,
+                          textStyle: formFieldTextStyle,
+                          onCleared: () {
+                            setState(() {
+                              widget._controller.value = null;
+                            });
+                          })));
 
-                }
-              )
-          ));
-
-        if (!isEnabled()) {
-          rtn = Opacity(
-            opacity: .5,
-            child: rtn,
-          );
-        }
-        return rtn;
-      }
-    );
-
+              if (!isEnabled()) {
+                rtn = Opacity(
+                  opacity: .5,
+                  child: rtn,
+                );
+              }
+              return rtn;
+            }));
   }
 
   void _selectDate(BuildContext context) async {
@@ -142,17 +147,17 @@ class DateState extends FormFieldWidgetState<Date> {
       lastDate: lastDate,
     );
     if (picked != null) {
-      if (widget._controller.value == null || widget._controller.value!.compareTo(picked) != 0) {
+      if (widget._controller.value == null ||
+          widget._controller.value!.compareTo(picked) != 0) {
         setState(() {
           widget._controller.value = picked;
         });
         if (isEnabled() && widget._controller.onChange != null) {
           ScreenController().executeAction(
-              context, widget._controller.onChange!,event: EnsembleEvent(widget));
+              context, widget._controller.onChange!,
+              event: EnsembleEvent(widget));
         }
       }
     }
   }
-
-
 }
