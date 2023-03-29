@@ -391,6 +391,29 @@ export type styleCarousel = WithoutDimension & {
   indicatorMargin?: number | string;
 };
 
+/**
+ *Allow this selected child to determine its own size. This may give an error if the child doesn't have a dimension.
+ * */
+type auto = "auto";
+
+/**
+ * Default 1. After laying out the 'auto' children, the left-over space will be divided up based on this multiple.
+ * @minimum 1
+ * */
+type min = number;
+
+export type fittedBoxStyles = BaseStyles &
+  boxLayoutStyles &
+  Pick<stylesColumn, "mainAxis" | "crossAxis"> & {
+    /**
+     *  Specify an array of non-zero integers or 'auto', each corresponding to a child. Setting 'auto' will let the child
+     *  determines its own size, while setting a non-zero integer will determine the child's size multiple. The 'auto'
+     *  children will be laid out first and get as much space as they need, then the left-over space will be distributed
+     *  to the other children based on their size multiples.
+     * */
+    childrenFits?: (auto | min)[];
+  };
+
 export interface HasBackground extends Partial<backgroundGradient> {
   backgroundColor?: Colors;
   backgroundImage?: backgroundImage;

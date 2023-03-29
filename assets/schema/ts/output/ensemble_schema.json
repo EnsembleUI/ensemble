@@ -1,9 +1,14 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
+  "additionalProperties": {
+    "$ref": "#/definitions/AdditionalProperties",
+    "description": "Defining a Custom Widget"
+  },
   "properties": {
     "Import": {
-      "type": "object"
+      "type": "object",
+      "additionalProperties": false
     },
     "ViewGroup": {
       "$ref": "#/definitions/Menu"
@@ -12,16 +17,20 @@
       "$ref": "#/definitions/View"
     },
     "Action": {
-      "type": "object"
+      "type": "object",
+      "additionalProperties": false
     },
     "Model": {
-      "type": "object"
+      "type": "object",
+      "additionalProperties": false
     },
     "App": {
-      "type": "object"
+      "type": "object",
+      "additionalProperties": false
     },
     "Variable": {
-      "type": "object"
+      "type": "object",
+      "additionalProperties": false
     },
     "Functions": {
       "$ref": "#/definitions/Functions"
@@ -58,6 +67,7 @@
           "description": "Enable a fixed navigation menu to the 'end' of the screen (right for most languages, left for RTL languages). The menu may become a drawer menu on lower resolution."
         }
       },
+      "additionalProperties": false,
       "description": "Specify the navigation menu for this page"
     },
     "MenuBase": {
@@ -91,7 +101,8 @@
               "icon",
               "label",
               "page"
-            ]
+            ],
+            "additionalProperties": false
           },
           "description": "List of menu items (minimum 2)"
         },
@@ -101,7 +112,8 @@
       },
       "required": [
         "items"
-      ]
+      ],
+      "additionalProperties": false
     },
     "iconLibrary": {
       "type": "string",
@@ -136,6 +148,7 @@
     },
     "MenuWithHeaderAndFooter": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "header": {
           "$ref": "#/definitions/Widget",
@@ -172,7 +185,8 @@
               "icon",
               "label",
               "page"
-            ]
+            ],
+            "additionalProperties": false
           },
           "description": "List of menu items (minimum 2)"
         },
@@ -191,10 +205,12 @@
           "type": "string",
           "description": "ID to be referenced later"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "MenuWithAdditionalStyles": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "styles": {
           "$ref": "#/definitions/backgroundColor"
@@ -234,7 +250,8 @@
               "icon",
               "label",
               "page"
-            ]
+            ],
+            "additionalProperties": false
           },
           "description": "List of menu items (minimum 2)"
         }
@@ -263,6 +280,12 @@
         },
         "Carousel": {
           "$ref": "#/definitions/Carousel"
+        },
+        "FittedColumn": {
+          "$ref": "#/definitions/FittedBoxLayout"
+        },
+        "FittedRow": {
+          "$ref": "#/definitions/FittedBoxLayout"
         },
         "header": {
           "type": "object",
@@ -319,10 +342,15 @@
                   "type": "number",
                   "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's max height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). This attribute will be ignored if smaller than the flexibleMinHeight"
                 }
-              }
+              },
+              "additionalProperties": false
             }
           },
+          "additionalProperties": false,
           "description": "Configure the application header"
+        },
+        "body": {
+          "$ref": "#/definitions/Widgets"
         },
         "onLoad": {
           "$ref": "#/definitions/Action",
@@ -335,7 +363,8 @@
               "$ref": "#/definitions/screenType",
               "description": "Specify if this is a regular (default) or modal screen"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "styles": {
           "type": "object",
@@ -362,9 +391,15 @@
               "$ref": "#/definitions/navIconPosition",
               "description": "On modal screen without a header, you can position the close button at the start or end of the screen. For left-to-right languages like English, start is on the left and end is on the right. This property has no effect on a screen with header."
             }
-          }
+          },
+          "additionalProperties": false
         }
-      }
+      },
+      "required": [
+        "body"
+      ],
+      "additionalProperties": false,
+      "description": "This is your root View. It requires a body widget."
     },
     "Column": {
       "type": "object",
@@ -379,14 +414,21 @@
         "children": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Widgets"
-          },
-          "minItems": 1
+            "anyOf": [
+              {
+                "$ref": "#/definitions/Widgets"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          }
         },
         "styles": {
           "$ref": "#/definitions/stylesColumn"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "ItemTemplate": {
       "type": "object",
@@ -412,7 +454,8 @@
         "data",
         "name",
         "template"
-      ]
+      ],
+      "additionalProperties": false
     },
     "Widgets": {
       "type": "object",
@@ -434,6 +477,12 @@
         },
         "Carousel": {
           "$ref": "#/definitions/Carousel"
+        },
+        "FittedColumn": {
+          "$ref": "#/definitions/FittedBoxLayout"
+        },
+        "FittedRow": {
+          "$ref": "#/definitions/FittedBoxLayout"
         },
         "Row": {
           "$ref": "#/definitions/Row"
@@ -511,7 +560,8 @@
         "WebView": {
           "$ref": "#/definitions/WebView"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "Flow": {
       "type": "object",
@@ -526,9 +576,15 @@
         "children": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Widgets"
-          },
-          "minItems": 1
+            "anyOf": [
+              {
+                "$ref": "#/definitions/Widgets"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          }
         },
         "direction": {
           "$ref": "#/definitions/directionEnum",
@@ -537,7 +593,8 @@
         "styles": {
           "$ref": "#/definitions/styleFlow"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "directionEnum": {
       "type": "string",
@@ -548,6 +605,7 @@
     },
     "styleFlow": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "mainAxis": {
           "type": "string",
@@ -598,17 +656,25 @@
         "children": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Widgets"
-          },
-          "minItems": 1
+            "anyOf": [
+              {
+                "$ref": "#/definitions/Widgets"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          }
         },
         "styles": {
           "$ref": "#/definitions/styleFlex"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "styleFlex": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "direction": {
           "$ref": "#/definitions/directionEnum",
@@ -784,7 +850,8 @@
         "alignment": {
           "$ref": "#/definitions/alignmentEnum"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "fitEnum": {
       "type": "string",
@@ -808,9 +875,15 @@
         "children": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Widgets"
-          },
-          "minItems": 1
+            "anyOf": [
+              {
+                "$ref": "#/definitions/Widgets"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          }
         },
         "styles": {
           "type": "object",
@@ -818,9 +891,11 @@
             "alignment": {
               "$ref": "#/definitions/alignmentEnum"
             }
-          }
+          },
+          "additionalProperties": false
         }
-      }
+      },
+      "additionalProperties": false
     },
     "ListView": {
       "type": "object",
@@ -835,9 +910,15 @@
         "children": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Widgets"
-          },
-          "minItems": 1
+            "anyOf": [
+              {
+                "$ref": "#/definitions/Widgets"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          }
         },
         "onItemTap": {
           "$ref": "#/definitions/Action",
@@ -849,6 +930,7 @@
         },
         "styles": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
             "separatorColor": {
               "$ref": "#/definitions/Colors",
@@ -968,7 +1050,8 @@
             }
           }
         }
-      }
+      },
+      "additionalProperties": false
     },
     "Action": {
       "type": "object",
@@ -1009,7 +1092,8 @@
         "getLocationActionAction": {
           "$ref": "#/definitions/GetLocationActionAction"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "InvokeAPIAction": {
       "type": "object",
@@ -1021,7 +1105,8 @@
           "type": "string"
         },
         "inputs": {
-          "type": "object"
+          "type": "object",
+          "additionalProperties": false
         },
         "onResponse": {
           "$ref": "#/definitions/Action"
@@ -1032,7 +1117,8 @@
       },
       "required": [
         "name"
-      ]
+      ],
+      "additionalProperties": false
     },
     "ExecuteCodeAction": {
       "type": "object",
@@ -1046,7 +1132,8 @@
       },
       "required": [
         "body"
-      ]
+      ],
+      "additionalProperties": false
     },
     "NavigateScreenAction": {
       "type": "object",
@@ -1055,7 +1142,8 @@
           "type": "string"
         },
         "inputs": {
-          "type": "object"
+          "type": "object",
+          "additionalProperties": false
         },
         "options": {
           "type": "object",
@@ -1066,12 +1154,14 @@
             "clearAllScreens": {
               "type": "boolean"
             }
-          }
+          },
+          "additionalProperties": false
         }
       },
       "required": [
         "name"
-      ]
+      ],
+      "additionalProperties": false
     },
     "NavigateModalScreenAction": {
       "type": "object",
@@ -1080,7 +1170,8 @@
           "type": "string"
         },
         "inputs": {
-          "type": "object"
+          "type": "object",
+          "additionalProperties": false
         },
         "onModalDismiss": {
           "$ref": "#/definitions/Action"
@@ -1088,13 +1179,16 @@
       },
       "required": [
         "name"
-      ]
+      ],
+      "additionalProperties": false
     },
     "NavigateBackAction": {
-      "type": "object"
+      "type": "object",
+      "additionalProperties": false
     },
     "OpenCameraAction": {
-      "type": "object"
+      "type": "object",
+      "additionalProperties": false
     },
     "ShowDialogAction": {
       "type": "object",
@@ -1111,7 +1205,8 @@
       },
       "required": [
         "widget"
-      ]
+      ],
+      "additionalProperties": false
     },
     "DialogOptions": {
       "type": "object",
@@ -1149,10 +1244,12 @@
             "none"
           ]
         }
-      }
+      },
+      "additionalProperties": false
     },
     "CloseAllDialogsAction": {
-      "type": "object"
+      "type": "object",
+      "additionalProperties": false
     },
     "StartTimerAction": {
       "type": "object",
@@ -1172,7 +1269,8 @@
       },
       "required": [
         "onTimer"
-      ]
+      ],
+      "additionalProperties": false
     },
     "TimerOptions": {
       "type": "object",
@@ -1198,7 +1296,8 @@
           "description": "Set the max number of times the timer will triggers, if repeat is true",
           "minimum": 1
         }
-      }
+      },
+      "additionalProperties": false
     },
     "StopTimerAction": {
       "type": "object",
@@ -1209,7 +1308,8 @@
       },
       "required": [
         "id"
-      ]
+      ],
+      "additionalProperties": false
     },
     "ShowToastAction": {
       "type": "object",
@@ -1228,7 +1328,8 @@
               },
               "required": [
                 "message"
-              ]
+              ],
+              "additionalProperties": false
             }
           ]
         },
@@ -1243,6 +1344,7 @@
         },
         "styles": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
             "shadowColor": {
               "type": [
@@ -1284,7 +1386,8 @@
       },
       "required": [
         "value"
-      ]
+      ],
+      "additionalProperties": false
     },
     "ShowToastOptions": {
       "type": "object",
@@ -1320,7 +1423,8 @@
           "description": "The number of seconds after the toast is dismissed",
           "minimum": 1
         }
-      }
+      },
+      "additionalProperties": false
     },
     "GetLocationActionAction": {
       "type": "object",
@@ -1336,7 +1440,8 @@
               "description": "If recurring, the minimum distance (in meters) the device has moved before new location is returned. (default: 1000 meters, minimum: 50 meters)",
               "minimum": 50
             }
-          }
+          },
+          "additionalProperties": false
         },
         "onLocationReceived": {
           "$ref": "#/definitions/Action"
@@ -1344,7 +1449,8 @@
         "onError": {
           "$ref": "#/definitions/Action"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "Carousel": {
       "type": "object",
@@ -1359,9 +1465,15 @@
         "children": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Widgets"
-          },
-          "minItems": 1
+            "anyOf": [
+              {
+                "$ref": "#/definitions/Widgets"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          }
         },
         "onItemChange": {
           "$ref": "#/definitions/Action",
@@ -1370,10 +1482,12 @@
         "styles": {
           "$ref": "#/definitions/styleCarousel"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "styleCarousel": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "layout": {
           "type": "string",
@@ -1525,6 +1639,181 @@
         }
       }
     },
+    "FittedBoxLayout": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/Widgets"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "styles": {
+          "$ref": "#/definitions/fittedBoxStyles"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Stretch to fit the parent (the parent is required to have a predetermined height), then distribute the vertical spaces evenly among its children. You can override the space distribution via 'childrenFits' attribute."
+    },
+    "fittedBoxStyles": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "childrenFits": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string",
+                "const": "auto",
+                "description": "Allow this selected child to determine its own size. This may give an error if the child doesn't have a dimension."
+              },
+              {
+                "type": "number",
+                "description": "Default 1. After laying out the 'auto' children, the left-over space will be divided up based on this multiple.",
+                "minimum": 1
+              }
+            ]
+          },
+          "description": "Specify an array of non-zero integers or 'auto', each corresponding to a child. Setting 'auto' will let the child determines its own size, while setting a non-zero integer will determine the child's size multiple. The 'auto' children will be laid out first and get as much space as they need, then the left-over space will be distributed to the other children based on their size multiples."
+        },
+        "mainAxis": {
+          "type": "string",
+          "enum": [
+            "start",
+            "center",
+            "end",
+            "spaceBetween",
+            "spaceAround",
+            "spaceEvenly"
+          ],
+          "description": "Control our children's layout vertically"
+        },
+        "crossAxis": {
+          "type": "string",
+          "enum": [
+            "start",
+            "center",
+            "end",
+            "stretch",
+            "baseline"
+          ],
+          "description": "Control the horizontal alignment of the children"
+        },
+        "gap": {
+          "type": "number",
+          "minimum": 0
+        },
+        "fontFamily": {
+          "type": "string",
+          "description": "Set the font family applicable for all widgets inside this container"
+        },
+        "fontSize": {
+          "type": "number",
+          "minimum": 0
+        },
+        "shadowColor": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Box shadow color starting with '0xFF' for full opacity"
+        },
+        "shadowOffset": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "shadowRadius": {
+          "type": "number",
+          "minimum": 0
+        },
+        "shadowStyle": {
+          "type": "string",
+          "enum": [
+            "normal",
+            "solid"
+          ],
+          "description": "The blur style to apply on the shadow"
+        },
+        "borderRadius": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Border Radius with CSS-like notation (1 to 4 integers)",
+          "minimum": 0
+        },
+        "borderColor": {
+          "$ref": "#/definitions/Colors",
+          "description": "Border color, starting with '0xFF' for full opacity"
+        },
+        "borderWidth": {
+          "type": "number",
+          "description": "The thickness of the border",
+          "minimum": 0
+        },
+        "colors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Colors"
+          },
+          "description": "The list of colors used for the gradient"
+        },
+        "start": {
+          "$ref": "#/definitions/alignmentEnum",
+          "description": "The starting position of the gradient"
+        },
+        "end": {
+          "$ref": "#/definitions/alignmentEnum",
+          "description": "The ending position of the gradient"
+        },
+        "backgroundColor": {
+          "$ref": "#/definitions/Colors"
+        },
+        "backgroundImage": {
+          "$ref": "#/definitions/backgroundImage"
+        },
+        "padding": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Padding with CSS-style value e.g. padding: 5 20 5"
+        },
+        "margin": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0
+        },
+        "expanded": {
+          "type": "boolean",
+          "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+        }
+      }
+    },
     "Row": {
       "type": "object",
       "properties": {
@@ -1538,17 +1827,25 @@
         "children": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Widgets"
-          },
-          "minItems": 1
+            "anyOf": [
+              {
+                "$ref": "#/definitions/Widgets"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          }
         },
         "styles": {
           "$ref": "#/definitions/stylesRow"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "stylesRow": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "mainAxis": {
           "type": "string",
@@ -1705,6 +2002,7 @@
         },
         "styles": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
             "font": {
               "type": "string",
@@ -1858,7 +2156,8 @@
             }
           }
         }
-      }
+      },
+      "additionalProperties": false
     },
     "fontWeight": {
       "type": "string",
@@ -1903,9 +2202,11 @@
               "$ref": "#/definitions/styleText",
               "description": "Styling for URL"
             }
-          }
+          },
+          "additionalProperties": false
         }
-      }
+      },
+      "additionalProperties": false
     },
     "styleText": {
       "type": "object",
@@ -1925,7 +2226,8 @@
             "overline"
           ]
         }
-      }
+      },
+      "additionalProperties": false
     },
     "Image": {
       "type": "object",
@@ -1944,6 +2246,7 @@
         },
         "styles": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
             "placeholderColor": {
               "$ref": "#/definitions/Colors",
@@ -2059,7 +2362,8 @@
       },
       "required": [
         "source"
-      ]
+      ],
+      "additionalProperties": false
     },
     "Lottie": {
       "type": "object",
@@ -2074,6 +2378,7 @@
         },
         "styles": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
             "repeat": {
               "type": "boolean",
@@ -2177,7 +2482,8 @@
       },
       "required": [
         "source"
-      ]
+      ],
+      "additionalProperties": false
     },
     "Icon": {
       "type": "object",
@@ -2199,6 +2505,7 @@
         },
         "styles": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
             "size": {
               "type": "number"
@@ -2297,7 +2604,8 @@
       },
       "required": [
         "icon"
-      ]
+      ],
+      "additionalProperties": false
     },
     "Button": {
       "type": "object",
@@ -2309,6 +2617,10 @@
         "label": {
           "type": "string",
           "description": "The button label"
+        },
+        "startingIcon": {
+          "$ref": "#/definitions/HasIcon",
+          "description": "Icon placed in front of the label, according to device text alignment"
         },
         "enabled": {
           "type": "boolean"
@@ -2323,6 +2635,7 @@
         },
         "styles": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
             "outline": {
               "type": "boolean",
@@ -2434,9 +2747,32 @@
           }
         }
       },
-      "required": [
-        "label"
-      ]
+      "additionalProperties": false
+    },
+    "HasIcon": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": [
+            "string",
+            "number"
+          ],
+          "description": "The name of the icon"
+        },
+        "library": {
+          "$ref": "#/definitions/iconLibrary",
+          "description": "Which icon library to use."
+        },
+        "color": {
+          "$ref": "#/definitions/Colors"
+        },
+        "size": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "description": "Specifies the icon to use. You can also use the short-handed syntax 'iconName iconLibrary')"
     },
     "Divider": {
       "type": "object",
@@ -2447,6 +2783,7 @@
         },
         "styles": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
             "direction": {
               "$ref": "#/definitions/directionEnum",
@@ -2483,7 +2820,8 @@
             }
           }
         }
-      }
+      },
+      "additionalProperties": false
     },
     "Html": {
       "type": "object",
@@ -2496,7 +2834,8 @@
           "type": "string",
           "description": "Enter the HTML text"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "OnOff": {
       "type": "object",
@@ -2539,6 +2878,7 @@
         },
         "styles": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
             "variant": {
               "type": "string",
@@ -2615,31 +2955,8 @@
         "trailingText": {
           "type": "string"
         }
-      }
-    },
-    "HasIcon": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": [
-            "string",
-            "number"
-          ],
-          "description": "The name of the icon"
-        },
-        "library": {
-          "$ref": "#/definitions/iconLibrary",
-          "description": "Which icon library to use."
-        },
-        "color": {
-          "$ref": "#/definitions/Colors"
-        },
-        "size": {
-          "type": "number",
-          "minimum": 0
-        }
       },
-      "description": "Specifies the icon to use. You can also use the short-handed syntax 'iconName iconLibrary')"
+      "additionalProperties": false
     },
     "PasswordInput": {
       "type": "object",
@@ -2665,7 +2982,8 @@
               "type": "string",
               "description": "The customized error message to show when the input does not match the provided regex."
             }
-          }
+          },
+          "additionalProperties": false
         },
         "id": {
           "type": "string",
@@ -2705,6 +3023,7 @@
         },
         "styles": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
             "variant": {
               "type": "string",
@@ -2783,7 +3102,8 @@
           "type": "boolean",
           "description": "enable the toggling between plain and obscure text."
         }
-      }
+      },
+      "additionalProperties": false
     },
     "keyboardAction": {
       "type": "string",
@@ -2821,7 +3141,8 @@
               "type": "string",
               "description": "The customized error message to show when the input does not match the provided regex."
             }
-          }
+          },
+          "additionalProperties": false
         },
         "id": {
           "type": "string",
@@ -2866,7 +3187,8 @@
               "type": "number",
               "minimum": 6
             }
-          }
+          },
+          "additionalProperties": false
         },
         "onKeyPress": {
           "$ref": "#/definitions/Action",
@@ -2896,7 +3218,8 @@
           "type": "boolean",
           "description": "enable the toggling between plain and obscure text."
         }
-      }
+      },
+      "additionalProperties": false
     },
     "Progress": {
       "type": "object",
@@ -2923,6 +3246,7 @@
         },
         "styles": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
             "backgroundColor": {
               "$ref": "#/definitions/Colors"
@@ -2946,7 +3270,8 @@
             }
           }
         }
-      }
+      },
+      "additionalProperties": false
     },
     "QRCode": {
       "type": "object",
@@ -2961,6 +3286,7 @@
         },
         "styles": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
             "size": {
               "type": "number",
@@ -3056,7 +3382,8 @@
       },
       "required": [
         "value"
-      ]
+      ],
+      "additionalProperties": false
     },
     "SelectOne": {
       "type": "object",
@@ -3099,6 +3426,7 @@
         },
         "styles": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
             "variant": {
               "type": "string",
@@ -3174,7 +3502,8 @@
           "items": {},
           "description": "List of values, or Objects with value/label pairs"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "Spacer": {
       "type": "object",
@@ -3189,9 +3518,11 @@
             "size": {
               "type": "number"
             }
-          }
+          },
+          "additionalProperties": false
         }
-      }
+      },
+      "additionalProperties": false
     },
     "Time": {
       "type": "object",
@@ -3234,6 +3565,7 @@
         },
         "styles": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
             "variant": {
               "type": "string",
@@ -3305,7 +3637,8 @@
           "type": "string",
           "description": "The highlighted initial time in the time picker. Use format HH:MM"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "TabBar": {
       "type": "object",
@@ -3339,12 +3672,14 @@
             "required": [
               "label",
               "widget"
-            ]
+            ],
+            "additionalProperties": false
           },
           "description": "Define each of your Tab here"
         },
         "styles": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
             "tabPosition": {
               "type": "string",
@@ -3398,7 +3733,8 @@
             }
           }
         }
-      }
+      },
+      "additionalProperties": false
     },
     "GridView": {
       "type": "object",
@@ -3416,6 +3752,7 @@
         },
         "styles": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
             "horizontalTileCount": {
               "type": [
@@ -3549,7 +3886,8 @@
             }
           }
         }
-      }
+      },
+      "additionalProperties": false
     },
     "Form": {
       "type": "object",
@@ -3603,9 +3941,11 @@
               "description": "Vertical gap to insert between the children (default is 10)",
               "minimum": 0
             }
-          }
+          },
+          "additionalProperties": false
         }
-      }
+      },
+      "additionalProperties": false
     },
     "ChartJS": {
       "type": "object",
@@ -3625,13 +3965,15 @@
               "type": "number",
               "minimum": 0
             }
-          }
+          },
+          "additionalProperties": false
         },
         "config": {
           "type": "string",
           "description": "Chartjs config. \\nSee this for an example - https://www.chartjs.org/docs/latest/configuration/"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "Video": {
       "type": "object",
@@ -3644,7 +3986,8 @@
           "type": "string",
           "description": "The URL source to the media file"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "WebView": {
       "type": "object",
@@ -3658,6 +4001,7 @@
         },
         "styles": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
             "width": {
               "type": "number",
@@ -3673,10 +4017,12 @@
             }
           }
         }
-      }
+      },
+      "additionalProperties": false
     },
     "stylesColumn": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "mainAxis": {
           "type": "string",
@@ -3849,6 +4195,7 @@
       "required": [
         "value"
       ],
+      "additionalProperties": false,
       "description": "Declare Javascript variables and functions that are visible globally within this screen.  \\n//@code  \\n var myGlobalVar = 'hello';  \\nfunction myGlobalFunc() {  \\n  }"
     },
     "API": {
@@ -3870,6 +4217,7 @@
         },
         "parameters": {
           "type": "object",
+          "additionalProperties": false,
           "description": "Specify the key/value pairs to pass along with the URL"
         },
         "body": {
@@ -3888,7 +4236,8 @@
       "required": [
         "uri",
         "method"
-      ]
+      ],
+      "additionalProperties": false
     },
     "httpMethod": {
       "type": "string",
@@ -3899,6 +4248,29 @@
         "PATCH",
         "DELETE"
       ]
+    },
+    "AdditionalProperties": {
+      "type": "object",
+      "properties": {
+        "body": {
+          "$ref": "#/definitions/Widgets",
+          "description": "Specify a widget to render."
+        },
+        "inputs": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 0,
+          "description": "Define the list of input names that this Custom Widget accepts."
+        },
+        "onLoad": {
+          "$ref": "#/definitions/Action",
+          "description": "Execute an Action when this Custom Widget loads"
+        }
+      },
+      "required": [
+        "body"
+      ],
+      "additionalProperties": false
     }
   }
 }

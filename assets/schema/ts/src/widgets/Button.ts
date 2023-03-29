@@ -1,12 +1,16 @@
 import { Widget } from "../widgetSchema";
-import { BaseStyles, BoxStyles, fontWeight } from "../styles";
+import { BaseStyles, BoxStyles, fontWeight, HasIcon } from "../styles";
 import { Action } from "../actionSchema";
 
 export interface Button extends Widget {
   /**
    * The button label
    * */
-  label: string;
+  label?: string;
+  /**
+   * Icon placed in front of the label, according to device text alignment
+   * */
+  startingIcon?: HasIcon;
   enabled?: boolean;
   /**
    * If the button is inside a Form and upon on tap, it will execute the form's onSubmit action if this property is TRUE

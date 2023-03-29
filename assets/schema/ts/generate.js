@@ -1,25 +1,23 @@
-// main.js
-
 const tsj = require("ts-json-schema-generator");
 const fs = require("fs");
-
-/** @type {import('ts-json-schema-generator/dist/src/Config').Config} */
 const config = {
   path: "./src/coreSchema.ts",
   tsconfig: "./tsconfig.json",
-  additionalProperties: true,
-  type: "properties", // Or <type-name> if you want to generate schema for that one type only,
+  type: "properties",
   expose: "export",
-  strictTuples: true,
-  encodeRefs: true,
-  skipTypeCheck: false,
   topRef: false,
+
+  skipTypeCheck: false,
+  strictTuples: true,
+  // jsDoc: "extended",
+  // encodeRefs: true,
 };
 
 const output_path = "./output/ensemble_schema.json";
-
 const schema = tsj.createGenerator(config).createSchema(config.type);
 const schemaString = JSON.stringify(schema, null, 2);
+// const result = schemaString.replaceAll("anyOf", "oneOf");
+
 fs.writeFile(output_path, schemaString, (err) => {
   if (err) throw err;
 });

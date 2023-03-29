@@ -1,5 +1,4 @@
 import * as widgets from "./widgetSchema";
-import * as actions from "./actionSchema";
 import * as widgetsDef from "./widgets";
 import { Menu } from "./widgets";
 import { API, Functions, GlobalType, View } from "./widgetSchema";
@@ -19,6 +18,8 @@ export interface RootWidgets {
   Stack?: widgets.Stack;
   ListView?: widgets.ListView;
   Carousel?: widgets.Carousel;
+  FittedColumn?: widgets.FittedBoxLayout;
+  FittedRow?: widgets.FittedBoxLayout;
 }
 export interface Widgets extends RootWidgets {
   Row?: widgets.Row;
@@ -60,11 +61,27 @@ export interface TemplatedWidget {
  * Group multiple Views together and put them behind a menu.
  * */
 export type ViewGroup = Menu;
-//menu widgets
+/**
+ * @additionalProperties true
+ * */
+export interface AdditionalProperties {
+  /**
+   * Specify a widget to render.
+   * */
+  body: Widgets;
+  /**
+   * Define the list of input names that this Custom Widget accepts.
+   * */
+  inputs?: [];
+  /**
+   * Execute an Action when this Custom Widget loads
+   * */
+  onLoad?: Action;
+}
 
 /**
  * @additionalProperties true
- */
+ * */
 export type properties = {
   Import?: {};
   ViewGroup?: Menu;
@@ -76,4 +93,9 @@ export type properties = {
   Functions?: Functions;
   Global?: GlobalType;
   API?: API;
-} & { [key: string]: string };
+} & {
+  /**
+   * Defining a Custom Widget
+   * */
+  [key: string]: AdditionalProperties;
+};

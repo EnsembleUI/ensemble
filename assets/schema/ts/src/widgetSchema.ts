@@ -8,6 +8,7 @@ import {
   boxLayoutStyles,
   Colors,
   directionEnum,
+  fittedBoxStyles,
   httpMethod,
   navIconPosition,
   screenType,
@@ -26,6 +27,9 @@ export interface Widget {
   id?: string;
 }
 
+/**
+ * This is your root View. It requires a body widget.
+ * */
 export interface View extends RootWidgets {
   /**
    * Configure the application header
@@ -86,6 +90,7 @@ export interface View extends RootWidgets {
       flexibleMaxHeight?: number;
     };
   };
+  body: Widgets;
   /**
    * Execute an Action when the screen loads
    * */
@@ -168,7 +173,7 @@ export type API = {
 };
 
 export interface Container extends Widget {
-  children?: [core.Widgets, ...core.Widgets[]];
+  children?: (Widgets | string)[];
 }
 
 export interface Column extends Container, core.TemplatedWidget {
@@ -228,4 +233,12 @@ export interface Carousel extends Container, core.TemplatedWidget {
    * */
   onItemChange?: Action;
   styles?: styleCarousel;
+}
+
+/**
+ * Stretch to fit the parent (the parent is required to have a predetermined height), then distribute the vertical spaces
+ * evenly among its children. You can override the space distribution via 'childrenFits' attribute.
+ * */
+export interface FittedBoxLayout extends Container {
+  styles?: fittedBoxStyles;
 }

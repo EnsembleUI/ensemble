@@ -1,4 +1,3 @@
-import { Icon } from "../widgets";
 import { HasIcon } from "./BoxStyles";
 import { Action } from "../actionSchema";
 import { BaseStyles } from "./baseStyles";
