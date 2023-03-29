@@ -435,15 +435,13 @@ class ScreenController {
       if (scopeManager != null) {
         Navigator.of(context).maybePop();
       }
-    }
-    else if (action is CopyToClipboardAction) {
-      if(action.value != null)
-        {
-          Clipboard.setData(ClipboardData(text: action.value)).then((value){
-            if (action.onSuccess != null) executeAction(context, action.onSuccess!);
-          });
-        }
-      else{
+    } else if (action is CopyToClipboardAction) {
+      if (action.value != null) {
+        Clipboard.setData(ClipboardData(text: action.value)).then((value) {
+          if (action.onSuccess != null)
+            executeAction(context, action.onSuccess!);
+        });
+      } else {
         if (action.onFailure != null) executeAction(context, action.onFailure!);
       }
     }
