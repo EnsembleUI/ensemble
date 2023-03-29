@@ -14,11 +14,7 @@ import 'package:get_storage/get_storage.dart';
 
 /// use this as the root widget for Ensemble
 class EnsembleApp extends StatefulWidget {
-  EnsembleApp({
-    super.key,
-    this.screenPayload,
-    this.ensembleConfig
-  }) {
+  EnsembleApp({super.key, this.screenPayload, this.ensembleConfig}) {
     // initialize once
     GetStorage.init();
     Device().initDeviceInfo();
@@ -29,11 +25,9 @@ class EnsembleApp extends StatefulWidget {
 
   @override
   State<StatefulWidget> createState() => EnsembleAppState();
-
 }
 
 class EnsembleAppState extends State<EnsembleApp> {
-
   /// initialize our App with the the passed in config or
   /// read from our ensemble-config file.
   Future<EnsembleConfig> initApp() async {
@@ -64,30 +58,24 @@ class EnsembleAppState extends State<EnsembleApp> {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-      future: config,
-      builder: ((context, snapshot) {
+        future: config,
+        builder: ((context, snapshot) {
+          if (snapshot.hasError) {
+            return _appPlaceholderWrapper(
+                widget: ErrorScreen(LanguageError("Error loading configuration",
+                    detailError: snapshot.error.toString())));
+          }
 
-        if (snapshot.hasError) {
-          return _appPlaceholderWrapper(
-              widget: ErrorScreen(LanguageError(
-                "Error loading configuration",
-                detailError: snapshot.error.toString()
-              )
-            )
-          );
-        }
+          // at this point we don't yet have the theme. It's best to have
+          // a blank screen to prevent any background color changing while
+          // the app is loading
+          if (!snapshot.hasData) {
+            // blank loading screen
+            return _appPlaceholderWrapper();
+          }
 
-        // at this point we don't yet have the theme. It's best to have
-        // a blank screen to prevent any background color changing while
-        // the app is loading
-        if (!snapshot.hasData) {
-          // blank loading screen
-          return _appPlaceholderWrapper();
-        }
-
-        return renderApp(snapshot.data as EnsembleConfig);
-      })
-    );
+          return renderApp(snapshot.data as EnsembleConfig);
+        }));
   }
 
   Widget renderApp(EnsembleConfig config) {
@@ -100,17 +88,19 @@ class EnsembleAppState extends State<EnsembleApp> {
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate
       ],
-      home: Scaffold(
+      home: SelectionArea(
+          child: Scaffold(
         // this outer scaffold is where the background image would be (if
         // specified). We do not want it to resize on keyboard popping up.
         // The Page's Scaffold can handle the resizing.
         resizeToAvoidBottomInset: false,
 
         body: Screen(
-          appProvider: AppProvider(definitionProvider: config.definitionProvider),
+          appProvider:
+              AppProvider(definitionProvider: config.definitionProvider),
           screenPayload: widget.screenPayload,
         ),
-      ),
+      )),
       // TODO: this case translation issue on hot loading. Address this for RTL support
       //builder: (context, widget) => FlutterI18n.rootAppBuilder().call(context, widget)
     );
@@ -118,15 +108,9 @@ class EnsembleAppState extends State<EnsembleApp> {
 
   /// we are at the root here. Error/Spinner widgets need
   /// to be wrapped inside MaterialApp
-  Widget _appPlaceholderWrapper({Widget? widget, Color? loadingBackgroundColor}) {
+  Widget _appPlaceholderWrapper(
+      {Widget? widget, Color? loadingBackgroundColor}) {
     return MaterialApp(
-      home: Scaffold(
-        backgroundColor: loadingBackgroundColor,
-        body: widget
-      )
-    );
+        home: Scaffold(backgroundColor: loadingBackgroundColor, body: widget));
   }
-
-
-
 }

@@ -1,7 +1,6 @@
 import 'package:yaml/yaml.dart';
 
 class YamlUtil {
-
   // convert Yaml to Map
   static Map<String, dynamic> yamlToMap(YamlMap? yamlMap) {
     var map = <String, dynamic>{};
@@ -34,7 +33,4 @@ class YamlUtil {
     }
     return list;
   }
-
-
-
 }
