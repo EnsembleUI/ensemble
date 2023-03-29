@@ -284,9 +284,6 @@ class ToggleButtonController extends BoxController {
   // Since user can set items/value in any order and at anytime, the value may
   // not be one of the items, hence it could be in an incorrect state
   dynamic maybeValue;
-  // @override
-  // int? gap = 0;
-  bool autoComplete = false;
   int? gap;
 
   framework.EnsembleAction? onChange;
