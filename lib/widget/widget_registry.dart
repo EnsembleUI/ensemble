@@ -10,6 +10,7 @@ import 'package:ensemble/layout/tab_bar.dart';
 import 'package:ensemble/layout/grid_view.dart';
 import 'package:ensemble/widget/fintech/finicityconnect/finicityconnect.dart';
 import 'package:ensemble/widget/text.dart';
+import 'package:ensemble/widget/toggle_button.dart';
 // import 'package:ensemble/widget/camera_widget.dart';
 import 'package:ensemble/widget/visualization/topology_chart.dart';
 import 'package:ensemble/widget/weeklyscheduler.dart';
@@ -81,6 +82,7 @@ class WidgetRegistry {
         EnsembleSwitch.type: () => EnsembleSwitch(),
         Dropdown.type: () => Dropdown(),
         Button.type: () => Button(),
+        EnsembleToggleButtons.type: () => EnsembleToggleButtons(),
 
         // containers
         FittedRow.type: () => FittedRow(),
