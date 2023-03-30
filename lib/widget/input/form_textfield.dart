@@ -253,93 +253,93 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
         type: TextInput.type,
         controller: widget._controller,
         widget: TextFormField(
-            key: validatorKey,
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return widget._controller.required
-                    ? Utils.translateWithFallback(
-                        'ensemble.input.required', 'This field is required')
-                    : null;
-              }
-              // only applicable for TextInput
-              if (!widget.isPassword() && value != null) {
-                if (widget._controller.inputType == InputType.email.name) {
-                  if (!EmailValidator.validate(value)) {
-                    return Utils.translateWithFallback(
-                        'ensemble.input.validation.invalidEmailType',
-                        'Please enter a valid email address');
-                  }
-                } else if (widget._controller.inputType ==
-                    InputType.ipAddress.name) {
-                  if (!InputValidator.ipAddress(value)) {
-                    return Utils.translateWithFallback(
-                        'ensemble.input.validation.invalidIPAddressType',
-                        'Please enter a valid IP Address');
-                  }
-                } else if (widget._controller.inputType ==
-                    InputType.phone.name) {
-                  if (!InputValidator.phone(value)) {
-                    return Utils.translateWithFallback(
-                        'ensemble.input.validation.invalidPhoneType',
-                        "Please enter a valid Phone Number");
-                  }
+          key: validatorKey,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return widget._controller.required
+                  ? Utils.translateWithFallback(
+                      'ensemble.input.required', 'This field is required')
+                  : null;
+            }
+            // only applicable for TextInput
+            if (!widget.isPassword() && value != null) {
+              if (widget._controller.inputType == InputType.email.name) {
+                if (!EmailValidator.validate(value)) {
+                  return Utils.translateWithFallback(
+                      'ensemble.input.validation.invalidEmailType',
+                      'Please enter a valid email address');
+                }
+              } else if (widget._controller.inputType ==
+                  InputType.ipAddress.name) {
+                if (!InputValidator.ipAddress(value)) {
+                  return Utils.translateWithFallback(
+                      'ensemble.input.validation.invalidIPAddressType',
+                      'Please enter a valid IP Address');
+                }
+              } else if (widget._controller.inputType == InputType.phone.name) {
+                if (!InputValidator.phone(value)) {
+                  return Utils.translateWithFallback(
+                      'ensemble.input.validation.invalidPhoneType',
+                      "Please enter a valid Phone Number");
                 }
               }
-              if (widget._controller.validator != null) {
-                ValidationBuilder? builder;
-                if (widget._controller.validator?.minLength != null) {
-                  builder = ValidationBuilder().minLength(
-                      widget._controller.validator!.minLength!,
-                      Utils.translateOrNull(
-                          'ensemble.input.validation.minimumLength'));
-                }
-                if (widget._controller.validator?.maxLength != null) {
-                  builder = (builder ?? ValidationBuilder()).maxLength(
-                      widget._controller.validator!.maxLength!,
-                      Utils.translateOrNull(
-                          'ensemble.input.validation.maximumLength'));
-                }
-                if (widget._controller.validator?.regex != null) {
-                  builder = (builder ?? ValidationBuilder()).regExp(
-                      RegExp(widget._controller.validator!.regex!),
-                      widget._controller.validator!.regexError ??
-                          Utils.translateWithFallback(
-                              'ensemble.input.validation.invalidInput',
-                              'This field has invalid value'));
-                }
-                if (builder != null) {
-                  return builder.build().call(value);
-                }
+            }
+            if (widget._controller.validator != null) {
+              ValidationBuilder? builder;
+              if (widget._controller.validator?.minLength != null) {
+                builder = ValidationBuilder().minLength(
+                    widget._controller.validator!.minLength!,
+                    Utils.translateOrNull(
+                        'ensemble.input.validation.minimumLength'));
               }
-              return null;
-            },
-            textInputAction: widget._controller.keyboardAction,
-            keyboardType: widget.keyboardType,
-            maxLines: widget._controller.maxLines,
-            obscureText: isObscureOrPlainText(),
-            enableSuggestions: !widget.isPassword(),
-            autocorrect: !widget.isPassword(),
-            controller: widget.textController,
-            focusNode: focusNode,
-            enabled: isEnabled(),
-            onFieldSubmitted: (value) => widget.controller.submitForm(context),
-            onChanged: (String txt) {
-              if (txt != previousText) {
-                // for performance reason, we dispatch onChange (as well as binding to value)
-                // upon EditingComplete (select Done on virtual keyboard) or Focus Out
-                didItChange = true;
-                previousText = txt;
+              if (widget._controller.validator?.maxLength != null) {
+                builder = (builder ?? ValidationBuilder()).maxLength(
+                    widget._controller.validator!.maxLength!,
+                    Utils.translateOrNull(
+                        'ensemble.input.validation.maximumLength'));
+              }
+              if (widget._controller.validator?.regex != null) {
+                builder = (builder ?? ValidationBuilder()).regExp(
+                    RegExp(widget._controller.validator!.regex!),
+                    widget._controller.validator!.regexError ??
+                        Utils.translateWithFallback(
+                            'ensemble.input.validation.invalidInput',
+                            'This field has invalid value'));
+              }
+              if (builder != null) {
+                return builder.build().call(value);
+              }
+            }
+            return null;
+          },
+          textInputAction: widget._controller.keyboardAction,
+          keyboardType: widget.keyboardType,
+          maxLines: widget._controller.maxLines,
+          obscureText: isObscureOrPlainText(),
+          enableSuggestions: !widget.isPassword(),
+          autocorrect: !widget.isPassword(),
+          controller: widget.textController,
+          focusNode: focusNode,
+          enabled: isEnabled(),
+          onFieldSubmitted: (value) => widget.controller.submitForm(context),
+          onChanged: (String txt) {
+            if (txt != previousText) {
+              // for performance reason, we dispatch onChange (as well as binding to value)
+              // upon EditingComplete (select Done on virtual keyboard) or Focus Out
+              didItChange = true;
+              previousText = txt;
 
-                // we dispatch onKeyPress here
-                if (widget._controller.onKeyPress != null) {
-                  ScreenController().executeAction(
-                      context, widget._controller.onKeyPress!,
-                      event: EnsembleEvent(widget));
-                }
+              // we dispatch onKeyPress here
+              if (widget._controller.onKeyPress != null) {
+                ScreenController().executeAction(
+                    context, widget._controller.onKeyPress!,
+                    event: EnsembleEvent(widget));
               }
-            },
-            style: textStyle,
-            decoration: decoration));
+            }
+          },
+          style: textStyle,
+          decoration: decoration,
+        ));
   }
 }
 

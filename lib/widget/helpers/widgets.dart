@@ -111,11 +111,49 @@ class InputWrapper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget rtn = controller.maxWidth == null
-        ? widget
+        ? Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (controller.label != null)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 8.0),
+                  child: Text(
+                    controller.label!,
+                    style: Theme.of(context).inputDecorationTheme.labelStyle,
+                  ),
+                ),
+              widget,
+              if (controller.description != null)
+                Container(
+                  margin: const EdgeInsets.only(top: 12.0),
+                  child: Text(controller.description!),
+                ),
+            ],
+          )
         : ConstrainedBox(
             constraints:
                 BoxConstraints(maxWidth: controller.maxWidth!.toDouble()),
-            child: widget);
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (controller.label != null)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 8.0),
+                    child: Text(
+                      controller.label!,
+                      style: Theme.of(context).inputDecorationTheme.labelStyle,
+                    ),
+                  ),
+                widget,
+                if (controller.description != null)
+                  Container(
+                    margin: const EdgeInsets.only(top: 12.0),
+                    child: Text(controller.description!),
+                  ),
+              ],
+            ));
 
     // we'd like to use LayoutBuilder to detect layout anomaly, but certain
     // containers don't like LayoutBuilder, since it doesn't support returning

@@ -109,6 +109,10 @@
             }
           ]
         },
+        "filled": {
+          "type": "boolean",
+          "description": "Whether to fill or not fillColor"
+        },
         "fillColor": {
           "$ref": "#/$defs/Color",
           "description": "The fill color for applicable input fields (TextInput, Dropdown, ...)"
