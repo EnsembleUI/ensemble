@@ -258,8 +258,9 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     for (int i = 0; i < menu.menuItems.length; i++) {
       MenuItem item = menu.menuItems[i];
       navItems.add(BottomNavigationBarItem(
-          activeIcon:
-              ensemble.Icon(item.activeIcon ?? '', library: item.iconLibrary),
+          activeIcon: item.activeIcon != null
+              ? ensemble.Icon(item.activeIcon ?? '', library: item.iconLibrary)
+              : null,
           icon: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
           label: Utils.translate(item.label ?? '', context)));
     }
