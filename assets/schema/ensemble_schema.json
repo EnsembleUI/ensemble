@@ -1057,6 +1057,10 @@
                 {
                   "type": "object",
                   "properties": {
+                    "showSeparator": {
+                      "type": "boolean",
+                      "description": "Show a separator between the items (default is true)."
+                    },
                     "separatorColor": {
                       "$ref": "#/$defs/typeColors",
                       "description": "Set the color for the separator between items"
