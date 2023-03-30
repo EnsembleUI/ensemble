@@ -69,12 +69,6 @@ class BoxLayoutController extends BaseBoxLayoutController {
 
   // applicable to Flex container only
   String? direction;
-  // applicable only for ListView
-  EnsembleAction? onItemTap;
-  Color? sepratorColor;
-  double? sepratorWidth;
-  EdgeInsets? sepratorPadding;
-  int selectedItemIndex = -1;
 
   @override
   Map<String, Function> getBaseSetters() {
