@@ -30,6 +30,7 @@ abstract class Menu {
             throw LanguageError("Menu Item's 'page' attribute is required.");
           }
           menuItems.add(MenuItem(item['label'], item['page'],
+              activeIcon: item['activeIcon'],
               icon: item['icon'],
               iconLibrary: Utils.optionalString(item['iconLibrary']),
               selected: item['selected']));
@@ -137,10 +138,18 @@ enum MenuDisplay {
 enum MenuItemDisplay { stacked, sideBySide }
 
 class MenuItem {
-  MenuItem(this.label, this.page, {this.icon, this.iconLibrary, this.selected});
+  MenuItem(
+    this.label,
+    this.page, {
+    this.activeIcon,
+    this.icon,
+    this.iconLibrary,
+    this.selected,
+  });
 
   final String? label;
   final String page;
+  final dynamic activeIcon;
   final dynamic icon;
   final String? iconLibrary;
   final dynamic selected;
