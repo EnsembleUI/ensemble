@@ -1,6 +1,5 @@
 import 'package:ensemble/framework/extensions.dart';
-import 'package:ensemble/framework/model.dart';
-import 'package:ensemble/framework/theme/theme_manager.dart';
+import 'package:ensemble/framework/theme/design_system.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
@@ -80,15 +79,23 @@ mixin ThemeLoader {
 
   ThemeData getAppTheme(YamlMap? overrides) {
     ColorScheme colorScheme = _defaultColorScheme.copyWith(
-        primary: Utils.getColor(overrides?['Colors']?['primary']),
-        onPrimary: Utils.getColor(overrides?['Colors']?['onPrimary']),
-        secondary: Utils.getColor(overrides?['Colors']?['secondary']),
-        onSecondary: Utils.getColor(overrides?['Colors']?['onSecondary']));
+      primary: Utils.getColor(overrides?['Colors']?['primary']),
+      onPrimary: Utils.getColor(overrides?['Colors']?['onPrimary']),
+      secondary: Utils.getColor(overrides?['Colors']?['secondary']),
+      onSecondary: Utils.getColor(overrides?['Colors']?['onSecondary']),
+    );
+
+    Color? scaffoldColor =
+        Utils.getColor(overrides?['Colors']?['scaffoldColor']);
 
     ThemeData themeData = ThemeData(
       // color scheme
       useMaterial3: true,
       colorScheme: colorScheme,
+      scaffoldBackgroundColor: scaffoldColor ??
+          (colorScheme.brightness == Brightness.light
+              ? DesignSystem.scaffoldBackgroundColor
+              : Colors.black),
       // disabled inputs / button
       disabledColor:
           Utils.getColor(overrides?['Colors']?['disabled']) ?? _disabledColor,
@@ -98,7 +105,6 @@ mixin ThemeLoader {
       // input theme (TextInput, Switch, Dropdown, ...)
       inputDecorationTheme: _buildInputTheme(overrides?['Widgets']?['Input'],
           colorScheme: colorScheme),
-
       textTheme: _buildTextTheme(overrides?['Text']),
 
       //switchTheme: buildSwitchTheme(overrides?['Widgets']?['Switch']),
@@ -146,14 +152,20 @@ mixin ThemeLoader {
   /// parse the FormInput's theme from the theme YAML
   InputDecorationTheme? _buildInputTheme(YamlMap? input,
       {required ColorScheme colorScheme}) {
-    Color? fillColor = Utils.getColor(input?['fillColor']);
-    InputDecorationTheme baseInputDecoration = InputDecorationTheme(
-        // dense so user can control the contentPadding effectively
-        isDense: true,
-        filled: fillColor != null,
-        fillColor: fillColor);
+    Color fillColor =
+        Utils.getColor(input?['fillColor']) ?? DesignSystem.inputFillColor;
+    bool? filled = Utils.optionalBool(input?['filled']);
 
-    InputVariant? variant = InputVariant.values.from(input?['variant']);
+    InputVariant variant =
+        InputVariant.values.from(input?['variant']) ?? InputVariant.box;
+
+    InputDecorationTheme baseInputDecoration = InputDecorationTheme(
+      // dense so user can control the contentPadding effectively
+      isDense: true,
+      filled: filled ?? variant == InputVariant.box ? true : false,
+      fillColor: fillColor,
+    );
+
     EdgeInsets? contentPadding = Utils.optionalInsets(input?['contentPadding']);
     BorderRadius borderRadius =
         Utils.getBorderRadius(input?['borderRadius'])?.getValue() ??
@@ -161,31 +173,50 @@ mixin ThemeLoader {
     int borderWidth = Utils.optionalInt(input?['borderWidth']) ?? 1;
 
     Color? borderColor = Utils.getColor(input?['borderColor']);
+    Color? enableBorderColor = Utils.getColor(input?['borderColor']);
     Color? disabledBorderColor = Utils.getColor(input?['disabledBorderColor']);
     Color? errorBorderColor = Utils.getColor(input?['errorBorderColor']);
     Color? focusedBorderColor = Utils.getColor(input?['focusedBorderColor']);
     Color? focusedErrorBorderColor =
         Utils.getColor(input?['focusedErrorBorderColor']);
 
+    Color? prefixIconColor = Utils.getColor(input?['prefixIconColor']);
+    Color? suffixIconColor = Utils.getColor(input?['suffixIconColor']);
+    TextStyle? labelStyle = Utils.getTextStyle(input?['labelStyle']);
+
     if (variant == InputVariant.box) {
-      // we always need to set the base border since user can be setting other
+      // we always need to set the base border  since user can be setting other
       // values besides the color
       OutlineInputBorder baseBorder = OutlineInputBorder(
-          borderRadius: borderRadius,
-          borderSide: BorderSide(
-              color: borderColor ??
-                  (colorScheme.brightness == Brightness.light
-                      ? Colors.black54
-                      : Colors.white70),
-              width: borderWidth.toDouble()));
+        borderRadius: borderRadius,
+        borderSide: BorderSide(
+            color: borderColor ??
+                (colorScheme.brightness == Brightness.light
+                    ? DesignSystem.inputBorderColor
+                    : Colors.white70),
+            width: borderWidth.toDouble()),
+      );
 
       return baseInputDecoration.copyWith(
+        prefixIconColor: prefixIconColor ?? DesignSystem.inputIconColor,
+        suffixIconColor: suffixIconColor ?? DesignSystem.inputIconColor,
+        labelStyle: labelStyle ??
+            TextStyle(
+              fontWeight: FontWeight.w500,
+              color: DesignSystem.inputLabelColor,
+            ),
         contentPadding: contentPadding ??
-            const EdgeInsets.symmetric(vertical: 15, horizontal: 8),
+            const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
         border: baseBorder,
+        enabledBorder: getInputBorder(
+          variant: variant,
+          borderColor: enableBorderColor ?? DesignSystem.inputBorderColor,
+          borderWidth: borderWidth,
+          borderRadius: borderRadius,
+        ),
         disabledBorder: getInputBorder(
             variant: variant,
-            borderColor: disabledBorderColor,
+            borderColor: borderColor ?? DesignSystem.inputBorderColor,
             borderWidth: borderWidth,
             borderRadius: borderRadius),
         errorBorder: getInputBorder(
@@ -215,8 +246,15 @@ mixin ThemeLoader {
                       : Colors.white70),
               width: borderWidth.toDouble()));
       return baseInputDecoration.copyWith(
+        prefixIconColor: prefixIconColor ?? DesignSystem.inputIconColor,
+        suffixIconColor: suffixIconColor ?? DesignSystem.inputIconColor,
+        labelStyle: labelStyle ??
+            TextStyle(
+              fontWeight: FontWeight.w500,
+              color: DesignSystem.inputLabelColor,
+            ),
         contentPadding: contentPadding ??
-            const EdgeInsets.symmetric(vertical: 15, horizontal: 3),
+            const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
         border: baseBorder,
         disabledBorder: getInputBorder(
             variant: variant,
@@ -340,7 +378,7 @@ mixin ThemeLoader {
 
   ///------------  publicly available theme getters -------------
   BorderRadius getInputDefaultBorderRadius(InputVariant? variant) =>
-      BorderRadius.all(Radius.circular(variant == InputVariant.box ? 4 : 0));
+      BorderRadius.all(Radius.circular(variant == InputVariant.box ? 8 : 0));
 }
 
 /// extend Theme to add our own special color parameters
