@@ -1098,6 +1098,9 @@
         },
         "getLocationAction": {
           "$ref": "#/definitions/GetLocationAction"
+        },
+        "openUrl": {
+          "$ref": "#/definitions/OpenURLAction"
         }
       },
       "additionalProperties": false
@@ -1106,26 +1109,32 @@
       "type": "object",
       "properties": {
         "id": {
-          "type": "string"
+          "type": "string",
+          "description": "Give the API an ID allows you to bind to its result. e.g. ${apiId.body...}"
         },
         "name": {
-          "type": "string"
+          "type": "string",
+          "description": "Enter the name of your defined API"
         },
         "inputs": {
           "type": "object",
-          "additionalProperties": false
+          "additionalProperties": false,
+          "description": "Specify the key/value pairs to pass to the API"
         },
         "onResponse": {
-          "$ref": "#/definitions/Action"
+          "$ref": "#/definitions/Action",
+          "description": "Execute another Action upon API's successful response"
         },
         "onError": {
-          "$ref": "#/definitions/Action"
+          "$ref": "#/definitions/Action",
+          "description": "Execute an Action when the API completes with error(s)"
         }
       },
       "required": [
         "name"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Calling an API"
     },
     "ExecuteCodeAction": {
       "type": "object",
@@ -1134,32 +1143,38 @@
           "type": "string"
         },
         "onComplete": {
-          "$ref": "#/definitions/Action"
+          "$ref": "#/definitions/Action",
+          "description": "Execute another Action when the code body finishes executing"
         }
       },
       "required": [
         "body"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Execute a block of code."
     },
     "NavigateScreenAction": {
       "type": "object",
       "properties": {
         "name": {
-          "type": "string"
+          "type": "string",
+          "description": "Enter the Name or ID of your Screen"
         },
         "inputs": {
           "type": "object",
-          "additionalProperties": false
+          "additionalProperties": false,
+          "description": "Specify the key/value pairs to pass into the next Screen"
         },
         "options": {
           "type": "object",
           "properties": {
             "replaceCurrentScreen": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "If true, the new screen will replace the current screen on the navigation history. Navigating back from the new screen will skip the current screen."
             },
             "clearAllScreens": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "If true, clear out all existing screens in the navigation history. This is useful when navigating to a Logout or similar page where users should not be able to go back to the prior screens."
             }
           },
           "additionalProperties": false
@@ -1168,30 +1183,36 @@
       "required": [
         "name"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Navigating to a new screen"
     },
     "NavigateModalScreenAction": {
       "type": "object",
       "properties": {
         "name": {
-          "type": "string"
+          "type": "string",
+          "description": "Enter the Name or ID of your Screen"
         },
         "inputs": {
           "type": "object",
-          "additionalProperties": false
+          "additionalProperties": false,
+          "description": "Specify the key/value pairs to pass into the next Screen"
         },
         "onModalDismiss": {
-          "$ref": "#/definitions/Action"
+          "$ref": "#/definitions/Action",
+          "description": "Execute an Action when the modal screen is dismissed"
         }
       },
       "required": [
         "name"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Navigating to a new screen as a modal"
     },
     "NavigateBackAction": {
       "type": "object",
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Navigating back to the previous screen if possible. The current screen will be removed from the navigation history. This also works for a modal screen."
     },
     "OpenCameraAction": {
       "type": "object",
@@ -1201,19 +1222,22 @@
       "type": "object",
       "properties": {
         "widget": {
-          "$ref": "#/definitions/Widgets"
+          "$ref": "#/definitions/Widgets",
+          "description": "Return an inline widget or specify a custom widget's name to use in the dialog."
         },
         "options": {
           "$ref": "#/definitions/DialogOptions"
         },
         "onDialogDismiss": {
-          "$ref": "#/definitions/Action"
+          "$ref": "#/definitions/Action",
+          "description": "Execute an Action when the dialog is dismissed."
         }
       },
       "required": [
         "widget"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Opening a dialog"
     },
     "DialogOptions": {
       "type": "object",
@@ -1256,19 +1280,23 @@
     },
     "CloseAllDialogsAction": {
       "type": "object",
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Closing all opened dialogs"
     },
     "StartTimerAction": {
       "type": "object",
       "properties": {
         "id": {
-          "type": "string"
+          "type": "string",
+          "description": "Give this timer an ID so it can be cancelled by a stopTimer action"
         },
         "onTimer": {
-          "$ref": "#/definitions/Action"
+          "$ref": "#/definitions/Action",
+          "description": "Execute an Action every time the timer triggers"
         },
         "onTimerComplete": {
-          "$ref": "#/definitions/Action"
+          "$ref": "#/definitions/Action",
+          "description": "Execute an Action when the timer has completed and will terminate"
         },
         "options": {
           "$ref": "#/definitions/TimerOptions"
@@ -1277,7 +1305,8 @@
       "required": [
         "onTimer"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Initiating the start of a timer"
     },
     "TimerOptions": {
       "type": "object",
@@ -1310,13 +1339,15 @@
       "type": "object",
       "properties": {
         "id": {
-          "type": "string"
+          "type": "string",
+          "description": "Stop the timer with this ID if it is running"
         }
       },
       "required": [
         "id"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Stop a timer if its running"
     },
     "ShowToastAction": {
       "type": "object",
@@ -1341,10 +1372,12 @@
           ]
         },
         "message": {
-          "type": "string"
+          "type": "string",
+          "description": "The toast message. Either this message or a widget must be provided."
         },
         "widget": {
-          "$ref": "#/definitions/Widgets"
+          "$ref": "#/definitions/Widgets",
+          "description": "The custom widget to show as the Toast's body. Either this widget or a toast message must be provided."
         },
         "options": {
           "$ref": "#/definitions/ShowToastOptions"
@@ -1386,7 +1419,8 @@
               "description": "Padding with CSS-style value e.g. padding: 5 20 5"
             },
             "backgroundColor": {
-              "$ref": "#/definitions/Colors"
+              "$ref": "#/definitions/Colors",
+              "description": "Toast's background color"
             }
           }
         }
@@ -1394,7 +1428,8 @@
       "required": [
         "value"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Showing a toast message"
     },
     "ShowToastOptions": {
       "type": "object",
@@ -1457,6 +1492,24 @@
           "$ref": "#/definitions/Action"
         }
       },
+      "additionalProperties": false,
+      "description": "Requesting user's permission to get his/her current location"
+    },
+    "OpenURLAction": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "The URL that the hyperlink points to. Links are not restricted to HTTP-based URLs"
+        },
+        "openInExternalApp": {
+          "type": "boolean",
+          "description": "Open the url in the right app based on the url scheme in native apps"
+        }
+      },
+      "required": [
+        "url"
+      ],
       "additionalProperties": false
     },
     "Carousel": {
