@@ -396,6 +396,17 @@ class FileUploadAction extends EnsembleAction {
   }
 }
 
+class CopyToClipboardAction extends EnsembleAction {
+  CopyToClipboardAction({
+    this.value,
+    this.onSuccess,
+    this.onFailure,
+  });
+  String? value;
+  EnsembleAction? onSuccess;
+  EnsembleAction? onFailure;
+}
+
 enum ActionType {
   invokeAPI,
   navigateScreen,
@@ -412,6 +423,7 @@ enum ActionType {
   uploadFiles,
   navigateBack,
   pickFiles,
+  copyToClipboard
 }
 
 enum ToastType { success, error, warning, info }

@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
@@ -97,6 +95,20 @@ class EBorderRadius {
         topRight: topRight,
         bottomLeft: bottomLeft,
         bottomRight: bottomRight);
+  }
+}
+
+/// the flex value for FittedRow/FittedColumn
+class BoxFlex {
+  BoxFlex._({required this.auto, this.flex = 1});
+  int flex;
+  bool auto;
+
+  factory BoxFlex.asFlex(int flex) {
+    return BoxFlex._(flex: flex, auto: false);
+  }
+  factory BoxFlex.asAuto() {
+    return BoxFlex._(auto: true);
   }
 }
 
