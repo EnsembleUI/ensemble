@@ -44,7 +44,7 @@ export interface View extends RootWidgets {
      * bottom widget overlaid on top. On non-scrollable screen, its dimensions is dictated by the header's width and
      * height.
      * */
-    flexibleBackground?: Widgets;
+    flexibleBackground?: Widgets | string;
     styles?: {
       /**
        * By default the background color uses the theme's 'primary' color. You can override the header's background

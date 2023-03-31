@@ -72,7 +72,7 @@ export interface AdditionalProperties {
   /**
    * Define the list of input names that this Custom Widget accepts.
    * */
-  inputs?: [];
+  inputs?: any[];
   /**
    * Execute an Action when this Custom Widget loads
    * */

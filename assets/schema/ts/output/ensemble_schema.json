@@ -302,7 +302,14 @@
               "description": "A simple text or a custom widget for the App's title"
             },
             "flexibleBackground": {
-              "$ref": "#/definitions/Widgets",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Widgets"
+                },
+                {
+                  "type": "string"
+                }
+              ],
               "description": "This widget (typically used as an background image) acts as the header's background, with the title bar and the bottom widget overlaid on top. On non-scrollable screen, its dimensions is dictated by the header's width and height."
             },
             "styles": {
@@ -1056,41 +1063,41 @@
     "Action": {
       "type": "object",
       "properties": {
-        "invokeAPIAction": {
+        "invokeAPI": {
           "$ref": "#/definitions/InvokeAPIAction"
         },
-        "executeCodeAction": {
+        "executeCode": {
           "$ref": "#/definitions/ExecuteCodeAction"
         },
-        "navigateScreenAction": {
+        "navigateScreen": {
           "$ref": "#/definitions/NavigateScreenAction"
         },
-        "navigateModalScreenAction": {
+        "navigateModalScreen": {
           "$ref": "#/definitions/NavigateModalScreenAction"
         },
-        "navigateBackAction": {
+        "navigateBack": {
           "$ref": "#/definitions/NavigateBackAction"
         },
-        "openCameraAction": {
+        "openCamera": {
           "$ref": "#/definitions/OpenCameraAction"
         },
-        "showDialogAction": {
+        "showDialog": {
           "$ref": "#/definitions/ShowDialogAction"
         },
-        "closeAllDialogsAction": {
+        "closeAllDialogs": {
           "$ref": "#/definitions/CloseAllDialogsAction"
         },
-        "startTimerAction": {
+        "startTimer": {
           "$ref": "#/definitions/StartTimerAction"
         },
-        "stopTimerAction": {
+        "stopTimer": {
           "$ref": "#/definitions/StopTimerAction"
         },
-        "showToastAction": {
+        "showToast": {
           "$ref": "#/definitions/ShowToastAction"
         },
-        "getLocationActionAction": {
-          "$ref": "#/definitions/GetLocationActionAction"
+        "getLocationAction": {
+          "$ref": "#/definitions/GetLocationAction"
         }
       },
       "additionalProperties": false
@@ -1426,7 +1433,7 @@
       },
       "additionalProperties": false
     },
-    "GetLocationActionAction": {
+    "GetLocationAction": {
       "type": "object",
       "properties": {
         "options": {
@@ -4258,8 +4265,7 @@
         },
         "inputs": {
           "type": "array",
-          "minItems": 0,
-          "maxItems": 0,
+          "items": {},
           "description": "Define the list of input names that this Custom Widget accepts."
         },
         "onLoad": {

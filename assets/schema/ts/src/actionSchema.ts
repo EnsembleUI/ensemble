@@ -10,18 +10,18 @@ import {
 } from "./styles";
 
 export type Action = {
-  invokeAPIAction?: InvokeAPIAction;
-  executeCodeAction?: ExecuteCodeAction;
-  navigateScreenAction?: NavigateScreenAction;
-  navigateModalScreenAction?: NavigateModalScreenAction;
-  navigateBackAction?: NavigateBackAction;
-  openCameraAction?: OpenCameraAction;
-  showDialogAction?: ShowDialogAction;
-  closeAllDialogsAction?: CloseAllDialogsAction;
-  startTimerAction?: StartTimerAction;
-  stopTimerAction?: StopTimerAction;
-  showToastAction?: ShowToastAction;
-  getLocationActionAction?: GetLocationActionAction;
+  invokeAPI?: InvokeAPIAction;
+  executeCode?: ExecuteCodeAction;
+  navigateScreen?: NavigateScreenAction;
+  navigateModalScreen?: NavigateModalScreenAction;
+  navigateBack?: NavigateBackAction;
+  openCamera?: OpenCameraAction;
+  showDialog?: ShowDialogAction;
+  closeAllDialogs?: CloseAllDialogsAction;
+  startTimer?: StartTimerAction;
+  stopTimer?: StopTimerAction;
+  showToast?: ShowToastAction;
+  getLocationAction?: GetLocationAction;
 };
 
 /*
@@ -189,7 +189,7 @@ export interface ExecuteCodeAction {
 /*
  * Requesting user's permission to get his/her current location
  * */
-export interface GetLocationActionAction {
+export interface GetLocationAction {
   options?: {
     /*
      * Whether to continuously get the device location on this screen. Note that a screen can only have one recurring
