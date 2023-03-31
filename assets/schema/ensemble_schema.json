@@ -1420,7 +1420,7 @@
               "properties": {
                 "id": {
                   "type": "string",
-                  "description": "Give the camera an ID, allows you to bind to its result. e.g. ${cameraId.mediaList...}"
+                  "description": "Give the camera an ID, allows you to bind to its result. e.g. ${cameraId.files...}"
                 },
                 "onComplete": {
                   "$ref": "#/$defs/Action-payload",
@@ -1814,7 +1814,7 @@
                 },
                 "files": {
                   "type": "string",
-                  "description": "Binded files from sources like camera or picker. e.g ${filePicker.files}, ${camerId.mediaList}"
+                  "description": "Binded files from sources like camera or picker. e.g ${filePicker.files}, ${camerId.files}"
                 }
               }
             }

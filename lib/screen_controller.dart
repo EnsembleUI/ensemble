@@ -419,14 +419,15 @@ class ScreenController {
     const defaultOverMaxFileSizeMessage =
         'The size of is which is larger than the maximum allowed';
 
-    final rawFiles = dataContext.eval(action.files) as List<dynamic>?;
-    selectedFiles =
-        rawFiles?.map((data) => File.fromJson(data)).toList().cast<File>();
+    final rawFiles = dataContext.eval(action.files);
 
-    if (selectedFiles == null) {
+    if (rawFiles is! List<dynamic>) {
       if (action.onError != null) executeAction(context, action.onError!);
       return;
     }
+
+    selectedFiles =
+        rawFiles.map((data) => File.fromJson(data)).toList().cast<File>();
 
     final totalSize = selectedFiles.fold<double>(
         0, (previousValue, element) => previousValue + element.size);
