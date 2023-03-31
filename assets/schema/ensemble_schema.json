@@ -13,116 +13,114 @@
     },
     "View": {
       "type": "object",
-      "description": "This is your root View. It requires exactly one child widget of type Column, Row, Flex, or Stack.",
-      "allOf": [
-        {
-          "$ref": "#/$defs/RootWidget"
-        },
-        {
+      "description": "This is your root View. It requires a body widget.",
+      "required": ["body"],
+      "properties": {
+        "header": {
+          "type": "object",
+          "description": "Configure the application header",
           "properties": {
-            "header": {
-              "type": "object",
-              "description": "Configure the application header",
-              "properties": {
-                "title": {
-                  "type": ["string", "object"],
-                  "description": "A simple text or a custom widget for the App's title",
-                  "$ref": "#/$defs/Widget"
-                },
-                "flexibleBackground": {
-                  "$ref": "#/$defs/Widget",
-                  "description": "This widget (typically used as an background image) acts as the header's background, with the title bar and the bottom widget overlaid on top. On non-scrollable screen, its dimensions is dictated by the header's width and height."
-                },
-                "styles": {
-                  "type": "object",
-                  "properties": {
-                    "backgroundColor": {
-                      "$ref": "#/$defs/typeColors",
-                      "description": "By default the background color uses the theme's 'primary' color. You can override the header's background color here."
-                    },
-                    "color": {
-                      "$ref": "#/$defs/typeColors",
-                      "description": "By default the navigation icon, title, and action icons uses the theme's 'onPrimary' color. You can override their colors here."
-                    },
-                    "elevation": {
-                      "type": "integer",
-                      "description": "Raise the header on its z-coordinates relative to the body. This effectively creates a drop shadow on the header's bottom edge.",
-                      "minimum": 0
-                    },
-                    "shadowColor": {
-                      "$ref": "#/$defs/typeColors",
-                      "description": "If elevation is non-zero, this will override the drop shadow color of the header's bottom edge."
-                    },
-                    "centerTitle": {
-                      "type": "boolean",
-                      "description": "Whether to align the title in the title bar's center horizontally (default: true)"
-                    },
-                    "titleBarHeight": {
-                      "type": "integer",
-                      "description": "For consistency, the header's title bar has the default fixed height of 56 regardless of its content. You may adjust its height here.",
-                      "minimum": 0
-                    },
-                    "flexibleMinHeight": {
-                      "type": "integer",
-                      "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's min height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). Note that this attribute will be ignored if smaller than the titleBarHeight"
-                    },
-                    "flexibleMaxHeight": {
-                      "type": "integer",
-                      "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's max height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). This attribute will be ignored if smaller than the flexibleMinHeight"
-                    }
-                  }
-                }
-              }
+            "title": {
+              "type": ["string", "object"],
+              "description": "A simple text or a custom widget for the App's title",
+              "$ref": "#/$defs/Widget"
             },
-            "onLoad": {
-              "$ref": "#/$defs/Action-payload",
-              "description": "Execute an Action when the screen loads"
-            },
-            "options": {
-              "type": "object",
-              "properties": {
-                "type": {
-                  "type": "string",
-                  "description": "Specify if this is a regular (default) or modal screen",
-                  "enum": ["regular", "modal"]
-                }
-              }
+            "flexibleBackground": {
+              "$ref": "#/$defs/Widget",
+              "description": "This widget (typically used as an background image) acts as the header's background, with the title bar and the bottom widget overlaid on top. On non-scrollable screen, its dimensions is dictated by the header's width and height."
             },
             "styles": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/backgroundImage"
+              "type": "object",
+              "properties": {
+                "backgroundColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "By default the background color uses the theme's 'primary' color. You can override the header's background color here."
                 },
-                {
-                  "$ref": "#/$defs/backgroundColor",
-                  "description": "Background color for the screen starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+                "color": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "By default the navigation icon, title, and action icons uses the theme's 'onPrimary' color. You can override their colors here."
                 },
-                {
-                  "properties": {
-                    "useSafeArea": {
-                      "type": "boolean",
-                      "description": "Applicable only when we don't have a header. If true, insert paddings around the body content to account for the the devices' Safe Area (e.g. iPhone notch). Default is false."
-                    },
-                    "scrollableView": {
-                      "type": "boolean",
-                      "description": "Specify if the content of this screen is scrollable with a global scrollbar. Using this also allow you to customize the scrolling experience of the header."
-                    },
-                    "showNavigationIcon": {
-                      "type": "boolean",
-                      "description": "For a screen with header, the App will automatically show the Menu, Back, or Close icon (for modal screen) before the title. On modal screen without the header, the Close icon will be shown. Set this flag to false if you wish to hide the icons and handle the navigation yourself."
-                    },
-                    "navigationIconPosition": {
-                      "type": "string",
-                      "description": "On modal screen without a header, you can position the close button at the start or end of the screen. For left-to-right languages like English, start is on the left and end is on the right. This property has no effect on a screen with header.",
-                      "enum": ["start", "end"]
-                    }
-                  }
+                "elevation": {
+                  "type": "integer",
+                  "description": "Raise the header on its z-coordinates relative to the body. This effectively creates a drop shadow on the header's bottom edge.",
+                  "minimum": 0
+                },
+                "shadowColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "If elevation is non-zero, this will override the drop shadow color of the header's bottom edge."
+                },
+                "centerTitle": {
+                  "type": "boolean",
+                  "description": "Whether to align the title in the title bar's center horizontally (default: true)"
+                },
+                "titleBarHeight": {
+                  "type": "integer",
+                  "description": "For consistency, the header's title bar has the default fixed height of 56 regardless of its content. You may adjust its height here.",
+                  "minimum": 0
+                },
+                "flexibleMinHeight": {
+                  "type": "integer",
+                  "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's min height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). Note that this attribute will be ignored if smaller than the titleBarHeight"
+                },
+                "flexibleMaxHeight": {
+                  "type": "integer",
+                  "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's max height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). This attribute will be ignored if smaller than the flexibleMinHeight"
                 }
-              ]
+              }
             }
           }
+        },
+        "body": {
+          "$ref": "#/$defs/Widget"
+        },
+        "onLoad": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Execute an Action when the screen loads"
+        },
+        "options": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Specify if this is a regular (default) or modal screen",
+              "enum": ["regular", "modal"]
+            }
+          }
+        },
+        "styles": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/backgroundImage"
+            },
+            {
+              "$ref": "#/$defs/backgroundColor",
+              "description": "Background color for the screen starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+            },
+            {
+              "properties": {
+                "useSafeArea": {
+                  "type": "boolean",
+                  "description": "Applicable only when we don't have a header. If true, insert paddings around the body content to account for the the devices' Safe Area (e.g. iPhone notch). Default is false."
+                },
+                "scrollableView": {
+                  "type": "boolean",
+                  "description": "Specify if the content of this screen is scrollable with a global scrollbar. Using this also allow you to customize the scrolling experience of the header."
+                },
+                "showNavigationIcon": {
+                  "type": "boolean",
+                  "description": "For a screen with header, the App will automatically show the Menu, Back, or Close icon (for modal screen) before the title. On modal screen without the header, the Close icon will be shown. Set this flag to false if you wish to hide the icons and handle the navigation yourself."
+                },
+                "navigationIconPosition": {
+                  "type": "string",
+                  "description": "On modal screen without a header, you can position the close button at the start or end of the screen. For left-to-right languages like English, start is on the left and end is on the right. This property has no effect on a screen with header.",
+                  "enum": ["start", "end"]
+                }
+              }
+            }
+          ]
         }
-      ]
+      }
+
     },
     "Action": {
 
@@ -192,23 +190,21 @@
   "additionalProperties": {
     "type": "object",
     "description": "Defining a Custom Widget",
-    "allOf": [
-      {
-        "$ref": "#/$defs/Widget"
+    "required": ["body"],
+    "properties": {
+      "inputs": {
+        "type": "array",
+        "description": "Define the list of input names that this Custom Widget accepts."
       },
-      {
-        "properties": {
-          "inputs": {
-            "type": "array",
-            "description": "Define the list of input names that this Custom Widget accepts."
-          },
-          "onLoad": {
-            "$ref": "#/$defs/Action-payload",
-            "description": "Execute an Action when this Custom Widget loads"
-          }
-        }
+      "onLoad": {
+        "$ref": "#/$defs/Action-payload",
+        "description": "Execute an Action when this Custom Widget loads"
+      },
+      "body": {
+        "$ref": "#/$defs/Widget",
+        "description": "Specify a widget to render."
       }
-    ]
+    }
   },
 
 
@@ -763,7 +759,12 @@
             "items": {
               "type": "array",
               "description": "List of values, or Objects with value/label pairs"
+            },
+            "autoComplete": {
+              "type": "boolean",
+              "description": "Enable the Input search suggestion option"
             }
+
           }
         }
       ]
@@ -1056,6 +1057,10 @@
                 {
                   "type": "object",
                   "properties": {
+                    "showSeparator": {
+                      "type": "boolean",
+                      "description": "Show a separator between the items (default is true)."
+                    },
                     "separatorColor": {
                       "$ref": "#/$defs/typeColors",
                       "description": "Set the color for the separator between items"
@@ -1854,6 +1859,28 @@
               }
             }
           }
+        },
+        {
+          "properties": {
+            "copyToClipboard": {
+              "type": "object",
+              "description": "Copy the text to the clipboard",
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "description": "The text to copy to clipboard"
+                },
+                "onSuccess": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute another Action upon successful copy to clipboard"
+                },
+                "onFailure": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action when copy to clipboard fails"
+                }
+              }
+            }
+          }
         }
       ]
     },
@@ -1957,31 +1984,6 @@
       "type": "array",
       "description": "List of widgets",
       "items": { "$ref": "#/$defs/Widget" }
-    },
-    "RootWidget": {
-      "type": "object",
-      "allOf": [
-        {
-          "properties": {
-            "Column": { "$ref": "#/$defs/Column-payload" }
-          }
-        },
-        {
-          "properties": {
-            "Row": { "$ref": "#/$defs/Row-payload" }
-          }
-        },
-        {
-          "properties": {
-            "Flex": { "$ref": "#/$defs/Flex-payload" }
-          }
-        },
-        {
-          "properties": {
-            "Stack": { "$ref": "#/$defs/Stack-payload" }
-          }
-        }
-      ]
     },
     "Widget": {
       "allOf": [
@@ -2166,6 +2168,24 @@
               "$ref": "#/$defs/Row-payload",
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/4bd0d453-c243-429d-a562-93cbc9db38e3#" 
             
+            }
+          }
+        },
+        {
+          "properties": {
+            "FittedColumn": {
+              "type": "object",
+              "description": "Stretch to fit the parent (the parent is required to have a predetermined height), then distribute the vertical spaces evenly among its children. You can override the space distribution via 'childrenFits' attribute.",
+              "$ref": "#/$defs/fittedBoxLayout"
+            }
+          }
+        },
+        {
+          "properties": {
+            "FittedRow": {
+              "type": "object",
+              "description": "Stretch to fit the parent (the parent is required to have a predetermined width), then distribute the horizontal spaces evenly among its children. You can override the space distribution via 'childrenFits' attribute.",
+              "$ref": "#/$defs/fittedBoxLayout"
             }
           }
         },
@@ -2630,6 +2650,65 @@
         }
       ]
     },
+    "fittedBoxLayout": {
+      "properties": {
+        "children": { "$ref": "#/$defs/Widgets" },
+        "styles": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
+            },
+            {
+              "$ref": "#/$defs/boxLayoutStyles"
+            },
+            {
+              "properties": {
+                "mainAxis": {
+                  "type": "string",
+                  "description": "Control our children's layout horizontally",
+                  "enum": [
+                    "start",
+                    "center",
+                    "end",
+                    "spaceBetween",
+                    "spaceAround",
+                    "spaceEvenly"
+                  ]
+                },
+                "crossAxis": {
+                  "type": "string",
+                  "description": "Control the vertical alignment of the children",
+                  "enum": [
+                    "start",
+                    "center",
+                    "end",
+                    "stretch",
+                    "baseline"
+                  ]
+                },
+                "childrenFits": {
+                  "type": "array",
+                  "description": "Specify an array of non-zero integers or 'auto', each corresponding to a child. Setting 'auto' will let the child determines its own size, while setting a non-zero integer will determine the child's size multiple. The 'auto' children will be laid out first and get as much space as they need, then the left-over space will be distributed to the other children based on their size multiples.",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "const": "auto",
+                        "description": "Allow this selected child to determine its own size. This may give an error if the child doesn't have a dimension."
+                      },
+                      {
+                        "type": "integer",
+                        "description": "Default 1. After laying out the 'auto' children, the left-over space will be divided up based on this multiple.",
+                        "minimum": 1
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
     "flowStyles": {
       "allOf": [
         {
@@ -2688,7 +2767,7 @@
             },
             "mainAxisSize": {
               "type": "string",
-              "description": "Stretch to the max vertically or only fit the vertical space",
+              "description": "If 'max', stretch the Column to fill its parent's height. Otherwise (min) the column's height will be its children's combined.",
               "enum": ["min", "max"]
             },
             "scrollable": {
@@ -2726,7 +2805,7 @@
             },
             "mainAxisSize": {
               "type": "string",
-              "description": "Stretch to the max horizontally or only fit the horizontal space",
+              "description": "If 'max', stretch the Row to fill its parent's width. Otherwise (min) the Row's width will be its children's combined.",
               "enum": ["min", "max"]
             },
             "scrollable": {
@@ -2770,7 +2849,7 @@
             },
             "mainAxisSize": {
               "type": "string",
-              "description": "stretch to the max or only fit the available space of the main axis (depending on the 'direction' attribute)",
+              "description": "If 'max', stretch the Flex to fill its parent's dimension (width or height based on the direction). Otherwise (min) the Flex's dimension will be its children's combined.",
               "enum": ["min", "max"]
             },
             "scrollable": {
