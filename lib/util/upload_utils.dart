@@ -9,18 +9,15 @@ typedef OnDoneCallback = void Function();
 typedef OnErrorCallback = void Function(dynamic error);
 
 class UploadUtils {
-  
   static Future<Response?> uploadFiles({
-      required YamlMap api,
-      required DataContext eContext,
-      required List<File> files,
-      required String fieldName,
-      ProgressCallback? progressCallback,
-      OnDoneCallback? onDone,
-      OnErrorCallback? onError,
-      }
-    ) async {
-
+    required YamlMap api,
+    required DataContext eContext,
+    required List<File> files,
+    required String fieldName,
+    ProgressCallback? progressCallback,
+    OnDoneCallback? onDone,
+    OnErrorCallback? onError,
+  }) async {
     Map<String, String> headers = {};
     if (api['headers'] is YamlMap) {
       (api['headers'] as YamlMap).forEach((key, value) {
@@ -29,18 +26,17 @@ class UploadUtils {
         }
       });
     }
-    
+
     String url = HttpUtils.resolveUrl(eContext, api['uri'].toString().trim());
     String method = api['method']?.toString().toUpperCase() ?? 'POST';
 
-    final request = MultipartRequest(
-      method,
-      Uri.parse(url),  
-      onProgress: progressCallback == null ? null : (int bytes, int total) {
-        final progress = bytes / total;
-        progressCallback.call(progress);
-      }
-    );
+    final request = MultipartRequest(method, Uri.parse(url),
+        onProgress: progressCallback == null
+            ? null
+            : (int bytes, int total) {
+                final progress = bytes / total;
+                progressCallback.call(progress);
+              });
     request.headers.addAll(headers);
     final multipartFiles = <http.MultipartFile>[];
 
@@ -48,9 +44,11 @@ class UploadUtils {
       http.MultipartFile? multipartFile;
 
       if (file.path != null) {
-        multipartFile = await http.MultipartFile.fromPath(fieldName, file.path!);
-      } else if ( file.bytes != null ) {
-        multipartFile = http.MultipartFile.fromBytes(fieldName, file.bytes!, filename: file.name);
+        multipartFile =
+            await http.MultipartFile.fromPath(fieldName, file.path!);
+      } else if (file.bytes != null) {
+        multipartFile = http.MultipartFile.fromBytes(fieldName, file.bytes!,
+            filename: file.name);
       } else {
         continue;
       }
@@ -62,7 +60,7 @@ class UploadUtils {
 
     try {
       final response = await request.send();
-      
+
       if (response.statusCode >= 200 && response.statusCode <= 300) {
         final res = await http.Response.fromStream(response);
         return Response(res);
@@ -73,10 +71,8 @@ class UploadUtils {
       onError?.call(error);
     }
     return null;
-    
   }
 }
-
 
 class MultipartRequest extends http.MultipartRequest {
   MultipartRequest(
@@ -98,11 +94,11 @@ class MultipartRequest extends http.MultipartRequest {
     final t = StreamTransformer.fromHandlers(
       handleData: (List<int> data, EventSink<List<int>> sink) {
         bytes += data.length;
-        if(total >= bytes) {
+        if (total >= bytes) {
           sink.add(data);
           onProgress?.call(bytes, total);
         }
-      }, 
+      },
     );
     final stream = byteStream.transform(t);
     return http.ByteStream(stream);

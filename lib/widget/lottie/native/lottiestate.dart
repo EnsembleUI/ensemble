@@ -9,28 +9,24 @@ import 'package:flutter/widgets.dart';
 import 'package:lottie/lottie.dart';
 
 class LottieState extends WidgetState<EnsembleLottie> {
-
   @override
   Widget buildWidget(BuildContext context) {
-
     BoxFit? fit = WidgetUtils.getBoxFit(widget.controller.fit);
 
     Widget rtn = BoxWrapper(
         widget: buildLottie(fit),
         boxController: widget.controller,
         ignoresMargin: true,
-        ignoresDimension: true
-    );
+        ignoresDimension: true);
     if (widget.controller.onTap != null) {
       rtn = GestureDetector(
           child: rtn,
-          onTap: () => ScreenController().executeAction(context, widget.controller.onTap!,event: EnsembleEvent(widget))
-      );
+          onTap: () => ScreenController().executeAction(
+              context, widget.controller.onTap!,
+              event: EnsembleEvent(widget)));
     }
     if (widget.controller.margin != null) {
-      rtn = Padding(
-          padding: widget.controller.margin!,
-          child: rtn);
+      rtn = Padding(padding: widget.controller.margin!, child: rtn);
     }
     return rtn;
   }
@@ -57,8 +53,7 @@ class LottieState extends WidgetState<EnsembleLottie> {
             height: widget.controller.height?.toDouble(),
             repeat: widget.controller.repeat ?? true,
             fit: fit,
-            errorBuilder: (context, error, stacktrace) => placeholderImage()
-        );
+            errorBuilder: (context, error, stacktrace) => placeholderImage());
       }
     }
     return placeholderImage();
@@ -68,11 +63,7 @@ class LottieState extends WidgetState<EnsembleLottie> {
     return SizedBox(
         width: widget.controller.width?.toDouble(),
         height: widget.controller.height?.toDouble(),
-        child: Image.asset('assets/images/img_placeholder.png', package: 'ensemble')
-    );
+        child: Image.asset('assets/images/img_placeholder.png',
+            package: 'ensemble'));
   }
-
-
-
-
 }
