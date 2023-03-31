@@ -1,7 +1,6 @@
-import { Widget } from "../widgetSchema";
-import { BaseStyles, boxLayoutStyles, BoxStyles, fontWeight } from "../styles";
+import { TemplatedWidget, Widget } from "../widgetSchema";
+import { BaseStyles, boxLayoutStyles } from "../styles";
 import { Action } from "../actionSchema";
-import { TemplatedWidget } from "../coreSchema";
 
 export interface GridView extends Widget, TemplatedWidget {
   /**

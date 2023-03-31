@@ -151,318 +151,52 @@
       "additionalProperties": false,
       "properties": {
         "header": {
-          "$ref": "#/definitions/Widget",
+          "$ref": "#/definitions/Widgets",
           "description": "The header widget for the menu"
         },
         "footer": {
-          "$ref": "#/definitions/Widget"
-        },
-        "items": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "icon": {
-                "type": "string",
-                "description": "Icon name from Material Icons or Font Awesome"
-              },
-              "iconLibrary": {
-                "$ref": "#/definitions/iconLibrary"
-              },
-              "label": {
-                "type": "string"
-              },
-              "page": {
-                "type": "string",
-                "description": "The new page to navigate to on click"
-              },
-              "selected": {
-                "type": "boolean",
-                "description": "Mark this item as selected. There should only be one selected item per page."
-              }
-            },
-            "required": [
-              "icon",
-              "label",
-              "page"
-            ],
-            "additionalProperties": false
-          },
-          "description": "List of menu items (minimum 2)"
-        },
-        "styles": {
-          "$ref": "#/definitions/backgroundColor"
-        }
-      },
-      "required": [
-        "items"
-      ]
-    },
-    "Widget": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "ID to be referenced later"
-        }
-      },
-      "additionalProperties": false
-    },
-    "MenuWithAdditionalStyles": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "styles": {
-          "$ref": "#/definitions/backgroundColor"
-        },
-        "header": {
-          "$ref": "#/definitions/Widget",
-          "description": "The header widget for the menu"
-        },
-        "footer": {
-          "$ref": "#/definitions/Widget"
-        },
-        "items": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "icon": {
-                "type": "string",
-                "description": "Icon name from Material Icons or Font Awesome"
-              },
-              "iconLibrary": {
-                "$ref": "#/definitions/iconLibrary"
-              },
-              "label": {
-                "type": "string"
-              },
-              "page": {
-                "type": "string",
-                "description": "The new page to navigate to on click"
-              },
-              "selected": {
-                "type": "boolean",
-                "description": "Mark this item as selected. There should only be one selected item per page."
-              }
-            },
-            "required": [
-              "icon",
-              "label",
-              "page"
-            ],
-            "additionalProperties": false
-          },
-          "description": "List of menu items (minimum 2)"
-        }
-      },
-      "required": [
-        "items"
-      ]
-    },
-    "View": {
-      "type": "object",
-      "properties": {
-        "Column": {
-          "$ref": "#/definitions/Column"
-        },
-        "Flow": {
-          "$ref": "#/definitions/Flow"
-        },
-        "Flex": {
-          "$ref": "#/definitions/Flex"
-        },
-        "Stack": {
-          "$ref": "#/definitions/Stack"
-        },
-        "ListView": {
-          "$ref": "#/definitions/ListView"
-        },
-        "Carousel": {
-          "$ref": "#/definitions/Carousel"
-        },
-        "FittedColumn": {
-          "$ref": "#/definitions/FittedBoxLayout"
-        },
-        "FittedRow": {
-          "$ref": "#/definitions/FittedBoxLayout"
-        },
-        "header": {
-          "type": "object",
-          "properties": {
-            "title": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "$ref": "#/definitions/Widgets"
-                }
-              ],
-              "description": "A simple text or a custom widget for the App's title"
-            },
-            "flexibleBackground": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/Widgets"
-                },
-                {
-                  "type": "string"
-                }
-              ],
-              "description": "This widget (typically used as an background image) acts as the header's background, with the title bar and the bottom widget overlaid on top. On non-scrollable screen, its dimensions is dictated by the header's width and height."
-            },
-            "styles": {
-              "type": "object",
-              "properties": {
-                "backgroundColor": {
-                  "$ref": "#/definitions/Colors",
-                  "description": "By default the background color uses the theme's 'primary' color. You can override the header's background color here."
-                },
-                "color": {
-                  "$ref": "#/definitions/Colors",
-                  "description": "By default the navigation icon, title, and action icons uses the theme's 'onPrimary' color. You can override their colors here."
-                },
-                "elevation": {
-                  "type": "number",
-                  "description": "Raise the header on its z-coordinates relative to the body. This effectively creates a drop shadow on the header's bottom edge.",
-                  "minimum": 0
-                },
-                "shadowColor": {
-                  "$ref": "#/definitions/Colors",
-                  "description": "If elevation is non-zero, this will override the drop shadow color of the header's bottom edge."
-                },
-                "centerTitle": {
-                  "type": "boolean",
-                  "description": "Whether to align the title in the title bar's center horizontally (default: true)"
-                },
-                "titleBarHeight": {
-                  "type": "number",
-                  "description": "For consistency, the header's title bar has the default fixed height of 56 regardless of its content. You may adjust its height here.",
-                  "minimum": 0
-                },
-                "flexibleMinHeight": {
-                  "type": "number",
-                  "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's min height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). Note that this attribute will be ignored if smaller than the titleBarHeight"
-                },
-                "flexibleMaxHeight": {
-                  "type": "number",
-                  "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's max height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). This attribute will be ignored if smaller than the flexibleMinHeight"
-                }
-              },
-              "additionalProperties": false
-            }
-          },
-          "additionalProperties": false,
-          "description": "Configure the application header"
-        },
-        "body": {
           "$ref": "#/definitions/Widgets"
         },
-        "onLoad": {
-          "$ref": "#/definitions/Action",
-          "description": "Execute an Action when the screen loads"
-        },
-        "options": {
-          "type": "object",
-          "properties": {
-            "type": {
-              "$ref": "#/definitions/screenType",
-              "description": "Specify if this is a regular (default) or modal screen"
-            }
-          },
-          "additionalProperties": false
-        },
-        "styles": {
-          "type": "object",
-          "properties": {
-            "backgroundColor": {
-              "$ref": "#/definitions/backgroundColor"
-            },
-            "backgroundImage": {
-              "$ref": "#/definitions/backgroundImage"
-            },
-            "useSafeArea": {
-              "type": "boolean",
-              "description": "Applicable only when we don't have a header. If true, insert paddings around the body content to account for the the devices' Safe Area (e.g. iPhone notch). Default is false."
-            },
-            "scrollableView": {
-              "type": "boolean",
-              "description": "Specify if the content of this screen is scrollable with a global scrollbar. Using this also allow you to customize the scrolling experience of the header."
-            },
-            "showNavigationIcon": {
-              "type": "boolean",
-              "description": "For a screen with header, the App will automatically show the Menu, Back, or Close icon (for modal screen) before the title. On modal screen without the header, the Close icon will be shown. Set this flag to false if you wish to hide the icons and handle the navigation yourself."
-            },
-            "navigationIconPosition": {
-              "$ref": "#/definitions/navIconPosition",
-              "description": "On modal screen without a header, you can position the close button at the start or end of the screen. For left-to-right languages like English, start is on the left and end is on the right. This property has no effect on a screen with header."
-            }
-          },
-          "additionalProperties": false
-        }
-      },
-      "required": [
-        "body"
-      ],
-      "additionalProperties": false,
-      "description": "This is your root View. It requires a body widget."
-    },
-    "Column": {
-      "type": "object",
-      "properties": {
-        "item-template": {
-          "$ref": "#/definitions/ItemTemplate"
-        },
-        "id": {
-          "type": "string",
-          "description": "ID to be referenced later"
-        },
-        "children": {
+        "items": {
           "type": "array",
           "items": {
-            "anyOf": [
-              {
-                "$ref": "#/definitions/Widgets"
+            "type": "object",
+            "properties": {
+              "icon": {
+                "type": "string",
+                "description": "Icon name from Material Icons or Font Awesome"
               },
-              {
+              "iconLibrary": {
+                "$ref": "#/definitions/iconLibrary"
+              },
+              "label": {
                 "type": "string"
+              },
+              "page": {
+                "type": "string",
+                "description": "The new page to navigate to on click"
+              },
+              "selected": {
+                "type": "boolean",
+                "description": "Mark this item as selected. There should only be one selected item per page."
               }
-            ]
-          }
+            },
+            "required": [
+              "icon",
+              "label",
+              "page"
+            ],
+            "additionalProperties": false
+          },
+          "description": "List of menu items (minimum 2)"
         },
         "styles": {
-          "$ref": "#/definitions/stylesColumn"
-        }
-      },
-      "additionalProperties": false
-    },
-    "ItemTemplate": {
-      "type": "object",
-      "properties": {
-        "data": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "template": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Widgets"
-            },
-            {
-              "type": "string"
-            }
-          ]
+          "$ref": "#/definitions/backgroundColor"
         }
       },
       "required": [
-        "data",
-        "name",
-        "template"
-      ],
-      "additionalProperties": false
+        "items"
+      ]
     },
     "Widgets": {
       "type": "object",
@@ -569,6 +303,251 @@
         }
       },
       "additionalProperties": false
+    },
+    "Column": {
+      "type": "object",
+      "properties": {
+        "item-template": {
+          "$ref": "#/definitions/ItemTemplate"
+        },
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/Widgets"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "styles": {
+          "$ref": "#/definitions/stylesColumn"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ItemTemplate": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "template": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Widgets"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "required": [
+        "data",
+        "name",
+        "template"
+      ],
+      "additionalProperties": false
+    },
+    "stylesColumn": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mainAxis": {
+          "type": "string",
+          "enum": [
+            "start",
+            "center",
+            "end",
+            "spaceBetween",
+            "spaceAround",
+            "spaceEvenly"
+          ],
+          "description": "Control our children's layout vertically"
+        },
+        "crossAxis": {
+          "type": "string",
+          "enum": [
+            "start",
+            "center",
+            "end",
+            "stretch",
+            "baseline"
+          ],
+          "description": "Control the horizontal alignment of the children"
+        },
+        "mainAxisSize": {
+          "type": "string",
+          "enum": [
+            "min",
+            "max"
+          ],
+          "description": "Stretch to the max vertically or only fit the vertical space"
+        },
+        "scrollable": {
+          "type": "boolean",
+          "description": "Set to true so content can scroll vertically as needed"
+        },
+        "autoFit": {
+          "type": "boolean",
+          "description": "Explicitly make the column's width as wide as the largest child, but only if our column's parent does not already assign a width. This attribute is useful for sizing children who don't have a width (e.g Divider)"
+        },
+        "gap": {
+          "type": "number",
+          "minimum": 0
+        },
+        "fontFamily": {
+          "type": "string",
+          "description": "Set the font family applicable for all widgets inside this container"
+        },
+        "fontSize": {
+          "type": "number",
+          "minimum": 0
+        },
+        "shadowColor": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Box shadow color starting with '0xFF' for full opacity"
+        },
+        "shadowOffset": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "shadowRadius": {
+          "type": "number",
+          "minimum": 0
+        },
+        "shadowStyle": {
+          "type": "string",
+          "enum": [
+            "normal",
+            "solid"
+          ],
+          "description": "The blur style to apply on the shadow"
+        },
+        "borderRadius": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Border Radius with CSS-like notation (1 to 4 integers)",
+          "minimum": 0
+        },
+        "borderColor": {
+          "$ref": "#/definitions/Colors",
+          "description": "Border color, starting with '0xFF' for full opacity"
+        },
+        "borderWidth": {
+          "type": "number",
+          "description": "The thickness of the border",
+          "minimum": 0
+        },
+        "colors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Colors"
+          },
+          "description": "The list of colors used for the gradient"
+        },
+        "start": {
+          "$ref": "#/definitions/alignmentEnum",
+          "description": "The starting position of the gradient"
+        },
+        "end": {
+          "$ref": "#/definitions/alignmentEnum",
+          "description": "The ending position of the gradient"
+        },
+        "backgroundColor": {
+          "$ref": "#/definitions/Colors"
+        },
+        "backgroundImage": {
+          "$ref": "#/definitions/backgroundImage"
+        },
+        "padding": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Padding with CSS-style value e.g. padding: 5 20 5"
+        },
+        "margin": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0
+        },
+        "expanded": {
+          "type": "boolean",
+          "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+        }
+      }
+    },
+    "alignmentEnum": {
+      "type": "string",
+      "enum": [
+        "topLeft",
+        "topCenter",
+        "topRight",
+        "centerLeft",
+        "center",
+        "centerRight",
+        "bottomLeft",
+        "bottomCenter",
+        "bottomRight"
+      ]
+    },
+    "backgroundImage": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "description": "The Image URL to fill the background"
+        },
+        "fit": {
+          "$ref": "#/definitions/fitEnum",
+          "description": "How to fit the image within our width/height or our parent (if dimension is not specified)"
+        },
+        "alignment": {
+          "$ref": "#/definitions/alignmentEnum"
+        }
+      },
+      "additionalProperties": false
+    },
+    "fitEnum": {
+      "type": "string",
+      "enum": [
+        "fill",
+        "contain",
+        "cover",
+        "fitWidth",
+        "fitHeight",
+        "none",
+        "scaleDown"
+      ]
     },
     "Flow": {
       "type": "object",
@@ -829,49 +808,6 @@
         }
       }
     },
-    "alignmentEnum": {
-      "type": "string",
-      "enum": [
-        "topLeft",
-        "topCenter",
-        "topRight",
-        "centerLeft",
-        "center",
-        "centerRight",
-        "bottomLeft",
-        "bottomCenter",
-        "bottomRight"
-      ]
-    },
-    "backgroundImage": {
-      "type": "object",
-      "properties": {
-        "source": {
-          "type": "string",
-          "description": "The Image URL to fill the background"
-        },
-        "fit": {
-          "$ref": "#/definitions/fitEnum",
-          "description": "How to fit the image within our width/height or our parent (if dimension is not specified)"
-        },
-        "alignment": {
-          "$ref": "#/definitions/alignmentEnum"
-        }
-      },
-      "additionalProperties": false
-    },
-    "fitEnum": {
-      "type": "string",
-      "enum": [
-        "fill",
-        "contain",
-        "cover",
-        "fitWidth",
-        "fitHeight",
-        "none",
-        "scaleDown"
-      ]
-    },
     "Stack": {
       "type": "object",
       "properties": {
@@ -1098,6 +1034,9 @@
         },
         "getLocationAction": {
           "$ref": "#/definitions/GetLocationAction"
+        },
+        "openUrl": {
+          "$ref": "#/definitions/OpenURLAction"
         }
       },
       "additionalProperties": false
@@ -1106,26 +1045,32 @@
       "type": "object",
       "properties": {
         "id": {
-          "type": "string"
+          "type": "string",
+          "description": "Give the API an ID allows you to bind to its result. e.g. ${apiId.body...}"
         },
         "name": {
-          "type": "string"
+          "type": "string",
+          "description": "Enter the name of your defined API"
         },
         "inputs": {
           "type": "object",
-          "additionalProperties": false
+          "additionalProperties": false,
+          "description": "Specify the key/value pairs to pass to the API"
         },
         "onResponse": {
-          "$ref": "#/definitions/Action"
+          "$ref": "#/definitions/Action",
+          "description": "Execute another Action upon API's successful response"
         },
         "onError": {
-          "$ref": "#/definitions/Action"
+          "$ref": "#/definitions/Action",
+          "description": "Execute an Action when the API completes with error(s)"
         }
       },
       "required": [
         "name"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Calling an API"
     },
     "ExecuteCodeAction": {
       "type": "object",
@@ -1134,32 +1079,38 @@
           "type": "string"
         },
         "onComplete": {
-          "$ref": "#/definitions/Action"
+          "$ref": "#/definitions/Action",
+          "description": "Execute another Action when the code body finishes executing"
         }
       },
       "required": [
         "body"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Execute a block of code."
     },
     "NavigateScreenAction": {
       "type": "object",
       "properties": {
         "name": {
-          "type": "string"
+          "type": "string",
+          "description": "Enter the Name or ID of your Screen"
         },
         "inputs": {
           "type": "object",
-          "additionalProperties": false
+          "additionalProperties": false,
+          "description": "Specify the key/value pairs to pass into the next Screen"
         },
         "options": {
           "type": "object",
           "properties": {
             "replaceCurrentScreen": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "If true, the new screen will replace the current screen on the navigation history. Navigating back from the new screen will skip the current screen."
             },
             "clearAllScreens": {
-              "type": "boolean"
+              "type": "boolean",
+              "description": "If true, clear out all existing screens in the navigation history. This is useful when navigating to a Logout or similar page where users should not be able to go back to the prior screens."
             }
           },
           "additionalProperties": false
@@ -1168,30 +1119,36 @@
       "required": [
         "name"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Navigating to a new screen"
     },
     "NavigateModalScreenAction": {
       "type": "object",
       "properties": {
         "name": {
-          "type": "string"
+          "type": "string",
+          "description": "Enter the Name or ID of your Screen"
         },
         "inputs": {
           "type": "object",
-          "additionalProperties": false
+          "additionalProperties": false,
+          "description": "Specify the key/value pairs to pass into the next Screen"
         },
         "onModalDismiss": {
-          "$ref": "#/definitions/Action"
+          "$ref": "#/definitions/Action",
+          "description": "Execute an Action when the modal screen is dismissed"
         }
       },
       "required": [
         "name"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Navigating to a new screen as a modal"
     },
     "NavigateBackAction": {
       "type": "object",
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Navigating back to the previous screen if possible. The current screen will be removed from the navigation history. This also works for a modal screen."
     },
     "OpenCameraAction": {
       "type": "object",
@@ -1201,19 +1158,22 @@
       "type": "object",
       "properties": {
         "widget": {
-          "$ref": "#/definitions/Widgets"
+          "$ref": "#/definitions/Widgets",
+          "description": "Return an inline widget or specify a custom widget's name to use in the dialog."
         },
         "options": {
           "$ref": "#/definitions/DialogOptions"
         },
         "onDialogDismiss": {
-          "$ref": "#/definitions/Action"
+          "$ref": "#/definitions/Action",
+          "description": "Execute an Action when the dialog is dismissed."
         }
       },
       "required": [
         "widget"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Opening a dialog"
     },
     "DialogOptions": {
       "type": "object",
@@ -1256,19 +1216,23 @@
     },
     "CloseAllDialogsAction": {
       "type": "object",
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Closing all opened dialogs"
     },
     "StartTimerAction": {
       "type": "object",
       "properties": {
         "id": {
-          "type": "string"
+          "type": "string",
+          "description": "Give this timer an ID so it can be cancelled by a stopTimer action"
         },
         "onTimer": {
-          "$ref": "#/definitions/Action"
+          "$ref": "#/definitions/Action",
+          "description": "Execute an Action every time the timer triggers"
         },
         "onTimerComplete": {
-          "$ref": "#/definitions/Action"
+          "$ref": "#/definitions/Action",
+          "description": "Execute an Action when the timer has completed and will terminate"
         },
         "options": {
           "$ref": "#/definitions/TimerOptions"
@@ -1277,7 +1241,8 @@
       "required": [
         "onTimer"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Initiating the start of a timer"
     },
     "TimerOptions": {
       "type": "object",
@@ -1310,13 +1275,15 @@
       "type": "object",
       "properties": {
         "id": {
-          "type": "string"
+          "type": "string",
+          "description": "Stop the timer with this ID if it is running"
         }
       },
       "required": [
         "id"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Stop a timer if its running"
     },
     "ShowToastAction": {
       "type": "object",
@@ -1341,10 +1308,12 @@
           ]
         },
         "message": {
-          "type": "string"
+          "type": "string",
+          "description": "The toast message. Either this message or a widget must be provided."
         },
         "widget": {
-          "$ref": "#/definitions/Widgets"
+          "$ref": "#/definitions/Widgets",
+          "description": "The custom widget to show as the Toast's body. Either this widget or a toast message must be provided."
         },
         "options": {
           "$ref": "#/definitions/ShowToastOptions"
@@ -1386,7 +1355,8 @@
               "description": "Padding with CSS-style value e.g. padding: 5 20 5"
             },
             "backgroundColor": {
-              "$ref": "#/definitions/Colors"
+              "$ref": "#/definitions/Colors",
+              "description": "Toast's background color"
             }
           }
         }
@@ -1394,7 +1364,8 @@
       "required": [
         "value"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Showing a toast message"
     },
     "ShowToastOptions": {
       "type": "object",
@@ -1457,6 +1428,24 @@
           "$ref": "#/definitions/Action"
         }
       },
+      "additionalProperties": false,
+      "description": "Requesting user's permission to get his/her current location"
+    },
+    "OpenURLAction": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "The URL that the hyperlink points to. Links are not restricted to HTTP-based URLs"
+        },
+        "openInExternalApp": {
+          "type": "boolean",
+          "description": "Open the url in the right app based on the url scheme in native apps"
+        }
+      },
+      "required": [
+        "url"
+      ],
       "additionalProperties": false
     },
     "Carousel": {
@@ -4027,151 +4016,205 @@
       },
       "additionalProperties": false
     },
-    "stylesColumn": {
+    "MenuWithAdditionalStyles": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "mainAxis": {
-          "type": "string",
-          "enum": [
-            "start",
-            "center",
-            "end",
-            "spaceBetween",
-            "spaceAround",
-            "spaceEvenly"
-          ],
-          "description": "Control our children's layout vertically"
+        "styles": {
+          "$ref": "#/definitions/backgroundColor"
         },
-        "crossAxis": {
-          "type": "string",
-          "enum": [
-            "start",
-            "center",
-            "end",
-            "stretch",
-            "baseline"
-          ],
-          "description": "Control the horizontal alignment of the children"
+        "header": {
+          "$ref": "#/definitions/Widgets",
+          "description": "The header widget for the menu"
         },
-        "mainAxisSize": {
-          "type": "string",
-          "enum": [
-            "min",
-            "max"
-          ],
-          "description": "Stretch to the max vertically or only fit the vertical space"
+        "footer": {
+          "$ref": "#/definitions/Widgets"
         },
-        "scrollable": {
-          "type": "boolean",
-          "description": "Set to true so content can scroll vertically as needed"
-        },
-        "autoFit": {
-          "type": "boolean",
-          "description": "Explicitly make the column's width as wide as the largest child, but only if our column's parent does not already assign a width. This attribute is useful for sizing children who don't have a width (e.g Divider)"
-        },
-        "gap": {
-          "type": "number",
-          "minimum": 0
-        },
-        "fontFamily": {
-          "type": "string",
-          "description": "Set the font family applicable for all widgets inside this container"
-        },
-        "fontSize": {
-          "type": "number",
-          "minimum": 0
-        },
-        "shadowColor": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Box shadow color starting with '0xFF' for full opacity"
-        },
-        "shadowOffset": {
+        "items": {
           "type": "array",
           "items": {
-            "type": "number"
-          }
-        },
-        "shadowRadius": {
-          "type": "number",
-          "minimum": 0
-        },
-        "shadowStyle": {
-          "type": "string",
-          "enum": [
-            "normal",
-            "solid"
-          ],
-          "description": "The blur style to apply on the shadow"
-        },
-        "borderRadius": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Border Radius with CSS-like notation (1 to 4 integers)",
-          "minimum": 0
-        },
-        "borderColor": {
-          "$ref": "#/definitions/Colors",
-          "description": "Border color, starting with '0xFF' for full opacity"
-        },
-        "borderWidth": {
-          "type": "number",
-          "description": "The thickness of the border",
-          "minimum": 0
-        },
-        "colors": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Colors"
+            "type": "object",
+            "properties": {
+              "icon": {
+                "type": "string",
+                "description": "Icon name from Material Icons or Font Awesome"
+              },
+              "iconLibrary": {
+                "$ref": "#/definitions/iconLibrary"
+              },
+              "label": {
+                "type": "string"
+              },
+              "page": {
+                "type": "string",
+                "description": "The new page to navigate to on click"
+              },
+              "selected": {
+                "type": "boolean",
+                "description": "Mark this item as selected. There should only be one selected item per page."
+              }
+            },
+            "required": [
+              "icon",
+              "label",
+              "page"
+            ],
+            "additionalProperties": false
           },
-          "description": "The list of colors used for the gradient"
-        },
-        "start": {
-          "$ref": "#/definitions/alignmentEnum",
-          "description": "The starting position of the gradient"
-        },
-        "end": {
-          "$ref": "#/definitions/alignmentEnum",
-          "description": "The ending position of the gradient"
-        },
-        "backgroundColor": {
-          "$ref": "#/definitions/Colors"
-        },
-        "backgroundImage": {
-          "$ref": "#/definitions/backgroundImage"
-        },
-        "padding": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Padding with CSS-style value e.g. padding: 5 20 5"
-        },
-        "margin": {
-          "type": [
-            "number",
-            "string"
-          ],
-          "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
-        },
-        "width": {
-          "type": "number",
-          "minimum": 0
-        },
-        "height": {
-          "type": "number",
-          "minimum": 0
-        },
-        "expanded": {
-          "type": "boolean",
-          "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+          "description": "List of menu items (minimum 2)"
         }
-      }
+      },
+      "required": [
+        "items"
+      ]
+    },
+    "View": {
+      "type": "object",
+      "properties": {
+        "Column": {
+          "$ref": "#/definitions/Column"
+        },
+        "Flow": {
+          "$ref": "#/definitions/Flow"
+        },
+        "Flex": {
+          "$ref": "#/definitions/Flex"
+        },
+        "Stack": {
+          "$ref": "#/definitions/Stack"
+        },
+        "ListView": {
+          "$ref": "#/definitions/ListView"
+        },
+        "Carousel": {
+          "$ref": "#/definitions/Carousel"
+        },
+        "FittedColumn": {
+          "$ref": "#/definitions/FittedBoxLayout"
+        },
+        "FittedRow": {
+          "$ref": "#/definitions/FittedBoxLayout"
+        },
+        "header": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/definitions/Widgets"
+                }
+              ],
+              "description": "A simple text or a custom widget for the App's title"
+            },
+            "flexibleBackground": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Widgets"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "description": "This widget (typically used as an background image) acts as the header's background, with the title bar and the bottom widget overlaid on top. On non-scrollable screen, its dimensions is dictated by the header's width and height."
+            },
+            "styles": {
+              "type": "object",
+              "properties": {
+                "backgroundColor": {
+                  "$ref": "#/definitions/Colors",
+                  "description": "By default the background color uses the theme's 'primary' color. You can override the header's background color here."
+                },
+                "color": {
+                  "$ref": "#/definitions/Colors",
+                  "description": "By default the navigation icon, title, and action icons uses the theme's 'onPrimary' color. You can override their colors here."
+                },
+                "elevation": {
+                  "type": "number",
+                  "description": "Raise the header on its z-coordinates relative to the body. This effectively creates a drop shadow on the header's bottom edge.",
+                  "minimum": 0
+                },
+                "shadowColor": {
+                  "$ref": "#/definitions/Colors",
+                  "description": "If elevation is non-zero, this will override the drop shadow color of the header's bottom edge."
+                },
+                "centerTitle": {
+                  "type": "boolean",
+                  "description": "Whether to align the title in the title bar's center horizontally (default: true)"
+                },
+                "titleBarHeight": {
+                  "type": "number",
+                  "description": "For consistency, the header's title bar has the default fixed height of 56 regardless of its content. You may adjust its height here.",
+                  "minimum": 0
+                },
+                "flexibleMinHeight": {
+                  "type": "number",
+                  "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's min height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). Note that this attribute will be ignored if smaller than the titleBarHeight"
+                },
+                "flexibleMaxHeight": {
+                  "type": "number",
+                  "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's max height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). This attribute will be ignored if smaller than the flexibleMinHeight"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false,
+          "description": "Configure the application header"
+        },
+        "body": {
+          "$ref": "#/definitions/Widgets"
+        },
+        "onLoad": {
+          "$ref": "#/definitions/Action",
+          "description": "Execute an Action when the screen loads"
+        },
+        "options": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "$ref": "#/definitions/screenType",
+              "description": "Specify if this is a regular (default) or modal screen"
+            }
+          },
+          "additionalProperties": false
+        },
+        "styles": {
+          "type": "object",
+          "properties": {
+            "backgroundColor": {
+              "$ref": "#/definitions/backgroundColor"
+            },
+            "backgroundImage": {
+              "$ref": "#/definitions/backgroundImage"
+            },
+            "useSafeArea": {
+              "type": "boolean",
+              "description": "Applicable only when we don't have a header. If true, insert paddings around the body content to account for the the devices' Safe Area (e.g. iPhone notch). Default is false."
+            },
+            "scrollableView": {
+              "type": "boolean",
+              "description": "Specify if the content of this screen is scrollable with a global scrollbar. Using this also allow you to customize the scrolling experience of the header."
+            },
+            "showNavigationIcon": {
+              "type": "boolean",
+              "description": "For a screen with header, the App will automatically show the Menu, Back, or Close icon (for modal screen) before the title. On modal screen without the header, the Close icon will be shown. Set this flag to false if you wish to hide the icons and handle the navigation yourself."
+            },
+            "navigationIconPosition": {
+              "$ref": "#/definitions/navIconPosition",
+              "description": "On modal screen without a header, you can position the close button at the start or end of the screen. For left-to-right languages like English, start is on the left and end is on the right. This property has no effect on a screen with header."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "body"
+      ],
+      "additionalProperties": false,
+      "description": "This is your root View. It requires a body widget."
     },
     "screenType": {
       "type": "string",

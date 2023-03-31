@@ -1,6 +1,6 @@
 import { Colors, directionEnum, iconLibrary } from "./common";
 import { BaseStyles } from "./baseStyles";
-import { Widget } from "../widgetSchema";
+import { Widgets } from "../coreSchema";
 
 export enum alignmentEnum {
   topLeft = "topLeft",
@@ -54,14 +54,8 @@ enum crossAxisEnum {
 }
 
 enum shadowEnum {
-  /**
-   * some description goes here
-   * */
-  "normal" = "normal",
-  /**
-   * some other new description
-   * */
-  "solid" = "solid",
+  normal = "normal",
+  solid = "solid",
 }
 
 export enum fitEnum {
@@ -190,11 +184,11 @@ export type MenuWithHeaderAndFooter = MenuBase & {
   /**
    * The header widget for the menu
    * */
-  header?: Widget;
+  header?: Widgets;
   /*
    * The footer widget for the menu
    * */
-  footer?: Widget;
+  footer?: Widgets;
 };
 
 export type MenuWithAdditionalStyles = MenuWithHeaderAndFooter & {

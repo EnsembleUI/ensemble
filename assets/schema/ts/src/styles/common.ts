@@ -50,8 +50,6 @@ export enum iconLibrary {
   fontAwesome = "fontAwesome",
 }
 
-enum axisPosition {}
-
 enum styleSelection {
   default = "default",
   none = "none",

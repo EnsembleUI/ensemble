@@ -4,13 +4,6 @@ import { Menu } from "./widgets";
 import { API, Functions, GlobalType, View } from "./widgetSchema";
 import { Action } from "./actionSchema";
 
-// /**
-//  * @additionalProperties true
-//  * */
-// export interface Screen {
-//   ViewGroup?: ViewGroup;
-// }
-
 export interface RootWidgets {
   Column?: widgets.Column;
   Flow?: widgets.Flow;
@@ -48,19 +41,7 @@ export interface Widgets extends RootWidgets {
   Video?: widgetsDef.Video;
   WebView?: widgetsDef.WebView;
 }
-export interface ItemTemplate {
-  data: string;
-  name: string;
-  template: Widgets | string;
-}
-export interface TemplatedWidget {
-  "item-template"?: ItemTemplate;
-}
 
-/**
- * Group multiple Views together and put them behind a menu.
- * */
-export type ViewGroup = Menu;
 /**
  * @additionalProperties true
  * */

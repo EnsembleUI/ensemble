@@ -2,7 +2,6 @@ import * as core from "./coreSchema";
 import {
   alignmentEnum,
   backgroundColor,
-  backgroundGradient,
   backgroundImage,
   BaseStyles,
   boxLayoutStyles,
@@ -25,6 +24,15 @@ export interface Widget {
    * ID to be referenced later
    * */
   id?: string;
+}
+
+export interface ItemTemplate {
+  data: string;
+  name: string;
+  template: Widgets | string;
+}
+export interface TemplatedWidget {
+  "item-template"?: ItemTemplate;
 }
 
 /**
@@ -176,21 +184,25 @@ export interface Container extends Widget {
   children?: (Widgets | string)[];
 }
 
-export interface Column extends Container, core.TemplatedWidget {
+export interface Column extends Container, TemplatedWidget {
   styles?: stylesColumn;
 }
-export interface Row extends Container, core.TemplatedWidget {
+
+export interface Row extends Container, TemplatedWidget {
   styles?: stylesRow;
 }
-export interface Flex extends Container, core.TemplatedWidget {
+
+export interface Flex extends Container, TemplatedWidget {
   styles?: styleFlex;
 }
+
 export interface Stack extends Container {
   styles?: {
     alignment?: alignmentEnum;
   };
 }
-export interface ListView extends Container, core.TemplatedWidget {
+
+export interface ListView extends Container, TemplatedWidget {
   /**
    * Dispatch when an ListView item is selected/tapped.The event dispatches only when you tap on the item.
    * The index of the item can be retrieved using 'selectedItemIndex'.
@@ -217,7 +229,7 @@ export interface ListView extends Container, core.TemplatedWidget {
     };
 }
 
-export interface Flow extends Container, core.TemplatedWidget {
+export interface Flow extends Container, TemplatedWidget {
   /**
    *The main direction to lay out the children before wrapping
    * */
@@ -225,7 +237,7 @@ export interface Flow extends Container, core.TemplatedWidget {
   styles?: styleFlow;
 }
 
-export interface Carousel extends Container, core.TemplatedWidget {
+export interface Carousel extends Container, TemplatedWidget {
   /**
    * Dispatch when an carousel item is in focus. For SingleView, this happens when the item is scroll into view. For
    * scrolling MultiView, the event dispatches only when you tap on the item. The index of the item can be retrieved
