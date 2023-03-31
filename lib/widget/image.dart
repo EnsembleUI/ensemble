@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -11,6 +12,7 @@ import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/widget_util.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_svg/svg.dart';
@@ -136,16 +138,28 @@ class ImageState extends WidgetState<EnsembleImage> {
           cacheManager: EnsembleImageCacheManager.instance,
           errorWidget: (context, error, stacktrace) => errorFallback(),
           placeholder: (context, url) => placeholder);
+    } else if (widget._controller.source.contains('assets')) {
+      // user might use env variables to switch between remote and local images.
+      // Assets might have additional token e.g. my-image.png?x=2343
+      // so we need to strip them out
+      return Image.asset(Utils.getLocalAssetFullPath(widget._controller.source),
+          width: widget._controller.width?.toDouble(),
+          height: widget._controller.height?.toDouble(),
+          fit: fit,
+          errorBuilder: (context, error, stacktrace) => errorFallback());
+    } else {
+      return kIsWeb
+          ? Image.network(widget._controller.source,
+              width: widget._controller.width?.toDouble(),
+              height: widget._controller.height?.toDouble(),
+              fit: fit,
+              errorBuilder: (context, error, stacktrace) => errorFallback())
+          : Image.file(File(widget._controller.source),
+              width: widget._controller.width?.toDouble(),
+              height: widget._controller.height?.toDouble(),
+              fit: fit,
+              errorBuilder: (context, error, stacktrace) => errorFallback());
     }
-    // else attempt local asset
-    // user might use env variables to switch between remote and local images.
-    // Assets might have additional token e.g. my-image.png?x=2343
-    // so we need to strip them out
-    return Image.asset(Utils.getLocalAssetFullPath(source),
-        width: widget._controller.width?.toDouble(),
-        height: widget._controller.height?.toDouble(),
-        fit: fit,
-        errorBuilder: (context, error, stacktrace) => errorFallback());
   }
 
   Widget buildSvgImage(String source, BoxFit? fit) {
