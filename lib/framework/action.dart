@@ -382,16 +382,17 @@ class WalletConnectAction extends EnsembleAction {
 
   factory WalletConnectAction.fromYaml({YamlMap? payload}) {
     if (payload == null ||
-        (payload['wcProjectId'] == null && payload['']['name'] == null)) {
+        (payload['wcProjectId'] == null &&
+            payload['appMetaData']?['name'] == null)) {
       throw LanguageError(
-          "${ActionType.connectWallet.name} requires either a wcProjectId, appName, appDescription, appUrl, appIconUrl.");
+          "${ActionType.connectWallet.name} requires wcProjectId, appMetaData. Check if any is missing");
     }
     return WalletConnectAction(
       id: Utils.optionalString(payload['id']),
-      wcProjectId: payload['wcProjectId'],
-      appName: payload['appMetaData']['name'],
+      wcProjectId: Utils.getString(payload['wcProjectId'], fallback: ''),
+      appName: Utils.getString(payload['appMetaData']?['name'], fallback: ''),
       appDescription:
-          Utils.optionalString(payload['appMetaData']['description']),
+          Utils.optionalString(payload['appMetaData']?['description']),
       appUrl: Utils.optionalString(payload['appMetaData']?['url']),
       appIconUrl: Utils.optionalString(payload['appMetaData']?['iconUrl']),
       onComplete: EnsembleAction.fromYaml(payload['onComplete']),
