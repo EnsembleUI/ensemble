@@ -2,14 +2,14 @@ import 'dart:async';
 import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/bindings.dart';
+import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
-import 'package:ensemble/framework/action.dart';
-import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/event.dart';
-import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/camera_manager.dart';
 import 'package:ensemble/framework/widget/screen.dart';
@@ -17,21 +17,18 @@ import 'package:ensemble/framework/widget/toast.dart';
 import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/http_utils.dart';
-import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_registry.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:qr_flutter/qr_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:walletconnect_dart/walletconnect_dart.dart';
 import 'package:yaml/yaml.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:file_picker/file_picker.dart';
 
 import 'framework/widget/wallet_connect_modal.dart';
 
@@ -411,9 +408,10 @@ class ScreenController {
               .addInvokableContext(action.id!, FileData(files: selectedFiles));
         }
         YamlMap? apiDefinition = apiMap?[action.uploadApi];
-        if (apiDefinition == null)
+        if (apiDefinition == null) {
           throw LanguageError(
               'Unable to find api definition for ${action.uploadApi}');
+        }
         if (apiDefinition['inputs'] is YamlList && action.inputs != null) {
           for (var input in apiDefinition['inputs']) {
             dynamic value = dataContext.eval(action.inputs![input]);
@@ -431,13 +429,15 @@ class ScreenController {
               ? null
               : (error) => executeAction(context, action.onError!),
         );
-        if (response == null || action.id == null || scopeManager == null)
+        if (response == null || action.id == null || scopeManager == null) {
           return;
+        }
         final fileData =
             scopeManager.dataContext.getContextById(action.id!) as FileData;
         fileData.setResponse(response);
-        if (action.onComplete != null)
+        if (action.onComplete != null) {
           executeAction(context, action.onComplete!);
+        }
       });
     } else if (action is NavigateBack) {
       if (scopeManager != null) {
@@ -445,6 +445,8 @@ class ScreenController {
       }
     } else if (action is WalletConnectAction) {
       //  TODO store session:  WalletConnectSession? session = await sessionStorage.getSession();
+
+      BuildContext? dialogContext;
 
       final WalletConnect walletConnect = WalletConnect(
         bridge: 'https://bridge.walletconnect.org',
@@ -466,13 +468,22 @@ class ScreenController {
         // TODO works when session is stored
         return;
       }
+
       walletConnect.on('connect', (SessionStatus? session) {
+        if (dialogContext != null) {
+          Navigator.pop(dialogContext!);
+        }
         updateWalletData(action, scopeManager, context);
       });
       walletConnect.on('session_update', (Object? session) {
+        if (dialogContext != null) {
+          Navigator.pop(dialogContext!);
+        }
         updateWalletData(action, scopeManager, context);
       });
-      walletConnect.on('disconnect', (Object? session) {});
+      walletConnect.on('disconnect', (Object? session) {
+        updateWalletData(action, scopeManager, context);
+      });
 
       try {
         walletConnect.createSession(onDisplayUri: (String uri) async {
@@ -480,12 +491,8 @@ class ScreenController {
             showDialog(
               context: context,
               builder: (context) {
-                return Dialog(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24)),
-                  child: WalletConnectModal(qrData: uri),
-                );
+                dialogContext = context;
+                return WalletConnectModal(qrData: uri);
               },
             );
             return;
