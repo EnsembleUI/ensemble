@@ -92,8 +92,8 @@ Next we can learn how to add different properties and description to our generat
 	   **/  
 	   font: string;  
 	  /**  
-		* Default font size for this text
-		* @minimum 6  
+	   * Default font size for this text
+	   * @minimum 6  
 	   **/  
 	   fontSize: number;
 	}   
