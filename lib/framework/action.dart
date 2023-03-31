@@ -401,7 +401,6 @@ enum ActionType {
   copyToClipboard
 }
 
-
 enum ToastType { success, error, warning, info }
 
 /// payload representing an Action to do (navigateToScreen, InvokeAPI, ..)
