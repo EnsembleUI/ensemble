@@ -2,7 +2,7 @@ import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/widget/ensemble_icon.dart';
 import 'package:ensemble/widget/text.dart';
 import 'package:ensemble/widget/button.dart';
-import 'package:ensemble/layout/box_layout.dart' as ensemble_row;
+import 'package:ensemble/layout/box/box_layout.dart' as ensemble_row;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yaml/yaml.dart';

@@ -24,6 +24,7 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
@@ -182,9 +183,7 @@ class ScreenController {
         });
       }
     } else if (action is ShowCameraAction) {
-      if (scopeManager != null) {
-        CameraManager().openCamera(context, action);
-      }
+      CameraManager().openCamera(context, action, scopeManager);
     } else if (action is ShowDialogAction) {
       if (scopeManager != null) {
         Widget widget = scopeManager.buildWidgetFromDefinition(action.widget);
@@ -442,6 +441,16 @@ class ScreenController {
     } else if (action is NavigateBack) {
       if (scopeManager != null) {
         Navigator.of(context).maybePop();
+      }
+    } else if (action is CopyToClipboardAction) {
+      if (action.value != null) {
+        Clipboard.setData(ClipboardData(text: action.value)).then((value) {
+          if (action.onSuccess != null) {
+            executeAction(context, action.onSuccess!);
+          }
+        });
+      } else {
+        if (action.onFailure != null) executeAction(context, action.onFailure!);
       }
     } else if (action is WalletConnectAction) {
       //  TODO store session:  WalletConnectSession? session = await sessionStorage.getSession();
