@@ -12,20 +12,20 @@ import '../layout/box/base_box_layout.dart';
 import '../layout/form.dart';
 import 'input/dropdown.dart';
 
-class EnsembleToggleButtons extends StatefulWidget
+class EnsembleToggleButton extends StatefulWidget
     with
         Invokable,
-        HasController<ToggleButtonController, EnsembleToggleButtonsState> {
-  static const type = 'ToggleButtons';
+        HasController<ToggleButtonController, EnsembleToggleButtonState> {
+  static const type = 'ToggleButton';
 
-  EnsembleToggleButtons({Key? key}) : super(key: key);
+  EnsembleToggleButton({Key? key}) : super(key: key);
 
   final ToggleButtonController _controller = ToggleButtonController();
   @override
   ToggleButtonController get controller => _controller;
 
   @override
-  State<StatefulWidget> createState() => EnsembleToggleButtonsState();
+  State<StatefulWidget> createState() => EnsembleToggleButtonState();
 
   @override
   Map<String, Function> getters() {
@@ -40,14 +40,13 @@ class EnsembleToggleButtons extends StatefulWidget
       'value': (value) => _controller.maybeValue = value,
       'items': (values) => updateItems(values),
       'color': (value) => _controller.color = Utils.getColor(value),
-      'backgroundColor': (value) =>
-          _controller.backgroundColor = Utils.getColor(value),
       'selectedColor': (value) =>
           _controller.selectedColor = Utils.getColor(value),
       'selectedBackgroundColor': (value) =>
           _controller.selectedBackgroundColor = Utils.getColor(value),
-      // 'selectedBorderColor': (value) =>
-      //     _controller.selectedBorderColor = Utils.getColor(value),
+      'borderColor': (value) => _controller.borderColor = Utils.getColor(value),
+      'selectedBorderColor': (value) =>
+          _controller.selectedBorderColor = Utils.getColor(value),
       'onChange': (definition) => _controller.onChange =
           framework.EnsembleAction.fromYaml(definition, initiator: this),
     };
@@ -142,7 +141,7 @@ class EnsembleToggleButtons extends StatefulWidget
   }
 }
 
-class EnsembleToggleButtonsState extends WidgetState<EnsembleToggleButtons> {
+class EnsembleToggleButtonState extends WidgetState<EnsembleToggleButton> {
   List<ToggleItem>? _items = [];
 
   @override
@@ -180,10 +179,11 @@ class EnsembleToggleButtonsState extends WidgetState<EnsembleToggleButtons> {
 
     Widget? rtn = ToggleButtons(
       borderRadius: const BorderRadius.all(Radius.circular(8)),
-      // selectedBorderColor: controller.borderColor,
+      color: controller.color,
       selectedColor: controller.selectedColor,
       fillColor: controller.selectedBackgroundColor,
-      color: controller.color,
+      borderColor: controller.borderColor,
+      selectedBorderColor: controller.selectedBorderColor,
       constraints: const BoxConstraints(
         minHeight: 40.0,
         minWidth: 80.0,
@@ -203,15 +203,6 @@ class EnsembleToggleButtonsState extends WidgetState<EnsembleToggleButtons> {
         }
       },
     );
-
-    if (widget.controller.backgroundColor != null) {
-      rtn = Container(
-        decoration: BoxDecoration(
-          color: widget.controller.backgroundColor,
-        ),
-        child: rtn,
-      );
-    }
 
     // add margin if specified
     return widget._controller.margin != null
@@ -277,6 +268,7 @@ class ToggleButtonController extends BoxController {
 
   Color? color;
   Color? selectedColor;
+  Color? selectedBorderColor;
   Color? selectedBackgroundColor;
   bool? enabled;
 
