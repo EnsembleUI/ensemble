@@ -406,7 +406,7 @@ class WalletConnectAction extends EnsembleAction {
 
   factory WalletConnectAction.fromYaml({YamlMap? payload}) {
     if (payload == null ||
-        (payload['wcProjectId'] == null &&
+        (payload['wcProjectId'] == null ||
             payload['appMetaData']?['name'] == null)) {
       throw LanguageError(
           "${ActionType.connectWallet.name} requires wcProjectId, appMetaData. Check if any is missing");
