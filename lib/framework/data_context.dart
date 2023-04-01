@@ -669,18 +669,11 @@ class FileData with Invokable {
   FileData({List<File>? files}) : _files = files;
 
   final List<File>? _files;
-  Response? _response;
-
-  setResponse(Response response) {
-    _response = response;
-  }
 
   @override
   Map<String, Function> getters() {
     return {
       'files': () => _files?.map((file) => file.toJson()).toList(),
-      'body': () => _response?.body,
-      'headers': () => _response?.headers
     };
   }
 
