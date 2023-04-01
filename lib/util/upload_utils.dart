@@ -1,8 +1,10 @@
 import 'dart:async';
-import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/data_context.dart' hide MediaType;
 import 'package:ensemble/util/http_utils.dart';
 import 'package:http/http.dart' as http;
+import 'package:mime/mime.dart';
 import 'package:yaml/yaml.dart';
+import 'package:http_parser/http_parser.dart';
 
 typedef ProgressCallback = void Function(double progress);
 typedef OnDoneCallback = void Function();
@@ -42,13 +44,15 @@ class UploadUtils {
 
     for (var file in files) {
       http.MultipartFile? multipartFile;
-
+      final String mimeType =
+          lookupMimeType(file.path ?? '', headerBytes: file.bytes) ??
+              'application/octet-stream';
       if (file.path != null) {
-        multipartFile =
-            await http.MultipartFile.fromPath(fieldName, file.path!);
+        multipartFile = await http.MultipartFile.fromPath(fieldName, file.path!,
+            filename: file.name, contentType: MediaType.parse(mimeType));
       } else if (file.bytes != null) {
         multipartFile = http.MultipartFile.fromBytes(fieldName, file.bytes!,
-            filename: file.name);
+            filename: file.name, contentType: MediaType.parse(mimeType));
       } else {
         continue;
       }
