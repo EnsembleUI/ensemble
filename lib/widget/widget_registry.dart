@@ -82,7 +82,7 @@ class WidgetRegistry {
         EnsembleSwitch.type: () => EnsembleSwitch(),
         Dropdown.type: () => Dropdown(),
         Button.type: () => Button(),
-        EnsembleToggleButtons.type: () => EnsembleToggleButtons(),
+        EnsembleToggleButton.type: () => EnsembleToggleButton(),
 
         // containers
         FittedRow.type: () => FittedRow(),
