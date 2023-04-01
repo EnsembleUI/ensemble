@@ -759,7 +759,12 @@
             "items": {
               "type": "array",
               "description": "List of values, or Objects with value/label pairs"
+            },
+            "autoComplete": {
+              "type": "boolean",
+              "description": "Enable the Input search suggestion option"
             }
+
           }
         }
       ]
@@ -1052,6 +1057,10 @@
                 {
                   "type": "object",
                   "properties": {
+                    "showSeparator": {
+                      "type": "boolean",
+                      "description": "Show a separator between the items (default is true)."
+                    },
                     "separatorColor": {
                       "$ref": "#/$defs/typeColors",
                       "description": "Set the color for the separator between items"
@@ -1832,6 +1841,28 @@
                       "description": "Error message to show when selected files size is above maxFileSize."
                     }
                   }
+                }
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "copyToClipboard": {
+              "type": "object",
+              "description": "Copy the text to the clipboard",
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "description": "The text to copy to clipboard"
+                },
+                "onSuccess": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute another Action upon successful copy to clipboard"
+                },
+                "onFailure": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action when copy to clipboard fails"
                 }
               }
             }
