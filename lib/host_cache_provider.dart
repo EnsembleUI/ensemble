@@ -26,18 +26,21 @@ class HostCachedEnsembleProvider extends EnsembleDefinitionProvider {
 
   @override
   Future<AppBundle> getAppBundle({bool? bypassCache = false}) async {
-    String? theme;
     // Populate cache from remote if first time or explicitly asked
-    if (bypassCache == true ||
-        appModel.themeMapping == null ||
-        (theme ??= hostCache.getString(appModel.themeMapping!)) == null) {
+    if (bypassCache == true || appModel.contentCache.isEmpty) {
       AppBundle updatedBundle = await appModel.getAppBundle();
       _syncArtifactsToHostCache();
       return updatedBundle;
     }
     // Fetches any changed values from the host, e.g. in case of studio changes
     await hostCache.reload();
-    return AppBundle(theme: loadYaml(theme!));
+    String? theme;
+    if (appModel.themeMapping != null &&
+        (theme ??= hostCache.getString(appModel.themeMapping!)) != null) {
+      return AppBundle(theme: loadYaml(theme!));
+    } else {
+      return AppBundle();
+    }
   }
 
   @override
