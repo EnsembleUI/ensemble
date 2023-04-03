@@ -2019,10 +2019,7 @@
             "uploadFiles": {
               "type": "object",
               "description": "Allow users to upload files to an API from the camera or file system",
-              "required": [
-                "uploadApi",
-                "files"
-              ],
+              "required": ["uploadApi", "files"],
               "properties": {
                 "id": {
                   "type": "string",
@@ -2061,9 +2058,7 @@
             "pickFiles": {
               "type": "object",
               "description": "Pick files using system picker",
-              "required": [
-                "id"
-              ],
+              "required": ["id"],
               "properties": {
                 "id": {
                   "type": "string",
@@ -2071,21 +2066,21 @@
                 },
                 "allowMultiple": {
                   "type": "boolean",
-                  "description": "Allow users to pick multiple files (default False)"
+                  "description" : "Allow users to pick multiple files (default False)"
                 },
                 "allowCompression": {
                   "type": "boolean",
-                  "description": "It will allow media to apply the default OS compression (default True)"
+                  "description" : "It will allow media to apply the default OS compression (default True)"
                 },
                 "allowedExtensions": {
                   "type": "array",
                   "description": "Allow files with specific extension e.g jpg, png, pdf"
                 },
-                "maxFileSize": {
+                "maxFileSize" : {
                   "type": "integer",
                   "description": "File size that is allowed (default 100 mb), If multiple is allow then sum of all files"
                 },
-                "overMaxFileSizeMessage": {
+                "overMaxFileSizeMessage" : {
                   "type": "string",
                   "description": "Error message to show when selected files size is above maxFileSize."
                 }

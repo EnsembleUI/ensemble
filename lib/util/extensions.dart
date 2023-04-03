@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+extension ByteConversion on int {
+  int get kb => this * 1000;
+  int get mb => this * 1000 * 1000;
+  int get gb => this * 1000 * 1000 * 1000;
+}
+
 extension EnhanceDouble on double {
   double clampToRange(double min, double max) {
     if (this < min) {
