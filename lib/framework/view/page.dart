@@ -559,8 +559,8 @@ class DataScopeWidget extends InheritedWidget {
   final ScopeManager scopeManager;
 
   @override
-  bool updateShouldNotify(covariant InheritedWidget oldWidget) {
-    return false;
+  bool updateShouldNotify(DataScopeWidget oldWidget) {
+    return oldWidget.scopeManager != scopeManager;
   }
 
   /// return the ScopeManager which includes the dataContext
