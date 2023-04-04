@@ -321,12 +321,39 @@ class TimerPayload {
       isGlobal; // if global is marked, only 1 instance is available for the entire app
 }
 
-class FileUploadAction extends EnsembleAction {
-  FileUploadAction({
-    Map<String, dynamic>? inputs,
+class FilePickerAction extends EnsembleAction {
+  FilePickerAction({
+    required this.id,
     this.allowedExtensions,
     this.allowMultiple,
     this.allowCompression,
+    this.onComplete,
+    this.onError,
+  });
+
+  String id;
+  List<String>? allowedExtensions;
+  bool? allowMultiple;
+  bool? allowCompression;
+  EnsembleAction? onComplete;
+  EnsembleAction? onError;
+
+  factory FilePickerAction.fromYaml({YamlMap? payload}) {
+    return FilePickerAction(
+      id: payload?['id'],
+      allowedExtensions:
+          (payload?['allowedExtensions'] as YamlList?)?.cast<String>().toList(),
+      allowMultiple: Utils.optionalBool(payload?['allowMultiple']),
+      allowCompression: Utils.optionalBool(payload?['allowCompression']),
+      onComplete: EnsembleAction.fromYaml(payload?['onComplete']),
+      onError: EnsembleAction.fromYaml(payload?['onError']),
+    );
+  }
+}
+
+class FileUploadAction extends EnsembleAction {
+  FileUploadAction({
+    Map<String, dynamic>? inputs,
     this.id,
     this.onComplete,
     this.onError,
@@ -334,40 +361,37 @@ class FileUploadAction extends EnsembleAction {
     required this.fieldName,
     this.maxFileSize,
     this.overMaxFileSizeMessage,
+    required this.files,
   }) : super(inputs: inputs);
 
-  List<String>? allowedExtensions;
-  bool? allowMultiple;
-  bool? allowCompression;
   String? id;
   EnsembleAction? onComplete;
   EnsembleAction? onError;
   String uploadApi;
   String fieldName;
-  double? maxFileSize;
+  int? maxFileSize;
   String? overMaxFileSizeMessage;
+  String files;
 
   factory FileUploadAction.fromYaml({YamlMap? payload}) {
     if (payload == null || payload['uploadApi'] == null) {
       throw LanguageError(
           "${ActionType.uploadFiles.name} requires 'uploadApi'.");
     }
+    if (payload['files'] == null) {
+      throw LanguageError("${ActionType.uploadFiles.name} requires 'files'.");
+    }
     return FileUploadAction(
       id: Utils.optionalString(payload['id']),
-      allowedExtensions: (payload['options']?['allowedExtensions'] as YamlList?)
-          ?.cast<String>()
-          .toList(),
-      allowMultiple: Utils.optionalBool(payload['options']?['allowMultiple']),
-      allowCompression:
-          Utils.optionalBool(payload['options']?['allowCompression']),
       onComplete: EnsembleAction.fromYaml(payload['onComplete']),
       onError: EnsembleAction.fromYaml(payload['onError']),
       uploadApi: payload['uploadApi'],
       inputs: Utils.getMap(payload['inputs']),
       fieldName: Utils.getString(payload['fieldName'], fallback: 'files'),
-      maxFileSize: Utils.optionalDouble(payload['options']?['maxFileSize']),
+      maxFileSize: Utils.optionalInt(payload['maxFileSize']),
       overMaxFileSizeMessage:
-          Utils.optionalString(payload['options']?['overMaxFileSizeMessage']),
+          Utils.optionalString(payload['overMaxFileSizeMessage']),
+      files: payload['files'],
     );
   }
 }
@@ -381,6 +405,48 @@ class CopyToClipboardAction extends EnsembleAction {
   String? value;
   EnsembleAction? onSuccess;
   EnsembleAction? onFailure;
+}
+
+class WalletConnectAction extends EnsembleAction {
+  WalletConnectAction({
+    this.id,
+    required this.wcProjectId,
+    required this.appName,
+    this.appDescription,
+    this.appUrl,
+    this.appIconUrl,
+    this.onComplete,
+    this.onError,
+  });
+
+  String? id;
+  String wcProjectId;
+  String appName;
+  String? appDescription;
+  String? appUrl;
+  String? appIconUrl;
+  EnsembleAction? onComplete;
+  EnsembleAction? onError;
+
+  factory WalletConnectAction.fromYaml({YamlMap? payload}) {
+    if (payload == null ||
+        (payload['wcProjectId'] == null ||
+            payload['appMetaData']?['name'] == null)) {
+      throw LanguageError(
+          "${ActionType.connectWallet.name} requires wcProjectId, appMetaData. Check if any is missing");
+    }
+    return WalletConnectAction(
+      id: Utils.optionalString(payload['id']),
+      wcProjectId: Utils.getString(payload['wcProjectId'], fallback: ''),
+      appName: Utils.getString(payload['appMetaData']?['name'], fallback: ''),
+      appDescription:
+          Utils.optionalString(payload['appMetaData']?['description']),
+      appUrl: Utils.optionalString(payload['appMetaData']?['url']),
+      appIconUrl: Utils.optionalString(payload['appMetaData']?['iconUrl']),
+      onComplete: EnsembleAction.fromYaml(payload['onComplete']),
+      onError: EnsembleAction.fromYaml(payload['onError']),
+    );
+  }
 }
 
 enum ActionType {
@@ -398,9 +464,9 @@ enum ActionType {
   openCamera,
   uploadFiles,
   navigateBack,
-  copyToClipboard
+  pickFiles,
+  connectWallet,
 }
-
 
 enum ToastType { success, error, warning, info }
 
