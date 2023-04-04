@@ -13,7 +13,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:ensemble/util/extensions.dart';
 
-class Time extends StatefulWidget with Invokable, HasController<TimeController, TimeState> {
+class Time extends StatefulWidget
+    with Invokable, HasController<TimeController, TimeState> {
   static const type = 'Time';
   Time({Key? key}) : super(key: key);
 
@@ -39,12 +40,12 @@ class Time extends StatefulWidget with Invokable, HasController<TimeController, 
   @override
   Map<String, Function> setters() {
     return {
-      'initialValue': (value) => _controller.initialValue = Utils.getTimeOfDay(value),
-      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this)
+      'initialValue': (value) =>
+          _controller.initialValue = Utils.getTimeOfDay(value),
+      'onChange': (definition) => _controller.onChange =
+          EnsembleAction.fromYaml(definition, initiator: this)
     };
   }
-
-
 }
 
 class TimeController extends FormFieldController {
@@ -56,13 +57,13 @@ class TimeController extends FormFieldController {
   TimeOfDay? initialValue;
 
   EnsembleAction? onChange;
-
 }
 
 class TimeState extends FormFieldWidgetState<Time> {
   @override
   Widget buildWidget(BuildContext context) {
     return InputWrapper(
+        type: Time.type,
         controller: widget.controller,
         widget: FormField<DateTime>(
             key: validatorKey,
@@ -88,28 +89,27 @@ class TimeState extends FormFieldWidgetState<Time> {
                         onTap: isEnabled() ? () => _selectTime(context) : null)
                   ]));
             }));
-
   }
-
 
   void _selectTime(BuildContext context) async {
     final picked = await showTimePicker(
-      context: context,
-      initialTime: widget._controller.initialValue ?? const TimeOfDay(hour: 12, minute: 0)
-    );
+        context: context,
+        initialTime: widget._controller.initialValue ??
+            const TimeOfDay(hour: 12, minute: 0));
     if (picked != null) {
-      if (widget._controller.value == null || widget._controller.value!.compareTo(picked) != 0) {
+      if (widget._controller.value == null ||
+          widget._controller.value!.compareTo(picked) != 0) {
         setState(() {
           widget._controller.value = picked;
         });
         if (isEnabled() && widget._controller.onChange != null) {
           ScreenController().executeAction(
-              context, widget._controller.onChange!,event: EnsembleEvent(widget));
+              context, widget._controller.onChange!,
+              event: EnsembleEvent(widget));
         }
       }
     }
   }
-
 
   Widget nowBuildWidget() {
     Widget rtn = Row(
@@ -117,10 +117,8 @@ class TimeState extends FormFieldWidgetState<Time> {
       children: [
         const Icon(Icons.alarm, color: Colors.black54),
         const SizedBox(width: 5),
-        Text(
-          widget._controller.prettyValue(context),
-          style: TextStyle(fontSize: widget._controller.fontSize?.toDouble())
-        )
+        Text(widget._controller.prettyValue(context),
+            style: TextStyle(fontSize: widget._controller.fontSize?.toDouble()))
       ],
     );
     if (!isEnabled()) {
@@ -131,6 +129,4 @@ class TimeState extends FormFieldWidgetState<Time> {
     }
     return rtn;
   }
-
-
 }

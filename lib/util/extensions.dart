@@ -1,6 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+extension ByteConversion on int {
+  int get kb => this * 1000;
+  int get mb => this * 1000 * 1000;
+  int get gb => this * 1000 * 1000 * 1000;
+}
+
+extension EnhanceDouble on double {
+  double clampToRange(double min, double max) {
+    if (this < min) {
+      return min;
+    } else if (this > 2.0) {
+      return 2.0;
+    } else {
+      return this;
+    }
+  }
+}
+
 extension DateOnly on DateTime {
   /// return Date as ISO-8601 i.e. YYYY-MM-DD
   String toIso8601DateString() {

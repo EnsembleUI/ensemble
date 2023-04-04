@@ -1,5 +1,3 @@
-
-
 /// return the Enum based on the input string
 /// usage: MyEnum.values.from('name')
 extension EnsembleEnum<T extends Enum> on Iterable<T> {

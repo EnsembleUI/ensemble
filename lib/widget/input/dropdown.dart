@@ -1,4 +1,3 @@
-
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/action.dart' as framework;
 import 'package:ensemble/framework/event.dart';
@@ -25,11 +24,10 @@ class Dropdown extends SelectOne {
   SelectOneType getType() {
     return SelectOneType.dropdown;
   }
-
 }
 
-
-abstract class SelectOne extends StatefulWidget with Invokable, HasController<SelectOneController, SelectOneState> {
+abstract class SelectOne extends StatefulWidget
+    with Invokable, HasController<SelectOneController, SelectOneState> {
   SelectOne({Key? key}) : super(key: key);
 
   final SelectOneController _controller = SelectOneController();
@@ -45,35 +43,40 @@ abstract class SelectOne extends StatefulWidget with Invokable, HasController<Se
       'value': () => getValue(),
     };
   }
-  void setItemsFromString(dynamic strValues,[dynamic delimiter=',']) {
+
+  void setItemsFromString(dynamic strValues, [dynamic delimiter = ',']) {
     delimiter ??= ',';
-    List<Map<String,String>> values = [];
+    List<Map<String, String>> values = [];
     setItemsFromArray(strValues.split(delimiter));
   }
+
   void setItemsFromArray(dynamic arrValues) {
-    List<Map<String,String>> values = [];
-    for ( String str in arrValues ) {
-      values.add({'label':str,'value':str});
+    List<Map<String, String>> values = [];
+    for (String str in arrValues) {
+      values.add({'label': str, 'value': str});
     }
     updateItems(values);
   }
+
   @override
   Map<String, Function> setters() {
     return {
       'value': (value) => _controller.maybeValue = value,
       'items': (values) => updateItems(values),
-      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this),
+      'onChange': (definition) => _controller.onChange =
+          framework.EnsembleAction.fromYaml(definition, initiator: this),
       'itemsFromString': (dynamic strValues) => setItemsFromString(strValues),
       'itemsFromArray': (dynamic arrValues) => setItemsFromArray(arrValues),
-      'autoComplete': (value) => _controller.autoComplete = Utils.getBool(value, fallback: false),
+      'autoComplete': (value) =>
+          _controller.autoComplete = Utils.getBool(value, fallback: false),
     };
   }
 
   @override
   Map<String, Function> methods() {
     return {
-      'itemsFromString': (dynamic strValues,[dynamic delimiter=',']) {
-        setItemsFromString(strValues,delimiter);
+      'itemsFromString': (dynamic strValues, [dynamic delimiter = ',']) {
+        setItemsFromString(strValues, delimiter);
       }
     };
   }
@@ -128,10 +131,9 @@ abstract class SelectOne extends StatefulWidget with Invokable, HasController<Se
     }
   }
 
-  bool isIconExist(List v)
-  {
+  bool isIconExist(List v) {
     for (var e in v) {
-      if(e['icon'] != null) {
+      if (e['icon'] != null) {
         return true;
       }
     }
@@ -164,12 +166,9 @@ abstract class SelectOne extends StatefulWidget with Invokable, HasController<Se
 
   // to be implemented by subclass
   SelectOneType getType();
-
 }
 
-enum SelectOneType {
-  dropdown
-}
+enum SelectOneType { dropdown }
 
 class SelectOneController extends FormFieldController {
   List<SelectOneItem>? items;
@@ -206,56 +205,57 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
   void onSelectionChanged(dynamic value) {
     widget.onSelectionChanged(value);
     if (widget._controller.onChange != null) {
-      ScreenController().executeAction(context, widget._controller.onChange!,event: EnsembleEvent(widget));
+      ScreenController().executeAction(context, widget._controller.onChange!,
+          event: EnsembleEvent(widget));
     }
   }
-
-
 
   @override
   Widget buildWidget(BuildContext context) {
     Widget rtn;
     if (widget._controller.autoComplete == false) {
-
       // if not overrode, decrease the default theme's vertical contentPadding
       // slightly so the dropdown is the same height as other input widgets
       EdgeInsetsGeometry? adjustedContentPadding;
       if (widget._controller.contentPadding == null) {
-        InputDecorationTheme themeDecoration = Theme.of(context).inputDecorationTheme;
+        InputDecorationTheme themeDecoration =
+            Theme.of(context).inputDecorationTheme;
         if (themeDecoration.contentPadding != null) {
-          adjustedContentPadding = themeDecoration.contentPadding!.subtract(
-              const EdgeInsets.only(top: 2, bottom: 3));
+          adjustedContentPadding = themeDecoration.contentPadding!
+              .subtract(const EdgeInsets.only(top: 2, bottom: 3));
         }
       }
 
       rtn = DropdownButtonFormField<dynamic>(
-        key: validatorKey,
-        validator: (value) {
-          if (widget._controller.required && widget.getValue() == null) {
-            return Utils.translateWithFallback('ensemble.input.required', 'This field is required');
-          }
-          return null;
-        },
-        hint: widget._controller.hintText == null ? null : Text(widget._controller.hintText!),
-        value: widget.getValue(),
-        items: buildItems(widget._controller.items),
-        onChanged: isEnabled() ? (item) => onSelectionChanged(item) : null,
-        focusNode: focusNode,
-        icon: const Icon(Icons.unfold_more, size: 20),
-        decoration: inputDecoration.copyWith(contentPadding: adjustedContentPadding));
-
+          key: validatorKey,
+          validator: (value) {
+            if (widget._controller.required && widget.getValue() == null) {
+              return Utils.translateWithFallback(
+                  'ensemble.input.required', 'This field is required');
+            }
+            return null;
+          },
+          hint: widget._controller.hintText == null
+              ? null
+              : Text(widget._controller.hintText!),
+          value: widget.getValue(),
+          items: buildItems(widget._controller.items),
+          onChanged: isEnabled() ? (item) => onSelectionChanged(item) : null,
+          focusNode: focusNode,
+          icon: const Icon(Icons.unfold_more, size: 20),
+          decoration:
+              inputDecoration.copyWith(contentPadding: adjustedContentPadding));
     } else {
       rtn = LayoutBuilder(
-          builder: (context, constraints) =>
-              RawAutocomplete<SelectOneItem>(
+          builder: (context, constraints) => RawAutocomplete<SelectOneItem>(
                 optionsBuilder: (TextEditingValue textEditingValue) =>
                     buildAutoCompleteOptions(textEditingValue),
                 displayStringForOption: (SelectOneItem option) =>
-                option.label ?? option.value,
+                    option.label ?? option.value,
                 fieldViewBuilder: (BuildContext context,
-                    TextEditingController fieldTextEditingController,
-                    FocusNode fieldFocusNode,
-                    VoidCallback onFieldSubmitted) =>
+                        TextEditingController fieldTextEditingController,
+                        FocusNode fieldFocusNode,
+                        VoidCallback onFieldSubmitted) =>
                     TextField(
                         enabled: isEnabled(),
                         showCursor: true,
@@ -278,7 +278,8 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
                 },
               ));
     }
-    return InputWrapper(widget: rtn, controller: widget._controller);
+    return InputWrapper(
+        type: Dropdown.type, controller: widget._controller, widget: rtn);
   }
 
   // ---------------------- Search From the List if [AUTOCOMPLETE] is true ---------------------------------
@@ -287,23 +288,24 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
     return widget._controller.items!
         .where(
           (SelectOneItem options) => options.label == null
-          ? options.value
-          .toString()
-          .toLowerCase()
-          .startsWith(textEditingValue.text.toLowerCase())
-          : options.label
-          .toString()
-          .toLowerCase()
-          .startsWith(textEditingValue.text.toLowerCase()),
-    ).toList();
+              ? options.value
+                  .toString()
+                  .toLowerCase()
+                  .startsWith(textEditingValue.text.toLowerCase())
+              : options.label
+                  .toString()
+                  .toLowerCase()
+                  .startsWith(textEditingValue.text.toLowerCase()),
+        )
+        .toList();
   }
 
 // ---------------------------------- Build Items ListTile if [AUTOCOMPLETE] is true ---------------------------------
   Widget buildAutoCompleteItems(
-      BoxConstraints constraints,
-      Iterable<SelectOneItem> options,
-      AutocompleteOnSelected<SelectOneItem> onSelected,
-      ) {
+    BoxConstraints constraints,
+    Iterable<SelectOneItem> options,
+    AutocompleteOnSelected<SelectOneItem> onSelected,
+  ) {
     return Align(
         alignment: Alignment.topLeft,
         child: Material(
@@ -316,7 +318,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
               child: ListView.builder(
                 itemCount: options.length,
                 shrinkWrap: true,
-                padding:const EdgeInsets.only(left: 10),
+                padding: const EdgeInsets.only(left: 10),
                 itemBuilder: (BuildContext c, i) {
                   final SelectOneItem option = options.elementAt(i);
                   return GestureDetector(
@@ -324,7 +326,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
                         onSelected(option);
                       },
                       child: ListTile(
-                        contentPadding:const EdgeInsets.all(0),
+                        contentPadding: const EdgeInsets.all(0),
                         title: Row(
                           mainAxisAlignment: MainAxisAlignment.start,
                           crossAxisAlignment: CrossAxisAlignment.end,
@@ -332,20 +334,20 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
                             option.icon != null
                                 ? iconframework.Icon.fromModel(option.icon!)
                                 : SizedBox(
-                              width: widget._controller.gap.toDouble(),
-                            ),
+                                    width: widget._controller.gap.toDouble(),
+                                  ),
                             SizedBox(
                               width: option.icon != null
                                   ? option.isIcon && option.icon!.size == null
-                                  ? paddingifIconSizeNull()
-                                  : option.icon!.size != null
-                                  ? option.icon!.size ==
-                                  widget._controller.gap
-                                  ? 10
-                                  : checkDifference(
-                                  option.icon!.size!)
-                                  : widget._controller.gap.toDouble() +
-                                  10.0
+                                      ? paddingifIconSizeNull()
+                                      : option.icon!.size != null
+                                          ? option.icon!.size ==
+                                                  widget._controller.gap
+                                              ? 10
+                                              : checkDifference(
+                                                  option.icon!.size!)
+                                          : widget._controller.gap.toDouble() +
+                                              10.0
                                   : 10.0,
                             ),
                             Text(
@@ -359,6 +361,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
               )),
         ));
   }
+
 // ---------------------------------- Build Items ListTile if [AUTOCOMPLETE] is false ---------------------------------
   List<DropdownMenuItem<dynamic>>? buildItems(List<SelectOneItem>? items) {
     List<DropdownMenuItem<dynamic>>? results;
@@ -366,50 +369,49 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
       results = [];
       for (SelectOneItem item in items) {
         item.isIcon == true
-            ?
-        results.add(
-          DropdownMenuItem(
-            child: Row(
-              children: [
-                item.icon != null
-                    ? iconframework.Icon.fromModel(item.icon!)
-                    : SizedBox(
-                  width: widget._controller.gap.toDouble(),
+            ? results.add(
+                DropdownMenuItem(
+                  child: Row(
+                    children: [
+                      item.icon != null
+                          ? iconframework.Icon.fromModel(item.icon!)
+                          : SizedBox(
+                              width: widget._controller.gap.toDouble(),
+                            ),
+                      SizedBox(
+                        width: item.icon != null
+                            ? item.isIcon && item.icon!.size == null
+                                ? paddingifIconSizeNull()
+                                : item.icon!.size != null
+                                    ? item.icon!.size == widget._controller.gap
+                                        ? 10
+                                        : checkDifference(item.icon!.size!)
+                                    : widget._controller.gap.toDouble() + 10.0
+                            : 10.0,
+                      ),
+                      Text(
+                        Utils.optionalString(item.label) ?? item.value,
+                      ),
+                    ],
+                  ),
+                  value: item.value,
                 ),
-                SizedBox(
-                  width: item.icon != null
-                      ? item.isIcon && item.icon!.size == null
-                      ? paddingifIconSizeNull()
-                      : item.icon!.size != null
-                      ? item.icon!.size == widget._controller.gap
-                      ? 10
-                      : checkDifference(item.icon!.size!)
-                      : widget._controller.gap.toDouble() + 10.0
-                      : 10.0,
+              )
+            : results.add(
+                DropdownMenuItem(
+                  value: item.value,
+                  child: Text(Utils.optionalString(item.label) ?? item.value),
                 ),
-                Text(
-                  Utils.optionalString(item.label) ?? item.value,
-                ),
-              ],
-            ),
-            value: item.value,
-          ),
-        ) :
-        results.add(
-          DropdownMenuItem(
-            value: item.value,
-            child: Text(Utils.optionalString(item.label) ?? item.value),
-          ),
-        );
+              );
       }
     }
     return results;
   }
+
   double checkDifference(int s) {
     int i = widget._controller.gap - s;
     return (10 + i).toDouble();
   }
-
 
   // -------------- Returns the padding if icon size is not defined in YAML it will give space between [Icons] and [Text] -----------------
   double paddingifIconSizeNull() {
@@ -420,14 +422,12 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
       return (i + 10).toDouble();
     }
   }
-
 }
 
 /// Data Object for a SelectOne's item
 class SelectOneItem {
-  SelectOneItem({
-    required this.value, this.label, this.icon, this.isIcon = false
-  });
+  SelectOneItem(
+      {required this.value, this.label, this.icon, this.isIcon = false});
 
   final dynamic value;
   final String? label;

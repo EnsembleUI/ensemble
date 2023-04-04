@@ -13,7 +13,11 @@ import 'package:flutter/cupertino.dart' as flutter;
 import 'package:flutter/material.dart';
 import 'package:flutter_layout_grid/flutter_layout_grid.dart';
 
-class EnsembleForm extends StatefulWidget with UpdatableContainer, Invokable, HasController<FormController, FormState> {
+class EnsembleForm extends StatefulWidget
+    with
+        UpdatableContainer,
+        Invokable,
+        HasController<FormController, FormState> {
   static const type = 'Form';
   EnsembleForm({Key? key}) : super(key: key);
 
@@ -42,14 +46,20 @@ class EnsembleForm extends StatefulWidget with UpdatableContainer, Invokable, Ha
   @override
   Map<String, Function> setters() {
     return {
-      'onSubmit': (funcDefinition) => _controller.onSubmit = Utils.getAction(funcDefinition, initiator: this),
-      'labelPosition': (value) => handleLabelPosition(Utils.optionalString(value)),
-      'labelOverflow': (value) => _controller.labelOverflow = Utils.optionalString(value),
+      'onSubmit': (funcDefinition) => _controller.onSubmit =
+          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'labelPosition': (value) =>
+          handleLabelPosition(Utils.optionalString(value)),
+      'labelOverflow': (value) =>
+          _controller.labelOverflow = Utils.optionalString(value),
       'enabled': (value) => _controller.enabled = Utils.optionalBool(value),
       'width': (value) => _controller.width = Utils.optionalInt(value),
       'height': (value) => _controller.height = Utils.optionalInt(value),
-      'gap': (value) => _controller.gap = Utils.getInt(value, fallback: FormController._defaultGap),
-      'maxWidth':  (value) => _controller.maxWidth = Utils.optionalInt(value),
+      'gap': (value) => _controller.gap =
+          Utils.getInt(value, fallback: FormController._defaultGap),
+      'maxWidth': (value) => _controller.maxWidth = Utils.optionalInt(value),
+      'labelMaxWidth': (value) =>
+          _controller.labelMaxWidth = Utils.optionalInt(value),
     };
   }
 
@@ -64,13 +74,14 @@ class EnsembleForm extends StatefulWidget with UpdatableContainer, Invokable, Ha
   }
 
   static FormState? of(BuildContext context) {
-    EnsembleFormScope? scope = context.dependOnInheritedWidgetOfExactType<EnsembleFormScope>();
+    EnsembleFormScope? scope =
+        context.dependOnInheritedWidgetOfExactType<EnsembleFormScope>();
     return scope?.formState;
   }
 
   // whether a child Form field should show or hide its label
-  bool get shouldFormFieldShowLabel => _controller.labelPosition == LabelPosition.top;
-
+  bool get shouldFormFieldShowLabel =>
+      _controller.labelPosition == LabelPosition.top;
 }
 
 class FormController extends WidgetController {
@@ -82,6 +93,8 @@ class FormController extends WidgetController {
   String? labelOverflow;
   bool? enabled;
 
+  // labelMaxWidth applicable only to labelPosition=start
+  int? labelMaxWidth;
   int? maxWidth;
 
   int? width;
@@ -90,7 +103,6 @@ class FormController extends WidgetController {
 }
 
 class FormState extends WidgetState<EnsembleForm> {
-
   final _formKey = GlobalKey<flutter.FormState>();
   bool validate() {
     return _formKey.currentState!.validate();
@@ -98,7 +110,8 @@ class FormState extends WidgetState<EnsembleForm> {
 
   @override
   Widget buildWidget(BuildContext context) {
-    if (widget._controller.children == null || widget._controller.children!.isEmpty) {
+    if (widget._controller.children == null ||
+        widget._controller.children!.isEmpty) {
       return const SizedBox.shrink();
     }
 
@@ -110,108 +123,107 @@ class FormState extends WidgetState<EnsembleForm> {
       body = buildColumn(widget._controller.children!);
     }
     Widget rtn = SizedBox(
-      width: widget._controller.width?.toDouble(),
-      height: widget._controller.height?.toDouble(),
-      child: EnsembleFormScope(
-        formState: this,
-        child: Form(
-          key: _formKey,
-          child: body))
-    );
+        width: widget._controller.width?.toDouble(),
+        height: widget._controller.height?.toDouble(),
+        child: EnsembleFormScope(
+            formState: this, child: Form(key: _formKey, child: body)));
 
     if (widget._controller.maxWidth != null) {
       return ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: widget._controller.maxWidth!.toDouble()),
-        child: rtn);
+          constraints:
+              BoxConstraints(maxWidth: widget._controller.maxWidth!.toDouble()),
+          child: rtn);
     }
     return rtn;
-
   }
 
   Widget buildColumn(List<Widget> formItems) {
     List<Widget> items = [];
     for (Widget formItem in formItems) {
-      if (formItem is HasController && formItem.controller is FormFieldController) {
+      if (formItem is HasController &&
+          formItem.controller is FormFieldController) {
         items.add(formItem);
-      } else if (formItem is HasController
-          && formItem.controller is WidgetController
-          && !inExcludedList(formItem.controller as WidgetController)  && (formItem.controller as WidgetController).label != null) {
+      } else if (formItem is HasController &&
+          formItem.controller is WidgetController &&
+          !inExcludedList(formItem.controller as WidgetController) &&
+          (formItem.controller as WidgetController).label != null) {
         // if widget is not a FormField but has a label, wrap it in a FormField
-        items.add(FormField(
-          builder: (FormFieldState field) {
-            return InputDecorator(
+        items.add(FormField(builder: (FormFieldState field) {
+          return InputDecorator(
               decoration: InputDecoration(
                   floatingLabelBehavior: FloatingLabelBehavior.always,
                   border: InputBorder.none,
                   focusedBorder: InputBorder.none,
                   enabledBorder: InputBorder.none,
-                  labelText: widget.shouldFormFieldShowLabel ? (formItem.controller as WidgetController).label : null),
-              child: formItem
-            );
-          }
-        ));
+                  labelText: widget.shouldFormFieldShowLabel
+                      ? (formItem.controller as WidgetController).label
+                      : null),
+              child: formItem);
+        }));
       } else {
         items.add(formItem);
       }
     }
     return Column(
-      crossAxisAlignment: flutter.CrossAxisAlignment.start,
-      children: LayoutUtils.withGap(items, widget._controller.gap));
+        crossAxisAlignment: flutter.CrossAxisAlignment.start,
+        children: LayoutUtils.withGap(items, widget._controller.gap));
   }
 
   Widget buildGrid(List<Widget> formItems) {
     bool hasAtLeastOneLabel = false;
-    List<Widget> children = [];
-    for (int i=0; i<formItems.length; i++) {
+    List<Widget> rows = [];
+    for (int i = 0; i < formItems.length; i++) {
       Widget child = formItems[i];
-      // add the label
+
+      // build the label
+      Widget label;
       if (child is HasController &&
           child.controller is WidgetController &&
-          !inExcludedList(child.controller as WidgetController) &&
-          (child.controller as WidgetController).label != null) {
-        children.add(GridPlacement(child:
-          stretchAndVerticallyAlignLabel(
-              (child.controller as WidgetController).label!,
-              (child.controller as WidgetController).labelHint
-        )));
+          (child.controller as WidgetController).label != null &&
+          !inExcludedList(child.controller as WidgetController)) {
+        label = buildLabel((child.controller as WidgetController).label!,
+            (child.controller as WidgetController).labelHint);
         hasAtLeastOneLabel = true;
       } else {
-        children.add(const GridPlacement(child: SizedBox.shrink()));
+        // empty label needs special treatment to line up with other labels
+        label = widget._controller.labelMaxWidth == null
+            ? const SizedBox.shrink()
+            : SizedBox(width: widget._controller.labelMaxWidth!.toDouble());
       }
-      // add the widget
-      children.add(GridPlacement(child: child));
+
+      // add the input field and its label
+      rows.add(Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+        // make the label takes 1/3 of the available space, subjected to its labelMaxWidth
+        widget._controller.labelMaxWidth == null
+            ? Expanded(flex: 1, child: label)
+            : Flexible(
+                flex: 1,
+                child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                        // constraint the label to the labelMaxWidth
+                        minWidth: widget._controller.labelMaxWidth!.toDouble(),
+                        maxWidth: widget._controller.labelMaxWidth!.toDouble()),
+                    child: label)),
+        // small gap after the label
+        const SizedBox(width: 5),
+        // make the widget takes 2/3 of the available space
+        Expanded(flex: 2, child: child)
+      ]));
 
       // add gap
-      if (widget._controller.gap > 0 && i != formItems.length -1) {
-        for (int j=0; j<2; j++) {
-          children.add(GridPlacement(child:
-            flutter.SizedBox(
-              width: widget._controller.gap.toDouble(),
-              height: widget._controller.gap.toDouble())));
-        }
+      if (widget._controller.gap > 0 && i != formItems.length - 1) {
+        rows.add(flutter.SizedBox(
+            width: widget._controller.gap.toDouble(),
+            height: widget._controller.gap.toDouble()));
       }
     }
 
-    // we only use the Grid if there exists at least 1 label
-    if (hasAtLeastOneLabel) {
-      // account for gaps
-      int rowCount = formItems.length;
-      if (widget._controller.gap > 0 && rowCount > 0) {
-        rowCount = formItems.length * 2 -1;
-      }
-
-      return LayoutGrid(
-        columnSizes: [1.fr, 2.fr], // ratio of form fields to its label
-        rowSizes: List.filled(rowCount, auto), // automatic row height
-        children: children
-      );
-    }
-    return buildColumn(formItems);
-
+    return hasAtLeastOneLabel ? Column(children: rows) : buildColumn(formItems);
   }
 
-  Widget stretchAndVerticallyAlignLabel(String label, String? labelHint) {
-    util.TextOverflow textOverflow = util.TextOverflow.from(widget._controller.labelOverflow);
+  Widget buildLabel(String label, String? labelHint) {
+    util.TextOverflow textOverflow =
+        util.TextOverflow.from(widget._controller.labelOverflow);
 
     Widget labelWidget = Text(
       Utils.translate(label, context),
@@ -219,54 +231,37 @@ class FormState extends WidgetState<EnsembleForm> {
       maxLines: textOverflow.maxLine,
       softWrap: textOverflow.softWrap,
     );
-    // if label has hint, overlay the hint icon to its right, but still
-    // keep the label sizing so all the text properties still work
-    if (labelHint != null) {
-      labelWidget = Stack(
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(right: 20),
-            child: labelWidget
-          ),
-          flutter.Positioned(
-            right: 0,
-            child: Tooltip(
-              triggerMode: TooltipTriggerMode.tap,
-              message: labelHint,
-              preferBelow: true,
-              child: const Icon(Icons.info_outline, size: 18),
-              showDuration: const Duration(seconds: 5),
-            )
-          )
-        ],
-      );
+    if (labelHint == null) {
+      return labelWidget;
     }
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(child: Align(
-          alignment: Alignment.centerLeft,
-          child: labelWidget
-        ))
-      ]
-    );
+    return Stack(children: [
+      Padding(padding: const EdgeInsets.only(right: 20), child: labelWidget),
+      flutter.Positioned(
+          right: 0,
+          // align vertically
+          top: 0,
+          bottom: 0,
+          child: Tooltip(
+            triggerMode: TooltipTriggerMode.tap,
+            message: labelHint,
+            preferBelow: true,
+            child: const Icon(Icons.info_outline, size: 18),
+            showDuration: const Duration(seconds: 5),
+          ))
+    ]);
   }
 
   /// some widgets like Button have `label` attribute that is not meant for Form. Exclude them
   bool inExcludedList(WidgetController widgetController) {
     return widgetController is ButtonController;
   }
-
 }
 
 /// FormScope widget so all Form Fields can traverse to this
 class EnsembleFormScope extends InheritedWidget {
-  const EnsembleFormScope({
-    Key? key,
-    required this.formState,
-    required Widget child
-  }) : super(key: key, child: child);
+  const EnsembleFormScope(
+      {Key? key, required this.formState, required Widget child})
+      : super(key: key, child: child);
 
   final FormState formState;
 
@@ -274,11 +269,10 @@ class EnsembleFormScope extends InheritedWidget {
   bool updateShouldNotify(covariant InheritedWidget oldWidget) {
     return false;
   }
-
 }
 
 enum LabelPosition {
   none,
-  start,  // side by side label
-  top     // label on top of field
+  start, // side by side label
+  top // label on top of field
 }

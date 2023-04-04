@@ -1,0 +1,279 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$ref": "#/definitions/Screen",
+  "definitions": {
+    "Screen": {
+      "type": "object",
+      "properties": {
+        "ViewGroup": {
+          "$ref": "#/definitions/ViewGroup"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ViewGroup": {
+      "type": "object",
+      "properties": {
+        "Column": {
+          "$ref": "#/definitions/Column"
+        },
+        "menu": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "BottomNavBar": {
+                  "$ref": "#/definitions/BottomNavBar"
+                }
+              },
+              "required": [
+                "BottomNavBar"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "SideBar": {
+                  "$ref": "#/definitions/SideBar"
+                }
+              },
+              "required": [
+                "SideBar"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "header": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/definitions/Widgets"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "Column": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "item-template": {
+          "$ref": "#/definitions/ItemTemplate"
+        },
+        "id": {
+          "type": "string"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Widgets"
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "ItemTemplate": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "template": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Widgets"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "required": [
+        "data",
+        "name",
+        "template"
+      ],
+      "additionalProperties": false
+    },
+    "Widgets": {
+      "type": "object",
+      "properties": {
+        "Column": {
+          "$ref": "#/definitions/Column"
+        },
+        "Row": {
+          "$ref": "#/definitions/Row"
+        },
+        "Text": {
+          "$ref": "#/definitions/Text"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Row": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "item-template": {
+          "$ref": "#/definitions/ItemTemplate"
+        },
+        "id": {
+          "type": "string"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Widgets"
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "Text": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "BottomNavBar": {
+      "type": "object",
+      "properties": {
+        "icon": {
+          "type": "string"
+        },
+        "iconLibrary": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "page": {
+          "type": "string"
+        },
+        "selected": {
+          "type": "boolean"
+        },
+        "onTap": {
+          "$ref": "#/definitions/Action"
+        }
+      },
+      "required": [
+        "icon",
+        "label",
+        "page",
+        "selected",
+        "onTap"
+      ],
+      "additionalProperties": false,
+      "description": "Use the bottom navigation bar (default)"
+    },
+    "Action": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "invokeAPIAction": {
+              "$ref": "#/definitions/InvokeAPIAction"
+            }
+          },
+          "required": [
+            "invokeAPIAction"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "executeCodeAction": {
+              "$ref": "#/definitions/ExecuteCodeAction"
+            }
+          },
+          "required": [
+            "executeCodeAction"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "InvokeAPIAction": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "inputs": {
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "ExecuteCodeAction": {
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "string"
+        },
+        "onComplete": {
+          "$ref": "#/definitions/Action"
+        }
+      },
+      "required": [
+        "body"
+      ],
+      "additionalProperties": false
+    },
+    "SideBar": {
+      "type": "object",
+      "properties": {
+        "icon": {
+          "type": "string"
+        },
+        "iconLibrary": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "page": {
+          "type": "string"
+        },
+        "selected": {
+          "type": "boolean"
+        },
+        "onTap": {
+          "$ref": "#/definitions/Action"
+        }
+      },
+      "required": [
+        "icon",
+        "label",
+        "page",
+        "selected",
+        "onTap"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

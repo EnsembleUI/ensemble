@@ -57,7 +57,7 @@ class GridView extends StatefulWidget
       'itemAspectRatio': (value) =>
           _controller.itemAspectRatio = Utils.optionalDouble(value, min: 0),
       'onItemTap': (funcDefinition) => _controller.onItemTap =
-          Utils.getAction(funcDefinition, initiator: this),
+          EnsembleAction.fromYaml(funcDefinition, initiator: this),
     };
   }
 
@@ -65,7 +65,6 @@ class GridView extends StatefulWidget
   void initChildren({List<Widget>? children, ItemTemplate? itemTemplate}) {
     _controller.itemTemplate = itemTemplate;
   }
-
 }
 
 class GridViewController extends BoxController {
@@ -106,15 +105,12 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (widget._controller.itemTemplate != null) {
-      registerItemTemplate(
-          context,
-          widget._controller.itemTemplate!,
-          evaluateInitialValue: true,
-          onDataChanged: (List dataList) {
-            setState(() {
-              _items = dataList;
-            });
-          });
+      registerItemTemplate(context, widget._controller.itemTemplate!,
+          evaluateInitialValue: true, onDataChanged: (List dataList) {
+        setState(() {
+          _items = dataList;
+        });
+      });
     }
   }
 
@@ -133,8 +129,7 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
       } else {
         return 1;
       }
-    }
-    else {
+    } else {
       // only 1 number specified -> same number for all screen sizes
       if (tileCount.length == 1) {
         return tileCount[0];
@@ -184,31 +179,25 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
         boxController: widget._controller,
         // we handle padding in the GridView so the scrollbar doesn't overlap content
         ignoresPadding: true,
-        widget: LayoutBuilder(builder: (context, constraints) =>
-            flutter.GridView.builder(
+        widget: LayoutBuilder(
+            builder: (context, constraints) => flutter.GridView.builder(
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: _getTileCount(constraints),
-                  crossAxisSpacing: widget._controller.horizontalGap
-                      ?.toDouble() ?? gap,
-                  mainAxisSpacing: widget._controller.verticalGap?.toDouble() ??
-                      gap,
+                  crossAxisSpacing:
+                      widget._controller.horizontalGap?.toDouble() ?? gap,
+                  mainAxisSpacing:
+                      widget._controller.verticalGap?.toDouble() ?? gap,
 
                   // itemHeight take precedent, then itemAspectRatio
                   mainAxisExtent: widget._controller.itemHeight?.toDouble(),
-                  childAspectRatio: widget._controller.itemAspectRatio
-                      ?.toDouble() ?? 1.0,
-
+                  childAspectRatio:
+                      widget._controller.itemAspectRatio?.toDouble() ?? 1.0,
                 ),
                 itemCount: _items.length,
                 scrollDirection: Axis.vertical,
                 cacheExtent: cachedPixels,
                 padding: widget._controller.padding,
-                itemBuilder: (context, index) =>
-                    buildWidgetForIndex(
-                        context, _items, widget._controller.itemTemplate!,
-                        index)))
-    );
+                itemBuilder: (context, index) => buildWidgetForIndex(context,
+                    _items, widget._controller.itemTemplate!, index))));
   }
-
-
 }
