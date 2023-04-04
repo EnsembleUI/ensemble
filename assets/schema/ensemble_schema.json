@@ -940,36 +940,56 @@
           "$ref": "#/$defs/Action-payload",
           "description": "Call Ensemble's built-in functions or execute code when the input changes. Note for free-form text input, this event only dispatches if the text changes AND the focus is lost (e.g. clicking on button)"
         },
-        "allOf": [
-          {
-            "$ref": "#/$defs/baseStyles"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "color": {
-                "$ref": "#/$defs/typeColors",
-                "description": "Set the color for the toggle button label starting with '0xFF' for full opacity"
-              },
-              "selectedColor": {
-                "$ref": "#/$defs/typeColors",
-                "description": "Set the color for the selected toggle button label"
-              },
-              "selectedBackgroundColor": {
-                "$ref": "#/$defs/typeColors",
-                "description": "Set the background color for the selected toggle button"
-              },
-              "borderColor": {
-                "$ref": "#/$defs/typeColors",
-                "description": "Set the border color for the toggle button, starting with '0xFF' for full opacity"
-              },
-              "selectedBorderColor": {
-                "$ref": "#/$defs/typeColors",
-                "description": "Set the border color for the selected toggle button, starting with '0xFF' for full opacity"
+        "styles": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "spacing": {
+                  "type": "integer",
+                  "description": "Space between the toggle buttons item",
+                  "minimum": 0
+                },
+                "runSpacing": {
+                  "type": "integer",
+                  "description": "Space between the toggle buttons row",
+                  "minimum": 0
+                },
+                "color": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Set the color for the toggle button label starting with '0xFF' for full opacity"
+                },
+                "selectedColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Set the color for the selected toggle button label"
+                },
+                "backgroundColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Set the background color for the toggle button"
+                },
+                "selectedBackgroundColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Set the background color for the selected toggle button"
+                },
+                "borderColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Set the border color for the toggle button, starting with '0xFF' for full opacity"
+                },
+                "selectedBorderColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Set the border color for the selected toggle button, starting with '0xFF' for full opacity"
+                },
+                "shadowColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Set the shadow color for the toggle button"
+                }
               }
             }
-          }
-        ]
+          ]
+        }
       }
     },
     "Form-payload": {
@@ -2019,7 +2039,10 @@
             "uploadFiles": {
               "type": "object",
               "description": "Allow users to upload files to an API from the camera or file system",
-              "required": ["uploadApi", "files"],
+              "required": [
+                "uploadApi",
+                "files"
+              ],
               "properties": {
                 "id": {
                   "type": "string",
@@ -2058,7 +2081,9 @@
             "pickFiles": {
               "type": "object",
               "description": "Pick files using system picker",
-              "required": ["id"],
+              "required": [
+                "id"
+              ],
               "properties": {
                 "id": {
                   "type": "string",
@@ -2066,21 +2091,21 @@
                 },
                 "allowMultiple": {
                   "type": "boolean",
-                  "description" : "Allow users to pick multiple files (default False)"
+                  "description": "Allow users to pick multiple files (default False)"
                 },
                 "allowCompression": {
                   "type": "boolean",
-                  "description" : "It will allow media to apply the default OS compression (default True)"
+                  "description": "It will allow media to apply the default OS compression (default True)"
                 },
                 "allowedExtensions": {
                   "type": "array",
                   "description": "Allow files with specific extension e.g jpg, png, pdf"
                 },
-                "maxFileSize" : {
+                "maxFileSize": {
                   "type": "integer",
                   "description": "File size that is allowed (default 100 mb), If multiple is allow then sum of all files"
                 },
-                "overMaxFileSizeMessage" : {
+                "overMaxFileSizeMessage": {
                   "type": "string",
                   "description": "Error message to show when selected files size is above maxFileSize."
                 }
