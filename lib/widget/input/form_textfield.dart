@@ -239,8 +239,11 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
         widget._controller.obscureToggle == true) {
       decoration = decoration.copyWith(
           suffixIcon: IconButton(
-        icon: Icon(currentlyObscured ? Icons.visibility : Icons.visibility_off,
-            size: ThemeManager().getInputIconSize(context).toDouble()),
+        icon: Icon(
+          currentlyObscured ? Icons.visibility : Icons.visibility_off,
+          size: ThemeManager().getInputIconSize(context).toDouble(),
+          color: ThemeManager().getInputIconColor(context),
+        ),
         onPressed: () {
           setState(() {
             currentlyObscured = !currentlyObscured;

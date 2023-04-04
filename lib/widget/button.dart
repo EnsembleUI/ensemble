@@ -122,12 +122,12 @@ class ButtonState extends WidgetState<Button> {
 
     Widget? rtn;
     if (isOutlineButton) {
-      rtn = TextButton(
+      rtn = OutlinedButton(
           onPressed: isEnabled() ? () => onPressed(context) : null,
           style: getButtonStyle(context, isOutlineButton),
           child: labelLayout);
     } else {
-      rtn = ElevatedButton(
+      rtn = FilledButton(
           onPressed: isEnabled() ? () => onPressed(context) : null,
           style: getButtonStyle(context, isOutlineButton),
           child: labelLayout);
