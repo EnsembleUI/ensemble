@@ -44,9 +44,7 @@ class Camera extends StatefulWidget
 
   @override
   Map<String, Function> getters() {
-    return {
-      'mediaList': () => _controller.mediaList.map((e) => e.toJson()).toList()
-    };
+    return {'files': () => _controller.files.map((e) => e.toJson()).toList()};
   }
 
   @override
@@ -130,7 +128,7 @@ class MyCameraController extends WidgetController {
   IconModel? focusIcon;
   EnsembleAction? onComplete;
 
-  List<File> mediaList = [];
+  List<File> files = [];
 
   void initCameraOption(String? data) {
     if (data == null) return;
@@ -375,7 +373,7 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
               });
             }
           } else {
-            Navigator.pop(context, widget._controller.mediaList);
+            Navigator.pop(context, widget._controller.files);
           }
           return false;
         },
@@ -412,23 +410,23 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (widget._controller.mediaList.isNotEmpty)
+                if (widget._controller.files.isNotEmpty)
                   nextButton(
                     buttontitle: widget._controller.preview
                         ? buttonLabel('Next')
                         : buttonLabel('Done'),
-                    imagelength: widget._controller.mediaList.length.toString(),
+                    imagelength: widget._controller.files.length.toString(),
                     onTap: () {
                       if (widget._controller.preview) {
                         if (widget._controller.cameraController != null) {
                           widget._controller.cameraController!.pausePreview();
                         }
                         setState(() {
-                          currentIndex = widget._controller.mediaList.length;
+                          currentIndex = widget._controller.files.length;
                           showPreviewPage = true;
                         });
                       } else {
-                        Navigator.pop(context, widget._controller.mediaList);
+                        Navigator.pop(context, widget._controller.files);
                       }
                     },
                   ),
@@ -526,14 +524,14 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
           children: [
             PageView.builder(
               controller: previewPageController,
-              itemCount: widget._controller.mediaList.length,
+              itemCount: widget._controller.files.length,
               onPageChanged: (index) {
                 setState(() {
                   currentIndex = index;
                 });
               },
               itemBuilder: (BuildContext context, int index) {
-                final file = widget._controller.mediaList.elementAt(index);
+                final file = widget._controller.files.elementAt(index);
 
                 return kIsWeb
                     ? DisplayMediaWeb(file: file)
@@ -572,7 +570,7 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
                               context, widget._controller.onComplete!,
                               event: EnsembleEvent(widget));
                         }
-                        Navigator.pop(context, widget._controller.mediaList);
+                        Navigator.pop(context, widget._controller.files);
                       },
                       child: Container(
                         decoration: BoxDecoration(
@@ -634,9 +632,9 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         physics: const AlwaysScrollableScrollPhysics(),
-        itemCount: widget._controller.mediaList.length,
+        itemCount: widget._controller.files.length,
         itemBuilder: (context, index) {
-          final file = widget._controller.mediaList.elementAt(index);
+          final file = widget._controller.files.elementAt(index);
           return Padding(
             padding: const EdgeInsets.all(5.0),
             child: GestureDetector(
@@ -752,7 +750,7 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
                 InkWell(
                   onTap: () async {
                     if (widget._controller.maxCount != null &&
-                        (widget._controller.mediaList.length + 1) >
+                        (widget._controller.files.length + 1) >
                             widget._controller.maxCount!) {
                       final errorMessage = widget._controller.maxCountMessage ??
                           Utils.translateWithFallback(
@@ -773,7 +771,7 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
                       if (isRecording) {
                         File? rawVideo = await stopVideoRecording();
                         if (rawVideo == null) return;
-                        widget._controller.mediaList.insert(0, rawVideo);
+                        widget._controller.files.insert(0, rawVideo);
                       } else {
                         await startVideoRecording();
                       }
@@ -781,7 +779,7 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
                       File? rawImage = await takePicture();
                       if (rawImage == null) return;
 
-                      widget._controller.mediaList.insert(0, rawImage);
+                      widget._controller.files.insert(0, rawImage);
                       setState(() {});
                     }
                   },
@@ -921,8 +919,8 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
             backgroundColor: Colors.white.withOpacity(0.1),
             onPressed: () {
               widget._controller.cameraController?.pausePreview();
-              widget._controller.mediaList.clear();
-              Navigator.pop(context, widget._controller.mediaList);
+              widget._controller.files.clear();
+              Navigator.pop(context, widget._controller.files);
             },
           ),
           isRecording ? timerWidget(seconds) : const SizedBox(),
@@ -1034,8 +1032,7 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
     if (selectImage.isEmpty) return;
 
     if (widget._controller.maxCount != null) {
-      final totalLength =
-          widget._controller.mediaList.length + selectImage.length;
+      final totalLength = widget._controller.files.length + selectImage.length;
       if (totalLength > widget._controller.maxCount!) {
         final errorMessage = widget._controller.maxCountMessage ??
             Utils.translateWithFallback('ensemble.input.maxCountMessage',
@@ -1059,13 +1056,13 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
       final fileSize = await element.length();
       File file = File(element.name, element.path.split('.').last, fileSize,
           element.path, bytes);
-      widget._controller.mediaList.insert(0, file);
+      widget._controller.files.insert(0, file);
     }
     setState(() {});
   }
 
   void deleteImages() {
-    final mediaList = widget._controller.mediaList;
+    final mediaList = widget._controller.files;
     if (currentIndex >= mediaList.length) currentIndex--;
     mediaList.removeAt(currentIndex);
     final newLength = mediaList.length;
