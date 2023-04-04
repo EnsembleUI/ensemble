@@ -2,6 +2,7 @@
 
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/layout/form.dart' as ensemble;
 import 'package:ensemble/widget/input/form_helper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
@@ -115,16 +116,16 @@ class InputWrapper extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (controller.label != null)
+              if (shouldShowLabel(context) && controller.label != null)
                 Container(
                   margin: const EdgeInsets.only(bottom: 8.0),
                   child: Text(
                     controller.label!,
-                    style: Theme.of(context).inputDecorationTheme.labelStyle,
+                    style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ),
               widget,
-              if (controller.description != null)
+              if (shouldShowLabel(context) && controller.description != null)
                 Container(
                   margin: const EdgeInsets.only(top: 12.0),
                   child: Text(controller.description!),
@@ -138,7 +139,7 @@ class InputWrapper extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (controller.label != null)
+                if (shouldShowLabel(context) && controller.label != null)
                   Container(
                     margin: const EdgeInsets.only(bottom: 8.0),
                     child: Text(
@@ -147,7 +148,7 @@ class InputWrapper extends StatelessWidget {
                     ),
                   ),
                 widget,
-                if (controller.description != null)
+                if (shouldShowLabel(context) && controller.description != null)
                   Container(
                     margin: const EdgeInsets.only(top: 12.0),
                     child: Text(controller.description!),
@@ -178,6 +179,14 @@ class InputWrapper extends StatelessWidget {
       });
     }
     return rtn;
+  }
+
+  bool shouldShowLabel(BuildContext context) {
+    ensemble.FormState? formState = ensemble.EnsembleForm.of(context);
+    if (formState != null) {
+      return formState.widget.shouldFormFieldShowLabel;
+    }
+    return true;
   }
 }
 
