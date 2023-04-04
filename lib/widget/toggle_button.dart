@@ -78,7 +78,6 @@ class EnsembleToggleButton extends StatefulWidget
   void updateItems(dynamic values) {
     List<SelectOneItem> entries = [];
     if (values is List) {
-      calculateIconSize(values);
       for (var element in values) {
         // must be of value/label pair. Maybe let user overrides later
         if (element is Map) {
@@ -114,26 +113,6 @@ class EnsembleToggleButton extends StatefulWidget
       }
     }
     return false;
-  }
-
-  void calculateIconSize(List v) {
-    List iconSize = [];
-    _controller.gap = 0;
-    for (var e in v) {
-      if (e is Map) {
-        if (e['icon'] != null) {
-          if (e['icon']['size'] != null) {
-            iconSize.add(e['icon']['size']);
-          }
-        }
-      }
-    }
-    if (iconSize.isNotEmpty) {
-      _controller.gap =
-          iconSize.reduce((curr, next) => curr > next ? curr : next);
-    } else {
-      _controller.gap = 0;
-    }
   }
 
   void onSelectionChanged(dynamic value) {
