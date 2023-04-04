@@ -78,6 +78,7 @@ dependencies:
   sensors_plus: ^2.0.2
   mime: ^1.0.4
   flutter_cache_manager: ^3.3.0
+  walletconnect_dart: ^0.0.11
   http_parser: ^4.0.2
 
 dev_dependencies:
