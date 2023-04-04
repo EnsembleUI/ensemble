@@ -8,7 +8,6 @@ import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import '../layout/box/base_box_layout.dart';
 import '../layout/form.dart';
 import 'input/dropdown.dart';
 
@@ -39,14 +38,20 @@ class EnsembleToggleButton extends StatefulWidget
     return {
       'value': (value) => _controller.maybeValue = value,
       'items': (values) => updateItems(values),
+      'spacing': (value) => _controller.spacing = Utils.optionalInt(value),
+      'runSpacing': (value) =>
+          _controller.runSpacing = Utils.optionalInt(value),
       'color': (value) => _controller.color = Utils.getColor(value),
       'selectedColor': (value) =>
           _controller.selectedColor = Utils.getColor(value),
+      'backgroundColor': (value) =>
+          _controller.backgroundColor = Utils.getColor(value),
       'selectedBackgroundColor': (value) =>
           _controller.selectedBackgroundColor = Utils.getColor(value),
       'borderColor': (value) => _controller.borderColor = Utils.getColor(value),
       'selectedBorderColor': (value) =>
           _controller.selectedBorderColor = Utils.getColor(value),
+      'shadowColor': (value) => _controller.shadowColor = Utils.getColor(value),
       'onChange': (definition) => _controller.onChange =
           framework.EnsembleAction.fromYaml(definition, initiator: this),
     };
@@ -134,6 +139,7 @@ class EnsembleToggleButtonState extends WidgetState<EnsembleToggleButton> {
       final value = widget.getValue();
       final valueIndex = widget.controller.items
           ?.indexWhere((element) => element.value == value);
+
       widget.controller.items!.asMap().forEach((index, value) {
         _items!.add(
           ToggleItem(
@@ -156,13 +162,17 @@ class EnsembleToggleButtonState extends WidgetState<EnsembleToggleButton> {
 
     final controller = widget.controller;
 
-    Widget? rtn = ToggleButtons(
-      borderRadius: const BorderRadius.all(Radius.circular(8)),
+    Widget? rtn = _CustomToggleButtons(
+      borderRadius: 8,
       color: controller.color,
       selectedColor: controller.selectedColor,
       fillColor: controller.selectedBackgroundColor,
+      unselectedFillColor: controller.backgroundColor,
+      shadowColor: controller.shadowColor,
       borderColor: controller.borderColor,
       selectedBorderColor: controller.selectedBorderColor,
+      spacing: widget.controller.spacing?.toDouble() ?? 0,
+      runSpacing: widget.controller.runSpacing?.toDouble() ?? 0,
       constraints: const BoxConstraints(
         minHeight: 40.0,
         minWidth: 80.0,
@@ -192,20 +202,13 @@ class EnsembleToggleButtonState extends WidgetState<EnsembleToggleButton> {
   Widget _buildWidget(ToggleItem item) {
     String title = item.label ?? item.value;
     Widget child = Row(
+      mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         if (item.icon != null) iconframework.Icon.fromModel(item.icon!),
         Text(title),
       ],
     );
-    if (widget.controller.gap != null) {
-      child = Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: widget.controller.gap!.toDouble(),
-        ),
-        child: child,
-      );
-    }
     return child;
   }
 
@@ -255,18 +258,10 @@ class ToggleButtonController extends BoxController {
   // Since user can set items/value in any order and at anytime, the value may
   // not be one of the items, hence it could be in an incorrect state
   dynamic maybeValue;
-  int? gap;
+  int? spacing;
+  int? runSpacing;
 
   framework.EnsembleAction? onChange;
-
-  @override
-  Map<String, Function> getBaseSetters() {
-    Map<String, Function> setters = super.getBaseSetters();
-    setters.addAll({
-      'gap': (value) => gap = Utils.optionalInt(value),
-    });
-    return setters;
-  }
 }
 
 class ToggleItem extends SelectOneItem {
@@ -279,4 +274,194 @@ class ToggleItem extends SelectOneItem {
   });
 
   bool isSelected;
+}
+
+class _CustomToggleButtons extends StatelessWidget {
+  const _CustomToggleButtons({
+    Key? key,
+    required this.children,
+    required this.isSelected,
+    this.onPressed,
+    this.constraints,
+    this.color,
+    this.selectedColor,
+    this.fillColor,
+    this.unselectedFillColor,
+    this.shadowColor,
+    this.borderColor,
+    this.selectedBorderColor,
+    this.borderRadius,
+    this.spacing = 0,
+    this.runSpacing = 0,
+  })  : assert(children.length == isSelected.length),
+        super(key: key);
+
+  final List<Widget> children;
+  final List<bool> isSelected;
+  final void Function(int index)? onPressed;
+  final BoxConstraints? constraints;
+  final Color? color;
+  final Color? selectedColor;
+  final Color? fillColor;
+  final Color? unselectedFillColor;
+  final Color? shadowColor;
+  final Color? borderColor;
+  final Color? selectedBorderColor;
+  final double? borderRadius;
+  final double spacing;
+  final double runSpacing;
+
+  Border _getBorder(index) {
+    Color? _borderColor = borderColor;
+    if (isSelected[index]) {
+      _borderColor = selectedBorderColor;
+    }
+
+    return Border.all(color: _borderColor ?? Colors.transparent);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: spacing,
+      runSpacing: runSpacing,
+      direction: Axis.horizontal,
+      children: List<Widget>.generate(
+        children.length,
+        (index) {
+          return _CustomToggleButton(
+            child: children[index],
+            onPressed: onPressed == null
+                ? null
+                : () {
+                    onPressed!(index);
+                  },
+            constraints: constraints,
+            isSelected: isSelected[index],
+            color: color,
+            selectedColor: selectedColor,
+            fillColor: fillColor,
+            unselectedFillColor: unselectedFillColor,
+            shadowColor: shadowColor,
+            border: _getBorder(index),
+            borderRadius: borderRadius,
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _CustomToggleButton extends StatelessWidget {
+  const _CustomToggleButton({
+    this.child,
+    this.onPressed,
+    this.constraints = const BoxConstraints(),
+    this.isSelected,
+    this.color,
+    this.selectedColor,
+    this.fillColor,
+    this.unselectedFillColor,
+    this.shadowColor,
+    this.border,
+    this.borderRadius,
+  });
+
+  final Widget? child;
+  final VoidCallback? onPressed;
+  final bool? isSelected;
+
+  final Color? color;
+  final Color? selectedColor;
+  final Color? fillColor;
+  final Color? unselectedFillColor;
+  final Color? shadowColor;
+
+  final BoxConstraints? constraints;
+
+  final double? borderRadius;
+  final BoxBorder? border;
+
+  Color? _getTextColor(context) {
+    if (isSelected!) {
+      if (selectedColor == null) {
+        return Theme.of(context).colorScheme.primary;
+      }
+      return selectedColor;
+    }
+    if (color == null) {
+      return Theme.of(context).colorScheme.onSurface;
+    }
+    return color;
+  }
+
+  Color? _getFillColor(context) {
+    if (isSelected!) {
+      if (fillColor == null) {
+        return Colors.transparent;
+      }
+      return fillColor;
+    }
+    if (unselectedFillColor == null) {
+      return Colors.transparent;
+    }
+    return unselectedFillColor;
+  }
+
+  Color? _getContainerColor(context) {
+    if (fillColor == null) {
+      return Theme.of(context).scaffoldBackgroundColor;
+    }
+    return fillColor;
+  }
+
+  List<BoxShadow>? _getShadow() {
+    if (shadowColor == null) return null;
+    return [
+      BoxShadow(
+        color: shadowColor!,
+        blurRadius: 5.0,
+        spreadRadius: 2.0,
+        offset: const Offset(
+          2.0,
+          4.0,
+        ),
+      )
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _getContainerColor(context),
+        border: border,
+        borderRadius: borderRadius != null
+            ? BorderRadius.circular(borderRadius!)
+            : BorderRadius.circular(0),
+        boxShadow: _getShadow(),
+      ),
+      child: ClipRRect(
+        borderRadius: borderRadius != null
+            ? BorderRadius.all(Radius.circular(borderRadius!))
+            : const BorderRadius.all(Radius.circular(0)),
+        child: RawMaterialButton(
+          textStyle: TextStyle(
+            color: _getTextColor(context),
+          ),
+          constraints: constraints ??
+              const BoxConstraints(
+                minHeight: 40.0,
+                minWidth: 80.0,
+              ),
+          elevation: 0.0,
+          fillColor: _getFillColor(context),
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          padding: const EdgeInsets.all(0),
+          child: child,
+          onPressed: onPressed,
+        ),
+      ),
+    );
+  }
 }
