@@ -14,7 +14,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 
-class AppScroller extends StatefulWidget with Invokable, HasController<AppScrollerController, _AppScrollerState>{
+class AppScroller extends StatefulWidget
+    with Invokable, HasController<AppScrollerController, _AppScrollerState> {
   static const type = 'AppScroller';
   AppScroller({super.key});
 
@@ -33,7 +34,8 @@ class AppScroller extends StatefulWidget with Invokable, HasController<AppScroll
   @override
   Map<String, Function> methods() {
     return {
-      'stretchExpandedHeight': (offset) => _controller.stretchExpandedHeight(offset),
+      'stretchExpandedHeight': (offset) =>
+          _controller.stretchExpandedHeight(offset),
     };
   }
 
@@ -52,11 +54,14 @@ class AppScroller extends StatefulWidget with Invokable, HasController<AppScroll
       'body': (widget) => _controller.body = widget,
 
       // others
-      'headerBackgroundColor': (color) => _controller.headerBackgroundColor = Utils.getColor(color),
-      'onHeaderStretch': (action) => _controller.onHeaderStretch = Utils.getAction(action, initiator: this),
+      'headerBackgroundColor': (color) =>
+          _controller.headerBackgroundColor = Utils.getColor(color),
+      'onHeaderStretch': (action) => _controller.onHeaderStretch =
+          EnsembleAction.fromYaml(action, initiator: this),
 
       // temp
-      'onExpandedHeightReset': (action) => _controller.onExpandedHeightReset = Utils.getAction(action, initiator: this),
+      'onExpandedHeightReset': (action) => _controller.onExpandedHeightReset =
+          EnsembleAction.fromYaml(action, initiator: this),
     };
   }
 }
@@ -64,7 +69,7 @@ class AppScroller extends StatefulWidget with Invokable, HasController<AppScroll
 class AppScrollerController extends WidgetController {
   // styles
   int? fixedHeaderHeight;
-  int? expandedHeight;  // includes the fixedHeaderHeight
+  int? expandedHeight; // includes the fixedHeaderHeight
   int? collapsedHeight; // includes the fixedHeaderHeight
 
   // widgets
@@ -82,7 +87,8 @@ class AppScrollerController extends WidgetController {
   int? _maxExpandedHeight;
   void stretchExpandedHeight(int offset) {
     int newMaxExpandedHeight = Device().screenHeight - offset;
-    if (_maxExpandedHeight == null || _maxExpandedHeight != newMaxExpandedHeight) {
+    if (_maxExpandedHeight == null ||
+        _maxExpandedHeight != newMaxExpandedHeight) {
       // scroll to the top
       if (scrollController != null) {
         scrollController?.jumpTo(0);
@@ -94,11 +100,9 @@ class AppScrollerController extends WidgetController {
       notifyListeners();
     }
   }
-
 }
 
 class _AppScrollerState extends WidgetState<AppScroller> {
-
   @override
   void initState() {
     super.initState();
@@ -107,12 +111,14 @@ class _AppScrollerState extends WidgetState<AppScroller> {
       // if we are at the max expanded height and we scroll backward, reset to the normal expanded height
       if (widget._controller._maxExpandedHeight != null &&
           widget._controller.scrollController!.offset > 50 &&
-          widget._controller.scrollController!.position.userScrollDirection == ScrollDirection.reverse) {
+          widget._controller.scrollController!.position.userScrollDirection ==
+              ScrollDirection.reverse) {
         setState(() {
           widget._controller._maxExpandedHeight = null;
         });
         if (widget._controller.onExpandedHeightReset != null) {
-          ScreenController().executeAction(context, widget._controller.onExpandedHeightReset!);
+          ScreenController().executeAction(
+              context, widget._controller.onExpandedHeightReset!);
         }
       }
     });
@@ -147,12 +153,15 @@ class _AppScrollerState extends WidgetState<AppScroller> {
       // fixed header widget
       title: buildFixedHeader(scopeManager),
       titleSpacing: 0,
-      toolbarHeight: widget._controller.fixedHeaderHeight?.toDouble() ?? kToolbarHeight,
+      toolbarHeight:
+          widget._controller.fixedHeaderHeight?.toDouble() ?? kToolbarHeight,
 
       // flexible header widget
       flexibleSpace: buildFlexibleHeader(scopeManager),
-      expandedHeight: widget._controller._maxExpandedHeight?.toDouble() ?? widget._controller.expandedHeight?.toDouble(),
-      collapsedHeight: widget._controller.collapsedHeight?.toDouble(), // toolbar height + the flexible title height
+      expandedHeight: widget._controller._maxExpandedHeight?.toDouble() ??
+          widget._controller.expandedHeight?.toDouble(),
+      collapsedHeight: widget._controller.collapsedHeight
+          ?.toDouble(), // toolbar height + the flexible title height
       elevation: 0,
 
       // others
@@ -161,14 +170,15 @@ class _AppScrollerState extends WidgetState<AppScroller> {
 
       stretch: widget._controller.onHeaderStretch != null,
       //stretchTriggerOffset: 50,
-      onStretchTrigger: widget._controller.onHeaderStretch == null ? null : () async {
-        // async function so make sure we wait for screen to render
-        SchedulerBinding.instance.addPostFrameCallback((_) {
-          ScreenController().executeAction(context, widget._controller.onHeaderStretch!);
-        });
-
-      },
-
+      onStretchTrigger: widget._controller.onHeaderStretch == null
+          ? null
+          : () async {
+              // async function so make sure we wait for screen to render
+              SchedulerBinding.instance.addPostFrameCallback((_) {
+                ScreenController().executeAction(
+                    context, widget._controller.onHeaderStretch!);
+              });
+            },
 
       //bottom: buildBottomHeader(scopeManager),
     );
@@ -176,7 +186,8 @@ class _AppScrollerState extends WidgetState<AppScroller> {
 
   Widget? buildFixedHeader(ScopeManager scopeManager) {
     if (widget._controller.fixedHeader != null) {
-      return scopeManager.buildWidgetFromDefinition(widget._controller.fixedHeader);
+      return scopeManager
+          .buildWidgetFromDefinition(widget._controller.fixedHeader);
     }
     return null;
   }
@@ -187,12 +198,13 @@ class _AppScrollerState extends WidgetState<AppScroller> {
 
   Widget? buildFlexibleHeader(ScopeManager scopeManager) {
     if (widget._controller.flexibleBackground != null) {
-      backgroundWidget ??= scopeManager.buildWidgetFromDefinition(
-            widget._controller.flexibleBackground);
+      backgroundWidget ??= scopeManager
+          .buildWidgetFromDefinition(widget._controller.flexibleBackground);
     }
     Widget? flexibleHeader;
     if (widget._controller.flexibleHeader != null) {
-      flexibleHeader = scopeManager.buildWidgetFromDefinition(widget._controller.flexibleHeader);
+      flexibleHeader = scopeManager
+          .buildWidgetFromDefinition(widget._controller.flexibleHeader);
     }
 
     return FlexibleSpaceBar(
@@ -208,9 +220,7 @@ class _AppScrollerState extends WidgetState<AppScroller> {
 
   PreferredSizeWidget? buildBottomHeader(ScopeManager scopeManager) {
     return PreferredSize(
-      preferredSize: Size.fromHeight(50),
-      child: Text("blah blah here")
-    );
+        preferredSize: Size.fromHeight(50), child: Text("blah blah here"));
   }
 
   Widget? buildBody(ScopeManager scopeManager) {
@@ -221,12 +231,4 @@ class _AppScrollerState extends WidgetState<AppScroller> {
     }
     return null;
   }
-
-
-
-
-
-
-
-
 }

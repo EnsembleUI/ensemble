@@ -169,8 +169,6 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
     );
 
     // show indicators
-    // bool isCustomIndicator =
-    //     customIndicator != null || selectedCustomIndicator != null;
     if (widget._controller.indicatorType != null &&
         widget._controller.indicatorType != IndicatorType.none) {
       List<Widget> indicators = [];

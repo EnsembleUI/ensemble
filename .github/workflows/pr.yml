@@ -20,6 +20,9 @@ jobs:
       with:
         channel: 'stable'
 
+    - name: Lint
+      run: dart format --output=none --set-exit-if-changed .
+
     - name: Pub Upgrade
       run: flutter pub upgrade
 

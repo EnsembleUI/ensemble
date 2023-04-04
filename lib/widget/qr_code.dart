@@ -1,4 +1,3 @@
-
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
@@ -9,7 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 /// This widget can renders a QR code based on the value passed in
-class QRCode extends StatefulWidget with Invokable, HasController<QRCodeController, QRCodeState> {
+class QRCode extends StatefulWidget
+    with Invokable, HasController<QRCodeController, QRCodeState> {
   static const type = 'QRCode';
   QRCode({Key? key}) : super(key: key);
 
@@ -51,25 +51,23 @@ class QRCodeState extends WidgetState<QRCode> {
 
   @override
   Widget buildWidget(BuildContext context) {
-
-    if (widget._controller.value == null || widget._controller.value!.trim().isEmpty) {
-      return Image.asset(
-        'assets/images/qr_error.png',
-        package: 'ensemble',
-        width: widget._controller.size?.toDouble() ?? defaultSize,
-        semanticLabel: 'Invalid QR Code');
+    if (widget._controller.value == null ||
+        widget._controller.value!.trim().isEmpty) {
+      return Image.asset('assets/images/qr_error.png',
+          package: 'ensemble',
+          width: widget._controller.size?.toDouble() ?? defaultSize,
+          semanticLabel: 'Invalid QR Code');
     }
 
     return BoxWrapper(
-      widget: QrImage(
-          data: widget._controller.value!,
-          size: widget._controller.size?.toDouble() ?? defaultSize,
-          backgroundColor: widget._controller.backgroundColor ?? Colors.transparent,
-          foregroundColor: widget._controller.color
-        ),
-      boxController: widget._controller,
-      ignoresDimension: true   // width/height doesn't apply here
-    );
+        widget: QrImage(
+            data: widget._controller.value!,
+            size: widget._controller.size?.toDouble() ?? defaultSize,
+            backgroundColor:
+                widget._controller.backgroundColor ?? Colors.transparent,
+            foregroundColor: widget._controller.color),
+        boxController: widget._controller,
+        ignoresDimension: true // width/height doesn't apply here
+        );
   }
-
 }

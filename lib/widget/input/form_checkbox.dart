@@ -1,4 +1,3 @@
-
 import 'package:ensemble/framework/action.dart' as framework;
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
@@ -32,8 +31,8 @@ class EnsembleSwitch extends OnOffWidget {
   }
 }
 
-
-abstract class OnOffWidget extends StatefulWidget with Invokable, HasController<OnOffController, OnOffState> {
+abstract class OnOffWidget extends StatefulWidget
+    with Invokable, HasController<OnOffController, OnOffState> {
   OnOffWidget({Key? key}) : super(key: key);
 
   final OnOffController _controller = OnOffController();
@@ -45,22 +44,22 @@ abstract class OnOffWidget extends StatefulWidget with Invokable, HasController<
 
   @override
   Map<String, Function> getters() {
-    return {
-      'value': () => _controller.value
-    };
+    return {'value': () => _controller.value};
   }
 
   @override
   Map<String, Function> setters() {
     return {
-      'value': (value) => _controller.value = Utils.getBool(value, fallback: false),
-      'leadingText': (text) => _controller.leadingText = Utils.optionalString(text),
-      'trailingText': (text) => _controller.trailingText = Utils.optionalString(text),
-
-      'onChange': (definition) => _controller.onChange = Utils.getAction(definition, initiator: this)
+      'value': (value) =>
+          _controller.value = Utils.getBool(value, fallback: false),
+      'leadingText': (text) =>
+          _controller.leadingText = Utils.optionalString(text),
+      'trailingText': (text) =>
+          _controller.trailingText = Utils.optionalString(text),
+      'onChange': (definition) => _controller.onChange =
+          framework.EnsembleAction.fromYaml(definition, initiator: this)
     };
   }
-
 
   @override
   Map<String, Function> methods() {
@@ -74,9 +73,7 @@ abstract class OnOffWidget extends StatefulWidget with Invokable, HasController<
   OnOffType getType();
 }
 
-enum OnOffType {
-  checkbox, toggle
-}
+enum OnOffType { checkbox, toggle }
 
 class OnOffController extends FormFieldController {
   bool value = false;
@@ -87,15 +84,14 @@ class OnOffController extends FormFieldController {
 }
 
 class OnOffState extends FormFieldWidgetState<OnOffWidget> {
-
   void onToggle(bool newValue) {
     widget.onToggle(newValue);
     //validatorKey.currentState!.validate();
 
     if (widget._controller.onChange != null) {
-      ScreenController().executeAction(context, widget._controller.onChange!,event: EnsembleEvent(widget));
+      ScreenController().executeAction(context, widget._controller.onChange!,
+          event: EnsembleEvent(widget));
     }
-
   }
 
   @override
@@ -103,32 +99,26 @@ class OnOffState extends FormFieldWidgetState<OnOffWidget> {
     // add leading/trailing text + the actual widget
     List<Widget> children = [];
     if (widget._controller.leadingText != null) {
-      children.add(
-        Flexible(
+      children.add(Flexible(
           child: Text(
-            widget._controller.leadingText!,
-            style: formFieldTextStyle,
-          )
-        )
-      );
+        widget._controller.leadingText!,
+        style: formFieldTextStyle,
+      )));
     }
-    children.add(widget.getType() == OnOffType.toggle
-        ? aSwitch
-        : aCheckbox
-    );
+    children.add(widget.getType() == OnOffType.toggle ? aSwitch : aCheckbox);
     if (widget._controller.trailingText != null) {
-      children.add(
-        Expanded(
+      children.add(Expanded(
           child: Text(
-            widget._controller.trailingText!,
-            style: formFieldTextStyle,
-          )
-        )
-      );
+        widget._controller.trailingText!,
+        style: formFieldTextStyle,
+      )));
     }
 
     // wraps around FormField to get all the form effects
     return InputWrapper(
+        type: widget.getType() == OnOffType.toggle
+            ? EnsembleSwitch.type
+            : EnsembleCheckbox.type,
         controller: widget._controller,
         widget: FormField<bool>(
             key: validatorKey,
@@ -165,15 +155,14 @@ class OnOffState extends FormFieldWidgetState<OnOffWidget> {
         height: 40,
         child: Checkbox(
             value: widget._controller.value,
-            onChanged: isEnabled() ? (bool? value) => onToggle(value ?? false) : null
-        )
-    );
+            onChanged: isEnabled()
+                ? (bool? value) => onToggle(value ?? false)
+                : null));
   }
+
   Widget get aSwitch {
     return Switch(
-      value: widget._controller.value,
-      onChanged: isEnabled() ? (value) => onToggle(value) : null
-    );
+        value: widget._controller.value,
+        onChanged: isEnabled() ? (value) => onToggle(value) : null);
   }
 }
-
