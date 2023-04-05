@@ -541,6 +541,8 @@ abstract class EnsembleAction {
       return FileUploadAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.openUrl) {
       return OpenUrlAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.connectWallet) {
+      return WalletConnectAction.fromYaml(payload: payload);
     }
     throw LanguageError("Invalid action.",
         recovery: "Make sure to use one of Ensemble-provided actions.");
