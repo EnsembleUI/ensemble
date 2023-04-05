@@ -1,4 +1,3 @@
-
 import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
@@ -23,7 +22,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:yaml/yaml.dart';
 
-class EnsembleMap extends StatefulWidget with Invokable, HasController<MyController, MapState> {
+class EnsembleMap extends StatefulWidget
+    with Invokable, HasController<MyController, MapState> {
   static const type = 'Map';
   EnsembleMap({Key? key}) : super(key: key);
 
@@ -43,10 +43,12 @@ class EnsembleMap extends StatefulWidget with Invokable, HasController<MyControl
       'markers': _controller.updateMarkerTemplate,
       'markerWidth': (width) => _controller.markerWidth = width,
       'markerHeight': (height) => _controller.markerHeight = height,
-      'boundaryPadding': (padding) => _controller.boundaryPadding = Utils.optionalInsets(padding),
-      'selectedMarker': (index) => _controller.updateSelectedMarker(Utils.optionalInt(index)),
-      'onMarkerTap': (action) => _controller.onMarkerTap = Utils.getAction(action, initiator: this),
-
+      'boundaryPadding': (padding) =>
+          _controller.boundaryPadding = Utils.optionalInsets(padding),
+      'selectedMarker': (index) =>
+          _controller.updateSelectedMarker(Utils.optionalInt(index)),
+      'onMarkerTap': (action) => _controller.onMarkerTap =
+          EnsembleAction.fromYaml(action, initiator: this),
     };
   }
 
@@ -60,17 +62,16 @@ class EnsembleMap extends StatefulWidget with Invokable, HasController<MyControl
   @override
   Map<String, Function> methods() {
     return {
-      'fitBoundary': (padding) => _controller.refitBoundary(paddingOverride: Utils.optionalInsets(padding)),
+      'fitBoundary': (padding) => _controller.refitBoundary(
+          paddingOverride: Utils.optionalInsets(padding)),
     };
   }
-
 }
 
 class MyController extends WidgetController with LocationCapability {
   // Map needs to be constrained by the parent, or required a size when inside Flex
   int? height;
   int? width;
-
 
   final MapController _mapController = MapController();
   EdgeInsets? boundaryPadding;
@@ -94,9 +95,8 @@ class MyController extends WidgetController with LocationCapability {
     fitBoundary();
   }
 
-  Position? currentLocation;    // user's location if enabled & given permission
+  Position? currentLocation; // user's location if enabled & given permission
   dynamic customLocationWidget;
-
 
   void updateMarkerTemplate(dynamic markerData) {
     if (markerData is YamlMap) {
@@ -106,19 +106,21 @@ class MyController extends WidgetController with LocationCapability {
       String? lat = markerData['location']?['lat'];
       String? lng = markerData['location']?['lng'];
       dynamic widget = markerData['widget'];
-      if (data != null && name != null && widget != null && lat != null && lng != null) {
+      if (data != null &&
+          name != null &&
+          widget != null &&
+          lat != null &&
+          lng != null) {
         _markerTemplate = MarkerTemplate(
-          data: data,
-          name: name,
-          template: widget,
-          lat: lat,
-          lng: lng,
-          selectedWidget: markerData['selectedWidget'],
-          selectedWidgetOverlay: markerData['selectedWidgetOverlay']
-        );
+            data: data,
+            name: name,
+            template: widget,
+            lat: lat,
+            lng: lng,
+            selectedWidget: markerData['selectedWidget'],
+            selectedWidgetOverlay: markerData['selectedWidgetOverlay']);
       }
     }
-
   }
 
   void updateCurrentLocationStatus(dynamic locationData) {
@@ -138,33 +140,29 @@ class MyController extends WidgetController with LocationCapability {
     notifyListeners();
   }
 
-
   void refitBoundary({EdgeInsets? paddingOverride}) {
     log("refitting boundary");
     fitBoundary(paddingOverride: paddingOverride);
     notifyListeners();
   }
 
-
   /// zoom the map to fit our markers and current location
   void fitBoundary({EdgeInsets? paddingOverride}) {
     _mapController.onReady.then((value) {
       List<LatLng> points = [];
       if (currentLocation != null) {
-        points.add(LatLng(currentLocation!.latitude, currentLocation!.longitude));
+        points
+            .add(LatLng(currentLocation!.latitude, currentLocation!.longitude));
       }
       points.addAll(_markers.map((item) => item.point).toList());
 
       if (points.isNotEmpty) {
         EdgeInsets? padding = paddingOverride ?? boundaryPadding;
-        _mapController.fitBounds(
-            LatLngBounds.fromPoints(points),
-            options: FitBoundsOptions(padding: padding ?? EdgeInsets.zero)
-        );
-      }//170 115
+        _mapController.fitBounds(LatLngBounds.fromPoints(points),
+            options: FitBoundsOptions(padding: padding ?? EdgeInsets.zero));
+      } //170 115
     });
   }
-
 }
 
 class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
@@ -172,7 +170,6 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
   static const double mapboxMaxZoom = 18;
   static const double defaultMarkerWidth = 60;
   static const double defaultMarkerHeight = 30;
-
 
   late final String _mapAccessToken;
   Marker? selectedWidget;
@@ -191,38 +188,39 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
 
     // listen for changes
     if (widget._controller._markerTemplate != null) {
-      registerItemTemplate(
-          context,
-          widget._controller._markerTemplate!,
-          evaluateInitialValue: true,
-          onDataChanged: (List dataList) {
-            setState(() {
-              widget._controller.markers = buildMarkersFromTemplate(dataList);
-            });
-          }
-      );
+      registerItemTemplate(context, widget._controller._markerTemplate!,
+          evaluateInitialValue: true, onDataChanged: (List dataList) {
+        setState(() {
+          widget._controller.markers = buildMarkersFromTemplate(dataList);
+        });
+      });
     }
   }
+
   /// build the markers from our item-template data
   List<Marker> buildMarkersFromTemplate(List dataList) {
-    List<DataScopeWidget>? markerWidgets = buildWidgetsFromTemplate(context, dataList, widget._controller._markerTemplate!);
+    List<DataScopeWidget>? markerWidgets = buildWidgetsFromTemplate(
+        context, dataList, widget._controller._markerTemplate!);
 
     List<Marker> markers = [];
     if (markerWidgets != null && widget._controller._markerTemplate != null) {
-      for (int i=0; i<markerWidgets.length; i++) {
+      for (int i = 0; i < markerWidgets.length; i++) {
         DataScopeWidget markerWidget = markerWidgets[i];
         ScopeManager scopeManager = markerWidget.scopeManager;
 
         // evaluate the lat/lng
-        double? lat = Utils.optionalDouble(scopeManager.dataContext.eval(widget._controller._markerTemplate!.lat));
-        double? lng = Utils.optionalDouble(scopeManager.dataContext.eval(widget._controller._markerTemplate!.lng));
+        double? lat = Utils.optionalDouble(scopeManager.dataContext
+            .eval(widget._controller._markerTemplate!.lat));
+        double? lng = Utils.optionalDouble(scopeManager.dataContext
+            .eval(widget._controller._markerTemplate!.lng));
         if (lat != null && lng != null) {
           LatLng point = LatLng(lat, lng);
           Widget w;
           // if either the selectedWidget or selectedWidgetOverlay is specified,
           // wrap our marker widget to listen for tap events
           if (widget._controller._markerTemplate!.selectedWidget != null ||
-              widget._controller._markerTemplate!.selectedWidgetOverlay != null) {
+              widget._controller._markerTemplate!.selectedWidgetOverlay !=
+                  null) {
             w = InkWell(
               child: markerWidget,
               onTap: () => selectMarker(i, point, markerWidget),
@@ -237,7 +235,6 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
 
           // add the marker
           markers.add(buildMarker(w, point));
-
         }
       }
     }
@@ -248,13 +245,13 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
     return Marker(
         point: point,
         width: widget._controller.markerWidth?.toDouble() ?? defaultMarkerWidth,
-        height: widget._controller.markerHeight?.toDouble() ?? defaultMarkerHeight,
+        height:
+            widget._controller.markerHeight?.toDouble() ?? defaultMarkerHeight,
         builder: (context) => childWidget);
   }
 
-
-
-  void selectMarker(int selectedIndex, LatLng point, DataScopeWidget markerScope) {
+  void selectMarker(
+      int selectedIndex, LatLng point, DataScopeWidget markerScope) {
     bool markerChanges = false;
 
     // Note that selectedWidget and overlayWidget's parent is the map, so we need
@@ -263,7 +260,9 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
 
     // selected widget
     if (widget._controller._markerTemplate!.selectedWidget != null) {
-      Widget childWidget = markerScope.scopeManager.buildWidgetWithScopeFromDefinition(widget._controller._markerTemplate!.selectedWidget);
+      Widget childWidget = markerScope.scopeManager
+          .buildWidgetWithScopeFromDefinition(
+              widget._controller._markerTemplate!.selectedWidget);
       selectedWidget = buildMarker(childWidget, point);
       widget._controller.selectedMarker = selectedIndex;
       markerChanges = true;
@@ -271,21 +270,21 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
 
     // overlay widget
     if (widget._controller._markerTemplate!.selectedWidgetOverlay != null) {
-      overlayWidget = markerScope.scopeManager.buildWidgetWithScopeFromDefinition(widget._controller._markerTemplate!.selectedWidgetOverlay);
+      overlayWidget = markerScope.scopeManager
+          .buildWidgetWithScopeFromDefinition(
+              widget._controller._markerTemplate!.selectedWidgetOverlay);
       markerChanges = true;
     }
 
     if (markerChanges) {
-      setState(() {
-
-      });
+      setState(() {});
     }
 
     // send the event
     if (widget._controller.onMarkerTap != null) {
-      ScreenController().executeAction(context, widget._controller.onMarkerTap!,event: EnsembleEvent(widget));
+      ScreenController().executeAction(context, widget._controller.onMarkerTap!,
+          event: EnsembleEvent(widget));
     }
-
   }
 
   @override
@@ -296,58 +295,54 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
     if (widget._controller.currentLocation != null) {
       Widget? locationWidget;
       if (widget._controller.customLocationWidget != null) {
-        locationWidget = DataScopeWidget.getScope(context)?.buildWidgetFromDefinition(widget._controller.customLocationWidget);
+        locationWidget = DataScopeWidget.getScope(context)
+            ?.buildWidgetFromDefinition(
+                widget._controller.customLocationWidget);
       }
       locationWidget ??= const Icon(Icons.filter_tilt_shift);
 
       items.add(Marker(
-        point: LatLng(widget._controller.currentLocation!.latitude, widget._controller.currentLocation!.longitude),
-        builder: (context) => locationWidget!
-      ));
+          point: LatLng(widget._controller.currentLocation!.latitude,
+              widget._controller.currentLocation!.longitude),
+          builder: (context) => locationWidget!));
     }
 
     Widget map = FlutterMap(
         mapController: widget._controller._mapController,
         options: MapOptions(
             maxZoom: mapboxMaxZoom,
-            interactiveFlags: InteractiveFlag.all - InteractiveFlag.rotate
-        ),
+            interactiveFlags: InteractiveFlag.all - InteractiveFlag.rotate),
         layers: [
           TileLayerOptions(
-            urlTemplate: "https://api.mapbox.com/styles/v1/ensembleui/cla1963q0000e15p00zuejxwu/tiles/512/{z}/{x}/{y}@2x?access_token=$_mapAccessToken",
-            additionalOptions: {
-              "access_token": _mapAccessToken
-            },
+            urlTemplate:
+                "https://api.mapbox.com/styles/v1/ensembleui/cla1963q0000e15p00zuejxwu/tiles/512/{z}/{x}/{y}@2x?access_token=$_mapAccessToken",
+            additionalOptions: {"access_token": _mapAccessToken},
           ),
-          MarkerLayerOptions(
-              markers: items
-          )
-        ]
-    );
+          MarkerLayerOptions(markers: items)
+        ]);
 
     Widget rtn = Stack(
       children: [
         map,
-        overlayWidget != null && widget._controller.selectedMarker != null ?
-        Container(
-            margin: const EdgeInsets.only(bottom: 110, left: 10, right: 10),
-            alignment: Alignment.bottomCenter,
-            child: ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: Device().screenHeight / 2),
-                child: SingleChildScrollView(
-                  child: overlayWidget,
-                )
-            )
-        ) :
-        const SizedBox.shrink()
+        overlayWidget != null && widget._controller.selectedMarker != null
+            ? Container(
+                margin: const EdgeInsets.only(bottom: 110, left: 10, right: 10),
+                alignment: Alignment.bottomCenter,
+                child: ConstrainedBox(
+                    constraints:
+                        BoxConstraints(maxHeight: Device().screenHeight / 2),
+                    child: SingleChildScrollView(
+                      child: overlayWidget,
+                    )))
+            : const SizedBox.shrink()
       ],
     );
 
     if (widget._controller.width != null || widget._controller.height != null) {
       rtn = SizedBox(
-        width: widget._controller.width?.toDouble(),
-        height: widget._controller.height?.toDouble(),
-        child: rtn);
+          width: widget._controller.width?.toDouble(),
+          height: widget._controller.height?.toDouble(),
+          child: rtn);
     }
     return rtn;
   }
@@ -358,7 +353,7 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
     } else {
       List<Marker> rtn = [];
       Marker? selected;
-      for (int i=0; i<widget._controller._markers.length; i++) {
+      for (int i = 0; i < widget._controller._markers.length; i++) {
         // use the selected widget version
         if (i == widget._controller.selectedMarker && selectedWidget != null) {
           selected = selectedWidget!;
@@ -373,8 +368,6 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
       return rtn;
     }
   }
-
-
 
   /*
 
@@ -398,20 +391,19 @@ class MapState extends WidgetState<EnsembleMap> with TemplatedWidgetState {
     );
   }
   */
-
-
 }
 
 class MarkerTemplate extends ItemTemplate {
-  MarkerTemplate({
-    required String data,
-    required String name,
-    required dynamic template,  // this is the marker widget, just piggyback on the name
-    required this.lat,
-    required this.lng,
-    this.selectedWidget,
-    this.selectedWidgetOverlay
-  }) : super(data, name, template);
+  MarkerTemplate(
+      {required String data,
+      required String name,
+      required dynamic
+          template, // this is the marker widget, just piggyback on the name
+      required this.lat,
+      required this.lng,
+      this.selectedWidget,
+      this.selectedWidgetOverlay})
+      : super(data, name, template);
 
   String lat;
   String lng;

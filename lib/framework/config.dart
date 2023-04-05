@@ -7,7 +7,8 @@ class AppConfig with Invokable {
   Map<String, Function> getters() {
     return {
       //'baseUrl': () => Ensemble().getConfig()?.getUserAppConfig()?.baseUrl
-      'baseUrl': () => Ensemble().getConfig()?.definitionProvider.getAppConfig()?.baseUrl
+      'baseUrl': () =>
+          Ensemble().getConfig()?.definitionProvider.getAppConfig()?.baseUrl
     };
   }
 
@@ -20,26 +21,30 @@ class AppConfig with Invokable {
   Map<String, Function> setters() {
     return {};
   }
-
 }
 
 // Environment Configuration
 class EnvConfig with Invokable {
-
   // ignore since we override getProperty
   @override
   Map<String, Function> getters() {
     throw UnimplementedError();
   }
+
   @override
   getProperty(prop) {
     if (prop is String) {
       Map<String, dynamic>? envOverrides = Ensemble().getConfig()?.envOverrides;
-      Map<String, dynamic>? envVariables = Ensemble().getConfig()?.definitionProvider.getAppConfig()?.envVariables;
+      Map<String, dynamic>? envVariables = Ensemble()
+          .getConfig()
+          ?.definitionProvider
+          .getAppConfig()
+          ?.envVariables;
 
       // get environment variables from overrides first (emsemble-config.yaml),
       // then fallback to custom defined ones
-      return resolveEnvVariable(envOverrides, prop) ?? resolveEnvVariable(envVariables, prop);
+      return resolveEnvVariable(envOverrides, prop) ??
+          resolveEnvVariable(envVariables, prop);
     }
     return null;
   }
@@ -62,5 +67,4 @@ class EnvConfig with Invokable {
   Map<String, Function> setters() {
     return {};
   }
-
 }

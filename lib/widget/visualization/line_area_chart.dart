@@ -7,56 +7,61 @@ class LineChartProperties {
   bool asArea = false;
   bool curved = false;
   final double minY, maxY;
-  LineChartProperties(this.minY,this.maxY);
+  LineChartProperties(this.minY, this.maxY);
 }
+
 class EnsembleLineChartController extends Controller {
   String? _title;
   String? get title => _title;
-  set title (String? t) {
+  set title(String? t) {
     _title = t;
-    dispatchChanges(KeyValue('title',_title));
+    dispatchChanges(KeyValue('title', _title));
   }
+
   List<String> _labels = [];
   List<String> get labels => _labels;
-  set labels (List<String> l) {
+  set labels(List<String> l) {
     _labels = l;
-    dispatchChanges(KeyValue('labels',_labels));
+    dispatchChanges(KeyValue('labels', _labels));
   }
+
   List metaData = [];
   bool isDirty = false;
   void setMetaData(List metaData) {
     this.metaData = metaData;
     isDirty = true;
   }
+
   List<LineChartBarData> _data = [];
   List<LineChartBarData> get data {
-    if ( !isDirty ) {
+    if (!isDirty) {
       return _data;
     }
     List<LineChartBarData> chartData = [];
-    for ( Map m in metaData ) {
-      LineChartBarData  lineData;
+    for (Map m in metaData) {
+      LineChartBarData lineData;
       Color? color;
       List<FlSpot> spots = [];
       int colorValue = 0;
       m.forEach((key, value) {
-        if ( key == 'color' ) {
+        if (key == 'color') {
           colorValue = value;
           color = Color(colorValue);
-        } else if ( key == 'data' ) {
-          for ( var i=0;i<(value as List).length;i++ ) {
+        } else if (key == 'data') {
+          for (var i = 0; i < (value as List).length; i++) {
             dynamic metaValue = value[i];
             double val;
-            if ( metaValue is int ) {
+            if (metaValue is int) {
               val = metaValue.toDouble();
-            } else if ( metaValue is String ) {
+            } else if (metaValue is String) {
               val = double.parse(metaValue);
-            } else if ( metaValue is double ) {
+            } else if (metaValue is double) {
               val = metaValue;
             } else {
-              throw Exception("Only double values are allowed for data in linecharts");
+              throw Exception(
+                  "Only double values are allowed for data in linecharts");
             }
-            spots.add(FlSpot(i.toDouble(),val));
+            spots.add(FlSpot(i.toDouble(), val));
           }
         }
       });
@@ -66,44 +71,49 @@ class EnsembleLineChartController extends Controller {
           barWidth: 2,
           isStrokeCapRound: true,
           dotData: FlDotData(show: false),
-          belowBarData: BarAreaData(show: properties.asArea,
+          belowBarData: BarAreaData(
+              show: properties.asArea,
               color: Color(colorValue).withOpacity(0.2)),
-          spots: spots
-      ));
+          spots: spots));
     }
     isDirty = false;
     data = chartData;
     return _data;
   }
-  set data (List<LineChartBarData> l) {
+
+  set data(List<LineChartBarData> l) {
     _data = l;
-    dispatchChanges(KeyValue('data',_data));
+    dispatchChanges(KeyValue('data', _data));
   }
+
   late LineChartProperties _properties;
   LineChartProperties get properties => _properties;
-  set properties (LineChartProperties props) {
+  set properties(LineChartProperties props) {
     _properties = props;
     isDirty = true;
-    dispatchChanges(KeyValue('properties',_properties));
+    dispatchChanges(KeyValue('properties', _properties));
   }
 }
-class EnsembleLineChartState extends BaseWidgetState<EnsembleLineChart> with ChartDefaults {
+
+class EnsembleLineChartState extends BaseWidgetState<EnsembleLineChart>
+    with ChartDefaults {
   final EnsembleLineChartController controller;
   EnsembleLineChartState(this.controller);
   @override
   Widget build(BuildContext context) {
-    if ( controller.labels.isEmpty ) {
+    if (controller.labels.isEmpty) {
       //widget's data has not yet been initialized, we'll skip
       return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: const <Widget>[
-          SizedBox(
-          height: 4,
-          ),Text("Loading..."),
-          SizedBox(
-            height: 4,
-          )
-        ]);
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: const <Widget>[
+            SizedBox(
+              height: 4,
+            ),
+            Text("Loading..."),
+            SizedBox(
+              height: 4,
+            )
+          ]);
     }
     return AspectRatio(
       aspectRatio: 1.30,
@@ -127,8 +137,8 @@ class EnsembleLineChartState extends BaseWidgetState<EnsembleLineChart> with Cha
                 const SizedBox(
                   height: 4,
                 ),
-                 Text(
-                  (controller.title != null)?controller.title!:"",
+                Text(
+                  (controller.title != null) ? controller.title! : "",
                   style: const TextStyle(
                     color: Color(0xff827daa),
                     fontSize: 16,
@@ -148,7 +158,7 @@ class EnsembleLineChartState extends BaseWidgetState<EnsembleLineChart> with Cha
                       borderData: borderData,
                       lineBarsData: controller.data,
                       minX: 0,
-                      maxX: (controller.labels.length-1).toDouble(),
+                      maxX: (controller.labels.length - 1).toDouble(),
                       maxY: controller.properties.maxY,
                       minY: controller.properties.minY,
                     )),
@@ -159,22 +169,22 @@ class EnsembleLineChartState extends BaseWidgetState<EnsembleLineChart> with Cha
                 ),
               ],
             ),
-
           ],
         ),
       ),
     );
   }
-
-
 }
-class EnsembleLineChart extends StatefulWidget with Invokable, HasController<EnsembleLineChartController,EnsembleLineChartState> {
+
+class EnsembleLineChart extends StatefulWidget
+    with
+        Invokable,
+        HasController<EnsembleLineChartController, EnsembleLineChartState> {
   static const type = 'LineChart';
   final EnsembleLineChartController _controller = EnsembleLineChartController();
   EnsembleLineChart({Key? key}) : super(key: key);
   @override
   EnsembleLineChartController get controller => _controller;
-
 
   @override
   EnsembleLineChartState createState() => EnsembleLineChartState(controller);
@@ -192,45 +202,46 @@ class EnsembleLineChart extends StatefulWidget with Invokable, HasController<Ens
   @override
   Map<String, Function> setters() {
     return {
-      "title": (Object t)=>this.controller.title = getString(t),
+      "title": (Object t) => this.controller.title = getString(t),
       "labels": (Object mLabels) {
         List? metaLabels = getList(mLabels);
-        if ( metaLabels == null ) {
+        if (metaLabels == null) {
           throw Exception('LineChart.data must be a list but is not');
         }
         List<String> labels = [];
-        for ( Object node in metaLabels ) {
+        for (Object node in metaLabels) {
           labels.add(getString(node)!);
         }
         controller.labels = labels;
       },
       "properties": (Object mProps) {
         Map? metaProps = getMap(mProps);
-        if ( metaProps == null ) {
-          throw Exception("Properties cannot be set ot null and must be set to a map");
+        if (metaProps == null) {
+          throw Exception(
+              "Properties cannot be set ot null and must be set to a map");
         }
-        if ( metaProps['minY'] == null || metaProps['maxY'] == null ) {
+        if (metaProps['minY'] == null || metaProps['maxY'] == null) {
           throw Exception('both minY and maxY must be specified for lincharts');
         }
-        LineChartProperties props = LineChartProperties(metaProps['minY'].toDouble(),metaProps['maxY'].toDouble());
-        if ( metaProps['asArea'] ) {
+        LineChartProperties props = LineChartProperties(
+            metaProps['minY'].toDouble(), metaProps['maxY'].toDouble());
+        if (metaProps['asArea']) {
           props.asArea = metaProps['asArea'] as bool;
         }
-        if ( metaProps['curved'] ) {
+        if (metaProps['curved']) {
           props.curved = metaProps['curved'] as bool;
         }
         controller.properties = props;
       },
-     "data": (Object data) {
+      "data": (Object data) {
         List? l = getList(data);
-        if ( l == null ) {
+        if (l == null) {
           throw Exception('LineChart.data must be a list but is not');
         }
         controller.setMetaData(l);
-     }
+      }
     };
   }
-
 }
 /*
   LineChartBarData get lineChartBarData1_3 => LineChartBarData(

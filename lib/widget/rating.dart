@@ -6,7 +6,8 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
-class Rating extends StatefulWidget with Invokable, HasController<RatingController, RatingState> {
+class Rating extends StatefulWidget
+    with Invokable, HasController<RatingController, RatingState> {
   static const type = 'Rating';
   Rating({Key? key}) : super(key: key);
 
@@ -36,7 +37,6 @@ class Rating extends StatefulWidget with Invokable, HasController<RatingControll
       'padding': (value) => _controller.padding = Utils.getInsets(value)
     };
   }
-
 }
 
 class RatingController extends WidgetController {
@@ -78,17 +78,14 @@ class RatingState extends WidgetState<Rating> {
                 color: primaryColor,
               ),
             ),
-            itemPadding:
-            EdgeInsets.zero,
-            onRatingUpdate: (rating) {
-            },
+            itemPadding: EdgeInsets.zero,
+            onRatingUpdate: (rating) {},
           ),
           Text(
-            widget._controller.count == 0 ? '' : '${widget._controller.count} Reviews',
-            style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey
-                    .withOpacity(0.8)),
+            widget._controller.count == 0
+                ? ''
+                : '${widget._controller.count} Reviews',
+            style: TextStyle(fontSize: 14, color: Colors.grey.withOpacity(0.8)),
           ),
         ],
       );
@@ -124,6 +121,4 @@ class RatingState extends WidgetState<Rating> {
     }
     return ratingWidget;
   }
-
-
 }

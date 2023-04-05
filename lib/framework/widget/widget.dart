@@ -16,9 +16,6 @@ mixin UpdatableContainer<T extends Widget> {
   void initChildren({List<T>? children, ItemTemplate? itemTemplate});
 }
 
-
-
-
 /// base class for widgets that want to participate in Ensemble layout
 abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
   ScopeManager? _scopeManager;
@@ -56,18 +53,30 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
     super.changeState();
     // dispatch changes, so anything binding to this will be notified
     if (widget.controller.lastSetterProperty != null) {
-      if (_scopeManager != null && widget is Invokable && (widget as Invokable).id != null) {
+      if (_scopeManager != null &&
+          widget is Invokable &&
+          (widget as Invokable).id != null) {
         _scopeManager!.dispatch(ModelChangeEvent(
-            WidgetBindingSource(
-                (widget as Invokable).id!,
-                property: widget.controller.lastSetterProperty!.key
-            ),
-            widget.controller.lastSetterProperty!.value
-        ));
+            WidgetBindingSource((widget as Invokable).id!,
+                property: widget.controller.lastSetterProperty!.key),
+            widget.controller.lastSetterProperty!.value));
       }
       widget.controller.lastSetterProperty = null;
     }
   }
 }
 
+/// some of our widgets use LayoutBuilder to detect if their parent has
+/// infinite width/height to properly respond (Input widgets inside Row
+/// requires expanded=true). However some container (e.g. DataTable) requires
+/// all its children to return the intrinsic width/height to properly render.
+/// We just need to expose the hierarchy chain so we can properly handle
+/// various situations
+class RequiresChildWithIntrinsicDimension extends InheritedWidget {
+  const RequiresChildWithIntrinsicDimension({super.key, required super.child});
 
+  @override
+  bool updateShouldNotify(covariant InheritedWidget oldWidget) {
+    return false;
+  }
+}

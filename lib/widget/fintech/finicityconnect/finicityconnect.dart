@@ -1,4 +1,3 @@
-
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -21,7 +20,11 @@ class FinicityConnectController extends WidgetController {
   int top = 0;
   String position = 'absolute';
 }
-class FinicityConnect extends StatefulWidget with Invokable, HasController<FinicityConnectController, FinicityConnectState> {
+
+class FinicityConnect extends StatefulWidget
+    with
+        Invokable,
+        HasController<FinicityConnectController, FinicityConnectState> {
   static const type = 'FinicityConnect';
   FinicityConnect({Key? key}) : super(key: key);
 
@@ -41,50 +44,63 @@ class FinicityConnect extends StatefulWidget with Invokable, HasController<Finic
 
   @override
   Map<String, Function> methods() {
-    return {
-    };
+    return {};
   }
 
   @override
   Map<String, Function> setters() {
     return {
-      'id': (value) => _controller.id = Utils.getString(value, fallback: _controller.id!),
-      'width': (value) => _controller.width = Utils.getDouble(value, fallback: defaultSize),
-      'height': (value) => _controller.height = Utils.getDouble(value, fallback: defaultSize),
-      'left': (value) => _controller.left = Utils.getInt(value, fallback: _controller.left),
-      'top': (value) => _controller.top = Utils.getInt(value, fallback: _controller.top),
-      'position': (value) => _controller.position = Utils.getString(value, fallback: _controller.position),
-      'uri': (value) => _controller.uri = Utils.getString(value, fallback: _controller.uri),
-      'onSuccess': (funcDefinition) => _controller.onSuccess = Utils.getAction(funcDefinition, initiator: this),
-      'onCancel': (funcDefinition) => _controller.onCancel = Utils.getAction(funcDefinition, initiator: this),
-      'onError': (funcDefinition) => _controller.onError = Utils.getAction(funcDefinition, initiator: this),
-      'onRoute': (funcDefinition) => _controller.onRoute = Utils.getAction(funcDefinition, initiator: this),
-      'onUser': (funcDefinition) => _controller.onUser = Utils.getAction(funcDefinition, initiator: this),
-      'onLoaded': (funcDefinition) => _controller.onLoaded = Utils.getAction(funcDefinition, initiator: this),
+      'id': (value) =>
+          _controller.id = Utils.getString(value, fallback: _controller.id!),
+      'width': (value) =>
+          _controller.width = Utils.getDouble(value, fallback: defaultSize),
+      'height': (value) =>
+          _controller.height = Utils.getDouble(value, fallback: defaultSize),
+      'left': (value) =>
+          _controller.left = Utils.getInt(value, fallback: _controller.left),
+      'top': (value) =>
+          _controller.top = Utils.getInt(value, fallback: _controller.top),
+      'position': (value) => _controller.position =
+          Utils.getString(value, fallback: _controller.position),
+      'uri': (value) =>
+          _controller.uri = Utils.getString(value, fallback: _controller.uri),
+      'onSuccess': (funcDefinition) => _controller.onSuccess =
+          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onCancel': (funcDefinition) => _controller.onCancel =
+          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onError': (funcDefinition) => _controller.onError =
+          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onRoute': (funcDefinition) => _controller.onRoute =
+          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onUser': (funcDefinition) => _controller.onUser =
+          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onLoaded': (funcDefinition) => _controller.onLoaded =
+          EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'overlay': (value) => _controller.overlay = value,
     };
   }
 }
+
 abstract class FinicityConnectStateBase extends WidgetState<FinicityConnect> {
   void executeAction(Map event) {
     EnsembleAction? action;
 
-    if ( event['type'] == 'success' ) {
+    if (event['type'] == 'success') {
       action = widget._controller.onSuccess;
-    } else if ( event['type'] == 'cancel' ) {
+    } else if (event['type'] == 'cancel') {
       action = widget._controller.onCancel;
-    } else if ( event['type'] == 'error' ) {
+    } else if (event['type'] == 'error') {
       action = widget._controller.onError;
-    } else if ( event['type'] == 'loaded' ) {
+    } else if (event['type'] == 'loaded') {
       action = widget._controller.onLoaded;
-    } else if ( event['type'] == 'route' ) {
+    } else if (event['type'] == 'route') {
       action = widget._controller.onRoute;
-    } else if ( event['type'] == 'user' ) {
+    } else if (event['type'] == 'user') {
       action = widget._controller.onUser;
     }
-    if ( action != null ) {
+    if (action != null) {
       action.inputs ??= {};
-      action.inputs!['event'] = (event['data'] == null) ? {}: event['data'];
+      action.inputs!['event'] = (event['data'] == null) ? {} : event['data'];
       ScreenController().executeAction(context, action);
     }
   }
