@@ -20,7 +20,6 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:yaml/yaml.dart';
 
-
 /// ScopeManager handles all data/view relative to a Scope. It also has a
 /// reference to the page-level PageData.
 /// This class is a composite:
@@ -36,7 +35,8 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
   RootScope rootScope = Ensemble().rootScope();
 
   @override
-  Map<String, dynamic>? get customViewDefinitions => pageData.customViewDefinitions;
+  Map<String, dynamic>? get customViewDefinitions =>
+      pageData.customViewDefinitions;
 
   @override
   DataContext get dataContext => _dataContext;
@@ -45,7 +45,8 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
   EventBus get eventBus => pageData.eventBus;
 
   @override
-  Map<Invokable, Map<int, StreamSubscription>> get listenerMap => pageData.listenerMap;
+  Map<Invokable, Map<int, StreamSubscription>> get listenerMap =>
+      pageData.listenerMap;
 
   @override
   List<BuildContext> get openedDialogs => pageData.openedDialogs;
@@ -106,8 +107,8 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
       }
       pageData._timers.add(newTimer);
     }
-
   }
+
   @override
   void removeTimerByWidget(Invokable widget) {
     if (pageData._timerMap[widget] != null) {
@@ -115,13 +116,13 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
       log("Cleared all Timers for widget: ${widget.id ?? widget.toString()}");
     }
   }
+
   void removeTimer(String timerId) {
     // first try to remove from root scope
     if (rootScope.rootTimer?.id == timerId) {
       rootScope.rootTimer?.cancel();
       rootScope.rootTimer = null;
-    }
-    else {
+    } else {
       // remove from current scope's timer map
       pageData._timerMap.removeWhere((key, value) {
         if (value.id == timerId) {
@@ -141,9 +142,6 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
     }
   }
 
-
-
-
   /// create a copy of the parent's data scope
   @override
   ScopeManager createChildScope() {
@@ -154,9 +152,7 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
 
   @override
   ScopeManager get me => this;
-
 }
-
 
 abstract class IsScopeManager {
   DataContext get dataContext;
@@ -169,11 +165,8 @@ abstract class IsScopeManager {
   ScopeManager get me;
 }
 
-
-
 /// View Helper to build our widgets from within a ScopeManager
 mixin ViewBuilder on IsScopeManager {
-
   /// build a widget from the item YAML
   /// Note that here we build the widget using the proper scope, BUT its
   /// parent scope is not defined. This means that onAction might not
@@ -186,12 +179,10 @@ mixin ViewBuilder on IsScopeManager {
   /// build a widget from the item YAML, and wrap it inside a DataScopeWidget
   /// This enables the widget to travel up and get its data context
   DataScopeWidget buildWidgetWithScopeFromDefinition(dynamic item) {
-    Widget widget = buildWidget(ViewUtil.buildModel(item, customViewDefinitions));
+    Widget widget =
+        buildWidget(ViewUtil.buildModel(item, customViewDefinitions));
     return DataScopeWidget(scopeManager: createChildScope(), child: widget);
   }
-
-
-
 
   /// build a widget from a given model
   Widget buildWidget(WidgetModel model) {
@@ -211,10 +202,6 @@ mixin ViewBuilder on IsScopeManager {
 
     return rootWidget;
 
-
-
-
-
     /*
     // 1. create bare widget tree.
     //  - Add Widget ID as needed to our DataContext
@@ -230,7 +217,6 @@ mixin ViewBuilder on IsScopeManager {
   }
 
   void _updateWidgetBindings(Map<WidgetModel, ModelPayload> modelMap) {
-
     modelMap.forEach((model, payload) {
       ScopeManager scopeManager = payload.scopeManager;
       DataContext dataContext = scopeManager.dataContext;
@@ -242,7 +228,8 @@ mixin ViewBuilder on IsScopeManager {
             if (model.inputs![param] != null) {
               // set the Custom Widget's inputs from parent scope
               setPropertyAndRegisterBinding(
-                  scopeManager._parent!,    // widget inputs are set in the parent's scope
+                  scopeManager
+                      ._parent!, // widget inputs are set in the parent's scope
                   payload.widget as Invokable,
                   param,
                   model.inputs![param]);
@@ -288,7 +275,6 @@ mixin ViewBuilder on IsScopeManager {
         (payload.widget as UpdatableContainer).initChildren(
             children: payload.children, itemTemplate: model.itemTemplate);
       }
-
     });
   }
 
@@ -333,42 +319,35 @@ mixin ViewBuilder on IsScopeManager {
   /// call widget.setProperty to update its value.
   /// If the value is an expression of valid binding, we
   /// will register to listen for changes
-  void setPropertyAndRegisterBinding(ScopeManager scopeManager, Invokable widget, String key, dynamic value) {
+  void setPropertyAndRegisterBinding(
+      ScopeManager scopeManager, Invokable widget, String key, dynamic value) {
     if (value is String) {
       DataExpression? expression = Utils.parseDataExpression(value);
       if (expression != null) {
         // listen for binding changes
         (this as PageBindingManager).registerBindingListener(
-            scopeManager,
-            BindingDestination(widget, key),
-            expression
-        );
+            scopeManager, BindingDestination(widget, key), expression);
         // evaluate the binding as the initial value
         value = scopeManager.dataContext.eval(value);
       }
     }
     InvokableController.setProperty(widget, key, value);
-
   }
 }
-
-
 
 /// managing binding at the Page level.
 /// It does this by tapping into the page-level's PageData
 mixin PageBindingManager on IsScopeManager {
-
-
   /// Evaluate a binding expression and listen for changes.
   /// Calling this multiple times is safe as we remove the matching listeners before adding.
   /// Upon changes, execute setProperty() on the destination's Invokable
   /// The expression can be a mix of variable and text e.g Hello $(first) $(last)
-  void registerBindingListener(ScopeManager scopeManager, BindingDestination bindingDestination, DataExpression dataExpression) {
-
+  void registerBindingListener(ScopeManager scopeManager,
+      BindingDestination bindingDestination, DataExpression dataExpression) {
     // we re-evaluate the entire raw binding upon any changes to any variables
     for (var expression in dataExpression.expressions) {
-      listen(scopeManager, expression, destination: bindingDestination, onDataChange: (ModelChangeEvent event) {
-
+      listen(scopeManager, expression, destination: bindingDestination,
+          onDataChange: (ModelChangeEvent event) {
         DataContext dataContext = scopeManager.dataContext;
         /*
         if (dataContext.getContextById(event.modelId) is InvokablePrimitive) {
@@ -381,8 +360,10 @@ mixin PageBindingManager on IsScopeManager {
         */
         // payload only have changes to a variable, but we have to evaluate the entire expression
         // e.g Hello $(firstName.value) $(lastName.value)
-        dynamic updatedValue = dataContext.eval(dataExpression.stringifyRawAndAst());
-        InvokableController.setProperty(bindingDestination.widget, bindingDestination.setterProperty, updatedValue);
+        dynamic updatedValue =
+            dataContext.eval(dataExpression.stringifyRawAndAst());
+        InvokableController.setProperty(bindingDestination.widget,
+            bindingDestination.setterProperty, updatedValue);
       });
     }
   }
@@ -401,7 +382,6 @@ mixin PageBindingManager on IsScopeManager {
   //   }
   // }
 
-
   /// listen for changes on the bindingExpression and invoke onDataChange() callback.
   /// Multiple calls to this is safe as we remove the existing listeners before adding.
   /// [bindingExpression] a valid binding expression in the form of getter e.g $(myText.text)
@@ -409,15 +389,13 @@ mixin PageBindingManager on IsScopeManager {
   /// [bindingScope] if specified, we'll only listen to binding changes within this Scope (e.g. custom widget inputs)
   /// all listeners when the widget is disposed.
   /// @return true if we are able to bind and listen to the expression.
-  bool listen(
-      ScopeManager scopeManager,
-      String bindingExpression, {
-        required BindingDestination destination,
-        required Function onDataChange
-      }) {
+  bool listen(ScopeManager scopeManager, String bindingExpression,
+      {required BindingDestination destination,
+      required Function onDataChange}) {
     DataContext dataContext = scopeManager.dataContext;
 
-    BindingSource? bindingSource = BindingSource.from(bindingExpression, dataContext);
+    BindingSource? bindingSource =
+        BindingSource.from(bindingExpression, dataContext);
     if (bindingSource != null) {
       // create a unique key to reference our listener. We used this to save
       // the listeners for clean up
@@ -427,22 +405,27 @@ mixin PageBindingManager on IsScopeManager {
       int hash = getHash(
           destinationSetter: destination.setterProperty,
           source: bindingSource,
-          scopeManager: (bindingSource is SimpleBindingSource || bindingSource is DeferredBindingSource) ? scopeManager : null
-      );
+          scopeManager: (bindingSource is SimpleBindingSource ||
+                  bindingSource is DeferredBindingSource)
+              ? scopeManager
+              : null);
 
       // clean up existing listener with the same signature
       if (listenerMap[destination.widget]?[hash] != null) {
         //log("Binding(remove duplicate): ${me.id}-${bindingSource.modelId}-${bindingSource.property}");
         listenerMap[destination.widget]![hash]!.cancel();
       }
-      StreamSubscription subscription = eventBus.on<ModelChangeEvent>()
-          .listen((event) {
+      StreamSubscription subscription =
+          eventBus.on<ModelChangeEvent>().listen((event) {
         //log("EventBus ${eventBus.hashCode} listening: $event");
-        if ((bindingSource is DeferredBindingSource || event.source.runtimeType == bindingSource.runtimeType) &&
+        if ((bindingSource is DeferredBindingSource ||
+                event.source.runtimeType == bindingSource.runtimeType) &&
             event.source.modelId == bindingSource.modelId &&
-            (event.source.property == null || event.source.property == bindingSource.property) &&
-            (event.bindingScope == null || event.bindingScope == scopeManager)) {
-                onDataChange(event);
+            (event.source.property == null ||
+                event.source.property == bindingSource.property) &&
+            (event.bindingScope == null ||
+                event.bindingScope == scopeManager)) {
+          onDataChange(event);
         }
       });
 
@@ -455,10 +438,8 @@ mixin PageBindingManager on IsScopeManager {
       //log("All Bindings:${listenerMap.toString()} ");
 
       return true;
-
     }
     return false;
-
   }
 
   void dispatch(ModelChangeEvent event) {
@@ -467,8 +448,12 @@ mixin PageBindingManager on IsScopeManager {
   }
 
   /// unique but repeatable hash (within the same session) of the provided keys
-  int getHash({String? destinationSetter, required BindingSource source, ScopeManager? scopeManager}) {
-    return Object.hash(destinationSetter, source.modelId, source.property, source.runtimeType, scopeManager);
+  int getHash(
+      {String? destinationSetter,
+      required BindingSource source,
+      ScopeManager? scopeManager}) {
+    return Object.hash(destinationSetter, source.modelId, source.property,
+        source.runtimeType, scopeManager);
   }
 
   /// print a map of the current listeners on this scope
@@ -478,24 +463,12 @@ mixin PageBindingManager on IsScopeManager {
       log('$widget has ${map.length} listeners');
       log('----- Event bus ${eventBus.hashCode} destroyed ------');
     });
-
   }
-
-
-
-
 }
-
-
-
-
 
 /// data for the current Page.
 class PageData {
-  PageData({
-    this.customViewDefinitions,
-    this.apiMap
-  }) {
+  PageData({this.customViewDefinitions, this.apiMap}) {
     //log("EventBus ${eventBus.hashCode} created");
   }
 
@@ -518,7 +491,6 @@ class PageData {
   // list of all opened Dialogs' contexts
   final List<BuildContext> openedDialogs = [];
 
-
   // store the raw definition of the SubView (to be accessed by itemTemplates)
   final Map<String, dynamic>? customViewDefinitions;
 
@@ -534,7 +506,6 @@ class PageData {
     }
     return _eContext;
   }*/
-
 }
 
 /// representing a one-line expression that evaluates to a value
@@ -542,10 +513,10 @@ class PageData {
 /// This may also contain an equivalent AST definition, which we'll use to
 /// execute by default, otherwise fallback to execute the expression directly.
 class DataExpression {
-  DataExpression({
-    required this.rawExpression,
-    required this.expressions,
-    this.astExpression});
+  DataExpression(
+      {required this.rawExpression,
+      required this.expressions,
+      this.astExpression});
 
   // the original raw expression e.g my name is ${person.first_name} ${person.last_name}
   String rawExpression;

@@ -1,5 +1,5 @@
-import 'package:ensemble/widget/form_checkbox.dart';
-import 'package:ensemble/widget/form_date.dart';
+import 'package:ensemble/widget/input/form_checkbox.dart';
+import 'package:ensemble/widget/input/form_date.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart';
@@ -29,7 +29,8 @@ void main() {
     // tap and confirm the checkbox is now checked
     await tester.tap(checkboxFinder);
     await tester.pump();
-    checkbox = tester.firstWidget(checkboxFinder);    // need to get the widget's new reference or it won't work
+    checkbox = tester.firstWidget(
+        checkboxFinder); // need to get the widget's new reference or it won't work
     expect(checkbox.value, true);
   });
 
@@ -56,7 +57,4 @@ void main() {
     aSwitch = tester.firstWidget(switchFinder);
     expect(aSwitch.value, false);
   });
-
-
-
 }

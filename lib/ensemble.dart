@@ -8,6 +8,7 @@ import 'package:ensemble/ensemble_provider.dart';
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/provider.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -17,7 +18,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_i18n/flutter_i18n_delegate.dart';
 import 'package:yaml/yaml.dart';
 import 'package:firebase_core/firebase_core.dart';
-
 
 /// Singleton Controller
 class Ensemble {
@@ -45,8 +45,8 @@ class Ensemble {
       return Future<EnsembleConfig>.value(_config);
     }
 
-    final yamlString = await rootBundle.loadString(
-        'ensemble/ensemble-config.yaml');
+    final yamlString =
+        await rootBundle.loadString('ensemble/ensemble-config.yaml');
     final YamlMap yamlMap = loadYaml(yamlString);
 
     // init Firebase
@@ -58,8 +58,7 @@ class Ensemble {
               apiKey: 'AIzaSyBAZ7wf436RSbcXvhhfg7e4TUh6A2SKve8',
               appId: '1:326748243798:ios:30f2a4f824dc58ea94b8f7',
               messagingSenderId: '326748243798',
-              projectId: 'ensemble-web-studio')
-      );
+              projectId: 'ensemble-web-studio'));
     }
 
     // environment variable overrides
@@ -72,11 +71,12 @@ class Ensemble {
 
     DefinitionProvider definitionProvider = _createDefinitionProvider(yamlMap);
     _config = EnsembleConfig(
-      definitionProvider: definitionProvider,
-      appBundle: await definitionProvider.getAppBundle(),
-      account: Account(mapAccessToken: yamlMap['accounts']?['maps']?['mapbox_access_token']),
-      envOverrides: envOverrides
-    );
+        definitionProvider: definitionProvider,
+        appBundle: await definitionProvider.getAppBundle(),
+        account: Account(
+            mapAccessToken: yamlMap['accounts']?['maps']
+                ?['mapbox_access_token']),
+        envOverrides: envOverrides);
     return _config!;
   }
 
@@ -84,19 +84,17 @@ class Ensemble {
   DefinitionProvider _createDefinitionProvider(YamlMap yamlMap) {
     // locale
     I18nProps i18nProps = I18nProps(
-      yamlMap['i18n']?['defaultLocale'] ?? '',
-      yamlMap['i18n']?['fallbackLocale'] ?? 'en',
-      yamlMap['i18n']?['useCountryCode'] ?? false
-    );
+        yamlMap['i18n']?['defaultLocale'] ?? '',
+        yamlMap['i18n']?['fallbackLocale'] ?? 'en',
+        yamlMap['i18n']?['useCountryCode'] ?? false);
 
     // Ensemble-powered apps
     String? definitionType = yamlMap['definitions']?['from'];
     if (definitionType == 'ensemble') {
       String? appId = yamlMap['definitions']?['ensemble']?['appId'];
       if (appId == null) {
-        throw ConfigError(
-            "appId is required. Your App Key can be found on "
-                "Ensemble Studio under each application");
+        throw ConfigError("appId is required. Your App Key can be found on "
+            "Ensemble Studio under each application");
       }
       String? i18nPath = yamlMap['definitions']?['ensemble']?['i18nPath'];
       if (i18nPath == null) {
@@ -110,29 +108,29 @@ class Ensemble {
     else if (definitionType == 'legacy') {
       String? path = yamlMap['definitions']?['legacy']?['path'];
       if (path == null || !path.startsWith('https')) {
-        throw ConfigError('Invalid URL to Ensemble legacy server. The original value should not be changed');
+        throw ConfigError(
+            'Invalid URL to Ensemble legacy server. The original value should not be changed');
       }
       String? appId = yamlMap['definitions']?['legacy']?['appId'];
       if (appId == null) {
-        throw ConfigError(
-            "appId is required. Your App Key can be found on "
-                "Ensemble Studio under each application");
+        throw ConfigError("appId is required. Your App Key can be found on "
+            "Ensemble Studio under each application");
       }
       String? i18nPath = yamlMap['definitions']?['legacy']?['i18nPath'];
       if (i18nPath == null) {
         throw ConfigError(
             "i18nPath is required. If you don't have any changes, just leave the default as-is.");
       }
-      bool cacheEnabled = yamlMap['definitions']?['legacy']?['enableCache'] == true;
+      bool cacheEnabled =
+          yamlMap['definitions']?['legacy']?['enableCache'] == true;
       i18nProps.path = i18nPath;
       return LegacyDefinitionProvider(path, appId, cacheEnabled, i18nProps);
     }
     // local/remote Apps
-    else if (definitionType == 'local' || definitionType == 'remote'){
+    else if (definitionType == 'local' || definitionType == 'remote') {
       String? path = yamlMap['definitions']?[definitionType]?['path'];
       if (path == null) {
-        throw ConfigError(
-            "Path to the root definition directory is required.");
+        throw ConfigError("Path to the root definition directory is required.");
       }
       String? appId = yamlMap['definitions']?[definitionType]?['appId'];
       if (appId == null) {
@@ -142,32 +140,32 @@ class Ensemble {
       String? appHome = yamlMap['definitions']?[definitionType]?['appHome'];
       if (appHome == null) {
         throw ConfigError(
-            "appHome is required. This is the home screen's name or ID for your App"
-        );
+            "appHome is required. This is the home screen's name or ID for your App");
       }
       String? i18nPath = yamlMap['definitions']?[definitionType]?['i18nPath'];
       if (i18nPath == null) {
         throw ConfigError(
             "i18nPath is required. If you don't have any changes, just leave the default as-is.");
       }
-      bool cacheEnabled = yamlMap['definitions']?[definitionType]?['enableCache'] == true;
+      bool cacheEnabled =
+          yamlMap['definitions']?[definitionType]?['enableCache'] == true;
       i18nProps.path = i18nPath;
       String fullPath = concatDirectory(path, appId);
-      return (definitionType == 'local') ?
-        LocalDefinitionProvider(fullPath, appHome, i18nProps) :
-        RemoteDefinitionProvider(fullPath, appHome, cacheEnabled, i18nProps);
-
+      return (definitionType == 'local')
+          ? LocalDefinitionProvider(fullPath, appHome, i18nProps)
+          : RemoteDefinitionProvider(
+              fullPath, appHome, cacheEnabled, i18nProps);
     } else {
       throw ConfigError(
           "Definitions needed to be defined as 'local', 'remote', or 'ensemble'");
     }
   }
 
-
   // TODO: use Provider to inject Account/DefinitionProvider in for the entire App
   Account? getAccount() {
     return _config?.account;
   }
+
   EnsembleConfig? getConfig() {
     return _config;
   }
@@ -176,7 +174,8 @@ class Ensemble {
   /// [screenId] / [screenName] - navigate to the screen if specified, otherwise to the App's home
   /// [asModal] - shows the App in a regular or modal screen
   /// [pageArgs] - Key/Value pairs to send to the screen if it takes input parameters
-  void navigateApp(BuildContext context, {
+  void navigateApp(
+    BuildContext context, {
     String? screenId,
     String? screenName,
     bool? asModal,
@@ -185,19 +184,14 @@ class Ensemble {
     PageType pageType = asModal == true ? PageType.modal : PageType.regular;
 
     Widget screenWidget = EnsembleApp(
-      screenPayload: ScreenPayload(
-        screenId: screenId,
-        screenName: screenName,
-        pageType: pageType,
-        arguments: pageArgs
-      )
-    );
-    Navigator.push(
-        context,
+        screenPayload: ScreenPayload(
+            screenId: screenId,
+            screenName: screenName,
+            pageType: pageType,
+            arguments: pageArgs));
+    Navigator.push(context,
         ScreenController().getScreenBuilder(screenWidget, pageType: pageType));
   }
-
-
 
   /// concat into the format root/folder/
   @visibleForTesting
@@ -205,8 +199,10 @@ class Ensemble {
     // strip out all slashes
     RegExp slashPattern = RegExp(r'^[\/]?(.+?)[\/]?$');
 
-    return slashPattern.firstMatch(root)!.group(1)! + '/' +
-        slashPattern.firstMatch(folder)!.group(1)! + '/';
+    return slashPattern.firstMatch(root)!.group(1)! +
+        '/' +
+        slashPattern.firstMatch(folder)!.group(1)! +
+        '/';
   }
 
   // TODO: rework the concept of root scope
@@ -215,7 +211,6 @@ class Ensemble {
     _rootScope ??= RootScope();
     return _rootScope!;
   }
-
 }
 
 class RootScope {
@@ -223,16 +218,13 @@ class RootScope {
   EnsembleTimer? rootTimer;
 }
 
-
-
 /// configuration for an App, derived from the YAML + API calls
 class EnsembleConfig {
-  EnsembleConfig({
-    required this.definitionProvider,
-    this.account,
-    this.envOverrides,
-    this.appBundle
-  });
+  EnsembleConfig(
+      {required this.definitionProvider,
+      this.account,
+      this.envOverrides,
+      this.appBundle});
   final DefinitionProvider definitionProvider;
   Account? account;
 
@@ -253,13 +245,12 @@ class EnsembleConfig {
 
   /// pass our custom theme from the appBundle and build the App Theme
   ThemeData getAppTheme() {
-    return EnsembleTheme.getAppTheme(appBundle?.theme);
+    return ThemeManager().getAppTheme(appBundle?.theme);
   }
 
   FlutterI18nDelegate getI18NDelegate() {
     return definitionProvider.getI18NDelegate();
   }
-
 }
 
 class I18nProps {
@@ -275,11 +266,13 @@ class AppBundle {
 
   YamlMap? theme;
 }
+
 /// store the App's account info (e.g. access token for maps)
 class Account {
   Account({this.mapAccessToken});
   String? mapAccessToken;
 }
+
 /// user configuration for the App
 class UserAppConfig {
   UserAppConfig({this.baseUrl, this.useBrowserUrl, this.envVariables});
@@ -288,4 +281,3 @@ class UserAppConfig {
   bool? useBrowserUrl;
   Map<String, dynamic>? envVariables;
 }
-
