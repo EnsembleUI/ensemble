@@ -2,6 +2,7 @@ import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/theme/default_theme.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:yaml/yaml.dart';
 
 mixin ThemeLoader {
@@ -40,7 +41,7 @@ mixin ThemeLoader {
               BorderSide(color: DesignSystem.inputBorderColor, width: 2),
         ),
       ),
-      textTheme: defaultTextTheme(),
+      textTheme: _buildTextTheme(),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: DesignSystem.primary, width: 2),
@@ -130,55 +131,71 @@ mixin ThemeLoader {
     ]);
   }
 
-  TextTheme defaultTextTheme() {
-    const defaultStyle = TextStyle(
-      fontFamily: 'Inter',
-      fontWeight: FontWeight.w400,
-    );
+  TextTheme _buildTextTheme([YamlMap? textTheme]) {
+    final fontFamily = Utils.optionalString(textTheme?['fontFamily']);
 
-    return TextTheme(
-      displayLarge: defaultStyle.copyWith(fontSize: 64, letterSpacing: -2),
-      displayMedium: defaultStyle.copyWith(fontSize: 48, letterSpacing: -1),
-      displaySmall: defaultStyle.copyWith(fontSize: 32, letterSpacing: -0.5),
-      headlineLarge: defaultStyle.copyWith(
-          fontSize: 24, fontWeight: FontWeight.w600, letterSpacing: -0.5),
-      headlineMedium:
-          defaultStyle.copyWith(fontSize: 20, fontWeight: FontWeight.w600),
-      headlineSmall: defaultStyle.copyWith(
-          fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.15),
-      titleLarge:
-          defaultStyle.copyWith(fontSize: 20, fontWeight: FontWeight.w500),
-      titleMedium: defaultStyle.copyWith(
-          fontSize: 16, fontWeight: FontWeight.w500, letterSpacing: 0.15),
-      titleSmall: defaultStyle.copyWith(
-          fontSize: 14, fontWeight: FontWeight.w500, letterSpacing: 0.15),
-      bodyLarge: defaultStyle.copyWith(fontSize: 16, letterSpacing: 0.5),
-      bodyMedium: defaultStyle.copyWith(fontSize: 14, letterSpacing: 0.25),
-      bodySmall: defaultStyle.copyWith(fontSize: 12, letterSpacing: 0.4),
-      labelLarge: defaultStyle.copyWith(
-          fontSize: 12, fontWeight: FontWeight.w500, letterSpacing: 0.4),
-    );
-  }
+    late TextStyle defaultStyle;
+    try {
+      if (fontFamily == null) throw Exception();
+      defaultStyle = GoogleFonts.getFont(
+        fontFamily,
+      );
+    } catch (e) {
+      defaultStyle = const TextStyle(
+        fontFamily: 'Inter',
+        fontWeight: FontWeight.w400,
+      );
+    }
 
-  TextTheme? _buildTextTheme(YamlMap? textTheme) {
-    if (textTheme == null) return null;
-    return ThemeData.light().textTheme.copyWith(
-          displayLarge: Utils.getTextStyle(textTheme['displayLarge']),
-          displayMedium: Utils.getTextStyle(textTheme['displayMedium']),
-          displaySmall: Utils.getTextStyle(textTheme['displaySmall']),
-          headlineLarge: Utils.getTextStyle(textTheme['headlineLarge']),
-          headlineMedium: Utils.getTextStyle(textTheme['headlineMedium']),
-          headlineSmall: Utils.getTextStyle(textTheme['headlineSmall']),
-          titleLarge: Utils.getTextStyle(textTheme['titleLarge']),
-          titleMedium: Utils.getTextStyle(textTheme['titleMedium']),
-          titleSmall: Utils.getTextStyle(textTheme['titleSmall']),
-          bodyLarge: Utils.getTextStyle(textTheme['bodyLarge']),
-          bodyMedium: Utils.getTextStyle(textTheme['bodyMedium']),
-          bodySmall: Utils.getTextStyle(textTheme['bodySmall']),
-          labelLarge: Utils.getTextStyle(textTheme['labelLarge']),
-          labelMedium: Utils.getTextStyle(textTheme['labelMedium']),
-          labelSmall: Utils.getTextStyle(textTheme['labelSmall']),
-        );
+    return ThemeData.light()
+        .textTheme
+        .copyWith(
+            displayLarge: Utils.getTextStyle(textTheme?['displayLarge']) ??
+                defaultStyle.copyWith(fontSize: 64, letterSpacing: -2),
+            displayMedium: Utils.getTextStyle(textTheme?['displayMedium']) ??
+                defaultStyle.copyWith(fontSize: 48, letterSpacing: -1),
+            displaySmall: Utils.getTextStyle(textTheme?['displaySmall']) ??
+                defaultStyle.copyWith(fontSize: 32, letterSpacing: -0.5),
+            headlineLarge: Utils.getTextStyle(textTheme?['headlineLarge']) ??
+                defaultStyle.copyWith(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.5),
+            headlineMedium: Utils.getTextStyle(textTheme?['headlineMedium']) ??
+                defaultStyle.copyWith(
+                    fontSize: 20, fontWeight: FontWeight.w600),
+            headlineSmall: Utils.getTextStyle(textTheme?['headlineSmall']) ??
+                defaultStyle.copyWith(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.15),
+            titleLarge: Utils.getTextStyle(textTheme?['titleLarge']) ??
+                defaultStyle.copyWith(
+                    fontSize: 20, fontWeight: FontWeight.w500),
+            titleMedium: Utils.getTextStyle(textTheme?['titleMedium']) ??
+                defaultStyle.copyWith(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.15),
+            titleSmall: Utils.getTextStyle(textTheme?['titleSmall']) ??
+                defaultStyle.copyWith(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.15),
+            bodyLarge: Utils.getTextStyle(textTheme?['bodyLarge']) ??
+                defaultStyle.copyWith(fontSize: 16, letterSpacing: 0.5),
+            bodyMedium: Utils.getTextStyle(textTheme?['bodyMedium']) ??
+                defaultStyle.copyWith(fontSize: 14, letterSpacing: 0.25),
+            bodySmall: Utils.getTextStyle(textTheme?['bodySmall']) ??
+                defaultStyle.copyWith(fontSize: 12, letterSpacing: 0.4),
+            labelLarge: Utils.getTextStyle(textTheme?['labelLarge']) ??
+                defaultStyle.copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.4),
+            labelMedium: Utils.getTextStyle(textTheme?['labelMedium']),
+            labelSmall: Utils.getTextStyle(textTheme?['labelSmall']))
+        .apply(fontFamily: defaultStyle.fontFamily);
   }
 
   /// parse the FormInput's theme from the theme YAML

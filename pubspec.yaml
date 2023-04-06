@@ -78,6 +78,7 @@ dependencies:
   sensors_plus: ^2.0.2
   mime: ^1.0.4
   flutter_cache_manager: ^3.3.0
+  google_fonts: ^4.0.3
 
 dev_dependencies:
   flutter_test:
