@@ -1,17 +1,16 @@
+import 'dart:async';
+
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/action.dart' as framework;
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/icon.dart' as iconframework;
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/widget/input/form_helper.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:yaml/yaml.dart';
 
 import '../../framework/model.dart';
 //import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -61,7 +60,7 @@ abstract class SelectOne extends StatefulWidget
   @override
   Map<String, Function> setters() {
     return {
-      'value': (value) => _controller.maybeValue = value,
+      'value': (value) => _setValue(value),
       'items': (values) => updateItems(values),
       'onChange': (definition) => _controller.onChange =
           framework.EnsembleAction.fromYaml(definition, initiator: this),
@@ -97,6 +96,13 @@ abstract class SelectOne extends StatefulWidget
       return _controller.maybeValue;
     }
     return null;
+  }
+
+  void _setValue(dynamic value) {
+    _controller.maybeValue = value;
+    if (value is String && value == '') {
+      controller.fieldController.add(value);
+    }
   }
 
   void updateItems(dynamic values) {
@@ -179,14 +185,28 @@ class SelectOneController extends FormFieldController {
   dynamic maybeValue;
   int gap = 0;
   bool autoComplete = false;
+  final StreamController<dynamic> fieldController = StreamController<dynamic>();
 
   framework.EnsembleAction? onChange;
 }
 
 class SelectOneState extends FormFieldWidgetState<SelectOne> {
   final focusNode = FocusNode();
+  late TextEditingController rawTextEditingController;
+  late StreamSubscription<dynamic> streamSubscription;
+
   @override
   void initState() {
+    rawTextEditingController = TextEditingController();
+    streamSubscription =
+        widget.controller.fieldController.stream.listen((value) {
+      if (value is String && value.isEmpty) {
+        clear();
+      } else if (value == null) {
+        clear();
+      }
+    });
+
     // validate on blur
     /*focusNode.addListener(() {
       if (!focusNode.hasFocus && validatorKey.currentState != null) {
@@ -199,6 +219,9 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
   @override
   void dispose() {
     focusNode.dispose();
+    rawTextEditingController.dispose();
+    streamSubscription.cancel();
+    widget.controller.fieldController.close();
     super.dispose();
   }
 
@@ -208,6 +231,11 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
       ScreenController().executeAction(context, widget._controller.onChange!,
           event: EnsembleEvent(widget));
     }
+  }
+
+  void clear() {
+    rawTextEditingController.clear();
+    focusNode.unfocus();
   }
 
   @override
@@ -248,6 +276,8 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
     } else {
       rtn = LayoutBuilder(
           builder: (context, constraints) => RawAutocomplete<SelectOneItem>(
+                focusNode: focusNode,
+                textEditingController: rawTextEditingController,
                 optionsBuilder: (TextEditingValue textEditingValue) =>
                     buildAutoCompleteOptions(textEditingValue),
                 displayStringForOption: (SelectOneItem option) =>
