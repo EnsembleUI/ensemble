@@ -100,7 +100,8 @@ abstract class SelectOne extends StatefulWidget
 
   void _setValue(dynamic value) {
     _controller.maybeValue = value;
-    if (value is String && value == '') {
+    final isEmptyStr = value is String && value == '';
+    if (value == null || isEmptyStr) {
       controller.fieldController.add(value);
     }
   }
@@ -200,9 +201,8 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
     rawTextEditingController = TextEditingController();
     streamSubscription =
         widget.controller.fieldController.stream.listen((value) {
-      if (value is String && value.isEmpty) {
-        clear();
-      } else if (value == null) {
+      final isEmptyStr = value is String && value.isEmpty;
+      if (value == null || isEmptyStr) {
         clear();
       }
     });
