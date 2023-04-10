@@ -69,7 +69,7 @@ class ToastController {
 
   Widget getToastWidget(ShowToastAction toastAction, Widget? customToastBody) {
     EdgeInsets padding = Utils.getInsets(toastAction.styles?['padding'],
-        fallback: const EdgeInsets.symmetric(vertical: 5, horizontal: 10));
+        fallback: const EdgeInsets.symmetric(vertical: 20, horizontal: 22));
     Color? bgColor = Utils.getColor(toastAction.styles?['backgroundColor']);
     EBorderRadius? borderRadius =
         Utils.getBorderRadius(toastAction.styles?['borderRadius']);
@@ -80,9 +80,9 @@ class ToastController {
 
     Widget? content = customToastBody;
     if (content == null) {
-      if (toastAction.message == null) {
+      if (toastAction.title == null && toastAction.message == null) {
         throw LanguageError(
-            "${ActionType.showToast.name} requires either a message or a valid widget to render.");
+            "${ActionType.showToast.name} requires either a title/message or a valid widget to render.");
       }
       // render the message as the body
       IconData icon;
@@ -97,14 +97,47 @@ class ToastController {
         bgColor ??= Colors.yellow.withOpacity(.5);
       } else {
         // info by default
-        icon = Icons.info_outline;
+        icon = Icons.info;
         bgColor ??= Colors.white.withOpacity(.9);
       }
-      content = Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon),
-        const SizedBox(width: 7),
-        Text(toastAction.message!)
-      ]);
+
+      const double closeButtonRadius = 10;
+
+      content = Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon),
+          const SizedBox(width: 18),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (toastAction.title != null && toastAction.title!.isNotEmpty)
+                Text(toastAction.title!,
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold)),
+              if (toastAction.message != null &&
+                  toastAction.message!.isNotEmpty)
+                Flexible(
+                  child: Text(
+                    toastAction.message!,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+            ],
+          ),
+          if (toastAction.dismissible != false)
+            InkWell(
+              child: const CircleAvatar(
+                backgroundColor: Colors.transparent,
+                radius: closeButtonRadius,
+                child: Icon(Icons.close, size: closeButtonRadius * 2 - 2),
+              ),
+              onTap: () => _toast.removeQueuedCustomToasts(),
+            )
+        ],
+      );
     }
 
     // wrapper container for background/border...
@@ -113,7 +146,7 @@ class ToastController {
         decoration: BoxDecoration(
             color: bgColor,
             borderRadius: borderRadius?.getValue() ??
-                const BorderRadius.all(Radius.circular(5)),
+                const BorderRadius.all(Radius.circular(8)),
             boxShadow: <BoxShadow>[
               BoxShadow(
                 blurStyle: BlurStyle.outer,
@@ -124,27 +157,6 @@ class ToastController {
             ]),
         child: content);
 
-    // wraps in dismiss icon
-    if (toastAction.dismissible != false) {
-      double closeButtonRadius = 10;
-      container = Stack(children: [
-        Padding(
-            padding: EdgeInsets.only(
-                top: closeButtonRadius, right: closeButtonRadius),
-            child: container),
-        Positioned(
-            right: 0,
-            top: 0,
-            child: InkWell(
-              child: CircleAvatar(
-                backgroundColor: Colors.white,
-                radius: closeButtonRadius,
-                child: Icon(Icons.close, size: closeButtonRadius * 2 - 2),
-              ),
-              onTap: () => _toast.removeQueuedCustomToasts(),
-            )),
-      ]);
-    }
     return container;
   }
 }
