@@ -132,6 +132,10 @@ flutter:
         - weight: 800
           asset: assets/fonts/inter/Inter-ExtraBold.ttf
 
+    - family: RemixIcon
+      fonts:
+        - asset: assets/icons/RemixIcon.ttf
+
   # This section identifies your Flutter project as a module meant for
   # embedding in a native host app.  These identifiers should _not_ ordinarily
   # be changed after generation - they are used to ensure that the tooling can

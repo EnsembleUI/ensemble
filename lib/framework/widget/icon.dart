@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as flutter;
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
+import '../theme/icon/remix_icon.dart';
+
 class Icon extends flutter.Icon {
   Icon(
     dynamic icon, {
@@ -25,6 +27,8 @@ class Icon extends flutter.Icon {
       return _defaultIcons[name];
     } else if (library == 'fontAwesome') {
       return _fontAwesomeIcons[name];
+    } else if (library == 'remixIcon') {
+      return RemixIcon().icons[name];
     }
     // tree shaking won't work. Need to add --no-tree-shake-icons to ignore error when building
     else if (name is int) {

@@ -116,8 +116,6 @@ mixin ThemeLoader {
             defaultTheme.filledButtonTheme.style,
       ),
       switchTheme: _buildSwitchTheme(overrides?['Widgets']?['Button']),
-      pageTransitionsTheme:
-          _buildPageTranistions(overrides?['PageTransittions']),
     );
 
     // extends ThemeData
@@ -137,14 +135,12 @@ mixin ThemeLoader {
     late TextStyle defaultStyle;
     try {
       if (fontFamily == null) throw Exception();
-      defaultStyle = GoogleFonts.getFont(
-        fontFamily,
-      );
+      defaultStyle = GoogleFonts.getFont(fontFamily, color: Colors.black);
     } catch (e) {
       defaultStyle = const TextStyle(
-        fontFamily: 'Inter',
-        fontWeight: FontWeight.w400,
-      );
+          fontFamily: 'Inter',
+          fontWeight: FontWeight.w400,
+          color: Colors.black);
     }
 
     return ThemeData.light()
@@ -399,8 +395,6 @@ mixin ThemeLoader {
   ///------------  publicly available theme getters -------------
   BorderRadius getInputDefaultBorderRadius(InputVariant? variant) =>
       BorderRadius.all(Radius.circular(variant == InputVariant.box ? 8 : 0));
-
-  _buildPageTranistions(YamlList? pageTranistions) {}
 }
 
 /// extend Theme to add our own special color parameters
