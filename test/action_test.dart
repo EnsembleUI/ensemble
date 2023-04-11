@@ -8,6 +8,8 @@ void main() {
     expect(EnsembleAction.fromYaml('navigateBack'), navigateBackMatcher);
     expect(EnsembleAction.fromYaml(YamlMap.wrap({'navigateBack': {}})),
         navigateBackMatcher);
+    expect(EnsembleAction.fromYaml(YamlMap.wrap({'navigateBack': null})),
+        navigateBackMatcher);
 
     const closeAllDialogsMatcher = TypeMatcher<CloseAllDialogsAction>();
     expect(EnsembleAction.fromYaml('closeAllDialogs'), closeAllDialogsMatcher);
