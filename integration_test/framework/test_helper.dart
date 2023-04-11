@@ -6,7 +6,6 @@ import 'package:flutter/widgets.dart';
 import 'package:integration_test/integration_test.dart';
 
 class TestHelper {
-
   /// Setup the App once for every Test Group.
   /// If we run multiple tests
   /// by calling runApp() again, rootBundle.getString() will cache
@@ -22,26 +21,21 @@ class TestHelper {
 
     EnsembleConfig config = EnsembleConfig(
         definitionProvider: LocalDefinitionProvider(
-            "ensemble/integration_tests/$appName/",
-            "",
-            i18nProps)
-    );
+            "ensemble/integration_tests/$appName/", "", i18nProps));
     return await config.updateAppBundle();
   }
 
-  static loadScreen({
-    required String screenName,
-    required EnsembleConfig? config}) {
-
-      if (config == null) {
-        throw Exception(
-            'Config is required. Please run setupApp() per Test Class to initialize the EnsembleConfig once !');
-      }
-      runApp(EnsembleApp(
-        key: UniqueKey(),
-        ensembleConfig: config,
-        screenPayload: ScreenPayload(screenName: screenName),
-      ));
+  static loadScreen(
+      {required String screenName, required EnsembleConfig? config}) {
+    if (config == null) {
+      throw Exception(
+          'Config is required. Please run setupApp() per Test Class to initialize the EnsembleConfig once !');
+    }
+    runApp(EnsembleApp(
+      key: UniqueKey(),
+      ensembleConfig: config,
+      screenPayload: ScreenPayload(screenName: screenName),
+    ));
   }
 
   /// initialize an App and init a single screen for testing.
@@ -49,12 +43,9 @@ class TestHelper {
   /// in your test class.
   /// Considering using setupApp(), followed by loadScreen() for multiple
   /// test cases within a class.
-  static Future<void> setupAppForSingleScreen ({
-    required String appName,
-    required String screenName}) async {
-      EnsembleConfig config = await setupApp(appName: appName);
-      loadScreen(screenName: screenName, config: config);
+  static Future<void> setupAppForSingleScreen(
+      {required String appName, required String screenName}) async {
+    EnsembleConfig config = await setupApp(appName: appName);
+    loadScreen(screenName: screenName, config: config);
   }
-
-
 }

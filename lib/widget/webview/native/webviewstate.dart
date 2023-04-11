@@ -22,6 +22,7 @@ class ControllerImpl extends ViewController {
     controller!.loadRequest(Uri.parse(url));
   }
 }
+
 class WebViewState extends WidgetState<EnsembleWebView> {
   // WebView won't render on Android if height is 0 initially
   double? calculatedHeight = 1;
@@ -35,43 +36,56 @@ class WebViewState extends WidgetState<EnsembleWebView> {
           widget.controller.loadingPercent = value;
         });
       },
-
       onPageStarted: (String url) {
-        if ( widget.controller.onPageStart != null ) {
-          ScreenController().executeAction(context, widget.controller.onPageStart!, event: EnsembleEvent(widget,data:{'url':url}));
+        if (widget.controller.onPageStart != null) {
+          ScreenController().executeAction(
+              context, widget.controller.onPageStart!,
+              event: EnsembleEvent(widget, data: {'url': url}));
         }
       },
       onPageFinished: (String url) async {
-        calculatedHeight =
-        await _controller.controller!.runJavaScriptReturningResult(
-            "document.documentElement.scrollHeight;") as double;
+        calculatedHeight = await _controller.controller!
+            .runJavaScriptReturningResult(
+                "document.documentElement.scrollHeight;") as double;
         setState(() {
           widget.controller.loadingPercent = 100;
         });
-        if ( widget.controller.onPageFinished != null ) {
-          ScreenController().executeAction(context, widget.controller.onPageFinished!, event: EnsembleEvent(widget,data:{'url':url}));
+        if (widget.controller.onPageFinished != null) {
+          ScreenController().executeAction(
+              context, widget.controller.onPageFinished!,
+              event: EnsembleEvent(widget, data: {'url': url}));
         }
       },
       onWebResourceError: (WebResourceError error) {
-        if ( widget.controller.onWebResourceError != null ) {
-          ScreenController().executeAction(context, widget.controller.onNavigationRequest!, event: EnsembleEvent(widget,data:{'errorCode':error.errorCode,'errorType':error.errorType,'description':error.description}));
+        if (widget.controller.onWebResourceError != null) {
+          ScreenController()
+              .executeAction(context, widget.controller.onNavigationRequest!,
+                  event: EnsembleEvent(widget, data: {
+                    'errorCode': error.errorCode,
+                    'errorType': error.errorType,
+                    'description': error.description
+                  }));
         }
         setState(() {
           widget.controller.error = "Error loading html content";
         });
       },
       onNavigationRequest: (NavigationRequest request) async {
-        WebViewNavigationEvent event = WebViewNavigationEvent(widget,request.url);
-        if ( widget.controller.onNavigationRequest != null ) {
-          ScreenController().executeAction(context, widget.controller.onNavigationRequest!, event: event);
+        WebViewNavigationEvent event =
+            WebViewNavigationEvent(widget, request.url);
+        if (widget.controller.onNavigationRequest != null) {
+          ScreenController().executeAction(
+              context, widget.controller.onNavigationRequest!,
+              event: event);
         }
-        if ( !event.allowNavigation ) {
+        if (!event.allowNavigation) {
           return NavigationDecision.prevent;
         }
         return NavigationDecision.navigate;
       },
     );
   }
+
   void initController() {
     _controller = ControllerImpl();
     widget.controller.webViewController = _controller;
@@ -85,11 +99,12 @@ class WebViewState extends WidgetState<EnsembleWebView> {
       params = const PlatformWebViewControllerCreationParams();
     }
     // #docregion webview_controller
-    _controller.controller = WebViewController.fromPlatformCreationParams(params)
-      ..setBackgroundColor(Colors.transparent)
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setNavigationDelegate(initNavigationDelegate());
-    if ( widget.controller.url != null ) {
+    _controller.controller =
+        WebViewController.fromPlatformCreationParams(params)
+          ..setBackgroundColor(Colors.transparent)
+          ..setJavaScriptMode(JavaScriptMode.unrestricted)
+          ..setNavigationDelegate(initNavigationDelegate());
+    if (widget.controller.url != null) {
       _controller.controller!.loadRequest(Uri.parse(widget.controller.url!));
     }
     if (_controller.controller!.platform is AndroidWebViewController) {
@@ -99,6 +114,7 @@ class WebViewState extends WidgetState<EnsembleWebView> {
     }
     // #enddocregion webview_controller
   }
+
   @override
   void initState() {
     initController();
@@ -107,10 +123,9 @@ class WebViewState extends WidgetState<EnsembleWebView> {
     // when it needs to scroll, in case it is wrapped inside the rootView's scrollable.
     // In another word, when we are stretching to fit the content, there is no internal
     // scrollbar on the webview, so no need to grab the scroll gesture.
-    if (widget.controller.expanded == true || widget.controller.height != null) {
-      gestureRecognizers = {
-        Factory(() => EagerGestureRecognizer())
-      };
+    if (widget.controller.expanded == true ||
+        widget.controller.height != null) {
+      gestureRecognizers = {Factory(() => EagerGestureRecognizer())};
     }
 
     super.initState();
@@ -122,8 +137,10 @@ class WebViewState extends WidgetState<EnsembleWebView> {
     Widget webView = SizedBox(
         height: widget.controller.height ?? calculatedHeight,
         width: widget.controller.width,
-        child: WebViewWidget(key: key,controller: _controller.controller!,gestureRecognizers:gestureRecognizers)
-    );
+        child: WebViewWidget(
+            key: key,
+            controller: _controller.controller!,
+            gestureRecognizers: gestureRecognizers));
 
     return Stack(
       alignment: Alignment.topLeft,
@@ -131,23 +148,18 @@ class WebViewState extends WidgetState<EnsembleWebView> {
         webView,
         // loading indicator
         Visibility(
-            visible: widget.controller.loadingPercent! > 0 && widget.controller.loadingPercent! < 100 && widget.controller.error == null,
+            visible: widget.controller.loadingPercent! > 0 &&
+                widget.controller.loadingPercent! < 100 &&
+                widget.controller.error == null,
             child: LinearProgressIndicator(
                 minHeight: 3,
-                value: widget.controller.loadingPercent! / 100.0
-            )
-        ),
+                value: widget.controller.loadingPercent! / 100.0)),
         // error panel
         Visibility(
           visible: widget.controller.error != null,
-          child: Center(
-              child: Text(widget.controller.error ?? '')
-          ),
+          child: Center(child: Text(widget.controller.error ?? '')),
         ),
-
       ],
     );
-
   }
-
 }

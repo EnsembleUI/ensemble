@@ -2,8 +2,10 @@ import 'package:ensemble/widget/fintech/finicityconnect/finicityconnect.dart';
 import 'package:flutter/material.dart';
 import 'package:js_widget/js_widget.dart';
 import 'dart:convert';
+
 class FinicityConnectState extends FinicityConnectStateBase {
-  String getScriptToInstantiate(String c, String width, String height, String overlay) {
+  String getScriptToInstantiate(
+      String c, String width, String height, String overlay) {
     return '''
         window.finicityConnect.launch("$c", {
         $overlay
@@ -48,40 +50,41 @@ class FinicityConnectState extends FinicityConnectStateBase {
         }
         ''';
   }
+
   @override
   Widget buildWidget(BuildContext context) {
-    if ( widget.controller.uri == '')  {
+    if (widget.controller.uri == '') {
       return const Text("");
     }
     String overlay = '';
-    if ( widget.controller.overlay != null ) {
+    if (widget.controller.overlay != null) {
       overlay = 'overlay: ${widget.controller.overlay!},';
     }
     String width = '100%';
-    if ( widget.controller.width != 0 ) {
+    if (widget.controller.width != 0) {
       width = '${widget.controller.width}px';
     }
     String height = '100%';
-    if ( widget.controller.height != 0 ) {
+    if (widget.controller.height != 0) {
       height = '${widget.controller.height}px';
     }
-      return JsWidget(
-        id: widget.controller.id!,
-        createHtmlTag: () => '<div></div>',
-        listener: (String msg) {
-          print('message inside finicity and the message is $msg!');
-          executeAction(json.decode(msg));
-        },
-        scriptToInstantiate: (String c) {
-          return getScriptToInstantiate(c, width, height, overlay);
-          //return 'if (typeof ${widget.controller.chartVar} !== "undefined") ${widget.controller.chartVar}.destroy();${widget.controller.chartVar} = new Chart(document.getElementById("${widget.controller.chartId}"), $c);${widget.controller.chartVar}.update();';
-        },
-        size: Size(widget.controller.width.toDouble(),
-            widget.controller.height.toDouble()),
-        data: widget.controller.uri,
-        scripts: const [
-          "https://connect2.finicity.com/assets/sdk/finicity-connect.min.js",
-        ],
-      );
+    return JsWidget(
+      id: widget.controller.id!,
+      createHtmlTag: () => '<div></div>',
+      listener: (String msg) {
+        print('message inside finicity and the message is $msg!');
+        executeAction(json.decode(msg));
+      },
+      scriptToInstantiate: (String c) {
+        return getScriptToInstantiate(c, width, height, overlay);
+        //return 'if (typeof ${widget.controller.chartVar} !== "undefined") ${widget.controller.chartVar}.destroy();${widget.controller.chartVar} = new Chart(document.getElementById("${widget.controller.chartId}"), $c);${widget.controller.chartVar}.update();';
+      },
+      size: Size(widget.controller.width.toDouble(),
+          widget.controller.height.toDouble()),
+      data: widget.controller.uri,
+      scripts: const [
+        "https://connect2.finicity.com/assets/sdk/finicity-connect.min.js",
+      ],
+    );
   }
 }

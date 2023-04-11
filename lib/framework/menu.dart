@@ -6,35 +6,65 @@ import 'package:ensemble/util/utils.dart';
 import 'package:yaml/yaml.dart';
 
 abstract class Menu {
-  Menu(this.menuItems, { this.styles, this.headerModel, this.footerModel });
+  Menu(this.menuItems, {this.styles, this.headerModel, this.footerModel});
 
   List<MenuItem> menuItems;
   Map<String, dynamic>? styles;
   WidgetModel? headerModel;
   WidgetModel? footerModel;
 
-  static Menu fromYaml(dynamic menu,
-      Map<String, dynamic>? customViewDefinitions) {
+  static Menu fromYaml(
+      dynamic menu, Map<String, dynamic>? customViewDefinitions) {
     if (menu is YamlMap) {
       MenuDisplay? menuType = MenuDisplay.values.from(menu.keys.first);
       YamlMap payload = menu[menu.keys.first];
+      WidgetModel? customIconModel;
+      WidgetModel? customActiveIconModel;
 
       // build menu items
       List<MenuItem> menuItems = [];
       if (payload['items'] is YamlList) {
         for (final YamlMap item in (payload['items'] as YamlList)) {
           if (item['label'] == null) {
-            throw LanguageError("Menu Item's label is required");
+            final YamlMap? customItem = item['customItem'];
+            if (customItem == null) {
+              throw LanguageError("Menu Item's label is required");
+            }
           }
           if (item['page'] == null) {
             throw LanguageError("Menu Item's 'page' attribute is required.");
           }
-          menuItems.add(MenuItem(
+
+          // custom menu
+          final YamlMap? customItem = item['customItem'];
+          if (customItem != null) {
+            final dynamic iconWidget = customItem['widget'];
+            if (iconWidget != null) {
+              customIconModel =
+                  ViewUtil.buildModel(iconWidget, customViewDefinitions);
+            }
+
+            final dynamic activeIconWidget = customItem['selectedWidget'];
+            if (iconWidget != null) {
+              customActiveIconModel =
+                  ViewUtil.buildModel(activeIconWidget, customViewDefinitions);
+            }
+          }
+
+          menuItems.add(
+            MenuItem(
               item['label'],
               item['page'],
+              customActiveWidget: customActiveIconModel,
+              customWidget: customIconModel,
+              activeIcon: item['activeIcon'],
               icon: item['icon'],
               iconLibrary: Utils.optionalString(item['iconLibrary']),
-              selected: item['selected']));
+              selected: item['selected'],
+            ),
+          );
+          customIconModel = null; // Resetting custom icon model
+          customActiveIconModel = null; // Resetting custom icon model
         }
       }
       if (menuItems.length < 2) {
@@ -89,53 +119,38 @@ class BottomNavBarMenu extends Menu {
 }
 
 class DrawerMenu extends Menu {
-  DrawerMenu._(super.menuItems, this.atStart, {
-    super.styles,
-    super.headerModel,
-    super.footerModel
-  });
+  DrawerMenu._(super.menuItems, this.atStart,
+      {super.styles, super.headerModel, super.footerModel});
   // show the drawer at start (left for LTR languages) or at the end
   bool atStart = true;
 
-  factory DrawerMenu.fromYaml({
-    required List<MenuItem> menuItems,
-    required bool atStart,
-    Map<String, dynamic>? styles,
-    WidgetModel? headerModel,
-    WidgetModel? footerModel}) {
-    return DrawerMenu._(
-        menuItems,
-        atStart,
-        styles: styles,
-        headerModel: headerModel,
-        footerModel: footerModel);
+  factory DrawerMenu.fromYaml(
+      {required List<MenuItem> menuItems,
+      required bool atStart,
+      Map<String, dynamic>? styles,
+      WidgetModel? headerModel,
+      WidgetModel? footerModel}) {
+    return DrawerMenu._(menuItems, atStart,
+        styles: styles, headerModel: headerModel, footerModel: footerModel);
   }
 }
 
 class SidebarMenu extends Menu {
-  SidebarMenu._(super.menuItems, this.atStart, {
-    super.styles,
-    super.headerModel,
-    super.footerModel
-  });
+  SidebarMenu._(super.menuItems, this.atStart,
+      {super.styles, super.headerModel, super.footerModel});
   // show the sidebar at start (left for LTR languages) or at the end
   bool atStart = true;
 
-  factory SidebarMenu.fromYaml({
-    required List<MenuItem> menuItems,
-    required bool atStart,
-    Map<String, dynamic>? styles,
-    WidgetModel? headerModel,
-    WidgetModel? footerModel}) {
-    return SidebarMenu._(
-        menuItems,
-        atStart,
-        styles: styles,
-        headerModel: headerModel,
-        footerModel: footerModel);
+  factory SidebarMenu.fromYaml(
+      {required List<MenuItem> menuItems,
+      required bool atStart,
+      Map<String, dynamic>? styles,
+      WidgetModel? headerModel,
+      WidgetModel? footerModel}) {
+    return SidebarMenu._(menuItems, atStart,
+        styles: styles, headerModel: headerModel, footerModel: footerModel);
   }
 }
-
 
 enum MenuDisplay {
   BottomNavBar, // bottom navigation bar. Default if not specified
@@ -144,7 +159,6 @@ enum MenuDisplay {
   Sidebar, // side-bar navigation, which will becomes a drawer on low resolution
   EndSidebar,
 
-
   // legacy for backward compatible
   leftNavBar, // fixed navigation to the left. Only recommend for Web
   navBar, // bottom nav bar
@@ -152,19 +166,26 @@ enum MenuDisplay {
   navBar_right // fixed navigation on the right of the screen
 }
 
-enum MenuItemDisplay {
-  stacked,
-  sideBySide
-}
-
+enum MenuItemDisplay { stacked, sideBySide }
 
 class MenuItem {
-  MenuItem(this.label, this.page, {this.icon, this.iconLibrary, this.selected});
+  MenuItem(
+    this.label,
+    this.page, {
+    this.customWidget,
+    this.customActiveWidget,
+    this.activeIcon,
+    this.icon,
+    this.iconLibrary,
+    this.selected,
+  });
 
   final String? label;
   final String page;
   final dynamic icon;
+  final dynamic activeIcon;
+  final dynamic customWidget;
+  final dynamic customActiveWidget;
   final String? iconLibrary;
   final dynamic selected;
-
 }

@@ -27,7 +27,6 @@ void main() {
     }
   });
 
-
   test('Yaml to Map conversion', () {
     Map<String, dynamic> map = YamlUtil.yamlToMap(YamlMap.wrap({
       'output': {

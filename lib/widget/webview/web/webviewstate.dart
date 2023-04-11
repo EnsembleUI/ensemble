@@ -13,6 +13,7 @@ class ControllerImpl extends ViewController {
     _iframeElement.src = url;
   }
 }
+
 class WebViewState extends WidgetState<EnsembleWebView> {
   final IFrameElement _iframeElement = IFrameElement();
   HtmlElementView? htmlView;
@@ -23,6 +24,7 @@ class WebViewState extends WidgetState<EnsembleWebView> {
     htmlView = buildIFrameWidget();
     widget.controller.webViewController = ControllerImpl(_iframeElement);
   }
+
   HtmlElementView buildIFrameWidget() {
     _iframeElement.style.width = '100%';
     _iframeElement.style.height = '100%';
@@ -33,7 +35,7 @@ class WebViewState extends WidgetState<EnsembleWebView> {
     // ignore: undefined_prefixed_name
     ui.platformViewRegistry.registerViewFactory(
       'iframeElement',
-          (int viewId) => _iframeElement,
+      (int viewId) => _iframeElement,
     );
 
     return HtmlElementView(
@@ -45,13 +47,9 @@ class WebViewState extends WidgetState<EnsembleWebView> {
   @override
   Widget buildWidget(BuildContext context) {
     // WebView's height will be the same as the HTML height
-    if ( widget.controller.url == null ) {
+    if (widget.controller.url == null) {
       return const Text('Loading...');
     }
-    return SizedBox(
-        height: widget.controller.height,
-        child:htmlView!
-    );
+    return SizedBox(height: widget.controller.height, child: htmlView!);
   }
-
 }

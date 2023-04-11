@@ -14,6 +14,8 @@ import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/page_model.dart' as model;
 import 'package:ensemble/framework/extensions.dart';
 
+import '../widget/custom_view.dart';
+
 /// a collection of pages grouped under a navigation menu
 class PageGroup extends StatefulWidget {
   const PageGroup(
@@ -140,8 +142,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
   }
 
   /// build the sidebar and its children content
-  Widget buildSidebarNavigation(
-      BuildContext context, SidebarMenu menu) {
+  Widget buildSidebarNavigation(BuildContext context, SidebarMenu menu) {
     Widget sidebar = _buildSidebar(context, menu);
     Widget? separator = _buildSidebarSeparator(menu);
     Widget content = Expanded(child: pageWidgets[selectedPage]);
@@ -256,12 +257,28 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
   /// Build a Bottom Navigation Bar (default if display is not specified)
   BottomNavigationBar? _buildBottomNavBar(BuildContext context, Menu menu) {
     List<BottomNavigationBarItem> navItems = [];
+
     for (int i = 0; i < menu.menuItems.length; i++) {
       MenuItem item = menu.menuItems[i];
-      navItems.add(BottomNavigationBarItem(
-          icon: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
-          label: Utils.translate(item.label ?? '', context)));
+      // final customItem = menuWidget?.childWidget;
+      final dynamic customIcon = _buildCustomIcon(item);
+      final dynamic customActiveIcon = _buildCustomIcon(item, isActive: true);
+
+      final isCustom = customIcon != null || customActiveIcon != null;
+      final label = isCustom ? '' : Utils.translate(item.label ?? '', context);
+
+      navItems.add(
+        BottomNavigationBarItem(
+          activeIcon: customActiveIcon ??
+              ensemble.Icon(item.activeIcon ?? item.icon,
+                  library: item.iconLibrary),
+          icon: customIcon ??
+              ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
+          label: label,
+        ),
+      );
     }
+
     return BottomNavigationBar(
         items: navItems,
         backgroundColor: Utils.getColor(menu.styles?['backgroundColor']),
@@ -272,6 +289,19 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
           });
         },
         currentIndex: selectedPage);
+  }
+
+  Widget? _buildCustomIcon(MenuItem item, {bool isActive = false}) {
+    Widget? iconWidget;
+    dynamic customWidgetModel =
+        isActive ? item.customActiveWidget : item.customWidget;
+    if (customWidgetModel != null) {
+      final widget = _scopeManager.buildWidget(customWidgetModel!);
+      final dataScopeWidget = widget as DataScopeWidget;
+      final customWidget = dataScopeWidget.child as CustomView;
+      iconWidget = customWidget.childWidget;
+    }
+    return iconWidget;
   }
 
   Drawer? _buildDrawer(BuildContext context, Menu menu) {
