@@ -361,6 +361,7 @@ class FileUploadAction extends EnsembleAction {
     required this.fieldName,
     this.maxFileSize,
     this.overMaxFileSizeMessage,
+    required this.setBackground,
     required this.files,
   }) : super(inputs: inputs);
 
@@ -372,6 +373,7 @@ class FileUploadAction extends EnsembleAction {
   int? maxFileSize;
   String? overMaxFileSizeMessage;
   String files;
+  bool setBackground;
 
   factory FileUploadAction.fromYaml({YamlMap? payload}) {
     if (payload == null || payload['uploadApi'] == null) {
@@ -392,6 +394,7 @@ class FileUploadAction extends EnsembleAction {
       overMaxFileSizeMessage:
           Utils.optionalString(payload['overMaxFileSizeMessage']),
       files: payload['files'],
+      setBackground: Utils.getBool(payload['setBackground'], fallback: false),
     );
   }
 }
@@ -537,6 +540,8 @@ abstract class EnsembleAction {
           recurringDistanceFilter: Utils.optionalInt(
               payload?['options']?['recurringDistanceFilter'],
               min: 50));
+    } else if (actionType == ActionType.pickFiles) {
+      return FilePickerAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.uploadFiles) {
       return FileUploadAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.openUrl) {
