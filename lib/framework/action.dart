@@ -482,7 +482,7 @@ abstract class EnsembleAction {
     if (action is YamlMap) {
       ActionType? actionType = ActionType.values.from(action.keys.first);
       dynamic payload = action[action.keys.first];
-      if (actionType != null && payload is YamlMap) {
+      if (actionType != null && payload is YamlMap?) {
         return fromActionType(actionType,
             initiator: initiator, payload: payload);
       }
