@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:convert';
+
+import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/framework/data_context.dart' hide MediaType;
 import 'package:ensemble/util/http_utils.dart';
 import 'package:http/http.dart' as http;
-import 'package:mime/mime.dart';
-import 'package:yaml/yaml.dart';
 import 'package:http_parser/http_parser.dart';
+import 'package:mime/mime.dart';
+import 'package:workmanager/workmanager.dart';
 
 typedef ProgressCallback = void Function(double progress);
 typedef OnDoneCallback = void Function();
@@ -12,26 +15,16 @@ typedef OnErrorCallback = void Function(dynamic error);
 
 class UploadUtils {
   static Future<Response?> uploadFiles({
-    required YamlMap api,
-    required DataContext eContext,
+    required String method,
+    required String url,
+    required Map<String, String> headers,
     required List<File> files,
     required String fieldName,
+    bool isBackgroundTask = false,
     ProgressCallback? progressCallback,
     OnDoneCallback? onDone,
     OnErrorCallback? onError,
   }) async {
-    Map<String, String> headers = {};
-    if (api['headers'] is YamlMap) {
-      (api['headers'] as YamlMap).forEach((key, value) {
-        if (value != null) {
-          headers[key.toString()] = eContext.eval(value).toString();
-        }
-      });
-    }
-
-    String url = HttpUtils.resolveUrl(eContext, api['uri'].toString().trim());
-    String method = api['method']?.toString().toUpperCase() ?? 'POST';
-
     final request = MultipartRequest(method, Uri.parse(url),
         onProgress: progressCallback == null
             ? null
@@ -44,7 +37,7 @@ class UploadUtils {
 
     for (var file in files) {
       http.MultipartFile? multipartFile;
-      final String mimeType =
+      final mimeType =
           lookupMimeType(file.path ?? '', headerBytes: file.bytes) ??
               'application/octet-stream';
       if (file.path != null) {
@@ -75,6 +68,29 @@ class UploadUtils {
       onError?.call(error);
     }
     return null;
+  }
+
+  static Future<void> setBackgroundUploadTask({
+    required String method,
+    required String url,
+    required Map<String, String> headers,
+    required String fieldName,
+    required List<File> files,
+  }) async {
+    await Workmanager().registerOneOffTask(
+      'uploadTask',
+      backgroundUploadTask,
+      inputData: {
+        'fieldName': fieldName,
+        'files': files.map((e) => json.encode(e.toJson())).toList(),
+        'headers': json.encode(headers),
+        'method': method,
+        'url': url,
+      },
+      constraints: Constraints(
+        networkType: NetworkType.connected,
+      ),
+    );
   }
 }
 

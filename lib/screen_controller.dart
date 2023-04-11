@@ -555,9 +555,34 @@ class ScreenController {
       }
     }
 
+    Map<String, String> headers = {};
+    if (apiDefinition['headers'] is YamlMap) {
+      (apiDefinition['headers'] as YamlMap).forEach((key, value) {
+        if (value != null) {
+          headers[key.toString()] = dataContext.eval(value).toString();
+        }
+      });
+    }
+
+    String url = HttpUtils.resolveUrl(
+        dataContext, apiDefinition['uri'].toString().trim());
+    String method = apiDefinition['method']?.toString().toUpperCase() ?? 'POST';
+
+    if (action.setBackground) {
+      await UploadUtils.setBackgroundUploadTask(
+        fieldName: action.fieldName,
+        files: selectedFiles,
+        headers: headers,
+        method: method,
+        url: url,
+      );
+      return;
+    }
+
     final response = await UploadUtils.uploadFiles(
-      api: apiDefinition,
-      eContext: dataContext,
+      headers: headers,
+      method: method,
+      url: url,
       files: selectedFiles,
       fieldName: action.fieldName,
       onError: action.onError == null

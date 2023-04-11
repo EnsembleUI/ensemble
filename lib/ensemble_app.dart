@@ -1,16 +1,50 @@
-import 'dart:developer';
+import 'dart:convert';
 
-import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/widget/error_screen.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:workmanager/workmanager.dart';
+
+const String backgroundUploadTask = 'backgroundUploadTask';
+
+@pragma('vm:entry-point')
+void callbackDispatcher() {
+  Workmanager().executeTask((task, inputData) async {
+    switch (task) {
+      case backgroundUploadTask:
+        if (inputData == null) break;
+        try {
+          await UploadUtils.uploadFiles(
+            fieldName: inputData['fieldName'] ?? 'file',
+            files: (inputData['files'] as List)
+                .map((e) => File.fromJson(json.decode(e)))
+                .toList(),
+            headers:
+                Map<String, String>.from(json.decode(inputData['headers'])),
+            method: inputData['method'],
+            url: inputData['url'],
+          );
+        } catch (e) {
+          LanguageError('Failed to process: $task');
+          return Future.error(e);
+        }
+        break;
+      default:
+        throw LanguageError('Unknown background task: $task');
+    }
+    return Future.value(true);
+  });
+}
 
 /// use this as the root widget for Ensemble
 class EnsembleApp extends StatefulWidget {
@@ -53,6 +87,7 @@ class EnsembleAppState extends State<EnsembleApp> {
   void initState() {
     super.initState();
     config = initApp();
+    Workmanager().initialize(callbackDispatcher, isInDebugMode: kDebugMode);
   }
 
   @override
