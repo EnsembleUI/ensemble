@@ -156,8 +156,9 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
   Widget buildWidget(BuildContext context) {
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
 
-    customIndicator = _buildIndicatorWidget(scopeManager!);
-    selectedCustomIndicator = _buildSelectedIndicatorWidget(scopeManager);
+    customIndicator = _buildIndicatorWidget(scopeManager, isSelected: false);
+    selectedCustomIndicator =
+        _buildIndicatorWidget(scopeManager, isSelected: true);
     // if we should display one at a time or multiple in the slider
     bool singleView = isSingleView();
 
@@ -299,19 +300,16 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
     );
   }
 
-  Widget? _buildIndicatorWidget(ScopeManager? scopeManager) {
-    if (widget._controller.indicatorWidget != null && scopeManager != null) {
-      return scopeManager
-          .buildWidgetFromDefinition(widget._controller.indicatorWidget);
-    }
-    return null;
-  }
-
-  Widget? _buildSelectedIndicatorWidget(ScopeManager? scopeManager) {
-    if (widget._controller.selectedIndicatorWidget != null &&
-        scopeManager != null) {
-      return scopeManager.buildWidgetFromDefinition(
-          widget._controller.selectedIndicatorWidget);
+  Widget? _buildIndicatorWidget(ScopeManager? scopeManager,
+      {required bool isSelected}) {
+    if (scopeManager != null) {
+      if (isSelected && widget._controller.selectedIndicatorWidget != null) {
+        return scopeManager.buildWidgetFromDefinition(
+            widget._controller.selectedIndicatorWidget);
+      } else if (widget._controller.indicatorWidget != null) {
+        return scopeManager
+            .buildWidgetFromDefinition(widget._controller.indicatorWidget);
+      }
     }
     return null;
   }
