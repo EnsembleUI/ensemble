@@ -156,9 +156,11 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
   Widget buildWidget(BuildContext context) {
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
 
-    customIndicator = _buildIndicatorWidget(scopeManager, isSelected: false);
-    selectedCustomIndicator =
-        _buildIndicatorWidget(scopeManager, isSelected: true);
+    customIndicator =
+        _buildIndicatorWidget(scopeManager, widget._controller.indicatorWidget);
+    selectedCustomIndicator = _buildIndicatorWidget(
+        scopeManager, widget._controller.selectedIndicatorWidget);
+
     // if we should display one at a time or multiple in the slider
     bool singleView = isSingleView();
 
@@ -300,16 +302,10 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
     );
   }
 
-  Widget? _buildIndicatorWidget(ScopeManager? scopeManager,
-      {required bool isSelected}) {
-    if (scopeManager != null) {
-      if (isSelected && widget._controller.selectedIndicatorWidget != null) {
-        return scopeManager.buildWidgetFromDefinition(
-            widget._controller.selectedIndicatorWidget);
-      } else if (widget._controller.indicatorWidget != null) {
-        return scopeManager
-            .buildWidgetFromDefinition(widget._controller.indicatorWidget);
-      }
+  Widget? _buildIndicatorWidget(
+      dynamic widgetDefinition, ScopeManager? scopeManager) {
+    if (scopeManager != null && widgetDefinition != null) {
+      return scopeManager.buildWidgetFromDefinition(widgetDefinition);
     }
     return null;
   }
