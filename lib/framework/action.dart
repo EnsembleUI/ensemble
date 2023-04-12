@@ -339,14 +339,18 @@ class FilePickerAction extends EnsembleAction {
   EnsembleAction? onError;
 
   factory FilePickerAction.fromYaml({YamlMap? payload}) {
+    if (payload == null || payload['id'] == null) {
+      throw LanguageError("${ActionType.pickFiles.name} requires 'id'.");
+    }
+
     return FilePickerAction(
-      id: payload?['id'],
+      id: Utils.getString(payload['id'], fallback: ''),
       allowedExtensions:
-          (payload?['allowedExtensions'] as YamlList?)?.cast<String>().toList(),
-      allowMultiple: Utils.optionalBool(payload?['allowMultiple']),
-      allowCompression: Utils.optionalBool(payload?['allowCompression']),
-      onComplete: EnsembleAction.fromYaml(payload?['onComplete']),
-      onError: EnsembleAction.fromYaml(payload?['onError']),
+          (payload['allowedExtensions'] as YamlList?)?.cast<String>().toList(),
+      allowMultiple: Utils.optionalBool(payload['allowMultiple']),
+      allowCompression: Utils.optionalBool(payload['allowCompression']),
+      onComplete: EnsembleAction.fromYaml(payload['onComplete']),
+      onError: EnsembleAction.fromYaml(payload['onError']),
     );
   }
 }
@@ -482,7 +486,7 @@ abstract class EnsembleAction {
     if (action is YamlMap) {
       ActionType? actionType = ActionType.values.from(action.keys.first);
       dynamic payload = action[action.keys.first];
-      if (actionType != null && payload is YamlMap) {
+      if (actionType != null && payload is YamlMap?) {
         return fromActionType(actionType,
             initiator: initiator, payload: payload);
       }
@@ -539,8 +543,12 @@ abstract class EnsembleAction {
               min: 50));
     } else if (actionType == ActionType.uploadFiles) {
       return FileUploadAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.pickFiles) {
+      return FilePickerAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.openUrl) {
       return OpenUrlAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.connectWallet) {
+      return WalletConnectAction.fromYaml(payload: payload);
     }
     throw LanguageError("Invalid action.",
         recovery: "Make sure to use one of Ensemble-provided actions.");
