@@ -568,7 +568,10 @@ class ScreenController {
         dataContext, apiDefinition['uri'].toString().trim());
     String method = apiDefinition['method']?.toString().toUpperCase() ?? 'POST';
 
-    if (action.setBackground) {
+    if (action.isBackgroundTask) {
+      if (kIsWeb) {
+        throw LanguageError('Background Upload is not supported on web');
+      }
       await UploadUtils.setBackgroundUploadTask(
         fieldName: action.fieldName,
         files: selectedFiles,

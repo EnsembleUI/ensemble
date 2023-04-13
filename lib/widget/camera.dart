@@ -1248,22 +1248,6 @@ enum FocusState {
   error,
 }
 
-class FlutterToast {
-  static void showToast({
-    required String title,
-  }) {
-    Fluttertoast.showToast(
-      msg: title,
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.CENTER,
-      timeInSecForIosWeb: 1,
-      backgroundColor: Colors.red,
-      textColor: Colors.white,
-      fontSize: 16.0,
-    );
-  }
-}
-
 class InlineVideoPlayer extends StatefulWidget {
   const InlineVideoPlayer({super.key, required this.file});
 

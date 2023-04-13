@@ -361,7 +361,7 @@ class FileUploadAction extends EnsembleAction {
     required this.fieldName,
     this.maxFileSize,
     this.overMaxFileSizeMessage,
-    required this.setBackground,
+    required this.isBackgroundTask,
     required this.files,
   }) : super(inputs: inputs);
 
@@ -373,7 +373,7 @@ class FileUploadAction extends EnsembleAction {
   int? maxFileSize;
   String? overMaxFileSizeMessage;
   String files;
-  bool setBackground;
+  bool isBackgroundTask;
 
   factory FileUploadAction.fromYaml({YamlMap? payload}) {
     if (payload == null || payload['uploadApi'] == null) {
@@ -394,7 +394,8 @@ class FileUploadAction extends EnsembleAction {
       overMaxFileSizeMessage:
           Utils.optionalString(payload['overMaxFileSizeMessage']),
       files: payload['files'],
-      setBackground: Utils.getBool(payload['setBackground'], fallback: false),
+      isBackgroundTask:
+          Utils.getBool(payload['setBackgroundTask'], fallback: false),
     );
   }
 }
