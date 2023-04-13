@@ -7,9 +7,9 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/widget/error_screen.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get_storage/get_storage.dart';
@@ -22,7 +22,9 @@ void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     switch (task) {
       case backgroundUploadTask:
-        if (inputData == null) break;
+        if (inputData == null) {
+          throw LanguageError('Failed to parse data to upload');
+        }
         try {
           await UploadUtils.uploadFiles(
             fieldName: inputData['fieldName'] ?? 'file',
@@ -33,10 +35,10 @@ void callbackDispatcher() {
                 Map<String, String>.from(json.decode(inputData['headers'])),
             method: inputData['method'],
             url: inputData['url'],
+            isBackgroundTask: true,
           );
         } catch (e) {
-          LanguageError('Failed to process: $task');
-          return Future.error(e);
+          throw LanguageError('Failed to process: $task');
         }
         break;
       default:
@@ -87,7 +89,8 @@ class EnsembleAppState extends State<EnsembleApp> {
   void initState() {
     super.initState();
     config = initApp();
-    Workmanager().initialize(callbackDispatcher, isInDebugMode: kDebugMode);
+    Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
+    notificationUtils.initNotifications();
   }
 
   @override

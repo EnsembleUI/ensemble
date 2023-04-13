@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/framework/data_context.dart' hide MediaType;
 import 'package:ensemble/util/http_utils.dart';
+import 'package:ensemble/util/notification_utils.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
@@ -25,13 +26,22 @@ class UploadUtils {
     OnDoneCallback? onDone,
     OnErrorCallback? onError,
   }) async {
-    final request = MultipartRequest(method, Uri.parse(url),
-        onProgress: progressCallback == null
-            ? null
-            : (int bytes, int total) {
-                final progress = bytes / total;
-                progressCallback.call(progress);
-              });
+    final request = MultipartRequest(
+      method,
+      Uri.parse(url),
+      onProgress: isBackgroundTask
+          ? (int bytes, int total) {
+              final progress = bytes / total;
+              notificationUtils
+                  .showProgressNotification((progress * 100).toInt());
+            }
+          : progressCallback == null
+              ? null
+              : (int bytes, int total) {
+                  final progress = bytes / total;
+                  progressCallback.call(progress);
+                },
+    );
     request.headers.addAll(headers);
     final multipartFiles = <http.MultipartFile>[];
 
@@ -87,9 +97,7 @@ class UploadUtils {
         'method': method,
         'url': url,
       },
-      constraints: Constraints(
-        networkType: NetworkType.connected,
-      ),
+      constraints: Constraints(networkType: NetworkType.connected),
     );
   }
 }
