@@ -1,10 +1,9 @@
-import 'dart:developer';
-
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:ensemble/framework/device.dart';
-import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -12,8 +11,6 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
-import 'package:ensemble/widget/widget_util.dart';
-import 'package:ensemble/widget/widget_util.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 
@@ -59,6 +56,9 @@ class Carousel extends StatefulWidget
           _controller.indicatorMargin = Utils.getInsets(value),
       'onItemChange': (action) => _controller.onItemChange =
           EnsembleAction.fromYaml(action, initiator: this),
+      'indicatorWidget': (widget) => _controller.indicatorWidget = widget,
+      'selectedIndicatorWidget': (widget) =>
+          _controller.selectedIndicatorWidget = widget,
     };
   }
 
@@ -115,6 +115,10 @@ class MyController extends BoxController {
   int? indicatorHeight;
   EdgeInsets? indicatorMargin;
 
+  // Custom Widget
+  dynamic indicatorWidget;
+  dynamic selectedIndicatorWidget;
+
   // for single view the current item index is dispatched,
   // for multi view this dispatch when clicking on a card
   EnsembleAction? onItemChange;
@@ -125,6 +129,9 @@ class MyController extends BoxController {
 
 class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
   List<Widget>? templatedChildren;
+
+  Widget? customIndicator;
+  Widget? selectedCustomIndicator;
 
   // this is used to highlight the correct indicator index
   int focusIndex = 0;
@@ -147,6 +154,13 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
 
   @override
   Widget buildWidget(BuildContext context) {
+    ScopeManager? scopeManager = DataScopeWidget.getScope(context);
+
+    customIndicator =
+        _buildIndicatorWidget(scopeManager, widget._controller.indicatorWidget);
+    selectedCustomIndicator = _buildIndicatorWidget(
+        scopeManager, widget._controller.selectedIndicatorWidget);
+
     // if we should display one at a time or multiple in the slider
     bool singleView = isSingleView();
 
@@ -288,7 +302,27 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
     );
   }
 
+  Widget? _buildIndicatorWidget(
+      dynamic widgetDefinition, ScopeManager? scopeManager) {
+    if (scopeManager != null && widgetDefinition != null) {
+      return scopeManager.buildWidgetFromDefinition(widgetDefinition);
+    }
+    return null;
+  }
+
+  /// If it's a custom widget indicator type.
+  /// Return the custom indicator widget
+  /// Else return the default indicator widget (circle or rectangle)
   Widget getIndicator(bool selected) {
+    if (widget.controller.indicatorType == IndicatorType.custom) {
+      return selected
+          ? selectedCustomIndicator ?? defaultIndicator(selected)
+          : customIndicator ?? defaultIndicator(selected);
+    }
+    return selected ? defaultIndicator(selected) : defaultIndicator(selected);
+  }
+
+  Widget defaultIndicator(bool selected) {
     int w = widget._controller.indicatorWidth ??
         widget._controller.indicatorHeight ??
         8;
@@ -297,18 +331,20 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
         8;
 
     return Container(
-        width: w.toDouble(),
-        height: h.toDouble(),
-        margin: widget._controller.indicatorMargin ??
-            const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
-        decoration: BoxDecoration(
-            shape: widget._controller.indicatorType == IndicatorType.rectangle
-                ? BoxShape.rectangle
-                : BoxShape.circle,
-            color: (Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white
-                    : Colors.black)
-                .withOpacity(selected ? 0.9 : 0.4)));
+      width: w.toDouble(),
+      height: h.toDouble(),
+      margin: widget._controller.indicatorMargin ??
+          const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+      decoration: BoxDecoration(
+        shape: widget._controller.indicatorType == IndicatorType.rectangle
+            ? BoxShape.rectangle
+            : BoxShape.circle,
+        color: (Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : Colors.black)
+            .withOpacity(selected ? 0.9 : 0.4),
+      ),
+    );
   }
 }
 
@@ -322,6 +358,7 @@ enum IndicatorType {
   none,
   circle,
   rectangle,
+  custom,
 }
 
 enum IndicatorPosition { bottom, top }

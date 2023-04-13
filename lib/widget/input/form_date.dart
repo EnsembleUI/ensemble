@@ -75,6 +75,7 @@ class DateState extends FormFieldWidgetState<Date> {
   @override
   Widget buildWidget(BuildContext context) {
     return InputWrapper(
+        type: Date.type,
         controller: widget.controller,
         widget: FormField<DateTime>(
             key: validatorKey,

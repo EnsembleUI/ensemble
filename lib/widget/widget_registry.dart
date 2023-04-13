@@ -1,6 +1,7 @@
 import 'package:ensemble/layout/app_scroller.dart';
-import 'package:ensemble/layout/box_layout.dart';
+import 'package:ensemble/layout/box/box_layout.dart';
 import 'package:ensemble/layout/data_grid.dart';
+import 'package:ensemble/layout/box/fitted_box_layout.dart';
 import 'package:ensemble/layout/flow.dart';
 import 'package:ensemble/layout/form.dart';
 import 'package:ensemble/layout/list_view.dart';
@@ -10,6 +11,7 @@ import 'package:ensemble/layout/grid_view.dart';
 import 'package:ensemble/widget/conditional.dart';
 import 'package:ensemble/widget/fintech/finicityconnect/finicityconnect.dart';
 import 'package:ensemble/widget/text.dart';
+import 'package:ensemble/widget/toggle_button.dart';
 // import 'package:ensemble/widget/camera_widget.dart';
 import 'package:ensemble/widget/visualization/topology_chart.dart';
 import 'package:ensemble/widget/weeklyscheduler.dart';
@@ -81,8 +83,11 @@ class WidgetRegistry {
         EnsembleSwitch.type: () => EnsembleSwitch(),
         Dropdown.type: () => Dropdown(),
         Button.type: () => Button(),
+        EnsembleToggleButton.type: () => EnsembleToggleButton(),
 
         // containers
+        FittedRow.type: () => FittedRow(),
+        FittedColumn.type: () => FittedColumn(),
         Column.type: () => Column(),
         Row.type: () => Row(),
         ListView.type: () => ListView(),

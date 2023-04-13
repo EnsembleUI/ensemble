@@ -1,7 +1,8 @@
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/widget.dart';
-import 'package:ensemble/layout/box_layout.dart';
+import 'package:ensemble/layout/box/base_box_layout.dart';
+import 'package:ensemble/layout/box/box_layout.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
@@ -16,15 +17,13 @@ class ListView extends StatefulWidget
     with
         UpdatableContainer,
         Invokable,
-        HasController<BoxLayoutController, BoxLayoutState> {
+        HasController<ListViewController, BoxLayoutState> {
   static const type = 'ListView';
   ListView({Key? key}) : super(key: key);
 
-  late final ItemTemplate? itemTemplate;
-
-  final BoxLayoutController _controller = BoxLayoutController();
+  final ListViewController _controller = ListViewController();
   @override
-  BoxLayoutController get controller => _controller;
+  ListViewController get controller => _controller;
 
   @override
   Map<String, Function> getters() {
@@ -38,12 +37,14 @@ class ListView extends StatefulWidget
     return {
       'onItemTap': (funcDefinition) => _controller.onItemTap =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'showSeparator': (value) =>
+          _controller.showSeparator = Utils.optionalBool(value),
       'separatorColor': (value) =>
-          _controller.sepratorColor = Utils.getColor(value),
+          _controller.separatorColor = Utils.getColor(value),
       'separatorWidth': (value) =>
-          _controller.sepratorWidth = Utils.optionalDouble(value),
+          _controller.separatorWidth = Utils.optionalDouble(value),
       'separatorPadding': (value) =>
-          _controller.sepratorPadding = Utils.optionalInsets(value),
+          _controller.separatorPadding = Utils.optionalInsets(value),
     };
   }
 
@@ -55,92 +56,103 @@ class ListView extends StatefulWidget
   @override
   void initChildren({List<Widget>? children, ItemTemplate? itemTemplate}) {
     _controller.children = children;
-    this.itemTemplate = itemTemplate;
+    _controller.itemTemplate = itemTemplate;
   }
 
   @override
   State<StatefulWidget> createState() => ListViewState();
+}
 
-// bool isVertical();
+class ListViewController extends BoxLayoutController {
+  EnsembleAction? onItemTap;
+  int selectedItemIndex = -1;
+
+  bool? showSeparator;
+  Color? separatorColor;
+  double? separatorWidth;
+  EdgeInsets? separatorPadding;
 }
 
 class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
-  List<Widget>? templatedChildren;
-  List _listViewChildren = [];
+  // template item is created on scroll. this will store the template's data list
+  List<dynamic>? templatedDataList;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    if (widget.itemTemplate != null) {
-      registerItemTemplate(context, widget.itemTemplate!,
+    if (widget._controller.itemTemplate != null) {
+      // initial value maybe set before the screen rendered
+      templatedDataList = widget._controller.itemTemplate!.initialValue;
+
+      registerItemTemplate(context, widget._controller.itemTemplate!,
           evaluateInitialValue: true, onDataChanged: (List dataList) {
         setState(() {
-          _listViewChildren = dataList;
+          templatedDataList = dataList;
         });
       });
     }
   }
 
   @override
-  void dispose() {
-    super.dispose();
-    templatedChildren = null;
-  }
-
-  @override
   Widget buildWidget(BuildContext context) {
-    return _buildBoxWidget();
-  }
+    // children displayed first, followed by item template
+    int itemCount = (widget._controller.children?.length ?? 0) +
+        (templatedDataList?.length ?? 0);
+    if (itemCount == 0) {
+      return const SizedBox.shrink();
+    }
 
-  Widget _buildBoxWidget() {
-    // propagate text styling to all its children
-    return DefaultTextStyle.merge(
-        style: TextStyle(
-            fontFamily: widget._controller.fontFamily,
-            fontSize: widget._controller.fontSize != null
-                ? widget._controller.fontSize!.toDouble()
-                : null),
-        child: _buildListViewWidget());
-  }
+    Widget listView = flutter.ListView.separated(
+        padding: widget._controller.padding ?? const EdgeInsets.all(0),
+        scrollDirection: Axis.vertical,
+        physics: const ScrollPhysics(),
+        itemCount: itemCount,
+        shrinkWrap: false,
+        itemBuilder: (BuildContext context, int index) {
+          // show children
+          Widget? itemWidget;
+          if (widget._controller.children != null &&
+              index < widget._controller.children!.length) {
+            itemWidget = widget._controller.children![index];
+          }
+          // create widget from item template
+          else if (templatedDataList != null &&
+              widget._controller.itemTemplate != null) {
+            itemWidget = buildWidgetForIndex(
+                context,
+                templatedDataList!,
+                widget._controller.itemTemplate!,
+                // templated widget should start at 0, need to offset chidlren length
+                index - (widget._controller.children?.length ?? 0));
+          }
+          if (itemWidget != null) {
+            return widget._controller.onItemTap == null
+                ? itemWidget
+                : GestureDetector(
+                    onTap: () => _onItemTapped(index), child: itemWidget);
+          }
+          return const SizedBox.shrink();
+        },
+        separatorBuilder: (context, index) =>
+            widget._controller.showSeparator == false
+                ? const SizedBox.shrink()
+                : flutter.Padding(
+                    padding: widget._controller.separatorPadding ??
+                        const EdgeInsets.all(0),
+                    child: flutter.Divider(
+                        color: widget._controller.separatorColor,
+                        thickness:
+                            widget._controller.separatorWidth?.toDouble())));
 
-  // ------------------ Build Widgets for the childrens displayed in YAML ----------------
-
-  Widget _buildListViewWidget() {
     return BoxWrapper(
-      boxController: widget._controller,
-      widget: flutter.ListView.separated(
-          separatorBuilder: (context, index) =>
-              _buildSepratorWidget(context, index),
-          padding: widget._controller.padding ?? const EdgeInsets.all(0),
-          scrollDirection: Axis.vertical,
-          physics: const ScrollPhysics(),
-          itemCount: _listViewChildren.length,
-          shrinkWrap: false,
-          itemBuilder: (BuildContext context, int index) {
-            return GestureDetector(
-                onTap: widget._controller.onItemTap == null
-                    ? null
-                    : () => _onItemTapped(index),
-                child: buildWidgetForIndex(
-                    context, _listViewChildren, widget.itemTemplate!, index));
-          }),
-    );
+        boxController: widget._controller,
+        widget: DefaultTextStyle.merge(
+            style: TextStyle(
+                fontFamily: widget._controller.fontFamily,
+                fontSize: widget._controller.fontSize?.toDouble()),
+            child: listView));
   }
-
-  // ---------------- Seprator --------------------------
-
-  Widget _buildSepratorWidget(BuildContext context, int index) {
-    return flutter.Padding(
-      padding: widget._controller.sepratorPadding ?? const EdgeInsets.all(0),
-      child: flutter.Divider(
-        color: widget._controller.sepratorColor,
-        thickness: (widget._controller.sepratorWidth ?? 1).toDouble(),
-      ),
-    );
-  }
-
-  // ----------------- To GET the current [index] of the item in data array -------------------
 
   _onItemTapped(int index) {
     if (index != widget._controller.selectedItemIndex &&
