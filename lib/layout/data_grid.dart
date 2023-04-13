@@ -322,6 +322,11 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
     return SingleChildScrollView(
         scrollDirection: Axis.vertical,
         child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal, child: grid));
+            scrollDirection: Axis.horizontal,
+
+            // DataTable requires all children to report their intrinsic height.
+            // Some widgets don't like that so we expose this so the widgets
+            // can react accordingly
+            child: RequiresChildWithIntrinsicDimension(child: grid)));
   }
 }

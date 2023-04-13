@@ -65,3 +65,18 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
     }
   }
 }
+
+/// some of our widgets use LayoutBuilder to detect if their parent has
+/// infinite width/height to properly respond (Input widgets inside Row
+/// requires expanded=true). However some container (e.g. DataTable) requires
+/// all its children to return the intrinsic width/height to properly render.
+/// We just need to expose the hierarchy chain so we can properly handle
+/// various situations
+class RequiresChildWithIntrinsicDimension extends InheritedWidget {
+  const RequiresChildWithIntrinsicDimension({super.key, required super.child});
+
+  @override
+  bool updateShouldNotify(covariant InheritedWidget oldWidget) {
+    return false;
+  }
+}

@@ -1,4 +1,5 @@
 import 'dart:developer';
+import 'dart:io' as io;
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -6,6 +7,7 @@ import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/services.dart';
 import 'package:get_storage/get_storage.dart';
 
 import 'package:ensemble/framework/action.dart';
@@ -19,7 +21,9 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/errors.dart';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
+import 'package:mime/mime.dart';
 import 'package:source_span/source_span.dart';
+import 'package:walletconnect_dart/walletconnect_dart.dart';
 import 'package:yaml/yaml.dart';
 
 /// manages Data and Invokables within the current data scope.
@@ -314,7 +318,9 @@ class NativeInvokable with Invokable {
       ActionType.stopTimer.name: stopTimer,
       ActionType.openCamera.name: showCamera,
       ActionType.navigateBack.name: navigateBack,
-      'debug': (value) => log('Debug: $value')
+      'debug': (value) => log('Debug: $value'),
+      'copyToClipboard': (value) =>
+          Clipboard.setData(ClipboardData(text: value))
     };
   }
 
@@ -664,18 +670,11 @@ class FileData with Invokable {
   FileData({List<File>? files}) : _files = files;
 
   final List<File>? _files;
-  Response? _response;
-
-  setResponse(Response response) {
-    _response = response;
-  }
 
   @override
   Map<String, Function> getters() {
     return {
       'files': () => _files?.map((file) => file.toJson()).toList(),
-      'body': () => _response?.body,
-      'headers': () => _response?.headers
     };
   }
 
@@ -700,6 +699,13 @@ class File {
         path = kIsWeb ? null : file.path,
         bytes = file.bytes;
 
+  File.fromJson(Map<String, dynamic> file)
+      : name = file['name'],
+        ext = file['extension'],
+        size = file['size'],
+        path = file['path'],
+        bytes = file['bytes'];
+
   final String name;
 
   /// The file size in bytes. Defaults to `0` if the file size could not be
@@ -716,6 +722,67 @@ class File {
       'size': size,
       'path': path,
       'bytes': bytes,
+      'mediaType': getMediaType().name,
     };
+  }
+
+  io.File? toFile() {
+    if (path == null) return null;
+    return io.File(path!);
+  }
+
+  MediaType getMediaType() {
+    if (path == null) return MediaType.unknown;
+    String? mimeType = lookupMimeType(path!);
+    if (mimeType == null) {
+      return MediaType.unknown;
+    }
+    if (mimeType.startsWith('image/')) {
+      return MediaType.image;
+    } else if (mimeType.startsWith('video/')) {
+      return MediaType.video;
+    } else if (mimeType.startsWith('audio/')) {
+      return MediaType.audio;
+    } else {
+      return MediaType.unknown;
+    }
+  }
+}
+
+enum MediaType {
+  image,
+  video,
+  audio,
+  unknown,
+}
+
+class WalletData with Invokable {
+  WalletData(this.walletConnect);
+
+  final WalletConnect walletConnect;
+
+  @override
+  Map<String, Function> getters() {
+    return {
+      'addresses': () => walletConnect.session.accounts,
+      'connectionUri': () => walletConnect.session.toUri().toString(),
+    };
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {
+      'closeConnection': () => closeConnection(),
+    };
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
+  }
+
+  void closeConnection() {
+    walletConnect.killSession();
+    walletConnect.close();
   }
 }

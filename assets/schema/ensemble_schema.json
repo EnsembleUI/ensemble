@@ -4,138 +4,136 @@
   "title": "Ensemble",
   "type": "object",
   "properties": {
-    "Import": {
-
-    },
+    "Import": {},
     "ViewGroup": {
       "$ref": "#/$defs/Menu",
       "description": "Group multiple Views together and put them behind a menu."
     },
     "View": {
       "type": "object",
-      "description": "This is your root View. It requires exactly one child widget of type Column, Row, Flex, or Stack.",
-      "allOf": [
-        {
-          "$ref": "#/$defs/RootWidget"
-        },
-        {
+      "description": "This is your root View. It requires a body widget.",
+      "required": [
+        "body"
+      ],
+      "properties": {
+        "header": {
+          "type": "object",
+          "description": "Configure the application header",
           "properties": {
-            "header": {
-              "type": "object",
-              "description": "Configure the application header",
-              "properties": {
-                "title": {
-                  "type": ["string", "object"],
-                  "description": "A simple text or a custom widget for the App's title",
-                  "$ref": "#/$defs/Widget"
-                },
-                "flexibleBackground": {
-                  "$ref": "#/$defs/Widget",
-                  "description": "This widget (typically used as an background image) acts as the header's background, with the title bar and the bottom widget overlaid on top. On non-scrollable screen, its dimensions is dictated by the header's width and height."
-                },
-                "styles": {
-                  "type": "object",
-                  "properties": {
-                    "backgroundColor": {
-                      "$ref": "#/$defs/typeColors",
-                      "description": "By default the background color uses the theme's 'primary' color. You can override the header's background color here."
-                    },
-                    "color": {
-                      "$ref": "#/$defs/typeColors",
-                      "description": "By default the navigation icon, title, and action icons uses the theme's 'onPrimary' color. You can override their colors here."
-                    },
-                    "elevation": {
-                      "type": "integer",
-                      "description": "Raise the header on its z-coordinates relative to the body. This effectively creates a drop shadow on the header's bottom edge.",
-                      "minimum": 0
-                    },
-                    "shadowColor": {
-                      "$ref": "#/$defs/typeColors",
-                      "description": "If elevation is non-zero, this will override the drop shadow color of the header's bottom edge."
-                    },
-                    "centerTitle": {
-                      "type": "boolean",
-                      "description": "Whether to align the title in the title bar's center horizontally (default: true)"
-                    },
-                    "titleBarHeight": {
-                      "type": "integer",
-                      "description": "For consistency, the header's title bar has the default fixed height of 56 regardless of its content. You may adjust its height here.",
-                      "minimum": 0
-                    },
-                    "flexibleMinHeight": {
-                      "type": "integer",
-                      "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's min height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). Note that this attribute will be ignored if smaller than the titleBarHeight"
-                    },
-                    "flexibleMaxHeight": {
-                      "type": "integer",
-                      "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's max height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). This attribute will be ignored if smaller than the flexibleMinHeight"
-                    }
-                  }
-                }
-              }
+            "title": {
+              "type": [
+                "string",
+                "object"
+              ],
+              "description": "A simple text or a custom widget for the App's title",
+              "$ref": "#/$defs/Widget"
             },
-            "onLoad": {
-              "$ref": "#/$defs/Action-payload",
-              "description": "Execute an Action when the screen loads"
-            },
-            "options": {
-              "type": "object",
-              "properties": {
-                "type": {
-                  "type": "string",
-                  "description": "Specify if this is a regular (default) or modal screen",
-                  "enum": ["regular", "modal"]
-                }
-              }
+            "flexibleBackground": {
+              "$ref": "#/$defs/Widget",
+              "description": "This widget (typically used as an background image) acts as the header's background, with the title bar and the bottom widget overlaid on top. On non-scrollable screen, its dimensions is dictated by the header's width and height."
             },
             "styles": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/backgroundImage"
+              "type": "object",
+              "properties": {
+                "backgroundColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "By default the background color uses the theme's 'primary' color. You can override the header's background color here."
                 },
-                {
-                  "$ref": "#/$defs/backgroundColor",
-                  "description": "Background color for the screen starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+                "color": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "By default the navigation icon, title, and action icons uses the theme's 'onPrimary' color. You can override their colors here."
                 },
-                {
-                  "properties": {
-                    "useSafeArea": {
-                      "type": "boolean",
-                      "description": "Applicable only when we don't have a header. If true, insert paddings around the body content to account for the the devices' Safe Area (e.g. iPhone notch). Default is false."
-                    },
-                    "scrollableView": {
-                      "type": "boolean",
-                      "description": "Specify if the content of this screen is scrollable with a global scrollbar. Using this also allow you to customize the scrolling experience of the header."
-                    },
-                    "showNavigationIcon": {
-                      "type": "boolean",
-                      "description": "For a screen with header, the App will automatically show the Menu, Back, or Close icon (for modal screen) before the title. On modal screen without the header, the Close icon will be shown. Set this flag to false if you wish to hide the icons and handle the navigation yourself."
-                    },
-                    "navigationIconPosition": {
-                      "type": "string",
-                      "description": "On modal screen without a header, you can position the close button at the start or end of the screen. For left-to-right languages like English, start is on the left and end is on the right. This property has no effect on a screen with header.",
-                      "enum": ["start", "end"]
-                    }
-                  }
+                "elevation": {
+                  "type": "integer",
+                  "description": "Raise the header on its z-coordinates relative to the body. This effectively creates a drop shadow on the header's bottom edge.",
+                  "minimum": 0
+                },
+                "shadowColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "If elevation is non-zero, this will override the drop shadow color of the header's bottom edge."
+                },
+                "centerTitle": {
+                  "type": "boolean",
+                  "description": "Whether to align the title in the title bar's center horizontally (default: true)"
+                },
+                "titleBarHeight": {
+                  "type": "integer",
+                  "description": "For consistency, the header's title bar has the default fixed height of 56 regardless of its content. You may adjust its height here.",
+                  "minimum": 0
+                },
+                "flexibleMinHeight": {
+                  "type": "integer",
+                  "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's min height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). Note that this attribute will be ignored if smaller than the titleBarHeight"
+                },
+                "flexibleMaxHeight": {
+                  "type": "integer",
+                  "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's max height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). This attribute will be ignored if smaller than the flexibleMinHeight"
                 }
+              }
+            }
+          }
+        },
+        "body": {
+          "$ref": "#/$defs/Widget"
+        },
+        "onLoad": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Execute an Action when the screen loads"
+        },
+        "options": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Specify if this is a regular (default) or modal screen",
+              "enum": [
+                "regular",
+                "modal"
               ]
             }
           }
+        },
+        "styles": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/backgroundImage"
+            },
+            {
+              "$ref": "#/$defs/backgroundColor",
+              "description": "Background color for the screen starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+            },
+            {
+              "properties": {
+                "useSafeArea": {
+                  "type": "boolean",
+                  "description": "Applicable only when we don't have a header. If true, insert paddings around the body content to account for the the devices' Safe Area (e.g. iPhone notch). Default is false."
+                },
+                "scrollableView": {
+                  "type": "boolean",
+                  "description": "Specify if the content of this screen is scrollable with a global scrollbar. Using this also allow you to customize the scrolling experience of the header."
+                },
+                "showNavigationIcon": {
+                  "type": "boolean",
+                  "description": "For a screen with header, the App will automatically show the Menu, Back, or Close icon (for modal screen) before the title. On modal screen without the header, the Close icon will be shown. Set this flag to false if you wish to hide the icons and handle the navigation yourself."
+                },
+                "navigationIconPosition": {
+                  "type": "string",
+                  "description": "On modal screen without a header, you can position the close button at the start or end of the screen. For left-to-right languages like English, start is on the left and end is on the right. This property has no effect on a screen with header.",
+                  "enum": [
+                    "start",
+                    "end"
+                  ]
+                }
+              }
+            }
+          ]
         }
-      ]
+      }
     },
-    "Action": {
-
-    },
-    "Model": {
-
-    },
-    "App": {
-
-    },
-    "Variable": {
-
-    },
+    "Action": {},
+    "Model": {},
+    "App": {},
+    "Variable": {},
     "Functions": {
       "type": "string",
       "description": "Javascript snippet for declaring variables and reusable functions, visible anywhere within this screen"
@@ -148,12 +146,14 @@
         }
       ],
       "markdownDescription": "Declare Javascript variables and functions that are visible globally within this screen.  \n//@code  \n var myGlobalVar = 'hello';  \nfunction myGlobalFunc() {  \n  }"
-
     },
     "API": {
       "additionalProperties": {
         "type": "object",
-        "required": ["uri", "method"],
+        "required": [
+          "uri",
+          "method"
+        ],
         "properties": {
           "inputs": {
             "type": "array",
@@ -163,10 +163,16 @@
             "type": "string",
             "description": "The URL for this API"
           },
-          "method":{
+          "method": {
             "type": "string",
             "description": "Set the HTTP Method",
-            "enum": ["GET", "PUT", "POST", "PATCH", "DELETE"]
+            "enum": [
+              "GET",
+              "PUT",
+              "POST",
+              "PATCH",
+              "DELETE"
+            ]
           },
           "parameters": {
             "type": "object",
@@ -187,33 +193,29 @@
         }
       }
     }
-
   },
   "additionalProperties": {
     "type": "object",
     "description": "Defining a Custom Widget",
-    "allOf": [
-      {
-        "$ref": "#/$defs/Widget"
+    "required": [
+      "body"
+    ],
+    "properties": {
+      "inputs": {
+        "type": "array",
+        "description": "Define the list of input names that this Custom Widget accepts."
       },
-      {
-        "properties": {
-          "inputs": {
-            "type": "array",
-            "description": "Define the list of input names that this Custom Widget accepts."
-          },
-          "onLoad": {
-            "$ref": "#/$defs/Action-payload",
-            "description": "Execute an Action when this Custom Widget loads"
-          }
-        }
+      "onLoad": {
+        "$ref": "#/$defs/Action-payload",
+        "description": "Execute an Action when this Custom Widget loads"
+      },
+      "body": {
+        "$ref": "#/$defs/Widget",
+        "description": "Specify a widget to render."
       }
-    ]
+    }
   },
-
-
   "$defs": {
-
     "Text-payload": {
       "type": "object",
       "required": [],
@@ -256,25 +258,45 @@
                   "type": "string",
                   "description": "Set treatment of text longer than available space",
                   "enum": [
-                    "wrap", "visible", "clip", "ellipsis"
+                    "wrap",
+                    "visible",
+                    "clip",
+                    "ellipsis"
                   ]
                 },
                 "textAlign": {
                   "type": "string",
                   "enum": [
-                    "start", "end", "center", "justify"
+                    "start",
+                    "end",
+                    "center",
+                    "justify"
                   ]
                 },
                 "textStyle": {
                   "type": "string",
                   "enum": [
-                    "normal", "italic", "underline", "strikethrough", "italic_underline", "italic_strikethrough"
+                    "normal",
+                    "italic",
+                    "underline",
+                    "strikethrough",
+                    "italic_underline",
+                    "italic_strikethrough"
                   ]
                 },
                 "lineHeight": {
-                  "type": ["number", "string"],
+                  "type": [
+                    "number",
+                    "string"
+                  ],
                   "enum": [
-                    "default", "1.0", "1.15", "1.25", "1.5", "2.0", "2.5"
+                    "default",
+                    "1.0",
+                    "1.15",
+                    "1.25",
+                    "1.5",
+                    "2.0",
+                    "2.5"
                   ]
                 }
               }
@@ -325,7 +347,9 @@
     },
     "Icon-payload": {
       "type": "object",
-      "required": ["icon"],
+      "required": [
+        "icon"
+      ],
       "properties": {
         "icon": {
           "type": "string",
@@ -372,7 +396,9 @@
     },
     "Image-payload": {
       "type": "object",
-      "required": ["source"],
+      "required": [
+        "source"
+      ],
       "properties": {
         "source": {
           "type": "string",
@@ -451,7 +477,9 @@
     },
     "Lottie-payload": {
       "type": "object",
-      "required": ["source"],
+      "required": [
+        "source"
+      ],
       "properties": {
         "source": {
           "type": "string",
@@ -520,7 +548,9 @@
     },
     "QRCode-payload": {
       "type": "object",
-      "required": ["value"],
+      "required": [
+        "value"
+      ],
       "properties": {
         "value": {
           "type": "string",
@@ -556,7 +586,10 @@
       "properties": {
         "display": {
           "type": "string",
-          "enum": ["linear", "circular"]
+          "enum": [
+            "linear",
+            "circular"
+          ]
         },
         "countdown": {
           "type": "integer",
@@ -614,7 +647,10 @@
                 "direction": {
                   "type": "string",
                   "description": "Whether to display a horizontal divider (default) or vertical divider.",
-                  "enum": [ "horizontal", "vertical" ]
+                  "enum": [
+                    "horizontal",
+                    "vertical"
+                  ]
                 },
                 "thickness": {
                   "type": "integer"
@@ -655,8 +691,12 @@
     },
     "TextInput-payload": {
       "allOf": [
-        { "$ref": "#/$defs/FormInput-payload" },
-        { "$ref": "#/$defs/inputValidator" },
+        {
+          "$ref": "#/$defs/FormInput-payload"
+        },
+        {
+          "$ref": "#/$defs/inputValidator"
+        },
         {
           "type": "object",
           "properties": {
@@ -671,7 +711,12 @@
             "inputType": {
               "type": "string",
               "description": "Pick a predefined input type",
-              "enum": [ "default" ,"email", "phone", "ipAddress"]
+              "enum": [
+                "default",
+                "email",
+                "phone",
+                "ipAddress"
+              ]
             },
             "keyboardAction": {
               "$ref": "#/$defs/keyboardAction"
@@ -699,8 +744,12 @@
     },
     "PasswordInput-payload": {
       "allOf": [
-        { "$ref": "#/$defs/FormInput-payload" },
-        { "$ref": "#/$defs/inputValidator" },
+        {
+          "$ref": "#/$defs/FormInput-payload"
+        },
+        {
+          "$ref": "#/$defs/inputValidator"
+        },
         {
           "type": "object",
           "properties": {
@@ -763,6 +812,10 @@
             "items": {
               "type": "array",
               "description": "List of values, or Objects with value/label pairs"
+            },
+            "autoComplete": {
+              "type": "boolean",
+              "description": "Enable the Input search suggestion option"
             }
           }
         }
@@ -840,8 +893,12 @@
         },
         "styles": {
           "allOf": [
-            { "$ref": "#/$defs/baseStyles" },
-            { "$ref": "#/$defs/boxStyles" },
+            {
+              "$ref": "#/$defs/baseStyles"
+            },
+            {
+              "$ref": "#/$defs/boxStyles"
+            },
             {
               "type": "object",
               "properties": {
@@ -850,7 +907,10 @@
                   "description": "Whether the button should have an outline border instead of filled background"
                 },
                 "color": {
-                  "type": ["number", "string"],
+                  "type": [
+                    "number",
+                    "string"
+                  ],
                   "description": "Set the color for the button label starting with '0xFF' for full opacity"
                 },
                 "fontSize": {
@@ -859,6 +919,72 @@
                 },
                 "fontWeight": {
                   "$ref": "#/$defs/type-fontWeight"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "ToggleButton-payload": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "description": "Set a default value that matches one of the items. If Items are Objects, it should match the value key"
+        },
+        "items": {
+          "type": "array",
+          "description": "List of values, or Objects with value/label pairs"
+        },
+        "onChange": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Call Ensemble's built-in functions or execute code when the input changes. Note for free-form text input, this event only dispatches if the text changes AND the focus is lost (e.g. clicking on button)"
+        },
+        "styles": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "spacing": {
+                  "type": "integer",
+                  "description": "Space between the toggle buttons item",
+                  "minimum": 0
+                },
+                "runSpacing": {
+                  "type": "integer",
+                  "description": "Space between the toggle buttons row",
+                  "minimum": 0
+                },
+                "color": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Set the color for the toggle button label starting with '0xFF' for full opacity"
+                },
+                "selectedColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Set the color for the selected toggle button label"
+                },
+                "backgroundColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Set the background color for the toggle button"
+                },
+                "selectedBackgroundColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Set the background color for the selected toggle button"
+                },
+                "borderColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Set the border color for the toggle button, starting with '0xFF' for full opacity"
+                },
+                "selectedBorderColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Set the border color for the selected toggle button, starting with '0xFF' for full opacity"
+                },
+                "shadowColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Set the shadow color for the toggle button"
                 }
               }
             }
@@ -876,21 +1002,34 @@
           "$ref": "#/$defs/Action-payload",
           "description": "Action to execute when the form is submitted"
         },
-        "children": { "$ref": "#/$defs/Widgets" },
+        "children": {
+          "$ref": "#/$defs/Widgets"
+        },
         "styles": {
           "type": "object",
           "properties": {
             "labelPosition": {
               "type": "string",
               "description": "Where the position the FormField's label",
-              "enum": [ "top", "start", "none" ]
+              "enum": [
+                "top",
+                "start",
+                "none"
+              ]
             },
             "labelOverflow": {
               "type": "string",
               "description": "Treatment of text longer than available space",
               "enum": [
-                "wrap", "visible", "clip", "ellipsis"
+                "wrap",
+                "visible",
+                "clip",
+                "ellipsis"
               ]
+            },
+            "labelMaxWidth": {
+              "type": "integer",
+              "description": "Cap the label's width, useful on larger screen. This property only works on labelPosition=start."
             },
             "width": {
               "type": "integer",
@@ -912,16 +1051,25 @@
     "Flow-payload": {
       "type": "object",
       "allOf": [
-        { "$ref": "#/$defs/Templated-payload" },
+        {
+          "$ref": "#/$defs/Templated-payload"
+        },
         {
           "properties": {
-            "children": { "$ref": "#/$defs/Widgets" },
+            "children": {
+              "$ref": "#/$defs/Widgets"
+            },
             "direction": {
               "type": "string",
               "description": "The main direction to lay out the children before wrapping",
-              "enum": ["vertical", "horizontal"]
+              "enum": [
+                "vertical",
+                "horizontal"
+              ]
             },
-            "styles": { "$ref": "#/$defs/flowStyles" }
+            "styles": {
+              "$ref": "#/$defs/flowStyles"
+            }
           }
         }
       ]
@@ -929,11 +1077,17 @@
     "Column-payload": {
       "type": "object",
       "allOf": [
-        { "$ref": "#/$defs/Templated-payload" },
+        {
+          "$ref": "#/$defs/Templated-payload"
+        },
         {
           "properties": {
-            "children": { "$ref": "#/$defs/Widgets" },
-            "styles": { "$ref": "#/$defs/columnStyles" }
+            "children": {
+              "$ref": "#/$defs/Widgets"
+            },
+            "styles": {
+              "$ref": "#/$defs/columnStyles"
+            }
           }
         }
       ]
@@ -941,11 +1095,17 @@
     "Row-payload": {
       "type": "object",
       "allOf": [
-        { "$ref": "#/$defs/Templated-payload" },
+        {
+          "$ref": "#/$defs/Templated-payload"
+        },
         {
           "properties": {
-            "children": { "$ref": "#/$defs/Widgets" },
-            "styles": { "$ref": "#/$defs/rowStyles" }
+            "children": {
+              "$ref": "#/$defs/Widgets"
+            },
+            "styles": {
+              "$ref": "#/$defs/rowStyles"
+            }
           }
         }
       ]
@@ -953,7 +1113,9 @@
     "GridView-payload": {
       "type": "object",
       "allOf": [
-        { "$ref": "#/$defs/Templated-payload" },
+        {
+          "$ref": "#/$defs/Templated-payload"
+        },
         {
           "properties": {
             "onItemTap": {
@@ -962,12 +1124,19 @@
             },
             "styles": {
               "allOf": [
-                { "$ref": "#/$defs/baseStyles" },
-                { "$ref": "#/$defs/boxLayoutStyles" },
+                {
+                  "$ref": "#/$defs/baseStyles"
+                },
+                {
+                  "$ref": "#/$defs/boxLayoutStyles"
+                },
                 {
                   "properties": {
                     "horizontalTileCount": {
-                      "type": ["integer", "string"],
+                      "type": [
+                        "integer",
+                        "string"
+                      ],
                       "description": "The number of horizontal tiles (max 5) to show. If not specified, the number of tiles will automatically be determined by the screen size. You may also specify a single number (for all breakpoints), three numbers (for small, medium, large breakpoints), or five numbers (xSmall, small, medium, large, xLarge).",
                       "minimum": 1,
                       "maximum": 5
@@ -1005,11 +1174,17 @@
       "allOf": [
         {
           "properties": {
-            "children": { "$ref": "#/$defs/Widgets" },
-            "styles": { "$ref": "#/$defs/flexStyles" }
+            "children": {
+              "$ref": "#/$defs/Widgets"
+            },
+            "styles": {
+              "$ref": "#/$defs/flexStyles"
+            }
           }
         },
-        { "$ref": "#/$defs/Templated-payload" }
+        {
+          "$ref": "#/$defs/Templated-payload"
+        }
       ]
     },
     "Stack-payload": {
@@ -1021,7 +1196,9 @@
         "styles": {
           "type": "object",
           "properties": {
-            "alignment": { "$ref": "#/$defs/alignment" }
+            "alignment": {
+              "$ref": "#/$defs/alignment"
+            }
           }
         }
       }
@@ -1029,10 +1206,14 @@
     "ListView-payload": {
       "type": "object",
       "allOf": [
-        { "$ref": "#/$defs/Templated-payload" },
+        {
+          "$ref": "#/$defs/Templated-payload"
+        },
         {
           "properties": {
-            "children": { "$ref": "#/$defs/Widgets" },
+            "children": {
+              "$ref": "#/$defs/Widgets"
+            },
             "onItemTap": {
               "description": "Dispatch when an ListView item is selected/tapped.The event dispatches only when you tap on the item. The index of the item can be retrieved using 'selectedItemIndex'.",
               "$ref": "#/$defs/Action-payload"
@@ -1052,6 +1233,10 @@
                 {
                   "type": "object",
                   "properties": {
+                    "showSeparator": {
+                      "type": "boolean",
+                      "description": "Show a separator between the items (default is true)."
+                    },
                     "separatorColor": {
                       "$ref": "#/$defs/typeColors",
                       "description": "Set the color for the separator between items"
@@ -1061,7 +1246,10 @@
                       "description": "The thickness of the separator between items"
                     },
                     "separatorPadding": {
-                      "type": ["integer", "string"],
+                      "type": [
+                        "integer",
+                        "string"
+                      ],
                       "description": "Padding with CSS-style value e.g. padding: 5 20 5 Default 0 0 0"
                     }
                   }
@@ -1077,7 +1265,9 @@
       "allOf": [
         {
           "properties": {
-            "children": { "$ref": "#/$defs/Widgets" },
+            "children": {
+              "$ref": "#/$defs/Widgets"
+            },
             "onItemChange": {
               "description": "Dispatch when an carousel item is in focus. For SingleView, this happens when the item is scroll into view. For scrolling MultiView, the event dispatches only when you tap on the item. The index of the item can be retrieved using 'selectedIndex'.",
               "$ref": "#/$defs/Action-payload"
@@ -1093,7 +1283,11 @@
                     "layout": {
                       "type": "string",
                       "description": "Show a SingleView (on screen one at a time), MultiView (scrolling items), or automatically switch between the views with autoLayoutBreakpoint",
-                      "enum": ["auto" ,"single", "multiple"]
+                      "enum": [
+                        "auto",
+                        "single",
+                        "multiple"
+                      ]
                     },
                     "autoLayoutBreakpoint": {
                       "type": "integer",
@@ -1130,12 +1324,19 @@
                     "indicatorType": {
                       "type": "string",
                       "description": "How the view indicator should be displayed",
-                      "enum": [ "none", "circle", "rectangle" ]
+                      "enum": [
+                        "none",
+                        "circle",
+                        "rectangle"
+                      ]
                     },
                     "indicatorPosition": {
                       "type": "string",
                       "description": "Where to display the indicator if specified",
-                      "enum": ["bottom", "top"]
+                      "enum": [
+                        "bottom",
+                        "top"
+                      ]
                     },
                     "indicatorWidth": {
                       "type": "integer"
@@ -1144,7 +1345,10 @@
                       "type": "integer"
                     },
                     "indicatorMargin": {
-                      "type": ["integer", "string"],
+                      "type": [
+                        "integer",
+                        "string"
+                      ],
                       "description": "The margin around each indicator"
                     }
                   }
@@ -1153,7 +1357,9 @@
             }
           }
         },
-        { "$ref": "#/$defs/Templated-payload" }
+        {
+          "$ref": "#/$defs/Templated-payload"
+        }
       ]
     },
     "Templated-payload": {
@@ -1163,7 +1369,7 @@
           "type": "object",
           "properties": {
             "data": {
-              "type": "string" ,
+              "type": "string",
               "description": "Bind to an array of data from an API response or a variable"
             },
             "name": {
@@ -1219,7 +1425,9 @@
         },
         "styles": {
           "allOf": [
-            { "$ref": "#/$defs/baseStyles" },
+            {
+              "$ref": "#/$defs/baseStyles"
+            },
             {
               "type": "object",
               "properties": {
@@ -1238,7 +1446,10 @@
                   ]
                 },
                 "contentPadding": {
-                  "type": ["integer", "string"],
+                  "type": [
+                    "integer",
+                    "string"
+                  ],
                   "description": "Padding around your input content with CSS-style notation e.g. margin: 5 20 5"
                 },
                 "fillColor": {
@@ -1258,10 +1469,6 @@
                 "borderColor": {
                   "$ref": "#/$defs/typeColors",
                   "description": "The base border color for this input widget. This border color determines the look and feel of your input, while the other colors are overrides for different states. This property can be defined in the theme to apply to all Input widgets."
-                },
-                "enabledBorderColor": {
-                  "$ref": "#/$defs/typeColors",
-                  "description": "The border color for this input field if enabled. This property can be defined in the theme to apply to all Input widgets."
                 },
                 "disabledBorderColor": {
                   "$ref": "#/$defs/typeColors",
@@ -1323,7 +1530,9 @@
             "navigateScreen": {
               "type": "object",
               "description": "Navigating to a new screen",
-              "required": ["name"],
+              "required": [
+                "name"
+              ],
               "properties": {
                 "name": {
                   "type": "string",
@@ -1355,7 +1564,9 @@
             "navigateModalScreen": {
               "type": "object",
               "description": "Navigating to a new screen as a modal",
-              "required": ["name"],
+              "required": [
+                "name"
+              ],
               "properties": {
                 "name": {
                   "type": "string",
@@ -1386,7 +1597,9 @@
             "invokeAPI": {
               "type": "object",
               "description": "Calling an API",
-              "required": ["name"],
+              "required": [
+                "name"
+              ],
               "properties": {
                 "id": {
                   "type": "string",
@@ -1415,7 +1628,114 @@
         {
           "properties": {
             "openCamera": {
-              "type": "object"
+              "type": "object",
+              "description": "Open Camera",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Give the camera an ID, allows you to bind to its result. e.g. ${cameraId.files...}"
+                },
+                "onComplete": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action after completing capturing media"
+                },
+                "options": {
+                  "type": "object",
+                  "mode": {
+                    "type": "string",
+                    "description": "Modes of camera. It can be photo only i.e allows to capture just photo. Similarly video or can be both.",
+                    "enum": [
+                      "photo",
+                      "video",
+                      "both"
+                    ]
+                  },
+                  "initialCamera": {
+                    "type": "string",
+                    "description": "Initialize either camera, back or front",
+                    "enum": [
+                      "back",
+                      "front"
+                    ]
+                  },
+                  "allowGalleryPicker": {
+                    "type": "boolean",
+                    "description": "Allow users to pick media from gallery. Default (true)."
+                  },
+                  "allowCameraRotate": {
+                    "type": "boolean",
+                    "description": "Allow users rotate camera i.e back and front. Default (true)."
+                  },
+                  "allowFlashControl": {
+                    "type": "boolean",
+                    "description": "Allow users to control flash options. Default (true)."
+                  },
+                  "preview": {
+                    "type": "boolean",
+                    "description": "If set true, users can view captured/selected media."
+                  },
+                  "maxCount": {
+                    "type": "number",
+                    "description": "It used to control number of media that can be captured/selected"
+                  },
+                  "maxCountMessage": {
+                    "type": "string",
+                    "description": "Custom message to show when captured/selected media is greater than maxCount"
+                  },
+                  "permissionDeniedMessage": {
+                    "type": "string",
+                    "description": "Set custom message when access to camera is denied"
+                  },
+                  "nextButtonLabel": {
+                    "type": "string",
+                    "description": "Set custom label on next button."
+                  },
+                  "cameraRotateIcon": {
+                    "$ref": "#/$defs/Icon-payload",
+                    "description": "Set custom icon for camera rotate button"
+                  },
+                  "galleryPickerIcon": {
+                    "$ref": "#/$defs/Icon-payload",
+                    "description": "Set custom icon for gallery picker button"
+                  },
+                  "focusIcon": {
+                    "$ref": "#/$defs/Icon-payload",
+                    "description": "Set custom icon for focus node."
+                  },
+                  "assistAngle": {
+                    "type": "object",
+                    "description": "Show assist message whenever angle goes below minAngle or above minAngle",
+                    "properties": {
+                      "minAngle": {
+                        "type": "number",
+                        "description": "Minimum angle "
+                      },
+                      "maxAngle": {
+                        "type": "number",
+                        "description": "Maximum angle "
+                      },
+                      "maxAngleassistAngleMessage": {
+                        "type": "number",
+                        "description": "Custom message to show when condition is hit."
+                      }
+                    }
+                  },
+                  "assistSpeed": {
+                    "type": "object",
+                    "description": "Show assist message whenever camera is moving faster than maxSpeed",
+                    "properties": {
+                      "maxSpeed": {
+                        "type": "number",
+                        "description": "Maxium speed in km/hr."
+                      },
+                      "assistSpeedMessage": {
+                        "type": "number",
+                        "description": "Custom message to show when condition is hit."
+                      }
+                    }
+                  }
+                }
+              }
             }
           }
         },
@@ -1424,7 +1744,9 @@
             "showDialog": {
               "type": "object",
               "description": "Opening a dialog",
-              "required": ["widget"],
+              "required": [
+                "widget"
+              ],
               "properties": {
                 "widget": {
                   "$ref": "#/$defs/Widget",
@@ -1462,7 +1784,10 @@
                     "style": {
                       "type": "string",
                       "description": "Render the dialog with a default style. You can also specify 'none' and control your own styles in your widget.",
-                      "enum": ["default", "none"]
+                      "enum": [
+                        "default",
+                        "none"
+                      ]
                     }
                   }
                 },
@@ -1487,7 +1812,9 @@
             "startTimer": {
               "type": "object",
               "description": "Initiating the start of a timer",
-              "required": ["onTimer"],
+              "required": [
+                "onTimer"
+              ],
               "properties": {
                 "id": {
                   "type": "string",
@@ -1538,7 +1865,9 @@
             "stopTimer": {
               "type": "object",
               "description": "Stop a timer if it is running",
-              "required": ["id"],
+              "required": [
+                "id"
+              ],
               "properties": {
                 "id": {
                   "type": "string",
@@ -1555,10 +1884,14 @@
               "description": "Showing a toast message",
               "oneOf": [
                 {
-                  "required": ["message"]
+                  "required": [
+                    "message"
+                  ]
                 },
                 {
-                  "required": ["widget"]
+                  "required": [
+                    "widget"
+                  ]
                 }
               ],
               "properties": {
@@ -1576,7 +1909,12 @@
                     "type": {
                       "type": "string",
                       "description": "Select a built-in toast style.",
-                      "enum": [ "success", "error", "warning", "info" ]
+                      "enum": [
+                        "success",
+                        "error",
+                        "warning",
+                        "info"
+                      ]
                     },
                     "dismissible": {
                       "type": "boolean",
@@ -1584,7 +1922,17 @@
                     },
                     "position": {
                       "type": "string",
-                      "enum": [ "top", "topLeft", "topRight", "center", "centerLeft", "centerRight", "bottom", "bottomLeft", "bottomRight" ]
+                      "enum": [
+                        "top",
+                        "topLeft",
+                        "topRight",
+                        "center",
+                        "centerLeft",
+                        "centerRight",
+                        "bottom",
+                        "bottomLeft",
+                        "bottomRight"
+                      ]
                     },
                     "duration": {
                       "type": "integer",
@@ -1603,7 +1951,10 @@
                     {
                       "properties": {
                         "shadowColor": {
-                          "type": ["number", "string"],
+                          "type": [
+                            "number",
+                            "string"
+                          ],
                           "description": "box shadow color starting with '0xFF' for full opacity"
                         },
                         "shadowRadius": {
@@ -1635,7 +1986,9 @@
             "executeCode": {
               "type": "object",
               "description": "Execute a block of code.",
-              "required": ["body"],
+              "required": [
+                "body"
+              ],
               "properties": {
                 "body": {
                   "type": "string",
@@ -1686,11 +2039,14 @@
             "uploadFiles": {
               "type": "object",
               "description": "Allow users to upload files to an API from the camera or file system",
-              "required": ["uploadApi"],
+              "required": [
+                "uploadApi",
+                "files"
+              ],
               "properties": {
                 "id": {
                   "type": "string",
-                  "description": "Give the Uploader an ID allows you to bind to its result. e.g. ${filePicker.files...}, ${filePicker.body...}"
+                  "description": "Give the uploadApi an ID, allows you to bind to its result. e.g. ${apiId.body...}"
                 },
                 "uploadApi": {
                   "type": "string",
@@ -1708,32 +2064,119 @@
                   "type": "array",
                   "description": "Define the list of input names that upload API accepts"
                 },
-                "fieldName" : {
+                "fieldName": {
                   "type": "string",
                   "description": "Field name that your server is expecting (default files)"
                 },
-                "options": {
+                "files": {
+                  "type": "string",
+                  "description": "Binded files from sources like camera or picker. e.g ${filePicker.files}, ${camerId.files}"
+                }
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "pickFiles": {
+              "type": "object",
+              "description": "Pick files using system picker",
+              "required": [
+                "id"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Give the picker an ID allows you to bind to its result, which can be access anywhere e.g. ${filePicker.files...}"
+                },
+                "allowMultiple": {
+                  "type": "boolean",
+                  "description": "Allow users to pick multiple files (default False)"
+                },
+                "allowCompression": {
+                  "type": "boolean",
+                  "description": "It will allow media to apply the default OS compression (default True)"
+                },
+                "allowedExtensions": {
+                  "type": "array",
+                  "description": "Allow files with specific extension e.g jpg, png, pdf"
+                },
+                "maxFileSize": {
+                  "type": "integer",
+                  "description": "File size that is allowed (default 100 mb), If multiple is allow then sum of all files"
+                },
+                "overMaxFileSizeMessage": {
+                  "type": "string",
+                  "description": "Error message to show when selected files size is above maxFileSize."
+                }
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "copyToClipboard": {
+              "type": "object",
+              "description": "Copy the text to the clipboard",
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "description": "The text to copy to clipboard"
+                },
+                "onSuccess": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute another Action upon successful copy to clipboard"
+                },
+                "onFailure": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action when copy to clipboard fails"
+                }
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "walletConnect": {
+              "type": "object",
+              "description": "Allow users connect to crypto wallet",
+              "required": ["wcProjectId", "appMetaData"],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "ID allows you to bind to its result. e.g. ${wallet.addresses...},"
+                },
+                "wcProjectId": {
+                  "type": "string",
+                  "description": "Wallet connect project Id, get it from wallet connect dashboard"
+                },
+                "onComplete": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute another Action upon successful upload of files"
+                },
+                "onError": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action when uploader fails with error(s)"
+                },
+                "appMetaData": {
                   "type": "object",
+                  "required": ["name"],
                   "properties": {
-                    "allowMultiple": {
-                      "type": "boolean",
-                      "description" : "Allow users to pick multiple files (default False)"
-                    },
-                    "allowCompression": {
-                      "type": "boolean",
-                      "description" : "It will allow media to apply the default OS compression (default True)"
-                    },
-                    "allowedExtensions": {
-                      "type": "array",
-                      "description": "Allow files with specific extension e.g jpg, png, pdf"
-                    },
-                    "maxFileSize" : {
-                      "type": "integer",
-                      "description": "File size that is allowed (default 100 mb), If multiple is allow then sum of all files"
-                    },
-                    "overMaxFileSizeMessage" : {
+                    "name": {
                       "type": "string",
-                      "description": "Error message to show when selected files size is above maxFileSize."
+                      "description" : "Your app name, that will be shared to crypto wallet"
+                    },
+                    "description": {
+                      "type": "string",
+                      "description" : "Your app's description, that will be shared to crypto wallet"
+                    },
+                    "url": {
+                      "type": "string",
+                      "description": "You app's / company's url"
+                    },
+                    "iconUrl" : {
+                      "type": "string",
+                      "description": "Url path of your app's icon"
                     }
                   }
                 }
@@ -1743,18 +2186,22 @@
         }
       ]
     },
-
-
     "MenuBase": {
       "type": "object",
-      "required": ["items"],
+      "required": [
+        "items"
+      ],
       "properties": {
         "items": {
           "type": "array",
           "description": "List of menu items (minimum 2)",
           "items": {
             "type": "object",
-            "required": ["icon", "label", "page"],
+            "required": [
+              "icon",
+              "label",
+              "page"
+            ],
             "properties": {
               "icon": {
                 "type": "string",
@@ -1762,7 +2209,10 @@
               },
               "iconLibrary": {
                 "type": "string",
-                "enum": ["default", "fontAwesome"]
+                "enum": [
+                  "default",
+                  "fontAwesome"
+                ]
               },
               "label": {
                 "type": "string"
@@ -1780,7 +2230,9 @@
         },
         "styles": {
           "allOf": [
-            { "$ref": "#/$defs/backgroundColor" }
+            {
+              "$ref": "#/$defs/backgroundColor"
+            }
           ]
         }
       }
@@ -1822,10 +2274,16 @@
                 "itemDisplay": {
                   "type": "string",
                   "description": "How to render each navigation item",
-                  "enum": ["stacked", "sideBySide"]
+                  "enum": [
+                    "stacked",
+                    "sideBySide"
+                  ]
                 },
                 "itemPadding": {
-                  "type": ["integer", "string"],
+                  "type": [
+                    "integer",
+                    "string"
+                  ],
                   "description": "Padding for each navigation item with CSS-style value"
                 },
                 "minWidth": {
@@ -1838,42 +2296,18 @@
         }
       ]
     },
-
     "Widgets": {
       "type": "array",
       "description": "List of widgets",
-      "items": { "$ref": "#/$defs/Widget" }
-    },
-    "RootWidget": {
-      "type": "object",
-      "allOf": [
-        {
-          "properties": {
-            "Column": { "$ref": "#/$defs/Column-payload" }
-          }
-        },
-        {
-          "properties": {
-            "Row": { "$ref": "#/$defs/Row-payload" }
-          }
-        },
-        {
-          "properties": {
-            "Flex": { "$ref": "#/$defs/Flex-payload" }
-          }
-        },
-        {
-          "properties": {
-            "Stack": { "$ref": "#/$defs/Stack-payload" }
-          }
-        }
-      ]
+      "items": {
+        "$ref": "#/$defs/Widget"
+      }
     },
     "Widget": {
       "allOf": [
         {
           "properties": {
-            "Text": { 
+            "Text": {
               "$ref": "#/$defs/Text-payload",
               "description": "Example from Kitchen Sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/c87f8b09-58e2-4c2f-99a1-cbbe9e25e9a5"
             }
@@ -1881,7 +2315,7 @@
         },
         {
           "properties": {
-            "Markdown": { 
+            "Markdown": {
               "$ref": "#/$defs/Markdown-payload",
               "description": "Example from Kitchen Sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/6b6d9c3d-359b-4768-99a5-3f087a64387c#"
             }
@@ -1889,7 +2323,7 @@
         },
         {
           "properties": {
-            "Html": { 
+            "Html": {
               "$ref": "#/$defs/Html-payload",
               "description": "Example from Kitchen Sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/ZhTBody9YozadVvTlhW0#"
             }
@@ -1897,7 +2331,7 @@
         },
         {
           "properties": {
-            "Icon": { 
+            "Icon": {
               "$ref": "#/$defs/Icon-payload",
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/e7c686f5-b8a2-4670-9e6e-8fdb0fea768e#"
             }
@@ -1905,26 +2339,29 @@
         },
         {
           "properties": {
-            "Image": { 
+            "Image": {
               "$ref": "#/$defs/Image-payload",
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/7c7a3ffe-68ef-4e99-b9d1-4b5cee166233#"
-            
             }
           }
         },
         {
           "properties": {
-            "Lottie": { "$ref": "#/$defs/Lottie-payload" }
+            "Lottie": {
+              "$ref": "#/$defs/Lottie-payload"
+            }
           }
         },
         {
           "properties": {
-            "QRCode": { "$ref": "#/$defs/QRCode-payload" }
+            "QRCode": {
+              "$ref": "#/$defs/QRCode-payload"
+            }
           }
         },
         {
           "properties": {
-            "Progress": { 
+            "Progress": {
               "$ref": "#/$defs/Progress-payload",
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/c2c248f2-a289-40d3-acd5-65a1a7f3c5a2#"
             }
@@ -1940,7 +2377,7 @@
         },
         {
           "properties": {
-            "Spacer": { 
+            "Spacer": {
               "$ref": "#/$defs/Spacer-payload",
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/1d7e42a9-5bbc-4b4b-9a02-8c102234ee05#"
             }
@@ -1948,25 +2385,23 @@
         },
         {
           "properties": {
-            "TextInput": { 
+            "TextInput": {
               "$ref": "#/$defs/TextInput-payload",
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/abc081b1-bcb4-4db6-ae55-7987cb6c418e#"
-            
             }
           }
         },
         {
           "properties": {
-            "PasswordInput": { 
+            "PasswordInput": {
               "$ref": "#/$defs/PasswordInput-payload",
-              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/218fa244-f0cd-4d17-91e6-7c099bbedede#" 
-            
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/218fa244-f0cd-4d17-91e6-7c099bbedede#"
             }
           }
         },
         {
           "properties": {
-            "Checkbox": { 
+            "Checkbox": {
               "$ref": "#/$defs/OnOff-payload",
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/21f43d9b-db21-40fe-9c2f-806267e6c412#"
             }
@@ -1974,7 +2409,7 @@
         },
         {
           "properties": {
-            "Switch": { 
+            "Switch": {
               "$ref": "#/$defs/OnOff-payload",
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/3f4ba37a-0e6a-46a1-9b78-e4e04c84937d#"
             }
@@ -1990,7 +2425,7 @@
         },
         {
           "properties": {
-            "Date": { 
+            "Date": {
               "$ref": "#/$defs/Date-payload",
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/b45c5576-ec22-4b04-832f-6dd7571dd20f#"
             }
@@ -1998,16 +2433,15 @@
         },
         {
           "properties": {
-            "Time": { 
+            "Time": {
               "$ref": "#/$defs/Time-payload",
-              "description": "Kitchen Sink Example: ...coming ..." 
-            
+              "description": "Kitchen Sink Example: ...coming ..."
             }
           }
         },
         {
           "properties": {
-            "Button": { 
+            "Button": {
               "$ref": "#/$defs/Button-payload",
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/09c1087b-f9ee-4a8c-9286-e0e881184c07#"
             }
@@ -2015,95 +2449,107 @@
         },
         {
           "properties": {
-            "Form": { 
+            "Form": {
               "$ref": "#/$defs/Form-payload",
-              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/3107baf6-dfc3-42cd-b617-61c37b31f31e#" 
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/3107baf6-dfc3-42cd-b617-61c37b31f31e#"
             }
           }
         },
         {
           "properties": {
-            "Flow": { 
+            "Flow": {
               "$ref": "#/$defs/Flow-payload",
-              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/3e901fb8-a0e8-4f52-979b-7f5f2547e650#" 
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/3e901fb8-a0e8-4f52-979b-7f5f2547e650#"
             }
           }
         },
         {
           "properties": {
-            "Column": { 
+            "Column": {
               "$ref": "#/$defs/Column-payload",
-              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/90a8e4df-5eab-4473-ba10-2ecffc9596b0#" 
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/90a8e4df-5eab-4473-ba10-2ecffc9596b0#"
             }
           }
         },
         {
           "properties": {
-            "ListView": { 
+            "ListView": {
               "$ref": "#/$defs/ListView-payload",
-              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/w0Wmu9ZMP4csk7IELSx3#" 
-            
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/w0Wmu9ZMP4csk7IELSx3#"
             }
           }
         },
         {
           "properties": {
-            "Row": { 
+            "Row": {
               "$ref": "#/$defs/Row-payload",
-              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/4bd0d453-c243-429d-a562-93cbc9db38e3#" 
-            
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/4bd0d453-c243-429d-a562-93cbc9db38e3#"
             }
           }
         },
         {
           "properties": {
-            "GridView": { 
+            "FittedColumn": {
+              "type": "object",
+              "description": "Stretch to fit the parent (the parent is required to have a predetermined height), then distribute the vertical spaces evenly among its children. You can override the space distribution via 'childrenFits' attribute.",
+              "$ref": "#/$defs/fittedBoxLayout"
+            }
+          }
+        },
+        {
+          "properties": {
+            "FittedRow": {
+              "type": "object",
+              "description": "Stretch to fit the parent (the parent is required to have a predetermined width), then distribute the horizontal spaces evenly among its children. You can override the space distribution via 'childrenFits' attribute.",
+              "$ref": "#/$defs/fittedBoxLayout"
+            }
+          }
+        },
+        {
+          "properties": {
+            "GridView": {
               "$ref": "#/$defs/GridView-payload",
-              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/DX5j2WVQFabmxD9FCD5h#" 
-            
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/DX5j2WVQFabmxD9FCD5h#"
             }
           }
         },
         {
           "properties": {
-            "Flex": { 
+            "Flex": {
               "$ref": "#/$defs/Flex-payload",
-              "description": "Kitchen Sink Example: ...coming ..." 
-            
+              "description": "Kitchen Sink Example: ...coming ..."
             }
           }
         },
         {
           "properties": {
-            "Stack": { 
+            "Stack": {
               "$ref": "#/$defs/Stack-payload",
-              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/572ecf3b-b9f2-46f4-960f-ff438e5fa1dc#" 
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/572ecf3b-b9f2-46f4-960f-ff438e5fa1dc#"
             }
           }
         },
         {
           "properties": {
-            "Carousel": { 
+            "Carousel": {
               "$ref": "#/$defs/Carousel-payload",
-              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/2e1d88b1-f281-4c2c-9bb1-bd18016d2b8c#" 
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/2e1d88b1-f281-4c2c-9bb1-bd18016d2b8c#"
             }
           }
         },
         {
           "properties": {
-            "TabBar": { 
+            "TabBar": {
               "$ref": "#/$defs/TabBar-payload",
-              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/cebd491d-7d90-43f4-9f17-b8575de441ca#" 
-            
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/cebd491d-7d90-43f4-9f17-b8575de441ca#"
             }
           }
         },
         {
           "properties": {
-            "Map": { 
+            "Map": {
               "$ref": "#/$defs/Map-payload",
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/36e52d1a-39c5-4a6b-b064-2be6cfe3cf7b#"
-            
             }
           }
         },
@@ -2117,21 +2563,20 @@
         },
         {
           "properties": {
-            "WebView": { 
+            "WebView": {
               "$ref": "#/$defs/WebView-payload",
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/22c8d57d-a906-4d11-873d-161fd6c56c0a#"
-            
             }
           }
         },
         {
           "properties": {
-            "ChartJs": { 
-              "$ref": "#/$defs/ChartJs-payload" ,
-              "description": "Example from Kitchen Sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/5d7b84de-3bbd-456e-aeea-98e2c9f4c3c7"      
-              }
+            "ChartJs": {
+              "$ref": "#/$defs/ChartJs-payload",
+              "description": "Example from Kitchen Sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/5d7b84de-3bbd-456e-aeea-98e2c9f4c3c7"
+            }
           }
-        }       
+        }
       ]
     },
     "Menu": {
@@ -2203,7 +2648,10 @@
                   ]
                 },
                 "tabPadding": {
-                  "type": ["integer", "string"],
+                  "type": [
+                    "integer",
+                    "string"
+                  ],
                   "description": "Padding for each tab labels with CSS-style value. Default: 0 30 0 0 (right padding only)"
                 },
                 "tabFontSize": {
@@ -2251,14 +2699,17 @@
           "description": "Define each of your Tab here",
           "items": {
             "type": "object",
-            "required": ["label", "widget"],
+            "required": [
+              "label",
+              "widget"
+            ],
             "properties": {
               "label": {
                 "type": "string",
                 "description": "Setting the tab label"
               },
               "icon": {
-                "$ref":"#/$defs/HasIcon"
+                "$ref": "#/$defs/HasIcon"
               },
               "widget": {
                 "$ref": "#/$defs/Widget",
@@ -2307,10 +2758,19 @@
         },
         "markers": {
           "type": "object",
-          "required": ["data", "name", "location", "widget"],
+          "required": [
+            "data",
+            "name",
+            "location",
+            "widget"
+          ],
           "properties": {
-            "data": { "type": "string" },
-            "name": { "type": "string" },
+            "data": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
             "location": {
               "type": "object",
               "properties": {
@@ -2402,7 +2862,6 @@
         }
       }
     },
-
     "baseStyles": {
       "type": "object",
       "properties": {
@@ -2416,7 +2875,10 @@
       "type": "object",
       "properties": {
         "padding": {
-          "type": ["integer", "string"],
+          "type": [
+            "integer",
+            "string"
+          ],
           "description": "Padding with CSS-style value e.g. padding: 5 20 5"
         }
       }
@@ -2425,7 +2887,10 @@
       "type": "object",
       "properties": {
         "margin": {
-          "type": ["integer", "string"],
+          "type": [
+            "integer",
+            "string"
+          ],
           "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
         }
       }
@@ -2434,13 +2899,15 @@
       "type": "object",
       "properties": {
         "borderRadius": {
-          "type": ["integer", "string"],
+          "type": [
+            "integer",
+            "string"
+          ],
           "minimum": 0,
           "description": "Border Radius with CSS-like notation (1 to 4 integers)"
         }
       }
     },
-
     "typeColors": {
       "oneOf": [
         {
@@ -2448,7 +2915,25 @@
         },
         {
           "type": "string",
-          "enum": ["transparent", "black", "blue", "white", "red", "grey", "teal", "amber", "pink", "purple", "yellow", "green", "brown", "cyan", "indigo", "lime", "orange"]
+          "enum": [
+            "transparent",
+            "black",
+            "blue",
+            "white",
+            "red",
+            "grey",
+            "teal",
+            "amber",
+            "pink",
+            "purple",
+            "yellow",
+            "green",
+            "brown",
+            "cyan",
+            "indigo",
+            "lime",
+            "orange"
+          ]
         },
         {
           "type": "string",
@@ -2459,7 +2944,18 @@
     "type-fontWeight": {
       "type": "string",
       "enum": [
-        "light", "normal", "bold", "w100", "w200", "w300", "w400", "w500", "w600", "w700", "w800", "w900"
+        "light",
+        "normal",
+        "bold",
+        "w100",
+        "w200",
+        "w300",
+        "w400",
+        "w500",
+        "w600",
+        "w700",
+        "w800",
+        "w900"
       ]
     },
     "boxStyles": {
@@ -2503,7 +2999,6 @@
               "type": "integer",
               "minimum": 0
             },
-
             "fontFamily": {
               "type": "string",
               "description": "Set the font family applicable for all widgets inside this container"
@@ -2516,6 +3011,67 @@
         }
       ]
     },
+    "fittedBoxLayout": {
+      "properties": {
+        "children": {
+          "$ref": "#/$defs/Widgets"
+        },
+        "styles": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
+            },
+            {
+              "$ref": "#/$defs/boxLayoutStyles"
+            },
+            {
+              "properties": {
+                "mainAxis": {
+                  "type": "string",
+                  "description": "Control our children's layout horizontally",
+                  "enum": [
+                    "start",
+                    "center",
+                    "end",
+                    "spaceBetween",
+                    "spaceAround",
+                    "spaceEvenly"
+                  ]
+                },
+                "crossAxis": {
+                  "type": "string",
+                  "description": "Control the vertical alignment of the children",
+                  "enum": [
+                    "start",
+                    "center",
+                    "end",
+                    "stretch",
+                    "baseline"
+                  ]
+                },
+                "childrenFits": {
+                  "type": "array",
+                  "description": "Specify an array of non-zero integers or 'auto', each corresponding to a child. Setting 'auto' will let the child determines its own size, while setting a non-zero integer will determine the child's size multiple. The 'auto' children will be laid out first and get as much space as they need, then the left-over space will be distributed to the other children based on their size multiples.",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "const": "auto",
+                        "description": "Allow this selected child to determine its own size. This may give an error if the child doesn't have a dimension."
+                      },
+                      {
+                        "type": "integer",
+                        "description": "Default 1. After laying out the 'auto' children, the left-over space will be divided up based on this multiple.",
+                        "minimum": 1
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
     "flowStyles": {
       "allOf": [
         {
@@ -2527,7 +3083,14 @@
             "mainAxis": {
               "type": "string",
               "description": "Control our children's layout vertically",
-              "enum": ["start", "center", "end", "spaceBetween", "spaceAround", "spaceEvenly"]
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "spaceBetween",
+                "spaceAround",
+                "spaceEvenly"
+              ]
             },
             "gap": {
               "type": "integer",
@@ -2565,17 +3128,33 @@
             "mainAxis": {
               "type": "string",
               "description": "Control our children's layout vertically",
-              "enum": ["start", "center", "end", "spaceBetween", "spaceAround", "spaceEvenly"]
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "spaceBetween",
+                "spaceAround",
+                "spaceEvenly"
+              ]
             },
             "crossAxis": {
               "type": "string",
               "description": "Control the horizontal alignment of the children",
-              "enum": ["start", "center", "end", "stretch", "baseline"]
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "stretch",
+                "baseline"
+              ]
             },
             "mainAxisSize": {
               "type": "string",
-              "description": "Stretch to the max vertically or only fit the vertical space",
-              "enum": ["min", "max"]
+              "description": "If 'max', stretch the Column to fill its parent's height. Otherwise (min) the column's height will be its children's combined.",
+              "enum": [
+                "min",
+                "max"
+              ]
             },
             "scrollable": {
               "type": "boolean",
@@ -2603,17 +3182,33 @@
             "mainAxis": {
               "type": "string",
               "description": "Control our children's layout horizontally",
-              "enum": ["start", "center", "end", "spaceBetween", "spaceAround", "spaceEvenly"]
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "spaceBetween",
+                "spaceAround",
+                "spaceEvenly"
+              ]
             },
             "crossAxis": {
               "type": "string",
               "description": "Control the vertical alignment of the children",
-              "enum": ["start", "center", "end", "stretch", "baseline"]
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "stretch",
+                "baseline"
+              ]
             },
             "mainAxisSize": {
               "type": "string",
-              "description": "Stretch to the max horizontally or only fit the horizontal space",
-              "enum": ["min", "max"]
+              "description": "If 'max', stretch the Row to fill its parent's width. Otherwise (min) the Row's width will be its children's combined.",
+              "enum": [
+                "min",
+                "max"
+              ]
             },
             "scrollable": {
               "type": "boolean",
@@ -2637,27 +3232,48 @@
         },
         {
           "type": "object",
-          "required": [ "direction" ],
+          "required": [
+            "direction"
+          ],
           "properties": {
             "direction": {
               "type": "string",
               "description": "Lay out the children vertically or horizontally",
-              "enum": ["vertical", "horizontal"]
+              "enum": [
+                "vertical",
+                "horizontal"
+              ]
             },
             "mainAxis": {
               "type": "string",
               "description": "Control how to lay out the children, in the direction specified by the 'direction' attribute",
-              "enum": ["start", "center", "end", "spaceBetween", "spaceAround", "spaceEvenly"]
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "spaceBetween",
+                "spaceAround",
+                "spaceEvenly"
+              ]
             },
             "crossAxis": {
               "type": "string",
               "description": "Control the alignment of the children on the secondary axis (depending on the 'direction' attribute)",
-              "enum": ["start", "center", "end", "stretch", "baseline"]
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "stretch",
+                "baseline"
+              ]
             },
             "mainAxisSize": {
               "type": "string",
-              "description": "stretch to the max or only fit the available space of the main axis (depending on the 'direction' attribute)",
-              "enum": ["min", "max"]
+              "description": "If 'max', stretch the Flex to fill its parent's dimension (width or height based on the direction). Otherwise (min) the Flex's dimension will be its children's combined.",
+              "enum": [
+                "min",
+                "max"
+              ]
             },
             "scrollable": {
               "type": "boolean",
@@ -2749,14 +3365,26 @@
                 }
               ]
             },
-            "alignment": { "$ref": "#/$defs/alignment" }
+            "alignment": {
+              "$ref": "#/$defs/alignment"
+            }
           }
         }
       }
     },
     "alignment": {
       "type": "string",
-      "enum": ["topLeft", "topCenter", "topRight", "centerLeft", "center", "centerRight", "bottomLeft", "bottomCenter", "bottomRight"]
+      "enum": [
+        "topLeft",
+        "topCenter",
+        "topRight",
+        "centerLeft",
+        "center",
+        "centerRight",
+        "bottomLeft",
+        "bottomCenter",
+        "bottomRight"
+      ]
     },
     "inputValidator": {
       "type": "object",
@@ -2797,11 +3425,15 @@
         },
         "decoration": {
           "type": "string",
-          "enum": ["none", "lineThrough", "underline", "overline"]
+          "enum": [
+            "none",
+            "lineThrough",
+            "underline",
+            "overline"
+          ]
         }
       }
     },
-
     "HasDimension": {
       "type": "object",
       "properties": {
@@ -2840,7 +3472,10 @@
       "type": "object",
       "properties": {
         "shadowColor": {
-          "type": ["number", "string"],
+          "type": [
+            "number",
+            "string"
+          ],
           "description": "Box shadow color starting with '0xFF' for full opacity"
         },
         "shadowOffset": {
@@ -2895,13 +3530,19 @@
       "description": "Specifies the icon to use. You can also use the short-handed syntax 'iconName iconLibrary')",
       "properties": {
         "name": {
-          "type": ["integer", "string"],
+          "type": [
+            "integer",
+            "string"
+          ],
           "description": "The name of the icon"
         },
         "library": {
           "type": "string",
           "description": "Which icon library to use.",
-          "enum": ["default", "fontAwesome"]
+          "enum": [
+            "default",
+            "fontAwesome"
+          ]
         },
         "color": {
           "$ref": "#/$defs/typeColors"
@@ -2912,8 +3553,5 @@
         }
       }
     }
-
-
   }
 }
-
