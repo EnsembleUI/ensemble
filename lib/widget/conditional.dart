@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -43,76 +44,99 @@ class ConditionalController extends WidgetController {
   dynamic conditions;
 }
 
-class MyWidget extends StatefulWidget {
-  const MyWidget({super.key});
-
-  @override
-  State<MyWidget> createState() => _MyWidgetState();
-}
-
-class _MyWidgetState extends State<MyWidget> {
-  @override
-  Widget build(BuildContext context) {
-    return const Placeholder();
-  }
-}
-
 class ConditionalState extends WidgetState<Conditional> {
+  Widget? _widget;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    ScopeManager? scopeManager = DataScopeWidget.getScope(context);
+    if (scopeManager == null) return;
+
+    final conditions = widget._controller.conditions;
+    if (!hasProperStructure(conditions)) return;
+
+    List<String> expressions = [];
+
+    expressions.add(conditions.first['if']);
+
+    for (var condition in conditions) {
+      if (condition.containsKey('elseif')) {
+        expressions.add(condition['elseif']);
+      }
+    }
+
+    for (var expression in expressions) {
+      scopeManager.listen(
+        scopeManager,
+        expression,
+        destination: BindingDestination(widget, 'conditions'),
+        onDataChange: (event) {
+          setState(() {
+            _widget = _buildConditionalWidget(scopeManager, conditions);
+          });
+        },
+      );
+    }
+    setState(() {
+      _widget = _buildConditionalWidget(scopeManager, conditions);
+    });
+  }
+
   @override
   Widget buildWidget(BuildContext context) {
-    ScopeManager? scopeManager = DataScopeWidget.getScope(context);
-    final conditions = widget._controller.conditions;
-
-    if (hasStructure(scopeManager, conditions)) {
-      return _buildConditionalWidget(scopeManager!, conditions);
-    }
-
-    return const SizedBox.shrink();
+    return _widget ?? const SizedBox.shrink();
   }
 
-  bool hasStructure(ScopeManager? scopeManager, dynamic conditions) {
+  bool hasProperStructure(dynamic conditions) {
     try {
-      return scopeManager != null &&
-          conditions != null &&
+      return conditions != null &&
           (conditions is YamlList) &&
           conditions.isNotEmpty &&
-          conditions.first.containsKey('if') &&
-          conditions.first.containsKey('then');
+          conditions.first.containsKey('if');
     } on Exception catch (_) {
       throw LanguageError(
-          'In Proper structure, make sure atleast if then condition ');
+          'Improper structure, make sure atleast if condition is present ');
     }
   }
 
-  Widget _buildConditionalWidget(
+  Widget? _buildConditionalWidget(
       ScopeManager scopeManager, dynamic conditions) {
     if (_evaluateCondition(scopeManager, conditions.first['if'])) {
-      return scopeManager.buildWidgetFromDefinition(conditions.first['then']);
+      return _buildWidget(scopeManager, conditions.first);
     }
 
     for (var i = 1; i < conditions.length - 1; i++) {
       final condition = conditions[i];
 
-      if (condition.containsKey('elif') &&
-          _evaluateCondition(scopeManager, condition['elif'])) {
-        if (condition.containsKey('then')) {
-          return scopeManager.buildWidgetFromDefinition(condition['then']);
-        }
+      if (condition.containsKey('elseif') &&
+          _evaluateCondition(scopeManager, condition['elseif'])) {
+        return _buildWidget(scopeManager, condition);
       }
     }
 
     if (conditions.last.containsKey('else')) {
-      return scopeManager.buildWidgetFromDefinition(conditions.last['else']);
+      return _buildWidget(scopeManager, conditions.last);
     }
 
-    return const SizedBox.shrink();
+    return null;
   }
 
   bool _evaluateCondition(ScopeManager scopeManager, String expression) {
     try {
-      return scopeManager.dataContext.eval(expression);
+      final _expression = scopeManager.dataContext.eval(expression);
+      return _expression is bool ? _expression : false;
     } catch (e) {
       throw LanguageError('Failed to eval $expression');
     }
+  }
+
+  Widget _buildWidget(ScopeManager scopeManager, dynamic condition) {
+    final widgetDefination = YamlMap.wrap({
+      condition.keys.last: condition.values.last,
+    });
+
+    return scopeManager.buildWidgetFromDefinition(widgetDefination);
   }
 }
