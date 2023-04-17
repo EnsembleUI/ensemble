@@ -2,14 +2,14 @@ import 'dart:async';
 import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/bindings.dart';
+import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
-import 'package:ensemble/framework/action.dart';
-import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/event.dart';
-import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/camera_manager.dart';
 import 'package:ensemble/framework/widget/screen.dart';
@@ -18,17 +18,21 @@ import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble/util/http_utils.dart';
-import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_registry.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:yaml/yaml.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher_string.dart';
+import 'package:walletconnect_dart/walletconnect_dart.dart';
+import 'package:yaml/yaml.dart';
+
+import 'framework/widget/wallet_connect_modal.dart';
 
 /// Singleton that holds the page model definition
 /// and operations for the current screen
@@ -399,12 +403,83 @@ class ScreenController {
     } else if (action is CopyToClipboardAction) {
       if (action.value != null) {
         Clipboard.setData(ClipboardData(text: action.value)).then((value) {
-          if (action.onSuccess != null)
+          if (action.onSuccess != null) {
             executeAction(context, action.onSuccess!);
+          }
         });
       } else {
         if (action.onFailure != null) executeAction(context, action.onFailure!);
       }
+    } else if (action is WalletConnectAction) {
+      //  TODO store session:  WalletConnectSession? session = await sessionStorage.getSession();
+
+      BuildContext? dialogContext;
+
+      final WalletConnect walletConnect = WalletConnect(
+        bridge: 'https://bridge.walletconnect.org',
+        clientMeta: PeerMeta(
+          name: action.appName,
+          description: action.appDescription,
+          url: action.appUrl,
+          icons:
+              action.appIconUrl != null ? <String>[action.appIconUrl!] : null,
+        ),
+      );
+
+      if (action.id != null && scopeManager != null) {
+        scopeManager.dataContext
+            .addDataContextById(action.id!, WalletData(walletConnect));
+      }
+
+      if (walletConnect.connected) {
+        // TODO works when session is stored
+        return;
+      }
+
+      walletConnect.on('connect', (SessionStatus? session) {
+        if (dialogContext != null) {
+          Navigator.pop(dialogContext!);
+        }
+        updateWalletData(action, scopeManager, context);
+      });
+      walletConnect.on('session_update', (Object? session) {
+        if (dialogContext != null) {
+          Navigator.pop(dialogContext!);
+        }
+        updateWalletData(action, scopeManager, context);
+      });
+      walletConnect.on('disconnect', (Object? session) {
+        updateWalletData(action, scopeManager, context);
+      });
+
+      try {
+        walletConnect.createSession(onDisplayUri: (String uri) async {
+          if (kIsWeb) {
+            showDialog(
+              context: context,
+              builder: (context) {
+                dialogContext = context;
+                return WalletConnectModal(qrData: uri);
+              },
+            );
+            return;
+          }
+          launchUrlString(uri, mode: LaunchMode.externalApplication);
+        });
+      } on Exception catch (_) {
+        if (action.onError != null) executeAction(context, action.onError!);
+        throw LanguageError('Unable to create wallet connect session');
+      }
+    }
+  }
+
+  void updateWalletData(WalletConnectAction action, ScopeManager? scopeManager,
+      BuildContext context) {
+    if (action.id != null && scopeManager != null) {
+      final walletData = scopeManager.dataContext.getContextById(action.id!);
+      scopeManager.dispatch(
+          ModelChangeEvent(SimpleBindingSource(action.id!), walletData));
+      if (action.onComplete != null) executeAction(context, action.onComplete!);
     }
   }
 
