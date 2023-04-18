@@ -22,7 +22,7 @@ abstract class DefinitionProvider {
   FlutterI18nDelegate getI18NDelegate();
 
   // get the home screen + the App Bundle (theme, translation, custom assets, ...)
-  Future<AppBundle> getAppBundle();
+  Future<AppBundle> getAppBundle({bool? bypassCache = false});
 
   // this should be update live if the config changes at runtime
   // Call this only AFTER getAppBundle()
@@ -62,7 +62,7 @@ class LocalDefinitionProvider extends DefinitionProvider {
   }
 
   @override
-  Future<AppBundle> getAppBundle() async {
+  Future<AppBundle> getAppBundle({bool? bypassCache = false}) async {
     YamlMap? theme;
     try {
       var value = await rootBundle.loadString('${path}theme.ensemble');
@@ -136,7 +136,7 @@ class RemoteDefinitionProvider extends DefinitionProvider {
   }
 
   @override
-  Future<AppBundle> getAppBundle() async {
+  Future<AppBundle> getAppBundle({bool? bypassCache = false}) async {
     // theme config is optional
     Completer<AppBundle> completer = Completer();
     http.Response response = await http.get(Uri.parse('${path}theme.config'));
@@ -241,7 +241,7 @@ class LegacyDefinitionProvider extends DefinitionProvider {
   }*/
 
   @override
-  Future<AppBundle> getAppBundle() async {
+  Future<AppBundle> getAppBundle({bool? bypassCache = false}) async {
     Completer<AppBundle> completer = Completer();
     http.Response response =
         await http.get(Uri.parse('$url/app/def?id=$appId'));
