@@ -185,7 +185,7 @@ class EnsembleToggleButtonState extends WidgetState<EnsembleToggleButton> {
       onPressed: (index) {
         _selectedIndex = index;
         onSelectionChanged(_items![_selectedIndex].value);
-        _updateSelectedState();
+        _updateSelectedState(isToReload: true);
         if (kDebugMode) {
           print('Selected: ${_items![_selectedIndex].value}');
         }
@@ -219,7 +219,7 @@ class EnsembleToggleButtonState extends WidgetState<EnsembleToggleButton> {
     return child;
   }
 
-  void _updateSelectedState() {
+  void _updateSelectedState({bool isToReload = false}) {
     final value = widget.getValue();
     final valueIndex = widget.controller.items
         ?.indexWhere((element) => element.value == value);
@@ -237,9 +237,11 @@ class EnsembleToggleButtonState extends WidgetState<EnsembleToggleButton> {
           ),
         );
       });
-      setState(() {
-        _items = _temp;
-      });
+      _items = _temp;
+
+      if (isToReload) {
+        setState(() {});
+      }
     }
   }
 
