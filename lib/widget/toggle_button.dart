@@ -36,7 +36,7 @@ class EnsembleToggleButton extends StatefulWidget
   @override
   Map<String, Function> setters() {
     return {
-      'value': (value) => _controller.maybeValue = value,
+      'value': (value) => controller.maybeValue = value,
       'items': (values) => updateItems(values),
       'spacing': (value) => _controller.spacing = Utils.optionalInt(value),
       'runSpacing': (value) =>
@@ -127,6 +127,7 @@ class EnsembleToggleButton extends StatefulWidget
 
 class EnsembleToggleButtonState extends WidgetState<EnsembleToggleButton> {
   List<ToggleItem>? _items = [];
+  int _selectedIndex = -1;
 
   @override
   void initState() {
@@ -139,6 +140,7 @@ class EnsembleToggleButtonState extends WidgetState<EnsembleToggleButton> {
       final value = widget.getValue();
       final valueIndex = widget.controller.items
           ?.indexWhere((element) => element.value == value);
+      _selectedIndex = valueIndex ?? -1;
 
       widget.controller.items!.asMap().forEach((index, value) {
         _items!.add(
@@ -147,9 +149,8 @@ class EnsembleToggleButtonState extends WidgetState<EnsembleToggleButton> {
             value: value.value,
             icon: value.icon,
             isIcon: value.isIcon,
-            isSelected: (valueIndex != null && valueIndex != -1)
-                ? index == valueIndex
-                : false,
+            isSelected:
+                (_selectedIndex != -1) ? index == _selectedIndex : false,
           ),
         );
       });
@@ -177,18 +178,16 @@ class EnsembleToggleButtonState extends WidgetState<EnsembleToggleButton> {
         minHeight: 40.0,
         minWidth: 80.0,
       ),
-      children: List.generate(
-        _items!.length,
-        (index) => _buildWidget(_items![index]),
-      ),
+      children: _getChildren(),
       isSelected: [
         ..._items!.map((e) => e.isSelected).toList(),
       ],
       onPressed: (index) {
-        onSelectionChanged(_items![index].value);
-        _updateSelectedState(index);
+        _selectedIndex = index;
+        onSelectionChanged(_items![_selectedIndex].value);
+        _updateSelectedState();
         if (kDebugMode) {
-          print('Selected: ${_items![index].value}');
+          print('Selected: ${_items![_selectedIndex].value}');
         }
       },
     );
@@ -197,6 +196,14 @@ class EnsembleToggleButtonState extends WidgetState<EnsembleToggleButton> {
     return widget._controller.margin != null
         ? Padding(padding: widget._controller.margin!, child: rtn)
         : rtn;
+  }
+
+  List<Widget> _getChildren() {
+    _updateSelectedState();
+    return List.generate(
+      _items!.length,
+      (index) => _buildWidget(_items![index]),
+    );
   }
 
   Widget _buildWidget(ToggleItem item) {
@@ -212,22 +219,28 @@ class EnsembleToggleButtonState extends WidgetState<EnsembleToggleButton> {
     return child;
   }
 
-  void _updateSelectedState(int index) {
-    List<ToggleItem> _temp = [];
-    _items!.asMap().forEach((itemIndex, item) {
-      _temp.add(
-        ToggleItem(
-          label: item.label,
-          value: item.value,
-          icon: item.icon,
-          isIcon: item.isIcon,
-          isSelected: itemIndex == index,
-        ),
-      );
-    });
-    setState(() {
-      _items = _temp;
-    });
+  void _updateSelectedState() {
+    final value = widget.getValue();
+    final valueIndex = widget.controller.items
+        ?.indexWhere((element) => element.value == value);
+    _selectedIndex = valueIndex ?? -1;
+    if (_selectedIndex != -1) {
+      List<ToggleItem> _temp = [];
+      _items!.asMap().forEach((itemIndex, item) {
+        _temp.add(
+          ToggleItem(
+            label: item.label,
+            value: item.value,
+            icon: item.icon,
+            isIcon: item.isIcon,
+            isSelected: itemIndex == _selectedIndex,
+          ),
+        );
+      });
+      setState(() {
+        _items = _temp;
+      });
+    }
   }
 
   void onSelectionChanged(dynamic value) {
