@@ -50,7 +50,10 @@ class HostCachedEnsembleProvider extends EnsembleDefinitionProvider {
     if (screenId != null) {
       content = hostCache.getString(screenId);
     } else if (screenName != null) {
-      content = hostCache.getString(screenName);
+      final screenId = appModel.screenNameMappings[screenName];
+      if (screenId != null) {
+        content = hostCache.getString(screenId);
+      }
     } else if (appModel.homeMapping != null) {
       content = hostCache.getString(appModel.homeMapping!);
     }
