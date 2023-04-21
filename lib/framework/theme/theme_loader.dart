@@ -44,7 +44,6 @@ mixin ThemeLoader {
       textTheme: _buildTextTheme(),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          side: BorderSide(color: DesignSystem.primary, width: 2),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8.0),
           ),
@@ -85,7 +84,7 @@ mixin ThemeLoader {
       ),
     );
 
-    final seedColor = Utils.getColor(overrides?['Colors']['seed']);
+    final seedColor = Utils.getColor(overrides?['Colors']?['seed']);
 
     if (seedColor != null) {
       defaultTheme = defaultTheme.copyWith(
@@ -115,7 +114,13 @@ mixin ThemeLoader {
                 isOutline: false, colorScheme: customColorSchema) ??
             defaultTheme.filledButtonTheme.style,
       ),
-      switchTheme: _buildSwitchTheme(overrides?['Widgets']?['Button']),
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(),
+      switchTheme: const SwitchThemeData(),
+      checkboxTheme: CheckboxThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(4.0),
+        ),
+      ),
     );
 
     // extends ThemeData
@@ -125,6 +130,7 @@ mixin ThemeLoader {
             overrides?['Colors']?['loadingScreenBackgroundColor']),
         loadingScreenIndicatorColor: Utils.getColor(
             overrides?['Colors']?['loadingScreenIndicatorColor']),
+        transitions: Utils.getMap(overrides?['Transitions']),
       )
     ]);
   }
@@ -328,10 +334,6 @@ mixin ThemeLoader {
     );
   }
 
-  SwitchThemeData _buildSwitchTheme(YamlMap? input) {
-    return const SwitchThemeData();
-  }
-
   InputBorder? getInputBorder(
       {InputVariant? variant,
       Color? borderColor,
@@ -400,10 +402,13 @@ mixin ThemeLoader {
 /// extend Theme to add our own special color parameters
 class EnsembleThemeExtension extends ThemeExtension<EnsembleThemeExtension> {
   EnsembleThemeExtension(
-      {this.loadingScreenBackgroundColor, this.loadingScreenIndicatorColor});
+      {this.loadingScreenBackgroundColor,
+      this.loadingScreenIndicatorColor,
+      this.transitions});
 
   final Color? loadingScreenBackgroundColor;
   final Color? loadingScreenIndicatorColor;
+  final Map<String, dynamic>? transitions;
 
   @override
   ThemeExtension<EnsembleThemeExtension> copyWith(
