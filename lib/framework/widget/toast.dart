@@ -1,6 +1,7 @@
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/model.dart';
+import 'package:ensemble/framework/theme/default_theme.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/ensemble_icon.dart';
 import 'package:flutter/cupertino.dart';
@@ -88,13 +89,13 @@ class ToastController {
       IconData icon;
       if (toastAction.type == ToastType.success) {
         icon = Icons.check_circle_outline;
-        bgColor ??= Colors.green.withOpacity(.5);
+        bgColor ??= DesignSystem.successColor;
       } else if (toastAction.type == ToastType.error) {
         icon = Icons.error_outline;
-        bgColor ??= Colors.red.withOpacity(.5);
+        bgColor ??= DesignSystem.errorColor;
       } else if (toastAction.type == ToastType.warning) {
         icon = Icons.warning;
-        bgColor ??= Colors.yellow.withOpacity(.5);
+        bgColor ??= DesignSystem.warningColor;
       } else {
         // info by default
         icon = Icons.info;
@@ -104,29 +105,20 @@ class ToastController {
       const double closeButtonRadius = 10;
 
       content = Row(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Icon(icon),
           const SizedBox(width: 18),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (toastAction.title != null && toastAction.title!.isNotEmpty)
-                Text(toastAction.title!,
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.bold)),
-              if (toastAction.message != null &&
-                  toastAction.message!.isNotEmpty)
-                Flexible(
-                  child: Text(
-                    toastAction.message!,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-            ],
-          ),
+          if (toastAction.message != null && toastAction.message!.isNotEmpty)
+            Flexible(
+              child: Text(
+                toastAction.message!,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           if (toastAction.dismissible != false)
             InkWell(
               child: const CircleAvatar(

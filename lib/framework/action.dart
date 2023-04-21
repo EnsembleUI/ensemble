@@ -89,7 +89,11 @@ class ShowDialogAction extends EnsembleAction {
 
 class NavigateScreenAction extends BaseNavigateScreenAction {
   NavigateScreenAction(
-      {super.initiator, required super.screenName, super.inputs, super.options})
+      {super.initiator,
+      required super.screenName,
+      super.inputs,
+      super.options,
+      super.transition})
       : super(asModal: false);
 
   factory NavigateScreenAction.fromYaml(
@@ -99,10 +103,12 @@ class NavigateScreenAction extends BaseNavigateScreenAction {
           "${ActionType.navigateScreen.name} requires the 'name' of the screen to navigate to.");
     }
     return NavigateScreenAction(
-        initiator: initiator,
-        screenName: payload['name'].toString(),
-        inputs: Utils.getMap(payload['inputs']),
-        options: Utils.getMap(payload['options']));
+      initiator: initiator,
+      screenName: payload['name'].toString(),
+      inputs: Utils.getMap(payload['inputs']),
+      options: Utils.getMap(payload['options']),
+      transition: Utils.getMap(payload['transition']),
+    );
   }
 }
 
@@ -134,11 +140,13 @@ abstract class BaseNavigateScreenAction extends EnsembleAction {
       {super.initiator,
       required this.screenName,
       required this.asModal,
+      this.transition,
       super.inputs,
       this.options});
 
   String screenName;
   bool asModal;
+  Map<String, dynamic>? transition;
   final Map<String, dynamic>? options;
 }
 
