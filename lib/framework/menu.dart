@@ -18,21 +18,53 @@ abstract class Menu {
     if (menu is YamlMap) {
       MenuDisplay? menuType = MenuDisplay.values.from(menu.keys.first);
       YamlMap payload = menu[menu.keys.first];
+      WidgetModel? customIconModel;
+      WidgetModel? customActiveIconModel;
 
       // build menu items
       List<MenuItem> menuItems = [];
       if (payload['items'] is YamlList) {
         for (final YamlMap item in (payload['items'] as YamlList)) {
           if (item['label'] == null) {
-            throw LanguageError("Menu Item's label is required");
+            final YamlMap? customItem = item['customItem'];
+            if (customItem == null) {
+              throw LanguageError("Menu Item's label is required");
+            }
           }
           if (item['page'] == null) {
             throw LanguageError("Menu Item's 'page' attribute is required.");
           }
-          menuItems.add(MenuItem(item['label'], item['page'],
+
+          // custom menu
+          final YamlMap? customItem = item['customItem'];
+          if (customItem != null) {
+            final dynamic iconWidget = customItem['widget'];
+            if (iconWidget != null) {
+              customIconModel =
+                  ViewUtil.buildModel(iconWidget, customViewDefinitions);
+            }
+
+            final dynamic activeIconWidget = customItem['selectedWidget'];
+            if (iconWidget != null) {
+              customActiveIconModel =
+                  ViewUtil.buildModel(activeIconWidget, customViewDefinitions);
+            }
+          }
+
+          menuItems.add(
+            MenuItem(
+              item['label'],
+              item['page'],
+              customActiveWidget: customActiveIconModel,
+              customWidget: customIconModel,
+              activeIcon: item['activeIcon'],
               icon: item['icon'],
               iconLibrary: Utils.optionalString(item['iconLibrary']),
-              selected: item['selected']));
+              selected: item['selected'],
+            ),
+          );
+          customIconModel = null; // Resetting custom icon model
+          customActiveIconModel = null; // Resetting custom icon model
         }
       }
       if (menuItems.length < 2) {
@@ -137,11 +169,23 @@ enum MenuDisplay {
 enum MenuItemDisplay { stacked, sideBySide }
 
 class MenuItem {
-  MenuItem(this.label, this.page, {this.icon, this.iconLibrary, this.selected});
+  MenuItem(
+    this.label,
+    this.page, {
+    this.customWidget,
+    this.customActiveWidget,
+    this.activeIcon,
+    this.icon,
+    this.iconLibrary,
+    this.selected,
+  });
 
   final String? label;
   final String page;
   final dynamic icon;
+  final dynamic activeIcon;
+  final dynamic customWidget;
+  final dynamic customActiveWidget;
   final String? iconLibrary;
   final dynamic selected;
 }

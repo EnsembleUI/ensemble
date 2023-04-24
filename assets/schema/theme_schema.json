@@ -4,6 +4,10 @@
   "title": "Theme",
   "type": "object",
   "properties": {
+    "material3": {
+      "type": "boolean",
+      "description": "If set true, material3 will be applied else material2"
+    },
     "Text": {
       "type": "object",
       "properties": {

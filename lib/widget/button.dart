@@ -15,6 +15,7 @@ import '../framework/event.dart';
 import '../framework/model.dart';
 import '../framework/scope.dart';
 import '../framework/view/page.dart';
+import 'helpers/widgets.dart';
 
 class Button extends StatefulWidget
     with Invokable, HasController<ButtonController, ButtonState> {
@@ -122,15 +123,21 @@ class ButtonState extends WidgetState<Button> {
 
     Widget? rtn;
     if (isOutlineButton) {
-      rtn = OutlinedButton(
-          onPressed: isEnabled() ? () => onPressed(context) : null,
-          style: getButtonStyle(context, isOutlineButton),
-          child: labelLayout);
+      rtn = BoxWrapper(
+        boxController: widget.controller,
+        widget: OutlinedButton(
+            onPressed: isEnabled() ? () => onPressed(context) : null,
+            style: getButtonStyle(context, isOutlineButton),
+            child: labelLayout),
+      );
     } else {
-      rtn = FilledButton(
-          onPressed: isEnabled() ? () => onPressed(context) : null,
-          style: getButtonStyle(context, isOutlineButton),
-          child: labelLayout);
+      rtn = BoxWrapper(
+        boxController: widget.controller,
+        widget: FilledButton(
+            onPressed: isEnabled() ? () => onPressed(context) : null,
+            style: getButtonStyle(context, isOutlineButton),
+            child: labelLayout),
+      );
     }
 
     // add margin if specified
@@ -163,7 +170,11 @@ class ButtonState extends WidgetState<Button> {
           borderRadius: widget._controller.borderRadius == null
               ? defaultShape.borderRadius
               : widget._controller.borderRadius!.getValue(),
-          side: borderSide);
+          // when we give [borderGradient] and [borderColor] it will draw that color also around borderSide
+          // So when the borderGradient is there the side will be none
+          side: widget._controller.borderGradient != null
+              ? BorderSide.none
+              : borderSide);
     }
 
     // we need to get the button shape from borderRadius, borderColor & borderThickness

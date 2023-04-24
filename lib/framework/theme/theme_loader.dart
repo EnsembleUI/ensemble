@@ -99,6 +99,7 @@ mixin ThemeLoader {
     );
 
     final customTheme = defaultTheme.copyWith(
+      useMaterial3: Utils.getBool(overrides?['material3'], fallback: true),
       colorScheme: customColorSchema,
       disabledColor: Utils.getColor(overrides?['Colors']?['disabled']),
       textTheme: _buildTextTheme(overrides?['Text']),
@@ -377,6 +378,7 @@ mixin ThemeLoader {
       return OutlinedButton.styleFrom(
           foregroundColor: color,
           padding: padding,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           fixedSize: Size(buttonWidth ?? Size.infinite.width,
               buttonHeight ?? Size.infinite.height),
           shape: border,
@@ -386,6 +388,7 @@ mixin ThemeLoader {
         foregroundColor: color,
         backgroundColor: backgroundColor,
         padding: padding,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         fixedSize: Size(buttonWidth ?? Size.infinite.width,
             buttonHeight ?? Size.infinite.height),
         shape: border,

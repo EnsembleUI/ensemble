@@ -7,6 +7,7 @@ import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/services.dart';
 import 'package:get_storage/get_storage.dart';
 
 import 'package:ensemble/framework/action.dart';
@@ -22,6 +23,7 @@ import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:mime/mime.dart';
 import 'package:source_span/source_span.dart';
+import 'package:walletconnect_dart/walletconnect_dart.dart';
 import 'package:yaml/yaml.dart';
 
 /// manages Data and Invokables within the current data scope.
@@ -316,7 +318,9 @@ class NativeInvokable with Invokable {
       ActionType.stopTimer.name: stopTimer,
       ActionType.openCamera.name: showCamera,
       ActionType.navigateBack.name: navigateBack,
-      'debug': (value) => log('Debug: $value')
+      'debug': (value) => log('Debug: $value'),
+      'copyToClipboard': (value) =>
+          Clipboard.setData(ClipboardData(text: value))
     };
   }
 
@@ -666,18 +670,11 @@ class FileData with Invokable {
   FileData({List<File>? files}) : _files = files;
 
   final List<File>? _files;
-  Response? _response;
-
-  setResponse(Response response) {
-    _response = response;
-  }
 
   @override
   Map<String, Function> getters() {
     return {
       'files': () => _files?.map((file) => file.toJson()).toList(),
-      'body': () => _response?.body,
-      'headers': () => _response?.headers
     };
   }
 
@@ -757,4 +754,35 @@ enum MediaType {
   video,
   audio,
   unknown,
+}
+
+class WalletData with Invokable {
+  WalletData(this.walletConnect);
+
+  final WalletConnect walletConnect;
+
+  @override
+  Map<String, Function> getters() {
+    return {
+      'addresses': () => walletConnect.session.accounts,
+      'connectionUri': () => walletConnect.session.toUri().toString(),
+    };
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {
+      'closeConnection': () => closeConnection(),
+    };
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
+  }
+
+  void closeConnection() {
+    walletConnect.killSession();
+    walletConnect.close();
+  }
 }
