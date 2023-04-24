@@ -70,7 +70,7 @@ class BoxWrapper extends StatelessWidget {
                 border: !boxController.hasBorder()
                     ? null
                     : boxController.borderGradient != null
-                        ? GradientBorder(
+                        ? GradientBoxBorder(
                             gradient: boxController.borderGradient!,
                             width: boxController.borderWidth?.toDouble() ??
                                 ThemeManager().getBorderThickness(context))
@@ -215,24 +215,38 @@ class ClearableInput extends StatelessWidget {
   }
 }
 
-class GradientBorder extends BoxBorder {
-  const GradientBorder({required this.gradient, required this.width});
+mixin GradientBorder {
+  BorderSide get bottom => BorderSide.none;
+  BorderSide get top => BorderSide.none;
+  bool get isUniform => true;
+
+  void paintRect(
+      Canvas canvas, Rect rect, LinearGradient gradient, double width) {
+    canvas.drawRect(rect.deflate(width / 2), _getPaint(rect, gradient, width));
+  }
+
+  void paintRRect(Canvas canvas, Rect rect, BorderRadius borderRadius,
+      LinearGradient gradient, double width) {
+    final rrect = borderRadius.toRRect(rect).deflate(width / 2);
+    canvas.drawRRect(rrect, _getPaint(rect, gradient, width));
+  }
+
+  Paint _getPaint(Rect rect, LinearGradient gradient, double width) {
+    return Paint()
+      ..strokeWidth = width
+      ..shader = gradient.createShader(rect)
+      ..style = PaintingStyle.stroke;
+  }
+}
+
+class GradientBoxBorder extends BoxBorder with GradientBorder {
+  const GradientBoxBorder({required this.gradient, required this.width});
 
   final LinearGradient gradient;
-
   final double width;
 
   @override
-  BorderSide get bottom => BorderSide.none;
-
-  @override
-  BorderSide get top => BorderSide.none;
-
-  @override
   EdgeInsetsGeometry get dimensions => EdgeInsets.all(width);
-
-  @override
-  bool get isUniform => true;
 
   @override
   void paint(
@@ -243,30 +257,14 @@ class GradientBorder extends BoxBorder {
     BorderRadius? borderRadius,
   }) {
     if (borderRadius != null) {
-      _paintRRect(canvas, rect, borderRadius);
+      paintRRect(canvas, rect, borderRadius, gradient, width);
       return;
     }
-    _paintRect(canvas, rect);
-  }
-
-  void _paintRect(Canvas canvas, Rect rect) {
-    canvas.drawRect(rect.deflate(width / 2), _getPaint(rect));
-  }
-
-  void _paintRRect(Canvas canvas, Rect rect, BorderRadius borderRadius) {
-    final rrect = borderRadius.toRRect(rect).deflate(width / 2);
-    canvas.drawRRect(rrect, _getPaint(rect));
+    paintRect(canvas, rect, gradient, width);
   }
 
   @override
   ShapeBorder scale(double t) {
     return this;
-  }
-
-  Paint _getPaint(Rect rect) {
-    return Paint()
-      ..strokeWidth = width
-      ..shader = gradient.createShader(rect)
-      ..style = PaintingStyle.stroke;
   }
 }

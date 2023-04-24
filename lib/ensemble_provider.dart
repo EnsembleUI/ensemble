@@ -5,7 +5,6 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/i18n_loader.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:flutter_i18n/loaders/decoders/yaml_decode_strategy.dart';
 import 'package:yaml/yaml.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ensemble/provider.dart';
@@ -23,7 +22,7 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
   static const i18nPrefix = 'i18n_';
 
   @override
-  Future<AppBundle> getAppBundle() async {
+  Future<AppBundle> getAppBundle({bool? bypassCache = false}) async {
     return appModel.getAppBundle();
   }
 

@@ -151,8 +151,10 @@ class ViewUtil {
       // extract onLoad and other properties at the root of the Custom Widget
       else if (entry.key == 'onLoad') {
         props[entry.key] = entry.value;
+      } else if (entry.key == 'body') {
+        widgetModel = ViewUtil.buildModel(entry.value, customWidgetMap);
       }
-      // find the first widget model
+      // backward compatible - find the first widget model
       else {
         // if a regular widget or custom widget
         if (WidgetRegistry.widgetMap[entry.key] != null ||

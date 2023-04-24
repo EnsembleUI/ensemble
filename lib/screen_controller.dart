@@ -2,14 +2,14 @@ import 'dart:async';
 import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/bindings.dart';
+import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
-import 'package:ensemble/framework/action.dart';
-import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/event.dart';
-import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/camera_manager.dart';
@@ -18,17 +18,23 @@ import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/framework/widget/toast.dart';
 import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble/util/http_utils.dart';
-import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_registry.dart';
-import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:yaml/yaml.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher_string.dart';
+import 'package:walletconnect_dart/walletconnect_dart.dart';
+import 'package:yaml/yaml.dart';
+
+import 'framework/widget/wallet_connect_modal.dart';
 
 /// Singleton that holds the page model definition
 /// and operations for the current screen
@@ -81,13 +87,13 @@ class ScreenController {
   }
 
   /// internally execute an Action
-  void _executeAction(
+  Future<void> _executeAction(
       BuildContext context,
       DataContext providedDataContext,
       EnsembleAction action,
       Map<String, YamlMap>? apiMap,
       ScopeManager? scopeManager,
-      {EnsembleEvent? event}) {
+      {EnsembleEvent? event}) async {
     /// Actions are short-live so we don't need a childScope, simply create a localized context from the given context
     /// Note that scopeManager may starts out without Invokable IDs (as widgets may yet to render), but at the time
     /// of API returns, they will be populated. For this reason, always rebuild data context from scope manager.
@@ -362,6 +368,13 @@ class ScreenController {
               ? LaunchMode.externalApplication
               : LaunchMode.platformDefault);
     } else if (action is FileUploadAction) {
+      await uploadFiles(
+          action: action,
+          context: context,
+          dataContext: dataContext,
+          apiMap: apiMap,
+          scopeManager: scopeManager);
+    } else if (action is FilePickerAction) {
       FilePicker.platform
           .pickFiles(
         type: action.allowedExtensions == null ? FileType.any : FileType.custom,
@@ -369,74 +382,107 @@ class ScreenController {
         allowCompression: action.allowCompression ?? true,
         allowMultiple: action.allowMultiple ?? false,
       )
-          .then((result) async {
-        const defaultMaxFileSize = 100000;
-        const defaultOverMaxFileSizeMessage =
-            'The size of is which is larger than the maximum allowed';
-
+          .then((result) {
         if (result == null || result.files.isEmpty) {
           if (action.onError != null) executeAction(context, action.onError!);
-          return null;
+          return;
         }
 
         final selectedFiles =
             result.files.map((file) => File.fromPlatformFile(file)).toList();
-        int totalSize = selectedFiles.fold<int>(
-            0, (previousValue, element) => previousValue + element.size);
-        totalSize = totalSize ~/ 1000;
-
-        final message = Utils.translateWithFallback(
-          'ensemble.input.overMaxFileSizeMessage',
-          action.overMaxFileSizeMessage ?? defaultOverMaxFileSizeMessage,
-        );
-
-        if (totalSize > (action.maxFileSize ?? defaultMaxFileSize)) {
-          ToastController().showToast(
-              context,
-              ShowToastAction(
-                  type: ToastType.error, message: message, position: 'bottom'),
-              null);
-          if (action.onError != null) executeAction(context, action.onError!);
-          return;
-        }
-
-        if (action.id != null && scopeManager != null) {
-          scopeManager.dataContext
-              .addInvokableContext(action.id!, FileData(files: selectedFiles));
-        }
-        YamlMap? apiDefinition = apiMap?[action.uploadApi];
-        if (apiDefinition == null)
-          throw LanguageError(
-              'Unable to find api definition for ${action.uploadApi}');
-        if (apiDefinition['inputs'] is YamlList && action.inputs != null) {
-          for (var input in apiDefinition['inputs']) {
-            dynamic value = dataContext.eval(action.inputs![input]);
-            if (value != null) {
-              dataContext.addDataContextById(input, value);
-            }
-          }
-        }
-        final response = await UploadUtils.uploadFiles(
-          api: apiDefinition,
-          eContext: dataContext,
-          files: selectedFiles,
-          fieldName: action.fieldName,
-          onError: action.onError == null
-              ? null
-              : (error) => executeAction(context, action.onError!),
-        );
-        if (response == null || action.id == null || scopeManager == null)
-          return;
-        final fileData =
-            scopeManager.dataContext.getContextById(action.id!) as FileData;
-        fileData.setResponse(response);
-        if (action.onComplete != null)
+        final fileData = FileData(files: selectedFiles);
+        if (scopeManager == null) return;
+        scopeManager.dataContext.addDataContextById(action.id, fileData);
+        scopeManager.dispatch(
+            ModelChangeEvent(SimpleBindingSource(action.id), fileData));
+        if (action.onComplete != null) {
           executeAction(context, action.onComplete!);
+        }
       });
     } else if (action is NavigateBack) {
       if (scopeManager != null) {
         Navigator.of(context).maybePop();
       }
+    } else if (action is CopyToClipboardAction) {
+      if (action.value != null) {
+        Clipboard.setData(ClipboardData(text: action.value)).then((value) {
+          if (action.onSuccess != null) {
+            executeAction(context, action.onSuccess!);
+          }
+        });
+      } else {
+        if (action.onFailure != null) executeAction(context, action.onFailure!);
+      }
+    } else if (action is WalletConnectAction) {
+      //  TODO store session:  WalletConnectSession? session = await sessionStorage.getSession();
+
+      BuildContext? dialogContext;
+
+      final WalletConnect walletConnect = WalletConnect(
+        bridge: 'https://bridge.walletconnect.org',
+        clientMeta: PeerMeta(
+          name: action.appName,
+          description: action.appDescription,
+          url: action.appUrl,
+          icons:
+              action.appIconUrl != null ? <String>[action.appIconUrl!] : null,
+        ),
+      );
+
+      if (action.id != null && scopeManager != null) {
+        scopeManager.dataContext
+            .addDataContextById(action.id!, WalletData(walletConnect));
+      }
+
+      if (walletConnect.connected) {
+        // TODO works when session is stored
+        return;
+      }
+
+      walletConnect.on('connect', (SessionStatus? session) {
+        if (dialogContext != null) {
+          Navigator.pop(dialogContext!);
+        }
+        updateWalletData(action, scopeManager, context);
+      });
+      walletConnect.on('session_update', (Object? session) {
+        if (dialogContext != null) {
+          Navigator.pop(dialogContext!);
+        }
+        updateWalletData(action, scopeManager, context);
+      });
+      walletConnect.on('disconnect', (Object? session) {
+        updateWalletData(action, scopeManager, context);
+      });
+
+      try {
+        walletConnect.createSession(onDisplayUri: (String uri) async {
+          if (kIsWeb) {
+            showDialog(
+              context: context,
+              builder: (context) {
+                dialogContext = context;
+                return WalletConnectModal(qrData: uri);
+              },
+            );
+            return;
+          }
+          launchUrlString(uri, mode: LaunchMode.externalApplication);
+        });
+      } on Exception catch (_) {
+        if (action.onError != null) executeAction(context, action.onError!);
+        throw LanguageError('Unable to create wallet connect session');
+      }
+    }
+  }
+
+  void updateWalletData(WalletConnectAction action, ScopeManager? scopeManager,
+      BuildContext context) {
+    if (action.id != null && scopeManager != null) {
+      final walletData = scopeManager.dataContext.getContextById(action.id!);
+      scopeManager.dispatch(
+          ModelChangeEvent(SimpleBindingSource(action.id!), walletData));
+      if (action.onComplete != null) executeAction(context, action.onComplete!);
     }
   }
 
@@ -448,6 +494,92 @@ class ScreenController {
     localizedContext.addInvokableContext('this', initiator);
     localizedContext.evalCode(codeBlock);
   }*/
+
+  Future<void> uploadFiles({
+    required BuildContext context,
+    required FileUploadAction action,
+    required DataContext dataContext,
+    ScopeManager? scopeManager,
+    Map<String, YamlMap>? apiMap,
+  }) async {
+    List<File>? selectedFiles;
+    final defaultMaxFileSize = 100.mb;
+    const defaultOverMaxFileSizeMessage =
+        'The size of is which is larger than the maximum allowed';
+
+    final rawFiles = dataContext.eval(action.files);
+
+    if (rawFiles is! List<dynamic>) {
+      if (action.onError != null) executeAction(context, action.onError!);
+      return;
+    }
+
+    selectedFiles =
+        rawFiles.map((data) => File.fromJson(data)).toList().cast<File>();
+
+    final totalSize = selectedFiles.fold<double>(
+        0, (previousValue, element) => previousValue + element.size);
+    final maxFileSize = action.maxFileSize?.kb ?? defaultMaxFileSize;
+
+    final message = Utils.translateWithFallback(
+      'ensemble.input.overMaxFileSizeMessage',
+      action.overMaxFileSizeMessage ?? defaultOverMaxFileSizeMessage,
+    );
+
+    if (totalSize > maxFileSize) {
+      ToastController().showToast(
+          context,
+          ShowToastAction(
+              type: ToastType.error,
+              message: message,
+              position: 'bottom',
+              duration: 3),
+          null);
+      if (action.onError != null) executeAction(context, action.onError!);
+      return;
+    }
+
+    if (action.id != null && scopeManager != null) {
+      scopeManager.dataContext.addInvokableContext(action.id!, APIResponse());
+    }
+
+    final apiDefinition = apiMap?[action.uploadApi];
+    if (apiDefinition == null) {
+      throw LanguageError(
+          'Unable to find api definition for ${action.uploadApi}');
+    }
+
+    if (apiDefinition['inputs'] is YamlList && action.inputs != null) {
+      for (var input in apiDefinition['inputs']) {
+        final value = dataContext.eval(action.inputs![input]);
+        if (value != null) {
+          dataContext.addDataContextById(input, value);
+        }
+      }
+    }
+
+    final response = await UploadUtils.uploadFiles(
+      api: apiDefinition,
+      eContext: dataContext,
+      files: selectedFiles,
+      fieldName: action.fieldName,
+      onError: action.onError == null
+          ? null
+          : (error) => executeAction(context, action.onError!),
+    );
+
+    if (response == null || action.id == null || scopeManager == null) {
+      return;
+    }
+
+    final fileResponse =
+        scopeManager.dataContext.getContextById(action.id!) as APIResponse;
+    fileResponse.setAPIResponse(response);
+    scopeManager
+        .dispatch(ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
+
+    if (action.onComplete != null) executeAction(context, action.onComplete!);
+  }
 
   /// e.g upon return of API result
   void _onAPIComplete(

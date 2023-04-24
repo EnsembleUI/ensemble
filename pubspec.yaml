@@ -79,6 +79,9 @@ dependencies:
   mime: ^1.0.4
   flutter_cache_manager: ^3.3.0
   google_fonts: ^4.0.3
+  walletconnect_dart: ^0.0.11
+  http_parser: ^4.0.2
+  shared_preferences: ^2.0.15
 
 dev_dependencies:
   flutter_test:
