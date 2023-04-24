@@ -320,6 +320,7 @@ mixin ThemeLoader {
     if (isOutline) {
       return TextButton.styleFrom(
           padding: padding,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           fixedSize: Size(buttonWidth ?? Size.infinite.width,
               buttonHeight ?? Size.infinite.height),
           primary: color,
@@ -328,6 +329,7 @@ mixin ThemeLoader {
     } else {
       return ElevatedButton.styleFrom(
           padding: padding,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           fixedSize: Size(buttonWidth ?? Size.infinite.width,
               buttonHeight ?? Size.infinite.height),
           primary: backgroundColor,
