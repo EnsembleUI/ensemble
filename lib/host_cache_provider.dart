@@ -40,10 +40,9 @@ class HostCachedEnsembleProvider extends EnsembleDefinitionProvider {
         (theme ??= hostCache.getString(appModel.themeMapping!)) != null) {
       return AppBundle(
           theme: loadYaml(theme!),
-          resources: appModel.artifactCache[ArtifactType.resources.name]);
+          resources: await appModel.getCombinedResources());
     } else {
-      return AppBundle(
-          resources: appModel.artifactCache[ArtifactType.resources.name]);
+      return AppBundle(resources: await appModel.getCombinedResources());
     }
   }
 

@@ -22,6 +22,9 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
   /// prefix for i18n in Firebase
   static const i18nPrefix = 'i18n_';
 
+  // hardcoded Ensemble widget library app ID
+  static const ensembleLibraryId = '8PghcmhtGkWiWffmhDDl';
+
   @override
   Future<AppBundle> getAppBundle({bool? bypassCache = false}) async {
     return appModel.getAppBundle();
@@ -93,6 +96,9 @@ class AppModel {
   String? themeMapping;
   UserAppConfig? appConfig;
 
+  // storing the resource cache from imported apps
+  Map<String, dynamic> importCache = {};
+
   /// fetch async and cache our entire App's artifacts.
   /// Plus listen for changes and update the cache
   String? listenerError;
@@ -116,6 +122,27 @@ class AppModel {
     }, onError: (error) {
       log("Provider listener error");
       listenerError = error.toString();
+    });
+
+    // hardcoded to Ensemble public widget library
+    initWidgetArtifactListeners(EnsembleDefinitionProvider.ensembleLibraryId);
+  }
+
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>
+      initWidgetArtifactListeners(String appId) {
+    return FirebaseFirestore.instance
+        .collection('apps')
+        .doc(appId)
+        .collection('artifacts')
+        .doc('resources')
+        .snapshots()
+        .listen((event) {
+      dynamic content = event.data()?['content'];
+      if (content != null) {
+        importCache[appId] = content;
+      } else {
+        importCache.remove(appId);
+      }
     });
   }
 
@@ -263,6 +290,57 @@ class AppModel {
     }
     return AppBundle(
         theme: themeMapping != null ? artifactCache[themeMapping] : null,
-        resources: artifactCache[ArtifactType.resources.name]);
+        resources: await getCombinedResources());
+  }
+
+  /// combine our App's resources with imported Apps' widgets (no code/APIs fornow)
+  Future<YamlMap?> getCombinedResources() async {
+    Map output = {};
+    Map widgets = {};
+
+    YamlMap? resources = artifactCache[ArtifactType.resources.name];
+    resources?.forEach((key, value) {
+      if (key == ResourceArtifactEntry.Widgets.name) {
+        if (value is YamlMap) {
+          widgets.addAll(value.value);
+        }
+      } else {
+        // copy over non-Widgets
+        output[key] = value;
+      }
+    });
+
+    // go through each imported App to include their widgets with proper namespace
+    for (String appId in importCache.keys) {
+      // prefix the imported App with its ID, or use 'ensemble' if belong to us
+      String namespace = appId == EnsembleDefinitionProvider.ensembleLibraryId
+          ? 'ensemble'
+          : appId;
+      try {
+        YamlMap appResources = await loadYaml(importCache[appId]);
+        if (appResources[ResourceArtifactEntry.Widgets.name] is YamlMap) {
+          // iterate through each widgets in this app to add the namespace prefix
+          (appResources[ResourceArtifactEntry.Widgets.name] as YamlMap)
+              .forEach((key, value) {
+            widgets['$namespace.$key'] = value;
+          });
+        }
+      } on Exception catch (e) {
+        // silently ignore default ensemble import. Not ideal but we are not
+        // sure if the user actually uses it since it's automatically imported.
+        if (namespace == 'ensemble') {
+          log("Imported app 'ensemble' has errors. Ignoring...");
+          continue;
+        } else {
+          throw LanguageError("Imported app '$namespace' has errors.",
+              recovery: "Please check the imported library or remove it.");
+        }
+      }
+    }
+
+    // finally add the widgets to the output
+    output[ResourceArtifactEntry.Widgets.name] = widgets;
+    //log(">>" + output.toString());
+    return YamlMap.wrap(output);
   }
 }
