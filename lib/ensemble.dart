@@ -252,8 +252,9 @@ class EnsembleConfig {
     return ThemeManager().getAppTheme(appBundle?.theme);
   }
 
-  YamlMap? getCustomWidgets() {
-    return appBundle?.widgets;
+  /// retrieve the global widgets/codes/APIs
+  YamlMap? getResources() {
+    return appBundle?.resources;
   }
 
   FlutterI18nDelegate getI18NDelegate() {
@@ -270,10 +271,10 @@ class I18nProps {
 }
 
 class AppBundle {
-  AppBundle({this.theme, this.widgets});
+  AppBundle({this.theme, this.resources});
 
   YamlMap? theme; // theme
-  YamlMap? widgets; // custom widgets
+  YamlMap? resources; // globally available widgets/codes/APIs
 }
 
 /// store the App's account info (e.g. access token for maps)
