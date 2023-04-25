@@ -123,11 +123,11 @@ class AppModel {
       DocumentSnapshot<Map<String, dynamic>> doc, bool isModified) async {
     // adjust the theme and home screen
     if (doc.data()?['isRoot'] == true) {
-      if (doc.data()?['type'] == 'screen') {
+      if (doc.data()?['type'] == ArtifactType.screen.name) {
         homeMapping = doc.id;
-      } else if (doc.data()?['type'] == 'theme') {
+      } else if (doc.data()?['type'] == ArtifactType.theme.name) {
         themeMapping = doc.id;
-      } else if (doc.data()?['type'] == 'config') {
+      } else if (doc.data()?['type'] == ArtifactType.config.name) {
         // environment variable
         Map<String, dynamic>? envVariables;
         dynamic env = doc.data()!['envVariables'];
@@ -143,7 +143,11 @@ class AppModel {
 
       // mark the app bundle as dirty
       if (isModified &&
-          ['theme', 'config', 'widgets'].contains(doc.data()!['type'])) {
+          [
+            ArtifactType.theme.name,
+            ArtifactType.config.name,
+            ArtifactType.resources.name
+          ].contains(doc.data()!['type'])) {
         log("Changed Artifact: " + doc.data()!['type']);
         Ensemble().notifyAppBundleChanges();
       }
@@ -251,7 +255,7 @@ class AppModel {
         .get();
     for (var doc in snapshot.docs) {
       await updateArtifact(doc, false);
-      if (doc.data()['type'] == 'theme') {
+      if (doc.data()['type'] == ArtifactType.theme.name) {
         themeMapping = doc.id;
       } else if (doc.data()['type'] == 'screen' && homeMapping == null) {
         homeMapping = doc.id;
@@ -259,6 +263,6 @@ class AppModel {
     }
     return AppBundle(
         theme: themeMapping != null ? artifactCache[themeMapping] : null,
-        widgets: artifactCache['widgets']);
+        resources: artifactCache[ArtifactType.resources.name]);
   }
 }

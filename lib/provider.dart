@@ -13,6 +13,13 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' as foundation;
 import 'package:firebase_core/firebase_core.dart';
 
+enum ArtifactType {
+  screen,
+  theme,
+  resources, // global widgets/codes/APIs/
+  config // app config
+}
+
 abstract class DefinitionProvider {
   static Map<String, dynamic> cache = {};
   final I18nProps i18nProps;

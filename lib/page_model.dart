@@ -77,8 +77,8 @@ abstract class PageModel {
     Map<String, dynamic> subViewDefinitions = {};
 
     // first get the custom widgets from Global
-    YamlMap? globalWidgets = Ensemble().getConfig()?.getCustomWidgets();
-    globalWidgets?.forEach((key, value) {
+    YamlMap? globalWidgets = Ensemble().getConfig()?.getResources();
+    globalWidgets?['Widgets']?.forEach((key, value) {
       if (value != null) {
         subViewDefinitions[key] = value;
       }

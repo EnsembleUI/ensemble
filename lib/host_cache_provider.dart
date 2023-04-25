@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_provider.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yaml/yaml.dart';
 
@@ -37,9 +38,12 @@ class HostCachedEnsembleProvider extends EnsembleDefinitionProvider {
     String? theme;
     if (appModel.themeMapping != null &&
         (theme ??= hostCache.getString(appModel.themeMapping!)) != null) {
-      return AppBundle(theme: loadYaml(theme!));
+      return AppBundle(
+          theme: loadYaml(theme!),
+          resources: appModel.artifactCache[ArtifactType.resources.name]);
     } else {
-      return AppBundle();
+      return AppBundle(
+          resources: appModel.artifactCache[ArtifactType.resources.name]);
     }
   }
 
