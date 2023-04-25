@@ -61,6 +61,10 @@ abstract class Menu {
               icon: item['icon'],
               iconLibrary: Utils.optionalString(item['iconLibrary']),
               selected: item['selected'],
+              fab: Utils.optionalBool(item['fab']) ?? false,
+              fabLocation:
+                  Utils.optionalString(item['fabLocation']) ?? 'center',
+              onTap: item['onTap'],
             ),
           );
           customIconModel = null; // Resetting custom icon model
@@ -178,6 +182,9 @@ class MenuItem {
     this.icon,
     this.iconLibrary,
     this.selected,
+    this.fab = false,
+    this.fabLocation = 'center',
+    this.onTap,
   });
 
   final String? label;
@@ -188,4 +195,7 @@ class MenuItem {
   final dynamic customActiveWidget;
   final String? iconLibrary;
   final dynamic selected;
+  final bool fab;
+  final String fabLocation;
+  final dynamic onTap;
 }
