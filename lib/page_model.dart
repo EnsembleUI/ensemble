@@ -1,6 +1,7 @@
 import 'dart:developer';
 import 'dart:ui';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
@@ -74,6 +75,17 @@ abstract class PageModel {
   /// Create a map of Ensemble's custom widgets so WidgetModel can reference them
   Map<String, dynamic> _buildCustomViewDefinitions(YamlMap docMap) {
     Map<String, dynamic> subViewDefinitions = {};
+
+    // first get the custom widgets from Global
+    YamlMap? globalWidgets = Ensemble().getConfig()?.getCustomWidgets();
+    globalWidgets?.forEach((key, value) {
+      if (value != null) {
+        subViewDefinitions[key] = value;
+      }
+    });
+
+    // then add custom widgets on the page. They will
+    // override global scope if the name is duplicate
     docMap.forEach((key, value) {
       if (!_reservedTokens.contains(key)) {
         if (value != null) {

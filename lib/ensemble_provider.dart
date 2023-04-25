@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/i18n_loader.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:yaml/yaml.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -63,9 +64,9 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
     _i18nDelegate ??= FlutterI18nDelegate(
         translationLoader: DataTranslationLoader(
             defaultLocaleMap:
-                appModel.contentCache[i18nPrefix + i18nProps.defaultLocale],
+                appModel.artifactCache[i18nPrefix + i18nProps.defaultLocale],
             fallbackLocaleMap:
-                appModel.contentCache[i18nPrefix + i18nProps.fallbackLocale]));
+                appModel.artifactCache[i18nPrefix + i18nProps.fallbackLocale]));
     return _i18nDelegate!;
   }
 
@@ -85,7 +86,7 @@ class AppModel {
   final String appId;
 
   // the cache for ID -> screen content
-  Map<String, dynamic> contentCache = {};
+  Map<String, dynamic> artifactCache = {};
   // these are mappings from home/screen name to IDs
   Map<String, String> screenNameMappings = {};
   String? homeMapping;
@@ -108,7 +109,8 @@ class AppModel {
         if (change.type == DocumentChangeType.removed) {
           removeArtifact(change.doc);
         } else {
-          updateArtifact(change.doc);
+          updateArtifact(
+              change.doc, change.type == DocumentChangeType.modified);
         }
       }
     }, onError: (error) {
@@ -118,7 +120,7 @@ class AppModel {
   }
 
   Future<bool> updateArtifact(
-      DocumentSnapshot<Map<String, dynamic>> doc) async {
+      DocumentSnapshot<Map<String, dynamic>> doc, bool isModified) async {
     // adjust the theme and home screen
     if (doc.data()?['isRoot'] == true) {
       if (doc.data()?['type'] == 'screen') {
@@ -133,11 +135,17 @@ class AppModel {
           envVariables = {};
           env.forEach((key, value) => envVariables![key] = value);
         }
-
         appConfig = UserAppConfig(
             baseUrl: doc.data()?['appBaseUrl'],
             useBrowserUrl: Utils.optionalBool(doc.data()?['appUseBrowserUrl']),
             envVariables: envVariables);
+      }
+
+      // mark the app bundle as dirty
+      if (isModified &&
+          ['theme', 'config', 'widgets'].contains(doc.data()!['type'])) {
+        log("Changed Artifact: " + doc.data()!['type']);
+        Ensemble().notifyAppBundleChanges();
       }
     }
 
@@ -161,27 +169,27 @@ class AppModel {
     if (yamlContent == null && doc.data()?['type'] == 'screen') {
       yamlContent = InvalidDefinition();
     }
-    contentCache[doc.id] = yamlContent;
+    artifactCache[doc.id] = yamlContent;
 
-    log("Cached: ${contentCache.keys}. Home: $homeMapping. Theme: $themeMapping. Names: ${screenNameMappings.keys}");
+    log("Cached: ${artifactCache.keys}. Home: $homeMapping. Theme: $themeMapping. Names: ${screenNameMappings.keys}");
     return Future<bool>.value(true);
   }
 
   void removeArtifact(DocumentSnapshot<Map<String, dynamic>> doc) {
     log("Removed ${doc.id}");
     screenNameMappings.removeWhere((key, value) => (value == doc.id));
-    contentCache.remove(doc.id);
+    artifactCache.remove(doc.id);
   }
 
   Future<YamlMap?> getScreenById(String screenId) async {
-    dynamic content = contentCache[screenId];
+    dynamic content = artifactCache[screenId];
     // fetch if not in cache. Should only be the first time when
     // our listeners are not done initialized yet.
     if (content == null) {
       DocumentSnapshot<Map<String, dynamic>> snapshot =
           await _getArtifacts().doc(screenId).get();
-      await updateArtifact(snapshot);
-      content = contentCache[screenId];
+      await updateArtifact(snapshot, false);
+      content = artifactCache[screenId];
       log("Cache missed for $screenId");
     }
     if (content is YamlMap) {
@@ -194,7 +202,7 @@ class AppModel {
     dynamic content;
     String? screenId = screenNameMappings[screenName];
     if (screenId != null) {
-      content = contentCache[screenId];
+      content = artifactCache[screenId];
     }
     // not in cache. Fetch it. Should be the first time only
     // until our cache is populated by the listeners
@@ -207,8 +215,8 @@ class AppModel {
           .limit(1)
           .get();
       if (searchByName.docs.isNotEmpty) {
-        await updateArtifact(searchByName.docs[0]);
-        content = contentCache[screenName];
+        await updateArtifact(searchByName.docs[0], false);
+        content = artifactCache[screenName];
         log("Cache missed for $screenName");
       }
     }
@@ -221,7 +229,7 @@ class AppModel {
   Future<YamlMap?> getHomeScreen() {
     dynamic content;
     if (homeMapping != null) {
-      content = contentCache[homeMapping];
+      content = artifactCache[homeMapping];
     }
     if (content is YamlMap) {
       return Future.value(content);
@@ -242,7 +250,7 @@ class AppModel {
         .where('isRoot', isEqualTo: true)
         .get();
     for (var doc in snapshot.docs) {
-      await updateArtifact(doc);
+      await updateArtifact(doc, false);
       if (doc.data()['type'] == 'theme') {
         themeMapping = doc.id;
       } else if (doc.data()['type'] == 'screen' && homeMapping == null) {
@@ -250,6 +258,7 @@ class AppModel {
       }
     }
     return AppBundle(
-        theme: themeMapping != null ? contentCache[themeMapping] : null);
+        theme: themeMapping != null ? artifactCache[themeMapping] : null,
+        widgets: artifactCache['widgets']);
   }
 }

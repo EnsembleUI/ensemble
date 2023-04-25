@@ -27,7 +27,7 @@ class HostCachedEnsembleProvider extends EnsembleDefinitionProvider {
   @override
   Future<AppBundle> getAppBundle({bool? bypassCache = false}) async {
     // Populate cache from remote if first time or explicitly asked
-    if (bypassCache == true || appModel.contentCache.isEmpty) {
+    if (bypassCache == true || appModel.artifactCache.isEmpty) {
       AppBundle updatedBundle = await appModel.getAppBundle();
       _syncArtifactsToHostCache();
       return updatedBundle;
@@ -66,7 +66,7 @@ class HostCachedEnsembleProvider extends EnsembleDefinitionProvider {
   }
 
   _syncArtifactsToHostCache() {
-    appModel.contentCache.forEach((key, value) {
+    appModel.artifactCache.forEach((key, value) {
       hostCache.setString(key, json.encode(value));
     });
   }
