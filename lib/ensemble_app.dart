@@ -11,6 +11,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:provider/provider.dart';
+
+import 'framework/styles/style_provider.dart';
 
 /// use this as the root widget for Ensemble
 class EnsembleApp extends StatefulWidget {
@@ -80,28 +83,32 @@ class EnsembleAppState extends State<EnsembleApp> {
 
   Widget renderApp(EnsembleConfig config) {
     //log("EnsembleApp build() - $hashCode");
-    return MaterialApp(
-      navigatorKey: Utils.globalAppKey,
-      theme: config.getAppTheme(),
-      localizationsDelegates: [
-        config.getI18NDelegate(),
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate
-      ],
-      home: Scaffold(
-        // this outer scaffold is where the background image would be (if
-        // specified). We do not want it to resize on keyboard popping up.
-        // The Page's Scaffold can handle the resizing.
-        resizeToAvoidBottomInset: false,
+    return Provider(
+      lazy: false,
+      create: (_) => StyleProvider(stylesPayload: config.appBundle?.theme),
+      child: MaterialApp(
+        navigatorKey: Utils.globalAppKey,
+        theme: config.getAppTheme(),
+        localizationsDelegates: [
+          config.getI18NDelegate(),
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate
+        ],
+        home: Scaffold(
+          // this outer scaffold is where the background image would be (if
+          // specified). We do not want it to resize on keyboard popping up.
+          // The Page's Scaffold can handle the resizing.
+          resizeToAvoidBottomInset: false,
 
-        body: Screen(
-          appProvider:
-              AppProvider(definitionProvider: config.definitionProvider),
-          screenPayload: widget.screenPayload,
+          body: Screen(
+            appProvider:
+                AppProvider(definitionProvider: config.definitionProvider),
+            screenPayload: widget.screenPayload,
+          ),
         ),
+        // TODO: this case translation issue on hot loading. Address this for RTL support
+        //builder: (context, widget) => FlutterI18n.rootAppBuilder().call(context, widget)
       ),
-      // TODO: this case translation issue on hot loading. Address this for RTL support
-      //builder: (context, widget) => FlutterI18n.rootAppBuilder().call(context, widget)
     );
   }
 

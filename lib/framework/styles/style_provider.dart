@@ -1,0 +1,68 @@
+import 'package:ensemble/util/utils.dart';
+import 'package:flutter/material.dart';
+import 'package:yaml/yaml.dart';
+
+class StyleProvider {
+  StyleProvider({this.stylesPayload}) {
+    print('Styles Payload: $stylesPayload');
+    if (stylesPayload != null) {
+      final styleData = stylesPayload!['Styles'];
+      print('YamlMap: $styleData');
+      for (MapEntry entry in (styleData as YamlMap).entries) {
+        // see if the custom widget actually declare any input parameters
+        if (entry.key == 'myButtonTheme' && entry.value is YamlMap) {
+          final value = entry.value;
+          final type = Utils.optionalString(value?['type']);
+          final color = Utils.getColor(value?['color']);
+          final backgroundColor = Utils.getColor(value?['backgroundColor']);
+          final borderRadius =
+              Utils.getInt(value?['borderRadius'], fallback: 0).toDouble();
+          final height = Utils.optionalInt(value?['height']);
+          final Map<String, StyleTheme> styleTheme = {
+            entry.key: StyleTheme(
+              type: type,
+              color: color,
+              backgroundColor: backgroundColor,
+              borderRadius: borderRadius,
+            ),
+          };
+          styles.add(styleTheme);
+        }
+      }
+    }
+  }
+
+  final YamlMap? stylesPayload;
+  List<Map<String, StyleTheme>> styles = [];
+
+  dynamic getNamedStyle(String namedStyle) {
+    final styleData =
+        styles.firstWhere((value) => value.containsKey(namedStyle));
+    final style = styleData[namedStyle];
+    if (style != null) {
+      if (style.type == 'Button') {
+        return ElevatedButton.styleFrom(
+          backgroundColor: style.backgroundColor,
+          foregroundColor: style.color,
+        );
+      } else if (style.type == 'Another Type') {
+        // Handle other types
+      }
+    }
+    return null;
+  }
+}
+
+class StyleTheme {
+  StyleTheme({
+    this.type,
+    this.color,
+    this.backgroundColor,
+    this.borderRadius,
+  });
+
+  final String? type;
+  final Color? color;
+  final Color? backgroundColor;
+  final double? borderRadius;
+}
