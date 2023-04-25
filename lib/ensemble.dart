@@ -27,6 +27,10 @@ class Ensemble {
     return _instance;
   }
 
+  void notifyAppBundleChanges() {
+    _config?.updateAppBundle();
+  }
+
   /// the configuration required to run an App
   EnsembleConfig? _config;
 
@@ -248,6 +252,10 @@ class EnsembleConfig {
     return ThemeManager().getAppTheme(appBundle?.theme);
   }
 
+  YamlMap? getCustomWidgets() {
+    return appBundle?.widgets;
+  }
+
   FlutterI18nDelegate getI18NDelegate() {
     return definitionProvider.getI18NDelegate();
   }
@@ -262,9 +270,10 @@ class I18nProps {
 }
 
 class AppBundle {
-  AppBundle({this.theme});
+  AppBundle({this.theme, this.widgets});
 
-  YamlMap? theme;
+  YamlMap? theme; // theme
+  YamlMap? widgets; // custom widgets
 }
 
 /// store the App's account info (e.g. access token for maps)
