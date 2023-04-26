@@ -70,6 +70,9 @@ class HostCachedEnsembleProvider extends EnsembleDefinitionProvider {
 
   _syncArtifactsToHostCache() {
     appModel.artifactCache.forEach((key, value) {
+      if (value == null || value is InvalidDefinition) {
+        return;
+      }
       hostCache.setString(key, json.encode(value));
     });
   }
