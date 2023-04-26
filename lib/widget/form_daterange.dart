@@ -90,7 +90,20 @@ class DateRangeState extends FormFieldWidgetState<DateRange> {
 
   void _selectDate(BuildContext context) async {
     final picked = await showDateRangePicker(
-        context: context, firstDate: DateTime.now(), lastDate: DateTime(2030));
+      context: context,
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2030),
+      builder: (context, child) {
+        return Theme(
+            data: ThemeData(
+              textTheme: Theme.of(context).textTheme,
+              colorScheme: Theme.of(context)
+                  .colorScheme
+                  .copyWith(onPrimary: Colors.white),
+            ),
+            child: child!);
+      },
+    );
     if (picked != null) {
       setState(() {
         widget._controller.startDate = picked.start;

@@ -4,14 +4,11 @@ import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/icon.dart' as iconframework;
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/framework/widget/widget.dart';
-import 'package:ensemble/widget/input/form_helper.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
+import 'package:ensemble/widget/input/form_helper.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:yaml/yaml.dart';
 
 import '../../framework/model.dart';
 //import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -240,9 +237,10 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
               : Text(widget._controller.hintText!),
           value: widget.getValue(),
           items: buildItems(widget._controller.items),
+          dropdownColor: Colors.white,
           onChanged: isEnabled() ? (item) => onSelectionChanged(item) : null,
           focusNode: focusNode,
-          icon: const Icon(Icons.unfold_more, size: 20),
+          icon: const Icon(Icons.keyboard_arrow_down, size: 20),
           decoration:
               inputDecoration.copyWith(contentPadding: adjustedContentPadding));
     } else {
