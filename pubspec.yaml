@@ -79,6 +79,7 @@ dependencies:
   sensors_plus: ^2.0.2
   mime: ^1.0.4
   flutter_cache_manager: ^3.3.0
+  google_fonts: ^4.0.3
   walletconnect_dart: ^0.0.11
   http_parser: ^4.0.2
   shared_preferences: ^2.0.15
@@ -122,6 +123,18 @@ flutter:
         - asset: assets/fonts/Jost-VariableFont_wght.ttf
         - asset: assets/fonts/Jost-Italic-VariableFont_wght.ttf
           style: italic
+    
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/inter/Inter-Regular.ttf
+        - weight: 500
+          asset: assets/fonts/inter/Inter-Medium.ttf
+        - weight: 600
+          asset: assets/fonts/inter/Inter-SemiBold.ttf
+        - weight: 700
+          asset: assets/fonts/inter/Inter-Bold.ttf
+        - weight: 800
+          asset: assets/fonts/inter/Inter-ExtraBold.ttf
 
   # This section identifies your Flutter project as a module meant for
   # embedding in a native host app.  These identifiers should _not_ ordinarily

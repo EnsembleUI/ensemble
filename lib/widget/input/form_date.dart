@@ -145,6 +145,16 @@ class DateState extends FormFieldWidgetState<Date> {
       initialDate: initialDate,
       firstDate: firstDate,
       lastDate: lastDate,
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData(
+            textTheme: Theme.of(context).textTheme,
+            colorScheme:
+                Theme.of(context).colorScheme.copyWith(onPrimary: Colors.white),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) {
       if (widget._controller.value == null ||
