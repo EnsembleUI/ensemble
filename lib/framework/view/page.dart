@@ -140,7 +140,8 @@ class PageState extends State<Page> {
       titleWidget = _scopeManager.buildWidget(headerModel.titleWidget!);
     }
     if (titleWidget == null && headerModel.titleText != null) {
-      titleWidget = Text(Utils.translate(headerModel.titleText!, context));
+      final title = _scopeManager.dataContext.eval(headerModel.titleText);
+      titleWidget = Text(Utils.translate(title.toString(), context));
     }
 
     Widget? backgroundWidget;
