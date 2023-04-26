@@ -2137,7 +2137,7 @@
         },
         {
           "properties": {
-            "walletConnect": {
+            "connectWallet": {
               "type": "object",
               "description": "Allow users connect to crypto wallet",
               "required": ["wcProjectId", "appMetaData"],
