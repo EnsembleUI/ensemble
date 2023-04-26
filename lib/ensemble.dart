@@ -12,6 +12,7 @@ import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/provider.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -19,12 +20,19 @@ import 'package:flutter_i18n/flutter_i18n_delegate.dart';
 import 'package:yaml/yaml.dart';
 import 'package:firebase_core/firebase_core.dart';
 
+import 'framework/theme/theme_loader.dart';
+import 'layout/ensemble_page_route.dart';
+
 /// Singleton Controller
 class Ensemble {
   static final Ensemble _instance = Ensemble._internal();
   Ensemble._internal();
   factory Ensemble() {
     return _instance;
+  }
+
+  void notifyAppBundleChanges() {
+    _config?.updateAppBundle();
   }
 
   /// the configuration required to run an App
@@ -189,8 +197,28 @@ class Ensemble {
             screenName: screenName,
             pageType: pageType,
             arguments: pageArgs));
-    Navigator.push(context,
-        ScreenController().getScreenBuilder(screenWidget, pageType: pageType));
+
+    Map<String, dynamic>? transition =
+        Theme.of(context).extension<EnsembleThemeExtension>()?.transitions;
+
+    final _pageType = pageType == PageType.modal ? 'modal' : 'page';
+
+    final transitionType =
+        PageTransitionTypeX.fromString(transition?[_pageType]?['type']);
+    final alignment = Utils.getAlignment(transition?[_pageType]?['alignment']);
+    final duration =
+        Utils.getInt(transition?[_pageType]?['duration'], fallback: 250);
+
+    Navigator.push(
+      context,
+      ScreenController().getScreenBuilder(
+        screenWidget,
+        pageType: pageType,
+        transitionType: transitionType,
+        alignment: alignment,
+        duration: duration,
+      ),
+    );
   }
 
   /// concat into the format root/folder/
@@ -248,6 +276,11 @@ class EnsembleConfig {
     return ThemeManager().getAppTheme(appBundle?.theme);
   }
 
+  /// retrieve the global widgets/codes/APIs
+  YamlMap? getResources() {
+    return appBundle?.resources;
+  }
+
   FlutterI18nDelegate getI18NDelegate() {
     return definitionProvider.getI18NDelegate();
   }
@@ -262,9 +295,10 @@ class I18nProps {
 }
 
 class AppBundle {
-  AppBundle({this.theme});
+  AppBundle({this.theme, this.resources});
 
-  YamlMap? theme;
+  YamlMap? theme; // theme
+  YamlMap? resources; // globally available widgets/codes/APIs
 }
 
 /// store the App's account info (e.g. access token for maps)
