@@ -16,13 +16,13 @@ void main() {
     widget.setProperty('label', 'hello world');
 
     await tester.pumpWidget(TestUtils.wrapTestWidget(widget));
-    Finder buttonFinder = find.byType(ElevatedButton);
+    Finder buttonFinder = find.byType(FilledButton);
 
     expect(find.text('hello world'), findsOneWidget);
     expect(find.byType(Text), findsOneWidget);
     expect(buttonFinder, findsOneWidget);
 
-    ElevatedButton textButton = tester.firstWidget(buttonFinder);
+    FilledButton textButton = tester.firstWidget(buttonFinder);
     expect(
         ((textButton.child as Row).children.first as Text).data, 'hello world');
   });
@@ -34,13 +34,13 @@ void main() {
     widget.setProperty('startingIcon', startingIcon);
 
     await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(widget));
-    Finder buttonFinder = find.byType(ElevatedButton);
+    Finder buttonFinder = find.byType(FilledButton);
 
     expect(find.text('hello world'), findsOneWidget);
     expect(find.byType(Text), findsOneWidget);
     expect(buttonFinder, findsOneWidget);
 
-    ElevatedButton textButton = tester.firstWidget(buttonFinder);
+    FilledButton textButton = tester.firstWidget(buttonFinder);
     List<Widget> children = (textButton.child as Row).children;
     expect((children[0] as Icon).icon, Icons.star);
     expect((children[2] as Text).data, 'hello world');

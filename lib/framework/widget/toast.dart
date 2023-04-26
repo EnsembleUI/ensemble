@@ -1,6 +1,7 @@
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/model.dart';
+import 'package:ensemble/framework/theme/default_theme.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/ensemble_icon.dart';
 import 'package:flutter/cupertino.dart';
@@ -69,7 +70,7 @@ class ToastController {
 
   Widget getToastWidget(ShowToastAction toastAction, Widget? customToastBody) {
     EdgeInsets padding = Utils.getInsets(toastAction.styles?['padding'],
-        fallback: const EdgeInsets.symmetric(vertical: 5, horizontal: 10));
+        fallback: const EdgeInsets.symmetric(vertical: 20, horizontal: 22));
     Color? bgColor = Utils.getColor(toastAction.styles?['backgroundColor']);
     EBorderRadius? borderRadius =
         Utils.getBorderRadius(toastAction.styles?['borderRadius']);
@@ -80,31 +81,55 @@ class ToastController {
 
     Widget? content = customToastBody;
     if (content == null) {
-      if (toastAction.message == null) {
+      if (toastAction.title == null && toastAction.message == null) {
         throw LanguageError(
-            "${ActionType.showToast.name} requires either a message or a valid widget to render.");
+            "${ActionType.showToast.name} requires either a title/message or a valid widget to render.");
       }
       // render the message as the body
       IconData icon;
       if (toastAction.type == ToastType.success) {
         icon = Icons.check_circle_outline;
-        bgColor ??= Colors.green.withOpacity(.5);
+        bgColor ??= DesignSystem.successColor;
       } else if (toastAction.type == ToastType.error) {
         icon = Icons.error_outline;
-        bgColor ??= Colors.red.withOpacity(.5);
+        bgColor ??= DesignSystem.errorColor;
       } else if (toastAction.type == ToastType.warning) {
         icon = Icons.warning;
-        bgColor ??= Colors.yellow.withOpacity(.5);
+        bgColor ??= DesignSystem.warningColor;
       } else {
         // info by default
-        icon = Icons.info_outline;
+        icon = Icons.info;
         bgColor ??= Colors.white.withOpacity(.9);
       }
-      content = Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon),
-        const SizedBox(width: 7),
-        Text(toastAction.message!)
-      ]);
+
+      const double closeButtonRadius = 10;
+
+      content = Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Icon(icon),
+          const SizedBox(width: 18),
+          if (toastAction.message != null && toastAction.message!.isNotEmpty)
+            Flexible(
+              child: Text(
+                toastAction.message!,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          if (toastAction.dismissible != false)
+            InkWell(
+              child: const CircleAvatar(
+                backgroundColor: Colors.transparent,
+                radius: closeButtonRadius,
+                child: Icon(Icons.close, size: closeButtonRadius * 2 - 2),
+              ),
+              onTap: () => _toast.removeQueuedCustomToasts(),
+            )
+        ],
+      );
     }
 
     // wrapper container for background/border...
@@ -113,7 +138,7 @@ class ToastController {
         decoration: BoxDecoration(
             color: bgColor,
             borderRadius: borderRadius?.getValue() ??
-                const BorderRadius.all(Radius.circular(5)),
+                const BorderRadius.all(Radius.circular(8)),
             boxShadow: <BoxShadow>[
               BoxShadow(
                 blurStyle: BlurStyle.outer,
@@ -124,27 +149,6 @@ class ToastController {
             ]),
         child: content);
 
-    // wraps in dismiss icon
-    if (toastAction.dismissible != false) {
-      double closeButtonRadius = 10;
-      container = Stack(children: [
-        Padding(
-            padding: EdgeInsets.only(
-                top: closeButtonRadius, right: closeButtonRadius),
-            child: container),
-        Positioned(
-            right: 0,
-            top: 0,
-            child: InkWell(
-              child: CircleAvatar(
-                backgroundColor: Colors.white,
-                radius: closeButtonRadius,
-                child: Icon(Icons.close, size: closeButtonRadius * 2 - 2),
-              ),
-              onTap: () => _toast.removeQueuedCustomToasts(),
-            )),
-      ]);
-    }
     return container;
   }
 }
