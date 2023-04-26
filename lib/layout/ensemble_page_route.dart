@@ -19,7 +19,8 @@ enum PageTransitionType {
 }
 
 extension PageTransitionTypeX on PageTransitionType {
-  static PageTransitionType? fromString(String name) {
+  static PageTransitionType? fromString(String? name) {
+    if (name == null) return PageTransitionType.theme;
     switch (name) {
       case 'theme':
         return PageTransitionType.theme;
