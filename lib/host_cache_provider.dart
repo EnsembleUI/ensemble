@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_provider.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yaml/yaml.dart';
 
@@ -27,7 +28,7 @@ class HostCachedEnsembleProvider extends EnsembleDefinitionProvider {
   @override
   Future<AppBundle> getAppBundle({bool? bypassCache = false}) async {
     // Populate cache from remote if first time or explicitly asked
-    if (bypassCache == true || appModel.contentCache.isEmpty) {
+    if (bypassCache == true || appModel.artifactCache.isEmpty) {
       AppBundle updatedBundle = await appModel.getAppBundle();
       _syncArtifactsToHostCache();
       return updatedBundle;
@@ -37,9 +38,11 @@ class HostCachedEnsembleProvider extends EnsembleDefinitionProvider {
     String? theme;
     if (appModel.themeMapping != null &&
         (theme ??= hostCache.getString(appModel.themeMapping!)) != null) {
-      return AppBundle(theme: loadYaml(theme!));
+      return AppBundle(
+          theme: loadYaml(theme!),
+          resources: await appModel.getCombinedResources());
     } else {
-      return AppBundle();
+      return AppBundle(resources: await appModel.getCombinedResources());
     }
   }
 
@@ -66,7 +69,7 @@ class HostCachedEnsembleProvider extends EnsembleDefinitionProvider {
   }
 
   _syncArtifactsToHostCache() {
-    appModel.contentCache.forEach((key, value) {
+    appModel.artifactCache.forEach((key, value) {
       hostCache.setString(key, json.encode(value));
     });
   }
