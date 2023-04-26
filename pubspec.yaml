@@ -35,6 +35,7 @@ dependencies:
   flutter_rating_bar: ^4.0.0
   fl_chart: ^0.55.0
   signature: ^5.2.1
+  device_preview: ^1.1.0
 
   ensemble_ts_interpreter:
     git:
@@ -69,7 +70,7 @@ dependencies:
   cloud_firestore: 4.4.0
   geolocator: ^9.0.2
   get_storage: ^2.0.3
-  flutter_html: ^3.0.0-alpha.6    # flutter_html ^2.0.0 requires flutter_svg <1.0.0, conflicts with ours
+  flutter_html: ^3.0.0-alpha.6 # flutter_html ^2.0.0 requires flutter_svg <1.0.0, conflicts with ours
   camera: ^0.10.3
   image_picker: ^0.8.6
   webview_flutter: ^4.0.1
@@ -134,7 +135,6 @@ flutter:
           asset: assets/fonts/inter/Inter-Bold.ttf
         - weight: 800
           asset: assets/fonts/inter/Inter-ExtraBold.ttf
-
 
   # This section identifies your Flutter project as a module meant for
   # embedding in a native host app.  These identifiers should _not_ ordinarily
