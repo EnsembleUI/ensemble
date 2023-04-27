@@ -125,7 +125,7 @@ class ButtonState extends WidgetState<Button> {
     if (isOutlineButton) {
       rtn = BoxWrapper(
         boxController: widget.controller,
-        widget: TextButton(
+        widget: OutlinedButton(
             onPressed: isEnabled() ? () => onPressed(context) : null,
             style: getButtonStyle(context, isOutlineButton),
             child: labelLayout),
@@ -133,7 +133,7 @@ class ButtonState extends WidgetState<Button> {
     } else {
       rtn = BoxWrapper(
         boxController: widget.controller,
-        widget: ElevatedButton(
+        widget: FilledButton(
             onPressed: isEnabled() ? () => onPressed(context) : null,
             style: getButtonStyle(context, isOutlineButton),
             child: labelLayout),
