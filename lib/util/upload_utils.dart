@@ -1,17 +1,13 @@
 import 'dart:async';
-import 'dart:convert';
 
-import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/framework/data_context.dart' hide MediaType;
 import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/util/notification_utils.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
-import 'package:workmanager/workmanager.dart';
 
 typedef ProgressCallback = void Function(double progress);
-typedef OnDoneCallback = void Function();
 typedef OnErrorCallback = void Function(dynamic error);
 
 class UploadUtils {
@@ -21,26 +17,24 @@ class UploadUtils {
     required Map<String, String> headers,
     required List<File> files,
     required String fieldName,
-    bool isBackgroundTask = false,
+    bool showNotification = false,
     ProgressCallback? progressCallback,
-    OnDoneCallback? onDone,
     OnErrorCallback? onError,
   }) async {
     final request = MultipartRequest(
       method,
       Uri.parse(url),
-      onProgress: isBackgroundTask
-          ? (int bytes, int total) {
+      onProgress: progressCallback == null
+          ? null
+          : (int bytes, int total) {
               final progress = bytes / total;
-              notificationUtils
-                  .showProgressNotification((progress * 100).toInt());
-            }
-          : progressCallback == null
-              ? null
-              : (int bytes, int total) {
-                  final progress = bytes / total;
-                  progressCallback.call(progress);
-                },
+
+              if (showNotification) {
+                notificationUtils
+                    .showProgressNotification((progress * 100).toInt());
+              }
+              progressCallback.call(progress);
+            },
     );
     request.headers.addAll(headers);
     final multipartFiles = <http.MultipartFile>[];
@@ -78,27 +72,6 @@ class UploadUtils {
       onError?.call(error);
     }
     return null;
-  }
-
-  static Future<void> setBackgroundUploadTask({
-    required String method,
-    required String url,
-    required Map<String, String> headers,
-    required String fieldName,
-    required List<File> files,
-  }) async {
-    await Workmanager().registerOneOffTask(
-      'uploadTask',
-      backgroundUploadTask,
-      inputData: {
-        'fieldName': fieldName,
-        'files': files.map((e) => json.encode(e.toJson())).toList(),
-        'headers': json.encode(headers),
-        'method': method,
-        'url': url,
-      },
-      constraints: Constraints(networkType: NetworkType.connected),
-    );
   }
 }
 

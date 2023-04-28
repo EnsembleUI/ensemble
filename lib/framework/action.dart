@@ -339,14 +339,18 @@ class FilePickerAction extends EnsembleAction {
   EnsembleAction? onError;
 
   factory FilePickerAction.fromYaml({YamlMap? payload}) {
+    if (payload == null || payload['id'] == null) {
+      throw LanguageError("${ActionType.pickFiles.name} requires 'id'.");
+    }
+
     return FilePickerAction(
-      id: payload?['id'],
+      id: payload['id'],
       allowedExtensions:
-          (payload?['allowedExtensions'] as YamlList?)?.cast<String>().toList(),
-      allowMultiple: Utils.optionalBool(payload?['allowMultiple']),
-      allowCompression: Utils.optionalBool(payload?['allowCompression']),
-      onComplete: EnsembleAction.fromYaml(payload?['onComplete']),
-      onError: EnsembleAction.fromYaml(payload?['onError']),
+          (payload['allowedExtensions'] as YamlList?)?.cast<String>().toList(),
+      allowMultiple: Utils.optionalBool(payload['allowMultiple']),
+      allowCompression: Utils.optionalBool(payload['allowCompression']),
+      onComplete: EnsembleAction.fromYaml(payload['onComplete']),
+      onError: EnsembleAction.fromYaml(payload['onError']),
     );
   }
 }
@@ -363,6 +367,9 @@ class FileUploadAction extends EnsembleAction {
     this.overMaxFileSizeMessage,
     required this.isBackgroundTask,
     required this.files,
+    this.networkType,
+    this.requiresBatteryNotLow,
+    required this.showNotification,
   }) : super(inputs: inputs);
 
   String? id;
@@ -374,6 +381,9 @@ class FileUploadAction extends EnsembleAction {
   String? overMaxFileSizeMessage;
   String files;
   bool isBackgroundTask;
+  String? networkType;
+  bool? requiresBatteryNotLow;
+  bool showNotification;
 
   factory FileUploadAction.fromYaml({YamlMap? payload}) {
     if (payload == null || payload['uploadApi'] == null) {
@@ -390,12 +400,17 @@ class FileUploadAction extends EnsembleAction {
       uploadApi: payload['uploadApi'],
       inputs: Utils.getMap(payload['inputs']),
       fieldName: Utils.getString(payload['fieldName'], fallback: 'files'),
-      maxFileSize: Utils.optionalInt(payload['maxFileSize']),
+      maxFileSize: Utils.optionalInt(payload['options']?['maxFileSize']),
       overMaxFileSizeMessage:
-          Utils.optionalString(payload['overMaxFileSizeMessage']),
+          Utils.optionalString(payload['options']?['overMaxFileSizeMessage']),
       files: payload['files'],
       isBackgroundTask:
-          Utils.getBool(payload['setBackgroundTask'], fallback: false),
+          Utils.getBool(payload['options']?['backgroundTask'], fallback: false),
+      networkType: Utils.optionalString(payload['options']?['networkType']),
+      requiresBatteryNotLow:
+          Utils.optionalBool(payload['options']?['requiresBatteryNotLow']),
+      showNotification: Utils.getBool(payload['options']?['showNotification'],
+          fallback: false),
     );
   }
 }
