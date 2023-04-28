@@ -8,8 +8,10 @@ import 'package:ensemble/layout/list_view.dart';
 import 'package:ensemble/layout/stack.dart';
 import 'package:ensemble/layout/tab_bar.dart';
 import 'package:ensemble/layout/grid_view.dart';
+import 'package:ensemble/widget/conditional.dart';
 import 'package:ensemble/widget/fintech/finicityconnect/finicityconnect.dart';
 import 'package:ensemble/widget/text.dart';
+import 'package:ensemble/widget/toggle_button.dart';
 // import 'package:ensemble/widget/camera_widget.dart';
 import 'package:ensemble/widget/visualization/topology_chart.dart';
 import 'package:ensemble/widget/weeklyscheduler.dart';
@@ -81,6 +83,7 @@ class WidgetRegistry {
         EnsembleSwitch.type: () => EnsembleSwitch(),
         Dropdown.type: () => Dropdown(),
         Button.type: () => Button(),
+        EnsembleToggleButton.type: () => EnsembleToggleButton(),
 
         // containers
         FittedRow.type: () => FittedRow(),
@@ -106,6 +109,9 @@ class WidgetRegistry {
         TopologyChart.type: () => TopologyChart(),
 
         //domain specific or custom widgets
-        FinicityConnect.type: () => FinicityConnect()
+        FinicityConnect.type: () => FinicityConnect(),
+
+        //Conditional UI
+        Conditional.type: () => Conditional(),
       };
 }

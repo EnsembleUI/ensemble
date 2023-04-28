@@ -2,6 +2,7 @@
 
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/layout/form.dart' as ensemble;
 import 'package:ensemble/widget/input/form_helper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
@@ -69,7 +70,7 @@ class BoxWrapper extends StatelessWidget {
                 border: !boxController.hasBorder()
                     ? null
                     : boxController.borderGradient != null
-                        ? GradientBorder(
+                        ? GradientBoxBorder(
                             gradient: boxController.borderGradient!,
                             width: boxController.borderWidth?.toDouble() ??
                                 ThemeManager().getBorderThickness(context))
@@ -111,11 +112,49 @@ class InputWrapper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget rtn = controller.maxWidth == null
-        ? widget
+        ? Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (shouldShowLabel(context) && controller.label != null)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 8.0),
+                  child: Text(
+                    controller.label!,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
+              widget,
+              if (shouldShowLabel(context) && controller.description != null)
+                Container(
+                  margin: const EdgeInsets.only(top: 12.0),
+                  child: Text(controller.description!),
+                ),
+            ],
+          )
         : ConstrainedBox(
             constraints:
                 BoxConstraints(maxWidth: controller.maxWidth!.toDouble()),
-            child: widget);
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (shouldShowLabel(context) && controller.label != null)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 8.0),
+                    child: Text(
+                      controller.label!,
+                      style: Theme.of(context).inputDecorationTheme.labelStyle,
+                    ),
+                  ),
+                widget,
+                if (shouldShowLabel(context) && controller.description != null)
+                  Container(
+                    margin: const EdgeInsets.only(top: 12.0),
+                    child: Text(controller.description!),
+                  ),
+              ],
+            ));
 
     // we'd like to use LayoutBuilder to detect layout anomaly, but certain
     // containers don't like LayoutBuilder, since it doesn't support returning
@@ -140,6 +179,14 @@ class InputWrapper extends StatelessWidget {
       });
     }
     return rtn;
+  }
+
+  bool shouldShowLabel(BuildContext context) {
+    ensemble.FormState? formState = ensemble.EnsembleForm.of(context);
+    if (formState != null) {
+      return formState.widget.shouldFormFieldShowLabel;
+    }
+    return true;
   }
 }
 
@@ -168,24 +215,38 @@ class ClearableInput extends StatelessWidget {
   }
 }
 
-class GradientBorder extends BoxBorder {
-  const GradientBorder({required this.gradient, required this.width});
+mixin GradientBorder {
+  BorderSide get bottom => BorderSide.none;
+  BorderSide get top => BorderSide.none;
+  bool get isUniform => true;
+
+  void paintRect(
+      Canvas canvas, Rect rect, LinearGradient gradient, double width) {
+    canvas.drawRect(rect.deflate(width / 2), _getPaint(rect, gradient, width));
+  }
+
+  void paintRRect(Canvas canvas, Rect rect, BorderRadius borderRadius,
+      LinearGradient gradient, double width) {
+    final rrect = borderRadius.toRRect(rect).deflate(width / 2);
+    canvas.drawRRect(rrect, _getPaint(rect, gradient, width));
+  }
+
+  Paint _getPaint(Rect rect, LinearGradient gradient, double width) {
+    return Paint()
+      ..strokeWidth = width
+      ..shader = gradient.createShader(rect)
+      ..style = PaintingStyle.stroke;
+  }
+}
+
+class GradientBoxBorder extends BoxBorder with GradientBorder {
+  const GradientBoxBorder({required this.gradient, required this.width});
 
   final LinearGradient gradient;
-
   final double width;
 
   @override
-  BorderSide get bottom => BorderSide.none;
-
-  @override
-  BorderSide get top => BorderSide.none;
-
-  @override
   EdgeInsetsGeometry get dimensions => EdgeInsets.all(width);
-
-  @override
-  bool get isUniform => true;
 
   @override
   void paint(
@@ -196,30 +257,14 @@ class GradientBorder extends BoxBorder {
     BorderRadius? borderRadius,
   }) {
     if (borderRadius != null) {
-      _paintRRect(canvas, rect, borderRadius);
+      paintRRect(canvas, rect, borderRadius, gradient, width);
       return;
     }
-    _paintRect(canvas, rect);
-  }
-
-  void _paintRect(Canvas canvas, Rect rect) {
-    canvas.drawRect(rect.deflate(width / 2), _getPaint(rect));
-  }
-
-  void _paintRRect(Canvas canvas, Rect rect, BorderRadius borderRadius) {
-    final rrect = borderRadius.toRRect(rect).deflate(width / 2);
-    canvas.drawRRect(rrect, _getPaint(rect));
+    paintRect(canvas, rect, gradient, width);
   }
 
   @override
   ShapeBorder scale(double t) {
     return this;
-  }
-
-  Paint _getPaint(Rect rect) {
-    return Paint()
-      ..strokeWidth = width
-      ..shader = gradient.createShader(rect)
-      ..style = PaintingStyle.stroke;
   }
 }

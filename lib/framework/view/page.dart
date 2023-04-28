@@ -17,6 +17,8 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/button.dart';
 import 'package:flutter/material.dart';
 
+import '../widget/custom_view.dart';
+
 /// The root View. Every Ensemble page will have at least one at its root
 class Page extends StatefulWidget {
   Page({
@@ -138,7 +140,8 @@ class PageState extends State<Page> {
       titleWidget = _scopeManager.buildWidget(headerModel.titleWidget!);
     }
     if (titleWidget == null && headerModel.titleText != null) {
-      titleWidget = Text(Utils.translate(headerModel.titleText!, context));
+      final title = _scopeManager.dataContext.eval(headerModel.titleText);
+      titleWidget = Text(Utils.translate(title.toString(), context));
     }
 
     Widget? backgroundWidget;
@@ -492,9 +495,23 @@ class PageState extends State<Page> {
     List<BottomNavigationBarItem> navItems = [];
     for (int i = 0; i < menu.menuItems.length; i++) {
       MenuItem item = menu.menuItems[i];
-      navItems.add(BottomNavigationBarItem(
-          icon: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
-          label: Utils.translate(item.label ?? '', context)));
+
+      final dynamic customIcon = _buildCustomIcon(item);
+      final dynamic customActiveIcon = _buildCustomIcon(item, isActive: true);
+
+      final isCustom = customIcon != null || customActiveIcon != null;
+      final label = isCustom ? '' : Utils.translate(item.label ?? '', context);
+
+      navItems.add(
+        BottomNavigationBarItem(
+          activeIcon: customActiveIcon ??
+              ensemble.Icon(item.activeIcon ?? item.icon,
+                  library: item.iconLibrary),
+          icon: customIcon ??
+              ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
+          label: label,
+        ),
+      );
     }
     return BottomNavigationBar(
         items: navItems,
@@ -506,6 +523,19 @@ class PageState extends State<Page> {
           }
         },
         currentIndex: selectedPage);
+  }
+
+  Widget? _buildCustomIcon(MenuItem item, {bool isActive = false}) {
+    Widget? iconWidget;
+    dynamic customWidgetModel =
+        isActive ? item.customActiveWidget : item.customWidget;
+    if (customWidgetModel != null) {
+      final widget = _scopeManager.buildWidget(customWidgetModel!);
+      final dataScopeWidget = widget as DataScopeWidget;
+      final customWidget = dataScopeWidget.child as CustomView;
+      iconWidget = customWidget.childWidget;
+    }
+    return iconWidget;
   }
 
   void selectNavigationIndex(BuildContext context, MenuItem menuItem) {
@@ -559,8 +589,8 @@ class DataScopeWidget extends InheritedWidget {
   final ScopeManager scopeManager;
 
   @override
-  bool updateShouldNotify(covariant InheritedWidget oldWidget) {
-    return false;
+  bool updateShouldNotify(DataScopeWidget oldWidget) {
+    return oldWidget.scopeManager != scopeManager;
   }
 
   /// return the ScopeManager which includes the dataContext

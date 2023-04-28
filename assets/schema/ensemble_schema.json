@@ -11,125 +11,124 @@
     },
     "View": {
       "type": "object",
-      "description": "This is your root View. It requires exactly one child widget of type Column, Row, Flex, or Stack.",
-      "allOf": [
-        {
-          "$ref": "#/$defs/RootWidget"
-        },
-        {
+      "description": "This is your root View. It requires a body widget.",
+      "required": [
+        "body"
+      ],
+      "properties": {
+        "header": {
+          "type": "object",
+          "description": "Configure the application header",
           "properties": {
-            "header": {
-              "type": "object",
-              "description": "Configure the application header",
-              "properties": {
-                "title": {
-                  "type": [
-                    "string",
-                    "object"
-                  ],
-                  "description": "A simple text or a custom widget for the App's title",
-                  "$ref": "#/$defs/Widget"
-                },
-                "flexibleBackground": {
-                  "$ref": "#/$defs/Widget",
-                  "description": "This widget (typically used as an background image) acts as the header's background, with the title bar and the bottom widget overlaid on top. On non-scrollable screen, its dimensions is dictated by the header's width and height."
-                },
-                "styles": {
-                  "type": "object",
-                  "properties": {
-                    "backgroundColor": {
-                      "$ref": "#/$defs/typeColors",
-                      "description": "By default the background color uses the theme's 'primary' color. You can override the header's background color here."
-                    },
-                    "color": {
-                      "$ref": "#/$defs/typeColors",
-                      "description": "By default the navigation icon, title, and action icons uses the theme's 'onPrimary' color. You can override their colors here."
-                    },
-                    "elevation": {
-                      "type": "integer",
-                      "description": "Raise the header on its z-coordinates relative to the body. This effectively creates a drop shadow on the header's bottom edge.",
-                      "minimum": 0
-                    },
-                    "shadowColor": {
-                      "$ref": "#/$defs/typeColors",
-                      "description": "If elevation is non-zero, this will override the drop shadow color of the header's bottom edge."
-                    },
-                    "centerTitle": {
-                      "type": "boolean",
-                      "description": "Whether to align the title in the title bar's center horizontally (default: true)"
-                    },
-                    "titleBarHeight": {
-                      "type": "integer",
-                      "description": "For consistency, the header's title bar has the default fixed height of 56 regardless of its content. You may adjust its height here.",
-                      "minimum": 0
-                    },
-                    "flexibleMinHeight": {
-                      "type": "integer",
-                      "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's min height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). Note that this attribute will be ignored if smaller than the titleBarHeight"
-                    },
-                    "flexibleMaxHeight": {
-                      "type": "integer",
-                      "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's max height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). This attribute will be ignored if smaller than the flexibleMinHeight"
-                    }
-                  }
-                }
-              }
+            "title": {
+              "anyOf": [{
+                "type": "string"
+              }, {
+                "$ref": "#/$defs/Widget"
+              }],
+              "description": "A simple text or a custom widget for the App's title"
             },
-            "onLoad": {
-              "$ref": "#/$defs/Action-payload",
-              "description": "Execute an Action when the screen loads"
-            },
-            "options": {
-              "type": "object",
-              "properties": {
-                "type": {
-                  "type": "string",
-                  "description": "Specify if this is a regular (default) or modal screen",
-                  "enum": [
-                    "regular",
-                    "modal"
-                  ]
-                }
-              }
+            "flexibleBackground": {
+              "$ref": "#/$defs/Widget",
+              "description": "This widget (typically used as an background image) acts as the header's background, with the title bar and the bottom widget overlaid on top. On non-scrollable screen, its dimensions is dictated by the header's width and height."
             },
             "styles": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/backgroundImage"
+              "type": "object",
+              "properties": {
+                "backgroundColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "By default the background color uses the theme's 'primary' color. You can override the header's background color here."
                 },
-                {
-                  "$ref": "#/$defs/backgroundColor",
-                  "description": "Background color for the screen starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+                "color": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "By default the navigation icon, title, and action icons uses the theme's 'onPrimary' color. You can override their colors here."
                 },
-                {
-                  "properties": {
-                    "useSafeArea": {
-                      "type": "boolean",
-                      "description": "Applicable only when we don't have a header. If true, insert paddings around the body content to account for the the devices' Safe Area (e.g. iPhone notch). Default is false."
-                    },
-                    "scrollableView": {
-                      "type": "boolean",
-                      "description": "Specify if the content of this screen is scrollable with a global scrollbar. Using this also allow you to customize the scrolling experience of the header."
-                    },
-                    "showNavigationIcon": {
-                      "type": "boolean",
-                      "description": "For a screen with header, the App will automatically show the Menu, Back, or Close icon (for modal screen) before the title. On modal screen without the header, the Close icon will be shown. Set this flag to false if you wish to hide the icons and handle the navigation yourself."
-                    },
-                    "navigationIconPosition": {
-                      "type": "string",
-                      "description": "On modal screen without a header, you can position the close button at the start or end of the screen. For left-to-right languages like English, start is on the left and end is on the right. This property has no effect on a screen with header.",
-                      "enum": [
-                        "start",
-                        "end"
-                      ]
-                    }
-                  }
+                "elevation": {
+                  "type": "integer",
+                  "description": "Raise the header on its z-coordinates relative to the body. This effectively creates a drop shadow on the header's bottom edge.",
+                  "minimum": 0
+                },
+                "shadowColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "If elevation is non-zero, this will override the drop shadow color of the header's bottom edge."
+                },
+                "centerTitle": {
+                  "type": "boolean",
+                  "description": "Whether to align the title in the title bar's center horizontally (default: true)"
+                },
+                "titleBarHeight": {
+                  "type": "integer",
+                  "description": "For consistency, the header's title bar has the default fixed height of 56 regardless of its content. You may adjust its height here.",
+                  "minimum": 0
+                },
+                "flexibleMinHeight": {
+                  "type": "integer",
+                  "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's min height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). Note that this attribute will be ignored if smaller than the titleBarHeight"
+                },
+                "flexibleMaxHeight": {
+                  "type": "integer",
+                  "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's max height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). This attribute will be ignored if smaller than the flexibleMinHeight"
                 }
+              }
+            }
+          }
+        },
+        "body": {
+          "$ref": "#/$defs/Widget"
+        },
+        "onLoad": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Execute an Action when the screen loads"
+        },
+        "options": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Specify if this is a regular (default) or modal screen",
+              "enum": [
+                "regular",
+                "modal"
               ]
             }
           }
+        },
+        "styles": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/backgroundImage"
+            },
+            {
+              "$ref": "#/$defs/backgroundColor",
+              "description": "Background color for the screen starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+            },
+            {
+              "properties": {
+                "useSafeArea": {
+                  "type": "boolean",
+                  "description": "Applicable only when we don't have a header. If true, insert paddings around the body content to account for the the devices' Safe Area (e.g. iPhone notch). Default is false."
+                },
+                "scrollableView": {
+                  "type": "boolean",
+                  "description": "Specify if the content of this screen is scrollable with a global scrollbar. Using this also allow you to customize the scrolling experience of the header."
+                },
+                "showNavigationIcon": {
+                  "type": "boolean",
+                  "description": "For a screen with header, the App will automatically show the Menu, Back, or Close icon (for modal screen) before the title. On modal screen without the header, the Close icon will be shown. Set this flag to false if you wish to hide the icons and handle the navigation yourself."
+                },
+                "navigationIconPosition": {
+                  "type": "string",
+                  "description": "On modal screen without a header, you can position the close button at the start or end of the screen. For left-to-right languages like English, start is on the left and end is on the right. This property has no effect on a screen with header.",
+                  "enum": [
+                    "start",
+                    "end"
+                  ]
+                }
+              }
+            }
+          ]
         }
-      ]
+      }
     },
     "Action": {},
     "Model": {},
@@ -198,23 +197,23 @@
   "additionalProperties": {
     "type": "object",
     "description": "Defining a Custom Widget",
-    "allOf": [
-      {
-        "$ref": "#/$defs/Widget"
+    "required": [
+      "body"
+    ],
+    "properties": {
+      "inputs": {
+        "type": "array",
+        "description": "Define the list of input names that this Custom Widget accepts."
       },
-      {
-        "properties": {
-          "inputs": {
-            "type": "array",
-            "description": "Define the list of input names that this Custom Widget accepts."
-          },
-          "onLoad": {
-            "$ref": "#/$defs/Action-payload",
-            "description": "Execute an Action when this Custom Widget loads"
-          }
-        }
+      "onLoad": {
+        "$ref": "#/$defs/Action-payload",
+        "description": "Execute an Action when this Custom Widget loads"
+      },
+      "body": {
+        "$ref": "#/$defs/Widget",
+        "description": "Specify a widget to render."
       }
-    ]
+    }
   },
   "$defs": {
     "Text-payload": {
@@ -286,18 +285,27 @@
                   ]
                 },
                 "lineHeight": {
-                  "type": [
-                    "number",
-                    "string"
-                  ],
-                  "enum": [
-                    "default",
-                    "1.0",
-                    "1.15",
-                    "1.25",
-                    "1.5",
-                    "2.0",
-                    "2.5"
+                  "anyOf": [
+                    {
+                      "title": "string",
+                      "type": "string"
+                    },
+                    {
+                      "title": "number",
+                      "type": "number"
+                    },
+                    {
+                      "title": "enum",
+                      "enum": [
+                        "default",
+                        "1.0",
+                        "1.15",
+                        "1.25",
+                        "1.5",
+                        "2.0",
+                        "2.5"
+                      ]
+                    }
                   ]
                 }
               }
@@ -657,9 +665,15 @@
                   "type": "integer"
                 },
                 "color": {
-                  "type": [
-                    "number",
-                    "string"
+                  "anyOf": [
+                    {
+                      "title": "string",
+                      "type": "string"
+                    },
+                    {
+                      "title": "number",
+                      "type": "number"
+                    }
                   ],
                   "description": "The line color starting with '0xFF' for full opacity"
                 },
@@ -808,11 +822,27 @@
           "type": "object",
           "properties": {
             "value": {
-              "description": "Select a value that matches one of the items. If Items are Objects, it should match the value key"
+              "description": "Select a value that matches one of the items. If Items are Objects, it should match the value key",
+              "anyOf": [{
+                "type": "object"
+              }, {
+                "type": "string"
+              }]
             },
             "items": {
               "type": "array",
+              "items": {
+                "anyOf": [{
+                  "type": "object"
+                }, {
+                  "type": "string"
+                }]
+              },
               "description": "List of values, or Objects with value/label pairs"
+            },
+            "autoComplete": {
+              "type": "boolean",
+              "description": "Enable the Input search suggestion option"
             }
           }
         }
@@ -904,9 +934,15 @@
                   "description": "Whether the button should have an outline border instead of filled background"
                 },
                 "color": {
-                  "type": [
-                    "number",
-                    "string"
+                  "anyOf": [
+                    {
+                      "title": "string",
+                      "type": "string"
+                    },
+                    {
+                      "title": "number",
+                      "type": "number"
+                    }
                   ],
                   "description": "Set the color for the button label starting with '0xFF' for full opacity"
                 },
@@ -916,6 +952,72 @@
                 },
                 "fontWeight": {
                   "$ref": "#/$defs/type-fontWeight"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "ToggleButton-payload": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "description": "Set a default value that matches one of the items. If Items are Objects, it should match the value key"
+        },
+        "items": {
+          "type": "array",
+          "description": "List of values, or Objects with value/label pairs"
+        },
+        "onChange": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Call Ensemble's built-in functions or execute code when the input changes. Note for free-form text input, this event only dispatches if the text changes AND the focus is lost (e.g. clicking on button)"
+        },
+        "styles": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "spacing": {
+                  "type": "integer",
+                  "description": "Space between the toggle buttons item",
+                  "minimum": 0
+                },
+                "runSpacing": {
+                  "type": "integer",
+                  "description": "Space between the toggle buttons row",
+                  "minimum": 0
+                },
+                "color": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Set the color for the toggle button label starting with '0xFF' for full opacity"
+                },
+                "selectedColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Set the color for the selected toggle button label"
+                },
+                "backgroundColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Set the background color for the toggle button"
+                },
+                "selectedBackgroundColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Set the background color for the selected toggle button"
+                },
+                "borderColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Set the border color for the toggle button, starting with '0xFF' for full opacity"
+                },
+                "selectedBorderColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Set the border color for the selected toggle button, starting with '0xFF' for full opacity"
+                },
+                "shadowColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Set the shadow color for the toggle button"
                 }
               }
             }
@@ -981,7 +1083,7 @@
     },
     "Flow-payload": {
       "type": "object",
-      "allOf": [
+      "anyOf": [
         {
           "$ref": "#/$defs/Templated-payload"
         },
@@ -1007,7 +1109,7 @@
     },
     "Column-payload": {
       "type": "object",
-      "allOf": [
+      "anyOf": [
         {
           "$ref": "#/$defs/Templated-payload"
         },
@@ -1025,7 +1127,7 @@
     },
     "Row-payload": {
       "type": "object",
-      "allOf": [
+      "anyOf": [
         {
           "$ref": "#/$defs/Templated-payload"
         },
@@ -1043,7 +1145,7 @@
     },
     "GridView-payload": {
       "type": "object",
-      "allOf": [
+      "anyOf": [
         {
           "$ref": "#/$defs/Templated-payload"
         },
@@ -1064,13 +1166,19 @@
                 {
                   "properties": {
                     "horizontalTileCount": {
-                      "type": [
-                        "integer",
-                        "string"
+                      "anyOf": [
+                        {
+                          "title": "string",
+                          "type": "string"
+                        },
+                        {
+                          "title": "integer",
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 5
+                        }
                       ],
-                      "description": "The number of horizontal tiles (max 5) to show. If not specified, the number of tiles will automatically be determined by the screen size. You may also specify a single number (for all breakpoints), three numbers (for small, medium, large breakpoints), or five numbers (xSmall, small, medium, large, xLarge).",
-                      "minimum": 1,
-                      "maximum": 5
+                      "description": "The number of horizontal tiles (max 5) to show. If not specified, the number of tiles will automatically be determined by the screen size. You may also specify a single number (for all breakpoints), three numbers (for small, medium, large breakpoints), or five numbers (xSmall, small, medium, large, xLarge)."
                     },
                     "horizontalGap": {
                       "type": "integer",
@@ -1102,7 +1210,7 @@
     },
     "Flex-payload": {
       "type": "object",
-      "allOf": [
+      "anyOf": [
         {
           "properties": {
             "children": {
@@ -1136,7 +1244,7 @@
     },
     "ListView-payload": {
       "type": "object",
-      "allOf": [
+      "anyOf": [
         {
           "$ref": "#/$defs/Templated-payload"
         },
@@ -1164,6 +1272,10 @@
                 {
                   "type": "object",
                   "properties": {
+                    "showSeparator": {
+                      "type": "boolean",
+                      "description": "Show a separator between the items (default is true)."
+                    },
                     "separatorColor": {
                       "$ref": "#/$defs/typeColors",
                       "description": "Set the color for the separator between items"
@@ -1173,9 +1285,15 @@
                       "description": "The thickness of the separator between items"
                     },
                     "separatorPadding": {
-                      "type": [
-                        "integer",
-                        "string"
+                      "anyOf": [
+                        {
+                          "title": "string",
+                          "type": "string"
+                        },
+                        {
+                          "title": "integer",
+                          "type": "integer"
+                        }
                       ],
                       "description": "Padding with CSS-style value e.g. padding: 5 20 5 Default 0 0 0"
                     }
@@ -1189,7 +1307,7 @@
     },
     "Carousel-payload": {
       "type": "object",
-      "allOf": [
+      "anyOf": [
         {
           "properties": {
             "children": {
@@ -1272,9 +1390,15 @@
                       "type": "integer"
                     },
                     "indicatorMargin": {
-                      "type": [
-                        "integer",
-                        "string"
+                      "anyOf": [
+                        {
+                          "title": "string",
+                          "type": "string"
+                        },
+                        {
+                          "title": "integer",
+                          "type": "integer"
+                        }
                       ],
                       "description": "The margin around each indicator"
                     }
@@ -1373,9 +1497,15 @@
                   ]
                 },
                 "contentPadding": {
-                  "type": [
-                    "integer",
-                    "string"
+                  "anyOf": [
+                    {
+                      "title": "string",
+                      "type": "string"
+                    },
+                    {
+                      "title": "integer",
+                      "type": "integer"
+                    }
                   ],
                   "description": "Padding around your input content with CSS-style notation e.g. margin: 5 20 5"
                 },
@@ -1450,8 +1580,7 @@
       ]
     },
     "Action-payload": {
-      "type": "object",
-      "oneOf": [
+      "anyOf": [
         {
           "properties": {
             "navigateScreen": {
@@ -1878,9 +2007,15 @@
                     {
                       "properties": {
                         "shadowColor": {
-                          "type": [
-                            "number",
-                            "string"
+                          "anyOf": [
+                            {
+                              "title": "string",
+                              "type": "string"
+                            },
+                            {
+                              "title": "number",
+                              "type": "number"
+                            }
                           ],
                           "description": "box shadow color starting with '0xFF' for full opacity"
                         },
@@ -1911,8 +2046,8 @@
         {
           "properties": {
             "executeCode": {
-              "type": "object",
               "description": "Execute a block of code.",
+              "type": "object",
               "required": [
                 "body"
               ],
@@ -2067,6 +2202,77 @@
               }
             }
           }
+        },
+        {
+          "properties": {
+            "copyToClipboard": {
+              "type": "object",
+              "description": "Copy the text to the clipboard",
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "description": "The text to copy to clipboard"
+                },
+                "onSuccess": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute another Action upon successful copy to clipboard"
+                },
+                "onFailure": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action when copy to clipboard fails"
+                }
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "connectWallet": {
+              "type": "object",
+              "description": "Allow users connect to crypto wallet",
+              "required": ["wcProjectId", "appMetaData"],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "ID allows you to bind to its result. e.g. ${wallet.addresses...},"
+                },
+                "wcProjectId": {
+                  "type": "string",
+                  "description": "Wallet connect project Id, get it from wallet connect dashboard"
+                },
+                "onComplete": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute another Action upon successful upload of files"
+                },
+                "onError": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action when uploader fails with error(s)"
+                },
+                "appMetaData": {
+                  "type": "object",
+                  "required": ["name"],
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description" : "Your app name, that will be shared to crypto wallet"
+                    },
+                    "description": {
+                      "type": "string",
+                      "description" : "Your app's description, that will be shared to crypto wallet"
+                    },
+                    "url": {
+                      "type": "string",
+                      "description": "You app's / company's url"
+                    },
+                    "iconUrl" : {
+                      "type": "string",
+                      "description": "Url path of your app's icon"
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       ]
     },
@@ -2164,9 +2370,15 @@
                   ]
                 },
                 "itemPadding": {
-                  "type": [
-                    "integer",
-                    "string"
+                  "anyOf": [
+                    {
+                      "title": "string",
+                      "type": "string"
+                    },
+                    {
+                      "title": "integer",
+                      "type": "integer"
+                    }
                   ],
                   "description": "Padding for each navigation item with CSS-style value"
                 },
@@ -2187,41 +2399,8 @@
         "$ref": "#/$defs/Widget"
       }
     },
-    "RootWidget": {
-      "type": "object",
-      "allOf": [
-        {
-          "properties": {
-            "Column": {
-              "$ref": "#/$defs/Column-payload"
-            }
-          }
-        },
-        {
-          "properties": {
-            "Row": {
-              "$ref": "#/$defs/Row-payload"
-            }
-          }
-        },
-        {
-          "properties": {
-            "Flex": {
-              "$ref": "#/$defs/Flex-payload"
-            }
-          }
-        },
-        {
-          "properties": {
-            "Stack": {
-              "$ref": "#/$defs/Stack-payload"
-            }
-          }
-        }
-      ]
-    },
     "Widget": {
-      "allOf": [
+      "anyOf": [
         {
           "properties": {
             "Text": {
@@ -2406,6 +2585,24 @@
         },
         {
           "properties": {
+            "FittedColumn": {
+              "type": "object",
+              "description": "Stretch to fit the parent (the parent is required to have a predetermined height), then distribute the vertical spaces evenly among its children. You can override the space distribution via 'childrenFits' attribute.",
+              "$ref": "#/$defs/fittedBoxLayout"
+            }
+          }
+        },
+        {
+          "properties": {
+            "FittedRow": {
+              "type": "object",
+              "description": "Stretch to fit the parent (the parent is required to have a predetermined width), then distribute the horizontal spaces evenly among its children. You can override the space distribution via 'childrenFits' attribute.",
+              "$ref": "#/$defs/fittedBoxLayout"
+            }
+          }
+        },
+        {
+          "properties": {
             "GridView": {
               "$ref": "#/$defs/GridView-payload",
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/DX5j2WVQFabmxD9FCD5h#"
@@ -2473,6 +2670,29 @@
             "ChartJs": {
               "$ref": "#/$defs/ChartJs-payload",
               "description": "Example from Kitchen Sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/5d7b84de-3bbd-456e-aeea-98e2c9f4c3c7"
+            }
+          }
+        },
+        {
+          "properties": {
+            "Conditional": {
+              "type": "object",
+              "description": "Render widget based on condition.",
+              "required": [ "conditions" ],
+              "properties": {
+                "conditions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "if": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [ "if" ]
+                  }
+                }
+              }
             }
           }
         }
@@ -2547,9 +2767,15 @@
                   ]
                 },
                 "tabPadding": {
-                  "type": [
-                    "integer",
-                    "string"
+                  "anyOf": [
+                    {
+                      "title": "string",
+                      "type": "string"
+                    },
+                    {
+                      "title": "integer",
+                      "type": "integer"
+                    }
                   ],
                   "description": "Padding for each tab labels with CSS-style value. Default: 0 30 0 0 (right padding only)"
                 },
@@ -2774,9 +3000,15 @@
       "type": "object",
       "properties": {
         "padding": {
-          "type": [
-            "integer",
-            "string"
+          "anyOf": [
+            {
+              "title": "string",
+              "type": "string"
+            },
+            {
+              "title": "integer",
+              "type": "integer"
+            }
           ],
           "description": "Padding with CSS-style value e.g. padding: 5 20 5"
         }
@@ -2786,9 +3018,15 @@
       "type": "object",
       "properties": {
         "margin": {
-          "type": [
-            "integer",
-            "string"
+          "anyOf": [
+            {
+              "title": "string",
+              "type": "string"
+            },
+            {
+              "title": "integer",
+              "type": "integer"
+            }
           ],
           "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
         }
@@ -2798,9 +3036,15 @@
       "type": "object",
       "properties": {
         "borderRadius": {
-          "type": [
-            "integer",
-            "string"
+          "anyOf": [
+            {
+              "title": "string",
+              "type": "string"
+            },
+            {
+              "title": "integer",
+              "type": "integer"
+            }
           ],
           "minimum": 0,
           "description": "Border Radius with CSS-like notation (1 to 4 integers)"
@@ -2910,6 +3154,67 @@
         }
       ]
     },
+    "fittedBoxLayout": {
+      "properties": {
+        "children": {
+          "$ref": "#/$defs/Widgets"
+        },
+        "styles": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
+            },
+            {
+              "$ref": "#/$defs/boxLayoutStyles"
+            },
+            {
+              "properties": {
+                "mainAxis": {
+                  "type": "string",
+                  "description": "Control our children's layout horizontally",
+                  "enum": [
+                    "start",
+                    "center",
+                    "end",
+                    "spaceBetween",
+                    "spaceAround",
+                    "spaceEvenly"
+                  ]
+                },
+                "crossAxis": {
+                  "type": "string",
+                  "description": "Control the vertical alignment of the children",
+                  "enum": [
+                    "start",
+                    "center",
+                    "end",
+                    "stretch",
+                    "baseline"
+                  ]
+                },
+                "childrenFits": {
+                  "type": "array",
+                  "description": "Specify an array of non-zero integers or 'auto', each corresponding to a child. Setting 'auto' will let the child determines its own size, while setting a non-zero integer will determine the child's size multiple. The 'auto' children will be laid out first and get as much space as they need, then the left-over space will be distributed to the other children based on their size multiples.",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "const": "auto",
+                        "description": "Allow this selected child to determine its own size. This may give an error if the child doesn't have a dimension."
+                      },
+                      {
+                        "type": "integer",
+                        "description": "Default 1. After laying out the 'auto' children, the left-over space will be divided up based on this multiple.",
+                        "minimum": 1
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
     "flowStyles": {
       "allOf": [
         {
@@ -2988,7 +3293,7 @@
             },
             "mainAxisSize": {
               "type": "string",
-              "description": "Stretch to the max vertically or only fit the vertical space",
+              "description": "If 'max', stretch the Column to fill its parent's height. Otherwise (min) the column's height will be its children's combined.",
               "enum": [
                 "min",
                 "max"
@@ -3042,7 +3347,7 @@
             },
             "mainAxisSize": {
               "type": "string",
-              "description": "Stretch to the max horizontally or only fit the horizontal space",
+              "description": "If 'max', stretch the Row to fill its parent's width. Otherwise (min) the Row's width will be its children's combined.",
               "enum": [
                 "min",
                 "max"
@@ -3107,7 +3412,7 @@
             },
             "mainAxisSize": {
               "type": "string",
-              "description": "stretch to the max or only fit the available space of the main axis (depending on the 'direction' attribute)",
+              "description": "If 'max', stretch the Flex to fill its parent's dimension (width or height based on the direction). Otherwise (min) the Flex's dimension will be its children's combined.",
               "enum": [
                 "min",
                 "max"
@@ -3310,9 +3615,15 @@
       "type": "object",
       "properties": {
         "shadowColor": {
-          "type": [
-            "number",
-            "string"
+          "anyOf": [
+            {
+              "title": "string",
+              "type": "string"
+            },
+            {
+              "title": "number",
+              "type": "number"
+            }
           ],
           "description": "Box shadow color starting with '0xFF' for full opacity"
         },
@@ -3368,9 +3679,15 @@
       "description": "Specifies the icon to use. You can also use the short-handed syntax 'iconName iconLibrary')",
       "properties": {
         "name": {
-          "type": [
-            "integer",
-            "string"
+          "anyOf": [
+            {
+              "title": "string",
+              "type": "string"
+            },
+            {
+              "title": "integer",
+              "type": "integer"
+            }
           ],
           "description": "The name of the icon"
         },

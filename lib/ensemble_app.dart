@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:device_preview/device_preview.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/widget/error_screen.dart';
@@ -13,6 +14,7 @@ import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:workmanager/workmanager.dart';
@@ -66,7 +68,12 @@ void callbackDispatcher() {
 
 /// use this as the root widget for Ensemble
 class EnsembleApp extends StatefulWidget {
-  EnsembleApp({super.key, this.screenPayload, this.ensembleConfig}) {
+  EnsembleApp({
+    super.key,
+    this.screenPayload,
+    this.ensembleConfig,
+    this.isPreview = false,
+  }) {
     // initialize once
     GetStorage.init();
     Device().initDeviceInfo();
@@ -74,6 +81,7 @@ class EnsembleApp extends StatefulWidget {
 
   final ScreenPayload? screenPayload;
   final EnsembleConfig? ensembleConfig;
+  final bool isPreview;
 
   @override
   State<StatefulWidget> createState() => EnsembleAppState();
@@ -137,6 +145,8 @@ class EnsembleAppState extends State<EnsembleApp> {
 
   Widget renderApp(EnsembleConfig config) {
     //log("EnsembleApp build() - $hashCode");
+    final isPreview = widget.isPreview && kIsWeb;
+
     return MaterialApp(
       navigatorKey: Utils.globalAppKey,
       theme: config.getAppTheme(),
@@ -157,6 +167,10 @@ class EnsembleAppState extends State<EnsembleApp> {
           screenPayload: widget.screenPayload,
         ),
       ),
+      useInheritedMediaQuery: isPreview,
+      locale: isPreview ? DevicePreview.locale(context) : null,
+      builder:
+          isPreview ? DevicePreview.appBuilder : FlutterI18n.rootAppBuilder(),
       // TODO: this case translation issue on hot loading. Address this for RTL support
       //builder: (context, widget) => FlutterI18n.rootAppBuilder().call(context, widget)
     );

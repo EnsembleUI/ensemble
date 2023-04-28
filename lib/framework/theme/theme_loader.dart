@@ -1,170 +1,230 @@
 import 'package:ensemble/framework/extensions.dart';
-import 'package:ensemble/framework/model.dart';
-import 'package:ensemble/framework/theme/theme_manager.dart';
+import 'package:ensemble/framework/theme/default_theme.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:yaml/yaml.dart';
 
 mixin ThemeLoader {
-  /// Ensemble's default light color scheme
-  final ColorScheme _defaultColorScheme = const ColorScheme.light(
-    primary: Color(0xff1565c0),
-    onPrimary: Color(0xffffffff),
-    primaryContainer: Color(0xff90caf9),
-    onPrimaryContainer: Color(0xff192228),
-    secondary: Color(0xff039be5),
-    onSecondary: Color(0xffffffff),
-    secondaryContainer: Color(0xffcbe6ff),
-    onSecondaryContainer: Color(0xff222728),
-    tertiary: Color(0xff0277bd),
-    onTertiary: Color(0xffffffff),
-    tertiaryContainer: Color(0xffbedcff),
-    onTertiaryContainer: Color(0xff202528),
-    error: Color(0xffb00020),
-    onError: Color(0xffffffff),
-    errorContainer: Color(0xfffcd8df),
-    onErrorContainer: Color(0xff282526),
-    outline: Color(0xff5c5c62),
-    background: Color(0xffecf2fa),
-    onBackground: Color(0xff121213),
-    surface: Color(0xfff5f8fc),
-    onSurface: Color(0xff090909),
-    surfaceVariant: Color(0xffecf2fa),
-    onSurfaceVariant: Color(0xff121213),
-    inverseSurface: Color(0xff111417),
-    onInverseSurface: Color(0xfff5f5f5),
-    inversePrimary: Color(0xffaedfff),
-    shadow: Color(0xff000000),
-  );
-
-  /// Ensemble's default dark color scheme. TODO: it's the same as light :)
-  final ColorScheme _defaultDarkColorScheme = const ColorScheme.dark(
-    primary: Color(0xff1565c0),
-    onPrimary: Color(0xffffffff),
-    primaryContainer: Color(0xff90caf9),
-    onPrimaryContainer: Color(0xff192228),
-    secondary: Color(0xff039be5),
-    onSecondary: Color(0xffffffff),
-    secondaryContainer: Color(0xffcbe6ff),
-    onSecondaryContainer: Color(0xff222728),
-    tertiary: Color(0xff0277bd),
-    onTertiary: Color(0xffffffff),
-    tertiaryContainer: Color(0xffbedcff),
-    onTertiaryContainer: Color(0xff202528),
-    error: Color(0xffb00020),
-    onError: Color(0xffffffff),
-    errorContainer: Color(0xfffcd8df),
-    onErrorContainer: Color(0xff282526),
-    outline: Color(0xff5c5c62),
-    background: Color(0xffecf2fa),
-    onBackground: Color(0xff121213),
-    surface: Color(0xfff5f8fc),
-    onSurface: Color(0xff090909),
-    surfaceVariant: Color(0xffecf2fa),
-    onSurfaceVariant: Color(0xff121213),
-    inverseSurface: Color(0xff111417),
-    onInverseSurface: Color(0xfff5f5f5),
-    inversePrimary: Color(0xffaedfff),
-    shadow: Color(0xff000000),
-  );
-
-  /// Ensemble's fallback default values. These will be used
-  /// if certain theme is not specified
-  /// TODO: these should be deprecated
-  final Color _disabledColor = Colors.black38;
-  final int _inputBorderRadius = 3;
   final EdgeInsets _buttonPadding =
-      EdgeInsets.only(left: 15, top: 5, right: 15, bottom: 5);
+      const EdgeInsets.only(left: 15, top: 5, right: 15, bottom: 5);
   final int _buttonBorderRadius = 3;
   final Color _buttonBorderOutlineColor = Colors.black12;
 
   ThemeData getAppTheme(YamlMap? overrides) {
-    ColorScheme colorScheme = _defaultColorScheme.copyWith(
-        primary: Utils.getColor(overrides?['Colors']?['primary']),
-        onPrimary: Utils.getColor(overrides?['Colors']?['onPrimary']),
-        secondary: Utils.getColor(overrides?['Colors']?['secondary']),
-        onSecondary: Utils.getColor(overrides?['Colors']?['onSecondary']));
+    ThemeData defaultTheme = ThemeData(
+      useMaterial3: true,
+      colorScheme: defaultColorScheme,
+      scaffoldBackgroundColor: DesignSystem.scaffoldBackgroundColor,
+      disabledColor: DesignSystem.disableColor,
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: DesignSystem.inputFillColor,
+        iconColor: DesignSystem.inputIconColor,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8.0),
+          borderSide:
+              BorderSide(color: DesignSystem.inputBorderColor, width: 2),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8.0),
+          borderSide:
+              BorderSide(color: DesignSystem.inputBorderColor, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8.0),
+          borderSide: BorderSide(color: DesignSystem.inputErrorColor, width: 2),
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8.0),
+          borderSide:
+              BorderSide(color: DesignSystem.inputBorderColor, width: 2),
+        ),
+      ),
+      textTheme: _buildTextTheme(),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.0),
+          ),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.0))),
+      ),
+      checkboxTheme: CheckboxThemeData(
+        side: BorderSide(color: DesignSystem.inputDarkBorder, width: 2),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(4.0),
+        ),
+        checkColor: MaterialStateProperty.resolveWith<Color?>((states) {
+          if (states.contains(MaterialState.disabled)) {
+            return DesignSystem.disableColor;
+          }
+          return DesignSystem.primary;
+        }),
+        fillColor: MaterialStateProperty.resolveWith<Color?>(
+            (Set<MaterialState> states) {
+          if (states.contains(MaterialState.error)) {
+            return DesignSystem.inputErrorColor;
+          }
+          return DesignSystem.inputFillColor;
+        }),
+      ),
+      tabBarTheme: TabBarTheme(
+        labelColor: DesignSystem.primary,
+      ),
+      tooltipTheme: const TooltipThemeData(
+        textStyle: TextStyle(color: Colors.white),
+        decoration: BoxDecoration(
+          color: Colors.black,
+        ),
+      ),
+    );
 
-    ThemeData themeData = ThemeData(
-      // color scheme
-      colorScheme: colorScheme,
-      // disabled inputs / button
-      disabledColor:
-          Utils.getColor(overrides?['Colors']?['disabled']) ?? _disabledColor,
-      // toggleable inputs e.g. switch, checkbox
-      toggleableActiveColor: colorScheme.secondary,
+    final seedColor = Utils.getColor(overrides?['Colors']?['seed']);
 
-      // input theme (TextInput, Switch, Dropdown, ...)
-      inputDecorationTheme: _buildInputTheme(overrides?['Widgets']?['Input'],
-          colorScheme: colorScheme),
+    if (seedColor != null) {
+      defaultTheme = defaultTheme.copyWith(
+          colorScheme: ColorScheme.fromSeed(seedColor: seedColor));
+    }
 
+    final customColorSchema = defaultTheme.colorScheme.copyWith(
+      primary: Utils.getColor(overrides?['Colors']?['primary']),
+      onPrimary: Utils.getColor(overrides?['Colors']?['onPrimary']),
+      secondary: Utils.getColor(overrides?['Colors']?['secondary']),
+      onSecondary: Utils.getColor(overrides?['Colors']?['onSecondary']),
+    );
+
+    final customTheme = defaultTheme.copyWith(
+      useMaterial3: Utils.getBool(overrides?['material3'], fallback: true),
+      colorScheme: customColorSchema,
+      disabledColor: Utils.getColor(overrides?['Colors']?['disabled']),
       textTheme: _buildTextTheme(overrides?['Text']),
-
-      //switchTheme: buildSwitchTheme(overrides?['Widgets']?['Switch']),
-
-      // button themes
-      textButtonTheme: TextButtonThemeData(
-          style: _buildButtonTheme(overrides?['Widgets']?['Button'],
-              isOutline: true, colorScheme: colorScheme)),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-          style: _buildButtonTheme(overrides?['Widgets']?['Button'],
-              isOutline: false, colorScheme: colorScheme)),
+      inputDecorationTheme: _buildInputTheme(overrides?['Widgets']?['Input'],
+          colorScheme: customColorSchema),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: _buildButtonTheme(overrides?['Widgets']?['Button'],
+                isOutline: true, colorScheme: customColorSchema) ??
+            defaultTheme.outlinedButtonTheme.style,
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: _buildButtonTheme(overrides?['Widgets']?['Button'],
+                isOutline: false, colorScheme: customColorSchema) ??
+            defaultTheme.filledButtonTheme.style,
+      ),
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(),
+      switchTheme: const SwitchThemeData(),
+      checkboxTheme: CheckboxThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(4.0),
+        ),
+      ),
     );
 
     // extends ThemeData
-    return themeData.copyWith(extensions: [
+    return customTheme.copyWith(extensions: [
       EnsembleThemeExtension(
         loadingScreenBackgroundColor: Utils.getColor(
             overrides?['Colors']?['loadingScreenBackgroundColor']),
         loadingScreenIndicatorColor: Utils.getColor(
             overrides?['Colors']?['loadingScreenIndicatorColor']),
+        transitions: Utils.getMap(overrides?['Transitions']),
       )
     ]);
   }
 
-  TextTheme _buildTextTheme(YamlMap? textTheme) {
-    return ThemeData.light().textTheme.copyWith(
-          displayLarge: Utils.getTextStyle(textTheme?['displayLarge']),
-          displayMedium: Utils.getTextStyle(textTheme?['displayMedium']),
-          displaySmall: Utils.getTextStyle(textTheme?['displaySmall']),
-          headlineLarge: Utils.getTextStyle(textTheme?['headlineLarge']),
-          headlineMedium: Utils.getTextStyle(textTheme?['headlineMedium']),
-          headlineSmall: Utils.getTextStyle(textTheme?['headlineSmall']),
-          titleLarge: Utils.getTextStyle(textTheme?['titleLarge']),
-          titleMedium: Utils.getTextStyle(textTheme?['titleMedium']),
-          titleSmall: Utils.getTextStyle(textTheme?['titleSmall']),
-          bodyLarge: Utils.getTextStyle(textTheme?['bodyLarge']),
-          bodyMedium: Utils.getTextStyle(textTheme?['bodyMedium']),
-          bodySmall: Utils.getTextStyle(textTheme?['bodySmall']),
-          labelLarge: Utils.getTextStyle(textTheme?['labelLarge']),
-          labelMedium: Utils.getTextStyle(textTheme?['labelMedium']),
-          labelSmall: Utils.getTextStyle(textTheme?['labelSmall']),
-        );
+  TextTheme _buildTextTheme([YamlMap? textTheme]) {
+    final fontFamily = Utils.optionalString(textTheme?['fontFamily']);
+
+    late TextStyle defaultStyle;
+    try {
+      if (fontFamily == null) throw Exception();
+      defaultStyle = GoogleFonts.getFont(fontFamily, color: Colors.black);
+    } catch (e) {
+      defaultStyle = const TextStyle(
+          fontFamily: 'Inter',
+          fontWeight: FontWeight.w400,
+          color: Colors.black);
+    }
+
+    return ThemeData.light()
+        .textTheme
+        .copyWith(
+            displayLarge: Utils.getTextStyle(textTheme?['displayLarge']) ??
+                defaultStyle.copyWith(fontSize: 64, letterSpacing: -2),
+            displayMedium: Utils.getTextStyle(textTheme?['displayMedium']) ??
+                defaultStyle.copyWith(fontSize: 48, letterSpacing: -1),
+            displaySmall: Utils.getTextStyle(textTheme?['displaySmall']) ??
+                defaultStyle.copyWith(fontSize: 32, letterSpacing: -0.5),
+            headlineLarge: Utils.getTextStyle(textTheme?['headlineLarge']) ??
+                defaultStyle.copyWith(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.5),
+            headlineMedium: Utils.getTextStyle(textTheme?['headlineMedium']) ??
+                defaultStyle.copyWith(
+                    fontSize: 20, fontWeight: FontWeight.w600),
+            headlineSmall: Utils.getTextStyle(textTheme?['headlineSmall']) ??
+                defaultStyle.copyWith(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.15),
+            titleLarge: Utils.getTextStyle(textTheme?['titleLarge']) ??
+                defaultStyle.copyWith(
+                    fontSize: 20, fontWeight: FontWeight.w500),
+            titleMedium: Utils.getTextStyle(textTheme?['titleMedium']) ??
+                defaultStyle.copyWith(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.15),
+            titleSmall: Utils.getTextStyle(textTheme?['titleSmall']) ??
+                defaultStyle.copyWith(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.15),
+            bodyLarge: Utils.getTextStyle(textTheme?['bodyLarge']) ??
+                defaultStyle.copyWith(fontSize: 16, letterSpacing: 0.5),
+            bodyMedium: Utils.getTextStyle(textTheme?['bodyMedium']) ??
+                defaultStyle.copyWith(fontSize: 14, letterSpacing: 0.25),
+            bodySmall: Utils.getTextStyle(textTheme?['bodySmall']) ??
+                defaultStyle.copyWith(fontSize: 12, letterSpacing: 0.4),
+            labelLarge: Utils.getTextStyle(textTheme?['labelLarge']) ??
+                defaultStyle.copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.4),
+            labelMedium: Utils.getTextStyle(textTheme?['labelMedium']),
+            labelSmall: Utils.getTextStyle(textTheme?['labelSmall']))
+        .apply(fontFamily: defaultStyle.fontFamily);
   }
 
   /// parse the FormInput's theme from the theme YAML
   InputDecorationTheme? _buildInputTheme(YamlMap? input,
       {required ColorScheme colorScheme}) {
-    Color? fillColor = Utils.getColor(input?['fillColor']);
+    if (input == null) return null;
+    Color? fillColor = Utils.getColor(input['fillColor']);
     InputDecorationTheme baseInputDecoration = InputDecorationTheme(
         // dense so user can control the contentPadding effectively
         isDense: true,
         filled: fillColor != null,
         fillColor: fillColor);
 
-    InputVariant? variant = InputVariant.values.from(input?['variant']);
-    EdgeInsets? contentPadding = Utils.optionalInsets(input?['contentPadding']);
+    InputVariant? variant = InputVariant.values.from(input['variant']);
+    EdgeInsets? contentPadding = Utils.optionalInsets(input['contentPadding']);
     BorderRadius borderRadius =
-        Utils.getBorderRadius(input?['borderRadius'])?.getValue() ??
+        Utils.getBorderRadius(input['borderRadius'])?.getValue() ??
             getInputDefaultBorderRadius(variant);
-    int borderWidth = Utils.optionalInt(input?['borderWidth']) ?? 1;
+    int borderWidth = Utils.optionalInt(input['borderWidth']) ?? 1;
 
-    Color? borderColor = Utils.getColor(input?['borderColor']);
-    Color? disabledBorderColor = Utils.getColor(input?['disabledBorderColor']);
-    Color? errorBorderColor = Utils.getColor(input?['errorBorderColor']);
-    Color? focusedBorderColor = Utils.getColor(input?['focusedBorderColor']);
+    Color? borderColor = Utils.getColor(input['borderColor']);
+    Color? disabledBorderColor = Utils.getColor(input['disabledBorderColor']);
+    Color? errorBorderColor = Utils.getColor(input['errorBorderColor']);
+    Color? focusedBorderColor = Utils.getColor(input['focusedBorderColor']);
     Color? focusedErrorBorderColor =
-        Utils.getColor(input?['focusedErrorBorderColor']);
+        Utils.getColor(input['focusedErrorBorderColor']);
 
     if (variant == InputVariant.box) {
       // we always need to set the base border since user can be setting other
@@ -244,38 +304,35 @@ mixin ThemeLoader {
   ButtonStyle? _buildButtonTheme(YamlMap? input,
       {required ColorScheme colorScheme, required bool isOutline}) {
     // outline button can simply use backgroundColor as borderColor (if not set)
-    Color? borderColor = Utils.getColor(input?['borderColor']);
+    if (input == null) return null;
+    Color? borderColor = Utils.getColor(input['borderColor']);
     if (borderColor == null && isOutline) {
-      borderColor = Utils.getColor(input?['backgroundColor']) ??
-          _buttonBorderOutlineColor;
+      borderColor =
+          Utils.getColor(input['backgroundColor']) ?? _buttonBorderOutlineColor;
     }
 
     // outline button ignores backgroundColor
     Color? backgroundColor =
-        isOutline ? null : Utils.getColor(input?['backgroundColor']);
+        isOutline ? null : Utils.getColor(input['backgroundColor']);
 
     RoundedRectangleBorder border = RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(
-            Utils.getInt(input?['borderRadius'], fallback: _buttonBorderRadius)
+            Utils.getInt(input['borderRadius'], fallback: _buttonBorderRadius)
                 .toDouble()),
         side: borderColor == null
             ? BorderSide.none
             : BorderSide(
                 color: borderColor,
-                width: Utils.getInt(input?['borderWidth'], fallback: 1)
+                width: Utils.getInt(input['borderWidth'], fallback: 1)
                     .toDouble()));
 
     return getButtonStyle(
       isOutline: isOutline,
       backgroundColor: backgroundColor,
-      color: Utils.getColor(input?['color']),
+      color: Utils.getColor(input['color']),
       border: border,
-      padding: Utils.optionalInsets(input?['padding']) ?? _buttonPadding,
+      padding: Utils.optionalInsets(input['padding']) ?? _buttonPadding,
     );
-  }
-
-  SwitchThemeData buildSwitchTheme(YamlMap? input) {
-    return const SwitchThemeData();
   }
 
   InputBorder? getInputBorder(
@@ -318,37 +375,43 @@ mixin ThemeLoader {
     }
 
     if (isOutline) {
-      return TextButton.styleFrom(
+      return OutlinedButton.styleFrom(
+          foregroundColor: color,
           padding: padding,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           fixedSize: Size(buttonWidth ?? Size.infinite.width,
               buttonHeight ?? Size.infinite.height),
-          primary: color,
           shape: border,
           textStyle: textStyle);
     } else {
-      return ElevatedButton.styleFrom(
-          padding: padding,
-          fixedSize: Size(buttonWidth ?? Size.infinite.width,
-              buttonHeight ?? Size.infinite.height),
-          primary: backgroundColor,
-          onPrimary: color,
-          shape: border,
-          textStyle: textStyle);
+      return FilledButton.styleFrom(
+        foregroundColor: color,
+        backgroundColor: backgroundColor,
+        padding: padding,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        fixedSize: Size(buttonWidth ?? Size.infinite.width,
+            buttonHeight ?? Size.infinite.height),
+        shape: border,
+        textStyle: textStyle,
+      );
     }
   }
 
   ///------------  publicly available theme getters -------------
   BorderRadius getInputDefaultBorderRadius(InputVariant? variant) =>
-      BorderRadius.all(Radius.circular(variant == InputVariant.box ? 4 : 0));
+      BorderRadius.all(Radius.circular(variant == InputVariant.box ? 8 : 0));
 }
 
 /// extend Theme to add our own special color parameters
 class EnsembleThemeExtension extends ThemeExtension<EnsembleThemeExtension> {
   EnsembleThemeExtension(
-      {this.loadingScreenBackgroundColor, this.loadingScreenIndicatorColor});
+      {this.loadingScreenBackgroundColor,
+      this.loadingScreenIndicatorColor,
+      this.transitions});
 
   final Color? loadingScreenBackgroundColor;
   final Color? loadingScreenIndicatorColor;
+  final Map<String, dynamic>? transitions;
 
   @override
   ThemeExtension<EnsembleThemeExtension> copyWith(
