@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
@@ -10,6 +11,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get_storage/get_storage.dart';
@@ -26,7 +28,9 @@ void callbackDispatcher() {
           throw LanguageError('Failed to parse data to upload');
         }
         try {
-          await UploadUtils.uploadFiles(
+          final sendPort =
+              IsolateNameServer.lookupPortByName(inputData['taskId']);
+          final response = await UploadUtils.uploadFiles(
             fieldName: inputData['fieldName'] ?? 'file',
             files: (inputData['files'] as List)
                 .map((e) => File.fromJson(json.decode(e)))
@@ -35,10 +39,22 @@ void callbackDispatcher() {
                 Map<String, String>.from(json.decode(inputData['headers'])),
             method: inputData['method'],
             url: inputData['url'],
-            isBackgroundTask: true,
+            showNotification: inputData['showNotification'],
+            progressCallback: (progress) {
+              if (sendPort == null) return;
+              sendPort.send({'progress': progress});
+            },
+            onError: (error) {
+              if (sendPort == null) return;
+              sendPort.send({'error': error});
+            },
           );
+
+          if (sendPort == null || response == null) return response == null;
+
+          sendPort.send({'responseBody': response.body});
         } catch (e) {
-          throw LanguageError('Failed to process: $task');
+          throw LanguageError('Failed to process backgroud upload task');
         }
         break;
       default:
@@ -89,7 +105,10 @@ class EnsembleAppState extends State<EnsembleApp> {
   void initState() {
     super.initState();
     config = initApp();
-    Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
+    if (!kIsWeb) {
+      Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
+    }
+
     notificationUtils.initNotifications();
   }
 
