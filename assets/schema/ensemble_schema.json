@@ -807,22 +807,10 @@
           "type": "object",
           "properties": {
             "value": {
-              "description": "Select a value that matches one of the items. If Items are Objects, it should match the value key",
-              "anyOf": [{
-                "type": "object"
-              }, {
-                "type": "string"
-              }]
+              "description": "Select a value that matches one of the items. If Items are Objects, it should match the value key"
             },
             "items": {
               "type": "array",
-              "items": {
-                "anyOf": [{
-                  "type": "object"
-                }, {
-                  "type": "string"
-                }]
-              },
               "description": "List of values, or Objects with value/label pairs"
             },
             "autoComplete": {
@@ -1062,7 +1050,7 @@
     },
     "Flow-payload": {
       "type": "object",
-      "anyOf": [
+      "allOf": [
         {
           "$ref": "#/$defs/Templated-payload"
         },
@@ -1088,7 +1076,7 @@
     },
     "Column-payload": {
       "type": "object",
-      "anyOf": [
+      "allOf": [
         {
           "$ref": "#/$defs/Templated-payload"
         },
@@ -1106,7 +1094,7 @@
     },
     "Row-payload": {
       "type": "object",
-      "anyOf": [
+      "allOf": [
         {
           "$ref": "#/$defs/Templated-payload"
         },
@@ -1124,7 +1112,7 @@
     },
     "GridView-payload": {
       "type": "object",
-      "anyOf": [
+      "allOf": [
         {
           "$ref": "#/$defs/Templated-payload"
         },
@@ -1183,7 +1171,7 @@
     },
     "Flex-payload": {
       "type": "object",
-      "anyOf": [
+      "allOf": [
         {
           "properties": {
             "children": {
@@ -1217,7 +1205,7 @@
     },
     "ListView-payload": {
       "type": "object",
-      "anyOf": [
+      "allOf": [
         {
           "$ref": "#/$defs/Templated-payload"
         },
@@ -1274,7 +1262,7 @@
     },
     "Carousel-payload": {
       "type": "object",
-      "anyOf": [
+      "allOf": [
         {
           "properties": {
             "children": {
@@ -1535,7 +1523,8 @@
       ]
     },
     "Action-payload": {
-      "anyOf": [
+      "type": "object",
+      "oneOf": [
         {
           "properties": {
             "navigateScreen": {
@@ -1995,8 +1984,8 @@
         {
           "properties": {
             "executeCode": {
-              "description": "Execute a block of code.",
               "type": "object",
+              "description": "Execute a block of code.",
               "required": [
                 "body"
               ],
