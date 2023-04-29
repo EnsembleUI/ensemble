@@ -165,6 +165,8 @@ abstract class IsScopeManager {
   ScopeManager get me;
 }
 
+typedef AfterWidgetCreationCallback = Function();
+
 /// View Helper to build our widgets from within a ScopeManager
 mixin ViewBuilder on IsScopeManager {
   /// build a widget from the item YAML
@@ -184,8 +186,18 @@ mixin ViewBuilder on IsScopeManager {
     return DataScopeWidget(scopeManager: createChildScope(), child: widget);
   }
 
+  Widget buildRootWidget(
+      WidgetModel rootModel, AfterWidgetCreationCallback? callback) {
+    return _buildWidget(rootModel, callback: callback);
+  }
+
   /// build a widget from a given model
   Widget buildWidget(WidgetModel model) {
+    return _buildWidget(model);
+  }
+
+  Widget _buildWidget(WidgetModel model,
+      {AfterWidgetCreationCallback? callback}) {
     // 1. Create a bare widget tree
     //  - Add Widget ID as needed to our DataContext
     //  - update the mapping of WidgetModel -> (Invokable, ScopeManager, children)
@@ -193,10 +205,20 @@ mixin ViewBuilder on IsScopeManager {
     ScopeNode rootNode = ScopeNode(me);
     Widget rootWidget = ViewUtil.buildBareWidget(rootNode, model, modelMap);
 
-    // 2. from our rootScope, propagate all data to the child scopes
+    // 2. In special cases after the widgets are created (but before
+    // the scope data is propagate and before binding), we want to
+    // update the scope data.
+    // An example is RootScope requires the widgets to be instantiate, then
+    // run the Global block (since this block may want to reference the widgets).
+    // Only then we proceed to propagate the scopes and trigger bindings.
+    if (callback != null) {
+      callback();
+    }
+
+    // 3. from our rootScope, propagate all data to the child scopes
     ViewUtil.propagateScopes(rootNode);
 
-    // 3. execute bindings
+    // 4. execute bindings
     //  - TODO: detect circular dependencies so we don't have infinite loop
     _updateWidgetBindings(modelMap);
 
