@@ -411,57 +411,71 @@ mixin PageBindingManager on IsScopeManager {
   /// [bindingScope] if specified, we'll only listen to binding changes within this Scope (e.g. custom widget inputs)
   /// all listeners when the widget is disposed.
   /// @return true if we are able to bind and listen to the expression.
-  bool listen(ScopeManager scopeManager, String bindingExpression,
+  void listen(ScopeManager scopeManager, String bindingExpression,
       {required BindingDestination destination,
       required Function onDataChange}) {
     DataContext dataContext = scopeManager.dataContext;
 
-    BindingSource? bindingSource =
-        BindingSource.from(bindingExpression, dataContext);
-    if (bindingSource != null) {
-      // create a unique key to reference our listener. We used this to save
-      // the listeners for clean up
-      // Note that simple binding (i.e. custom widget's input variable) needs
-      // scopeManager to uniquely identify them (since multiple custom widgets
-      // can be created.
-      int hash = getHash(
-          destinationSetter: destination.setterProperty,
-          source: bindingSource,
-          scopeManager: (bindingSource is SimpleBindingSource ||
-                  bindingSource is DeferredBindingSource)
-              ? scopeManager
-              : null);
-
-      // clean up existing listener with the same signature
-      if (listenerMap[destination.widget]?[hash] != null) {
-        //log("Binding(remove duplicate): ${me.id}-${bindingSource.modelId}-${bindingSource.property}");
-        listenerMap[destination.widget]![hash]!.cancel();
+    List<BindingSource> bindingSources =
+        BindingSource.getBindingSources(bindingExpression, dataContext);
+    // fallback to find the binding source the legacy way
+    if (bindingSources.isEmpty) {
+      BindingSource? bindingSource =
+          BindingSource.from(bindingExpression, dataContext);
+      if (bindingSource != null) {
+        bindingSources.add(bindingSource);
       }
-      StreamSubscription subscription =
-          eventBus.on<ModelChangeEvent>().listen((event) {
-        //log("EventBus ${eventBus.hashCode} listening: $event");
-        if ((bindingSource is DeferredBindingSource ||
-                event.source.runtimeType == bindingSource.runtimeType) &&
-            event.source.modelId == bindingSource.modelId &&
-            (event.source.property == null ||
-                event.source.property == bindingSource.property) &&
-            (event.bindingScope == null ||
-                event.bindingScope == scopeManager)) {
-          onDataChange(event);
-        }
-      });
-
-      // save to the listener map so we can remove later
-      if (listenerMap[destination.widget] == null) {
-        listenerMap[destination.widget] = {};
-      }
-      //log("Binding: Adding ${me.id}-${bindingSource.modelId}-${bindingSource.property}");
-      listenerMap[destination.widget]![hash] = subscription;
-      //log("All Bindings:${listenerMap.toString()} ");
-
-      return true;
     }
-    return false;
+
+    // iterate and listen to each binding source
+    for (BindingSource bindingSource in bindingSources) {
+      _listenToBindingSource(scopeManager, bindingSource,
+          destination: destination, onDataChange: onDataChange);
+    }
+  }
+
+  void _listenToBindingSource(
+      ScopeManager scopeManager, BindingSource bindingSource,
+      {required BindingDestination destination,
+      required Function onDataChange}) {
+    // create a unique key to reference our listener. We used this to save
+    // the listeners for clean up
+    // Note that simple binding (i.e. custom widget's input variable) needs
+    // scopeManager to uniquely identify them (since multiple custom widgets
+    // can be created.
+    int hash = getHash(
+        destinationSetter: destination.setterProperty,
+        source: bindingSource,
+        scopeManager: (bindingSource is SimpleBindingSource ||
+                bindingSource is DeferredBindingSource)
+            ? scopeManager
+            : null);
+
+    // clean up existing listener with the same signature
+    if (listenerMap[destination.widget]?[hash] != null) {
+      //log("Binding(remove duplicate): ${me.id}-${bindingSource.modelId}-${bindingSource.property}");
+      listenerMap[destination.widget]![hash]!.cancel();
+    }
+    StreamSubscription subscription =
+        eventBus.on<ModelChangeEvent>().listen((event) {
+      //log("EventBus ${eventBus.hashCode} listening: $event");
+      if ((bindingSource is DeferredBindingSource ||
+              event.source.runtimeType == bindingSource.runtimeType) &&
+          event.source.modelId == bindingSource.modelId &&
+          (event.source.property == null ||
+              event.source.property == bindingSource.property) &&
+          (event.bindingScope == null || event.bindingScope == scopeManager)) {
+        onDataChange(event);
+      }
+    });
+
+    // save to the listener map so we can remove later
+    if (listenerMap[destination.widget] == null) {
+      listenerMap[destination.widget] = {};
+    }
+    //log("Binding: Adding ${me.id}-${bindingSource.modelId}-${bindingSource.property}");
+    listenerMap[destination.widget]![hash] = subscription;
+    //log("All Bindings:${listenerMap.toString()} ");
   }
 
   void dispatch(ModelChangeEvent event) {
