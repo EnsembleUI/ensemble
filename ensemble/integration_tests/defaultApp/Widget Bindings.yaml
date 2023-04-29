@@ -1,37 +1,40 @@
 View:
   title: Home
-  Column:
-    styles: { mainAxis: center }
-    children:
-      # input
-      - TextInput:
-          id: myInput
-          value: first
-      # button to take focus away from TextInput
-      - Button:
-          label: Just a button
+  body:
+    Column:
+      styles: { mainAxis: center }
+      children:
+        # input
+        - TextInput:
+            id: myInput
+            value: first
+        # button to take focus away from TextInput
+        - Button:
+            label: Just a button
 
-      # outputs
-      - Text:
-          text: ${myInput.value}
-      - Custom:
-          inputs:
-            txt: ${myInput.value}
+        # outputs
+        - Text:
+            text: ${myInput.value}
+        - Custom:
+            inputs:
+              txt: ${myInput.value}
 
 
 Custom:
   inputs: [txt]
-  Column:
-    children:
-      - Text:
-          text: "Custom Widget: ${txt}"
-      - Custom2:
-          inputs:
-            text: ${txt}
+  body:
+    Column:
+      children:
+        - Text:
+            text: "Custom Widget: ${txt}"
+        - Custom2:
+            inputs:
+              text: ${txt}
 
 
 
 Custom2:
   inputs: [text]
-  Text:
-    text: "Custom Custom Widget: ${text}"
+  body:
+    Text:
+      text: "Custom Custom Widget: ${text}"
