@@ -111,7 +111,9 @@ class LottieState extends WidgetState<EnsembleLottie> {
             errorBuilder: (context, error, stacktrace) => placeholderImage());
       }
     }
-    return placeholderImage();
+    return SizedBox(
+        width: widget.controller.width?.toDouble(),
+        height: widget.controller.height?.toDouble());
   }
 
   Widget placeholderImage() {
