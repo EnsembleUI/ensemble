@@ -133,9 +133,14 @@ class ScreenController {
         // if invokeAPI has an ID, add it to context so we can bind to it
         // This is useful when the API is called in a loop, so binding to its API name won't work properly
         if (action.id != null && !dataContext.hasContext(action.id!)) {
-          scopeManager!.dataContext
-              .addInvokableContext(action.id!, APIResponse());
+          APIResponse byId = APIResponse();
+          byId.status = APIStatus.loading;
+          scopeManager!.dataContext.addInvokableContext(action.id!, byId);
         }
+
+        // change API state
+        scopeManager!
+            .dispatch(ModelChangeEvent(APIBindingSource(action.apiName), null));
 
         HttpUtils.invokeApi(apiDefinition, dataContext)
             .then((response) => _onAPIComplete(context, dataContext, action,
@@ -653,6 +658,8 @@ class ScreenController {
       }
     }
   }
+
+  void _dispatchAPIChanges(ScopeManager scopeManager, String apiId) {}
 
   /// Executing the onResponse action. Note that this can be
   /// the API's onResponse or a caller's onResponse (e.g. onPageLoad's onResponse)

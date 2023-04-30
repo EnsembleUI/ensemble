@@ -609,13 +609,18 @@ class UserDateTime with Invokable {
   }
 }
 
+enum APIStatus { idle, loading, error, success }
+
 class APIResponse with Invokable {
+  APIStatus _status = APIStatus.idle;
   Response? _response;
   APIResponse({Response? response}) {
     if (response != null) {
       setAPIResponse(response);
     }
   }
+
+  set status(APIStatus newStatus) => _status = newStatus;
 
   setAPIResponse(Response response) {
     _response = response;
@@ -627,7 +632,14 @@ class APIResponse with Invokable {
 
   @override
   Map<String, Function> getters() {
-    return {'body': () => _response?.body, 'headers': () => _response?.headers};
+    return {
+      'body': () => _response?.body,
+      'headers': () => _response?.headers,
+      'isIdle': () => _status == APIStatus.idle,
+      'isLoading': () => _status == APIStatus.loading,
+      'isError': () => _status == APIStatus.error,
+      'isSuccess': () => _status == APIStatus.success,
+    };
   }
 
   @override
