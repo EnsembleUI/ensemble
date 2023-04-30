@@ -80,7 +80,7 @@ class LottieState extends WidgetState<EnsembleLottie> {
           },
           size: Size(width, height));
     }
-    return placeholderImage();
+    return blankPlaceholder();
   }
 
   Widget buildLottieCanvas(BoxFit? fit) {
@@ -111,9 +111,7 @@ class LottieState extends WidgetState<EnsembleLottie> {
             errorBuilder: (context, error, stacktrace) => placeholderImage());
       }
     }
-    return SizedBox(
-        width: widget.controller.width?.toDouble(),
-        height: widget.controller.height?.toDouble());
+    return blankPlaceholder();
   }
 
   Widget placeholderImage() {
@@ -123,4 +121,8 @@ class LottieState extends WidgetState<EnsembleLottie> {
         child: Image.asset('assets/images/img_placeholder.png',
             package: 'ensemble'));
   }
+
+  Widget blankPlaceholder() => SizedBox(
+      width: widget.controller.width?.toDouble(),
+      height: widget.controller.height?.toDouble());
 }
