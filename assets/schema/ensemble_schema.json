@@ -21,12 +21,12 @@
           "description": "Configure the application header",
           "properties": {
             "title": {
-              "type": [
-                "string",
-                "object"
-              ],
-              "description": "A simple text or a custom widget for the App's title",
-              "$ref": "#/$defs/Widget"
+              "anyOf": [{
+                "type": "string"
+              }, {
+                "$ref": "#/$defs/Widget"
+              }],
+              "description": "A simple text or a custom widget for the App's title"
             },
             "flexibleBackground": {
               "$ref": "#/$defs/Widget",
@@ -285,18 +285,27 @@
                   ]
                 },
                 "lineHeight": {
-                  "type": [
-                    "number",
-                    "string"
-                  ],
-                  "enum": [
-                    "default",
-                    "1.0",
-                    "1.15",
-                    "1.25",
-                    "1.5",
-                    "2.0",
-                    "2.5"
+                  "anyOf": [
+                    {
+                      "title": "string",
+                      "type": "string"
+                    },
+                    {
+                      "title": "number",
+                      "type": "number"
+                    },
+                    {
+                      "title": "enum",
+                      "enum": [
+                        "default",
+                        "1.0",
+                        "1.15",
+                        "1.25",
+                        "1.5",
+                        "2.0",
+                        "2.5"
+                      ]
+                    }
                   ]
                 }
               }
@@ -656,9 +665,15 @@
                   "type": "integer"
                 },
                 "color": {
-                  "type": [
-                    "number",
-                    "string"
+                  "anyOf": [
+                    {
+                      "title": "string",
+                      "type": "string"
+                    },
+                    {
+                      "title": "number",
+                      "type": "number"
+                    }
                   ],
                   "description": "The line color starting with '0xFF' for full opacity"
                 },
@@ -807,10 +822,22 @@
           "type": "object",
           "properties": {
             "value": {
-              "description": "Select a value that matches one of the items. If Items are Objects, it should match the value key"
+              "description": "Select a value that matches one of the items. If Items are Objects, it should match the value key",
+              "anyOf": [{
+                "type": "object"
+              }, {
+                "type": "string"
+              }]
             },
             "items": {
               "type": "array",
+              "items": {
+                "anyOf": [{
+                  "type": "object"
+                }, {
+                  "type": "string"
+                }]
+              },
               "description": "List of values, or Objects with value/label pairs"
             },
             "autoComplete": {
@@ -907,9 +934,15 @@
                   "description": "Whether the button should have an outline border instead of filled background"
                 },
                 "color": {
-                  "type": [
-                    "number",
-                    "string"
+                  "anyOf": [
+                    {
+                      "title": "string",
+                      "type": "string"
+                    },
+                    {
+                      "title": "number",
+                      "type": "number"
+                    }
                   ],
                   "description": "Set the color for the button label starting with '0xFF' for full opacity"
                 },
@@ -1050,7 +1083,7 @@
     },
     "Flow-payload": {
       "type": "object",
-      "allOf": [
+      "anyOf": [
         {
           "$ref": "#/$defs/Templated-payload"
         },
@@ -1076,7 +1109,7 @@
     },
     "Column-payload": {
       "type": "object",
-      "allOf": [
+      "anyOf": [
         {
           "$ref": "#/$defs/Templated-payload"
         },
@@ -1094,7 +1127,7 @@
     },
     "Row-payload": {
       "type": "object",
-      "allOf": [
+      "anyOf": [
         {
           "$ref": "#/$defs/Templated-payload"
         },
@@ -1112,7 +1145,7 @@
     },
     "GridView-payload": {
       "type": "object",
-      "allOf": [
+      "anyOf": [
         {
           "$ref": "#/$defs/Templated-payload"
         },
@@ -1133,13 +1166,19 @@
                 {
                   "properties": {
                     "horizontalTileCount": {
-                      "type": [
-                        "integer",
-                        "string"
+                      "anyOf": [
+                        {
+                          "title": "string",
+                          "type": "string"
+                        },
+                        {
+                          "title": "integer",
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 5
+                        }
                       ],
-                      "description": "The number of horizontal tiles (max 5) to show. If not specified, the number of tiles will automatically be determined by the screen size. You may also specify a single number (for all breakpoints), three numbers (for small, medium, large breakpoints), or five numbers (xSmall, small, medium, large, xLarge).",
-                      "minimum": 1,
-                      "maximum": 5
+                      "description": "The number of horizontal tiles (max 5) to show. If not specified, the number of tiles will automatically be determined by the screen size. You may also specify a single number (for all breakpoints), three numbers (for small, medium, large breakpoints), or five numbers (xSmall, small, medium, large, xLarge)."
                     },
                     "horizontalGap": {
                       "type": "integer",
@@ -1171,7 +1210,7 @@
     },
     "Flex-payload": {
       "type": "object",
-      "allOf": [
+      "anyOf": [
         {
           "properties": {
             "children": {
@@ -1205,7 +1244,7 @@
     },
     "ListView-payload": {
       "type": "object",
-      "allOf": [
+      "anyOf": [
         {
           "$ref": "#/$defs/Templated-payload"
         },
@@ -1246,9 +1285,15 @@
                       "description": "The thickness of the separator between items"
                     },
                     "separatorPadding": {
-                      "type": [
-                        "integer",
-                        "string"
+                      "anyOf": [
+                        {
+                          "title": "string",
+                          "type": "string"
+                        },
+                        {
+                          "title": "integer",
+                          "type": "integer"
+                        }
                       ],
                       "description": "Padding with CSS-style value e.g. padding: 5 20 5 Default 0 0 0"
                     }
@@ -1262,7 +1307,7 @@
     },
     "Carousel-payload": {
       "type": "object",
-      "allOf": [
+      "anyOf": [
         {
           "properties": {
             "children": {
@@ -1345,9 +1390,15 @@
                       "type": "integer"
                     },
                     "indicatorMargin": {
-                      "type": [
-                        "integer",
-                        "string"
+                      "anyOf": [
+                        {
+                          "title": "string",
+                          "type": "string"
+                        },
+                        {
+                          "title": "integer",
+                          "type": "integer"
+                        }
                       ],
                       "description": "The margin around each indicator"
                     }
@@ -1446,9 +1497,15 @@
                   ]
                 },
                 "contentPadding": {
-                  "type": [
-                    "integer",
-                    "string"
+                  "anyOf": [
+                    {
+                      "title": "string",
+                      "type": "string"
+                    },
+                    {
+                      "title": "integer",
+                      "type": "integer"
+                    }
                   ],
                   "description": "Padding around your input content with CSS-style notation e.g. margin: 5 20 5"
                 },
@@ -1523,8 +1580,7 @@
       ]
     },
     "Action-payload": {
-      "type": "object",
-      "oneOf": [
+      "anyOf": [
         {
           "properties": {
             "navigateScreen": {
@@ -1963,9 +2019,15 @@
                     {
                       "properties": {
                         "shadowColor": {
-                          "type": [
-                            "number",
-                            "string"
+                          "anyOf": [
+                            {
+                              "title": "string",
+                              "type": "string"
+                            },
+                            {
+                              "title": "number",
+                              "type": "number"
+                            }
                           ],
                           "description": "box shadow color starting with '0xFF' for full opacity"
                         },
@@ -1996,8 +2058,8 @@
         {
           "properties": {
             "executeCode": {
-              "type": "object",
               "description": "Execute a block of code.",
+              "type": "object",
               "required": [
                 "body"
               ],
@@ -2320,9 +2382,15 @@
                   ]
                 },
                 "itemPadding": {
-                  "type": [
-                    "integer",
-                    "string"
+                  "anyOf": [
+                    {
+                      "title": "string",
+                      "type": "string"
+                    },
+                    {
+                      "title": "integer",
+                      "type": "integer"
+                    }
                   ],
                   "description": "Padding for each navigation item with CSS-style value"
                 },
@@ -2344,7 +2412,7 @@
       }
     },
     "Widget": {
-      "allOf": [
+      "anyOf": [
         {
           "properties": {
             "Text": {
@@ -2718,9 +2786,15 @@
                   ]
                 },
                 "tabPadding": {
-                  "type": [
-                    "integer",
-                    "string"
+                  "anyOf": [
+                    {
+                      "title": "string",
+                      "type": "string"
+                    },
+                    {
+                      "title": "integer",
+                      "type": "integer"
+                    }
                   ],
                   "description": "Padding for each tab labels with CSS-style value. Default: 0 30 0 0 (right padding only)"
                 },
@@ -3084,9 +3158,15 @@
       "type": "object",
       "properties": {
         "padding": {
-          "type": [
-            "integer",
-            "string"
+          "anyOf": [
+            {
+              "title": "string",
+              "type": "string"
+            },
+            {
+              "title": "integer",
+              "type": "integer"
+            }
           ],
           "description": "Padding with CSS-style value e.g. padding: 5 20 5"
         }
@@ -3096,9 +3176,15 @@
       "type": "object",
       "properties": {
         "margin": {
-          "type": [
-            "integer",
-            "string"
+          "anyOf": [
+            {
+              "title": "string",
+              "type": "string"
+            },
+            {
+              "title": "integer",
+              "type": "integer"
+            }
           ],
           "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
         }
@@ -3108,9 +3194,15 @@
       "type": "object",
       "properties": {
         "borderRadius": {
-          "type": [
-            "integer",
-            "string"
+          "anyOf": [
+            {
+              "title": "string",
+              "type": "string"
+            },
+            {
+              "title": "integer",
+              "type": "integer"
+            }
           ],
           "minimum": 0,
           "description": "Border Radius with CSS-like notation (1 to 4 integers)"
@@ -3681,9 +3773,15 @@
       "type": "object",
       "properties": {
         "shadowColor": {
-          "type": [
-            "number",
-            "string"
+          "anyOf": [
+            {
+              "title": "string",
+              "type": "string"
+            },
+            {
+              "title": "number",
+              "type": "number"
+            }
           ],
           "description": "Box shadow color starting with '0xFF' for full opacity"
         },
@@ -3739,9 +3837,15 @@
       "description": "Specifies the icon to use. You can also use the short-handed syntax 'iconName iconLibrary')",
       "properties": {
         "name": {
-          "type": [
-            "integer",
-            "string"
+          "anyOf": [
+            {
+              "title": "string",
+              "type": "string"
+            },
+            {
+              "title": "integer",
+              "type": "integer"
+            }
           ],
           "description": "The name of the icon"
         },
