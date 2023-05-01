@@ -157,6 +157,9 @@
         "properties": {
           "inputs": {
             "type": "array",
+            "items": {
+              "type": "string"
+            },
             "description": "Define the list of input names that this API accepts"
           },
           "uri": {
@@ -203,6 +206,9 @@
     "properties": {
       "inputs": {
         "type": "array",
+        "items": {
+          "type": "string"
+        },
         "description": "Define the list of input names that this Custom Widget accepts."
       },
       "onLoad": {
@@ -832,7 +838,7 @@
             "items": {
               "type": "array",
               "items": {
-                "anyOf": [{
+                "oneOf": [{
                   "type": "object"
                 }, {
                   "type": "string"
