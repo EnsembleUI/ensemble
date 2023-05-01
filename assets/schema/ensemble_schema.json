@@ -829,17 +829,21 @@
           "properties": {
             "value": {
               "description": "Select a value that matches one of the items. If Items are Objects, it should match the value key",
-              "anyOf": [{
-                "type": "object"
-              }, {
-                "type": "string"
-              }]
+              "type": "string"
             },
             "items": {
               "type": "array",
               "items": {
-                "oneOf": [{
-                  "type": "object"
+                "anyOf": [{
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    }
+                  }
                 }, {
                   "type": "string"
                 }]
