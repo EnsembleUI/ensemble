@@ -1,28 +1,32 @@
 View:
   styles:
     useSafeArea: true
-  onLoad:
-    action: invokeAPI
-    name: getPeople
 
-  Column:
-    children:
-      - Text:
-          text: count ${getPeople.body.results.length}
-      - CustomWidget:
-          inputs:
-            people: ${getPeople.body.results}
-            borderColor: black
+  body:
+    Column:
+      children:
+        - Text:
+            text: count ${getPeople.body.results.length}
+        - CustomWidget:
+            inputs:
+              people: ${getPeople.body.results}
+              borderColor: black
+        - Button:
+            label: Fetch
+            onTap:
+              invokeAPI:
+                name: getPeople
 
 CustomWidget:
   inputs: [people, borderColor]
-  Column:
-    styles:
-      # https://github.com/EnsembleUI/ensemble/issues/305 borderColor makes the Column recreate the child Text.
-      borderColor: ${borderColor}
-    children:
-      - Text:
-          text: "First person: ${people[0].name.first}"
+  body:
+    Column:
+      styles:
+        # https://github.com/EnsembleUI/ensemble/issues/305 borderColor makes the Column recreate the child Text.
+        borderColor: ${borderColor}
+      children:
+        - Text:
+            text: "First person: ${people[0].name.first}"
 
 API:
   getPeople:
@@ -51,4 +55,3 @@ API:
           }
         ]
       }
-      
