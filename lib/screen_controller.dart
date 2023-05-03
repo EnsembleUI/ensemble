@@ -743,6 +743,9 @@ class ScreenController {
             defaultTransitionOptions[_pageType]?['duration'],
         fallback: 250);
 
+    const enableTransition =
+        bool.fromEnvironment('transitions', defaultValue: true);
+
     PageRouteBuilder route = getScreenBuilder(
       screenWidget,
       pageType: pageType,
@@ -847,6 +850,13 @@ class ScreenController {
     Alignment? alignment,
     int? duration,
   }) {
+    const enableTransition =
+        bool.fromEnvironment('transitions', defaultValue: true);
+
+    if (!enableTransition) {
+      return EnsemblePageRouteNoTransitionBuilder(screenWidget: screenWidget);
+    }
+
     if (pageType == PageType.modal) {
       return EnsemblePageRouteBuilder(
         child: ModalScreen(screenWidget: screenWidget),
