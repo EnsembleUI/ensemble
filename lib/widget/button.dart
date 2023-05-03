@@ -12,6 +12,7 @@ import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/layout/form.dart' as ensembleForm;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:get_it/get_it.dart';
 import 'package:provider/provider.dart';
 
 import '../framework/event.dart';
@@ -36,9 +37,18 @@ class Button extends StatefulWidget
 
   @override
   Map<String, Function> setters() {
+    final styleModel = GetIt.I<StyleProvider>();
+    final StyleTheme? style = styleModel.getNamedStyle(controller.namedStyle);
+
+    if (style != null) {
+      controller.color = style.color;
+      controller.height = style.height;
+      controller.width = style.width;
+      controller.fontSize = style.fontSize;
+      controller.fontWeight = Utils.getFontWeight(style.fontWeight);
+    }
+
     return {
-      'namedStyle': (value) =>
-          _controller.namedStyle = Utils.getString(value, fallback: ''),
       'label': (value) =>
           _controller.label = Utils.getString(value, fallback: ''),
       'startingIcon': (value) =>
@@ -93,7 +103,6 @@ class ButtonController extends BoxController {
   FontWeight? fontWeight;
   int? buttonWidth;
   int? buttonHeight;
-  String? namedStyle;
 
   IconModel? startingIcon;
   IconModel? endingIcon;
@@ -186,10 +195,6 @@ class ButtonState extends WidgetState<Button> {
     // we need to get the button shape from borderRadius, borderColor & borderThickness
     // and we do not want to override the default theme if not specified
     //int borderRadius = widget._controller.borderRadius ?? defaultButtonStyle?.
-    final styleModel = Provider.of<StyleProvider>(context);
-    final namedStyle = widget.controller.namedStyle;
-    final StyleTheme? style = styleModel.getNamedStyle(namedStyle ?? '');
-    BoxUtils.updateStyle(widget.controller, style);
 
     return ThemeManager().getButtonStyle(
         isOutline: isOutlineButton,

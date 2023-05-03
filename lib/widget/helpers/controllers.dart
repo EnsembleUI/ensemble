@@ -1,8 +1,11 @@
 /// This class contains helper controllers for our widgets.
 import 'package:ensemble/framework/model.dart';
+import 'package:ensemble/framework/styles/style_provider.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 
 /// base Controller class for your Ensemble widget
 abstract class WidgetController extends Controller {
@@ -16,6 +19,7 @@ abstract class WidgetController extends Controller {
   String? label;
   String? description;
   String? labelHint;
+  String? namedStyle;
 
   @override
   Map<String, Function> getBaseGetters() {
@@ -33,6 +37,8 @@ abstract class WidgetController extends Controller {
       'label': (value) => label = Utils.optionalString(value),
       'description': (value) => description = Utils.optionalString(value),
       'labelHint': (value) => labelHint = Utils.optionalString(value),
+      'namedStyle': (value) =>
+          namedStyle = Utils.optionalString(value ?? 'Not Found')
     };
   }
 }
@@ -63,6 +69,18 @@ class BoxController extends WidgetController {
   @override
   Map<String, Function> getBaseSetters() {
     Map<String, Function> setters = super.getBaseSetters();
+    final styleModel = GetIt.I<StyleProvider>();
+    final StyleTheme? style = styleModel.getNamedStyle(namedStyle);
+
+    if (style != null) {
+      backgroundColor = style.backgroundColor;
+      borderColor = style.borderColor;
+      shadowColor = style.shadowColor;
+      shadowRadius = style.shadowRadius;
+      borderRadius = Utils.getBorderRadius(style.borderRadius);
+      borderWidth = style.borderWidth;
+    }
+
     setters.addAll({
       // support short-hand notation margin: 10 5 10
       'margin': (value) => margin = Utils.optionalInsets(value),
