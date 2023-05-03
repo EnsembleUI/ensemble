@@ -19,7 +19,7 @@ abstract class WidgetController extends Controller {
   String? label;
   String? description;
   String? labelHint;
-  String? namedStyle;
+  String? styleName;
 
   @override
   Map<String, Function> getBaseGetters() {
@@ -37,7 +37,7 @@ abstract class WidgetController extends Controller {
       'label': (value) => label = Utils.optionalString(value),
       'description': (value) => description = Utils.optionalString(value),
       'labelHint': (value) => labelHint = Utils.optionalString(value),
-      'namedStyle': (value) => namedStyle = Utils.optionalString(value)
+      'styleName': (value) => styleName = Utils.optionalString(value)
     };
   }
 }
@@ -69,7 +69,7 @@ class BoxController extends WidgetController {
   Map<String, Function> getBaseSetters() {
     Map<String, Function> setters = super.getBaseSetters();
     final styleModel = GetIt.I<StyleProvider>();
-    final StyleTheme? style = styleModel.getNamedStyle(namedStyle);
+    final StyleTheme? style = styleModel.getStyleName(styleName);
 
     if (style != null) {
       backgroundColor = style.backgroundColor;
@@ -78,6 +78,8 @@ class BoxController extends WidgetController {
       shadowRadius = style.shadowRadius;
       borderRadius = Utils.getBorderRadius(style.borderRadius);
       borderWidth = style.borderWidth;
+      width = style.width;
+      height = style.height;
     }
 
     setters.addAll({

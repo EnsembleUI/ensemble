@@ -38,14 +38,12 @@ class Button extends StatefulWidget
   @override
   Map<String, Function> setters() {
     final styleModel = GetIt.I<StyleProvider>();
-    final StyleTheme? style = styleModel.getNamedStyle(_controller.namedStyle);
+    final StyleTheme? style = styleModel.getStyleName(_controller.styleName);
 
     if (style != null) {
-      _controller.color = style.color;
-      _controller.height = style.height;
-      _controller.width = style.width;
+      // _controller.color = style.color;
       _controller.fontSize = style.fontSize;
-      _controller.fontWeight = Utils.getFontWeight(style.fontWeight);
+      // _controller.fontWeight = Utils.getFontWeight(style.fontWeight);
     }
 
     return {
@@ -106,6 +104,27 @@ class ButtonController extends BoxController {
 
   IconModel? startingIcon;
   IconModel? endingIcon;
+
+  // @override
+  // Map<String, Function> getBaseSetters() {
+  //   Map<String, Function> setters = super.getBaseSetters();
+  //   final styleModel = GetIt.I<StyleProvider>();
+  //   final StyleTheme? style = styleModel.getNamedStyle(namedStyle);
+
+  //   // if (style != null) {
+  //   //   color = Colors.white;
+  //   //   print('Color 2: $color');
+  //   //   height = style.height;
+  //   //   width = style.width;
+  //   //   fontSize = style.fontSize;
+  //   //   fontWeight = Utils.getFontWeight(style.fontWeight);
+  //   // }
+
+  //   setters.addAll({
+  //     'color': (value) => color = Utils.getColor(value),
+  //   });
+  //   return setters;
+  // }
 }
 
 class ButtonState extends WidgetState<Button> {

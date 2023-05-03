@@ -53,11 +53,11 @@ class StyleProvider {
   final YamlMap? stylesPayload;
   List<Map<String, StyleTheme>> styles = [];
 
-  StyleTheme? getNamedStyle(String? namedStyle) {
-    if (namedStyle == null) return null;
+  StyleTheme? getStyleName(String? styleName) {
+    if (styleName == null) return null;
     final styleData =
-        styles.firstWhere((value) => value.containsKey(namedStyle));
-    final style = styleData[namedStyle];
+        styles.firstWhere((value) => value.containsKey(styleName));
+    final style = styleData[styleName];
     return style;
   }
 }
