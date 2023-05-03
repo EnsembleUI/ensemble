@@ -41,8 +41,8 @@ class Button extends StatefulWidget
     final StyleTheme? style = styleModel.getStyleName(_controller.styleName);
 
     if (style != null) {
-      // _controller.color = style.color;
-      _controller.fontSize = style.fontSize;
+      _controller.color = _controller.color ?? style.color;
+      _controller.fontSize = _controller.fontSize ?? style.fontSize;
       // _controller.fontWeight = Utils.getFontWeight(style.fontWeight);
     }
 
@@ -109,7 +109,7 @@ class ButtonController extends BoxController {
   // Map<String, Function> getBaseSetters() {
   //   Map<String, Function> setters = super.getBaseSetters();
   //   final styleModel = GetIt.I<StyleProvider>();
-  //   final StyleTheme? style = styleModel.getNamedStyle(namedStyle);
+  //   final StyleTheme? style = styleModel.getStyleName(styleName);
 
   //   // if (style != null) {
   //   //   color = Colors.white;

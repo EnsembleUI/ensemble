@@ -72,14 +72,14 @@ class BoxController extends WidgetController {
     final StyleTheme? style = styleModel.getStyleName(styleName);
 
     if (style != null) {
-      backgroundColor = style.backgroundColor;
-      borderColor = style.borderColor;
-      shadowColor = style.shadowColor;
+      backgroundColor = backgroundColor ?? style.backgroundColor;
+      borderColor = borderColor ?? style.borderColor;
+      shadowColor = shadowColor ?? style.shadowColor;
       shadowRadius = style.shadowRadius;
-      borderRadius = Utils.getBorderRadius(style.borderRadius);
-      borderWidth = style.borderWidth;
-      width = style.width;
-      height = style.height;
+      borderRadius = borderRadius ?? Utils.getBorderRadius(style.borderRadius);
+      borderWidth = borderWidth ?? style.borderWidth;
+      width = width ?? style.width;
+      height = height ?? style.height;
     }
 
     setters.addAll({
