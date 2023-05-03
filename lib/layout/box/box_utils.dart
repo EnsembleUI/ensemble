@@ -91,13 +91,4 @@ class BoxUtils {
     }
     return flexItems;
   }
-
-  static void updateStyle(BoxController controller, StyleTheme? styleTheme) {
-    if (styleTheme == null) return;
-    controller.backgroundColor = styleTheme.backgroundColor;
-    controller.borderColor = styleTheme.borderColor;
-    controller.shadowColor = styleTheme.shadowColor;
-    controller.borderWidth = styleTheme.borderWidth;
-    controller.shadowRadius = styleTheme.shadowRadius;
-  }
 }

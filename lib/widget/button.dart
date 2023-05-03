@@ -38,14 +38,14 @@ class Button extends StatefulWidget
   @override
   Map<String, Function> setters() {
     final styleModel = GetIt.I<StyleProvider>();
-    final StyleTheme? style = styleModel.getNamedStyle(controller.namedStyle);
+    final StyleTheme? style = styleModel.getNamedStyle(_controller.namedStyle);
 
     if (style != null) {
-      controller.color = style.color;
-      controller.height = style.height;
-      controller.width = style.width;
-      controller.fontSize = style.fontSize;
-      controller.fontWeight = Utils.getFontWeight(style.fontWeight);
+      _controller.color = style.color;
+      _controller.height = style.height;
+      _controller.width = style.width;
+      _controller.fontSize = style.fontSize;
+      _controller.fontWeight = Utils.getFontWeight(style.fontWeight);
     }
 
     return {
