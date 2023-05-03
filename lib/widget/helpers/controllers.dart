@@ -37,8 +37,7 @@ abstract class WidgetController extends Controller {
       'label': (value) => label = Utils.optionalString(value),
       'description': (value) => description = Utils.optionalString(value),
       'labelHint': (value) => labelHint = Utils.optionalString(value),
-      'namedStyle': (value) =>
-          namedStyle = Utils.optionalString(value ?? 'Not Found')
+      'namedStyle': (value) => namedStyle = Utils.optionalString(value)
     };
   }
 }

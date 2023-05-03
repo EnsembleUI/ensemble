@@ -92,8 +92,6 @@ class EnsembleAppState extends State<EnsembleApp> {
   Widget renderApp(EnsembleConfig config) {
     //log("EnsembleApp build() - $hashCode");
     final isPreview = widget.isPreview && kIsWeb;
-    GetIt.I.registerSingleton<StyleProvider>(
-        StyleProvider(stylesPayload: config.appBundle?.theme));
 
     return MaterialApp(
       navigatorKey: Utils.globalAppKey,
@@ -113,6 +111,7 @@ class EnsembleAppState extends State<EnsembleApp> {
           appProvider:
               AppProvider(definitionProvider: config.definitionProvider),
           screenPayload: widget.screenPayload,
+          styles: config.appBundle?.theme,
         ),
       ),
       useInheritedMediaQuery: isPreview,
