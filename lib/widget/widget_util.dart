@@ -3,6 +3,7 @@ import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as flutter;
 import 'package:ensemble/util/utils.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 /// utility for our Widgets
 class WidgetUtils {
@@ -208,14 +209,23 @@ class TextUtils {
         lineHeight = 2.5;
         break;
     }
+
+    var textStyle = const TextStyle();
+
+    try {
+      if (controller.fontFamily != null) {
+        textStyle = GoogleFonts.getFont(controller.fontFamily!.trim(),
+            color: Colors.black);
+      }
+    } catch (_) {}
+
     return flutter.Text(controller.text ?? '',
         textAlign: textAlign,
         overflow: textOverflow.overflow,
         maxLines: textOverflow.maxLine,
         softWrap: textOverflow.softWrap,
-        style: flutter.TextStyle(
+        style: textStyle.copyWith(
             decorationColor: flutter.Colors.blue,
-            fontFamily: controller.fontFamily,
             fontWeight: fontWeight,
             fontStyle: fontStyle,
             decoration: textDecoration,
