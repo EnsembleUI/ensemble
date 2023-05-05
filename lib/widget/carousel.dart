@@ -211,6 +211,7 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
     return BoxWrapper(
       widget: carousel,
       boxController: widget._controller,
+      ignoresPadding: true,
       ignoresDimension:
           true, // width/height shouldn't be apply in the container
     );
@@ -241,8 +242,8 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
     // wrap each child inside Container to add padding and gap
     double gap =
         widget._controller.gap?.toDouble() ?? MyController.defaultItemGap;
-    double leadingGap = widget._controller.leadingGap?.toDouble() ?? gap / 2;
-    double trailingGap = widget._controller.trailingGap?.toDouble() ?? gap / 2;
+    double leadingGap = widget._controller.leadingGap?.toDouble() ?? 0;
+    double trailingGap = widget._controller.trailingGap?.toDouble() ?? 0;
     List<Widget> items = [];
     for (int i = 0; i < children.length; i++) {
       Widget child = children[i];
