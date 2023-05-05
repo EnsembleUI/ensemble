@@ -52,6 +52,10 @@ class Camera extends StatefulWidget
     return {
       'files': () => _controller.files.map((e) => e.toJson()).toList(),
       'currentFile': () => _controller.currentFile?.toJson(),
+      'latitude': () => _controller.position?.latitude,
+      'longitude': () => _controller.position?.longitude,
+      'speed': () => _controller.position?.speed,
+      'angle': () => _controller.angle,
     };
   }
 
@@ -90,9 +94,9 @@ class Camera extends StatefulWidget
           _controller.cameraRotateIcon = Utils.getIcon(value),
       'focusIcon': (value) => _controller.focusIcon = Utils.getIcon(value),
       'assistAngle': (value) =>
-          _controller.assistAngle = Utils.optionalBool(value),
+          _controller.assistAngle = Utils.getBool(value, fallback: false),
       'assistSpeed': (value) =>
-          _controller.assistSpeed = Utils.optionalBool(value),
+          _controller.assistSpeed = Utils.getBool(value, fallback: false),
       'maxSpeed': (value) =>
           _controller.maxSpeed = Utils.getDouble(value, fallback: 30),
       'maxAngle': (value) =>
@@ -127,8 +131,8 @@ class MyCameraController extends WidgetController {
   String? nextButtonLabel;
   String? accessButtonLabel;
   String? galleryButtonLabel;
-  bool? assistAngle;
-  bool? assistSpeed;
+  bool assistAngle = false;
+  bool assistSpeed = false;
   String? assistAngleMessage;
   String? assistSpeedMessage;
   IconModel? imagePickerIcon;
@@ -141,6 +145,8 @@ class MyCameraController extends WidgetController {
 
   List<File> files = [];
   File? currentFile;
+  Position? position;
+  double? angle;
 
   void initCameraOption(String? data) {
     if (data == null) return;
@@ -206,11 +212,11 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
 
     initCameras();
 
-    if (widget._controller.assistAngle ?? false) {
+    if (widget._controller.assistAngle) {
       initAccelerometerSub();
     }
 
-    if (widget._controller.assistSpeed ?? false) {
+    if (widget._controller.assistSpeed) {
       initGeoLocator();
     }
 
@@ -238,7 +244,7 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
   void initAccelerometerSub() {
     accelerometerSub = accelerometerEvents.listen((AccelerometerEvent event) {
       double radians = math.atan2(event.y, event.z);
-      phoneAngle.value = radians * 180 / math.pi;
+      widget._controller.angle = phoneAngle.value = radians * 180 / math.pi;
     });
   }
 
@@ -312,6 +318,7 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
       final updatedPosition = await locator.getCurrentPosition();
       final _velocity = (position.speed + updatedPosition.speed) / 2;
       phoneSpeed.value = _velocity * 18 / 5;
+      widget._controller.position = position;
     });
   }
 
