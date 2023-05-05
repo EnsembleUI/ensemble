@@ -56,6 +56,8 @@ class Carousel extends StatefulWidget
           _controller.indicatorMargin = Utils.getInsets(value),
       'indicatorOffset': (value) =>
           _controller.indicatorOffset = Utils.optionalDouble(value),
+      'indicatorColor': (value) =>
+          _controller.indicatorColor = Utils.getColor(value),
       'onItemChange': (action) => _controller.onItemChange =
           EnsembleAction.fromYaml(action, initiator: this),
       'indicatorWidget': (widget) => _controller.indicatorWidget = widget,
@@ -117,6 +119,7 @@ class MyController extends BoxController {
   int? indicatorHeight;
   EdgeInsets? indicatorMargin;
   double? indicatorOffset;
+  Color? indicatorColor;
 
   // Custom Widget
   dynamic indicatorWidget;
@@ -343,6 +346,11 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
         widget._controller.indicatorWidth ??
         8;
 
+    final Color? indicatorColor = widget._controller.indicatorColor ??
+        (Theme.of(context).brightness == Brightness.dark
+            ? Colors.white
+            : Colors.black);
+
     return Container(
       width: w.toDouble(),
       height: h.toDouble(),
@@ -352,10 +360,7 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
         shape: widget._controller.indicatorType == IndicatorType.rectangle
             ? BoxShape.rectangle
             : BoxShape.circle,
-        color: (Theme.of(context).brightness == Brightness.dark
-                ? Colors.white
-                : Colors.black)
-            .withOpacity(selected ? 0.9 : 0.4),
+        color: indicatorColor?.withOpacity(selected ? 0.9 : 0.4),
       ),
     );
   }
