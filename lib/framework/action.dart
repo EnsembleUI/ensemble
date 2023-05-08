@@ -89,7 +89,11 @@ class ShowDialogAction extends EnsembleAction {
 
 class NavigateScreenAction extends BaseNavigateScreenAction {
   NavigateScreenAction(
-      {super.initiator, required super.screenName, super.inputs, super.options})
+      {super.initiator,
+      required super.screenName,
+      super.inputs,
+      super.options,
+      super.transition})
       : super(asModal: false);
 
   factory NavigateScreenAction.fromYaml(
@@ -99,10 +103,12 @@ class NavigateScreenAction extends BaseNavigateScreenAction {
           "${ActionType.navigateScreen.name} requires the 'name' of the screen to navigate to.");
     }
     return NavigateScreenAction(
-        initiator: initiator,
-        screenName: payload['name'].toString(),
-        inputs: Utils.getMap(payload['inputs']),
-        options: Utils.getMap(payload['options']));
+      initiator: initiator,
+      screenName: payload['name'].toString(),
+      inputs: Utils.getMap(payload['inputs']),
+      options: Utils.getMap(payload['options']),
+      transition: Utils.getMap(payload['transition']),
+    );
   }
 }
 
@@ -134,11 +140,13 @@ abstract class BaseNavigateScreenAction extends EnsembleAction {
       {super.initiator,
       required this.screenName,
       required this.asModal,
+      this.transition,
       super.inputs,
       this.options});
 
   String screenName;
   bool asModal;
+  Map<String, dynamic>? transition;
   final Map<String, dynamic>? options;
 }
 
@@ -252,6 +260,7 @@ class ShowToastAction extends EnsembleAction {
   ShowToastAction(
       {super.initiator,
       required this.type,
+      this.title,
       this.message,
       this.widget,
       this.dismissible,
@@ -262,6 +271,7 @@ class ShowToastAction extends EnsembleAction {
   final ToastType type;
 
   // either message or widget is needed
+  final String? title;
   final String? message;
   final dynamic widget;
 
@@ -272,13 +282,15 @@ class ShowToastAction extends EnsembleAction {
 
   factory ShowToastAction.fromYaml({YamlMap? payload}) {
     if (payload == null ||
-        (payload['message'] == null && payload['widget'] == null)) {
+        ((payload['title'] == null && payload['message'] == null) &&
+            payload['widget'] == null)) {
       throw LanguageError(
-          "${ActionType.showToast.name} requires either a message or a widget to render.");
+          "${ActionType.showToast.name} requires either a title/message or a widget to render.");
     }
     return ShowToastAction(
         type: ToastType.values.from(payload['options']?['type']) ??
             ToastType.info,
+        title: Utils.optionalString(payload['title']),
         message: payload['message']?.toString(),
         widget: payload['widget'],
         dismissible: Utils.optionalBool(payload['options']?['dismissible']),

@@ -2137,7 +2137,7 @@
         },
         {
           "properties": {
-            "walletConnect": {
+            "connectWallet": {
               "type": "object",
               "description": "Allow users connect to crypto wallet",
               "required": ["wcProjectId", "appMetaData"],
@@ -2574,6 +2574,29 @@
             "ChartJs": {
               "$ref": "#/$defs/ChartJs-payload",
               "description": "Example from Kitchen Sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/5d7b84de-3bbd-456e-aeea-98e2c9f4c3c7"
+            }
+          }
+        },
+        {
+          "properties": {
+            "Conditional": {
+              "type": "object",
+              "description": "Render widget based on condition.",
+              "required": [ "conditions" ],
+              "properties": {
+                "conditions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "if": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [ "if" ]
+                  }
+                }
+              }
             }
           }
         }
