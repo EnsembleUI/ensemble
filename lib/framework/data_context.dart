@@ -611,6 +611,7 @@ class UserDateTime with Invokable {
 
 class APIResponse with Invokable {
   Response? _response;
+  double? _progress;
   APIResponse({Response? response}) {
     if (response != null) {
       setAPIResponse(response);
@@ -621,13 +622,21 @@ class APIResponse with Invokable {
     _response = response;
   }
 
+  setProgress(double progress) {
+    _progress = progress;
+  }
+
   Response? getAPIResponse() {
     return _response;
   }
 
   @override
   Map<String, Function> getters() {
-    return {'body': () => _response?.body, 'headers': () => _response?.headers};
+    return {
+      'body': () => _response?.body,
+      'headers': () => _response?.headers,
+      'progress': () => _progress,
+    };
   }
 
   @override
@@ -733,8 +742,7 @@ class File {
   }
 
   MediaType getMediaType() {
-    if (path == null) return MediaType.unknown;
-    String? mimeType = lookupMimeType(path!);
+    String? mimeType = lookupMimeType(path ?? '', headerBytes: bytes);
     if (mimeType == null) {
       return MediaType.unknown;
     }
