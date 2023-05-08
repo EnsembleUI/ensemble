@@ -42,6 +42,8 @@ class Maps extends StatefulWidget
           .includeCurrentLocationInAutoZoom = Utils.optionalBool(value),
       'mapType': (value) => _controller.mapType = value,
       'markers': (markerData) => _controller.markerItemTemplate = markerData,
+      'scrollableOverlay': (value) =>
+          _controller.scrollableOverlay = Utils.optionalBool(value)
     };
   }
 
@@ -63,6 +65,8 @@ class MyController extends WidgetController with LocationCapability {
 
   final defaultCameraLatLng = const LatLng(37.773972, -122.431297);
   dynamic initialCameraPosition;
+
+  bool? scrollableOverlay;
 
   bool? autoZoom;
   int? autoZoomPadding;
