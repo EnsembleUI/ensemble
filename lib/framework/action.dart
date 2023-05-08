@@ -383,7 +383,11 @@ class FileUploadAction extends EnsembleAction {
     required this.fieldName,
     this.maxFileSize,
     this.overMaxFileSizeMessage,
+    required this.isBackgroundTask,
     required this.files,
+    this.networkType,
+    this.requiresBatteryNotLow,
+    required this.showNotification,
   }) : super(inputs: inputs);
 
   String? id;
@@ -394,6 +398,10 @@ class FileUploadAction extends EnsembleAction {
   int? maxFileSize;
   String? overMaxFileSizeMessage;
   String files;
+  bool isBackgroundTask;
+  String? networkType;
+  bool? requiresBatteryNotLow;
+  bool showNotification;
 
   factory FileUploadAction.fromYaml({YamlMap? payload}) {
     if (payload == null || payload['uploadApi'] == null) {
@@ -410,10 +418,17 @@ class FileUploadAction extends EnsembleAction {
       uploadApi: payload['uploadApi'],
       inputs: Utils.getMap(payload['inputs']),
       fieldName: Utils.getString(payload['fieldName'], fallback: 'files'),
-      maxFileSize: Utils.optionalInt(payload['maxFileSize']),
+      maxFileSize: Utils.optionalInt(payload['options']?['maxFileSize']),
       overMaxFileSizeMessage:
-          Utils.optionalString(payload['overMaxFileSizeMessage']),
+          Utils.optionalString(payload['options']?['overMaxFileSizeMessage']),
       files: payload['files'],
+      isBackgroundTask:
+          Utils.getBool(payload['options']?['backgroundTask'], fallback: false),
+      networkType: Utils.optionalString(payload['options']?['networkType']),
+      requiresBatteryNotLow:
+          Utils.optionalBool(payload['options']?['requiresBatteryNotLow']),
+      showNotification: Utils.getBool(payload['options']?['showNotification'],
+          fallback: false),
     );
   }
 }
@@ -559,6 +574,8 @@ abstract class EnsembleAction {
           recurringDistanceFilter: Utils.optionalInt(
               payload?['options']?['recurringDistanceFilter'],
               min: 50));
+    } else if (actionType == ActionType.pickFiles) {
+      return FilePickerAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.uploadFiles) {
       return FileUploadAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.pickFiles) {
