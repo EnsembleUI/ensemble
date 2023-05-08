@@ -2,6 +2,7 @@
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/widget/camera.dart';
 import 'package:flutter/material.dart';
 
@@ -21,6 +22,7 @@ const optionMappings = {
   'galleryPickerIcon': 'galleryPickerIcon',
   'focusIcon': 'focusIcon',
   'maxCountMessage': 'maxCountMessage',
+  'autoCaptureInterval': 'autoCaptureInterval',
 };
 
 const angleAssistOptions = {
@@ -37,7 +39,26 @@ const speedAssistOptions = {
 class CameraManager {
   Future<void> openCamera(BuildContext context, ShowCameraAction cameraAction,
       ScopeManager? scopeManager) async {
-    Camera camera = Camera();
+    Camera camera = Camera(
+      onCapture: cameraAction.onCapture == null
+          ? null
+          : () {
+              ScreenController()
+                  .executeAction(context, cameraAction.onCapture!);
+            },
+      onComplete: cameraAction.onComplete == null
+          ? null
+          : () {
+              ScreenController()
+                  .executeAction(context, cameraAction.onComplete!);
+            },
+      onClose: cameraAction.onClose == null
+          ? null
+          : () {
+              ScreenController().executeAction(context, cameraAction.onClose!);
+            },
+    );
+
     if (cameraAction.id != null) {
       final previousAction =
           scopeManager?.dataContext.getContextById(cameraAction.id!) as Camera?;
@@ -46,10 +67,6 @@ class CameraManager {
     }
 
     if (cameraAction.options != null) {
-      cameraAction.onComplete == null
-          ? () {}
-          : camera.setProperty('onComplete', cameraAction.onComplete);
-
       if (cameraAction.options!['assistAngle'] != null) {
         camera.setProperty('assistAngle', true);
         for (var option in cameraAction.options!['assistAngle'].keys) {
