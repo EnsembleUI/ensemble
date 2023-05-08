@@ -73,27 +73,25 @@ class LocalDefinitionProvider extends DefinitionProvider {
 
   @override
   Future<AppBundle> getAppBundle({bool? bypassCache = false}) async {
-    YamlMap? theme;
-    try {
-      var value = await rootBundle.loadString('${path}theme.ensemble');
-      theme = await loadYaml(value);
-    } catch (error) {
-      // ignore error
+    YamlMap? config = await _readFile('config.ensemble');
+    if (config != null) {
+      appConfig = UserAppConfig(
+          baseUrl: config['app']?['baseUrl'],
+          useBrowserUrl: Utils.optionalBool(config['app']?['useBrowserUrl']));
     }
+    return AppBundle(
+        theme: await _readFile('theme.ensemble'),
+        resources: await _readFile('resources.ensemble'));
+  }
 
-    YamlMap? config;
+  Future<YamlMap?> _readFile(String file) async {
     try {
-      var value = await rootBundle.loadString('${path}config.ensemble');
-      config = await loadYaml(value);
-      if (config != null) {
-        appConfig = UserAppConfig(
-            baseUrl: config['app']?['baseUrl'],
-            useBrowserUrl: Utils.optionalBool(config['app']?['useBrowserUrl']));
-      }
+      var value = await rootBundle.loadString(path + file);
+      return loadYaml(value);
     } catch (error) {
       // ignore error
     }
-    return AppBundle(theme: theme);
+    return null;
   }
 
   @override
@@ -147,16 +145,21 @@ class RemoteDefinitionProvider extends DefinitionProvider {
 
   @override
   Future<AppBundle> getAppBundle({bool? bypassCache = false}) async {
-    // theme config is optional
-    Completer<AppBundle> completer = Completer();
-    http.Response response = await http.get(Uri.parse('${path}theme.config'));
-    if (response.statusCode == 200) {
-      AppBundle appBundle = AppBundle(theme: await loadYaml(response.body));
-      completer.complete(appBundle);
-    } else {
-      completer.complete(AppBundle());
+    return AppBundle(
+        theme: await _readFile('theme.ensemble'),
+        resources: await _readFile('resources.ensemble'));
+  }
+
+  Future<YamlMap?> _readFile(String file) async {
+    try {
+      http.Response response = await http.get(Uri.parse(path + file));
+      if (response.statusCode == 200) {
+        return loadYaml(response.body);
+      }
+    } catch (error) {
+      // ignore
     }
-    return completer.future;
+    return null;
   }
 
   // TODO: to be implemented

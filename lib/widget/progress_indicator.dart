@@ -72,6 +72,7 @@ class ProgressController extends WidgetController {
 class ProgressState extends WidgetState<EnsembleProgressIndicator> {
   static const interval = 100;
   double _value = 0;
+  Timer? countdownTimer;
 
   bool hasCountdown() {
     return widget._controller.countdown != null &&
@@ -84,7 +85,7 @@ class ProgressState extends WidgetState<EnsembleProgressIndicator> {
 
     if (hasCountdown()) {
       // status timer that waits up every 500ms and update progress
-      final Timer timer =
+      countdownTimer =
           Timer.periodic(const Duration(milliseconds: interval), (timer) {
         setState(() {
           _value = min(1,
@@ -97,7 +98,7 @@ class ProgressState extends WidgetState<EnsembleProgressIndicator> {
 
       // main timer that stops upon countdown
       Timer(Duration(seconds: widget._controller.countdown!), () {
-        timer.cancel();
+        countdownTimer?.cancel();
         setState(() {
           _value = 1;
         });
@@ -108,6 +109,12 @@ class ProgressState extends WidgetState<EnsembleProgressIndicator> {
         }
       });
     }
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    countdownTimer?.cancel();
   }
 
   @override

@@ -78,7 +78,7 @@ class DesignSystem {
 
   static Color borderColor = const Color(0xFFD7D5DF);
 
-  static Color disableColor = const Color(0xFFF3F2F5);
+  static Color disableColor = const Color(0xFF878199);
 
   static Color successColor = const Color(0xFF009966);
   static Color warningColor = const Color(0xFFFFBE0A);

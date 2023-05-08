@@ -125,7 +125,9 @@ class ButtonState extends WidgetState<Button> {
     if (isOutlineButton) {
       rtn = BoxWrapper(
         boxController: widget.controller,
-        widget: OutlinedButton(
+        ignoresPadding: true,
+        ignoresMargin: true,
+        widget: TextButton(
             onPressed: isEnabled() ? () => onPressed(context) : null,
             style: getButtonStyle(context, isOutlineButton),
             child: labelLayout),
@@ -133,6 +135,8 @@ class ButtonState extends WidgetState<Button> {
     } else {
       rtn = BoxWrapper(
         boxController: widget.controller,
+        ignoresPadding: true,
+        ignoresMargin: true,
         widget: FilledButton(
             onPressed: isEnabled() ? () => onPressed(context) : null,
             style: getButtonStyle(context, isOutlineButton),
@@ -175,6 +179,12 @@ class ButtonState extends WidgetState<Button> {
           side: widget._controller.borderGradient != null
               ? BorderSide.none
               : borderSide);
+    } else {
+      if (isOutlineButton) {
+        border = const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.zero),
+        );
+      }
     }
 
     // we need to get the button shape from borderRadius, borderColor & borderThickness
@@ -184,7 +194,9 @@ class ButtonState extends WidgetState<Button> {
     return ThemeManager().getButtonStyle(
         isOutline: isOutlineButton,
         color: widget._controller.color,
-        backgroundColor: widget._controller.backgroundColor,
+        backgroundColor: widget._controller.backgroundGradient == null
+            ? widget._controller.backgroundColor
+            : Colors.transparent,
         border: border,
         buttonHeight: widget._controller.buttonHeight?.toDouble(),
         buttonWidth: widget._controller.buttonWidth?.toDouble(),

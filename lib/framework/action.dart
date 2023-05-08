@@ -44,10 +44,14 @@ class ShowCameraAction extends EnsembleAction {
     this.options,
     this.id,
     this.onComplete,
+    this.onClose,
+    this.onCapture,
   }) : super(initiator: initiator);
   final Map<String, dynamic>? options;
   String? id;
   EnsembleAction? onComplete;
+  EnsembleAction? onClose;
+  EnsembleAction? onCapture;
 
   factory ShowCameraAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
     return ShowCameraAction(
@@ -55,6 +59,8 @@ class ShowCameraAction extends EnsembleAction {
       options: Utils.getMap(payload?['options']),
       id: Utils.optionalString(payload?['id']),
       onComplete: EnsembleAction.fromYaml(payload?['onComplete']),
+      onClose: EnsembleAction.fromYaml(payload?['onClose']),
+      onCapture: EnsembleAction.fromYaml(payload?['onCapture']),
     );
   }
 }

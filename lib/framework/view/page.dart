@@ -92,9 +92,22 @@ class PageState extends State<Page> {
       });
     }
 
-    buildRootWidget();
+    // build the root widget
+    rootWidget = _scopeManager.buildRootWidget(
+        widget._pageModel.rootWidgetModel, executeGlobalCode);
 
     super.initState();
+  }
+
+  /// This is a callback because we need the widget to be first instantiate
+  /// since the global code block may reference them. Once the global code
+  /// block runs, only then we can continue the next steps for the widget
+  /// creation process (propagate data scopes and execute bindings)
+  void executeGlobalCode() {
+    if (widget._pageModel.globalCode != null) {
+      _scopeManager.dataContext.evalCode(
+          widget._pageModel.globalCode!, widget._pageModel.globalCodeSpan!);
+    }
   }
 
   /// create AppBar that is part of a CustomScrollView
@@ -567,16 +580,6 @@ class PageState extends State<Page> {
     _scopeManager.dispose();
     //_scopeManager.debugListenerMap();
     super.dispose();
-  }
-
-  void buildRootWidget() {
-    rootWidget = _scopeManager.buildWidget(widget._pageModel.rootWidgetModel);
-
-    // execute Global Code
-    if (widget._pageModel.globalCode != null) {
-      _scopeManager.dataContext.evalCode(
-          widget._pageModel.globalCode!, widget._pageModel.globalCodeSpan!);
-    }
   }
 }
 

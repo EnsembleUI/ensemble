@@ -58,6 +58,13 @@ extension PageTransitionTypeX on PageTransitionType {
   }
 }
 
+class EnsemblePageRouteNoTransitionBuilder extends PageRouteBuilder {
+  EnsemblePageRouteNoTransitionBuilder({required Widget screenWidget})
+      : super(
+          pageBuilder: (context, animation, secondaryAnimation) => screenWidget,
+        );
+}
+
 class EnsemblePageRouteBuilder<T> extends PageRouteBuilder<T> {
   final Widget child;
   final PageTransitionsBuilder matchingBuilder;
