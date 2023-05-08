@@ -4,7 +4,6 @@ import 'dart:math' as math;
 import 'package:camera/camera.dart';
 import 'package:collection/collection.dart' show IterableExtension;
 import 'package:ensemble/framework/data_context.dart';
-import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/icon.dart' as iconframework;
 import 'package:ensemble/framework/widget/toast.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -21,7 +20,6 @@ import 'package:video_player/video_player.dart';
 
 import '../framework/action.dart';
 import '../framework/model.dart';
-import '../screen_controller.dart';
 
 enum CameraMode { photo, video, both }
 
@@ -32,7 +30,14 @@ class Camera extends StatefulWidget
   static const type = 'Camera';
   Camera({
     Key? key,
+    this.onCapture,
+    this.onClose,
+    this.onComplete,
   }) : super(key: key);
+
+  final Function? onCapture;
+  final Function? onClose;
+  final Function? onComplete;
 
   final MyCameraController _controller = MyCameraController();
 
@@ -44,7 +49,14 @@ class Camera extends StatefulWidget
 
   @override
   Map<String, Function> getters() {
-    return {'files': () => _controller.files.map((e) => e.toJson()).toList()};
+    return {
+      'files': () => _controller.files.map((e) => e.toJson()).toList(),
+      'currentFile': () => _controller.currentFile?.toJson(),
+      'latitude': () => _controller.position?.latitude,
+      'longitude': () => _controller.position?.longitude,
+      'speed': () => _controller.position?.speed,
+      'angle': () => _controller.angle,
+    };
   }
 
   @override
@@ -81,12 +93,10 @@ class Camera extends StatefulWidget
       'cameraRotateIcon': (value) =>
           _controller.cameraRotateIcon = Utils.getIcon(value),
       'focusIcon': (value) => _controller.focusIcon = Utils.getIcon(value),
-      'onComplete': (value) => _controller.onComplete =
-          EnsembleAction.fromYaml(value, initiator: this),
       'assistAngle': (value) =>
-          _controller.assistAngle = Utils.optionalBool(value),
+          _controller.assistAngle = Utils.getBool(value, fallback: false),
       'assistSpeed': (value) =>
-          _controller.assistSpeed = Utils.optionalBool(value),
+          _controller.assistSpeed = Utils.getBool(value, fallback: false),
       'maxSpeed': (value) =>
           _controller.maxSpeed = Utils.getDouble(value, fallback: 30),
       'maxAngle': (value) =>
@@ -96,7 +106,9 @@ class Camera extends StatefulWidget
       'assistAngleMessage': (value) =>
           _controller.assistAngleMessage = Utils.optionalString(value),
       'assistSpeedMessage': (value) =>
-          _controller.assistSpeedMessage = Utils.optionalString(value)
+          _controller.assistSpeedMessage = Utils.optionalString(value),
+      'autoCaptureInterval': (value) =>
+          _controller.autoCaptureInterval = Utils.getInt(value, fallback: -1),
     };
   }
 }
@@ -119,16 +131,22 @@ class MyCameraController extends WidgetController {
   String? nextButtonLabel;
   String? accessButtonLabel;
   String? galleryButtonLabel;
-  bool? assistAngle;
-  bool? assistSpeed;
+  bool assistAngle = false;
+  bool assistSpeed = false;
   String? assistAngleMessage;
   String? assistSpeedMessage;
   IconModel? imagePickerIcon;
   IconModel? cameraRotateIcon;
   IconModel? focusIcon;
-  EnsembleAction? onComplete;
+
+  int autoCaptureInterval = -1;
+  ValueNotifier<int> intervalCountdown = ValueNotifier(-1);
+  bool intervalPause = true;
 
   List<File> files = [];
+  File? currentFile;
+  Position? position;
+  double? angle;
 
   void initCameraOption(String? data) {
     if (data == null) return;
@@ -194,12 +212,16 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
 
     initCameras();
 
-    if (widget._controller.assistAngle ?? false) {
+    if (widget._controller.assistAngle) {
       initAccelerometerSub();
     }
 
-    if (widget._controller.assistSpeed ?? false) {
+    if (widget._controller.assistSpeed) {
       initGeoLocator();
+    }
+
+    if (widget._controller.autoCaptureInterval > 0) {
+      initAutoCapture();
     }
 
     initPageController();
@@ -222,7 +244,7 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
   void initAccelerometerSub() {
     accelerometerSub = accelerometerEvents.listen((AccelerometerEvent event) {
       double radians = math.atan2(event.y, event.z);
-      phoneAngle.value = radians * 180 / math.pi;
+      widget._controller.angle = phoneAngle.value = radians * 180 / math.pi;
     });
   }
 
@@ -230,6 +252,34 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
     setCameraMode();
     pageController =
         PageController(viewportFraction: 0.25, initialPage: currentModeIndex);
+  }
+
+  void initAutoCapture() {
+    widget._controller.intervalCountdown.value =
+        widget._controller.autoCaptureInterval;
+    widget._controller.intervalPause = false;
+    setState(() {});
+    Timer.periodic(
+      const Duration(seconds: 1),
+      (timer) async {
+        if (!mounted || !canCapture()) {
+          timer.cancel();
+          widget._controller.intervalPause = true;
+          if (mounted) setState(() {});
+          return;
+        }
+        if (widget._controller.intervalPause) return;
+        if (widget._controller.intervalCountdown.value > 0) {
+          widget._controller.intervalCountdown.value--;
+        } else {
+          if (!showPreviewPage) {
+            capture();
+          }
+          widget._controller.intervalCountdown.value =
+              widget._controller.autoCaptureInterval;
+        }
+      },
+    );
   }
 
   Future<void> initGeoLocator() async {
@@ -268,6 +318,7 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
       final updatedPosition = await locator.getCurrentPosition();
       final _velocity = (position.speed + updatedPosition.speed) / 2;
       phoneSpeed.value = _velocity * 18 / 5;
+      widget._controller.position = position;
     });
   }
 
@@ -440,8 +491,8 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
           builder: (context, state, child) {
             if (state == FocusState.success) {
               return Positioned(
-                left: _offset!.dx - 24,
-                top: _offset!.dy - 24,
+                left: _offset!.dx,
+                top: _offset!.dy,
                 child: widget._controller.focusIcon != null
                     ? iconframework.Icon.fromModel(
                         widget._controller.focusIcon!)
@@ -449,6 +500,30 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
               );
             }
             return const SizedBox.shrink();
+          },
+        ),
+        ValueListenableBuilder<int>(
+          valueListenable: widget._controller.intervalCountdown,
+          builder: (context, value, child) {
+            if (value <= 0 || widget._controller.intervalPause) {
+              return const SizedBox.shrink();
+            }
+            return Center(
+                child: Text(
+              value.toString(),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 24,
+                color: Colors.white,
+                shadows: [
+                  Shadow(
+                    offset: Offset(2.0, 2.0),
+                    blurRadius: 3.0,
+                    color: Colors.black,
+                  ),
+                ],
+              ),
+            ));
           },
         ),
         if (modes.elementAt(currentModeIndex) == CameraMode.photo)
@@ -565,11 +640,7 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
                   children: [
                     GestureDetector(
                       onTap: () {
-                        if (widget._controller.onComplete != null) {
-                          ScreenController().executeAction(
-                              context, widget._controller.onComplete!,
-                              event: EnsembleEvent(widget));
-                        }
+                        widget.onComplete?.call();
                         Navigator.pop(context, widget._controller.files);
                       },
                       child: Container(
@@ -748,41 +819,7 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
                       )
                     : const SizedBox.shrink(),
                 InkWell(
-                  onTap: () async {
-                    if (widget._controller.maxCount != null &&
-                        (widget._controller.files.length + 1) >
-                            widget._controller.maxCount!) {
-                      final errorMessage = widget._controller.maxCountMessage ??
-                          Utils.translateWithFallback(
-                              'ensemble.input.maxCountMessage',
-                              'Maximum ${widget._controller.maxCount} files can be selected');
-                      ToastController().showToast(
-                          context,
-                          ShowToastAction(
-                              type: ToastType.error,
-                              message: errorMessage,
-                              position: 'top',
-                              dismissible: true,
-                              duration: 3),
-                          null);
-                      return;
-                    }
-                    if (modes[currentModeIndex] == CameraMode.video) {
-                      if (isRecording) {
-                        File? rawVideo = await stopVideoRecording();
-                        if (rawVideo == null) return;
-                        widget._controller.files.insert(0, rawVideo);
-                      } else {
-                        await startVideoRecording();
-                      }
-                    } else {
-                      File? rawImage = await takePicture();
-                      if (rawImage == null) return;
-
-                      widget._controller.files.insert(0, rawImage);
-                      setState(() {});
-                    }
-                  },
+                  onTap: capture,
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
@@ -845,6 +882,47 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
         ),
       ),
     );
+  }
+
+  void capture() async {
+    if (!canCapture()) return;
+    File? file;
+    if (modes[currentModeIndex] == CameraMode.video) {
+      if (isRecording) {
+        file = await stopVideoRecording();
+      } else {
+        await startVideoRecording();
+      }
+    } else {
+      file = await takePicture();
+    }
+    if (file == null) return;
+    widget._controller.files.insert(0, file);
+    widget._controller.currentFile = file;
+    setState(() {});
+
+    widget.onCapture?.call();
+  }
+
+  bool canCapture() {
+    if (!(widget._controller.maxCount != null &&
+        (widget._controller.files.length + 1) > widget._controller.maxCount!)) {
+      return true;
+    }
+
+    final errorMessage = widget._controller.maxCountMessage ??
+        Utils.translateWithFallback('ensemble.input.maxCountMessage',
+            'Maximum ${widget._controller.maxCount} files can be selected');
+    ToastController().showToast(
+        context,
+        ShowToastAction(
+            type: ToastType.error,
+            message: errorMessage,
+            position: 'top',
+            dismissible: true,
+            duration: 3),
+        null);
+    return false;
   }
 
   Widget silderView() {
@@ -919,36 +997,57 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
             backgroundColor: Colors.white.withOpacity(0.1),
             onPressed: () {
               widget._controller.cameraController?.pausePreview();
-              widget._controller.files.clear();
+
+              widget.onClose?.call();
               Navigator.pop(context, widget._controller.files);
             },
           ),
           isRecording ? timerWidget(seconds) : const SizedBox(),
-          widget._controller.allowFlashControl
-              ? SizedBox(
-                  height: 52,
-                  width: 52,
-                  child: PageView.builder(
-                    scrollDirection: Axis.vertical,
-                    physics: const NeverScrollableScrollPhysics(),
-                    controller: _flashPageController,
-                    itemCount: flashIcons.length,
-                    itemBuilder: (context, index) {
-                      return IconButton(
-                          onPressed: () {
-                            final page = (index + 1) % flashIcons.length;
-                            _flashPageController.animateToPage(page,
-                                duration: const Duration(milliseconds: 400),
-                                curve: Curves.ease);
-                            widget._controller.cameraController
-                                ?.setFlashMode(flashModes.elementAt(page));
-                          },
-                          icon: Icon(flashIcons.elementAt(index)),
-                          color: Colors.white);
-                    },
-                  ),
-                )
-              : SizedBox(width: iconSize)
+          Row(
+            children: [
+              widget._controller.allowFlashControl
+                  ? SizedBox(
+                      height: 52,
+                      width: 52,
+                      child: PageView.builder(
+                        scrollDirection: Axis.vertical,
+                        physics: const NeverScrollableScrollPhysics(),
+                        controller: _flashPageController,
+                        itemCount: flashIcons.length,
+                        itemBuilder: (context, index) {
+                          return IconButton(
+                              onPressed: () {
+                                final page = (index + 1) % flashIcons.length;
+                                _flashPageController.animateToPage(page,
+                                    duration: const Duration(milliseconds: 400),
+                                    curve: Curves.ease);
+                                widget._controller.cameraController
+                                    ?.setFlashMode(flashModes.elementAt(page));
+                              },
+                              icon: Icon(flashIcons.elementAt(index)),
+                              color: Colors.white);
+                        },
+                      ),
+                    )
+                  : SizedBox(width: iconSize),
+              widget._controller.autoCaptureInterval != -1
+                  ? IconButton(
+                      onPressed: () {
+                        setState(() {
+                          widget._controller.intervalPause =
+                              !widget._controller.intervalPause;
+                        });
+                      },
+                      icon: Icon(
+                        widget._controller.intervalPause
+                            ? Icons.timer_off
+                            : Icons.timer,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ],
+          ),
         ],
       ),
     );

@@ -510,7 +510,11 @@ class ScreenController {
   }) async {
     List<File>? selectedFiles;
 
-    final rawFiles = dataContext.eval(action.files);
+    var rawFiles = dataContext.eval(action.files);
+
+    if (rawFiles is Map && rawFiles.containsKey('path')) {
+      rawFiles = [rawFiles];
+    }
 
     if (rawFiles is! List<dynamic>) {
       if (action.onError != null) executeAction(context, action.onError!);
@@ -851,6 +855,9 @@ class ScreenController {
             defaultTransitionOptions[_pageType]?['duration'],
         fallback: 250);
 
+    const enableTransition =
+        bool.fromEnvironment('transitions', defaultValue: true);
+
     PageRouteBuilder route = getScreenBuilder(
       screenWidget,
       pageType: pageType,
@@ -904,7 +911,6 @@ class ScreenController {
                                 action.recurringDistanceFilter ?? 1000))
                     .listen((Position? location) {
               if (location != null) {
-                log("on location updates");
                 // update last location. TODO: consolidate this
                 Device().updateLastLocation(location);
 
@@ -913,23 +919,22 @@ class ScreenController {
               } else if (action.onError != null) {
                 DataContext localizedContext = dataContext.clone();
                 localizedContext.addDataContextById('reason', 'unknown');
-                _executeAction(context, localizedContext, action.onError!, null,
-                    scopeManager);
+                _executeAction(context, localizedContext, action.onError!,
+                    scopeManager.pageData.apiMap, scopeManager);
               }
             });
             scopeManager.addLocationListener(streamSubscription);
           }
           // one-time get location
           else {
-            log("get location");
             _onLocationReceived(scopeManager, dataContext, context,
                 action.onLocationReceived!, await Device().simplyGetLocation());
           }
         } else if (action.onError != null) {
           DataContext localizedContext = dataContext.clone();
           localizedContext.addDataContextById('reason', status.name);
-          _executeAction(
-              context, localizedContext, action.onError!, null, scopeManager);
+          _executeAction(context, localizedContext, action.onError!,
+              scopeManager.pageData.apiMap, scopeManager);
         }
       });
     }
@@ -944,8 +949,8 @@ class ScreenController {
     DataContext localizedContext = dataContext.clone();
     localizedContext.addDataContextById('latitude', location.latitude);
     localizedContext.addDataContextById('longitude', location.longitude);
-    _executeAction(
-        context, localizedContext, onLocationReceived, null, scopeManager);
+    _executeAction(context, localizedContext, onLocationReceived,
+        scopeManager.pageData.apiMap, scopeManager);
   }
 
   /// return a wrapper for the screen widget
@@ -957,6 +962,13 @@ class ScreenController {
     Alignment? alignment,
     int? duration,
   }) {
+    const enableTransition =
+        bool.fromEnvironment('transitions', defaultValue: true);
+
+    if (!enableTransition) {
+      return EnsemblePageRouteNoTransitionBuilder(screenWidget: screenWidget);
+    }
+
     if (pageType == PageType.modal) {
       return EnsemblePageRouteBuilder(
         child: ModalScreen(screenWidget: screenWidget),

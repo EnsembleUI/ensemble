@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:developer';
-import 'dart:ui';
+import 'dart:math' as math;
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/i18n_loader.dart';
@@ -224,9 +224,28 @@ class AppModel {
       log("Cache missed for $screenId");
     }
     if (content is YamlMap) {
+      // a bit hacky but OK for now. If widget is found, wrap it inside
+      // a proper screen syntax so we can preview it
+      if (content.keys.length == 1 && content['Widget'] != null) {
+        return _getWidgetAsScreen(content['Widget']);
+      }
       return content;
     }
     return null;
+  }
+
+  /// wrap a widget inside a screen so it can be displayed
+  YamlMap _getWidgetAsScreen(YamlMap widgetContent) {
+    // use random name so we don't accidentally collide with other names
+    String randomWidgetName = "Widget${math.Random().nextInt(100)}";
+
+    return YamlMap.wrap({
+      'View': {
+        'styles': {'useSafeArea': true},
+        'body': {randomWidgetName: null}
+      },
+      randomWidgetName: widgetContent
+    });
   }
 
   Future<YamlMap?> getScreenByName(String screenName) async {

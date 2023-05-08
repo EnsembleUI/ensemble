@@ -79,8 +79,9 @@ void main() {
           of: find.byType(EnsembleText), matching: find.text('First person: '));
       expect(person, findsOneWidget);
 
-      // after API loads
-      await tester.pump(const Duration(seconds: 2));
+      // fetch
+      await tester.tap(find.byType(Button));
+      await tester.pumpAndSettle();
 
       // data should reflected
       count = find.descendant(

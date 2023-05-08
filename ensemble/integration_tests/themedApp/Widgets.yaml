@@ -1,21 +1,22 @@
 View:
   styles:
     useSafeArea: true
-  Column:
-    children:
-      - TextInput:
-          value: original
+  body:
+    Column:
+      children:
+        - TextInput:
+            value: original
 
-      - TextInput:
-          value: updated style
-          styles:
-            borderRadius: 10
-            borderWidth: 2
-            borderColor: 0xFFCFA17B
-            focusedBorderColor: 0xFF86BAA6
+        - TextInput:
+            value: updated style
+            styles:
+              borderRadius: 10
+              borderWidth: 2
+              borderColor: 0xFFCFA17B
+              focusedBorderColor: 0xFF86BAA6
 
-      - TextInput:
-          value: box style
-          styles:
-            variant: box
-            borderRadius: 99
+        - TextInput:
+            value: box style
+            styles:
+              variant: box
+              borderRadius: 99

@@ -431,6 +431,7 @@ class Formatter with Invokable {
     return {
       'now': () => UserDateTime(),
       'prettyDate': (input) => InvokablePrimitive.prettyDate(input),
+      'prettyTime': (input) => InvokablePrimitive.prettyTime(input),
       'prettyDateTime': (input) => InvokablePrimitive.prettyDateTime(input),
       'prettyCurrency': (input) => InvokablePrimitive.prettyCurrency(input),
       'prettyDuration': (input) =>
