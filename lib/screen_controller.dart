@@ -10,8 +10,10 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
+import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/camera_manager.dart';
+import 'package:ensemble/framework/widget/modal_screen.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/framework/widget/toast.dart';
 import 'package:ensemble/layout/ensemble_page_route.dart';
@@ -171,12 +173,13 @@ class ScreenController {
           screenName: dataContext.eval(action.screenName),
           asModal: action.asModal,
           routeOption: routeOption,
-          pageArgs: nextArgs);
+          pageArgs: nextArgs,
+          transition: action.transition);
 
       // process onModalDismiss
       if (action is NavigateModalScreenAction &&
           action.onModalDismiss != null &&
-          routeBuilder is EnsembleModalPageRouteBuilder &&
+          routeBuilder.fullscreenDialog &&
           scopeManager != null) {
         // callback on modal pop
         routeBuilder.popped.whenComplete(() {
@@ -718,13 +721,38 @@ class ScreenController {
     bool? asModal,
     RouteOption? routeOption,
     Map<String, dynamic>? pageArgs,
+    Map<String, dynamic>? transition,
   }) {
     PageType pageType = asModal == true ? PageType.modal : PageType.regular;
 
     Widget screenWidget =
         getScreen(screenName: screenName, asModal: asModal, pageArgs: pageArgs);
 
-    PageRouteBuilder route = getScreenBuilder(screenWidget, pageType: pageType);
+    Map<String, dynamic>? defaultTransitionOptions =
+        Theme.of(context).extension<EnsembleThemeExtension>()?.transitions ??
+            {};
+
+    final _pageType = pageType == PageType.modal ? 'modal' : 'page';
+
+    final transitionType = PageTransitionTypeX.fromString(
+        transition?['type'] ?? defaultTransitionOptions[_pageType]?['type']);
+    final alignment = Utils.getAlignment(transition?['alignment'] ??
+        defaultTransitionOptions[_pageType]?['alignment']);
+    final duration = Utils.getInt(
+        transition?['duration'] ??
+            defaultTransitionOptions[_pageType]?['duration'],
+        fallback: 250);
+
+    const enableTransition =
+        bool.fromEnvironment('transitions', defaultValue: true);
+
+    PageRouteBuilder route = getScreenBuilder(
+      screenWidget,
+      pageType: pageType,
+      transitionType: transitionType,
+      alignment: alignment,
+      duration: duration,
+    );
     // push the new route and remove all existing screens. This is suitable for logging out.
     if (routeOption == RouteOption.clearAllScreens) {
       Navigator.pushAndRemoveUntil(context, route, (route) => false);
@@ -771,7 +799,6 @@ class ScreenController {
                                 action.recurringDistanceFilter ?? 1000))
                     .listen((Position? location) {
               if (location != null) {
-                log("on location updates");
                 // update last location. TODO: consolidate this
                 Device().updateLastLocation(location);
 
@@ -780,23 +807,22 @@ class ScreenController {
               } else if (action.onError != null) {
                 DataContext localizedContext = dataContext.clone();
                 localizedContext.addDataContextById('reason', 'unknown');
-                _executeAction(context, localizedContext, action.onError!, null,
-                    scopeManager);
+                _executeAction(context, localizedContext, action.onError!,
+                    scopeManager.pageData.apiMap, scopeManager);
               }
             });
             scopeManager.addLocationListener(streamSubscription);
           }
           // one-time get location
           else {
-            log("get location");
             _onLocationReceived(scopeManager, dataContext, context,
                 action.onLocationReceived!, await Device().simplyGetLocation());
           }
         } else if (action.onError != null) {
           DataContext localizedContext = dataContext.clone();
           localizedContext.addDataContextById('reason', status.name);
-          _executeAction(
-              context, localizedContext, action.onError!, null, scopeManager);
+          _executeAction(context, localizedContext, action.onError!,
+              scopeManager.pageData.apiMap, scopeManager);
         }
       });
     }
@@ -811,17 +837,44 @@ class ScreenController {
     DataContext localizedContext = dataContext.clone();
     localizedContext.addDataContextById('latitude', location.latitude);
     localizedContext.addDataContextById('longitude', location.longitude);
-    _executeAction(
-        context, localizedContext, onLocationReceived, null, scopeManager);
+    _executeAction(context, localizedContext, onLocationReceived,
+        scopeManager.pageData.apiMap, scopeManager);
   }
 
   /// return a wrapper for the screen widget
   /// with custom animation for different pageType
-  PageRouteBuilder getScreenBuilder(Widget screenWidget, {PageType? pageType}) {
+  PageRouteBuilder getScreenBuilder(
+    Widget screenWidget, {
+    PageType? pageType,
+    PageTransitionType? transitionType,
+    Alignment? alignment,
+    int? duration,
+  }) {
+    const enableTransition =
+        bool.fromEnvironment('transitions', defaultValue: true);
+
+    if (!enableTransition) {
+      return EnsemblePageRouteNoTransitionBuilder(screenWidget: screenWidget);
+    }
+
     if (pageType == PageType.modal) {
-      return EnsembleModalPageRouteBuilder(screenWidget: screenWidget);
+      return EnsemblePageRouteBuilder(
+        child: ModalScreen(screenWidget: screenWidget),
+        transitionType: transitionType ?? PageTransitionType.bottomToTop,
+        alignment: alignment ?? Alignment.center,
+        fullscreenDialog: true,
+        opaque: false,
+        duration: Duration(milliseconds: duration ?? 250),
+        barrierDismissible: true,
+        barrierColor: Colors.black54,
+      );
     } else {
-      return EnsemblePageRouteBuilder(screenWidget: screenWidget);
+      return EnsemblePageRouteBuilder(
+        child: screenWidget,
+        transitionType: transitionType ?? PageTransitionType.fade,
+        alignment: alignment ?? Alignment.center,
+        duration: Duration(milliseconds: duration ?? 250),
+      );
     }
   }
 }
