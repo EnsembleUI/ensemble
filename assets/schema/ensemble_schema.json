@@ -1639,6 +1639,14 @@
                   "$ref": "#/$defs/Action-payload",
                   "description": "Execute an Action after completing capturing media"
                 },
+                "onClose": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action on camera close"
+                },
+                "onCapture": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action on each capture"
+                },
                 "options": {
                   "type": "object",
                   "mode": {
@@ -1733,6 +1741,10 @@
                         "description": "Custom message to show when condition is hit."
                       }
                     }
+                  },
+                  "autoCaptureInterval": {
+                    "type": "integer",
+                    "description": "If set any number n, on each n interval camera will capture"
                   }
                 }
               }

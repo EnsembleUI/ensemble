@@ -507,7 +507,11 @@ class ScreenController {
     const defaultOverMaxFileSizeMessage =
         'The size of is which is larger than the maximum allowed';
 
-    final rawFiles = dataContext.eval(action.files);
+    var rawFiles = dataContext.eval(action.files);
+
+    if (rawFiles is Map && rawFiles.containsKey('path')) {
+      rawFiles = [rawFiles];
+    }
 
     if (rawFiles is! List<dynamic>) {
       if (action.onError != null) executeAction(context, action.onError!);
