@@ -169,6 +169,8 @@ class Response {
   dynamic body;
   Map<String, dynamic>? headers;
 
+  Response.fromBody(this.body, [this.headers]);
+
   Response(http.Response response) {
     try {
       body = json.decode(response.body);
