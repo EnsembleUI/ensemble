@@ -83,6 +83,7 @@ dependencies:
   walletconnect_dart: ^0.0.11
   http_parser: ^4.0.2
   shared_preferences: ^2.0.15
+  google_maps_flutter: ^2.2.6
 
 dev_dependencies:
   flutter_test:
