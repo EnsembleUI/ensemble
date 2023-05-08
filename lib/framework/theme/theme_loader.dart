@@ -44,6 +44,7 @@ mixin ThemeLoader {
       textTheme: _buildTextTheme(),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
+          textStyle: const TextStyle(fontSize: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8.0),
           ),
@@ -51,6 +52,7 @@ mixin ThemeLoader {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
+            textStyle: const TextStyle(fontSize: 16),
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8.0))),
       ),
@@ -139,16 +141,14 @@ mixin ThemeLoader {
   TextTheme _buildTextTheme([YamlMap? textTheme]) {
     final fontFamily = Utils.optionalString(textTheme?['fontFamily']);
 
-    late TextStyle defaultStyle;
+    TextStyle defaultStyle = const TextStyle(
+        fontFamily: 'Inter', fontWeight: FontWeight.w400, color: Colors.black);
     try {
-      if (fontFamily == null) throw Exception();
-      defaultStyle = GoogleFonts.getFont(fontFamily, color: Colors.black);
-    } catch (e) {
-      defaultStyle = const TextStyle(
-          fontFamily: 'Inter',
-          fontWeight: FontWeight.w400,
-          color: Colors.black);
-    }
+      if (fontFamily != null) {
+        defaultStyle =
+            GoogleFonts.getFont(fontFamily.trim(), color: Colors.black);
+      }
+    } catch (_) {}
 
     return ThemeData.light()
         .textTheme
@@ -332,6 +332,8 @@ mixin ThemeLoader {
       color: Utils.getColor(input['color']),
       border: border,
       padding: Utils.optionalInsets(input['padding']) ?? _buttonPadding,
+      fontSize: Utils.optionalInt(input['fontSize']),
+      fontWeight: Utils.getFontWeight(input['fontWeight']),
     );
   }
 
