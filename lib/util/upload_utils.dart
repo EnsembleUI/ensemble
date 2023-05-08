@@ -1,50 +1,47 @@
 import 'dart:async';
+
 import 'package:ensemble/framework/data_context.dart' hide MediaType;
 import 'package:ensemble/util/http_utils.dart';
+import 'package:ensemble/util/notification_utils.dart';
 import 'package:http/http.dart' as http;
-import 'package:mime/mime.dart';
-import 'package:yaml/yaml.dart';
 import 'package:http_parser/http_parser.dart';
+import 'package:mime/mime.dart';
 
 typedef ProgressCallback = void Function(double progress);
-typedef OnDoneCallback = void Function();
 typedef OnErrorCallback = void Function(dynamic error);
 
 class UploadUtils {
   static Future<Response?> uploadFiles({
-    required YamlMap api,
-    required DataContext eContext,
+    required String method,
+    required String url,
+    required Map<String, String> headers,
     required List<File> files,
     required String fieldName,
+    bool showNotification = false,
     ProgressCallback? progressCallback,
-    OnDoneCallback? onDone,
     OnErrorCallback? onError,
   }) async {
-    Map<String, String> headers = {};
-    if (api['headers'] is YamlMap) {
-      (api['headers'] as YamlMap).forEach((key, value) {
-        if (value != null) {
-          headers[key.toString()] = eContext.eval(value).toString();
-        }
-      });
-    }
+    final request = MultipartRequest(
+      method,
+      Uri.parse(url),
+      onProgress: progressCallback == null
+          ? null
+          : (int bytes, int total) {
+              final progress = bytes / total;
 
-    String url = HttpUtils.resolveUrl(eContext, api['uri'].toString().trim());
-    String method = api['method']?.toString().toUpperCase() ?? 'POST';
-
-    final request = MultipartRequest(method, Uri.parse(url),
-        onProgress: progressCallback == null
-            ? null
-            : (int bytes, int total) {
-                final progress = bytes / total;
-                progressCallback.call(progress);
-              });
+              if (showNotification) {
+                notificationUtils
+                    .showProgressNotification((progress * 100).toInt());
+              }
+              progressCallback.call(progress);
+            },
+    );
     request.headers.addAll(headers);
     final multipartFiles = <http.MultipartFile>[];
 
     for (var file in files) {
       http.MultipartFile? multipartFile;
-      final String mimeType =
+      final mimeType =
           lookupMimeType(file.path ?? '', headerBytes: file.bytes) ??
               'application/octet-stream';
       if (file.path != null) {
