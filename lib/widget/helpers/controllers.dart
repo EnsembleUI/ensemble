@@ -14,6 +14,7 @@ abstract class WidgetController extends Controller {
 
   // optional label/labelHint for use in Forms
   String? label;
+  String? description;
   String? labelHint;
 
   @override
@@ -30,6 +31,7 @@ abstract class WidgetController extends Controller {
       'expanded': (value) => expanded = Utils.getBool(value, fallback: false),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
       'label': (value) => label = Utils.optionalString(value),
+      'description': (value) => description = Utils.optionalString(value),
       'labelHint': (value) => labelHint = Utils.optionalString(value),
     };
   }

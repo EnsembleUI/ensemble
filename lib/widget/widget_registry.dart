@@ -10,6 +10,7 @@ import 'package:ensemble/layout/tab_bar.dart';
 import 'package:ensemble/layout/grid_view.dart';
 import 'package:ensemble/widget/conditional.dart';
 import 'package:ensemble/widget/fintech/finicityconnect/finicityconnect.dart';
+import 'package:ensemble/widget/maps/maps.dart';
 import 'package:ensemble/widget/text.dart';
 import 'package:ensemble/widget/toggle_button.dart';
 // import 'package:ensemble/widget/camera_widget.dart';
@@ -64,7 +65,8 @@ class WidgetRegistry {
         EnsembleWebView.type: () => EnsembleWebView(),
         QRCode.type: () => QRCode(),
         EnsembleProgressIndicator.type: () => EnsembleProgressIndicator(),
-        EnsembleMap.type: () => EnsembleMap(),
+        Maps.type: () => Maps(),
+        EnsembleMap.type: () => EnsembleMap(), // legacy maps
         Carousel.type: () => Carousel(),
         Video.type: () => Video(),
         EnsembleLottie.type: () => EnsembleLottie(),

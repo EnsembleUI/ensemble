@@ -31,7 +31,13 @@ class EnsembleImage extends StatefulWidget
 
   @override
   Map<String, Function> getters() {
-    return {};
+    return {
+      'source': () => _controller.source,
+      'fit': () => _controller.fit,
+      'resizedWidth': () => _controller.resizedWidth,
+      'resizedHeight': () => _controller.resizedHeight,
+      'placeholderColor': () => _controller.placeholderColor,
+    };
   }
 
   @override

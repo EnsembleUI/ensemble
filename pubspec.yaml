@@ -35,6 +35,7 @@ dependencies:
   flutter_rating_bar: ^4.0.0
   fl_chart: ^0.55.0
   signature: ^5.2.1
+  device_preview: ^1.1.0
 
   ensemble_ts_interpreter:
     git:
@@ -69,7 +70,7 @@ dependencies:
   cloud_firestore: 4.4.0
   geolocator: ^9.0.2
   get_storage: ^2.0.3
-  flutter_html: ^3.0.0-alpha.6    # flutter_html ^2.0.0 requires flutter_svg <1.0.0, conflicts with ours
+  flutter_html: ^3.0.0-alpha.6 # flutter_html ^2.0.0 requires flutter_svg <1.0.0, conflicts with ours
   camera: ^0.10.3
   image_picker: ^0.8.6
   webview_flutter: ^4.0.1
@@ -78,9 +79,14 @@ dependencies:
   sensors_plus: ^2.0.2
   mime: ^1.0.4
   flutter_cache_manager: ^3.3.0
+  google_fonts: ^4.0.3
   walletconnect_dart: ^0.0.11
   http_parser: ^4.0.2
   shared_preferences: ^2.0.15
+  google_maps_flutter: ^2.2.6
+  google_maps_flutter_web: ^0.4.0+8
+  workmanager: ^0.5.1
+  flutter_local_notifications: ^13.0.0
 
 dev_dependencies:
   flutter_test:
@@ -121,7 +127,18 @@ flutter:
         - asset: assets/fonts/Jost-VariableFont_wght.ttf
         - asset: assets/fonts/Jost-Italic-VariableFont_wght.ttf
           style: italic
-
+    
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/inter/Inter-Regular.ttf
+        - weight: 500
+          asset: assets/fonts/inter/Inter-Medium.ttf
+        - weight: 600
+          asset: assets/fonts/inter/Inter-SemiBold.ttf
+        - weight: 700
+          asset: assets/fonts/inter/Inter-Bold.ttf
+        - weight: 800
+          asset: assets/fonts/inter/Inter-ExtraBold.ttf
 
   # This section identifies your Flutter project as a module meant for
   # embedding in a native host app.  These identifiers should _not_ ordinarily
