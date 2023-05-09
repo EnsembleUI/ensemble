@@ -2857,6 +2857,10 @@
             }
           ]
         },
+        "onCameraMove": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Execute an Action when the map's bound has changed. The bound data is available using `event.data.bounds.<southwest/northeast>.<lat/lng>`."
+        },
         "markers": {
           "type": "object",
           "required": [
