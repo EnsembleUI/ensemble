@@ -1639,6 +1639,14 @@
                   "$ref": "#/$defs/Action-payload",
                   "description": "Execute an Action after completing capturing media"
                 },
+                "onClose": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action on camera close"
+                },
+                "onCapture": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action on each capture"
+                },
                 "options": {
                   "type": "object",
                   "mode": {
@@ -1733,6 +1741,10 @@
                         "description": "Custom message to show when condition is hit."
                       }
                     }
+                  },
+                  "autoCaptureInterval": {
+                    "type": "integer",
+                    "description": "If set any number n, on each n interval camera will capture"
                   }
                 }
               }
@@ -2071,6 +2083,42 @@
                 "files": {
                   "type": "string",
                   "description": "Binded files from sources like camera or picker. e.g ${filePicker.files}, ${camerId.files}"
+                },
+                "options": {
+                  "type": "object",
+                  "maxFileSize": {
+                    "type": "integer",
+                    "description": "File size that is allowed (default 100 mb), If multiple is allow then sum of all files"
+                  },
+                  "overMaxFileSizeMessage": {
+                    "type": "string",
+                    "description": "Error message to show when selected files size is above maxFileSize."
+                  },
+                  "backgroundTask": {
+                    "type": "boolean",
+                    "description": "If set true, uploading will be done in background."
+                  },
+                  "showNotification": {
+                    "type": "boolean",
+                    "description": "If set true, progress will be show in notification bar."
+                  },
+                  "networkType": {
+                    "type": "object",
+                    "description": "An enumeration of network types.",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "connected",
+                          "metered",
+                          "not_required",
+                          "not_roaming",
+                          "unmetered",
+                          "temporarily_unmetered"
+                        ]
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -2100,14 +2148,6 @@
                 "allowedExtensions": {
                   "type": "array",
                   "description": "Allow files with specific extension e.g jpg, png, pdf"
-                },
-                "maxFileSize": {
-                  "type": "integer",
-                  "description": "File size that is allowed (default 100 mb), If multiple is allow then sum of all files"
-                },
-                "overMaxFileSizeMessage": {
-                  "type": "string",
-                  "description": "Error message to show when selected files size is above maxFileSize."
                 }
               }
             }

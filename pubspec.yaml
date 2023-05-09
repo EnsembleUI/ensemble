@@ -85,6 +85,8 @@ dependencies:
   shared_preferences: ^2.0.15
   google_maps_flutter: ^2.2.6
   google_maps_flutter_web: ^0.4.0+8
+  workmanager: ^0.5.1
+  flutter_local_notifications: ^13.0.0
 
 dev_dependencies:
   flutter_test:

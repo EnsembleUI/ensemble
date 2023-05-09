@@ -54,6 +54,10 @@ class Carousel extends StatefulWidget
           _controller.indicatorHeight = Utils.optionalInt(h),
       'indicatorMargin': (value) =>
           _controller.indicatorMargin = Utils.getInsets(value),
+      'indicatorOffset': (value) =>
+          _controller.indicatorOffset = Utils.optionalDouble(value),
+      'indicatorColor': (value) =>
+          _controller.indicatorColor = Utils.getColor(value),
       'onItemChange': (action) => _controller.onItemChange =
           EnsembleAction.fromYaml(action, initiator: this),
       'indicatorWidget': (widget) => _controller.indicatorWidget = widget,
@@ -114,6 +118,8 @@ class MyController extends BoxController {
   int? indicatorWidth;
   int? indicatorHeight;
   EdgeInsets? indicatorMargin;
+  double? indicatorOffset;
+  Color? indicatorColor;
 
   // Custom Widget
   dynamic indicatorWidget;
@@ -196,16 +202,25 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
         indicators.add(Opacity(child: getIndicator(false), opacity: 0));
       }
 
+      final double indicatorOffset = widget._controller.indicatorOffset ?? 0;
+      final bool isBottom =
+          widget._controller.indicatorPosition != IndicatorPosition.top;
+
       List<Widget> children = [
         carousel,
-        Row(mainAxisAlignment: MainAxisAlignment.center, children: indicators)
+        Positioned(
+          top: !isBottom ? indicatorOffset : null,
+          bottom: isBottom ? indicatorOffset : null,
+          left: 0,
+          right: 0,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: indicators,
+          ),
+        )
       ];
 
-      carousel = Column(
-          children:
-              widget._controller.indicatorPosition == IndicatorPosition.top
-                  ? children.reversed.toList()
-                  : children);
+      carousel = Stack(clipBehavior: Clip.none, children: children);
     }
 
     return BoxWrapper(
@@ -331,6 +346,11 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
         widget._controller.indicatorWidth ??
         8;
 
+    final Color? indicatorColor = widget._controller.indicatorColor ??
+        (Theme.of(context).brightness == Brightness.dark
+            ? Colors.white
+            : Colors.black);
+
     return Container(
       width: w.toDouble(),
       height: h.toDouble(),
@@ -340,10 +360,7 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
         shape: widget._controller.indicatorType == IndicatorType.rectangle
             ? BoxShape.rectangle
             : BoxShape.circle,
-        color: (Theme.of(context).brightness == Brightness.dark
-                ? Colors.white
-                : Colors.black)
-            .withOpacity(selected ? 0.9 : 0.4),
+        color: indicatorColor?.withOpacity(selected ? 0.9 : 0.4),
       ),
     );
   }
