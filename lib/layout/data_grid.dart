@@ -1,8 +1,10 @@
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/widget_util.dart';
@@ -31,7 +33,9 @@ class DataGrid extends StatefulWidget
 
   @override
   Map<String, Function> getters() {
-    return {};
+    return {
+      'selectedItemIndex': () => _controller.selectedItemIndex,
+    };
   }
 
   @override
@@ -103,6 +107,8 @@ class DataGrid extends StatefulWidget
             verticalInside: map['verticalInside'] ?? BorderSide.none,
             borderRadius: map['borderRadius'] ?? BorderRadius.zero);
       },
+      'onItemTap': (funcDefinition) => _controller.onItemTap =
+          EnsembleAction.fromYaml(funcDefinition, initiator: this),
     };
   }
 }
@@ -183,6 +189,8 @@ class DataGridController extends WidgetController {
   TextController? dataTextController;
   double? dividerThickness;
   TableBorder border = const TableBorder();
+  EnsembleAction? onItemTap;
+  int selectedItemIndex = -1;
 }
 
 class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
@@ -235,8 +243,7 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
     List<EnsembleDataColumn> columns = List<EnsembleDataColumn>.generate(
         widget.cols.length,
         (index) => EnsembleDataColumn.fromYaml(
-            map: widget.cols[index] as Map,
-            context: scopeManager!.dataContext));
+            map: widget.cols[index] as Map, context: scopeManager.dataContext));
     List<Widget> children = [];
     if (widget._controller.children != null) {
       children.addAll(widget._controller.children!);
@@ -244,6 +251,7 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
     if (templatedChildren != null) {
       children.addAll(templatedChildren!);
     }
+
     List<DataRow> rows = [];
     for (Widget w in children) {
       DataScopeWidget? rowScope;
@@ -261,17 +269,19 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
       }
       List<DataCell> cells = [];
       if (child.children != null) {
-        for (Widget c in child.children!) {
+        child.children!.asMap().forEach((index, Widget c) {
           // for templated row only, wrap each cell widget in a DataScopeWidget, and simply use the row's datascope
           if (rowScope != null) {
             Widget scopeWidget =
                 DataScopeWidget(scopeManager: rowScope.scopeManager, child: c);
 
-            cells.add(DataCell(scopeWidget));
+            cells.add(DataCell(GestureDetector(child: scopeWidget),
+                onTap: () => _onItemTap(index)));
           } else {
-            cells.add(DataCell(c));
+            cells.add(DataCell(GestureDetector(child: c),
+                onTap: () => _onItemTap(index)));
           }
-        }
+        });
       }
       if (columns.length != cells.length) {
         if (kDebugMode) {
@@ -328,5 +338,12 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
             // Some widgets don't like that so we expose this so the widgets
             // can react accordingly
             child: RequiresChildWithIntrinsicDimension(child: grid)));
+  }
+
+  void _onItemTap(int index) {
+    if (widget.controller.onItemTap != null) {
+      widget._controller.selectedItemIndex = index;
+      ScreenController().executeAction(context, widget._controller.onItemTap!);
+    }
   }
 }
