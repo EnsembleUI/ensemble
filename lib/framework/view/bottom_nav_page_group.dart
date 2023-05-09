@@ -14,28 +14,30 @@ class FABBottomAppBarItem {
     required this.icon,
     required this.text,
     this.activeIcon,
-    this.isFab = false,
+    this.isFloating = false,
+    this.floatingMargin,
   });
 
   Icon icon;
   Icon? activeIcon;
   String text;
-  bool isFab;
+  bool isFloating;
+  double? floatingMargin;
 }
 
-enum FabLocation {
+enum FloatingAlignment {
   left,
   center,
   right,
   none,
 }
 
-extension EnumActionExtension on FabLocation {
+extension EnumActionExtension on FloatingAlignment {
   FloatingActionButtonLocation get location {
     switch (this) {
-      case FabLocation.left:
+      case FloatingAlignment.left:
         return FloatingActionButtonLocation.startDocked;
-      case FabLocation.right:
+      case FloatingAlignment.right:
         return FloatingActionButtonLocation.endDocked;
       default:
         return FloatingActionButtonLocation.centerDocked;
@@ -82,40 +84,48 @@ class BottomNavPageGroup extends StatefulWidget {
 class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
   late List<MenuItem> menuItems;
   Widget? fab;
-  FabLocation fabLocation = FabLocation.none;
+  FloatingAlignment floatingAlignment = FloatingAlignment.none;
+  double floatingMargin = 5.0;
 
   @override
   void initState() {
     super.initState();
-    menuItems =
-        widget.menu.menuItems.where((element) => element.fab != true).toList();
-    final fabItems =
-        widget.menu.menuItems.where((element) => element.fab == true).toList();
+    menuItems = widget.menu.menuItems
+        .where((element) => element.floating != true)
+        .toList();
+    final fabItems = widget.menu.menuItems
+        .where((element) => element.floating == true)
+        .toList();
     if (fabItems.length > 1) {
-      throw LanguageError('Fab Items must not be more than one');
+      throw LanguageError('There should be only one floating nav bar item');
     }
     if (fabItems.isNotEmpty) {
       // 'onTap': (funcDefinition) => _controller.onTap =
       //     EnsembleAction.fromYaml(funcDefinition, initiator: this),
-      final fabItem = fabItems.first;
-      final dynamic customIcon = _buildCustomIcon(fabItem);
-      fab = customIcon ??
-          FloatingActionButton(
-            child: ensemble.Icon(
-              fabItem.icon ?? '',
-              library: fabItem.iconLibrary,
-              color: Colors.white,
-            ),
-            onPressed: () {
-              // onFabTapped?.call();
-              final onTapAction = EnsembleAction.fromYaml(fabItem.onTap);
+      final fabMenuItem = fabItems.first;
+      floatingMargin = fabMenuItem.floatingMargin ?? 5.0;
+      final dynamic customIcon = _buildCustomIcon(fabMenuItem);
+      fab = Theme(
+        data: ThemeData(useMaterial3: false),
+        child: customIcon ??
+            FloatingActionButton(
+              child: ensemble.Icon(
+                fabMenuItem.icon ?? '',
+                library: fabMenuItem.iconLibrary,
+                color: Colors.white,
+              ),
+              onPressed: () {
+                // onFabTapped?.call();
+                final onTapAction = EnsembleAction.fromYaml(fabMenuItem.onTap);
 
-              // ScreenController().executeAction(context, onTapAction!,
-              //     event: EnsembleEvent(widget));
-            },
-          );
+                // ScreenController().executeAction(context, onTapAction!,
+                //     event: EnsembleEvent(widget));
+              },
+            ),
+      );
       if (fab != null) {
-        fabLocation = FabLocation.values.byName(fabItem.fabLocation);
+        floatingAlignment =
+            FloatingAlignment.values.byName(fabMenuItem.floatingAlignment);
       }
     }
   }
@@ -125,9 +135,11 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       bottomNavigationBar: _buildBottomNavBar(),
-      floatingActionButtonLocation:
-          fabLocation == FabLocation.none ? null : fabLocation.location,
-      floatingActionButton: fabLocation == FabLocation.none ? null : fab,
+      floatingActionButtonLocation: floatingAlignment == FloatingAlignment.none
+          ? null
+          : floatingAlignment.location,
+      floatingActionButton:
+          floatingAlignment == FloatingAlignment.none ? null : fab,
       body: PageGroupWidget(
         scopeManager: widget.scopeManager,
         child: widget.child,
@@ -135,7 +147,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
     );
   }
 
-  FABBottomAppBar? _buildBottomNavBar() {
+  EnsembleBottomAppBar? _buildBottomNavBar() {
     List<FABBottomAppBarItem> navItems = [];
 
     // final menu = widget.menu;
@@ -168,7 +180,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
       );
     }
 
-    return FABBottomAppBar(
+    return EnsembleBottomAppBar(
       backgroundColor: Utils.getColor(widget.menu.styles?['backgroundColor']) ??
           Colors.white,
       color: Colors.white60,
@@ -176,7 +188,8 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
       notchedShape: const CircularNotchedRectangle(),
       onTabSelected: widget.onTabSelected,
       items: navItems,
-      fabLocation: fabLocation,
+      floatingAlignment: floatingAlignment,
+      floatingMargin: floatingMargin,
     );
   }
 
@@ -194,40 +207,40 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
   }
 }
 
-class FABBottomAppBar extends StatefulWidget {
-  FABBottomAppBar({
+class EnsembleBottomAppBar extends StatefulWidget {
+  EnsembleBottomAppBar({
     super.key,
     required this.items,
-    this.height = 60.0,
+    this.height = 80.0,
     this.iconSize = 24.0,
     required this.backgroundColor,
     required this.color,
     required this.selectedColor,
     required this.notchedShape,
     required this.onTabSelected,
-    required this.fabLocation,
+    required this.floatingAlignment,
     this.onFabTapped,
-    this.fabMargin = 5.0,
+    this.floatingMargin = 5.0,
   }) {
-    assert(items.length == 2 || items.length == 4);
+    // assert(items.length == 2 || items.length == 4);
   }
   final List<FABBottomAppBarItem> items;
   final double height;
   final double iconSize;
-  final double fabMargin;
+  final double floatingMargin;
   final Color backgroundColor;
   final Color color;
   final Color selectedColor;
-  final FabLocation fabLocation;
+  final FloatingAlignment floatingAlignment;
   final NotchedShape notchedShape;
   final VoidCallback? onFabTapped;
   final ValueChanged<int> onTabSelected;
 
   @override
-  State<StatefulWidget> createState() => FABBottomAppBarState();
+  State<StatefulWidget> createState() => EnsembleBottomAppBarState();
 }
 
-class FABBottomAppBarState extends State<FABBottomAppBar> {
+class EnsembleBottomAppBarState extends State<EnsembleBottomAppBar> {
   int _selectedIndex = 0;
 
   void _updateIndex(int index) {
@@ -238,8 +251,8 @@ class FABBottomAppBarState extends State<FABBottomAppBar> {
   }
 
   int? getFabIndex() {
-    switch (widget.fabLocation) {
-      case FabLocation.center:
+    switch (widget.floatingAlignment) {
+      case FloatingAlignment.center:
         switch (widget.items.length) {
           case 2:
             return 1;
@@ -248,9 +261,9 @@ class FABBottomAppBarState extends State<FABBottomAppBar> {
           default:
             return 0;
         }
-      case FabLocation.left:
+      case FloatingAlignment.left:
         return 0;
-      case FabLocation.right:
+      case FloatingAlignment.right:
         return widget.items.length;
       default:
         return null;
@@ -272,14 +285,18 @@ class FABBottomAppBarState extends State<FABBottomAppBar> {
       items.insert(fabIndex, _buildEmptyTabItem());
     }
 
-    return BottomAppBar(
-      shape: widget.notchedShape,
-      color: widget.backgroundColor,
-      notchMargin: widget.fabMargin,
-      child: Row(
-        mainAxisSize: MainAxisSize.max,
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: items,
+    return Theme(
+      data: ThemeData(useMaterial3: false),
+      child: BottomAppBar(
+        padding: const EdgeInsets.all(0),
+        shape: widget.notchedShape,
+        color: widget.backgroundColor,
+        notchMargin: widget.floatingMargin,
+        child: Row(
+          mainAxisSize: MainAxisSize.max,
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: items,
+        ),
       ),
     );
   }
