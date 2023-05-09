@@ -2,10 +2,12 @@ import 'dart:async';
 import 'dart:developer';
 
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/templated.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/maps/maps.dart';
 import 'package:ensemble/widget/maps/maps_overlay.dart';
@@ -46,7 +48,7 @@ class MapsState extends WidgetState<Maps>
   }
 
   void _getCurrentLocation() async {
-    if (widget.controller.locationEnabled == true) {
+    if (widget.controller.locationEnabled) {
       currentLocation = (await getLocation()).location;
     }
   }
@@ -67,7 +69,7 @@ class MapsState extends WidgetState<Maps>
 
   void _registerMarkerListener(BuildContext context) {
     if (widget.controller.markerItemTemplate != null) {
-      registerItemTemplate(context, widget.controller.markerItemTemplate,
+      registerItemTemplate(context, widget.controller.markerItemTemplate!,
           evaluateInitialValue: true,
           onDataChanged: (dataList) => _updateMarkers(context, dataList));
     }
@@ -108,9 +110,9 @@ class MapsState extends WidgetState<Maps>
       BuildContext context, List dataList) {
     List<MarkerPayload> markerPayloads = [];
 
-    MarkerItemTemplate itemTemplate = widget.controller.markerItemTemplate;
+    MarkerItemTemplate? itemTemplate = widget.controller.markerItemTemplate;
     ScopeManager? myScope = DataScopeWidget.getScope(context);
-    if (myScope != null) {
+    if (myScope != null && itemTemplate != null) {
       for (dynamic dataItem in dataList) {
         ScopeManager dataScope = myScope.createChildScope();
         dataScope.dataContext.addDataContextById(itemTemplate.name, dataItem);
@@ -135,6 +137,11 @@ class MapsState extends WidgetState<Maps>
         widget.controller.selectedMarkerTemplate;
     dynamic overlayTemplate = widget.controller.overlayTemplate;
 
+    MarkerItemTemplate? itemTemplate = widget.controller.markerItemTemplate;
+    if (itemTemplate == null) {
+      throw LanguageError("markers is not set properly.");
+    }
+
     bool foundSelectedMarker = false;
     uniqueMarkerIds.clear();
     for (int i = 0; i < markerPayloads.length; i++) {
@@ -146,7 +153,7 @@ class MapsState extends WidgetState<Maps>
         uniqueMarkerIds.add(markerId);
 
         // auto select the first one if needed
-        if (_selectedMarkerId == null && widget.controller.autoSelect == true) {
+        if (_selectedMarkerId == null && widget.controller.autoSelect) {
           _selectedMarkerId = markerId;
         }
 
@@ -172,7 +179,19 @@ class MapsState extends WidgetState<Maps>
             position: markerPayload.latLng,
             icon: markerAsset ?? BitmapDescriptor.defaultMarker,
             consumeTapEvents: true,
-            onTap: () => _selectMarker(markerId));
+            onTap: () {
+              _selectMarker(markerId);
+
+              // dispatch onMarkerTap
+              if (itemTemplate.onMarkerTap != null) {
+                ScreenController().executeAction(
+                    context, itemTemplate.onMarkerTap!,
+                    event: EnsembleEvent(widget, data: {
+                      itemTemplate.name: markerPayload.scopeManager.dataContext
+                          .getContextById(itemTemplate.name)
+                    }));
+              }
+            });
       }
     }
 
@@ -307,9 +326,11 @@ class MapsState extends WidgetState<Maps>
     return Stack(children: [
       GoogleMap(
         onMapCreated: (controller) => _controller.complete(controller),
-        myLocationEnabled: widget.controller.locationEnabled == true,
+        myLocationEnabled: widget.controller.locationEnabled,
         mapType: widget.controller.mapType ?? MapType.normal,
         myLocationButtonEnabled: false,
+        mapToolbarEnabled: true,
+        onCameraMove: _onCameraMove,
         initialCameraPosition: CameraPosition(
             target:
                 initialCameraLatLng ?? widget.controller.defaultCameraLatLng,
@@ -325,6 +346,25 @@ class MapsState extends WidgetState<Maps>
             )
           : const SizedBox.shrink()
     ]);
+  }
+
+  void _onCameraMove(CameraPosition position) async {
+    if (widget.controller.onCameraMove != null) {
+      LatLngBounds bounds = await (await _controller.future).getVisibleRegion();
+      ScreenController().executeAction(context, widget.controller.onCameraMove!,
+          event: EnsembleEvent(widget, data: {
+            'bounds': {
+              "southwest": {
+                "lat": bounds.southwest.latitude,
+                "lng": bounds.southwest.longitude
+              },
+              "northeast": {
+                "lat": bounds.northeast.latitude,
+                "lng": bounds.northeast.longitude
+              }
+            }
+          }));
+    }
   }
 
   Set<Marker> _getMarkers() {

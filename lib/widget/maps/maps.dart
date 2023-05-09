@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
 
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
@@ -41,12 +42,41 @@ class Maps extends StatefulWidget
       'includeCurrentLocationInAutoZoom': (value) => _controller
           .includeCurrentLocationInAutoZoom = Utils.optionalBool(value),
       'mapType': (value) => _controller.mapType = value,
-      'markers': (markerData) => _controller.markerItemTemplate = markerData,
+      'markers': (markerData) => setMarkers(markerData),
       'scrollableOverlay': (value) => _controller.scrollableOverlay =
           Utils.getBool(value, fallback: _controller.scrollableOverlay),
       'autoSelect': (value) => _controller.autoSelect =
-          Utils.getBool(value, fallback: _controller.autoSelect)
+          Utils.getBool(value, fallback: _controller.autoSelect),
+      'onCameraMove': (action) => _controller.onCameraMove =
+          EnsembleAction.fromYaml(action, initiator: this),
     };
+  }
+
+  void setMarkers(dynamic markerData) {
+    if (markerData is YamlMap) {
+      String? data = markerData['data'];
+      String? name = markerData['name'];
+
+      String? lat = markerData['location']?['lat'];
+      String? lng = markerData['location']?['lng'];
+
+      if (data != null && name != null && lat != null && lng != null) {
+        _controller.markerItemTemplate = MarkerItemTemplate(
+            data: data,
+            name: name,
+            lat: lat,
+            lng: lng,
+            template: MarkerTemplate.build(
+                source: markerData['marker']?['source'],
+                widget: markerData['marker']?['widget']),
+            selectedTemplate: MarkerTemplate.build(
+                source: markerData['selectedMarker']?['source'],
+                widget: markerData['selectedMarker']?['widget']),
+            overlayTemplate: markerData['overlayWidget'],
+            onMarkerTap: EnsembleAction.fromYaml(markerData['onMarkerTap'],
+                initiator: this));
+      }
+    }
   }
 
   @override
@@ -68,13 +98,15 @@ class MyController extends WidgetController with LocationCapability {
   final defaultCameraLatLng = const LatLng(37.773972, -122.431297);
   dynamic initialCameraPosition;
 
-  bool scrollableOverlay = true;
+  bool scrollableOverlay = false;
   bool autoSelect = true;
 
   bool? autoZoom;
   int? autoZoomPadding;
   bool locationEnabled = false;
   bool? includeCurrentLocationInAutoZoom;
+
+  EnsembleAction? onCameraMove;
 
   MapType? _mapType;
   MapType? get mapType => _mapType;
@@ -85,43 +117,18 @@ class MyController extends WidgetController with LocationCapability {
     }
   }
 
-  MarkerItemTemplate? _markerItemTemplate;
-  get markerItemTemplate => _markerItemTemplate;
-  set markerItemTemplate(dynamic markerData) {
-    if (markerData is YamlMap) {
-      String? data = markerData['data'];
-      String? name = markerData['name'];
-
-      String? lat = markerData['location']?['lat'];
-      String? lng = markerData['location']?['lng'];
-
-      if (data != null && name != null && lat != null && lng != null) {
-        _markerItemTemplate = MarkerItemTemplate(
-            data: data,
-            name: name,
-            lat: lat,
-            lng: lng,
-            template: MarkerTemplate.build(
-                source: markerData['marker']?['source'],
-                widget: markerData['marker']?['widget']),
-            selectedTemplate: MarkerTemplate.build(
-                source: markerData['selectedMarker']?['source'],
-                widget: markerData['selectedMarker']?['widget']),
-            overlayTemplate: markerData['overlayWidget']);
-      }
-    }
-  }
+  MarkerItemTemplate? markerItemTemplate;
 
   MarkerTemplate? get markerTemplate {
-    return _markerItemTemplate?.template;
+    return markerItemTemplate?.template;
   }
 
   MarkerTemplate? get selectedMarkerTemplate {
-    return _markerItemTemplate?.selectedTemplate;
+    return markerItemTemplate?.selectedTemplate;
   }
 
   dynamic get overlayTemplate {
-    return _markerItemTemplate?.overlayTemplate;
+    return markerItemTemplate?.overlayTemplate;
   }
 }
 
@@ -134,7 +141,8 @@ class MarkerItemTemplate extends ItemTemplate {
       required this.lat,
       required this.lng,
       this.selectedTemplate,
-      this.overlayTemplate})
+      this.overlayTemplate,
+      this.onMarkerTap})
       : super(data, name, template);
 
   String lat;
@@ -145,6 +153,8 @@ class MarkerItemTemplate extends ItemTemplate {
 
   // widget only
   dynamic overlayTemplate;
+
+  EnsembleAction? onMarkerTap;
 }
 
 /// a marker template and selectedTemplate can take in an image, an icon, or a custom widget
