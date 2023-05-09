@@ -44,10 +44,14 @@ class ShowCameraAction extends EnsembleAction {
     this.options,
     this.id,
     this.onComplete,
+    this.onClose,
+    this.onCapture,
   }) : super(initiator: initiator);
   final Map<String, dynamic>? options;
   String? id;
   EnsembleAction? onComplete;
+  EnsembleAction? onClose;
+  EnsembleAction? onCapture;
 
   factory ShowCameraAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
     return ShowCameraAction(
@@ -55,6 +59,8 @@ class ShowCameraAction extends EnsembleAction {
       options: Utils.getMap(payload?['options']),
       id: Utils.optionalString(payload?['id']),
       onComplete: EnsembleAction.fromYaml(payload?['onComplete']),
+      onClose: EnsembleAction.fromYaml(payload?['onClose']),
+      onCapture: EnsembleAction.fromYaml(payload?['onCapture']),
     );
   }
 }
@@ -89,7 +95,11 @@ class ShowDialogAction extends EnsembleAction {
 
 class NavigateScreenAction extends BaseNavigateScreenAction {
   NavigateScreenAction(
-      {super.initiator, required super.screenName, super.inputs, super.options})
+      {super.initiator,
+      required super.screenName,
+      super.inputs,
+      super.options,
+      super.transition})
       : super(asModal: false);
 
   factory NavigateScreenAction.fromYaml(
@@ -99,10 +109,12 @@ class NavigateScreenAction extends BaseNavigateScreenAction {
           "${ActionType.navigateScreen.name} requires the 'name' of the screen to navigate to.");
     }
     return NavigateScreenAction(
-        initiator: initiator,
-        screenName: payload['name'].toString(),
-        inputs: Utils.getMap(payload['inputs']),
-        options: Utils.getMap(payload['options']));
+      initiator: initiator,
+      screenName: payload['name'].toString(),
+      inputs: Utils.getMap(payload['inputs']),
+      options: Utils.getMap(payload['options']),
+      transition: Utils.getMap(payload['transition']),
+    );
   }
 }
 
@@ -134,11 +146,13 @@ abstract class BaseNavigateScreenAction extends EnsembleAction {
       {super.initiator,
       required this.screenName,
       required this.asModal,
+      this.transition,
       super.inputs,
       this.options});
 
   String screenName;
   bool asModal;
+  Map<String, dynamic>? transition;
   final Map<String, dynamic>? options;
 }
 
@@ -252,6 +266,7 @@ class ShowToastAction extends EnsembleAction {
   ShowToastAction(
       {super.initiator,
       required this.type,
+      this.title,
       this.message,
       this.widget,
       this.dismissible,
@@ -262,6 +277,7 @@ class ShowToastAction extends EnsembleAction {
   final ToastType type;
 
   // either message or widget is needed
+  final String? title;
   final String? message;
   final dynamic widget;
 
@@ -272,13 +288,15 @@ class ShowToastAction extends EnsembleAction {
 
   factory ShowToastAction.fromYaml({YamlMap? payload}) {
     if (payload == null ||
-        (payload['message'] == null && payload['widget'] == null)) {
+        ((payload['title'] == null && payload['message'] == null) &&
+            payload['widget'] == null)) {
       throw LanguageError(
-          "${ActionType.showToast.name} requires either a message or a widget to render.");
+          "${ActionType.showToast.name} requires either a title/message or a widget to render.");
     }
     return ShowToastAction(
         type: ToastType.values.from(payload['options']?['type']) ??
             ToastType.info,
+        title: Utils.optionalString(payload['title']),
         message: payload['message']?.toString(),
         widget: payload['widget'],
         dismissible: Utils.optionalBool(payload['options']?['dismissible']),
@@ -365,7 +383,11 @@ class FileUploadAction extends EnsembleAction {
     required this.fieldName,
     this.maxFileSize,
     this.overMaxFileSizeMessage,
+    required this.isBackgroundTask,
     required this.files,
+    this.networkType,
+    this.requiresBatteryNotLow,
+    required this.showNotification,
   }) : super(inputs: inputs);
 
   String? id;
@@ -376,6 +398,10 @@ class FileUploadAction extends EnsembleAction {
   int? maxFileSize;
   String? overMaxFileSizeMessage;
   String files;
+  bool isBackgroundTask;
+  String? networkType;
+  bool? requiresBatteryNotLow;
+  bool showNotification;
 
   factory FileUploadAction.fromYaml({YamlMap? payload}) {
     if (payload == null || payload['uploadApi'] == null) {
@@ -392,10 +418,17 @@ class FileUploadAction extends EnsembleAction {
       uploadApi: payload['uploadApi'],
       inputs: Utils.getMap(payload['inputs']),
       fieldName: Utils.getString(payload['fieldName'], fallback: 'files'),
-      maxFileSize: Utils.optionalInt(payload['maxFileSize']),
+      maxFileSize: Utils.optionalInt(payload['options']?['maxFileSize']),
       overMaxFileSizeMessage:
-          Utils.optionalString(payload['overMaxFileSizeMessage']),
+          Utils.optionalString(payload['options']?['overMaxFileSizeMessage']),
       files: payload['files'],
+      isBackgroundTask:
+          Utils.getBool(payload['options']?['backgroundTask'], fallback: false),
+      networkType: Utils.optionalString(payload['options']?['networkType']),
+      requiresBatteryNotLow:
+          Utils.optionalBool(payload['options']?['requiresBatteryNotLow']),
+      showNotification: Utils.getBool(payload['options']?['showNotification'],
+          fallback: false),
     );
   }
 }
@@ -541,6 +574,8 @@ abstract class EnsembleAction {
           recurringDistanceFilter: Utils.optionalInt(
               payload?['options']?['recurringDistanceFilter'],
               min: 50));
+    } else if (actionType == ActionType.pickFiles) {
+      return FilePickerAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.uploadFiles) {
       return FileUploadAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.pickFiles) {

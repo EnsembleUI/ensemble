@@ -26,6 +26,7 @@ class FormFieldController extends WidgetController {
 
   InputVariant? variant;
   EdgeInsets? contentPadding;
+  bool? filled;
   Color? fillColor;
   EBorderRadius? borderRadius;
   int? borderWidth;
@@ -59,6 +60,7 @@ class FormFieldController extends WidgetController {
           maxWidth = Utils.optionalInt(value, min: 0, max: 5000),
       'variant': (type) => variant = InputVariant.values.from(type),
       'contentPadding': (value) => contentPadding = Utils.optionalInsets(value),
+      'filled': (value) => filled = Utils.optionalBool(value),
       'fillColor': (value) => fillColor = Utils.getColor(value),
       'borderRadius': (value) => borderRadius = Utils.getBorderRadius(value),
       'borderWidth': (value) => borderWidth = Utils.optionalInt(value, min: 0),
@@ -171,15 +173,18 @@ abstract class FormFieldWidgetState<W extends HasController>
           floatingLabelBehavior: FloatingLabelBehavior.always,
           filled: filled,
           fillColor: myController.fillColor,
-          labelText: shouldShowLabel() ? myController.label : null,
+          // labelText: shouldShowLabel() ? myController.label : null,
           hintText: myController.hintText,
-          icon: myController.icon == null
+          prefixIcon: myController.icon == null
               ? null
-              : framework.Icon(myController.icon!.icon,
+              : framework.Icon(
+                  myController.icon!.icon,
                   library: myController.icon!.library,
                   size: myController.icon!.size ??
                       ThemeManager().getInputIconSize(context),
-                  color: myController.icon!.color),
+                  color: myController.icon!.color ??
+                      Theme.of(context).inputDecorationTheme.iconColor,
+                ),
           contentPadding: myController.contentPadding,
 
           // only redraw the border if necessary, as we will fallback
@@ -232,7 +237,8 @@ abstract class FormFieldWidgetState<W extends HasController>
                       variant: variant,
                       borderWidth: borderWidth,
                       borderRadius: borderRadius,
-                      borderColor: myController.focusedErrorBorderColor ?? themeDecoration.focusedErrorBorder?.borderSide.color));
+                      borderColor: myController.focusedErrorBorderColor ??
+                          themeDecoration.focusedErrorBorder?.borderSide.color));
     }
     return const InputDecoration();
   }

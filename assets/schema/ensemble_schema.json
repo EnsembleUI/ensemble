@@ -1639,6 +1639,14 @@
                   "$ref": "#/$defs/Action-payload",
                   "description": "Execute an Action after completing capturing media"
                 },
+                "onClose": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action on camera close"
+                },
+                "onCapture": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action on each capture"
+                },
                 "options": {
                   "type": "object",
                   "mode": {
@@ -1733,6 +1741,10 @@
                         "description": "Custom message to show when condition is hit."
                       }
                     }
+                  },
+                  "autoCaptureInterval": {
+                    "type": "integer",
+                    "description": "If set any number n, on each n interval camera will capture"
                   }
                 }
               }
@@ -2071,6 +2083,42 @@
                 "files": {
                   "type": "string",
                   "description": "Binded files from sources like camera or picker. e.g ${filePicker.files}, ${camerId.files}"
+                },
+                "options": {
+                  "type": "object",
+                  "maxFileSize": {
+                    "type": "integer",
+                    "description": "File size that is allowed (default 100 mb), If multiple is allow then sum of all files"
+                  },
+                  "overMaxFileSizeMessage": {
+                    "type": "string",
+                    "description": "Error message to show when selected files size is above maxFileSize."
+                  },
+                  "backgroundTask": {
+                    "type": "boolean",
+                    "description": "If set true, uploading will be done in background."
+                  },
+                  "showNotification": {
+                    "type": "boolean",
+                    "description": "If set true, progress will be show in notification bar."
+                  },
+                  "networkType": {
+                    "type": "object",
+                    "description": "An enumeration of network types.",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "connected",
+                          "metered",
+                          "not_required",
+                          "not_roaming",
+                          "unmetered",
+                          "temporarily_unmetered"
+                        ]
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -2100,14 +2148,6 @@
                 "allowedExtensions": {
                   "type": "array",
                   "description": "Allow files with specific extension e.g jpg, png, pdf"
-                },
-                "maxFileSize": {
-                  "type": "integer",
-                  "description": "File size that is allowed (default 100 mb), If multiple is allow then sum of all files"
-                },
-                "overMaxFileSizeMessage": {
-                  "type": "string",
-                  "description": "Error message to show when selected files size is above maxFileSize."
                 }
               }
             }
@@ -2137,7 +2177,7 @@
         },
         {
           "properties": {
-            "walletConnect": {
+            "connectWallet": {
               "type": "object",
               "description": "Allow users connect to crypto wallet",
               "required": ["wcProjectId", "appMetaData"],
@@ -2555,6 +2595,13 @@
         },
         {
           "properties": {
+            "Maps": {
+              "$ref": "#/$defs/Maps-payload"
+            }
+          }
+        },
+        {
+          "properties": {
             "Video": {
               "$ref": "#/$defs/Video-payload",
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/fce92bbb-af8e-403d-bf2d-c10926cc89a0#"
@@ -2738,6 +2785,129 @@
                 "$ref": "#/$defs/Widget",
                 "description": "Return an inline widget or specify a custom widget to be rendered as this tab's content"
               }
+            }
+          }
+        }
+      }
+    },
+    "Maps-payload": {
+      "type": "object",
+      "properties": {
+        "styles": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "width": {
+                  "type": "integer"
+                },
+                "height": {
+                  "type": "integer"
+                },
+                "autoZoom": {
+                  "type": "boolean",
+                  "description": "Automatically zoom the maps to show all the markers (and optionally the current location). Default True."
+                },
+                "autoZoomPadding": {
+                  "type": "integer"
+                },
+                "locationEnabled": {
+                  "type": "boolean"
+                },
+                "includeCurrentLocationInAutoZoom": {
+                  "type": "boolean"
+                },
+                "mapType": {
+                  "type": "string",
+                  "enum": [
+                    "normal",
+                    "satellite",
+                    "terrain",
+                    "hybrid"
+                  ]
+                },
+                "initialCameraPosition": {
+                  "type": "object",
+                  "properties": {
+                    "lat": {
+                      "type": "number"
+                    },
+                    "lng": {
+                      "type": "number"
+                    },
+                    "zoom": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                },
+                "scrollableOverlay": {
+                  "type": "boolean",
+                  "description": "If using overlay and there are more than one marker, swiping left/right within the overlay will navigate to next/previous marker"
+                },
+                "autoSelect": {
+                  "type": "boolean",
+                  "description": "Automatically select a marker (if not already) when the markers are updated."
+                }
+
+              }
+            }
+          ]
+        },
+        "markers": {
+          "type": "object",
+          "required": [
+            "data",
+            "name",
+            "location",
+            "marker"
+          ],
+          "properties": {
+            "data": {
+              "type": "string",
+              "description": "Bind the marker list to the data e.g. myAPI.body.items"
+            },
+            "name": {
+              "type": "string",
+              "description": "Give this a name. This is the bindable data for each marker."
+            },
+            "location": {
+              "type": "object",
+              "properties": {
+                "lat": {
+                  "type": "number",
+                  "description": "The latitude of the marker"
+                },
+                "lng": {
+                  "type": "number",
+                  "description": "The longitude of the marker"
+                }
+              }
+            },
+            "marker": {
+              "type": "object",
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "description": "The marker's image asset. This can come from URL or from local asset."
+                }
+              }
+            },
+            "selectedMarker": {
+              "type": "object",
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "description": "The marker's image asset when selected. This can come from URL or from local asset."
+                }
+              }
+            },
+            "overlayWidget": {
+              "$ref": "#/$defs/Widget",
+              "description": "The widget to render as an overlay over the maps. Use this to convey more detail info for each marker."
             }
           }
         }

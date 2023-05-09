@@ -93,9 +93,18 @@ class TimeState extends FormFieldWidgetState<Time> {
 
   void _selectTime(BuildContext context) async {
     final picked = await showTimePicker(
-        context: context,
-        initialTime: widget._controller.initialValue ??
-            const TimeOfDay(hour: 12, minute: 0));
+      context: context,
+      initialTime: widget._controller.initialValue ??
+          const TimeOfDay(hour: 12, minute: 0),
+      builder: (context, child) {
+        return Theme(
+            data: ThemeData(
+                colorScheme: Theme.of(context)
+                    .colorScheme
+                    .copyWith(onPrimary: Colors.white)),
+            child: child!);
+      },
+    );
     if (picked != null) {
       if (widget._controller.value == null ||
           widget._controller.value!.compareTo(picked) != 0) {

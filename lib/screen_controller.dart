@@ -1,7 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:developer';
+import 'dart:isolate';
+import 'dart:math' show Random;
+import 'dart:ui';
 
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
@@ -10,8 +15,10 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
+import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/camera_manager.dart';
+import 'package:ensemble/framework/widget/modal_screen.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/framework/widget/toast.dart';
 import 'package:ensemble/layout/ensemble_page_route.dart';
@@ -30,6 +37,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:walletconnect_dart/walletconnect_dart.dart';
+import 'package:workmanager/workmanager.dart';
 import 'package:yaml/yaml.dart';
 
 import 'framework/widget/wallet_connect_modal.dart';
@@ -171,12 +179,13 @@ class ScreenController {
           screenName: dataContext.eval(action.screenName),
           asModal: action.asModal,
           routeOption: routeOption,
-          pageArgs: nextArgs);
+          pageArgs: nextArgs,
+          transition: action.transition);
 
       // process onModalDismiss
       if (action is NavigateModalScreenAction &&
           action.onModalDismiss != null &&
-          routeBuilder is EnsembleModalPageRouteBuilder &&
+          routeBuilder.fullscreenDialog &&
           scopeManager != null) {
         // callback on modal pop
         routeBuilder.popped.whenComplete(() {
@@ -500,11 +509,12 @@ class ScreenController {
     Map<String, YamlMap>? apiMap,
   }) async {
     List<File>? selectedFiles;
-    final defaultMaxFileSize = 100.mb;
-    const defaultOverMaxFileSizeMessage =
-        'The size of is which is larger than the maximum allowed';
 
-    final rawFiles = dataContext.eval(action.files);
+    var rawFiles = dataContext.eval(action.files);
+
+    if (rawFiles is Map && rawFiles.containsKey('path')) {
+      rawFiles = [rawFiles];
+    }
 
     if (rawFiles is! List<dynamic>) {
       if (action.onError != null) executeAction(context, action.onError!);
@@ -514,24 +524,7 @@ class ScreenController {
     selectedFiles =
         rawFiles.map((data) => File.fromJson(data)).toList().cast<File>();
 
-    final totalSize = selectedFiles.fold<double>(
-        0, (previousValue, element) => previousValue + element.size);
-    final maxFileSize = action.maxFileSize?.kb ?? defaultMaxFileSize;
-
-    final message = Utils.translateWithFallback(
-      'ensemble.input.overMaxFileSizeMessage',
-      action.overMaxFileSizeMessage ?? defaultOverMaxFileSizeMessage,
-    );
-
-    if (totalSize > maxFileSize) {
-      ToastController().showToast(
-          context,
-          ShowToastAction(
-              type: ToastType.error,
-              message: message,
-              position: 'bottom',
-              duration: 3),
-          null);
+    if (isFileSizeOverLimit(context, selectedFiles, action)) {
       if (action.onError != null) executeAction(context, action.onError!);
       return;
     }
@@ -555,27 +548,149 @@ class ScreenController {
       }
     }
 
-    final response = await UploadUtils.uploadFiles(
-      api: apiDefinition,
-      eContext: dataContext,
-      files: selectedFiles,
-      fieldName: action.fieldName,
-      onError: action.onError == null
-          ? null
-          : (error) => executeAction(context, action.onError!),
-    );
+    Map<String, String> headers = {};
+    if (apiDefinition['headers'] is YamlMap) {
+      (apiDefinition['headers'] as YamlMap).forEach((key, value) {
+        if (value != null) {
+          headers[key.toString()] = dataContext.eval(value).toString();
+        }
+      });
+    }
 
-    if (response == null || action.id == null || scopeManager == null) {
+    String url = HttpUtils.resolveUrl(
+        dataContext, apiDefinition['uri'].toString().trim());
+    String method = apiDefinition['method']?.toString().toUpperCase() ?? 'POST';
+    final fileResponse = action.id == null
+        ? null
+        : scopeManager?.dataContext.getContextById(action.id!) as APIResponse;
+
+    if (action.isBackgroundTask) {
+      if (kIsWeb) {
+        throw LanguageError('Background Upload is not supported on web');
+      }
+      await _setBackgroundUploadTask(
+        context: context,
+        action: action,
+        selectedFiles: selectedFiles,
+        headers: headers,
+        method: method,
+        url: url,
+        fileResponse: fileResponse,
+        scopeManager: scopeManager,
+      );
+
       return;
     }
 
-    final fileResponse =
-        scopeManager.dataContext.getContextById(action.id!) as APIResponse;
-    fileResponse.setAPIResponse(response);
-    scopeManager
-        .dispatch(ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
+    final response = await UploadUtils.uploadFiles(
+      headers: headers,
+      method: method,
+      url: url,
+      files: selectedFiles,
+      fieldName: action.fieldName,
+      showNotification: action.showNotification,
+      onError: action.onError == null
+          ? null
+          : (error) => executeAction(context, action.onError!),
+      progressCallback: (progress) {
+        fileResponse?.setProgress(progress);
+        scopeManager?.dispatch(
+            ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
+      },
+    );
+
+    if (response == null) return;
+    fileResponse?.setAPIResponse(response);
+    scopeManager?.dispatch(
+        ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
 
     if (action.onComplete != null) executeAction(context, action.onComplete!);
+  }
+
+  bool isFileSizeOverLimit(
+      BuildContext context, List<File> selectedFiles, FileUploadAction action) {
+    final defaultMaxFileSize = 100.mb;
+    const defaultOverMaxFileSizeMessage =
+        'The size of is which is larger than the maximum allowed';
+
+    final totalSize = selectedFiles.fold<double>(
+        0, (previousValue, element) => previousValue + element.size);
+    final maxFileSize = action.maxFileSize?.kb ?? defaultMaxFileSize;
+
+    final message = Utils.translateWithFallback(
+      'ensemble.input.overMaxFileSizeMessage',
+      action.overMaxFileSizeMessage ?? defaultOverMaxFileSizeMessage,
+    );
+
+    if (totalSize > maxFileSize) {
+      ToastController().showToast(
+          context,
+          ShowToastAction(
+              type: ToastType.error,
+              message: message,
+              position: 'bottom',
+              duration: 3),
+          null);
+      if (action.onError != null) executeAction(context, action.onError!);
+      return true;
+    }
+    return false;
+  }
+
+  Future<void> _setBackgroundUploadTask({
+    required BuildContext context,
+    required FileUploadAction action,
+    required List<File> selectedFiles,
+    required Map<String, String> headers,
+    required String method,
+    required String url,
+    APIResponse? fileResponse,
+    ScopeManager? scopeManager,
+  }) async {
+    final taskId = generateRandomId(8);
+
+    await Workmanager().registerOneOffTask(
+      'uploadTask',
+      backgroundUploadTask,
+      inputData: {
+        'fieldName': action.fieldName,
+        'files': selectedFiles.map((e) => json.encode(e.toJson())).toList(),
+        'headers': json.encode(headers),
+        'method': method,
+        'url': url,
+        'taskId': taskId,
+        'showNotification': action.showNotification,
+      },
+      constraints: Constraints(
+        networkType: NetworkTypeExtension.fromString(action.networkType),
+        requiresBatteryNotLow: action.requiresBatteryNotLow,
+      ),
+    );
+
+    var port = ReceivePort();
+    IsolateNameServer.registerPortWithName(port.sendPort, taskId);
+    StreamSubscription<dynamic>? subscription;
+    subscription = port.listen((dynamic data) async {
+      if (data is! Map) return;
+      if (data.containsKey('progress')) {
+        fileResponse?.setProgress(data['progress']);
+        scopeManager?.dispatch(
+            ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
+      }
+      if (data.containsKey('error')) {
+        executeAction(context, action.onError!);
+      }
+      if (data.containsKey('responseBody')) {
+        fileResponse?.setAPIResponse(Response.fromBody(data['responseBody']));
+        scopeManager?.dispatch(
+            ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
+
+        if (action.onComplete != null) {
+          executeAction(context, action.onComplete!);
+        }
+        subscription?.cancel();
+      }
+    });
   }
 
   /// e.g upon return of API result
@@ -718,13 +833,38 @@ class ScreenController {
     bool? asModal,
     RouteOption? routeOption,
     Map<String, dynamic>? pageArgs,
+    Map<String, dynamic>? transition,
   }) {
     PageType pageType = asModal == true ? PageType.modal : PageType.regular;
 
     Widget screenWidget =
         getScreen(screenName: screenName, asModal: asModal, pageArgs: pageArgs);
 
-    PageRouteBuilder route = getScreenBuilder(screenWidget, pageType: pageType);
+    Map<String, dynamic>? defaultTransitionOptions =
+        Theme.of(context).extension<EnsembleThemeExtension>()?.transitions ??
+            {};
+
+    final _pageType = pageType == PageType.modal ? 'modal' : 'page';
+
+    final transitionType = PageTransitionTypeX.fromString(
+        transition?['type'] ?? defaultTransitionOptions[_pageType]?['type']);
+    final alignment = Utils.getAlignment(transition?['alignment'] ??
+        defaultTransitionOptions[_pageType]?['alignment']);
+    final duration = Utils.getInt(
+        transition?['duration'] ??
+            defaultTransitionOptions[_pageType]?['duration'],
+        fallback: 250);
+
+    const enableTransition =
+        bool.fromEnvironment('transitions', defaultValue: true);
+
+    PageRouteBuilder route = getScreenBuilder(
+      screenWidget,
+      pageType: pageType,
+      transitionType: transitionType,
+      alignment: alignment,
+      duration: duration,
+    );
     // push the new route and remove all existing screens. This is suitable for logging out.
     if (routeOption == RouteOption.clearAllScreens) {
       Navigator.pushAndRemoveUntil(context, route, (route) => false);
@@ -771,7 +911,6 @@ class ScreenController {
                                 action.recurringDistanceFilter ?? 1000))
                     .listen((Position? location) {
               if (location != null) {
-                log("on location updates");
                 // update last location. TODO: consolidate this
                 Device().updateLastLocation(location);
 
@@ -780,23 +919,22 @@ class ScreenController {
               } else if (action.onError != null) {
                 DataContext localizedContext = dataContext.clone();
                 localizedContext.addDataContextById('reason', 'unknown');
-                _executeAction(context, localizedContext, action.onError!, null,
-                    scopeManager);
+                _executeAction(context, localizedContext, action.onError!,
+                    scopeManager.pageData.apiMap, scopeManager);
               }
             });
             scopeManager.addLocationListener(streamSubscription);
           }
           // one-time get location
           else {
-            log("get location");
             _onLocationReceived(scopeManager, dataContext, context,
                 action.onLocationReceived!, await Device().simplyGetLocation());
           }
         } else if (action.onError != null) {
           DataContext localizedContext = dataContext.clone();
           localizedContext.addDataContextById('reason', status.name);
-          _executeAction(
-              context, localizedContext, action.onError!, null, scopeManager);
+          _executeAction(context, localizedContext, action.onError!,
+              scopeManager.pageData.apiMap, scopeManager);
         }
       });
     }
@@ -811,19 +949,77 @@ class ScreenController {
     DataContext localizedContext = dataContext.clone();
     localizedContext.addDataContextById('latitude', location.latitude);
     localizedContext.addDataContextById('longitude', location.longitude);
-    _executeAction(
-        context, localizedContext, onLocationReceived, null, scopeManager);
+    _executeAction(context, localizedContext, onLocationReceived,
+        scopeManager.pageData.apiMap, scopeManager);
   }
 
   /// return a wrapper for the screen widget
   /// with custom animation for different pageType
-  PageRouteBuilder getScreenBuilder(Widget screenWidget, {PageType? pageType}) {
+  PageRouteBuilder getScreenBuilder(
+    Widget screenWidget, {
+    PageType? pageType,
+    PageTransitionType? transitionType,
+    Alignment? alignment,
+    int? duration,
+  }) {
+    const enableTransition =
+        bool.fromEnvironment('transitions', defaultValue: true);
+
+    if (!enableTransition) {
+      return EnsemblePageRouteNoTransitionBuilder(screenWidget: screenWidget);
+    }
+
     if (pageType == PageType.modal) {
-      return EnsembleModalPageRouteBuilder(screenWidget: screenWidget);
+      return EnsemblePageRouteBuilder(
+        child: ModalScreen(screenWidget: screenWidget),
+        transitionType: transitionType ?? PageTransitionType.bottomToTop,
+        alignment: alignment ?? Alignment.center,
+        fullscreenDialog: true,
+        opaque: false,
+        duration: Duration(milliseconds: duration ?? 250),
+        barrierDismissible: true,
+        barrierColor: Colors.black54,
+      );
     } else {
-      return EnsemblePageRouteBuilder(screenWidget: screenWidget);
+      return EnsemblePageRouteBuilder(
+        child: screenWidget,
+        transitionType: transitionType ?? PageTransitionType.fade,
+        alignment: alignment ?? Alignment.center,
+        duration: Duration(milliseconds: duration ?? 250),
+      );
     }
   }
 }
 
 enum RouteOption { replaceCurrentScreen, clearAllScreens }
+
+String generateRandomId(int length) {
+  var rand = Random();
+  var codeUnits = List.generate(length, (index) {
+    return rand.nextInt(26) + 97; // ASCII code for lowercase a-z
+  });
+
+  return String.fromCharCodes(codeUnits);
+}
+
+extension NetworkTypeExtension on NetworkType {
+  static NetworkType fromString(String? str) {
+    if (str == null) return NetworkType.connected;
+    switch (str.toLowerCase()) {
+      case 'connected':
+        return NetworkType.connected;
+      case 'metered':
+        return NetworkType.metered;
+      case 'not_required':
+        return NetworkType.not_required;
+      case 'not_roaming':
+        return NetworkType.not_roaming;
+      case 'unmetered':
+        return NetworkType.unmetered;
+      case 'temporarily_unmetered':
+        return NetworkType.temporarily_unmetered;
+      default:
+        return NetworkType.connected;
+    }
+  }
+}
