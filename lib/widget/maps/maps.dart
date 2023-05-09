@@ -46,7 +46,9 @@ class Maps extends StatefulWidget
       'scrollableOverlay': (value) => _controller.scrollableOverlay =
           Utils.getBool(value, fallback: _controller.scrollableOverlay),
       'autoSelect': (value) => _controller.autoSelect =
-          Utils.getBool(value, fallback: _controller.autoSelect)
+          Utils.getBool(value, fallback: _controller.autoSelect),
+      'onCameraMove': (action) => _controller.onCameraMove =
+          EnsembleAction.fromYaml(action, initiator: this),
     };
   }
 
@@ -103,6 +105,8 @@ class MyController extends WidgetController with LocationCapability {
   int? autoZoomPadding;
   bool locationEnabled = false;
   bool? includeCurrentLocationInAutoZoom;
+
+  EnsembleAction? onCameraMove;
 
   MapType? _mapType;
   MapType? get mapType => _mapType;
