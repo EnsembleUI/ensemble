@@ -2862,8 +2862,7 @@
           "required": [
             "data",
             "name",
-            "location",
-            "marker"
+            "location"
           ],
           "properties": {
             "data": {
@@ -2876,6 +2875,7 @@
             },
             "location": {
               "type": "object",
+              "required": ["lat", "lng"],
               "properties": {
                 "lat": {
                   "type": "number",
@@ -2908,6 +2908,10 @@
             "overlayWidget": {
               "$ref": "#/$defs/Widget",
               "description": "The widget to render as an overlay over the maps. Use this to convey more detail info for each marker."
+            },
+            "onMarkerTap": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Execute an Action when tapping on the marker"
             }
           }
         }
