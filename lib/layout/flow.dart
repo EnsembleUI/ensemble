@@ -28,7 +28,9 @@ class Flow extends StatefulWidget
 
   @override
   Map<String, Function> getters() {
-    return {};
+    return {
+      'selectedItemIndex': () => _controller.selectedItemIndex,
+    };
   }
 
   @override
@@ -46,6 +48,8 @@ class Flow extends StatefulWidget
           _controller.maxWidth = Utils.optionalInt(value, min: 0),
       'maxHeight': (value) =>
           _controller.maxHeight = Utils.optionalInt(value, min: 0),
+      'onItemTap': (funcDefinition) => _controller.onItemTap =
+          EnsembleAction.fromYaml(funcDefinition, initiator: this),
     };
   }
 
@@ -74,6 +78,8 @@ class FlowController extends BoxController {
   int? maxHeight;
 
   List<Widget>? children;
+  EnsembleAction? onItemTap;
+  int selectedItemIndex = -1;
 }
 
 class FlowState extends WidgetState<Flow> with TemplatedWidgetState {
@@ -113,8 +119,17 @@ class FlowState extends WidgetState<Flow> with TemplatedWidgetState {
     if (widget._controller.children != null) {
       children.addAll(widget._controller.children!);
     }
+
     if (templatedChildren != null) {
-      children.addAll(templatedChildren!);
+      List<Widget> clickableWidgets = [];
+      templatedChildren!.asMap().forEach((index, value) {
+        final child = GestureDetector(
+          child: value,
+          onTap: () => _onItemTap(index),
+        );
+        clickableWidgets.add(child);
+      });
+      children.addAll(clickableWidgets);
     }
 
     Widget rtn = BoxWrapper(
@@ -149,5 +164,12 @@ class FlowState extends WidgetState<Flow> with TemplatedWidgetState {
     }
 
     return rtn;
+  }
+
+  void _onItemTap(int index) {
+    if (widget.controller.onItemTap != null) {
+      widget._controller.selectedItemIndex = index;
+      ScreenController().executeAction(context, widget._controller.onItemTap!);
+    }
   }
 }
