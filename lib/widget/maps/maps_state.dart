@@ -330,6 +330,7 @@ class MapsState extends WidgetState<Maps>
         mapType: widget.controller.mapType ?? MapType.normal,
         myLocationButtonEnabled: false,
         mapToolbarEnabled: true,
+        onCameraMove: _onCameraMove,
         initialCameraPosition: CameraPosition(
             target:
                 initialCameraLatLng ?? widget.controller.defaultCameraLatLng,
@@ -345,6 +346,25 @@ class MapsState extends WidgetState<Maps>
             )
           : const SizedBox.shrink()
     ]);
+  }
+
+  void _onCameraMove(CameraPosition position) async {
+    if (widget.controller.onCameraMove != null) {
+      LatLngBounds bounds = await (await _controller.future).getVisibleRegion();
+      ScreenController().executeAction(context, widget.controller.onCameraMove!,
+          event: EnsembleEvent(widget, data: {
+            'bounds': {
+              "southwest": {
+                "lat": bounds.southwest.latitude,
+                "lng": bounds.southwest.longitude
+              },
+              "northeast": {
+                "lat": bounds.northeast.latitude,
+                "lng": bounds.northeast.longitude
+              }
+            }
+          }));
+    }
   }
 
   Set<Marker> _getMarkers() {
