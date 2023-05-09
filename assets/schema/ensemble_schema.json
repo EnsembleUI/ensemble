@@ -2803,6 +2803,14 @@
                       "minimum": 0
                     }
                   }
+                },
+                "scrollableOverlay": {
+                  "type": "boolean",
+                  "description": "If using overlay and there are more than one marker, swiping left/right within the overlay will navigate to next/previous marker"
+                },
+                "autoSelect": {
+                  "type": "boolean",
+                  "description": "Automatically select a marker (if not already) when the markers are updated."
                 }
 
               }

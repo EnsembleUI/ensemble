@@ -10,10 +10,8 @@ class MapsOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Positioned(
-        bottom: 30,
-        left: 30,
-        right: 30,
+    return Align(
+        alignment: Alignment.bottomCenter,
         child: scrollable != false && onScrolled != null
             ? GestureDetector(
                 onHorizontalDragEnd: (details) {

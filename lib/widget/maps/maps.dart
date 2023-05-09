@@ -36,14 +36,16 @@ class Maps extends StatefulWidget
       'autoZoom': (value) => _controller.autoZoom = Utils.optionalBool(value),
       'autoZoomPadding': (value) =>
           _controller.autoZoomPadding = Utils.optionalInt(value),
-      'locationEnabled': (value) =>
-          _controller.locationEnabled = Utils.optionalBool(value),
+      'locationEnabled': (value) => _controller.locationEnabled =
+          Utils.getBool(value, fallback: _controller.locationEnabled),
       'includeCurrentLocationInAutoZoom': (value) => _controller
           .includeCurrentLocationInAutoZoom = Utils.optionalBool(value),
       'mapType': (value) => _controller.mapType = value,
       'markers': (markerData) => _controller.markerItemTemplate = markerData,
-      'scrollableOverlay': (value) =>
-          _controller.scrollableOverlay = Utils.optionalBool(value)
+      'scrollableOverlay': (value) => _controller.scrollableOverlay =
+          Utils.getBool(value, fallback: _controller.scrollableOverlay),
+      'autoSelect': (value) => _controller.autoSelect =
+          Utils.getBool(value, fallback: _controller.autoSelect)
     };
   }
 
@@ -66,11 +68,12 @@ class MyController extends WidgetController with LocationCapability {
   final defaultCameraLatLng = const LatLng(37.773972, -122.431297);
   dynamic initialCameraPosition;
 
-  bool? scrollableOverlay;
+  bool scrollableOverlay = true;
+  bool autoSelect = true;
 
   bool? autoZoom;
   int? autoZoomPadding;
-  bool? locationEnabled;
+  bool locationEnabled = false;
   bool? includeCurrentLocationInAutoZoom;
 
   MapType? _mapType;
@@ -92,27 +95,33 @@ class MyController extends WidgetController with LocationCapability {
       String? lat = markerData['location']?['lat'];
       String? lng = markerData['location']?['lng'];
 
-      MarkerTemplate? template = MarkerTemplate.build(
-          source: markerData['marker']?['source'],
-          widget: markerData['marker']?['widget']);
-
-      if (data != null &&
-          name != null &&
-          lat != null &&
-          lng != null &&
-          template != null) {
+      if (data != null && name != null && lat != null && lng != null) {
         _markerItemTemplate = MarkerItemTemplate(
             data: data,
             name: name,
             lat: lat,
             lng: lng,
-            template: template,
+            template: MarkerTemplate.build(
+                source: markerData['marker']?['source'],
+                widget: markerData['marker']?['widget']),
             selectedTemplate: MarkerTemplate.build(
-                source: markerData['selectedMarker']['source'],
-                widget: markerData['selectedMarker']['widget']),
+                source: markerData['selectedMarker']?['source'],
+                widget: markerData['selectedMarker']?['widget']),
             overlayTemplate: markerData['overlayWidget']);
       }
     }
+  }
+
+  MarkerTemplate? get markerTemplate {
+    return _markerItemTemplate?.template;
+  }
+
+  MarkerTemplate? get selectedMarkerTemplate {
+    return _markerItemTemplate?.selectedTemplate;
+  }
+
+  dynamic get overlayTemplate {
+    return _markerItemTemplate?.overlayTemplate;
   }
 }
 
@@ -146,7 +155,6 @@ class MarkerTemplate {
   final String? widget;
 
   static MarkerTemplate? build({String? source, String? icon, String? widget}) {
-    // one of the types has to be specified
     if (source != null || icon != null || widget != null) {
       return MarkerTemplate._(source: source, icon: icon, widget: widget);
     }

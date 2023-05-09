@@ -10,7 +10,6 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/maps/maps.dart';
 import 'package:ensemble/widget/maps/maps_overlay.dart';
 import 'package:ensemble/widget/maps/maps_utils.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -21,14 +20,16 @@ import '../../framework/device.dart';
 
 class MapsState extends WidgetState<Maps>
     with TemplatedWidgetState, LocationCapability {
-  Completer<GoogleMapController> _controller = Completer<GoogleMapController>();
-  Set<Marker> _markers = {};
-  Widget? overlayWidget;
+  final Completer<GoogleMapController> _controller =
+      Completer<GoogleMapController>();
 
   /// markers are required to have unique ID. We'll use the lat/lng
   /// and keep track of all unique IDs (ignore duplicate lat/lng)
-  MarkerId? _selectedMarker;
   Set<MarkerId> uniqueMarkerIds = {};
+
+  List<MarkerPayload> _markerPayloads = [];
+  MarkerId? _selectedMarkerId;
+  Widget? _overlayWidget;
 
   // misc
   Position? currentLocation;
@@ -129,16 +130,13 @@ class MapsState extends WidgetState<Maps>
   }
 
   void _buildMarkers(List<MarkerPayload> markerPayloads) async {
-    MarkerItemTemplate itemTemplate = widget.controller.markerItemTemplate;
-    if (itemTemplate.template is! MarkerTemplate) {
-      throw LanguageError("Invalid marker template.");
-    }
-    MarkerTemplate markerTemplate = itemTemplate.template as MarkerTemplate;
-    MarkerTemplate? selectedMarkerTemplate = itemTemplate.selectedTemplate;
-    dynamic overlayTemplate = itemTemplate.overlayTemplate;
-    Set<Marker> markers = {};
-    uniqueMarkerIds.clear();
+    MarkerTemplate? markerTemplate = widget.controller.markerTemplate;
+    MarkerTemplate? selectedMarkerTemplate =
+        widget.controller.selectedMarkerTemplate;
+    dynamic overlayTemplate = widget.controller.overlayTemplate;
 
+    bool foundSelectedMarker = false;
+    uniqueMarkerIds.clear();
     for (int i = 0; i < markerPayloads.length; i++) {
       MarkerPayload markerPayload = markerPayloads[i];
 
@@ -147,79 +145,88 @@ class MapsState extends WidgetState<Maps>
       if (!uniqueMarkerIds.contains(markerId)) {
         uniqueMarkerIds.add(markerId);
 
-        BitmapDescriptor? markerAsset;
+        // auto select the first one if needed
+        if (_selectedMarkerId == null && widget.controller.autoSelect == true) {
+          _selectedMarkerId = markerId;
+        }
 
-        // if selected, generate selected marker
-        if (markerId == _selectedMarker && selectedMarkerTemplate != null) {
+        BitmapDescriptor? markerAsset;
+        if (markerId == _selectedMarkerId) {
+          // selected marker
+          foundSelectedMarker = true;
           markerAsset = await _buildMarkerFromTemplate(
-              markerPayload.scopeManager, selectedMarkerTemplate);
+              markerPayload, selectedMarkerTemplate ?? markerTemplate);
 
           if (overlayTemplate != null) {
-            overlayWidget = markerPayload.scopeManager
+            _overlayWidget = markerPayload.scopeManager
                 .buildWidgetWithScopeFromDefinition(overlayTemplate);
           }
+        } else {
+          // regular marker
+          markerAsset =
+              await _buildMarkerFromTemplate(markerPayload, markerTemplate);
         }
 
-        // generate the marker, don't override if already drawn as selected marker
-        markerAsset ??= await _buildMarkerFromTemplate(
-            markerPayload.scopeManager, markerTemplate);
+        markerPayload.marker = Marker(
+            markerId: markerId,
+            position: markerPayload.latLng,
+            icon: markerAsset ?? BitmapDescriptor.defaultMarker,
+            consumeTapEvents: true,
+            onTap: () => _selectMarker(markerId));
+      }
+    }
 
-        if (markerAsset != null) {
-          markers.add(Marker(
-              markerId: markerId,
-              position: markerPayload.latLng,
-              icon: markerAsset,
-              consumeTapEvents: true,
-              onTap: () => _selectMarker(markerId, markerPayload.scopeManager,
-                  markerTemplate, selectedMarkerTemplate, overlayTemplate)));
-        }
+    // markers are updated but we can't find a selected marker. This may
+    // mean that marker is no longer there.
+    if (_selectedMarkerId != null && !foundSelectedMarker) {
+      _selectedMarkerId = null;
+      if (widget.controller.autoSelect) {
+        _selectNextMarker();
       }
     }
 
     setState(() {
-      _markers = markers;
+      _markerPayloads = markerPayloads;
     });
   }
 
-  void _selectMarker(
-      MarkerId markerId,
-      ScopeManager scopeManager,
-      MarkerTemplate markerTemplate,
-      MarkerTemplate? selectedMarkerTemplate,
-      dynamic overlayTemplate) async {
-    if (markerId != _selectedMarker) {
+  void _selectMarker(MarkerId markerId) async {
+    if (markerId != _selectedMarkerId) {
       // first reset the previously selected marker
-      if (_selectedMarker != null) {
-        Marker? previousSelectedMarker = _getMarkerById(_selectedMarker!);
+      if (_selectedMarkerId != null) {
+        MarkerPayload? previousSelectedMarker =
+            _getMarkerPayloadById(_selectedMarkerId!);
         if (previousSelectedMarker != null) {
-          BitmapDescriptor? markerAsset =
-              await _buildMarkerFromTemplate(scopeManager, markerTemplate);
-          if (markerAsset == null) {
-            log('Unable to un-select an selected marker');
-          } else {
-            _markers.remove(previousSelectedMarker);
-            _markers
-                .add(previousSelectedMarker.copyWith(iconParam: markerAsset));
-          }
+          BitmapDescriptor markerAsset = await _buildMarkerFromTemplate(
+                  previousSelectedMarker, widget.controller.markerTemplate) ??
+              BitmapDescriptor.defaultMarker;
+          previousSelectedMarker.marker =
+              previousSelectedMarker.marker?.copyWith(iconParam: markerAsset);
         }
       }
 
       // mark the markerId as selected
-      _selectedMarker = markerId;
-      BitmapDescriptor? markerAsset = await _buildMarkerFromTemplate(
-          scopeManager, selectedMarkerTemplate ?? markerTemplate);
-      if (markerAsset != null) {
-        Marker? newSelectedMarker = _getMarkerById(_selectedMarker!);
-        if (newSelectedMarker != null) {
-          _markers.remove(newSelectedMarker);
-          _markers.add(newSelectedMarker.copyWith(iconParam: markerAsset));
+      _selectedMarkerId = markerId;
+      MarkerPayload? newSelectedMarker =
+          _getMarkerPayloadById(_selectedMarkerId!);
+      if (newSelectedMarker != null) {
+        // update marker
+        BitmapDescriptor markerAsset = await _buildMarkerFromTemplate(
+                newSelectedMarker,
+                widget.controller.selectedMarkerTemplate ??
+                    widget.controller.markerTemplate) ??
+            BitmapDescriptor.defaultMarker;
+        if (markerAsset != null) {
+          newSelectedMarker.marker =
+              newSelectedMarker.marker?.copyWith(iconParam: markerAsset);
         }
-      }
 
-      // update overlay widget
-      if (overlayTemplate != null) {
-        overlayWidget =
-            scopeManager.buildWidgetWithScopeFromDefinition(overlayTemplate);
+        // update overlay
+        if (widget.controller.overlayTemplate != null) {
+          _overlayWidget = newSelectedMarker.scopeManager
+              .buildWidgetWithScopeFromDefinition(
+                  widget.controller.overlayTemplate);
+        }
       }
 
       // reload
@@ -227,27 +234,71 @@ class MapsState extends WidgetState<Maps>
     }
   }
 
-  void _selectNextMarker() {}
-  void _selectPreviousMarker() {}
+  void _selectNextMarker() {
+    if (_markerPayloads.length <= 1) {
+      return;
+    }
 
-  Marker? _getMarkerById(MarkerId markerId) {
-    for (Marker marker in _markers) {
-      if (marker.markerId == markerId) {
-        return marker;
+    MarkerPayload? nextMarker;
+    if (_selectedMarkerId == null) {
+      nextMarker = _markerPayloads[0];
+    } else {
+      int nextIndex = _markerPayloads.indexWhere((markerPayload) =>
+              markerPayload.marker?.markerId == _selectedMarkerId) +
+          1;
+      if (nextIndex < _markerPayloads.length) {
+        nextMarker = _markerPayloads[nextIndex];
+      }
+    }
+
+    if (nextMarker != null && nextMarker.marker != null) {
+      _selectMarker(nextMarker.marker!.markerId);
+    }
+  }
+
+  void _selectPreviousMarker() {
+    if (_markerPayloads.length <= 1) {
+      return;
+    }
+
+    MarkerPayload? previousMarker;
+    if (_selectedMarkerId == null) {
+      previousMarker = _markerPayloads[_markerPayloads.length - 1];
+    } else {
+      int prevIndex = _markerPayloads.indexWhere((markerPayload) =>
+              markerPayload.marker?.markerId == _selectedMarkerId) -
+          1;
+      if (prevIndex >= 0) {
+        previousMarker = _markerPayloads[prevIndex];
+      }
+    }
+
+    if (previousMarker != null && previousMarker.marker != null) {
+      _selectMarker(previousMarker.marker!.markerId);
+    }
+  }
+
+  MarkerPayload? _getMarkerPayloadById(MarkerId markerId) {
+    for (MarkerPayload markerPayload in _markerPayloads) {
+      if (markerPayload.marker?.markerId == markerId) {
+        return markerPayload;
       }
     }
     return null;
   }
 
   Future<BitmapDescriptor?> _buildMarkerFromTemplate(
-      ScopeManager scopeManager, MarkerTemplate template) async {
-    if (template.source != null) {
-      String? source = scopeManager.dataContext.eval(template.source!);
-      if (source != null) {
-        return await MapsUtils.fromAsset(template.source!);
+      MarkerPayload markerPayload, MarkerTemplate? template) async {
+    if (template != null) {
+      if (template.source != null) {
+        String? source =
+            markerPayload.scopeManager.dataContext.eval(template.source!);
+        if (source != null) {
+          return await MapsUtils.fromAsset(template.source!);
+        }
       }
+      // TODO: from icon/widget
     }
-    // TODO: from icon/widget
     return null;
   }
 
@@ -258,15 +309,16 @@ class MapsState extends WidgetState<Maps>
         onMapCreated: (controller) => _controller.complete(controller),
         myLocationEnabled: widget.controller.locationEnabled == true,
         mapType: widget.controller.mapType ?? MapType.normal,
+        myLocationButtonEnabled: false,
         initialCameraPosition: CameraPosition(
             target:
                 initialCameraLatLng ?? widget.controller.defaultCameraLatLng,
             zoom: initialCameraZoom?.toDouble() ?? 10),
-        markers: _markers,
+        markers: _getMarkers(),
       ),
-      overlayWidget != null && _selectedMarker != null
+      _overlayWidget != null && _selectedMarkerId != null
           ? MapsOverlay(
-              overlayWidget!,
+              _overlayWidget!,
               scrollable: widget.controller.scrollableOverlay,
               onScrolled: (isNext) =>
                   isNext ? _selectNextMarker() : _selectPreviousMarker(),
@@ -274,11 +326,22 @@ class MapsState extends WidgetState<Maps>
           : const SizedBox.shrink()
     ]);
   }
+
+  Set<Marker> _getMarkers() {
+    Set<Marker> markers = {};
+    for (MarkerPayload markerPayload in _markerPayloads) {
+      if (markerPayload.marker != null) {
+        markers.add(markerPayload.marker!);
+      }
+    }
+    return markers;
+  }
 }
 
 class MarkerPayload {
   MarkerPayload({required this.scopeManager, required this.latLng});
 
-  ScopeManager scopeManager;
-  LatLng latLng;
+  final ScopeManager scopeManager;
+  final LatLng latLng;
+  Marker? marker;
 }
