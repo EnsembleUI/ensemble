@@ -266,6 +266,29 @@ class ViewUtil {
       }
     }
   }
+
+  static void checkValidWidget(
+      List<Widget>? children, ItemTemplate? itemTemplate) {
+    final isInvalid =
+        children != null && children.isNotEmpty && itemTemplate != null;
+
+    if (isInvalid) {
+      throw LanguageError("You can't have both children and item-template");
+    }
+  }
+
+  static List<Widget> addGesture(
+      List<Widget> children, Function(int) onItemTap) {
+    List<Widget> clickableWidgets = [];
+    children.asMap().forEach((index, value) {
+      final child = GestureDetector(
+        child: value,
+        onTap: () => onItemTap(index),
+      );
+      clickableWidgets.add(child);
+    });
+    return clickableWidgets;
+  }
 }
 
 class ModelPayload {
