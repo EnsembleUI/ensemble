@@ -362,6 +362,8 @@ class MapsState extends MapsActionableState
     return null;
   }
 
+  // TODO: LRU cache
+  Map<String, BitmapDescriptor> markersCache = {};
   Future<BitmapDescriptor?> _buildMarkerFromTemplate(
       MarkerPayload markerPayload, MarkerTemplate? template) async {
     if (template != null) {
@@ -369,7 +371,13 @@ class MapsState extends MapsActionableState
         String? source =
             markerPayload.scopeManager.dataContext.eval(template.source!);
         if (source != null) {
-          return await MapsUtils.fromAsset(template.source!);
+          if (markersCache[source] == null) {
+            var asset = await MapsUtils.fromAsset(template.source!);
+            if (asset != null) {
+              markersCache[source] = asset;
+            }
+          }
+          return markersCache[source];
         }
       }
       // TODO: from icon/widget
