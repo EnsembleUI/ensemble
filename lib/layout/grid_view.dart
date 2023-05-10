@@ -200,14 +200,22 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
           scrollDirection: Axis.vertical,
           cacheExtent: cachedPixels,
           padding: widget._controller.padding,
-          itemBuilder: (context, index) => GestureDetector(
-            onTap: (() => _onItemTap(index)),
-            child: buildWidgetForIndex(
-                context, _items, widget._controller.itemTemplate!, index),
-          ),
+          itemBuilder: (context, index) => _buildItem(index),
         ),
       ),
     );
+  }
+
+  dynamic _buildItem(int index) {
+    if (widget._controller.onItemTap != null) {
+      return GestureDetector(
+        onTap: (() => _onItemTap(index)),
+        child: buildWidgetForIndex(
+            context, _items, widget._controller.itemTemplate!, index),
+      );
+    }
+    return buildWidgetForIndex(
+        context, _items, widget._controller.itemTemplate!, index);
   }
 
   void _onItemTap(int index) {

@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
@@ -116,20 +117,17 @@ class FlowState extends WidgetState<Flow> with TemplatedWidgetState {
   Widget buildWidget(BuildContext context) {
     // children will be rendered before templated children
     List<Widget> children = [];
+
     if (widget._controller.children != null) {
       children.addAll(widget._controller.children!);
     }
 
     if (templatedChildren != null) {
-      List<Widget> clickableWidgets = [];
-      templatedChildren!.asMap().forEach((index, value) {
-        final child = GestureDetector(
-          child: value,
-          onTap: () => _onItemTap(index),
-        );
-        clickableWidgets.add(child);
-      });
-      children.addAll(clickableWidgets);
+      children.addAll(templatedChildren!);
+    }
+
+    if (widget._controller.onItemTap != null) {
+      children = ViewUtil.addGesture(children, _onItemTap);
     }
 
     Widget rtn = BoxWrapper(
