@@ -96,8 +96,8 @@ class Maps extends StatefulWidget
   Map<String, Function> methods() {
     return {
       'runAutoZoom': () => _controller.mapActions?.zoomToFit(),
-      'moveCamera': (double lat, double lng, int? zoom) =>
-          _controller.mapActions?.moveCamera(LatLng(lat, lng), zoom: zoom)
+      'moveCamera': (num lat, num lng, [int? zoom]) => _controller.mapActions
+          ?.moveCamera(LatLng(lat.toDouble(), lng.toDouble()), zoom: zoom)
     };
   }
 }
