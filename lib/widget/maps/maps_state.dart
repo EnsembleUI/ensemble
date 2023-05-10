@@ -9,6 +9,7 @@ import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/maps/map_actions.dart';
 import 'package:ensemble/widget/maps/maps.dart';
 import 'package:ensemble/widget/maps/maps_overlay.dart';
 import 'package:ensemble/widget/maps/maps_utils.dart';
@@ -20,36 +21,66 @@ import 'package:yaml/yaml.dart';
 
 import '../../framework/device.dart';
 
-class MapsState extends WidgetState<Maps>
-    with TemplatedWidgetState, LocationCapability {
+abstract class MapsActionableState extends WidgetState<Maps> {
+  List<MarkerPayload> getMarkerPayloads();
+  Position? getCurrentLocation();
+  Future<GoogleMapController> getMapController();
+  void zoom(List<LatLng> points);
+}
+
+class MapsState extends MapsActionableState
+    with TemplatedWidgetState, LocationCapability, MapActions {
   final Completer<GoogleMapController> _controller =
       Completer<GoogleMapController>();
+  @override
+  Future<GoogleMapController> getMapController() => _controller.future;
 
   /// markers are required to have unique ID. We'll use the lat/lng
   /// and keep track of all unique IDs (ignore duplicate lat/lng)
   Set<MarkerId> uniqueMarkerIds = {};
 
   List<MarkerPayload> _markerPayloads = [];
+  @override
+  List<MarkerPayload> getMarkerPayloads() => _markerPayloads;
+
   MarkerId? _selectedMarkerId;
   Widget? _overlayWidget;
 
   // misc
-  Position? currentLocation;
   LatLng? initialCameraLatLng;
   int? initialCameraZoom;
+
+  Position? currentLocation;
+  @override
+  Position? getCurrentLocation() => currentLocation;
+
+  @override
+  void didUpdateWidget(covariant Maps oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    widget.controller.mapActions = this;
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
 
+    widget.controller.mapActions = this;
     _getCurrentLocation();
     _initInitialCameraPosition(context);
     _registerMarkerListener(context);
   }
 
-  void _getCurrentLocation() async {
+  void _getCurrentLocation() {
     if (widget.controller.locationEnabled) {
-      currentLocation = (await getLocation()).location;
+      getLocation().then((device) {
+        currentLocation = device.location;
+
+        if (widget.controller.autoZoom &&
+            currentLocation != null &&
+            widget.controller.includeCurrentLocationInAutoZoom) {
+          zoomToFit();
+        }
+      });
     }
   }
 
@@ -75,32 +106,32 @@ class MapsState extends WidgetState<Maps>
     }
   }
 
-  void _updateMarkers(BuildContext context, List dataList) async {
-    List<MarkerPayload> markerPayloads =
-        _buildMarkerPayloads(context, dataList);
+  void _updateMarkers(BuildContext context, List dataList) {
+    List<MarkerPayload> payloads = _buildMarkerPayloads(context, dataList);
 
     // we have the Lat/Lng of each marker, zoom map to fit
-    _runAutoZoom(markerPayloads.map((e) => e.latLng).toList());
-
-    // now build the actual markers
-    _buildMarkers(markerPayloads);
-  }
-
-  void _runAutoZoom(List<LatLng> locations) async {
-    if (widget.controller.autoZoom != false) {
-      List<LatLng> points = locations.toList(growable: true);
+    if (widget.controller.autoZoom) {
+      List<LatLng> points = payloads.map((e) => e.latLng).toList();
       if (currentLocation != null &&
-          widget.controller.includeCurrentLocationInAutoZoom != false) {
+          widget.controller.includeCurrentLocationInAutoZoom) {
         points
             .add(LatLng(currentLocation!.latitude, currentLocation!.longitude));
       }
-      LatLngBounds? bound = MapsUtils.calculateBounds(points);
-      if (bound != null) {
-        CameraUpdate cameraUpdate = CameraUpdate.newLatLngBounds(
-            bound, widget.controller.autoZoomPadding?.toDouble() ?? 50);
-        _controller.future
-            .then((controller) => controller.animateCamera(cameraUpdate));
-      }
+      zoom(points);
+    }
+
+    // now build the actual markers
+    _buildMarkers(payloads);
+  }
+
+  @override
+  void zoom(List<LatLng> points) {
+    LatLngBounds? bound = MapsUtils.calculateBounds(points);
+    if (bound != null) {
+      CameraUpdate cameraUpdate = CameraUpdate.newLatLngBounds(
+          bound, widget.controller.autoZoomPadding?.toDouble() ?? 50);
+      _controller.future
+          .then((controller) => controller.animateCamera(cameraUpdate));
     }
   }
 
@@ -108,7 +139,7 @@ class MapsState extends WidgetState<Maps>
   /// payloads are quick and sufficient to draw a Map boundary.
   List<MarkerPayload> _buildMarkerPayloads(
       BuildContext context, List dataList) {
-    List<MarkerPayload> markerPayloads = [];
+    List<MarkerPayload> payloads = [];
 
     MarkerItemTemplate? itemTemplate = widget.controller.markerItemTemplate;
     ScopeManager? myScope = DataScopeWidget.getScope(context);
@@ -123,15 +154,15 @@ class MapsState extends WidgetState<Maps>
         double? lng =
             Utils.optionalDouble(dataScope.dataContext.eval(itemTemplate.lng));
         if (lat != null && lng != null) {
-          markerPayloads.add(
+          payloads.add(
               MarkerPayload(scopeManager: dataScope, latLng: LatLng(lat, lng)));
         }
       }
     }
-    return markerPayloads;
+    return payloads;
   }
 
-  void _buildMarkers(List<MarkerPayload> markerPayloads) async {
+  void _buildMarkers(List<MarkerPayload> payloads) async {
     MarkerTemplate? markerTemplate = widget.controller.markerTemplate;
     MarkerTemplate? selectedMarkerTemplate =
         widget.controller.selectedMarkerTemplate;
@@ -144,8 +175,8 @@ class MapsState extends WidgetState<Maps>
 
     bool foundSelectedMarker = false;
     uniqueMarkerIds.clear();
-    for (int i = 0; i < markerPayloads.length; i++) {
-      MarkerPayload markerPayload = markerPayloads[i];
+    for (int i = 0; i < payloads.length; i++) {
+      MarkerPayload markerPayload = payloads[i];
 
       // ignore marker with duplicate Lat/Lng
       MarkerId markerId = MarkerId(markerPayload.latLng.hashCode.toString());
@@ -205,22 +236,36 @@ class MapsState extends WidgetState<Maps>
     }
 
     setState(() {
-      _markerPayloads = markerPayloads;
+      _markerPayloads = payloads;
     });
+
+    if (itemTemplate.onMarkersUpdated != null) {
+      ScreenController().executeAction(context, itemTemplate.onMarkersUpdated!,
+          event: EnsembleEvent(widget));
+    }
   }
 
-  void _selectMarker(MarkerId markerId) async {
+  void _selectMarker(MarkerId markerId) {
     if (markerId != _selectedMarkerId) {
       // first reset the previously selected marker
       if (_selectedMarkerId != null) {
         MarkerPayload? previousSelectedMarker =
             _getMarkerPayloadById(_selectedMarkerId!);
         if (previousSelectedMarker != null) {
-          BitmapDescriptor markerAsset = await _buildMarkerFromTemplate(
-                  previousSelectedMarker, widget.controller.markerTemplate) ??
-              BitmapDescriptor.defaultMarker;
-          previousSelectedMarker.marker =
-              previousSelectedMarker.marker?.copyWith(iconParam: markerAsset);
+          _buildMarkerFromTemplate(
+                  previousSelectedMarker, widget.controller.markerTemplate)
+              .then((asset) {
+            asset ??= BitmapDescriptor.defaultMarker;
+            setState(() {
+              previousSelectedMarker.marker =
+                  previousSelectedMarker.marker?.copyWith(iconParam: asset);
+            });
+          });
+          // BitmapDescriptor markerAsset = await _buildMarkerFromTemplate(
+          //         previousSelectedMarker, widget.controller.markerTemplate) ??
+          //     BitmapDescriptor.defaultMarker;
+          // previousSelectedMarker.marker =
+          //     previousSelectedMarker.marker?.copyWith(iconParam: markerAsset);
         }
       }
 
@@ -229,16 +274,27 @@ class MapsState extends WidgetState<Maps>
       MarkerPayload? newSelectedMarker =
           _getMarkerPayloadById(_selectedMarkerId!);
       if (newSelectedMarker != null) {
-        // update marker
-        BitmapDescriptor markerAsset = await _buildMarkerFromTemplate(
+        _buildMarkerFromTemplate(
                 newSelectedMarker,
                 widget.controller.selectedMarkerTemplate ??
-                    widget.controller.markerTemplate) ??
-            BitmapDescriptor.defaultMarker;
-        if (markerAsset != null) {
-          newSelectedMarker.marker =
-              newSelectedMarker.marker?.copyWith(iconParam: markerAsset);
-        }
+                    widget.controller.markerTemplate)
+            .then((asset) {
+          asset ??= BitmapDescriptor.defaultMarker;
+          setState(() {
+            newSelectedMarker.marker =
+                newSelectedMarker.marker?.copyWith(iconParam: asset);
+          });
+        });
+
+        // BitmapDescriptor markerAsset = await _buildMarkerFromTemplate(
+        //         newSelectedMarker,
+        //         widget.controller.selectedMarkerTemplate ??
+        //             widget.controller.markerTemplate) ??
+        //     BitmapDescriptor.defaultMarker;
+        // if (markerAsset != null) {
+        //   newSelectedMarker.marker =
+        //       newSelectedMarker.marker?.copyWith(iconParam: markerAsset);
+        // }
 
         // update overlay
         if (widget.controller.overlayTemplate != null) {
@@ -325,7 +381,7 @@ class MapsState extends WidgetState<Maps>
   Widget buildWidget(BuildContext context) {
     return Stack(children: [
       GoogleMap(
-        onMapCreated: (controller) => _controller.complete(controller),
+        onMapCreated: _onMapCreated,
         myLocationEnabled: widget.controller.locationEnabled,
         mapType: widget.controller.mapType ?? MapType.normal,
         myLocationButtonEnabled: false,
@@ -346,6 +402,15 @@ class MapsState extends WidgetState<Maps>
             )
           : const SizedBox.shrink()
     ]);
+  }
+
+  void _onMapCreated(GoogleMapController controller) async {
+    _controller.complete(controller);
+
+    if (widget.controller.onMapCreated != null) {
+      ScreenController().executeAction(context, widget.controller.onMapCreated!,
+          event: EnsembleEvent(widget));
+    }
   }
 
   void _onCameraMove(CameraPosition position) async {

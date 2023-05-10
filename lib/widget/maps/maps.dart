@@ -9,6 +9,7 @@ import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:ensemble/widget/maps/map_actions.dart';
 import 'package:ensemble/widget/maps/maps_state.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -34,19 +35,23 @@ class Maps extends StatefulWidget
       'height': (value) => _controller.height = Utils.optionalInt(value),
       'initialCameraPosition': (cameraPosition) =>
           _controller.initialCameraPosition = cameraPosition,
-      'autoZoom': (value) => _controller.autoZoom = Utils.optionalBool(value),
+      'autoZoom': (value) => _controller.autoZoom =
+          Utils.getBool(value, fallback: _controller.autoZoom),
       'autoZoomPadding': (value) =>
           _controller.autoZoomPadding = Utils.optionalInt(value),
       'locationEnabled': (value) => _controller.locationEnabled =
           Utils.getBool(value, fallback: _controller.locationEnabled),
-      'includeCurrentLocationInAutoZoom': (value) => _controller
-          .includeCurrentLocationInAutoZoom = Utils.optionalBool(value),
+      'includeCurrentLocationInAutoZoom': (value) =>
+          _controller.includeCurrentLocationInAutoZoom = Utils.getBool(value,
+              fallback: _controller.includeCurrentLocationInAutoZoom),
       'mapType': (value) => _controller.mapType = value,
       'markers': (markerData) => setMarkers(markerData),
       'scrollableOverlay': (value) => _controller.scrollableOverlay =
           Utils.getBool(value, fallback: _controller.scrollableOverlay),
       'autoSelect': (value) => _controller.autoSelect =
           Utils.getBool(value, fallback: _controller.autoSelect),
+      'onMapCreated': (action) => _controller.onMapCreated =
+          EnsembleAction.fromYaml(action, initiator: this),
       'onCameraMove': (action) => _controller.onCameraMove =
           EnsembleAction.fromYaml(action, initiator: this),
     };
@@ -74,6 +79,9 @@ class Maps extends StatefulWidget
                 widget: markerData['selectedMarker']?['widget']),
             overlayTemplate: markerData['overlayWidget'],
             onMarkerTap: EnsembleAction.fromYaml(markerData['onMarkerTap'],
+                initiator: this),
+            onMarkersUpdated: EnsembleAction.fromYaml(
+                markerData['onMarkersUpdated'],
                 initiator: this));
       }
     }
@@ -86,11 +94,16 @@ class Maps extends StatefulWidget
 
   @override
   Map<String, Function> methods() {
-    return {};
+    return {
+      'runAutoZoom': () => _controller.mapActions?.zoomToFit(),
+      'moveCamera': (double lat, double lng, int? zoom) =>
+          _controller.mapActions?.moveCamera(LatLng(lat, lng), zoom: zoom)
+    };
   }
 }
 
 class MyController extends WidgetController with LocationCapability {
+  MapActions? mapActions;
   // a size is required, either explicit or via parent
   int? height;
   int? width;
@@ -101,11 +114,13 @@ class MyController extends WidgetController with LocationCapability {
   bool scrollableOverlay = false;
   bool autoSelect = true;
 
-  bool? autoZoom;
+  bool autoZoom = false;
   int? autoZoomPadding;
   bool locationEnabled = false;
-  bool? includeCurrentLocationInAutoZoom;
+  bool includeCurrentLocationInAutoZoom = true;
 
+  EnsembleAction? onMapCreated;
+  EnsembleAction? onMarkersUpdated;
   EnsembleAction? onCameraMove;
 
   MapType? _mapType;
@@ -142,7 +157,8 @@ class MarkerItemTemplate extends ItemTemplate {
       required this.lng,
       this.selectedTemplate,
       this.overlayTemplate,
-      this.onMarkerTap})
+      this.onMarkerTap,
+      this.onMarkersUpdated})
       : super(data, name, template);
 
   String lat;
@@ -155,6 +171,7 @@ class MarkerItemTemplate extends ItemTemplate {
   dynamic overlayTemplate;
 
   EnsembleAction? onMarkerTap;
+  EnsembleAction? onMarkersUpdated;
 }
 
 /// a marker template and selectedTemplate can take in an image, an icon, or a custom widget
