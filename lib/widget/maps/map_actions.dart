@@ -24,9 +24,9 @@ mixin MapActions on MapsActionableState {
   }
 
   void moveCamera(LatLng target, {int? zoom}) {
-    getMapController().then((controller) => CameraUpdate.newCameraPosition(
-        zoom != null
+    getMapController().then((controller) => controller.moveCamera(
+        CameraUpdate.newCameraPosition(zoom != null
             ? CameraPosition(target: target, zoom: zoom.toDouble())
-            : CameraPosition(target: target)));
+            : CameraPosition(target: target))));
   }
 }
