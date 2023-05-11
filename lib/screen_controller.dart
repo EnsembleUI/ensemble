@@ -411,7 +411,7 @@ class ScreenController {
       }
     } else if (action is CopyToClipboardAction) {
       if (action.value != null) {
-        Clipboard.setData(ClipboardData(text: action.value)).then((value) {
+        Clipboard.setData(ClipboardData(text: action.value!)).then((value) {
           if (action.onSuccess != null) {
             executeAction(context, action.onSuccess!);
           }
