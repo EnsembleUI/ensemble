@@ -2440,6 +2440,7 @@
     "Widget": {
       "anyOf": [
         {
+          "title": "Text",
           "properties": {
             "Text": {
               "$ref": "#/$defs/Text-payload",
@@ -2448,6 +2449,7 @@
           }
         },
         {
+          "title": "Markdown",
           "properties": {
             "Markdown": {
               "$ref": "#/$defs/Markdown-payload",
@@ -2456,6 +2458,7 @@
           }
         },
         {
+          "title": "Html",
           "properties": {
             "Html": {
               "$ref": "#/$defs/Html-payload",
@@ -2464,6 +2467,7 @@
           }
         },
         {
+          "title": "Icon",
           "properties": {
             "Icon": {
               "$ref": "#/$defs/Icon-payload",
@@ -2472,6 +2476,7 @@
           }
         },
         {
+          "title": "Image",
           "properties": {
             "Image": {
               "$ref": "#/$defs/Image-payload",
@@ -2480,6 +2485,7 @@
           }
         },
         {
+          "title": "Lottie",
           "properties": {
             "Lottie": {
               "$ref": "#/$defs/Lottie-payload"
@@ -2487,6 +2493,7 @@
           }
         },
         {
+          "title": "QRCode",
           "properties": {
             "QRCode": {
               "$ref": "#/$defs/QRCode-payload"
@@ -2494,6 +2501,7 @@
           }
         },
         {
+          "title": "Progress",
           "properties": {
             "Progress": {
               "$ref": "#/$defs/Progress-payload",
@@ -2502,6 +2510,7 @@
           }
         },
         {
+          "title": "Divider",
           "properties": {
             "Divider": {
               "$ref": "#/$defs/Divider-payload",
@@ -2510,6 +2519,7 @@
           }
         },
         {
+          "title": "Spacer",
           "properties": {
             "Spacer": {
               "$ref": "#/$defs/Spacer-payload",
@@ -2518,6 +2528,7 @@
           }
         },
         {
+          "title": "TextInput",
           "properties": {
             "TextInput": {
               "$ref": "#/$defs/TextInput-payload",
@@ -2526,6 +2537,7 @@
           }
         },
         {
+          "title": "PasswordInput",
           "properties": {
             "PasswordInput": {
               "$ref": "#/$defs/PasswordInput-payload",
@@ -2534,6 +2546,7 @@
           }
         },
         {
+          "title": "Checkbox",
           "properties": {
             "Checkbox": {
               "$ref": "#/$defs/OnOff-payload",
@@ -2542,6 +2555,7 @@
           }
         },
         {
+          "title": "Switch",
           "properties": {
             "Switch": {
               "$ref": "#/$defs/OnOff-payload",
@@ -2550,6 +2564,7 @@
           }
         },
         {
+          "title": "Dropdown",
           "properties": {
             "Dropdown": {
               "$ref": "#/$defs/SelectOne-payload",
@@ -2558,6 +2573,7 @@
           }
         },
         {
+          "title": "Date",
           "properties": {
             "Date": {
               "$ref": "#/$defs/Date-payload",
@@ -2566,6 +2582,7 @@
           }
         },
         {
+          "title": "Time",
           "properties": {
             "Time": {
               "$ref": "#/$defs/Time-payload",
@@ -2574,6 +2591,7 @@
           }
         },
         {
+          "title": "Button",
           "properties": {
             "Button": {
               "$ref": "#/$defs/Button-payload",
@@ -2582,6 +2600,7 @@
           }
         },
         {
+          "title": "Form",
           "properties": {
             "Form": {
               "$ref": "#/$defs/Form-payload",
@@ -2590,6 +2609,7 @@
           }
         },
         {
+          "title": "Flow",
           "properties": {
             "Flow": {
               "$ref": "#/$defs/Flow-payload",
@@ -2598,6 +2618,7 @@
           }
         },
         {
+          "title": "Column",
           "properties": {
             "Column": {
               "$ref": "#/$defs/Column-payload",
@@ -2606,6 +2627,7 @@
           }
         },
         {
+          "title": "ListView",
           "properties": {
             "ListView": {
               "$ref": "#/$defs/ListView-payload",
@@ -2614,6 +2636,7 @@
           }
         },
         {
+          "title": "Row",
           "properties": {
             "Row": {
               "$ref": "#/$defs/Row-payload",
@@ -2622,6 +2645,7 @@
           }
         },
         {
+          "title": "FittedColumn",
           "properties": {
             "FittedColumn": {
               "type": "object",
@@ -2631,6 +2655,7 @@
           }
         },
         {
+          "title": "FittedRow",
           "properties": {
             "FittedRow": {
               "type": "object",
@@ -2640,6 +2665,7 @@
           }
         },
         {
+          "title": "GridView",
           "properties": {
             "GridView": {
               "$ref": "#/$defs/GridView-payload",
@@ -2648,6 +2674,7 @@
           }
         },
         {
+          "title": "Flex",
           "properties": {
             "Flex": {
               "$ref": "#/$defs/Flex-payload",
@@ -2656,6 +2683,7 @@
           }
         },
         {
+          "title": "Stack",
           "properties": {
             "Stack": {
               "$ref": "#/$defs/Stack-payload",
@@ -2664,6 +2692,7 @@
           }
         },
         {
+          "title": "Carousel",
           "properties": {
             "Carousel": {
               "$ref": "#/$defs/Carousel-payload",
@@ -2672,6 +2701,7 @@
           }
         },
         {
+          "title": "TabBar",
           "properties": {
             "TabBar": {
               "$ref": "#/$defs/TabBar-payload",
@@ -2680,6 +2710,7 @@
           }
         },
         {
+          "title": "Map",
           "properties": {
             "Map": {
               "$ref": "#/$defs/Map-payload",
@@ -2688,6 +2719,7 @@
           }
         },
         {
+          "title": "Maps",
           "properties": {
             "Maps": {
               "$ref": "#/$defs/Maps-payload"
@@ -2695,6 +2727,7 @@
           }
         },
         {
+          "title": "Video",
           "properties": {
             "Video": {
               "$ref": "#/$defs/Video-payload",
@@ -2703,6 +2736,7 @@
           }
         },
         {
+          "title": "WebView",
           "properties": {
             "WebView": {
               "$ref": "#/$defs/WebView-payload",
@@ -2711,6 +2745,7 @@
           }
         },
         {
+          "title": "ChartJs",
           "properties": {
             "ChartJs": {
               "$ref": "#/$defs/ChartJs-payload",
@@ -2719,6 +2754,7 @@
           }
         },
         {
+          "type": "Conditional",
           "properties": {
             "Conditional": {
               "type": "object",
@@ -3238,9 +3274,11 @@
     "typeColors": {
       "oneOf": [
         {
+          "title": "number",
           "type": "integer"
         },
         {
+          "title": "name",
           "type": "string",
           "enum": [
             "transparent",
@@ -3263,6 +3301,7 @@
           ]
         },
         {
+          "title": "hexadecimal",
           "type": "string",
           "pattern": "^0x"
         }
