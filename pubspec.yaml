@@ -84,6 +84,10 @@ dependencies:
   http_parser: ^4.0.2
   shared_preferences: ^2.0.15
   get_it: ^7.3.0
+  google_maps_flutter: ^2.2.6
+  google_maps_flutter_web: ^0.4.0+8
+  workmanager: ^0.5.1
+  flutter_local_notifications: ^13.0.0
 
 dev_dependencies:
   flutter_test:
@@ -124,7 +128,7 @@ flutter:
         - asset: assets/fonts/Jost-VariableFont_wght.ttf
         - asset: assets/fonts/Jost-Italic-VariableFont_wght.ttf
           style: italic
-    
+
     - family: Inter
       fonts:
         - asset: assets/fonts/inter/Inter-Regular.ttf
