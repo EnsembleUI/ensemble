@@ -1592,6 +1592,7 @@
     "Action-payload": {
       "anyOf": [
         {
+          "title": "Navigate Screen",
           "properties": {
             "navigateScreen": {
               "type": "object",
@@ -1626,6 +1627,7 @@
           }
         },
         {
+          "title": "Navigate Modal Screen",
           "properties": {
             "navigateModalScreen": {
               "type": "object",
@@ -1651,6 +1653,7 @@
           }
         },
         {
+          "title": "Navigate Back",
           "properties": {
             "navigateBack": {
               "type": "object",
@@ -1659,6 +1662,7 @@
           }
         },
         {
+          "title": "Invoke API",
           "properties": {
             "invokeAPI": {
               "type": "object",
@@ -1692,6 +1696,7 @@
           }
         },
         {
+          "title": "Open Camera",
           "properties": {
             "openCamera": {
               "type": "object",
@@ -1818,6 +1823,7 @@
           }
         },
         {
+          "title": "Show Dialog",
           "properties": {
             "showDialog": {
               "type": "object",
@@ -1878,6 +1884,7 @@
           }
         },
         {
+          "title": "Close All Dialogs",
           "properties": {
             "closeAllDialogs": {
               "type": "object",
@@ -1886,6 +1893,7 @@
           }
         },
         {
+          "title": "Start Timer",
           "properties": {
             "startTimer": {
               "type": "object",
@@ -1939,6 +1947,7 @@
           }
         },
         {
+          "title": "Stop Timer",
           "properties": {
             "stopTimer": {
               "type": "object",
@@ -1956,6 +1965,7 @@
           }
         },
         {
+          "title": "Show Toast",
           "properties": {
             "showToast": {
               "type": "object",
@@ -2066,6 +2076,7 @@
           }
         },
         {
+          "title": "Execute Code",
           "properties": {
             "executeCode": {
               "description": "Execute a block of code.",
@@ -2087,6 +2098,7 @@
           }
         },
         {
+          "title": "Get Location",
           "properties": {
             "getLocation": {
               "type": "object",
@@ -2119,6 +2131,7 @@
           }
         },
         {
+          "title": "Upload Files",
           "properties": {
             "uploadFiles": {
               "type": "object",
@@ -2197,6 +2210,7 @@
           }
         },
         {
+          "title": "Pick Files",
           "properties": {
             "pickFiles": {
               "type": "object",
@@ -2226,6 +2240,7 @@
           }
         },
         {
+          "title": "Copy to Clipboard",
           "properties": {
             "copyToClipboard": {
               "type": "object",
@@ -2248,6 +2263,7 @@
           }
         },
         {
+          "title": "Connect Wallet",
           "properties": {
             "connectWallet": {
               "type": "object",
