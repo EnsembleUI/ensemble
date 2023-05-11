@@ -6,6 +6,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/gesture_detector.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/widget_util.dart';
 import 'package:flutter/foundation.dart';
@@ -275,11 +276,19 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
             Widget scopeWidget =
                 DataScopeWidget(scopeManager: rowScope.scopeManager, child: c);
 
-            cells.add(DataCell(GestureDetector(child: scopeWidget),
-                onTap: () => _onItemTap(index)));
+            cells.add(
+              DataCell(EnsembleGestureDetector(
+                child: scopeWidget,
+                onTap: () => _onItemTap(index),
+              )),
+            );
           } else {
-            cells.add(DataCell(GestureDetector(child: c),
-                onTap: () => _onItemTap(index)));
+            cells.add(
+              DataCell(EnsembleGestureDetector(
+                child: c,
+                onTap: () => _onItemTap(index),
+              )),
+            );
           }
         });
       }
