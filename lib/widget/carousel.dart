@@ -294,14 +294,7 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
   void _onItemTap(int index) {
     if (widget.controller.onItemTap != null) {
       widget._controller.selectedItemIndex = index;
-      // ScreenController().executeAction(context, widget._controller.onItemTap!, event: ExecuteCodeAction(initiator: , inputs: {'selectedItemIndex': index}));
-      if (widget.controller.onItemTap != null) {
-        ScreenController().executeAction(
-          context,
-          widget.controller.onItemTap!,
-          event: EnsembleEvent(widget, data: {'selectedItemIndex': index}),
-        );
-      }
+      ScreenController().executeAction(context, widget._controller.onItemTap!);
     }
   }
 

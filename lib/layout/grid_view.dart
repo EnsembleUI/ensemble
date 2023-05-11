@@ -8,6 +8,7 @@ import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/gesture_detector.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
@@ -208,7 +209,7 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
 
   dynamic _buildItem(int index) {
     if (widget._controller.onItemTap != null) {
-      return GestureDetector(
+      return EnsembleGestureDetector(
         onTap: (() => _onItemTap(index)),
         child: buildWidgetForIndex(
             context, _items, widget._controller.itemTemplate!, index),

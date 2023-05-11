@@ -4,6 +4,7 @@ import 'package:ensemble/framework/widget/custom_view.dart';
 import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/widget/gesture_detector.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
@@ -281,7 +282,7 @@ class ViewUtil {
       List<Widget> children, Function(int) onItemTap) {
     List<Widget> clickableWidgets = [];
     children.asMap().forEach((index, value) {
-      final child = GestureDetector(
+      final child = EnsembleGestureDetector(
         child: value,
         onTap: () => onItemTap(index),
       );
