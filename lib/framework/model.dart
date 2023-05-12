@@ -21,13 +21,9 @@ class BackgroundImage {
   final BoxFit _fit;
   final Alignment _alignment;
 
-  bool _isUrl() {
-    return _source.startsWith('https://') || _source.startsWith('http://');
-  }
-
   DecorationImage get asDecorationImage {
     ImageProvider imageProvider;
-    if (_isUrl()) {
+    if (Utils.isUrl(_source)) {
       imageProvider = NetworkImage(_source);
     } else {
       imageProvider = AssetImage(Utils.getLocalAssetFullPath(_source));
@@ -37,7 +33,7 @@ class BackgroundImage {
   }
 
   Widget get asImageWidget {
-    if (_isUrl()) {
+    if (Utils.isUrl(_source)) {
       return CachedNetworkImage(
         imageUrl: _source,
         fit: _fit,

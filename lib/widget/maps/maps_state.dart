@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
@@ -8,15 +9,17 @@ import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/util/debouncer.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/maps/map_actions.dart';
 import 'package:ensemble/widget/maps/maps.dart';
 import 'package:ensemble/widget/maps/maps_overlay.dart';
 import 'package:ensemble/widget/maps/maps_utils.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-
+import 'package:async/async.dart';
 import 'package:yaml/yaml.dart';
 
 import '../../framework/device.dart';
@@ -34,6 +37,9 @@ class MapsState extends MapsActionableState
       Completer<GoogleMapController>();
   @override
   Future<GoogleMapController> getMapController() => _controller.future;
+
+  // reduce # of onCameraMove
+  final _cameraMoveDebouncer = Debouncer(const Duration(milliseconds: 300));
 
   /// markers are required to have unique ID. We'll use the lat/lng
   /// and keep track of all unique IDs (ignore duplicate lat/lng)
@@ -372,7 +378,8 @@ class MapsState extends MapsActionableState
             markerPayload.scopeManager.dataContext.eval(template.source!);
         if (source != null) {
           if (markersCache[source] == null) {
-            var asset = await MapsUtils.fromAsset(template.source!);
+            log("fetch asset " + template.source!);
+            var asset = await MapsUtils.fromAsset(context, template.source!);
             if (asset != null) {
               markersCache[source] = asset;
             }
@@ -419,25 +426,41 @@ class MapsState extends MapsActionableState
       ScreenController().executeAction(context, widget.controller.onMapCreated!,
           event: EnsembleEvent(widget));
     }
+
+    // Native properly dispatches onCameraMove when map is created, but not Web.
+    // we dispatch the event manually for Web
+    if (kIsWeb && widget.controller.onCameraMove != null) {
+      _executeCameraMoveAction(
+          widget.controller.onCameraMove!, await controller.getVisibleRegion());
+    }
   }
 
   void _onCameraMove(CameraPosition position) async {
     if (widget.controller.onCameraMove != null) {
-      LatLngBounds bounds = await (await _controller.future).getVisibleRegion();
-      ScreenController().executeAction(context, widget.controller.onCameraMove!,
-          event: EnsembleEvent(widget, data: {
-            'bounds': {
-              "southwest": {
-                "lat": bounds.southwest.latitude,
-                "lng": bounds.southwest.longitude
-              },
-              "northeast": {
-                "lat": bounds.northeast.latitude,
-                "lng": bounds.northeast.longitude
-              }
-            }
-          }));
+      _cameraMoveDebouncer.run(() async {
+        LatLngBounds bounds =
+            await (await _controller.future).getVisibleRegion();
+        _executeCameraMoveAction(widget.controller.onCameraMove!, bounds);
+        log("Camera moved");
+      });
     }
+  }
+
+  void _executeCameraMoveAction(
+      EnsembleAction onCameraMove, LatLngBounds bounds) {
+    ScreenController().executeAction(context, onCameraMove,
+        event: EnsembleEvent(widget, data: {
+          'bounds': {
+            "southwest": {
+              "lat": bounds.southwest.latitude,
+              "lng": bounds.southwest.longitude
+            },
+            "northeast": {
+              "lat": bounds.northeast.latitude,
+              "lng": bounds.northeast.longitude
+            }
+          }
+        }));
   }
 
   Set<Marker> _getMarkers() {
