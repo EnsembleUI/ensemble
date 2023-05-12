@@ -21,7 +21,7 @@
           "description": "Configure the application header",
           "properties": {
             "title": {
-              "anyOf": [{
+              "oneOf": [{
                 "type": "string"
               }, {
                 "$ref": "#/$defs/Widget"
@@ -291,7 +291,7 @@
                   ]
                 },
                 "lineHeight": {
-                  "anyOf": [
+                  "oneOf": [
                     {
                       "title": "string",
                       "type": "string"
@@ -671,7 +671,7 @@
                   "type": "integer"
                 },
                 "color": {
-                  "anyOf": [
+                  "oneOf": [
                     {
                       "title": "string",
                       "type": "string"
@@ -834,7 +834,7 @@
             "items": {
               "type": "array",
               "items": {
-                "anyOf": [{
+                "oneOf": [{
                   "type": "object",
                   "properties": {
                     "value": {
@@ -944,7 +944,7 @@
                   "description": "Whether the button should have an outline border instead of filled background"
                 },
                 "color": {
-                  "anyOf": [
+                  "oneOf": [
                     {
                       "title": "string",
                       "type": "string"
@@ -1037,6 +1037,7 @@
     },
     "Form-payload": {
       "type": "object",
+      "required": ["children"],
       "properties": {
         "enabled": {
           "type": "boolean"
@@ -1093,11 +1094,12 @@
     },
     "Flow-payload": {
       "type": "object",
-      "anyOf": [
+      "oneOf": [
         {
           "$ref": "#/$defs/Templated-payload"
         },
         {
+          "required": ["children"],
           "properties": {
             "children": {
               "$ref": "#/$defs/Widgets"
@@ -1119,11 +1121,12 @@
     },
     "Column-payload": {
       "type": "object",
-      "anyOf": [
+      "oneOf": [
         {
           "$ref": "#/$defs/Templated-payload"
         },
         {
+          "required": ["children"],
           "properties": {
             "children": {
               "$ref": "#/$defs/Widgets"
@@ -1137,11 +1140,12 @@
     },
     "Row-payload": {
       "type": "object",
-      "anyOf": [
+      "oneOf": [
         {
           "$ref": "#/$defs/Templated-payload"
         },
         {
+          "required": ["children"],
           "properties": {
             "children": {
               "$ref": "#/$defs/Widgets"
@@ -1155,7 +1159,7 @@
     },
     "GridView-payload": {
       "type": "object",
-      "anyOf": [
+      "oneOf": [
         {
           "$ref": "#/$defs/Templated-payload"
         },
@@ -1176,7 +1180,7 @@
                 {
                   "properties": {
                     "horizontalTileCount": {
-                      "anyOf": [
+                      "oneOf": [
                         {
                           "title": "string",
                           "type": "string"
@@ -1220,8 +1224,9 @@
     },
     "Flex-payload": {
       "type": "object",
-      "anyOf": [
+      "oneOf": [
         {
+          "required": ["children"],
           "properties": {
             "children": {
               "$ref": "#/$defs/Widgets"
@@ -1238,6 +1243,7 @@
     },
     "Stack-payload": {
       "type": "object",
+      "required": ["children"],
       "properties": {
         "children": {
           "$ref": "#/$defs/Widgets"
@@ -1254,11 +1260,12 @@
     },
     "ListView-payload": {
       "type": "object",
-      "anyOf": [
+      "oneOf": [
         {
           "$ref": "#/$defs/Templated-payload"
         },
         {
+          "required": ["children"],
           "properties": {
             "children": {
               "$ref": "#/$defs/Widgets"
@@ -1295,7 +1302,7 @@
                       "description": "The thickness of the separator between items"
                     },
                     "separatorPadding": {
-                      "anyOf": [
+                      "oneOf": [
                         {
                           "title": "string",
                           "type": "string"
@@ -1317,8 +1324,9 @@
     },
     "Carousel-payload": {
       "type": "object",
-      "anyOf": [
+      "oneOf": [
         {
+          "required": ["children"],
           "properties": {
             "children": {
               "$ref": "#/$defs/Widgets"
@@ -1400,7 +1408,7 @@
                       "type": "integer"
                     },
                     "indicatorMargin": {
-                      "anyOf": [
+                      "oneOf": [
                         {
                           "title": "string",
                           "type": "string"
@@ -1425,9 +1433,11 @@
     },
     "Templated-payload": {
       "type": "object",
+      "required": ["item-template"],
       "properties": {
         "item-template": {
           "type": "object",
+          "required": ["template"],
           "properties": {
             "data": {
               "type": "string",
@@ -1507,7 +1517,7 @@
                   ]
                 },
                 "contentPadding": {
-                  "anyOf": [
+                  "oneOf": [
                     {
                       "title": "string",
                       "type": "string"
@@ -1590,9 +1600,10 @@
       ]
     },
     "Action-payload": {
-      "anyOf": [
+      "oneOf": [
         {
           "title": "Navigate Screen",
+          "required": ["navigateScreen"],
           "properties": {
             "navigateScreen": {
               "type": "object",
@@ -1628,6 +1639,7 @@
         },
         {
           "title": "Navigate Modal Screen",
+          "required": ["navigateModalScreen"],
           "properties": {
             "navigateModalScreen": {
               "type": "object",
@@ -1654,6 +1666,7 @@
         },
         {
           "title": "Navigate Back",
+          "required": ["navigateBack"],
           "properties": {
             "navigateBack": {
               "type": "object",
@@ -1663,6 +1676,7 @@
         },
         {
           "title": "Invoke API",
+          "required": ["invokeAPI"],
           "properties": {
             "invokeAPI": {
               "type": "object",
@@ -1697,6 +1711,7 @@
         },
         {
           "title": "Open Camera",
+          "required": ["openCamera"],
           "properties": {
             "openCamera": {
               "type": "object",
@@ -1824,6 +1839,7 @@
         },
         {
           "title": "Show Dialog",
+          "required": ["showDialog"],
           "properties": {
             "showDialog": {
               "type": "object",
@@ -1885,6 +1901,7 @@
         },
         {
           "title": "Close All Dialogs",
+          "required": ["closeAllDialogs"],
           "properties": {
             "closeAllDialogs": {
               "type": "object",
@@ -1894,6 +1911,7 @@
         },
         {
           "title": "Start Timer",
+          "required": ["startTimer"],
           "properties": {
             "startTimer": {
               "type": "object",
@@ -1948,6 +1966,7 @@
         },
         {
           "title": "Stop Timer",
+          "required": ["stopTimer"],
           "properties": {
             "stopTimer": {
               "type": "object",
@@ -1966,6 +1985,7 @@
         },
         {
           "title": "Show Toast",
+          "required": ["showToast"],
           "properties": {
             "showToast": {
               "type": "object",
@@ -2039,7 +2059,7 @@
                     {
                       "properties": {
                         "shadowColor": {
-                          "anyOf": [
+                          "oneOf": [
                             {
                               "title": "string",
                               "type": "string"
@@ -2077,6 +2097,7 @@
         },
         {
           "title": "Execute Code",
+          "required": ["executeCode"],
           "properties": {
             "executeCode": {
               "description": "Execute a block of code.",
@@ -2099,6 +2120,7 @@
         },
         {
           "title": "Get Location",
+          "required": ["getLocation"],
           "properties": {
             "getLocation": {
               "type": "object",
@@ -2132,6 +2154,7 @@
         },
         {
           "title": "Upload Files",
+          "required": ["uploadFiles"],
           "properties": {
             "uploadFiles": {
               "type": "object",
@@ -2211,6 +2234,7 @@
         },
         {
           "title": "Pick Files",
+          "required": ["pickFiles"],
           "properties": {
             "pickFiles": {
               "type": "object",
@@ -2241,6 +2265,7 @@
         },
         {
           "title": "Copy to Clipboard",
+          "required": ["copyToClipboard"],
           "properties": {
             "copyToClipboard": {
               "type": "object",
@@ -2264,6 +2289,7 @@
         },
         {
           "title": "Connect Wallet",
+          "required": ["connectWallet"],
           "properties": {
             "connectWallet": {
               "type": "object",
@@ -2408,7 +2434,7 @@
                   ]
                 },
                 "itemPadding": {
-                  "anyOf": [
+                  "oneOf": [
                     {
                       "title": "string",
                       "type": "string"
@@ -2438,9 +2464,10 @@
       }
     },
     "Widget": {
-      "anyOf": [
+      "oneOf": [
         {
           "title": "Text",
+          "required": ["Text"],
           "properties": {
             "Text": {
               "$ref": "#/$defs/Text-payload",
@@ -2450,6 +2477,7 @@
         },
         {
           "title": "Markdown",
+          "required": ["Markdown"],
           "properties": {
             "Markdown": {
               "$ref": "#/$defs/Markdown-payload",
@@ -2459,6 +2487,7 @@
         },
         {
           "title": "Html",
+          "required": ["Html"],
           "properties": {
             "Html": {
               "$ref": "#/$defs/Html-payload",
@@ -2468,6 +2497,7 @@
         },
         {
           "title": "Icon",
+          "required": ["Icon"],
           "properties": {
             "Icon": {
               "$ref": "#/$defs/Icon-payload",
@@ -2477,6 +2507,7 @@
         },
         {
           "title": "Image",
+          "required": ["Image"],
           "properties": {
             "Image": {
               "$ref": "#/$defs/Image-payload",
@@ -2486,6 +2517,7 @@
         },
         {
           "title": "Lottie",
+          "required": ["Lottie"],
           "properties": {
             "Lottie": {
               "$ref": "#/$defs/Lottie-payload"
@@ -2494,6 +2526,7 @@
         },
         {
           "title": "QRCode",
+          "required": ["QRCode"],
           "properties": {
             "QRCode": {
               "$ref": "#/$defs/QRCode-payload"
@@ -2502,6 +2535,7 @@
         },
         {
           "title": "Progress",
+          "required": ["Progress"],
           "properties": {
             "Progress": {
               "$ref": "#/$defs/Progress-payload",
@@ -2511,6 +2545,7 @@
         },
         {
           "title": "Divider",
+          "required": ["Divider"],
           "properties": {
             "Divider": {
               "$ref": "#/$defs/Divider-payload",
@@ -2520,6 +2555,7 @@
         },
         {
           "title": "Spacer",
+          "required": ["Spacer"],
           "properties": {
             "Spacer": {
               "$ref": "#/$defs/Spacer-payload",
@@ -2529,6 +2565,7 @@
         },
         {
           "title": "TextInput",
+          "required": ["TextInput"],
           "properties": {
             "TextInput": {
               "$ref": "#/$defs/TextInput-payload",
@@ -2538,6 +2575,7 @@
         },
         {
           "title": "PasswordInput",
+          "required": ["PasswordInput"],
           "properties": {
             "PasswordInput": {
               "$ref": "#/$defs/PasswordInput-payload",
@@ -2547,6 +2585,7 @@
         },
         {
           "title": "Checkbox",
+          "required": ["Checkbox"],
           "properties": {
             "Checkbox": {
               "$ref": "#/$defs/OnOff-payload",
@@ -2556,6 +2595,7 @@
         },
         {
           "title": "Switch",
+          "required": ["Switch"],
           "properties": {
             "Switch": {
               "$ref": "#/$defs/OnOff-payload",
@@ -2565,6 +2605,7 @@
         },
         {
           "title": "Dropdown",
+          "required": ["Dropdown"],
           "properties": {
             "Dropdown": {
               "$ref": "#/$defs/SelectOne-payload",
@@ -2574,6 +2615,7 @@
         },
         {
           "title": "Date",
+          "required": ["Date"],
           "properties": {
             "Date": {
               "$ref": "#/$defs/Date-payload",
@@ -2583,6 +2625,7 @@
         },
         {
           "title": "Time",
+          "required": ["Time"],
           "properties": {
             "Time": {
               "$ref": "#/$defs/Time-payload",
@@ -2592,6 +2635,7 @@
         },
         {
           "title": "Button",
+          "required": ["Button"],
           "properties": {
             "Button": {
               "$ref": "#/$defs/Button-payload",
@@ -2601,6 +2645,7 @@
         },
         {
           "title": "Form",
+          "required": ["Form"],
           "properties": {
             "Form": {
               "$ref": "#/$defs/Form-payload",
@@ -2610,6 +2655,7 @@
         },
         {
           "title": "Flow",
+          "required": ["Flow"],
           "properties": {
             "Flow": {
               "$ref": "#/$defs/Flow-payload",
@@ -2619,6 +2665,7 @@
         },
         {
           "title": "Column",
+          "required": ["Column"],
           "properties": {
             "Column": {
               "$ref": "#/$defs/Column-payload",
@@ -2628,6 +2675,7 @@
         },
         {
           "title": "ListView",
+          "required": ["ListView"],
           "properties": {
             "ListView": {
               "$ref": "#/$defs/ListView-payload",
@@ -2637,6 +2685,7 @@
         },
         {
           "title": "Row",
+          "required": ["Row"],
           "properties": {
             "Row": {
               "$ref": "#/$defs/Row-payload",
@@ -2646,6 +2695,7 @@
         },
         {
           "title": "FittedColumn",
+          "required": ["FittedColumn"],
           "properties": {
             "FittedColumn": {
               "type": "object",
@@ -2656,6 +2706,7 @@
         },
         {
           "title": "FittedRow",
+          "required": ["FittedRow"],
           "properties": {
             "FittedRow": {
               "type": "object",
@@ -2666,6 +2717,7 @@
         },
         {
           "title": "GridView",
+          "required": ["GridView"],
           "properties": {
             "GridView": {
               "$ref": "#/$defs/GridView-payload",
@@ -2675,6 +2727,7 @@
         },
         {
           "title": "Flex",
+          "required": ["Flex"],
           "properties": {
             "Flex": {
               "$ref": "#/$defs/Flex-payload",
@@ -2684,6 +2737,7 @@
         },
         {
           "title": "Stack",
+          "required": ["Stack"],
           "properties": {
             "Stack": {
               "$ref": "#/$defs/Stack-payload",
@@ -2693,6 +2747,7 @@
         },
         {
           "title": "Carousel",
+          "required": ["Carousel"],
           "properties": {
             "Carousel": {
               "$ref": "#/$defs/Carousel-payload",
@@ -2702,6 +2757,7 @@
         },
         {
           "title": "TabBar",
+          "required": ["TabBar"],
           "properties": {
             "TabBar": {
               "$ref": "#/$defs/TabBar-payload",
@@ -2711,6 +2767,7 @@
         },
         {
           "title": "Map",
+          "required": ["Map"],
           "properties": {
             "Map": {
               "$ref": "#/$defs/Map-payload",
@@ -2720,6 +2777,7 @@
         },
         {
           "title": "Maps",
+          "required": ["Maps"],
           "properties": {
             "Maps": {
               "$ref": "#/$defs/Maps-payload"
@@ -2728,6 +2786,7 @@
         },
         {
           "title": "Video",
+          "required": ["Video"],
           "properties": {
             "Video": {
               "$ref": "#/$defs/Video-payload",
@@ -2737,6 +2796,7 @@
         },
         {
           "title": "WebView",
+          "required": ["WebView"],
           "properties": {
             "WebView": {
               "$ref": "#/$defs/WebView-payload",
@@ -2746,6 +2806,7 @@
         },
         {
           "title": "ChartJs",
+          "required": ["ChartJs"],
           "properties": {
             "ChartJs": {
               "$ref": "#/$defs/ChartJs-payload",
@@ -2754,7 +2815,8 @@
           }
         },
         {
-          "type": "Conditional",
+          "title": "Conditional",
+          "required": ["Conditional"],
           "properties": {
             "Conditional": {
               "type": "object",
@@ -2848,7 +2910,7 @@
                   ]
                 },
                 "tabPadding": {
-                  "anyOf": [
+                  "oneOf": [
                     {
                       "title": "string",
                       "type": "string"
@@ -3220,7 +3282,7 @@
       "type": "object",
       "properties": {
         "padding": {
-          "anyOf": [
+          "oneOf": [
             {
               "title": "string",
               "type": "string"
@@ -3238,7 +3300,7 @@
       "type": "object",
       "properties": {
         "margin": {
-          "anyOf": [
+          "oneOf": [
             {
               "title": "string",
               "type": "string"
@@ -3256,7 +3318,7 @@
       "type": "object",
       "properties": {
         "borderRadius": {
-          "anyOf": [
+          "oneOf": [
             {
               "title": "string",
               "type": "string"
@@ -3378,6 +3440,7 @@
       ]
     },
     "fittedBoxLayout": {
+      "required": ["children"],
       "properties": {
         "children": {
           "$ref": "#/$defs/Widgets"
@@ -3419,7 +3482,7 @@
                   "type": "array",
                   "description": "Specify an array of non-zero integers or 'auto', each corresponding to a child. Setting 'auto' will let the child determines its own size, while setting a non-zero integer will determine the child's size multiple. The 'auto' children will be laid out first and get as much space as they need, then the left-over space will be distributed to the other children based on their size multiples.",
                   "items": {
-                    "anyOf": [
+                    "oneOf": [
                       {
                         "const": "auto",
                         "description": "Allow this selected child to determine its own size. This may give an error if the child doesn't have a dimension."
@@ -3838,7 +3901,7 @@
       "type": "object",
       "properties": {
         "shadowColor": {
-          "anyOf": [
+          "oneOf": [
             {
               "title": "string",
               "type": "string"
@@ -3902,7 +3965,7 @@
       "description": "Specifies the icon to use. You can also use the short-handed syntax 'iconName iconLibrary')",
       "properties": {
         "name": {
-          "anyOf": [
+          "oneOf": [
             {
               "title": "string",
               "type": "string"
