@@ -41,6 +41,9 @@ class MapsState extends MapsActionableState
   // reduce # of onCameraMove
   final _cameraMoveDebouncer = Debouncer(const Duration(milliseconds: 300));
 
+  // Google Maps don't support current location on Web. Add our own
+  BitmapDescriptor? currentLocationIcon;
+
   /// markers are required to have unique ID. We'll use the lat/lng
   /// and keep track of all unique IDs (ignore duplicate lat/lng)
   Set<MarkerId> uniqueMarkerIds = {};
@@ -70,24 +73,12 @@ class MapsState extends MapsActionableState
   void didChangeDependencies() {
     super.didChangeDependencies();
 
+    // anti-pattern. We are manipulating State from StatefulWidget
     widget.controller.mapActions = this;
-    _getCurrentLocation();
+
     _initInitialCameraPosition(context);
+    _initCurrentLocation();
     _registerMarkerListener(context);
-  }
-
-  void _getCurrentLocation() {
-    if (widget.controller.locationEnabled) {
-      getLocation().then((device) {
-        currentLocation = device.location;
-
-        if (widget.controller.autoZoom &&
-            currentLocation != null &&
-            widget.controller.includeCurrentLocationInAutoZoom) {
-          zoomToFit();
-        }
-      });
-    }
   }
 
   void _initInitialCameraPosition(BuildContext context) {
@@ -101,6 +92,29 @@ class MapsState extends MapsActionableState
       }
       initialCameraZoom =
           Utils.optionalInt(initialCameraPosition['zoom'], min: 0);
+    }
+  }
+
+  void _initCurrentLocation() {
+    if (widget.controller.locationEnabled) {
+      // add our own location icon on Web
+      if (kIsWeb) {
+        BitmapDescriptor.fromAssetImage(
+                ImageConfiguration.empty, 'assets/images/current_location.png',
+                package: 'ensemble')
+            .then((asset) => currentLocationIcon = asset);
+      }
+
+      getLocation().then((device) {
+        currentLocation = device.location;
+
+        bool isAutoZoom = widget.controller.autoZoom &&
+            widget.controller.includeCurrentLocationInAutoZoom;
+        if (currentLocation != null &&
+            (isAutoZoom || initialCameraLatLng == null)) {
+          zoomToFit();
+        }
+      });
     }
   }
 
@@ -470,6 +484,19 @@ class MapsState extends MapsActionableState
         markers.add(markerPayload.marker!);
       }
     }
+
+    // Google Maps doesn't support current location on Web. We have to
+    // add our own indicator
+    if (kIsWeb &&
+        widget.controller.locationEnabled &&
+        currentLocation != null) {
+      markers.add(Marker(
+          markerId: const MarkerId('ensemble_current_location'),
+          position:
+              LatLng(currentLocation!.latitude, currentLocation!.longitude),
+          icon: currentLocationIcon ?? BitmapDescriptor.defaultMarker));
+    }
+
     return markers;
   }
 }
