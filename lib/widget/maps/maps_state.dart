@@ -145,11 +145,24 @@ class MapsState extends MapsActionableState
   }
 
   @override
-  void zoom(List<LatLng> points) {
+  void zoom(List<LatLng> points, {bool? hasCurrentLocation}) {
     LatLngBounds? bound = MapsUtils.calculateBounds(points);
     if (bound != null) {
-      CameraUpdate cameraUpdate = CameraUpdate.newLatLngBounds(
-          bound, widget.controller.autoZoomPadding?.toDouble() ?? 50);
+      CameraUpdate cameraUpdate;
+
+      // if we only have the current location without markers, use
+      // the initialCameraPosition's zoom or something reasonable
+      if (hasCurrentLocation == true && points.length == 1) {
+        cameraUpdate = CameraUpdate.newCameraPosition(CameraPosition(
+            target: LatLng(points[0].latitude, points[0].longitude),
+            zoom: initialCameraZoom?.toDouble() ??
+                widget.controller.defaultCameraZoom));
+      }
+      // otherwise bound the markers and add some reasonable padding
+      else {
+        cameraUpdate = CameraUpdate.newLatLngBounds(
+            bound, widget.controller.autoZoomPadding?.toDouble() ?? 50);
+      }
       _controller.future
           .then((controller) => controller.animateCamera(cameraUpdate));
     }
@@ -419,7 +432,8 @@ class MapsState extends MapsActionableState
         initialCameraPosition: CameraPosition(
             target:
                 initialCameraLatLng ?? widget.controller.defaultCameraLatLng,
-            zoom: initialCameraZoom?.toDouble() ?? 10),
+            zoom: initialCameraZoom?.toDouble() ??
+                widget.controller.defaultCameraZoom),
         markers: _getMarkers(),
       ),
       _overlayWidget != null && _selectedMarkerId != null
