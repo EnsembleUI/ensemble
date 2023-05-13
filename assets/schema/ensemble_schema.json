@@ -1094,7 +1094,7 @@
     },
     "Flow-payload": {
       "type": "object",
-      "oneOf": [
+      "allOf": [
         {
           "$ref": "#/$defs/Templated-payload"
         },
@@ -1121,12 +1121,11 @@
     },
     "Column-payload": {
       "type": "object",
-      "oneOf": [
+      "allOf": [
         {
           "$ref": "#/$defs/Templated-payload"
         },
         {
-          "required": ["children"],
           "properties": {
             "children": {
               "$ref": "#/$defs/Widgets"
@@ -1140,12 +1139,11 @@
     },
     "Row-payload": {
       "type": "object",
-      "oneOf": [
+      "allOf": [
         {
           "$ref": "#/$defs/Templated-payload"
         },
         {
-          "required": ["children"],
           "properties": {
             "children": {
               "$ref": "#/$defs/Widgets"
@@ -1159,7 +1157,7 @@
     },
     "GridView-payload": {
       "type": "object",
-      "oneOf": [
+      "allOf": [
         {
           "$ref": "#/$defs/Templated-payload"
         },
@@ -1224,9 +1222,8 @@
     },
     "Flex-payload": {
       "type": "object",
-      "oneOf": [
+      "allOf": [
         {
-          "required": ["children"],
           "properties": {
             "children": {
               "$ref": "#/$defs/Widgets"
@@ -1260,7 +1257,7 @@
     },
     "ListView-payload": {
       "type": "object",
-      "oneOf": [
+      "allOf": [
         {
           "$ref": "#/$defs/Templated-payload"
         },
@@ -1324,7 +1321,7 @@
     },
     "Carousel-payload": {
       "type": "object",
-      "oneOf": [
+      "allOf": [
         {
           "required": ["children"],
           "properties": {
@@ -1433,7 +1430,6 @@
     },
     "Templated-payload": {
       "type": "object",
-      "required": ["item-template"],
       "properties": {
         "item-template": {
           "type": "object",
@@ -1602,7 +1598,19 @@
     "Action-payload": {
       "oneOf": [
         {
+          "title": "Navigate Back",
+          "type": "object",
+          "required": ["navigateBack"],
+          "properties": {
+            "navigateBack": {
+              "type": "object",
+              "description": "Navigating back to the previous screen if possible. The current screen will be removed from the navigation history. This also works for a modal screen."
+            }
+          }
+        },
+        {
           "title": "Navigate Screen",
+          "type": "object",
           "required": ["navigateScreen"],
           "properties": {
             "navigateScreen": {
@@ -1639,6 +1647,7 @@
         },
         {
           "title": "Navigate Modal Screen",
+          "type": "object",
           "required": ["navigateModalScreen"],
           "properties": {
             "navigateModalScreen": {
@@ -1665,17 +1674,8 @@
           }
         },
         {
-          "title": "Navigate Back",
-          "required": ["navigateBack"],
-          "properties": {
-            "navigateBack": {
-              "type": "object",
-              "description": "Navigating back to the previous screen if possible. The current screen will be removed from the navigation history. This also works for a modal screen."
-            }
-          }
-        },
-        {
           "title": "Invoke API",
+          "type": "object",
           "required": ["invokeAPI"],
           "properties": {
             "invokeAPI": {
@@ -1711,6 +1711,7 @@
         },
         {
           "title": "Open Camera",
+          "type": "object",
           "required": ["openCamera"],
           "properties": {
             "openCamera": {
@@ -1839,6 +1840,7 @@
         },
         {
           "title": "Show Dialog",
+          "type": "object",
           "required": ["showDialog"],
           "properties": {
             "showDialog": {
@@ -1901,6 +1903,7 @@
         },
         {
           "title": "Close All Dialogs",
+          "type": "object",
           "required": ["closeAllDialogs"],
           "properties": {
             "closeAllDialogs": {
@@ -1911,6 +1914,7 @@
         },
         {
           "title": "Start Timer",
+          "type": "object",
           "required": ["startTimer"],
           "properties": {
             "startTimer": {
@@ -1966,6 +1970,7 @@
         },
         {
           "title": "Stop Timer",
+          "type": "object",
           "required": ["stopTimer"],
           "properties": {
             "stopTimer": {
@@ -1985,6 +1990,7 @@
         },
         {
           "title": "Show Toast",
+          "type": "object",
           "required": ["showToast"],
           "properties": {
             "showToast": {
@@ -2097,29 +2103,38 @@
         },
         {
           "title": "Execute Code",
-          "required": ["executeCode"],
-          "properties": {
-            "executeCode": {
-              "description": "Execute a block of code.",
+          "oneOf": [
+            {
               "type": "object",
-              "required": [
-                "body"
-              ],
+              "required": ["executeCode"],
               "properties": {
-                "body": {
-                  "type": "string",
-                  "description": "Define your code block here, starting with //@code"
-                },
-                "onComplete": {
-                  "$ref": "#/$defs/Action-payload",
-                  "description": "Execute another Action when the code body finishes executing"
+                "executeCode": {
+                  "description": "Execute a block of code.",
+                  "type": "object",
+                  "required": [
+                    "body"
+                  ],
+                  "properties": {
+                    "body": {
+                      "type": "string",
+                      "description": "Define your code block here, starting with //@code"
+                    },
+                    "onComplete": {
+                      "$ref": "#/$defs/Action-payload",
+                      "description": "Execute another Action when the code body finishes executing"
+                    }
+                  }
                 }
               }
+            },
+            {
+              "type": "string"
             }
-          }
+          ]
         },
         {
           "title": "Get Location",
+          "type": "object",
           "required": ["getLocation"],
           "properties": {
             "getLocation": {
@@ -2154,6 +2169,7 @@
         },
         {
           "title": "Upload Files",
+          "type": "object",
           "required": ["uploadFiles"],
           "properties": {
             "uploadFiles": {
@@ -2234,6 +2250,7 @@
         },
         {
           "title": "Pick Files",
+          "type": "object",
           "required": ["pickFiles"],
           "properties": {
             "pickFiles": {
@@ -2265,6 +2282,7 @@
         },
         {
           "title": "Copy to Clipboard",
+          "type": "object",
           "required": ["copyToClipboard"],
           "properties": {
             "copyToClipboard": {
@@ -2289,6 +2307,7 @@
         },
         {
           "title": "Connect Wallet",
+          "type": "object",
           "required": ["connectWallet"],
           "properties": {
             "connectWallet": {
