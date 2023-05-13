@@ -109,6 +109,7 @@ class MyController extends WidgetController with LocationCapability {
   int? width;
 
   final defaultCameraLatLng = const LatLng(37.773972, -122.431297);
+  final double defaultCameraZoom = 10;
   dynamic initialCameraPosition;
 
   bool scrollableOverlay = false;
