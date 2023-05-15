@@ -51,7 +51,7 @@ dependencies:
   email_validator: ^2.0.1
   form_validator: ^1.0.2
   flutter_svg: ^1.1.0
-  qr_flutter: ^4.0.0
+  qr_flutter: ^4.1.0
   device_info_plus: ^4.0.2
   flutter_map: ^2.0.0
   carousel_slider: ^4.1.1
