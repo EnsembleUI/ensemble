@@ -56,9 +56,7 @@ class _ScreenState extends State<Screen> {
                             ?.loadingScreenIndicatorColor)));
           }
 
-          return SelectionArea(
-              child:
-                  renderScreen(PageModel.fromYaml(snapshot.data as YamlMap)));
+          return renderScreen(PageModel.fromYaml(snapshot.data as YamlMap));
         });
   }
 
