@@ -1,5 +1,7 @@
 import 'package:ensemble/framework/device.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+import 'package:pointer_interceptor/pointer_interceptor.dart';
 
 class MapsOverlay extends StatelessWidget {
   const MapsOverlay(this.overlayWidget,
@@ -10,6 +12,11 @@ class MapsOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    /// Web gives the map all pointer control, so all overlay needs to be
+    /// wrapped inside PointerInterceptor.
+    var content =
+        kIsWeb ? PointerInterceptor(child: overlayWidget) : overlayWidget;
+
     return Positioned(
         right: 0,
         left: 0,
@@ -25,8 +32,8 @@ class MapsOverlay extends StatelessWidget {
                     }
                   }
                 },
-                child: overlayWidget)
-            : overlayWidget);
+                child: content)
+            : content);
   }
 }
 
