@@ -10,8 +10,11 @@ import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/page_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:yaml/yaml.dart';
 import 'package:provider/provider.dart';
+
+import '../../ensemble_app.dart';
 
 class Screen extends StatefulWidget {
   const Screen({super.key, required this.appProvider, this.screenPayload});
@@ -37,7 +40,7 @@ class _ScreenState extends State<Screen> {
   Widget build(BuildContext context) {
     //log("Screen build() - $hashCode (${Ensemble().deviceInfo.size.width} x ${Ensemble().deviceInfo.size.height})");
 
-    final isPreview = Ensemble().isPreview && kIsWeb;
+    final isPreview = GetIt.I<EnsemblePreviewConfig>().isPreview;
 
     return FutureBuilder(
         future: screenRequester,
