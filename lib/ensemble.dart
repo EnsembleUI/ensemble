@@ -37,10 +37,17 @@ class Ensemble {
 
   /// the configuration required to run an App
   EnsembleConfig? _config;
+  bool _isPreview = false;
+
+  bool get isPreview => _isPreview;
 
   /// initialize Ensemble with the specified config
   void setEnsembleConfig(EnsembleConfig config) {
     _config = config;
+  }
+
+  void setEnsemblePreview(bool isPreview) {
+    _isPreview = isPreview;
   }
 
   /// init an App from config file
