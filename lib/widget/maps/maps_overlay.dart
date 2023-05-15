@@ -3,16 +3,18 @@ import 'package:flutter/cupertino.dart';
 
 class MapsOverlay extends StatelessWidget {
   const MapsOverlay(this.overlayWidget,
-      {super.key, this.scrollable, this.onScrolled});
+      {super.key, this.scrollable = true, this.onScrolled});
   final Widget overlayWidget;
-  final bool? scrollable;
+  final bool scrollable;
   final OverlayScrollCallback? onScrolled;
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-        alignment: Alignment.bottomCenter,
-        child: scrollable != false && onScrolled != null
+    return Positioned(
+        right: 0,
+        left: 0,
+        bottom: 0,
+        child: scrollable && onScrolled != null
             ? GestureDetector(
                 onHorizontalDragEnd: (details) {
                   if (details.primaryVelocity != null) {
