@@ -60,12 +60,13 @@ class QRCodeState extends WidgetState<QRCode> {
     }
 
     return BoxWrapper(
-        widget: QrImage(
-            data: widget._controller.value!,
-            size: widget._controller.size?.toDouble() ?? defaultSize,
-            backgroundColor:
-                widget._controller.backgroundColor ?? Colors.transparent,
-            foregroundColor: widget._controller.color),
+        widget: QrImageView(
+          data: widget._controller.value!,
+          size: widget._controller.size?.toDouble() ?? defaultSize,
+          backgroundColor:
+              widget._controller.backgroundColor ?? Colors.transparent,
+          foregroundColor: widget._controller.color,
+        ),
         boxController: widget._controller,
         ignoresDimension: true // width/height doesn't apply here
         );
