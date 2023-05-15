@@ -1,3 +1,4 @@
+import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -7,6 +8,7 @@ import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/error_screen.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/page_model.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
 import 'package:provider/provider.dart';
@@ -34,6 +36,9 @@ class _ScreenState extends State<Screen> {
   @override
   Widget build(BuildContext context) {
     //log("Screen build() - $hashCode (${Ensemble().deviceInfo.size.width} x ${Ensemble().deviceInfo.size.height})");
+
+    final isPreview = Ensemble().isPreview && kIsWeb;
+
     return FutureBuilder(
         future: screenRequester,
         builder: (context, snapshot) {
@@ -56,7 +61,12 @@ class _ScreenState extends State<Screen> {
                             ?.loadingScreenIndicatorColor)));
           }
 
-          return renderScreen(PageModel.fromYaml(snapshot.data as YamlMap));
+          if (isPreview) {
+            return renderScreen(PageModel.fromYaml(snapshot.data as YamlMap));
+          }
+          return SelectionArea(
+              child:
+                  renderScreen(PageModel.fromYaml(snapshot.data as YamlMap)));
         });
   }
 
