@@ -1,6 +1,11 @@
 import 'dart:developer';
+import 'dart:io';
 import 'dart:math' as math;
+import 'dart:ui';
+import 'package:ensemble/util/utils.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
@@ -27,12 +32,54 @@ class MapsUtils {
   }
 
   // TODO: assets from local
-  static Future<BitmapDescriptor?> fromAsset(String asset) async {
-    Uint8List? bytes = await MapsUtils._getBytesFromUrl(asset);
-    if (bytes != null) {
-      return BitmapDescriptor.fromBytes(bytes);
+  static Future<BitmapDescriptor?> fromAsset(
+      BuildContext context, String asset) async {
+    /// assets load from URL uses actual pixels, which may appear smaller
+    /// for device with high device pixel ratio.
+    if (Utils.isUrl(asset)) {
+      try {
+        // use cache manager
+        final File file = await DefaultCacheManager().getSingleFile(asset);
+        final Uint8List imageBytes = await file.readAsBytes();
+
+        if (!kIsWeb) {
+          return _resizeImageWithDeviceRatio(
+              imageBytes, MediaQuery.of(context).devicePixelRatio);
+        } else {
+          // Web uses ratio 1.0, nothing to do here
+          return BitmapDescriptor.fromBytes(imageBytes);
+        }
+      } catch (e) {
+        // do nothing
+      }
+    }
+
+    /// local asset already handle device pixels natively
+    else {
+      return BitmapDescriptor.fromAssetImage(
+          ImageConfiguration.empty, Utils.getLocalAssetFullPath(asset));
     }
     return null;
+  }
+
+  /// Images via URL uses actual pixels. We need to convert to device pixels
+  static Future<BitmapDescriptor?> _resizeImageWithDeviceRatio(
+      Uint8List imageBytes, double devicePixelRatio) async {
+    final Codec imageCodec = await instantiateImageCodecWithSize(
+        await ImmutableBuffer.fromUint8List(imageBytes),
+        getTargetSize: (intrinsicWidth, intrinsicHeight) {
+      return TargetImageSize(
+          width: (intrinsicWidth * devicePixelRatio).toInt());
+    });
+
+    final FrameInfo frameInfo = await imageCodec.getNextFrame();
+    final ByteData? byteData = await frameInfo.image.toByteData(
+      format: ImageByteFormat.png,
+    );
+    if (byteData != null) {
+      final Uint8List resizedImageBytes = byteData.buffer.asUint8List();
+      return BitmapDescriptor.fromBytes(resizedImageBytes);
+    }
   }
 
   static Future<Uint8List?> _getBytesFromUrl(String url) async {
