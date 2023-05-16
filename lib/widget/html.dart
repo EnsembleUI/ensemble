@@ -47,7 +47,7 @@ class HtmlState extends framework.WidgetState<EnsembleHtml> {
   Widget buildWidget(BuildContext context) {
     return Html(
       data: widget._controller.text ?? '',
-      onLinkTap: ((url, context, attributes, element) {
+      onLinkTap: ((url, context, element) {
         if (url != null) {
           launchUrl(Uri.parse(url));
         }
