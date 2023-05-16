@@ -397,7 +397,7 @@ class FileUploadAction extends EnsembleAction {
   String fieldName;
   int? maxFileSize;
   String? overMaxFileSizeMessage;
-  String files;
+  dynamic files;
   bool isBackgroundTask;
   String? networkType;
   bool? requiresBatteryNotLow;
@@ -405,8 +405,7 @@ class FileUploadAction extends EnsembleAction {
 
   factory FileUploadAction.fromYaml({YamlMap? payload}) {
     if (payload == null || payload['uploadApi'] == null) {
-      throw LanguageError(
-          "${ActionType.uploadFiles.name} requires 'uploadApi'.");
+      throw LanguageError("${ActionType.uploadFiles.name} requires '  '.");
     }
     if (payload['files'] == null) {
       throw LanguageError("${ActionType.uploadFiles.name} requires 'files'.");
