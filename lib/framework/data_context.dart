@@ -318,6 +318,7 @@ class NativeInvokable with Invokable {
       ActionType.stopTimer.name: stopTimer,
       ActionType.openCamera.name: showCamera,
       ActionType.navigateBack.name: navigateBack,
+      ActionType.uploadFiles.name: uploadFiles,
       'debug': (value) => log('Debug: $value'),
       'copyToClipboard': (value) =>
           Clipboard.setData(ClipboardData(text: value))
@@ -327,6 +328,15 @@ class NativeInvokable with Invokable {
   @override
   Map<String, Function> setters() {
     return {};
+  }
+
+  void uploadFiles(dynamic inputs) {
+    Map<String, dynamic>? inputMap = Utils.getMap(inputs);
+    if (inputMap == null) throw LanguageError('UploadFiles need inputs');
+    ScreenController().executeAction(
+      _buildContext,
+      FileUploadAction.fromYaml(payload: YamlMap.wrap(inputMap)),
+    );
   }
 
   void navigateToScreen(String screenName, [dynamic inputs]) {
