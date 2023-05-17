@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
@@ -8,15 +9,17 @@ import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/util/debouncer.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/maps/map_actions.dart';
 import 'package:ensemble/widget/maps/maps.dart';
 import 'package:ensemble/widget/maps/maps_overlay.dart';
 import 'package:ensemble/widget/maps/maps_utils.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-
+import 'package:async/async.dart';
 import 'package:yaml/yaml.dart';
 
 import '../../framework/device.dart';
@@ -34,6 +37,12 @@ class MapsState extends MapsActionableState
       Completer<GoogleMapController>();
   @override
   Future<GoogleMapController> getMapController() => _controller.future;
+
+  // reduce # of onCameraMove
+  final _cameraMoveDebouncer = Debouncer(const Duration(milliseconds: 300));
+
+  // Google Maps don't support current location on Web. Add our own
+  BitmapDescriptor? currentLocationIcon;
 
   /// markers are required to have unique ID. We'll use the lat/lng
   /// and keep track of all unique IDs (ignore duplicate lat/lng)
@@ -54,6 +63,12 @@ class MapsState extends MapsActionableState
   @override
   Position? getCurrentLocation() => currentLocation;
 
+  // we use both geolocator to get the location and google maps to show
+  // location marker on non-Web. Both of these request permission and can
+  // clash if they run at the same time. So we first get the location, then
+  // tell Google Maps it can now show its location.
+  bool showLocationOnMap = false;
+
   @override
   void didUpdateWidget(covariant Maps oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -64,24 +79,12 @@ class MapsState extends MapsActionableState
   void didChangeDependencies() {
     super.didChangeDependencies();
 
+    // anti-pattern. We are manipulating State from StatefulWidget
     widget.controller.mapActions = this;
-    _getCurrentLocation();
+
     _initInitialCameraPosition(context);
+    _initCurrentLocation();
     _registerMarkerListener(context);
-  }
-
-  void _getCurrentLocation() {
-    if (widget.controller.locationEnabled) {
-      getLocation().then((device) {
-        currentLocation = device.location;
-
-        if (widget.controller.autoZoom &&
-            currentLocation != null &&
-            widget.controller.includeCurrentLocationInAutoZoom) {
-          zoomToFit();
-        }
-      });
-    }
   }
 
   void _initInitialCameraPosition(BuildContext context) {
@@ -95,6 +98,35 @@ class MapsState extends MapsActionableState
       }
       initialCameraZoom =
           Utils.optionalInt(initialCameraPosition['zoom'], min: 0);
+    }
+  }
+
+  void _initCurrentLocation() {
+    if (widget.controller.locationEnabled) {
+      // add our own location icon on Web
+      if (kIsWeb) {
+        BitmapDescriptor.fromAssetImage(
+                ImageConfiguration.empty, 'assets/images/current_location.png',
+                package: 'ensemble')
+            .then((asset) => currentLocationIcon = asset);
+      }
+
+      getLocation().then((device) {
+        currentLocation = device.location;
+
+        // we got the location here, now tell Google Maps it can show its location
+        // marker so they don't both request permission at the same time
+        setState(() {
+          showLocationOnMap = true;
+        });
+
+        bool isAutoZoom = widget.controller.autoZoom &&
+            widget.controller.includeCurrentLocationInAutoZoom;
+        if (currentLocation != null &&
+            (isAutoZoom || initialCameraLatLng == null)) {
+          zoomToFit();
+        }
+      });
     }
   }
 
@@ -125,11 +157,24 @@ class MapsState extends MapsActionableState
   }
 
   @override
-  void zoom(List<LatLng> points) {
+  void zoom(List<LatLng> points, {bool? hasCurrentLocation}) {
     LatLngBounds? bound = MapsUtils.calculateBounds(points);
     if (bound != null) {
-      CameraUpdate cameraUpdate = CameraUpdate.newLatLngBounds(
-          bound, widget.controller.autoZoomPadding?.toDouble() ?? 50);
+      CameraUpdate cameraUpdate;
+
+      // if we only have the current location without markers, use
+      // the initialCameraPosition's zoom or something reasonable
+      if (hasCurrentLocation == true && points.length == 1) {
+        cameraUpdate = CameraUpdate.newCameraPosition(CameraPosition(
+            target: LatLng(points[0].latitude, points[0].longitude),
+            zoom: initialCameraZoom?.toDouble() ??
+                widget.controller.defaultCameraZoom));
+      }
+      // otherwise bound the markers and add some reasonable padding
+      else {
+        cameraUpdate = CameraUpdate.newLatLngBounds(
+            bound, widget.controller.autoZoomPadding?.toDouble() ?? 50);
+      }
       _controller.future
           .then((controller) => controller.animateCamera(cameraUpdate));
     }
@@ -372,7 +417,8 @@ class MapsState extends MapsActionableState
             markerPayload.scopeManager.dataContext.eval(template.source!);
         if (source != null) {
           if (markersCache[source] == null) {
-            var asset = await MapsUtils.fromAsset(template.source!);
+            log("fetch asset " + template.source!);
+            var asset = await MapsUtils.fromAsset(context, template.source!);
             if (asset != null) {
               markersCache[source] = asset;
             }
@@ -390,7 +436,7 @@ class MapsState extends MapsActionableState
     return Stack(children: [
       GoogleMap(
         onMapCreated: _onMapCreated,
-        myLocationEnabled: widget.controller.locationEnabled,
+        myLocationEnabled: showLocationOnMap,
         mapType: widget.controller.mapType ?? MapType.normal,
         myLocationButtonEnabled: false,
         mapToolbarEnabled: true,
@@ -398,7 +444,8 @@ class MapsState extends MapsActionableState
         initialCameraPosition: CameraPosition(
             target:
                 initialCameraLatLng ?? widget.controller.defaultCameraLatLng,
-            zoom: initialCameraZoom?.toDouble() ?? 10),
+            zoom: initialCameraZoom?.toDouble() ??
+                widget.controller.defaultCameraZoom),
         markers: _getMarkers(),
       ),
       _overlayWidget != null && _selectedMarkerId != null
@@ -419,25 +466,41 @@ class MapsState extends MapsActionableState
       ScreenController().executeAction(context, widget.controller.onMapCreated!,
           event: EnsembleEvent(widget));
     }
+
+    // Native properly dispatches onCameraMove when map is created, but not Web.
+    // we dispatch the event manually for Web
+    if (kIsWeb && widget.controller.onCameraMove != null) {
+      _executeCameraMoveAction(
+          widget.controller.onCameraMove!, await controller.getVisibleRegion());
+    }
   }
 
   void _onCameraMove(CameraPosition position) async {
     if (widget.controller.onCameraMove != null) {
-      LatLngBounds bounds = await (await _controller.future).getVisibleRegion();
-      ScreenController().executeAction(context, widget.controller.onCameraMove!,
-          event: EnsembleEvent(widget, data: {
-            'bounds': {
-              "southwest": {
-                "lat": bounds.southwest.latitude,
-                "lng": bounds.southwest.longitude
-              },
-              "northeast": {
-                "lat": bounds.northeast.latitude,
-                "lng": bounds.northeast.longitude
-              }
-            }
-          }));
+      _cameraMoveDebouncer.run(() async {
+        LatLngBounds bounds =
+            await (await _controller.future).getVisibleRegion();
+        _executeCameraMoveAction(widget.controller.onCameraMove!, bounds);
+        //log("Camera moved");
+      });
     }
+  }
+
+  void _executeCameraMoveAction(
+      EnsembleAction onCameraMove, LatLngBounds bounds) {
+    ScreenController().executeAction(context, onCameraMove,
+        event: EnsembleEvent(widget, data: {
+          'bounds': {
+            "southwest": {
+              "lat": bounds.southwest.latitude,
+              "lng": bounds.southwest.longitude
+            },
+            "northeast": {
+              "lat": bounds.northeast.latitude,
+              "lng": bounds.northeast.longitude
+            }
+          }
+        }));
   }
 
   Set<Marker> _getMarkers() {
@@ -447,6 +510,19 @@ class MapsState extends MapsActionableState
         markers.add(markerPayload.marker!);
       }
     }
+
+    // Google Maps doesn't support current location on Web. We have to
+    // add our own indicator
+    if (kIsWeb &&
+        widget.controller.locationEnabled &&
+        currentLocation != null) {
+      markers.add(Marker(
+          markerId: const MarkerId('ensemble_current_location'),
+          position:
+              LatLng(currentLocation!.latitude, currentLocation!.longitude),
+          icon: currentLocationIcon ?? BitmapDescriptor.defaultMarker));
+    }
+
     return markers;
   }
 }

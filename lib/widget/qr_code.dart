@@ -60,7 +60,7 @@ class QRCodeState extends WidgetState<QRCode> {
     }
 
     return BoxWrapper(
-        widget: QrImage(
+        widget: QrImageView(
             data: widget._controller.value!,
             size: widget._controller.size?.toDouble() ?? defaultSize,
             backgroundColor:
