@@ -163,9 +163,9 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
 
     customIndicator =
-        _buildIndicatorWidget(scopeManager, widget._controller.indicatorWidget);
+        _buildIndicatorWidget(widget._controller.indicatorWidget, scopeManager);
     selectedCustomIndicator = _buildIndicatorWidget(
-        scopeManager, widget._controller.selectedIndicatorWidget);
+        widget._controller.selectedIndicatorWidget, scopeManager);
 
     // if we should display one at a time or multiple in the slider
     bool singleView = isSingleView();

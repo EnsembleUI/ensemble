@@ -15,6 +15,7 @@ class UploadUtils {
     required String method,
     required String url,
     required Map<String, String> headers,
+    required Map<String, String> fields,
     required List<File> files,
     required String fieldName,
     bool showNotification = false,
@@ -58,6 +59,7 @@ class UploadUtils {
     }
 
     request.files.addAll(multipartFiles);
+    request.fields.addAll(fields);
 
     try {
       final response = await request.send();

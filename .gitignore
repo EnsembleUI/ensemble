@@ -87,7 +87,6 @@ assets/ignored
 .ios/.symlinks
 Podfile.lock
 .ios/Pods
-.ios/Runner
 .ios/Runner.xcworkspace
 .ios/Flutter
 .ios/Runner.xcodeproj
@@ -96,3 +95,7 @@ ensemble/fonts
 generated_plugin_registrant.dart
 pubspec.lock
 .ios/Config
+AppDelegate.h
+main.m
+.ios/Runner/Assets.xcassets
+.ios/Runner/Base.lproj

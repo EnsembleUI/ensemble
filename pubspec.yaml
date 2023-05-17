@@ -18,7 +18,7 @@ description: Ensemble Runtime
 version: 1.0.0+5
 
 environment:
-  sdk: ">=2.17.0 <3.0.0"
+  sdk: ">=2.17.0 <=3.10.0"
 
 dependencies:
   flutter:
@@ -26,7 +26,7 @@ dependencies:
 
   yaml: ^3.1.0
   font_awesome_flutter: 9.2.0
-  intl: ^0.17.0
+  intl: ^0.18.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -48,10 +48,6 @@ dependencies:
   event_bus: ^2.0.0
   mockito: ^5.1.0
   flutter_layout_grid: ^2.0.0
-  flutter_i18n:
-    git:
-      url: https://github.com/ilteoood/flutter_i18n.git
-      ref: master
   email_validator: ^2.0.1
   form_validator: ^1.0.2
   flutter_svg: ^1.1.0
@@ -87,6 +83,8 @@ dependencies:
   google_maps_flutter_web: ^0.4.0+8
   workmanager: ^0.5.1
   flutter_local_notifications: ^13.0.0
+  flutter_i18n: ^0.33.0
+  pointer_interceptor: ^0.9.3+4
 
 dev_dependencies:
   flutter_test:
@@ -127,7 +125,7 @@ flutter:
         - asset: assets/fonts/Jost-VariableFont_wght.ttf
         - asset: assets/fonts/Jost-Italic-VariableFont_wght.ttf
           style: italic
-    
+
     - family: Inter
       fonts:
         - asset: assets/fonts/inter/Inter-Regular.ttf
