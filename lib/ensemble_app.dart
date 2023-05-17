@@ -43,6 +43,7 @@ void callbackDispatcher() {
                 Map<String, String>.from(json.decode(inputData['headers'])),
             method: inputData['method'],
             url: inputData['url'],
+            fields: inputData['fields'],
             showNotification: inputData['showNotification'],
             progressCallback: (progress) {
               if (sendPort == null) return;
