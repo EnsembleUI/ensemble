@@ -81,27 +81,18 @@ class DataGrid extends StatefulWidget
       'dividerThickness': (val) =>
           controller.dividerThickness = Utils.optionalDouble(val),
       'border': (Map val) {
-        Map<String, dynamic> map = {};
-        val.forEach((key, value) {
-          if (value is Map) {
-            Color color = Utils.getColor(value['color']) ?? Colors.black;
-            double width = Utils.getDouble(value['width'], fallback: 1.0);
-            map[key] = BorderSide(color: color, width: width);
-          } else if (key == 'borderRadius') {
-            double? radius = Utils.optionalDouble(value);
-            map[key] = (radius == null)
-                ? BorderRadius.zero
-                : BorderRadius.circular(radius);
+        if (val.isNotEmpty) {
+          BorderRadius borderRadius = BorderRadius.zero;
+          if (val['borderRadius'] != null) {
+            borderRadius = BorderRadius.circular(
+                Utils.getDouble(val['borderRadius'], fallback: 0.0));
           }
-        });
-        controller.border = TableBorder(
-            top: map['top'] ?? BorderSide.none,
-            right: map['right'] ?? BorderSide.none,
-            bottom: map['bottom'] ?? BorderSide.none,
-            left: map['left'] ?? BorderSide.none,
-            horizontalInside: map['horizontalInside'] ?? BorderSide.none,
-            verticalInside: map['verticalInside'] ?? BorderSide.none,
-            borderRadius: map['borderRadius'] ?? BorderRadius.zero);
+          controller.border = TableBorder.all(
+            width: Utils.getDouble(val['width'], fallback: 1.0),
+            color: Utils.getColor(val['color']) ?? const Color(0xFF000000),
+            borderRadius: borderRadius,
+          );
+        }
       },
     };
   }
