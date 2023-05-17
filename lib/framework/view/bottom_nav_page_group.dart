@@ -5,6 +5,7 @@ import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/custom_view.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:flutter/material.dart';
@@ -61,31 +62,13 @@ class BottomNavPageGroup extends StatefulWidget {
 
   @override
   State<BottomNavPageGroup> createState() => _BottomNavPageGroupState();
-
-  @override
-  Map<String, Function> getters() {
-    // TODO: implement getters
-    throw UnimplementedError();
-  }
-
-  @override
-  Map<String, Function> methods() {
-    // TODO: implement methods
-    throw UnimplementedError();
-  }
-
-  @override
-  Map<String, Function> setters() {
-    // TODO: implement setters
-    throw UnimplementedError();
-  }
 }
 
 class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
   late List<MenuItem> menuItems;
   Widget? fab;
   FloatingAlignment floatingAlignment = FloatingAlignment.none;
-  double floatingMargin = 5.0;
+  int? floatingMargin;
 
   @override
   void initState() {
@@ -103,7 +86,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
       // 'onTap': (funcDefinition) => _controller.onTap =
       //     EnsembleAction.fromYaml(funcDefinition, initiator: this),
       final fabMenuItem = fabItems.first;
-      floatingMargin = fabMenuItem.floatingMargin ?? 5.0;
+      floatingMargin = fabMenuItem.floatingMargin;
       final dynamic customIcon = _buildCustomIcon(fabMenuItem);
       fab = Theme(
         data: ThemeData(useMaterial3: false),
@@ -114,19 +97,21 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
                 library: fabMenuItem.iconLibrary,
                 color: Colors.white,
               ),
-              onPressed: () {
-                // onFabTapped?.call();
-                final onTapAction = EnsembleAction.fromYaml(fabMenuItem.onTap);
-
-                // ScreenController().executeAction(context, onTapAction!,
-                //     event: EnsembleEvent(widget));
-              },
+              onPressed: () => _floatingButtonTapped(fabMenuItem),
             ),
       );
       if (fab != null) {
         floatingAlignment =
             FloatingAlignment.values.byName(fabMenuItem.floatingAlignment);
       }
+    }
+  }
+
+  void _floatingButtonTapped(MenuItem fabMenuItem) {
+    final onTapAction = EnsembleAction.fromYaml(fabMenuItem.onTap);
+    if (onTapAction != null) {
+      ScreenController()
+          .executeActionWithScope(context, widget.scopeManager, onTapAction);
     }
   }
 
@@ -220,14 +205,14 @@ class EnsembleBottomAppBar extends StatefulWidget {
     required this.onTabSelected,
     required this.floatingAlignment,
     this.onFabTapped,
-    this.floatingMargin = 5.0,
+    this.floatingMargin,
   }) {
     // assert(items.length == 2 || items.length == 4);
   }
   final List<FABBottomAppBarItem> items;
   final double height;
   final double iconSize;
-  final double floatingMargin;
+  final int? floatingMargin;
   final Color backgroundColor;
   final Color color;
   final Color selectedColor;
@@ -242,6 +227,7 @@ class EnsembleBottomAppBar extends StatefulWidget {
 
 class EnsembleBottomAppBarState extends State<EnsembleBottomAppBar> {
   int _selectedIndex = 0;
+  double _defaultFloatingNotch = 5.0;
 
   void _updateIndex(int index) {
     widget.onTabSelected(index);
@@ -285,13 +271,18 @@ class EnsembleBottomAppBarState extends State<EnsembleBottomAppBar> {
       items.insert(fabIndex, _buildEmptyTabItem());
     }
 
+    if (widget.floatingMargin != null) {
+      _defaultFloatingNotch =
+          double.tryParse(widget.floatingMargin!.toString()) ?? 5.0;
+    }
+
     return Theme(
       data: ThemeData(useMaterial3: false),
       child: BottomAppBar(
         padding: const EdgeInsets.all(0),
         shape: widget.notchedShape,
         color: widget.backgroundColor,
-        notchMargin: widget.floatingMargin,
+        notchMargin: _defaultFloatingNotch,
         child: Row(
           mainAxisSize: MainAxisSize.max,
           mainAxisAlignment: MainAxisAlignment.spaceAround,

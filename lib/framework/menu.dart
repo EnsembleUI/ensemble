@@ -61,10 +61,10 @@ abstract class Menu {
               icon: item['icon'],
               iconLibrary: Utils.optionalString(item['iconLibrary']),
               selected: item['selected'],
-              floating: Utils.optionalBool(item['floating']) ?? false,
+              floating: Utils.getBool(item['floating'], fallback: false),
               floatingAlignment:
                   Utils.optionalString(item['floatingAlignment']) ?? 'center',
-              floatingMargin: Utils.optionalDouble(item['floatingMargin']),
+              floatingMargin: Utils.optionalInt(item['floatingMargin']),
               onTap: item['onTap'],
             ),
           );
@@ -199,6 +199,6 @@ class MenuItem {
   final dynamic selected;
   final bool floating;
   final String floatingAlignment;
-  final double? floatingMargin;
+  final int? floatingMargin;
   final dynamic onTap;
 }
