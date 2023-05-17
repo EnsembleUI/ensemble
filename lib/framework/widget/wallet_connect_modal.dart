@@ -85,7 +85,7 @@ class _WalletConnectModalState extends State<WalletConnectModal> {
                       ],
                     ),
                     const Divider(),
-                    QrImage(
+                    QrImageView(
                       data: widget.qrData,
                       eyeStyle: const QrEyeStyle(
                           eyeShape: QrEyeShape.circle, color: Colors.black),

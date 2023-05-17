@@ -179,6 +179,10 @@ class Utils {
     return null;
   }
 
+  static bool isUrl(String source) {
+    return source.startsWith('https://') || source.startsWith('http://');
+  }
+
   static String getString(dynamic value, {required String fallback}) {
     String val = value?.toString() ?? fallback;
     return translate(val, null);
@@ -599,7 +603,7 @@ class Utils {
   }
 
   /// prefix the asset with the root directory (i.e. ensemble/assets/), plus
-  /// stripping any unecessary query params (e.g. anything after the first ?)
+  /// stripping any unnecessary query params (e.g. anything after the first ?)
   static String getLocalAssetFullPath(String asset) {
     return 'ensemble/assets/${stripQueryParamsFromAsset(asset)}';
   }
