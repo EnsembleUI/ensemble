@@ -14,15 +14,17 @@ class FABBottomAppBarItem {
   FABBottomAppBarItem({
     required this.icon,
     required this.text,
+    required this.isCustom,
     this.activeIcon,
     this.isFloating = false,
     this.floatingMargin,
   });
 
-  Icon icon;
-  Icon? activeIcon;
+  Widget icon;
+  Widget? activeIcon;
   String text;
   bool isFloating;
+  bool isCustom;
   double? floatingMargin;
 }
 
@@ -83,8 +85,6 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
       throw LanguageError('There should be only one floating nav bar item');
     }
     if (fabItems.isNotEmpty) {
-      // 'onTap': (funcDefinition) => _controller.onTap =
-      //     EnsembleAction.fromYaml(funcDefinition, initiator: this),
       final fabMenuItem = fabItems.first;
       floatingMargin = fabMenuItem.floatingMargin;
       final dynamic customIcon = _buildCustomIcon(fabMenuItem);
@@ -160,6 +160,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
         FABBottomAppBarItem(
           icon: icon,
           activeIcon: activeIcon,
+          isCustom: isCustom,
           text: label,
         ),
       );
@@ -316,48 +317,22 @@ class EnsembleBottomAppBarState extends State<EnsembleBottomAppBar> {
           type: MaterialType.transparency,
           child: InkWell(
             onTap: () => onPressed(index),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                icon,
-                Text(
-                  item.text,
-                  style: TextStyle(color: color),
-                )
-              ],
-            ),
+            child: item.isCustom
+                ? icon
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      icon,
+                      Text(
+                        item.text,
+                        style: TextStyle(color: color),
+                      )
+                    ],
+                  ),
           ),
         ),
       ),
     );
   }
-}
-
-class CustomNotchClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    const space = 80;
-    final path = Path();
-    final halfWidth = size.width / 2;
-    const halfSpace = space / 2;
-    const curve = space / 6;
-    const height = halfSpace / 1.7;
-    path.lineTo(halfWidth - halfSpace, 0);
-    path.cubicTo(halfWidth - halfSpace, 0, halfWidth - halfSpace + curve,
-        height, halfWidth, height);
-
-    path.cubicTo(halfWidth, height, halfWidth + halfSpace - curve, height,
-        halfWidth + halfSpace, 0);
-
-    path.lineTo(size.width, 0);
-    path.lineTo(size.width, size.height);
-    path.lineTo(0, size.height);
-    path.close();
-
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
