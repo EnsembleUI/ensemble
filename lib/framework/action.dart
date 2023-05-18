@@ -453,6 +453,7 @@ class WalletConnectAction extends EnsembleAction {
     this.appIconUrl,
     this.onComplete,
     this.onError,
+    this.wallet,
   });
 
   String? id;
@@ -463,6 +464,7 @@ class WalletConnectAction extends EnsembleAction {
   String? appIconUrl;
   EnsembleAction? onComplete;
   EnsembleAction? onError;
+  String? wallet;
 
   factory WalletConnectAction.fromYaml({YamlMap? payload}) {
     if (payload == null ||
@@ -481,6 +483,7 @@ class WalletConnectAction extends EnsembleAction {
       appIconUrl: Utils.optionalString(payload['appMetaData']?['iconUrl']),
       onComplete: EnsembleAction.fromYaml(payload['onComplete']),
       onError: EnsembleAction.fromYaml(payload['onError']),
+      wallet: Utils.optionalString(payload['wallet']),
     );
   }
 }

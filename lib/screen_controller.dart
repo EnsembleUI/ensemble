@@ -473,7 +473,15 @@ class ScreenController {
             );
             return;
           }
-          launchUrlString(uri, mode: LaunchMode.externalApplication);
+
+          uri = action.wallet == null
+              ? uri
+              : '${action.wallet?.toLowerCase().trim()}://wc?uri=$uri';
+
+          launchUrlString(
+            uri,
+            mode: LaunchMode.externalApplication,
+          );
         });
       } on Exception catch (_) {
         if (action.onError != null) executeAction(context, action.onError!);

@@ -2190,6 +2190,10 @@
                   "type": "string",
                   "description": "Wallet connect project Id, get it from wallet connect dashboard"
                 },
+                "wallet": {
+                  "type": "string",
+                  "description": "Optional for Android, Required in IOS, when specified walletconnect will open and connect to specified wallet. e.g metamask, trust, rainbow..."
+                },
                 "onComplete": {
                   "$ref": "#/$defs/Action-payload",
                   "description": "Execute another Action upon successful upload of files"
