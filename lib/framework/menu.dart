@@ -25,13 +25,16 @@ abstract class Menu {
       List<MenuItem> menuItems = [];
       if (payload['items'] is YamlList) {
         for (final YamlMap item in (payload['items'] as YamlList)) {
+          final isNormalMenuItem =
+              item['floating'] == null || item['floating'] == false;
           if (item['label'] == null) {
             final YamlMap? customItem = item['customItem'];
-            if (customItem == null) {
+            if (customItem == null && isNormalMenuItem) {
               throw LanguageError("Menu Item's label is required");
             }
           }
-          if (item['page'] == null) {
+
+          if (item['page'] == null && isNormalMenuItem) {
             throw LanguageError("Menu Item's 'page' attribute is required.");
           }
 
@@ -190,7 +193,7 @@ class MenuItem {
   });
 
   final String? label;
-  final String page;
+  final String? page;
   final dynamic icon;
   final dynamic activeIcon;
   final dynamic customWidget;
