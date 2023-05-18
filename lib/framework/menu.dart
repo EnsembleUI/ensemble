@@ -61,6 +61,11 @@ abstract class Menu {
               icon: item['icon'],
               iconLibrary: Utils.optionalString(item['iconLibrary']),
               selected: item['selected'],
+              floating: Utils.getBool(item['floating'], fallback: false),
+              floatingAlignment:
+                  Utils.optionalString(item['floatingAlignment']) ?? 'center',
+              floatingMargin: Utils.optionalInt(item['floatingMargin']),
+              onTap: item['onTap'],
             ),
           );
           customIconModel = null; // Resetting custom icon model
@@ -178,6 +183,10 @@ class MenuItem {
     this.icon,
     this.iconLibrary,
     this.selected,
+    this.floating = false,
+    this.floatingAlignment = 'center',
+    this.floatingMargin,
+    this.onTap,
   });
 
   final String? label;
@@ -188,4 +197,8 @@ class MenuItem {
   final dynamic customActiveWidget;
   final String? iconLibrary;
   final dynamic selected;
+  final bool floating;
+  final String floatingAlignment;
+  final int? floatingMargin;
+  final dynamic onTap;
 }
