@@ -80,20 +80,11 @@ class DataGrid extends StatefulWidget
           controller.columnSpacing = Utils.optionalDouble(val),
       'dividerThickness': (val) =>
           controller.dividerThickness = Utils.optionalDouble(val),
-      'border': (Map val) {
-        if (val.isNotEmpty) {
-          BorderRadius borderRadius = BorderRadius.zero;
-          if (val['borderRadius'] != null) {
-            borderRadius = BorderRadius.circular(
-                Utils.getDouble(val['borderRadius'], fallback: 0.0));
-          }
-          controller.border = TableBorder.all(
-            width: Utils.getDouble(val['width'], fallback: 1.0),
-            color: Utils.getColor(val['color']) ?? const Color(0xFF000000),
-            borderRadius: borderRadius,
-          );
-        }
-      },
+      'borderColor': (value) => controller.borderColor = Utils.getColor(value),
+      'borderWidth': (value) =>
+          controller.borderWidth = Utils.optionalDouble(value),
+      'borderRadius': (value) =>
+          controller.borderRadius = Utils.optionalDouble(value),
     };
   }
 }
@@ -173,7 +164,9 @@ class DataGridController extends WidgetController {
   double? columnSpacing;
   TextController? dataTextController;
   double? dividerThickness;
-  TableBorder border = const TableBorder();
+  Color? borderColor;
+  double? borderRadius;
+  double? borderWidth;
 }
 
 class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
@@ -308,7 +301,12 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
       dataTextStyle: dataTextStyle,
       columnSpacing: widget.controller.columnSpacing,
       dividerThickness: widget.controller.dividerThickness,
-      border: widget.controller.border,
+      border: TableBorder.all(
+        color: widget.controller.borderColor ?? Colors.black,
+        width: widget.controller.borderWidth ?? 1.0,
+        borderRadius:
+            BorderRadius.circular(widget.controller.borderRadius ?? 0.0),
+      ),
     );
     return SingleChildScrollView(
         scrollDirection: Axis.vertical,
