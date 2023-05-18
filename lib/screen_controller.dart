@@ -510,11 +510,7 @@ class ScreenController {
   }) async {
     List<File>? selectedFiles;
 
-    var rawFiles = dataContext.eval(action.files);
-
-    if (rawFiles is Map && rawFiles.containsKey('path')) {
-      rawFiles = [rawFiles];
-    }
+    final rawFiles = _getRawFiles(action.files, dataContext);
 
     if (rawFiles is! List<dynamic>) {
       if (action.onError != null) executeAction(context, action.onError!);
@@ -557,6 +553,15 @@ class ScreenController {
       });
     }
 
+    Map<String, String> fields = {};
+    if (apiDefinition['body'] is YamlMap) {
+      (apiDefinition['body'] as YamlMap).forEach((key, value) {
+        if (value != null) {
+          fields[key.toString()] = dataContext.eval(value).toString();
+        }
+      });
+    }
+
     String url = HttpUtils.resolveUrl(
         dataContext, apiDefinition['uri'].toString().trim());
     String method = apiDefinition['method']?.toString().toUpperCase() ?? 'POST';
@@ -573,6 +578,7 @@ class ScreenController {
         action: action,
         selectedFiles: selectedFiles,
         headers: headers,
+        fields: fields,
         method: method,
         url: url,
         fileResponse: fileResponse,
@@ -584,6 +590,7 @@ class ScreenController {
 
     final response = await UploadUtils.uploadFiles(
       headers: headers,
+      fields: fields,
       method: method,
       url: url,
       files: selectedFiles,
@@ -605,6 +612,28 @@ class ScreenController {
         ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
 
     if (action.onComplete != null) executeAction(context, action.onComplete!);
+  }
+
+  List<dynamic>? _getRawFiles(dynamic files, DataContext dataContext) {
+    if (files is YamlList) {
+      return files
+          .map((element) => Map<String, dynamic>.from(element))
+          .toList();
+    }
+
+    if (files is Map && files.containsKey('path')) {
+      return [Map<String, dynamic>.from(files)];
+    }
+
+    if (files is String) {
+      var rawFiles = dataContext.eval(files);
+      if (rawFiles is Map && rawFiles.containsKey('path')) {
+        rawFiles = [rawFiles];
+      }
+      return rawFiles;
+    }
+
+    return null;
   }
 
   bool isFileSizeOverLimit(
@@ -642,6 +671,7 @@ class ScreenController {
     required FileUploadAction action,
     required List<File> selectedFiles,
     required Map<String, String> headers,
+    required Map<String, String> fields,
     required String method,
     required String url,
     APIResponse? fileResponse,
@@ -656,6 +686,7 @@ class ScreenController {
         'fieldName': action.fieldName,
         'files': selectedFiles.map((e) => json.encode(e.toJson())).toList(),
         'headers': json.encode(headers),
+        'fields': json.encode(fields),
         'method': method,
         'url': url,
         'taskId': taskId,
@@ -674,16 +705,20 @@ class ScreenController {
       if (data is! Map) return;
       if (data.containsKey('progress')) {
         fileResponse?.setProgress(data['progress']);
-        scopeManager?.dispatch(
-            ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
+        if (action.id != null) {
+          scopeManager?.dispatch(
+              ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
+        }
       }
       if (data.containsKey('error')) {
         executeAction(context, action.onError!);
       }
       if (data.containsKey('responseBody')) {
         fileResponse?.setAPIResponse(Response.fromBody(data['responseBody']));
-        scopeManager?.dispatch(
-            ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
+        if (action.id != null) {
+          scopeManager?.dispatch(
+              ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
+        }
 
         if (action.onComplete != null) {
           executeAction(context, action.onComplete!);
@@ -854,9 +889,6 @@ class ScreenController {
         transition?['duration'] ??
             defaultTransitionOptions[_pageType]?['duration'],
         fallback: 250);
-
-    const enableTransition =
-        bool.fromEnvironment('transitions', defaultValue: true);
 
     PageRouteBuilder route = getScreenBuilder(
       screenWidget,
