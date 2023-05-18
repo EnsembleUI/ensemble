@@ -6,7 +6,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/gesture_detector.dart';
+import 'package:ensemble/util/gesture_detector.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/widget_util.dart';
 import 'package:flutter/foundation.dart';
