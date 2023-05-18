@@ -21,12 +21,12 @@
           "description": "Configure the application header",
           "properties": {
             "title": {
-              "type": [
-                "string",
-                "object"
-              ],
-              "description": "A simple text or a custom widget for the App's title",
-              "$ref": "#/$defs/Widget"
+              "oneOf": [{
+                "type": "string"
+              }, {
+                "$ref": "#/$defs/Widget"
+              }],
+              "description": "A simple text or a custom widget for the App's title"
             },
             "flexibleBackground": {
               "$ref": "#/$defs/Widget",
@@ -157,6 +157,9 @@
         "properties": {
           "inputs": {
             "type": "array",
+            "items": {
+              "type": "string"
+            },
             "description": "Define the list of input names that this API accepts"
           },
           "uri": {
@@ -203,6 +206,9 @@
     "properties": {
       "inputs": {
         "type": "array",
+        "items": {
+          "type": "string"
+        },
         "description": "Define the list of input names that this Custom Widget accepts."
       },
       "onLoad": {
@@ -285,18 +291,27 @@
                   ]
                 },
                 "lineHeight": {
-                  "type": [
-                    "number",
-                    "string"
-                  ],
-                  "enum": [
-                    "default",
-                    "1.0",
-                    "1.15",
-                    "1.25",
-                    "1.5",
-                    "2.0",
-                    "2.5"
+                  "oneOf": [
+                    {
+                      "title": "string",
+                      "type": "string"
+                    },
+                    {
+                      "title": "number",
+                      "type": "number"
+                    },
+                    {
+                      "title": "enum",
+                      "enum": [
+                        "default",
+                        "1.0",
+                        "1.15",
+                        "1.25",
+                        "1.5",
+                        "2.0",
+                        "2.5"
+                      ]
+                    }
                   ]
                 }
               }
@@ -656,9 +671,15 @@
                   "type": "integer"
                 },
                 "color": {
-                  "type": [
-                    "number",
-                    "string"
+                  "oneOf": [
+                    {
+                      "title": "string",
+                      "type": "string"
+                    },
+                    {
+                      "title": "number",
+                      "type": "number"
+                    }
                   ],
                   "description": "The line color starting with '0xFF' for full opacity"
                 },
@@ -807,10 +828,26 @@
           "type": "object",
           "properties": {
             "value": {
-              "description": "Select a value that matches one of the items. If Items are Objects, it should match the value key"
+              "description": "Select a value that matches one of the items. If Items are Objects, it should match the value key",
+              "type": "string"
             },
             "items": {
               "type": "array",
+              "items": {
+                "oneOf": [{
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    }
+                  }
+                }, {
+                  "type": "string"
+                }]
+              },
               "description": "List of values, or Objects with value/label pairs"
             },
             "autoComplete": {
@@ -907,9 +944,15 @@
                   "description": "Whether the button should have an outline border instead of filled background"
                 },
                 "color": {
-                  "type": [
-                    "number",
-                    "string"
+                  "oneOf": [
+                    {
+                      "title": "string",
+                      "type": "string"
+                    },
+                    {
+                      "title": "number",
+                      "type": "number"
+                    }
                   ],
                   "description": "Set the color for the button label starting with '0xFF' for full opacity"
                 },
@@ -994,6 +1037,7 @@
     },
     "Form-payload": {
       "type": "object",
+      "required": ["children"],
       "properties": {
         "enabled": {
           "type": "boolean"
@@ -1055,6 +1099,7 @@
           "$ref": "#/$defs/Templated-payload"
         },
         {
+          "required": ["children"],
           "properties": {
             "children": {
               "$ref": "#/$defs/Widgets"
@@ -1133,13 +1178,19 @@
                 {
                   "properties": {
                     "horizontalTileCount": {
-                      "type": [
-                        "integer",
-                        "string"
+                      "oneOf": [
+                        {
+                          "title": "string",
+                          "type": "string"
+                        },
+                        {
+                          "title": "integer",
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 5
+                        }
                       ],
-                      "description": "The number of horizontal tiles (max 5) to show. If not specified, the number of tiles will automatically be determined by the screen size. You may also specify a single number (for all breakpoints), three numbers (for small, medium, large breakpoints), or five numbers (xSmall, small, medium, large, xLarge).",
-                      "minimum": 1,
-                      "maximum": 5
+                      "description": "The number of horizontal tiles (max 5) to show. If not specified, the number of tiles will automatically be determined by the screen size. You may also specify a single number (for all breakpoints), three numbers (for small, medium, large breakpoints), or five numbers (xSmall, small, medium, large, xLarge)."
                     },
                     "horizontalGap": {
                       "type": "integer",
@@ -1189,6 +1240,7 @@
     },
     "Stack-payload": {
       "type": "object",
+      "required": ["children"],
       "properties": {
         "children": {
           "$ref": "#/$defs/Widgets"
@@ -1210,6 +1262,7 @@
           "$ref": "#/$defs/Templated-payload"
         },
         {
+          "required": ["children"],
           "properties": {
             "children": {
               "$ref": "#/$defs/Widgets"
@@ -1246,9 +1299,15 @@
                       "description": "The thickness of the separator between items"
                     },
                     "separatorPadding": {
-                      "type": [
-                        "integer",
-                        "string"
+                      "oneOf": [
+                        {
+                          "title": "string",
+                          "type": "string"
+                        },
+                        {
+                          "title": "integer",
+                          "type": "integer"
+                        }
                       ],
                       "description": "Padding with CSS-style value e.g. padding: 5 20 5 Default 0 0 0"
                     }
@@ -1264,6 +1323,7 @@
       "type": "object",
       "allOf": [
         {
+          "required": ["children"],
           "properties": {
             "children": {
               "$ref": "#/$defs/Widgets"
@@ -1345,9 +1405,15 @@
                       "type": "integer"
                     },
                     "indicatorMargin": {
-                      "type": [
-                        "integer",
-                        "string"
+                      "oneOf": [
+                        {
+                          "title": "string",
+                          "type": "string"
+                        },
+                        {
+                          "title": "integer",
+                          "type": "integer"
+                        }
                       ],
                       "description": "The margin around each indicator"
                     }
@@ -1367,6 +1433,7 @@
       "properties": {
         "item-template": {
           "type": "object",
+          "required": ["template"],
           "properties": {
             "data": {
               "type": "string",
@@ -1446,9 +1513,15 @@
                   ]
                 },
                 "contentPadding": {
-                  "type": [
-                    "integer",
-                    "string"
+                  "oneOf": [
+                    {
+                      "title": "string",
+                      "type": "string"
+                    },
+                    {
+                      "title": "integer",
+                      "type": "integer"
+                    }
                   ],
                   "description": "Padding around your input content with CSS-style notation e.g. margin: 5 20 5"
                 },
@@ -1523,9 +1596,22 @@
       ]
     },
     "Action-payload": {
-      "type": "object",
       "oneOf": [
         {
+          "title": "Navigate Back",
+          "type": "object",
+          "required": ["navigateBack"],
+          "properties": {
+            "navigateBack": {
+              "type": "object",
+              "description": "Navigating back to the previous screen if possible. The current screen will be removed from the navigation history. This also works for a modal screen."
+            }
+          }
+        },
+        {
+          "title": "Navigate Screen",
+          "type": "object",
+          "required": ["navigateScreen"],
           "properties": {
             "navigateScreen": {
               "type": "object",
@@ -1560,6 +1646,9 @@
           }
         },
         {
+          "title": "Navigate Modal Screen",
+          "type": "object",
+          "required": ["navigateModalScreen"],
           "properties": {
             "navigateModalScreen": {
               "type": "object",
@@ -1585,14 +1674,9 @@
           }
         },
         {
-          "properties": {
-            "navigateBack": {
-              "type": "object",
-              "description": "Navigating back to the previous screen if possible. The current screen will be removed from the navigation history. This also works for a modal screen."
-            }
-          }
-        },
-        {
+          "title": "Invoke API",
+          "type": "object",
+          "required": ["invokeAPI"],
           "properties": {
             "invokeAPI": {
               "type": "object",
@@ -1626,6 +1710,9 @@
           }
         },
         {
+          "title": "Open Camera",
+          "type": "object",
+          "required": ["openCamera"],
           "properties": {
             "openCamera": {
               "type": "object",
@@ -1752,6 +1839,9 @@
           }
         },
         {
+          "title": "Show Dialog",
+          "type": "object",
+          "required": ["showDialog"],
           "properties": {
             "showDialog": {
               "type": "object",
@@ -1812,6 +1902,9 @@
           }
         },
         {
+          "title": "Close All Dialogs",
+          "type": "object",
+          "required": ["closeAllDialogs"],
           "properties": {
             "closeAllDialogs": {
               "type": "object",
@@ -1820,6 +1913,9 @@
           }
         },
         {
+          "title": "Start Timer",
+          "type": "object",
+          "required": ["startTimer"],
           "properties": {
             "startTimer": {
               "type": "object",
@@ -1873,6 +1969,9 @@
           }
         },
         {
+          "title": "Stop Timer",
+          "type": "object",
+          "required": ["stopTimer"],
           "properties": {
             "stopTimer": {
               "type": "object",
@@ -1890,6 +1989,9 @@
           }
         },
         {
+          "title": "Show Toast",
+          "type": "object",
+          "required": ["showToast"],
           "properties": {
             "showToast": {
               "type": "object",
@@ -1963,9 +2065,15 @@
                     {
                       "properties": {
                         "shadowColor": {
-                          "type": [
-                            "number",
-                            "string"
+                          "oneOf": [
+                            {
+                              "title": "string",
+                              "type": "string"
+                            },
+                            {
+                              "title": "number",
+                              "type": "number"
+                            }
                           ],
                           "description": "box shadow color starting with '0xFF' for full opacity"
                         },
@@ -1994,27 +2102,40 @@
           }
         },
         {
-          "properties": {
-            "executeCode": {
+          "title": "Execute Code",
+          "oneOf": [
+            {
               "type": "object",
-              "description": "Execute a block of code.",
-              "required": [
-                "body"
-              ],
+              "required": ["executeCode"],
               "properties": {
-                "body": {
-                  "type": "string",
-                  "description": "Define your code block here, starting with //@code"
-                },
-                "onComplete": {
-                  "$ref": "#/$defs/Action-payload",
-                  "description": "Execute another Action when the code body finishes executing"
+                "executeCode": {
+                  "description": "Execute a block of code.",
+                  "type": "object",
+                  "required": [
+                    "body"
+                  ],
+                  "properties": {
+                    "body": {
+                      "type": "string",
+                      "description": "Define your code block here, starting with //@code"
+                    },
+                    "onComplete": {
+                      "$ref": "#/$defs/Action-payload",
+                      "description": "Execute another Action when the code body finishes executing"
+                    }
+                  }
                 }
               }
+            },
+            {
+              "type": "string"
             }
-          }
+          ]
         },
         {
+          "title": "Get Location",
+          "type": "object",
+          "required": ["getLocation"],
           "properties": {
             "getLocation": {
               "type": "object",
@@ -2047,6 +2168,9 @@
           }
         },
         {
+          "title": "Upload Files",
+          "type": "object",
+          "required": ["uploadFiles"],
           "properties": {
             "uploadFiles": {
               "type": "object",
@@ -2125,6 +2249,9 @@
           }
         },
         {
+          "title": "Pick Files",
+          "type": "object",
+          "required": ["pickFiles"],
           "properties": {
             "pickFiles": {
               "type": "object",
@@ -2154,6 +2281,9 @@
           }
         },
         {
+          "title": "Copy to Clipboard",
+          "type": "object",
+          "required": ["copyToClipboard"],
           "properties": {
             "copyToClipboard": {
               "type": "object",
@@ -2176,6 +2306,9 @@
           }
         },
         {
+          "title": "Connect Wallet",
+          "type": "object",
+          "required": ["connectWallet"],
           "properties": {
             "connectWallet": {
               "type": "object",
@@ -2320,9 +2453,15 @@
                   ]
                 },
                 "itemPadding": {
-                  "type": [
-                    "integer",
-                    "string"
+                  "oneOf": [
+                    {
+                      "title": "string",
+                      "type": "string"
+                    },
+                    {
+                      "title": "integer",
+                      "type": "integer"
+                    }
                   ],
                   "description": "Padding for each navigation item with CSS-style value"
                 },
@@ -2344,8 +2483,10 @@
       }
     },
     "Widget": {
-      "allOf": [
+      "oneOf": [
         {
+          "title": "Text",
+          "required": ["Text"],
           "properties": {
             "Text": {
               "$ref": "#/$defs/Text-payload",
@@ -2354,6 +2495,8 @@
           }
         },
         {
+          "title": "Markdown",
+          "required": ["Markdown"],
           "properties": {
             "Markdown": {
               "$ref": "#/$defs/Markdown-payload",
@@ -2362,6 +2505,8 @@
           }
         },
         {
+          "title": "Html",
+          "required": ["Html"],
           "properties": {
             "Html": {
               "$ref": "#/$defs/Html-payload",
@@ -2370,6 +2515,8 @@
           }
         },
         {
+          "title": "Icon",
+          "required": ["Icon"],
           "properties": {
             "Icon": {
               "$ref": "#/$defs/Icon-payload",
@@ -2378,6 +2525,8 @@
           }
         },
         {
+          "title": "Image",
+          "required": ["Image"],
           "properties": {
             "Image": {
               "$ref": "#/$defs/Image-payload",
@@ -2386,6 +2535,8 @@
           }
         },
         {
+          "title": "Lottie",
+          "required": ["Lottie"],
           "properties": {
             "Lottie": {
               "$ref": "#/$defs/Lottie-payload"
@@ -2393,6 +2544,8 @@
           }
         },
         {
+          "title": "QRCode",
+          "required": ["QRCode"],
           "properties": {
             "QRCode": {
               "$ref": "#/$defs/QRCode-payload"
@@ -2400,6 +2553,8 @@
           }
         },
         {
+          "title": "Progress",
+          "required": ["Progress"],
           "properties": {
             "Progress": {
               "$ref": "#/$defs/Progress-payload",
@@ -2408,6 +2563,8 @@
           }
         },
         {
+          "title": "Divider",
+          "required": ["Divider"],
           "properties": {
             "Divider": {
               "$ref": "#/$defs/Divider-payload",
@@ -2416,6 +2573,8 @@
           }
         },
         {
+          "title": "Spacer",
+          "required": ["Spacer"],
           "properties": {
             "Spacer": {
               "$ref": "#/$defs/Spacer-payload",
@@ -2424,6 +2583,8 @@
           }
         },
         {
+          "title": "TextInput",
+          "required": ["TextInput"],
           "properties": {
             "TextInput": {
               "$ref": "#/$defs/TextInput-payload",
@@ -2432,6 +2593,8 @@
           }
         },
         {
+          "title": "PasswordInput",
+          "required": ["PasswordInput"],
           "properties": {
             "PasswordInput": {
               "$ref": "#/$defs/PasswordInput-payload",
@@ -2440,6 +2603,8 @@
           }
         },
         {
+          "title": "Checkbox",
+          "required": ["Checkbox"],
           "properties": {
             "Checkbox": {
               "$ref": "#/$defs/OnOff-payload",
@@ -2448,6 +2613,8 @@
           }
         },
         {
+          "title": "Switch",
+          "required": ["Switch"],
           "properties": {
             "Switch": {
               "$ref": "#/$defs/OnOff-payload",
@@ -2456,6 +2623,8 @@
           }
         },
         {
+          "title": "Dropdown",
+          "required": ["Dropdown"],
           "properties": {
             "Dropdown": {
               "$ref": "#/$defs/SelectOne-payload",
@@ -2464,6 +2633,8 @@
           }
         },
         {
+          "title": "Date",
+          "required": ["Date"],
           "properties": {
             "Date": {
               "$ref": "#/$defs/Date-payload",
@@ -2472,6 +2643,8 @@
           }
         },
         {
+          "title": "Time",
+          "required": ["Time"],
           "properties": {
             "Time": {
               "$ref": "#/$defs/Time-payload",
@@ -2480,6 +2653,8 @@
           }
         },
         {
+          "title": "Button",
+          "required": ["Button"],
           "properties": {
             "Button": {
               "$ref": "#/$defs/Button-payload",
@@ -2488,6 +2663,8 @@
           }
         },
         {
+          "title": "Form",
+          "required": ["Form"],
           "properties": {
             "Form": {
               "$ref": "#/$defs/Form-payload",
@@ -2496,6 +2673,8 @@
           }
         },
         {
+          "title": "Flow",
+          "required": ["Flow"],
           "properties": {
             "Flow": {
               "$ref": "#/$defs/Flow-payload",
@@ -2504,6 +2683,8 @@
           }
         },
         {
+          "title": "Column",
+          "required": ["Column"],
           "properties": {
             "Column": {
               "$ref": "#/$defs/Column-payload",
@@ -2512,6 +2693,8 @@
           }
         },
         {
+          "title": "ListView",
+          "required": ["ListView"],
           "properties": {
             "ListView": {
               "$ref": "#/$defs/ListView-payload",
@@ -2520,6 +2703,8 @@
           }
         },
         {
+          "title": "Row",
+          "required": ["Row"],
           "properties": {
             "Row": {
               "$ref": "#/$defs/Row-payload",
@@ -2528,6 +2713,8 @@
           }
         },
         {
+          "title": "FittedColumn",
+          "required": ["FittedColumn"],
           "properties": {
             "FittedColumn": {
               "type": "object",
@@ -2537,6 +2724,8 @@
           }
         },
         {
+          "title": "FittedRow",
+          "required": ["FittedRow"],
           "properties": {
             "FittedRow": {
               "type": "object",
@@ -2546,6 +2735,8 @@
           }
         },
         {
+          "title": "GridView",
+          "required": ["GridView"],
           "properties": {
             "GridView": {
               "$ref": "#/$defs/GridView-payload",
@@ -2554,6 +2745,8 @@
           }
         },
         {
+          "title": "Flex",
+          "required": ["Flex"],
           "properties": {
             "Flex": {
               "$ref": "#/$defs/Flex-payload",
@@ -2562,6 +2755,8 @@
           }
         },
         {
+          "title": "Stack",
+          "required": ["Stack"],
           "properties": {
             "Stack": {
               "$ref": "#/$defs/Stack-payload",
@@ -2570,6 +2765,8 @@
           }
         },
         {
+          "title": "Carousel",
+          "required": ["Carousel"],
           "properties": {
             "Carousel": {
               "$ref": "#/$defs/Carousel-payload",
@@ -2578,6 +2775,8 @@
           }
         },
         {
+          "title": "TabBar",
+          "required": ["TabBar"],
           "properties": {
             "TabBar": {
               "$ref": "#/$defs/TabBar-payload",
@@ -2586,6 +2785,8 @@
           }
         },
         {
+          "title": "Map",
+          "required": ["Map"],
           "properties": {
             "Map": {
               "$ref": "#/$defs/Map-payload",
@@ -2594,6 +2795,8 @@
           }
         },
         {
+          "title": "Maps",
+          "required": ["Maps"],
           "properties": {
             "Maps": {
               "$ref": "#/$defs/Maps-payload"
@@ -2601,6 +2804,8 @@
           }
         },
         {
+          "title": "Video",
+          "required": ["Video"],
           "properties": {
             "Video": {
               "$ref": "#/$defs/Video-payload",
@@ -2609,6 +2814,8 @@
           }
         },
         {
+          "title": "WebView",
+          "required": ["WebView"],
           "properties": {
             "WebView": {
               "$ref": "#/$defs/WebView-payload",
@@ -2617,6 +2824,8 @@
           }
         },
         {
+          "title": "ChartJs",
+          "required": ["ChartJs"],
           "properties": {
             "ChartJs": {
               "$ref": "#/$defs/ChartJs-payload",
@@ -2625,6 +2834,8 @@
           }
         },
         {
+          "title": "Conditional",
+          "required": ["Conditional"],
           "properties": {
             "Conditional": {
               "type": "object",
@@ -2718,9 +2929,15 @@
                   ]
                 },
                 "tabPadding": {
-                  "type": [
-                    "integer",
-                    "string"
+                  "oneOf": [
+                    {
+                      "title": "string",
+                      "type": "string"
+                    },
+                    {
+                      "title": "integer",
+                      "type": "integer"
+                    }
                   ],
                   "description": "Padding for each tab labels with CSS-style value. Default: 0 30 0 0 (right padding only)"
                 },
@@ -3084,9 +3301,15 @@
       "type": "object",
       "properties": {
         "padding": {
-          "type": [
-            "integer",
-            "string"
+          "oneOf": [
+            {
+              "title": "string",
+              "type": "string"
+            },
+            {
+              "title": "integer",
+              "type": "integer"
+            }
           ],
           "description": "Padding with CSS-style value e.g. padding: 5 20 5"
         }
@@ -3096,9 +3319,15 @@
       "type": "object",
       "properties": {
         "margin": {
-          "type": [
-            "integer",
-            "string"
+          "oneOf": [
+            {
+              "title": "string",
+              "type": "string"
+            },
+            {
+              "title": "integer",
+              "type": "integer"
+            }
           ],
           "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
         }
@@ -3108,9 +3337,15 @@
       "type": "object",
       "properties": {
         "borderRadius": {
-          "type": [
-            "integer",
-            "string"
+          "oneOf": [
+            {
+              "title": "string",
+              "type": "string"
+            },
+            {
+              "title": "integer",
+              "type": "integer"
+            }
           ],
           "minimum": 0,
           "description": "Border Radius with CSS-like notation (1 to 4 integers)"
@@ -3120,9 +3355,11 @@
     "typeColors": {
       "oneOf": [
         {
+          "title": "number",
           "type": "integer"
         },
         {
+          "title": "name",
           "type": "string",
           "enum": [
             "transparent",
@@ -3145,6 +3382,7 @@
           ]
         },
         {
+          "title": "hexadecimal",
           "type": "string",
           "pattern": "^0x"
         }
@@ -3221,6 +3459,7 @@
       ]
     },
     "fittedBoxLayout": {
+      "required": ["children"],
       "properties": {
         "children": {
           "$ref": "#/$defs/Widgets"
@@ -3262,7 +3501,7 @@
                   "type": "array",
                   "description": "Specify an array of non-zero integers or 'auto', each corresponding to a child. Setting 'auto' will let the child determines its own size, while setting a non-zero integer will determine the child's size multiple. The 'auto' children will be laid out first and get as much space as they need, then the left-over space will be distributed to the other children based on their size multiples.",
                   "items": {
-                    "anyOf": [
+                    "oneOf": [
                       {
                         "const": "auto",
                         "description": "Allow this selected child to determine its own size. This may give an error if the child doesn't have a dimension."
@@ -3681,9 +3920,15 @@
       "type": "object",
       "properties": {
         "shadowColor": {
-          "type": [
-            "number",
-            "string"
+          "oneOf": [
+            {
+              "title": "string",
+              "type": "string"
+            },
+            {
+              "title": "number",
+              "type": "number"
+            }
           ],
           "description": "Box shadow color starting with '0xFF' for full opacity"
         },
@@ -3739,9 +3984,15 @@
       "description": "Specifies the icon to use. You can also use the short-handed syntax 'iconName iconLibrary')",
       "properties": {
         "name": {
-          "type": [
-            "integer",
-            "string"
+          "oneOf": [
+            {
+              "title": "string",
+              "type": "string"
+            },
+            {
+              "title": "integer",
+              "type": "integer"
+            }
           ],
           "description": "The name of the icon"
         },
