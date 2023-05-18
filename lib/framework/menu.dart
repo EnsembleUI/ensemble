@@ -25,13 +25,16 @@ abstract class Menu {
       List<MenuItem> menuItems = [];
       if (payload['items'] is YamlList) {
         for (final YamlMap item in (payload['items'] as YamlList)) {
+          final isNormalMenuItem =
+              item['floating'] == null || item['floating'] == false;
           if (item['label'] == null) {
             final YamlMap? customItem = item['customItem'];
-            if (customItem == null) {
+            if (customItem == null && isNormalMenuItem) {
               throw LanguageError("Menu Item's label is required");
             }
           }
-          if (item['page'] == null) {
+
+          if (item['page'] == null && isNormalMenuItem) {
             throw LanguageError("Menu Item's 'page' attribute is required.");
           }
 
@@ -61,6 +64,11 @@ abstract class Menu {
               icon: item['icon'],
               iconLibrary: Utils.optionalString(item['iconLibrary']),
               selected: item['selected'],
+              floating: Utils.getBool(item['floating'], fallback: false),
+              floatingAlignment:
+                  Utils.optionalString(item['floatingAlignment']) ?? 'center',
+              floatingMargin: Utils.optionalInt(item['floatingMargin']),
+              onTap: item['onTap'],
             ),
           );
           customIconModel = null; // Resetting custom icon model
@@ -178,14 +186,22 @@ class MenuItem {
     this.icon,
     this.iconLibrary,
     this.selected,
+    this.floating = false,
+    this.floatingAlignment = 'center',
+    this.floatingMargin,
+    this.onTap,
   });
 
   final String? label;
-  final String page;
+  final String? page;
   final dynamic icon;
   final dynamic activeIcon;
   final dynamic customWidget;
   final dynamic customActiveWidget;
   final String? iconLibrary;
   final dynamic selected;
+  final bool floating;
+  final String floatingAlignment;
+  final int? floatingMargin;
+  final dynamic onTap;
 }
