@@ -36,6 +36,8 @@ class FormFieldController extends WidgetController {
   Color? errorBorderColor;
   Color? focusedBorderColor;
   Color? focusedErrorBorderColor;
+  TextStyle? hintStyle;
+  TextStyle? labelStyle;
 
   @override
   Map<String, Function> getBaseGetters() {
@@ -74,6 +76,8 @@ class FormFieldController extends WidgetController {
           focusedBorderColor = Utils.getColor(color),
       'focusedErrorBorderColor': (color) =>
           focusedErrorBorderColor = Utils.getColor(color),
+      'hintStyle': (style) => hintStyle = Utils.getTextStyle(style),
+      'labelStyle': (style) => labelStyle = Utils.getTextStyle(style),
     });
     return setters;
   }
@@ -175,6 +179,8 @@ abstract class FormFieldWidgetState<W extends HasController>
           fillColor: myController.fillColor,
           // labelText: shouldShowLabel() ? myController.label : null,
           hintText: myController.hintText,
+          hintStyle: myController.hintStyle,
+          labelStyle: myController.labelStyle,
           prefixIcon: myController.icon == null
               ? null
               : framework.Icon(
