@@ -1187,6 +1187,104 @@
         }
       ]
     },
+    "DataGrid-payload": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/DataRow-Templated-payload"
+        },
+        {
+          "properties": {
+            "children": {
+                "$ref": "#/$defs/DataRow"
+            },
+            "styles": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/baseStyles"
+                },
+                {
+                  "$ref": "#/$defs/boxLayoutStyles"
+                }
+              ]
+            },
+            "headingTextStyle": {
+              "type": "object",
+              "description": "Set the text style for the heading text",
+              "$ref": "#/$defs/TextStyle"
+            },
+            "dataTextStyle": {
+              "type": "object",
+              "description": "Set the text style for the data item text",
+              "$ref": "#/$defs/TextStyle"
+            },
+            "horizontalMargin": {
+              "type": "integer",
+              "description": "The leading and trailing gap for the DataGrid view.",
+              "minimum": 0
+            },
+            "dataRowHeight": {
+              "type": "integer",
+              "description": "Set the height of the data row item.",
+              "minimum": 0
+            },
+            "headingRowHeight": {
+              "type": "integer",
+              "description": "Set the height of the heading row item.",
+              "minimum": 0
+            },
+            "columnSpacing": {
+              "type": "number",
+              "description": "Set the padding for the column.",
+              "minimum": 0
+            },
+            "borderRadius": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "The border radius for this DataGrid. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "borderWidth": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "The border width for this DataGrid. This property can be defined in the theme to apply to all Input widgets."
+            },
+            "borderColor": {
+              "$ref": "#/$defs/typeColors",
+              "description": "Set the color of the border."
+            }
+          }
+        }
+      ]
+    },
+    "DataRow-Templated-payload": {
+      "type": "object",
+      "properties": {
+        "item-template": {
+          "type": "object",
+          "properties": {
+            "data": {
+              "type": "string",
+              "description": "Bind to an array of data from an API response or a variable"
+            },
+            "name": {
+              "type": "string",
+              "description": "Set the name to reference as you iterate through the array of data"
+            },
+            "template": {
+              "$ref": "#/$defs/DataRow",
+              "description": "The data row widget to render for each item"
+            }
+          }
+        }
+      }
+    },
+    "DataRow": {
+      "type": "array",
+      "description": "List of widgets",
+      "items": {
+        "$ref": "#/$defs/Widget"
+      }
+    },
     "Stack-payload": {
       "type": "object",
       "properties": {
