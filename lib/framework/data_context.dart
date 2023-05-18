@@ -319,7 +319,7 @@ class NativeInvokable with Invokable {
       ActionType.openCamera.name: showCamera,
       ActionType.navigateBack.name: navigateBack,
       ActionType.uploadFiles.name: uploadFiles,
-      'debug': (value) => log('Debug: $value'),
+      'debug': (value) => debugPrint('Debug: $value'),
       'copyToClipboard': (value) =>
           Clipboard.setData(ClipboardData(text: value))
     };
