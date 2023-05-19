@@ -68,8 +68,7 @@ class BottomNavPageGroup extends StatefulWidget {
 
 class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
   late List<MenuItem> menuItems;
-  Widget? fab;
-  FloatingAlignment floatingAlignment = FloatingAlignment.none;
+  FloatingAlignment floatingAlignment = FloatingAlignment.center;
   int? floatingMargin;
   MenuItem? fabMenuItem;
 
@@ -88,9 +87,13 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
     if (fabItems.isNotEmpty) {
       fabMenuItem = fabItems.first;
     }
+    if (fabMenuItem != null && fabMenuItem?.floatingAlignment != null) {
+      floatingAlignment =
+          FloatingAlignment.values.byName(fabMenuItem!.floatingAlignment);
+    }
   }
 
-  void _floatingButton() {
+  Widget? _buildFloatingButton() {
     if (fabMenuItem != null) {
       floatingMargin = fabMenuItem!.floatingMargin;
       final dynamic customIcon = _buildCustomIcon(fabMenuItem!);
@@ -102,7 +105,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
           Utils.getColor(widget.menu.styles?['floatingBackgroundColor']) ??
               Theme.of(context).colorScheme.secondary;
 
-      fab = Theme(
+      return Theme(
         data: ThemeData(useMaterial3: false),
         child: customIcon ??
             FloatingActionButton(
@@ -115,11 +118,8 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
               onPressed: () => _floatingButtonTapped(fabMenuItem!),
             ),
       );
-      if (fab != null) {
-        floatingAlignment =
-            FloatingAlignment.values.byName(fabMenuItem!.floatingAlignment);
-      }
     }
+    return null;
   }
 
   void _floatingButtonTapped(MenuItem fabMenuItem) {
@@ -132,16 +132,13 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
 
   @override
   Widget build(BuildContext context) {
-    _floatingButton();
-
     return Scaffold(
       resizeToAvoidBottomInset: false,
       bottomNavigationBar: _buildBottomNavBar(),
       floatingActionButtonLocation: floatingAlignment == FloatingAlignment.none
           ? null
           : floatingAlignment.location,
-      floatingActionButton:
-          floatingAlignment == FloatingAlignment.none ? null : fab,
+      floatingActionButton: _buildFloatingButton(),
       body: PageGroupWidget(
         scopeManager: widget.scopeManager,
         child: widget.child,
