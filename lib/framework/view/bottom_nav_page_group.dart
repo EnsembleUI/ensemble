@@ -194,6 +194,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
       notchedShape: const CircularNotchedRectangle(),
       onTabSelected: widget.onTabSelected,
       items: navItems,
+      isFloating: fabMenuItem != null,
       floatingAlignment: floatingAlignment,
       floatingMargin: floatingMargin,
     );
@@ -224,6 +225,7 @@ class EnsembleBottomAppBar extends StatefulWidget {
     required this.selectedColor,
     required this.notchedShape,
     required this.onTabSelected,
+    required this.isFloating,
     required this.floatingAlignment,
     this.onFabTapped,
     this.floatingMargin,
@@ -237,6 +239,7 @@ class EnsembleBottomAppBar extends StatefulWidget {
   final Color backgroundColor;
   final Color color;
   final Color selectedColor;
+  final bool isFloating;
   final FloatingAlignment floatingAlignment;
   final NotchedShape notchedShape;
   final VoidCallback? onFabTapped;
@@ -258,6 +261,8 @@ class EnsembleBottomAppBarState extends State<EnsembleBottomAppBar> {
   }
 
   int? getFabIndex() {
+    if (!widget.isFloating) return null;
+
     switch (widget.floatingAlignment) {
       case FloatingAlignment.center:
         switch (widget.items.length) {
