@@ -33,6 +33,10 @@ class Maps extends StatefulWidget
     return {
       'width': (value) => _controller.width = Utils.optionalInt(value),
       'height': (value) => _controller.height = Utils.optionalInt(value),
+      'markerOverlayMaxWidth': (value) => _controller.markerOverlayMaxWidth =
+          Utils.getInt(value, fallback: _controller.markerOverlayMaxWidth),
+      'markerOverlayMaxHeight': (value) => _controller.markerOverlayMaxHeight =
+          Utils.getInt(value, fallback: _controller.markerOverlayMaxHeight),
       'initialCameraPosition': (cameraPosition) =>
           _controller.initialCameraPosition = cameraPosition,
       'autoZoom': (value) => _controller.autoZoom =
@@ -46,8 +50,9 @@ class Maps extends StatefulWidget
               fallback: _controller.includeCurrentLocationInAutoZoom),
       'mapType': (value) => _controller.mapType = value,
       'markers': (markerData) => setMarkers(markerData),
-      'scrollableOverlay': (value) => _controller.scrollableOverlay =
-          Utils.getBool(value, fallback: _controller.scrollableOverlay),
+      'scrollableMarkerOverlay': (value) => _controller
+              .scrollableMarkerOverlay =
+          Utils.getBool(value, fallback: _controller.scrollableMarkerOverlay),
       'autoSelect': (value) => _controller.autoSelect =
           Utils.getBool(value, fallback: _controller.autoSelect),
       'onMapCreated': (action) => _controller.onMapCreated =
@@ -108,11 +113,15 @@ class MyController extends WidgetController with LocationCapability {
   int? height;
   int? width;
 
+  // overlay fill available horizontal space, so cap max width/height
+  int markerOverlayMaxWidth = 500;
+  int markerOverlayMaxHeight = 500;
+  bool scrollableMarkerOverlay = false;
+
   final defaultCameraLatLng = const LatLng(37.773972, -122.431297);
   final double defaultCameraZoom = 10;
   dynamic initialCameraPosition;
 
-  bool scrollableOverlay = false;
   bool autoSelect = true;
 
   bool autoZoom = false;

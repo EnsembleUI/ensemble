@@ -318,7 +318,8 @@ class NativeInvokable with Invokable {
       ActionType.stopTimer.name: stopTimer,
       ActionType.openCamera.name: showCamera,
       ActionType.navigateBack.name: navigateBack,
-      'debug': (value) => log('Debug: $value'),
+      ActionType.uploadFiles.name: uploadFiles,
+      'debug': (value) => debugPrint('Debug: $value'),
       'copyToClipboard': (value) =>
           Clipboard.setData(ClipboardData(text: value))
     };
@@ -327,6 +328,15 @@ class NativeInvokable with Invokable {
   @override
   Map<String, Function> setters() {
     return {};
+  }
+
+  void uploadFiles(dynamic inputs) {
+    Map<String, dynamic>? inputMap = Utils.getMap(inputs);
+    if (inputMap == null) throw LanguageError('UploadFiles need inputs');
+    ScreenController().executeAction(
+      _buildContext,
+      FileUploadAction.fromYaml(payload: YamlMap.wrap(inputMap)),
+    );
   }
 
   void navigateToScreen(String screenName, [dynamic inputs]) {
@@ -435,13 +445,22 @@ class Formatter with Invokable {
       'prettyDateTime': (input) => InvokablePrimitive.prettyDateTime(input),
       'prettyCurrency': (input) => InvokablePrimitive.prettyCurrency(input),
       'prettyDuration': (input) =>
-          InvokablePrimitive.prettyDuration(input, locale: locale)
+          InvokablePrimitive.prettyDuration(input, locale: locale),
+      'pluralize': pluralize
     };
   }
 
   @override
   Map<String, Function> setters() {
     return {};
+  }
+
+  String pluralize(String singularText, int? count, [pluralText]) {
+    count ??= 1;
+    if (count <= 1) {
+      return singularText;
+    }
+    return pluralText ?? '${singularText}s';
   }
 }
 

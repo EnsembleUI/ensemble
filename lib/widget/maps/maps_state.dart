@@ -63,6 +63,12 @@ class MapsState extends MapsActionableState
   @override
   Position? getCurrentLocation() => currentLocation;
 
+  // we use both geolocator to get the location and google maps to show
+  // location marker on non-Web. Both of these request permission and can
+  // clash if they run at the same time. So we first get the location, then
+  // tell Google Maps it can now show its location.
+  bool showLocationOnMap = false;
+
   @override
   void didUpdateWidget(covariant Maps oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -107,6 +113,12 @@ class MapsState extends MapsActionableState
 
       getLocation().then((device) {
         currentLocation = device.location;
+
+        // we got the location here, now tell Google Maps it can show its location
+        // marker so they don't both request permission at the same time
+        setState(() {
+          showLocationOnMap = true;
+        });
 
         bool isAutoZoom = widget.controller.autoZoom &&
             widget.controller.includeCurrentLocationInAutoZoom;
@@ -424,7 +436,7 @@ class MapsState extends MapsActionableState
     return Stack(children: [
       GoogleMap(
         onMapCreated: _onMapCreated,
-        myLocationEnabled: widget.controller.locationEnabled,
+        myLocationEnabled: showLocationOnMap,
         mapType: widget.controller.mapType ?? MapType.normal,
         myLocationButtonEnabled: false,
         mapToolbarEnabled: true,
@@ -439,9 +451,11 @@ class MapsState extends MapsActionableState
       _overlayWidget != null && _selectedMarkerId != null
           ? MapsOverlay(
               _overlayWidget!,
-              scrollable: widget.controller.scrollableOverlay,
+              scrollable: widget.controller.scrollableMarkerOverlay,
               onScrolled: (isNext) =>
                   isNext ? _selectNextMarker() : _selectPreviousMarker(),
+              maxWidth: widget.controller.markerOverlayMaxWidth,
+              maxHeight: widget.controller.markerOverlayMaxHeight,
             )
           : const SizedBox.shrink()
     ]);
@@ -469,7 +483,7 @@ class MapsState extends MapsActionableState
         LatLngBounds bounds =
             await (await _controller.future).getVisibleRegion();
         _executeCameraMoveAction(widget.controller.onCameraMove!, bounds);
-        log("Camera moved");
+        //log("Camera moved");
       });
     }
   }
