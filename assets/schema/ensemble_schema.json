@@ -3061,7 +3061,15 @@
                     }
                   }
                 },
-                "scrollableOverlay": {
+                "markerOverlayMaxWidth": {
+                  "type": "integer",
+                  "description": "Marker overlay stretches to fill available horizontal space. Use this to cap its width on larger screens. (default 500)"
+                },
+                "markerOverlayMaxHeight": {
+                  "type": "integer",
+                  "description": "Set the max height of the marker overlay. (default: 50% of the screen height)"
+                },
+                "scrollableMarkerOverlay": {
                   "type": "boolean",
                   "description": "If using overlay and there are more than one marker, swiping left/right within the overlay will navigate to next/previous marker"
                 },
