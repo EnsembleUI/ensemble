@@ -445,13 +445,22 @@ class Formatter with Invokable {
       'prettyDateTime': (input) => InvokablePrimitive.prettyDateTime(input),
       'prettyCurrency': (input) => InvokablePrimitive.prettyCurrency(input),
       'prettyDuration': (input) =>
-          InvokablePrimitive.prettyDuration(input, locale: locale)
+          InvokablePrimitive.prettyDuration(input, locale: locale),
+      'pluralize': pluralize
     };
   }
 
   @override
   Map<String, Function> setters() {
     return {};
+  }
+
+  String pluralize(String singularText, int? count, [pluralText]) {
+    count ??= 1;
+    if (count <= 1) {
+      return singularText;
+    }
+    return pluralText ?? '${singularText}s';
   }
 }
 
