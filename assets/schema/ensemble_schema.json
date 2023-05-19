@@ -1643,7 +1643,6 @@
       "properties": {
         "item-template": {
           "type": "object",
-          "required": ["template"],
           "properties": {
             "data": {
               "type": "string",
