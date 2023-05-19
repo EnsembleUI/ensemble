@@ -12,6 +12,9 @@ abstract class WidgetController extends Controller {
   bool visible = true;
   String? id; // do we need this?
 
+  // wrap widget inside an Align widget
+  Alignment? alignToParent;
+
   // optional label/labelHint for use in Forms
   String? label;
   String? description;
@@ -30,6 +33,7 @@ abstract class WidgetController extends Controller {
     return {
       'expanded': (value) => expanded = Utils.getBool(value, fallback: false),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
+      'alignToParent': (value) => alignToParent = Utils.getAlignment(value),
       'label': (value) => label = Utils.optionalString(value),
       'description': (value) => description = Utils.optionalString(value),
       'labelHint': (value) => labelHint = Utils.optionalString(value),
