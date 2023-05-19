@@ -62,14 +62,6 @@ class DataGrid extends StatefulWidget
       'DataColumns': (List cols) {
         this.cols = cols;
       },
-      'headingTextStyle': (Map styles) {
-        controller.headingTextController = TextController();
-        TextUtils.setStyles(styles, controller.headingTextController!);
-      },
-      'dataTextStyle': (Map styles) {
-        controller.dataTextController = TextController();
-        TextUtils.setStyles(styles, controller.dataTextController!);
-      },
       'horizontalMargin': (val) =>
           controller.horizontalMargin = Utils.optionalDouble(val),
       'dataRowHeight': (val) =>
@@ -80,11 +72,6 @@ class DataGrid extends StatefulWidget
           controller.columnSpacing = Utils.optionalDouble(val),
       'dividerThickness': (val) =>
           controller.dividerThickness = Utils.optionalDouble(val),
-      'borderColor': (value) => controller.borderColor = Utils.getColor(value),
-      'borderWidth': (value) =>
-          controller.borderWidth = Utils.optionalDouble(value),
-      'borderRadius': (value) =>
-          controller.borderRadius = Utils.optionalDouble(value),
     };
   }
 }
@@ -155,7 +142,7 @@ class EnsembleDataRowState extends State<EnsembleDataRow> {
   }
 }
 
-class DataGridController extends WidgetController {
+class DataGridController extends BoxController {
   List<Widget>? children;
   double? horizontalMargin;
   TextController? headingTextController;
@@ -164,9 +151,22 @@ class DataGridController extends WidgetController {
   double? columnSpacing;
   TextController? dataTextController;
   double? dividerThickness;
-  Color? borderColor;
-  double? borderRadius;
-  double? borderWidth;
+
+  @override
+  Map<String, Function> getBaseSetters() {
+    Map<String, Function> setters = super.getBaseSetters();
+    setters.addAll({
+      'headingText': (Map styles) {
+        headingTextController = TextController();
+        TextUtils.setStyles(styles, headingTextController!);
+      },
+      'dataText': (Map styles) {
+        dataTextController = TextController();
+        TextUtils.setStyles(styles, dataTextController!);
+      },
+    });
+    return setters;
+  }
 }
 
 class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
@@ -303,9 +303,9 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
       dividerThickness: widget.controller.dividerThickness,
       border: TableBorder.all(
         color: widget.controller.borderColor ?? Colors.black,
-        width: widget.controller.borderWidth ?? 1.0,
+        width: widget.controller.borderWidth?.toDouble() ?? 1.0,
         borderRadius:
-            BorderRadius.circular(widget.controller.borderRadius ?? 0.0),
+            widget.controller.borderRadius?.getValue() ?? BorderRadius.zero,
       ),
     );
     return SingleChildScrollView(
