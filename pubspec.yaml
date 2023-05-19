@@ -24,6 +24,11 @@ dependencies:
   flutter:
     sdk: flutter
 
+  device_preview:
+    git:
+      url: https://github.com/vinothvino42/flutter_device_preview.git
+      ref: develop
+
   yaml: ^3.1.2
   font_awesome_flutter: ^9.2.0
   intl: ^0.18.0
@@ -35,7 +40,6 @@ dependencies:
   flutter_rating_bar: ^4.0.0
   fl_chart: ^0.62.0
   signature: ^5.2.1
-  device_preview: ^1.1.0
 
   ensemble_ts_interpreter:
     git:
