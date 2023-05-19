@@ -5,8 +5,14 @@ import 'package:pointer_interceptor/pointer_interceptor.dart';
 
 class MapsOverlay extends StatelessWidget {
   const MapsOverlay(this.overlayWidget,
-      {super.key, this.scrollable = true, this.onScrolled});
+      {super.key,
+      this.scrollable = true,
+      this.onScrolled,
+      this.maxWidth,
+      this.maxHeight});
   final Widget overlayWidget;
+  final int? maxWidth;
+  final int? maxHeight;
   final bool scrollable;
   final OverlayScrollCallback? onScrolled;
 
@@ -17,23 +23,31 @@ class MapsOverlay extends StatelessWidget {
     var content =
         kIsWeb ? PointerInterceptor(child: overlayWidget) : overlayWidget;
 
-    return Positioned(
-        right: 0,
-        left: 0,
-        bottom: 0,
-        child: scrollable && onScrolled != null
-            ? GestureDetector(
-                onHorizontalDragEnd: (details) {
-                  if (details.primaryVelocity != null) {
-                    if (details.primaryVelocity! < 0) {
-                      onScrolled!(true); // next marker
-                    } else if (details.primaryVelocity! > 0) {
-                      onScrolled!(false); // previous marker
-                    }
-                  }
-                },
-                child: content)
-            : content);
+    var gestureWrapper = scrollable && onScrolled != null
+        ? GestureDetector(
+            onHorizontalDragEnd: (details) {
+              if (details.primaryVelocity != null) {
+                if (details.primaryVelocity! < 0) {
+                  onScrolled!(true); // next marker
+                } else if (details.primaryVelocity! > 0) {
+                  onScrolled!(false); // previous marker
+                }
+              }
+            },
+            child: content)
+        : content;
+
+    return Align(
+        alignment: Alignment.bottomCenter,
+        child: ConstrainedBox(
+            constraints: BoxConstraints(
+                maxWidth: maxWidth?.toDouble() ?? 500,
+                maxHeight: maxHeight?.toDouble() ?? Device().screenHeight / 2),
+            // always stretch the content, up to the constraints
+            child: SizedBox(
+              width: double.infinity,
+              child: gestureWrapper,
+            )));
   }
 }
 
