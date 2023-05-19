@@ -71,6 +71,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
   Widget? fab;
   FloatingAlignment floatingAlignment = FloatingAlignment.none;
   int? floatingMargin;
+  MenuItem? fabMenuItem;
 
   @override
   void initState() {
@@ -85,24 +86,38 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
       throw LanguageError('There should be only one floating nav bar item');
     }
     if (fabItems.isNotEmpty) {
-      final fabMenuItem = fabItems.first;
-      floatingMargin = fabMenuItem.floatingMargin;
-      final dynamic customIcon = _buildCustomIcon(fabMenuItem);
+      fabMenuItem = fabItems.first;
+    }
+  }
+
+  void _floatingButton() {
+    if (fabMenuItem != null) {
+      floatingMargin = fabMenuItem!.floatingMargin;
+      final dynamic customIcon = _buildCustomIcon(fabMenuItem!);
+
+      final floatingItemColor =
+          Utils.getColor(widget.menu.styles?['floatingIconColor']) ??
+              Theme.of(context).colorScheme.onSecondary;
+      final floatingBackgroundColor =
+          Utils.getColor(widget.menu.styles?['floatingBackgroundColor']) ??
+              Theme.of(context).colorScheme.secondary;
+
       fab = Theme(
         data: ThemeData(useMaterial3: false),
         child: customIcon ??
             FloatingActionButton(
+              backgroundColor: floatingBackgroundColor,
               child: ensemble.Icon(
-                fabMenuItem.icon ?? '',
-                library: fabMenuItem.iconLibrary,
-                color: Colors.white,
+                fabMenuItem!.icon ?? '',
+                library: fabMenuItem!.iconLibrary,
+                color: floatingItemColor,
               ),
-              onPressed: () => _floatingButtonTapped(fabMenuItem),
+              onPressed: () => _floatingButtonTapped(fabMenuItem!),
             ),
       );
       if (fab != null) {
         floatingAlignment =
-            FloatingAlignment.values.byName(fabMenuItem.floatingAlignment);
+            FloatingAlignment.values.byName(fabMenuItem!.floatingAlignment);
       }
     }
   }
@@ -117,6 +132,8 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
 
   @override
   Widget build(BuildContext context) {
+    _floatingButton();
+
     return Scaffold(
       resizeToAvoidBottomInset: false,
       bottomNavigationBar: _buildBottomNavBar(),
@@ -135,6 +152,12 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
   EnsembleBottomAppBar? _buildBottomNavBar() {
     List<FABBottomAppBarItem> navItems = [];
 
+    final unselectedColor = Utils.getColor(widget.menu.styles?['color']) ??
+        Theme.of(context).unselectedWidgetColor;
+    final selectedColor =
+        Utils.getColor(widget.menu.styles?['selectedColor']) ??
+            Theme.of(context).primaryColor;
+
     // final menu = widget.menu;
     for (int i = 0; i < menuItems.length; i++) {
       MenuItem item = menuItems[i];
@@ -148,13 +171,13 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
           ensemble.Icon(
             item.activeIcon ?? item.icon,
             library: item.iconLibrary,
-            color: Colors.white,
+            color: selectedColor,
           );
       final icon = customIcon ??
           ensemble.Icon(
             item.icon ?? '',
             library: item.iconLibrary,
-            color: Colors.white60,
+            color: unselectedColor,
           );
       navItems.add(
         FABBottomAppBarItem(
@@ -169,8 +192,8 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
     return EnsembleBottomAppBar(
       backgroundColor: Utils.getColor(widget.menu.styles?['backgroundColor']) ??
           Colors.white,
-      color: Colors.white60,
-      selectedColor: Colors.white,
+      color: unselectedColor,
+      selectedColor: selectedColor,
       notchedShape: const CircularNotchedRectangle(),
       onTabSelected: widget.onTabSelected,
       items: navItems,
@@ -197,7 +220,7 @@ class EnsembleBottomAppBar extends StatefulWidget {
   EnsembleBottomAppBar({
     super.key,
     required this.items,
-    this.height = 80.0,
+    this.height = 70.0,
     this.iconSize = 24.0,
     required this.backgroundColor,
     required this.color,
@@ -316,6 +339,7 @@ class EnsembleBottomAppBarState extends State<EnsembleBottomAppBar> {
         child: Material(
           type: MaterialType.transparency,
           child: InkWell(
+            customBorder: const CircleBorder(),
             onTap: () => onPressed(index),
             child: item.isCustom
                 ? icon
