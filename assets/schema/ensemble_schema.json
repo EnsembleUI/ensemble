@@ -1205,18 +1205,20 @@
                 },
                 {
                   "$ref": "#/$defs/boxLayoutStyles"
+                },
+                {
+                  "headingTextStyle": {
+                    "type": "object",
+                    "description": "Set the text style for the heading text",
+                    "$ref": "#/$defs/TextStyle"
+                  },
+                  "dataTextStyle": {
+                    "type": "object",
+                    "description": "Set the text style for the data item text",
+                    "$ref": "#/$defs/TextStyle"
+                  }
                 }
               ]
-            },
-            "headingTextStyle": {
-              "type": "object",
-              "description": "Set the text style for the heading text",
-              "$ref": "#/$defs/TextStyle"
-            },
-            "dataTextStyle": {
-              "type": "object",
-              "description": "Set the text style for the data item text",
-              "$ref": "#/$defs/TextStyle"
             },
             "horizontalMargin": {
               "type": "integer",
@@ -1237,20 +1239,6 @@
               "type": "number",
               "description": "Set the padding for the column.",
               "minimum": 0
-            },
-            "borderRadius": {
-              "type": "integer",
-              "minimum": 0,
-              "description": "The border radius for this DataGrid. This property can be defined in the theme to apply to all Input widgets."
-            },
-            "borderWidth": {
-              "type": "integer",
-              "minimum": 0,
-              "description": "The border width for this DataGrid. This property can be defined in the theme to apply to all Input widgets."
-            },
-            "borderColor": {
-              "$ref": "#/$defs/typeColors",
-              "description": "Set the color of the border."
             }
           }
         }
