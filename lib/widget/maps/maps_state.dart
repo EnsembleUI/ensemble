@@ -451,9 +451,11 @@ class MapsState extends MapsActionableState
       _overlayWidget != null && _selectedMarkerId != null
           ? MapsOverlay(
               _overlayWidget!,
-              scrollable: widget.controller.scrollableOverlay,
+              scrollable: widget.controller.scrollableMarkerOverlay,
               onScrolled: (isNext) =>
                   isNext ? _selectNextMarker() : _selectPreviousMarker(),
+              maxWidth: widget.controller.markerOverlayMaxWidth,
+              maxHeight: widget.controller.markerOverlayMaxHeight,
             )
           : const SizedBox.shrink()
     ]);
