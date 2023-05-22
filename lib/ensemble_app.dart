@@ -43,21 +43,29 @@ void callbackDispatcher() {
                 Map<String, String>.from(json.decode(inputData['headers'])),
             method: inputData['method'],
             url: inputData['url'],
-            fields: inputData['fields'],
+            fields: Map<String, String>.from(json.decode(inputData['fields'])),
             showNotification: inputData['showNotification'],
             progressCallback: (progress) {
               if (sendPort == null) return;
-              sendPort.send({'progress': progress});
+              sendPort.send({
+                'progress': progress,
+                'taskId': inputData['taskId'],
+              });
             },
             onError: (error) {
               if (sendPort == null) return;
-              sendPort.send({'error': error});
+              sendPort.send(
+                  {'error': error.toString(), 'taskId': inputData['taskId']});
             },
           );
 
           if (sendPort == null || response == null) return response == null;
 
-          sendPort.send({'responseBody': response.body});
+          sendPort.send({
+            'responseBody': response.body,
+            'taskId': inputData['taskId'],
+            'responseHeaders': response.headers,
+          });
         } catch (e) {
           throw LanguageError('Failed to process backgroud upload task');
         }

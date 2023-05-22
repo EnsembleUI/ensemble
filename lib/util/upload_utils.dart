@@ -29,12 +29,15 @@ class UploadUtils {
           ? null
           : (int bytes, int total) {
               final progress = bytes / total;
+              final percentage = (progress * 100).toInt();
+
+              if (percentage % 1 == 0) {
+                progressCallback.call(progress);
+              }
 
               if (showNotification) {
-                notificationUtils
-                    .showProgressNotification((progress * 100).toInt());
+                notificationUtils.showProgressNotification(percentage);
               }
-              progressCallback.call(progress);
             },
     );
     request.headers.addAll(headers);
