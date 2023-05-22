@@ -22,6 +22,7 @@ class UploadUtils {
     ProgressCallback? progressCallback,
     OnErrorCallback? onError,
   }) async {
+    double previousPercentage = 0.0;
     final request = MultipartRequest(
       method,
       Uri.parse(url),
@@ -31,12 +32,13 @@ class UploadUtils {
               final progress = bytes / total;
               final percentage = (progress * 100).toInt();
 
-              if (percentage % 1 == 0) {
-                progressCallback.call(progress);
-              }
+              if (percentage > previousPercentage) {
+                previousPercentage = percentage.toDouble();
+                progressCallback.call(previousPercentage);
 
-              if (showNotification) {
-                notificationUtils.showProgressNotification(percentage);
+                if (showNotification) {
+                  notificationUtils.showProgressNotification(percentage);
+                }
               }
             },
     );
