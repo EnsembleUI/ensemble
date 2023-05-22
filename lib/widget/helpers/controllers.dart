@@ -13,7 +13,12 @@ abstract class WidgetController extends Controller {
   String? id; // do we need this?
 
   // wrap widget inside an Align widget
-  Alignment? alignToParent;
+  Alignment? alignment;
+
+  int? stackPositionTop;
+  int? stackPositionBottom;
+  int? stackPositionLeft;
+  int? stackPositionRight;
 
   // optional label/labelHint for use in Forms
   String? label;
@@ -33,11 +38,22 @@ abstract class WidgetController extends Controller {
     return {
       'expanded': (value) => expanded = Utils.getBool(value, fallback: false),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
-      'alignToParent': (value) => alignToParent = Utils.getAlignment(value),
+      'alignment': (value) => alignment = Utils.getAlignment(value),
+      'stackPositionTop': (value) => stackPositionTop = Utils.optionalInt(value),
+      'stackPositionBottom': (value) => stackPositionBottom = Utils.optionalInt(value),
+      'stackPositionLeft': (value) => stackPositionLeft = Utils.optionalInt(value),
+      'stackPositionRight': (value) => stackPositionRight = Utils.optionalInt(value),
       'label': (value) => label = Utils.optionalString(value),
       'description': (value) => description = Utils.optionalString(value),
       'labelHint': (value) => labelHint = Utils.optionalString(value),
     };
+  }
+
+  bool hasPositions() {
+    return (stackPositionTop
+        ?? stackPositionBottom
+        ?? stackPositionLeft
+        ?? stackPositionRight) != null;
   }
 }
 

@@ -28,7 +28,7 @@ abstract class MapsActionableState extends WidgetState<Maps> {
   List<MarkerPayload> getMarkerPayloads();
   Position? getCurrentLocation();
   Future<GoogleMapController> getMapController();
-  void zoom(List<LatLng> points);
+  void zoom(List<LatLng> points, {bool? hasCurrentLocation});
 }
 
 class MapsState extends MapsActionableState
