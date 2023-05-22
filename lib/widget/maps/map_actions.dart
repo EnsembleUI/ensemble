@@ -20,7 +20,7 @@ mixin MapActions on MapsActionableState {
       points.add(payload.latLng);
     }
 
-    zoom(points);
+    zoom(points, hasCurrentLocation: currentLocation != null);
   }
 
   void moveCamera(LatLng target, {int? zoom}) {

@@ -23,19 +23,29 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
   @override
   Widget build(BuildContext context) {
     if (widget.controller is WidgetController) {
-      if (!(widget.controller as WidgetController).visible) {
+      WidgetController widgetController = widget.controller as WidgetController;
+      if (!widgetController.visible) {
         return const SizedBox.shrink();
       }
       Widget rtn = buildWidget(context);
 
       // wrap inside Align if specified
-      if ((widget.controller as WidgetController).alignToParent != null) {
+      if (widgetController.alignment != null) {
         rtn = Align(
-            alignment: (widget.controller as WidgetController).alignToParent!,
+            alignment: widgetController.alignment!,
             child: rtn);
       }
+      // position if specified should be outside Align
+      if (widgetController.hasPositions()) {
+        rtn = Positioned(
+          top: widgetController.stackPositionTop?.toDouble(),
+          bottom: widgetController.stackPositionBottom?.toDouble(),
+          left: widgetController.stackPositionLeft?.toDouble(),
+          right: widgetController.stackPositionRight?.toDouble(),
+          child: rtn);
+      }
 
-      if ((widget.controller as WidgetController).expanded == true) {
+      if (widgetController.expanded == true) {
         /// Important notes:
         /// 1. If the Column/Row is scrollable, putting Expanded on the child will cause layout exception
         /// 2. If Column/Row is inside a parent without height/width constraint, it will collapse its size.
