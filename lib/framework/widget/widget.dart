@@ -27,6 +27,14 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
         return const SizedBox.shrink();
       }
       Widget rtn = buildWidget(context);
+
+      // wrap inside Align if specified
+      if ((widget.controller as WidgetController).alignToParent != null) {
+        rtn = Align(
+            alignment: (widget.controller as WidgetController).alignToParent!,
+            child: rtn);
+      }
+
       if ((widget.controller as WidgetController).expanded == true) {
         /// Important notes:
         /// 1. If the Column/Row is scrollable, putting Expanded on the child will cause layout exception
@@ -34,6 +42,7 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
         ///    So if we put Expanded on the Column's child, layout exception will occur
         rtn = Expanded(child: rtn);
       }
+
       return rtn;
     }
     throw LanguageError("Wrong usage of widget controller!");

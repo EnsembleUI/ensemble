@@ -18,6 +18,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:get_it/get_it.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:provider/provider.dart';
 import 'package:workmanager/workmanager.dart';
 
 const String backgroundUploadTask = 'backgroundUploadTask';
@@ -42,6 +46,7 @@ void callbackDispatcher() {
                 Map<String, String>.from(json.decode(inputData['headers'])),
             method: inputData['method'],
             url: inputData['url'],
+            fields: inputData['fields'],
             showNotification: inputData['showNotification'],
             progressCallback: (progress) {
               if (sendPort == null) return;
@@ -65,6 +70,12 @@ void callbackDispatcher() {
     }
     return Future.value(true);
   });
+}
+
+class EnsemblePreviewConfig {
+  EnsemblePreviewConfig(this.isPreview);
+
+  bool isPreview;
 }
 
 /// use this as the root widget for Ensemble
@@ -113,6 +124,10 @@ class EnsembleAppState extends State<EnsembleApp> {
   @override
   void initState() {
     super.initState();
+    final isPreview = widget.isPreview;
+    GetIt.I.registerSingleton<EnsemblePreviewConfig>(
+        EnsemblePreviewConfig(isPreview));
+    GetIt.I.allowReassignment = true;
     config = initApp();
     if (!kIsWeb) {
       Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
@@ -146,7 +161,8 @@ class EnsembleAppState extends State<EnsembleApp> {
 
   Widget renderApp(EnsembleConfig config) {
     //log("EnsembleApp build() - $hashCode");
-    final isPreview = widget.isPreview && kIsWeb;
+    final isPreview = widget.isPreview;
+    GetIt.I<EnsemblePreviewConfig>().isPreview = isPreview;
 
     return MaterialApp(
       navigatorKey: Utils.globalAppKey,

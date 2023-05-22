@@ -62,14 +62,6 @@ class DataGrid extends StatefulWidget
       'DataColumns': (List cols) {
         this.cols = cols;
       },
-      'headingTextStyle': (Map styles) {
-        controller.headingTextController = TextController();
-        TextUtils.setStyles(styles, controller.headingTextController!);
-      },
-      'dataTextStyle': (Map styles) {
-        controller.dataTextController = TextController();
-        TextUtils.setStyles(styles, controller.dataTextController!);
-      },
       'horizontalMargin': (val) =>
           controller.horizontalMargin = Utils.optionalDouble(val),
       'dataRowHeight': (val) =>
@@ -80,29 +72,6 @@ class DataGrid extends StatefulWidget
           controller.columnSpacing = Utils.optionalDouble(val),
       'dividerThickness': (val) =>
           controller.dividerThickness = Utils.optionalDouble(val),
-      'border': (Map val) {
-        Map<String, dynamic> map = {};
-        val.forEach((key, value) {
-          if (value is Map) {
-            Color color = Utils.getColor(value['color']) ?? Colors.black;
-            double width = Utils.getDouble(value['width'], fallback: 1.0);
-            map[key] = BorderSide(color: color, width: width);
-          } else if (key == 'borderRadius') {
-            double? radius = Utils.optionalDouble(value);
-            map[key] = (radius == null)
-                ? BorderRadius.zero
-                : BorderRadius.circular(radius);
-          }
-        });
-        controller.border = TableBorder(
-            top: map['top'] ?? BorderSide.none,
-            right: map['right'] ?? BorderSide.none,
-            bottom: map['bottom'] ?? BorderSide.none,
-            left: map['left'] ?? BorderSide.none,
-            horizontalInside: map['horizontalInside'] ?? BorderSide.none,
-            verticalInside: map['verticalInside'] ?? BorderSide.none,
-            borderRadius: map['borderRadius'] ?? BorderRadius.zero);
-      },
     };
   }
 }
@@ -173,7 +142,7 @@ class EnsembleDataRowState extends State<EnsembleDataRow> {
   }
 }
 
-class DataGridController extends WidgetController {
+class DataGridController extends BoxController {
   List<Widget>? children;
   double? horizontalMargin;
   TextController? headingTextController;
@@ -182,7 +151,22 @@ class DataGridController extends WidgetController {
   double? columnSpacing;
   TextController? dataTextController;
   double? dividerThickness;
-  TableBorder border = const TableBorder();
+
+  @override
+  Map<String, Function> getBaseSetters() {
+    Map<String, Function> setters = super.getBaseSetters();
+    setters.addAll({
+      'headingText': (Map styles) {
+        headingTextController = TextController();
+        TextUtils.setStyles(styles, headingTextController!);
+      },
+      'dataText': (Map styles) {
+        dataTextController = TextController();
+        TextUtils.setStyles(styles, dataTextController!);
+      },
+    });
+    return setters;
+  }
 }
 
 class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
@@ -317,7 +301,12 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
       dataTextStyle: dataTextStyle,
       columnSpacing: widget.controller.columnSpacing,
       dividerThickness: widget.controller.dividerThickness,
-      border: widget.controller.border,
+      border: TableBorder.all(
+        color: widget.controller.borderColor ?? Colors.black,
+        width: widget.controller.borderWidth?.toDouble() ?? 1.0,
+        borderRadius:
+            widget.controller.borderRadius?.getValue() ?? BorderRadius.zero,
+      ),
     );
     return SingleChildScrollView(
         scrollDirection: Axis.vertical,
