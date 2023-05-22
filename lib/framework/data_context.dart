@@ -24,7 +24,9 @@ import 'package:intl/intl.dart';
 import 'package:mime/mime.dart';
 import 'package:source_span/source_span.dart';
 import 'package:walletconnect_dart/walletconnect_dart.dart';
+import 'package:workmanager/workmanager.dart';
 import 'package:yaml/yaml.dart';
+import 'package:collection/collection.dart';
 
 /// manages Data and Invokables within the current data scope.
 /// This class can evaluate expressions based on the data scope
@@ -628,9 +630,94 @@ class UserDateTime with Invokable {
   }
 }
 
+enum UploadStatus { started, completed, cancelled, failed }
+
+class UploadTask {
+  final String id;
+  late UploadStatus status;
+  final bool isBackground;
+  late double progress;
+  late dynamic body;
+  late Map<String, dynamic>? headers;
+
+  UploadTask(
+      {required this.id,
+      this.status = UploadStatus.started,
+      this.isBackground = false,
+      this.progress = 0.0,
+      this.body,
+      this.headers});
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'status': status.name.toString(),
+      'isBackground': isBackground,
+      'progress': progress,
+      'body': body,
+      'headers': headers,
+    };
+  }
+}
+
+class UploadFilesResponse with Invokable {
+  List<UploadTask> tasks = [];
+
+  void addTask(UploadTask task) {
+    tasks.add(task);
+  }
+
+  UploadTask? getTask(String id) {
+    return tasks.firstWhereOrNull((task) => task.id == id);
+  }
+
+  void setProgress(String id, double progress) {
+    getTask(id)?.progress = progress;
+  }
+
+  void setBody(String id, dynamic body) {
+    getTask(id)?.body = body;
+  }
+
+  void setHeaders(String id, Map<String, dynamic>? headers) {
+    getTask(id)?.headers = headers;
+  }
+
+  void setStatus(String id, UploadStatus status) {
+    getTask(id)?.status = status;
+  }
+
+  @override
+  Map<String, Function> getters() {
+    return {
+      // For single task
+      'id': () => tasks.lastOrNull?.id,
+      'progress': () => tasks.lastOrNull?.progress,
+      'status': () => tasks.lastOrNull?.status.name.toString(),
+      'body': () => tasks.lastOrNull?.body,
+      'headers': () => tasks.lastOrNull?.headers,
+
+      // For multiple task
+      'allTasks': () => tasks.map((task) => task.toJson()).toList(),
+    };
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {
+      'clear': () => tasks.clear(),
+    };
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
+  }
+}
+
 class APIResponse with Invokable {
   Response? _response;
-  double? _progress;
+
   APIResponse({Response? response}) {
     if (response != null) {
       setAPIResponse(response);
@@ -639,10 +726,6 @@ class APIResponse with Invokable {
 
   setAPIResponse(Response response) {
     _response = response;
-  }
-
-  setProgress(double progress) {
-    _progress = progress;
   }
 
   Response? getAPIResponse() {
@@ -654,7 +737,6 @@ class APIResponse with Invokable {
     return {
       'body': () => _response?.body,
       'headers': () => _response?.headers,
-      'progress': () => _progress,
     };
   }
 
