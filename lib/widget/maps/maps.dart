@@ -48,11 +48,13 @@ class Maps extends StatefulWidget
       'includeCurrentLocationInAutoZoom': (value) =>
           _controller.includeCurrentLocationInAutoZoom = Utils.getBool(value,
               fallback: _controller.includeCurrentLocationInAutoZoom),
+      'showLocationButton': (value) => _controller.showLocationButton = Utils.getBool(value, fallback: _controller.showLocationButton),
       'mapType': (value) => _controller.mapType = value,
       'markers': (markerData) => setMarkers(markerData),
       'scrollableMarkerOverlay': (value) => _controller
               .scrollableMarkerOverlay =
           Utils.getBool(value, fallback: _controller.scrollableMarkerOverlay),
+      'dismissibleMarkerOverlay': (value) => _controller.dismissibleMarkerOverlay = Utils.getBool(value, fallback: _controller.dismissibleMarkerOverlay),
       'autoSelect': (value) => _controller.autoSelect =
           Utils.getBool(value, fallback: _controller.autoSelect),
       'onMapCreated': (action) => _controller.onMapCreated =
@@ -117,6 +119,7 @@ class MyController extends WidgetController with LocationCapability {
   int markerOverlayMaxWidth = 500;
   int markerOverlayMaxHeight = 500;
   bool scrollableMarkerOverlay = false;
+  bool dismissibleMarkerOverlay = true;
 
   final defaultCameraLatLng = const LatLng(37.773972, -122.431297);
   final double defaultCameraZoom = 10;
@@ -128,6 +131,8 @@ class MyController extends WidgetController with LocationCapability {
   int? autoZoomPadding;
   bool locationEnabled = false;
   bool includeCurrentLocationInAutoZoom = true;
+
+  bool showLocationButton = true;
 
   EnsembleAction? onMapCreated;
   EnsembleAction? onMarkersUpdated;
