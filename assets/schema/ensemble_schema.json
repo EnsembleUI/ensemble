@@ -3124,6 +3124,10 @@
                 "includeCurrentLocationInAutoZoom": {
                   "type": "boolean"
                 },
+                "showLocationButton": {
+                  "type": "boolean",
+                  "description": "Show the button that animates to the user's location. (Default true)"
+                },
                 "mapType": {
                   "type": "string",
                   "enum": [
@@ -3159,6 +3163,10 @@
                 "scrollableMarkerOverlay": {
                   "type": "boolean",
                   "description": "If using overlay and there are more than one marker, swiping left/right within the overlay will navigate to next/previous marker"
+                },
+                "dismissibleMarkerOverlay": {
+                  "type": "boolean",
+                  "description": "Enabling swiping down to close the overlay."
                 },
                 "autoSelect": {
                   "type": "boolean",
