@@ -14,6 +14,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/maps/map_actions.dart';
 import 'package:ensemble/widget/maps/maps.dart';
 import 'package:ensemble/widget/maps/maps_overlay.dart';
+import 'package:ensemble/widget/maps/maps_toolbar.dart';
 import 'package:ensemble/widget/maps/maps_utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -106,7 +107,7 @@ class MapsState extends MapsActionableState
       // add our own location icon on Web
       if (kIsWeb) {
         BitmapDescriptor.fromAssetImage(
-                ImageConfiguration.empty, 'assets/images/current_location.png',
+                ImageConfiguration.empty, 'assets/images/map_location.png',
                 package: 'ensemble')
             .then((asset) => currentLocationIcon = asset);
       }
@@ -290,29 +291,34 @@ class MapsState extends MapsActionableState
     }
   }
 
+  void _clearSelectedMarker() {
+    if (_selectedMarkerId != null) {
+      MarkerPayload? previousSelectedMarker =
+      _getMarkerPayloadById(_selectedMarkerId!);
+      if (previousSelectedMarker != null) {
+        _buildMarkerFromTemplate(
+            previousSelectedMarker, widget.controller.markerTemplate)
+            .then((asset) {
+          asset ??= BitmapDescriptor.defaultMarker;
+          setState(() {
+            previousSelectedMarker.marker =
+                previousSelectedMarker.marker?.copyWith(iconParam: asset);
+          });
+        });
+        // BitmapDescriptor markerAsset = await _buildMarkerFromTemplate(
+        //         previousSelectedMarker, widget.controller.markerTemplate) ??
+        //     BitmapDescriptor.defaultMarker;
+        // previousSelectedMarker.marker =
+        //     previousSelectedMarker.marker?.copyWith(iconParam: markerAsset);
+      }
+      _selectedMarkerId = null;
+    }
+  }
+
   void _selectMarker(MarkerId markerId) {
     if (markerId != _selectedMarkerId) {
       // first reset the previously selected marker
-      if (_selectedMarkerId != null) {
-        MarkerPayload? previousSelectedMarker =
-            _getMarkerPayloadById(_selectedMarkerId!);
-        if (previousSelectedMarker != null) {
-          _buildMarkerFromTemplate(
-                  previousSelectedMarker, widget.controller.markerTemplate)
-              .then((asset) {
-            asset ??= BitmapDescriptor.defaultMarker;
-            setState(() {
-              previousSelectedMarker.marker =
-                  previousSelectedMarker.marker?.copyWith(iconParam: asset);
-            });
-          });
-          // BitmapDescriptor markerAsset = await _buildMarkerFromTemplate(
-          //         previousSelectedMarker, widget.controller.markerTemplate) ??
-          //     BitmapDescriptor.defaultMarker;
-          // previousSelectedMarker.marker =
-          //     previousSelectedMarker.marker?.copyWith(iconParam: markerAsset);
-        }
-      }
+      _clearSelectedMarker();
 
       // mark the markerId as selected
       _selectedMarkerId = markerId;
@@ -448,12 +454,18 @@ class MapsState extends MapsActionableState
                 widget.controller.defaultCameraZoom),
         markers: _getMarkers(),
       ),
+      MapsToolbar(
+        onShowLocationButtonCallback: widget.controller.showLocationButton
+            ? () => _moveCamera(MapsUtils.fromPosition(currentLocation)) : null),
       _overlayWidget != null && _selectedMarkerId != null
           ? MapsOverlay(
               _overlayWidget!,
-              scrollable: widget.controller.scrollableMarkerOverlay,
-              onScrolled: (isNext) =>
-                  isNext ? _selectNextMarker() : _selectPreviousMarker(),
+              onScrolled: widget.controller.scrollableMarkerOverlay
+                ? (isNext) => isNext ? _selectNextMarker() : _selectPreviousMarker()
+                : null,
+              onDismissed: widget.controller.dismissibleMarkerOverlay
+                  ? () => _clearSelectedMarker()
+                  : null,
               maxWidth: widget.controller.markerOverlayMaxWidth,
               maxHeight: widget.controller.markerOverlayMaxHeight,
             )
@@ -474,6 +486,16 @@ class MapsState extends MapsActionableState
     if (kIsWeb && widget.controller.onCameraMove != null) {
       _executeCameraMoveAction(
           widget.controller.onCameraMove!, await controller.getVisibleRegion());
+    }
+  }
+
+  void _moveCamera(LatLng? latLng) async {
+    if (latLng != null) {
+      CameraUpdate cameraUpdate = CameraUpdate.newCameraPosition(CameraPosition(
+          target: latLng,
+          zoom: await (await _controller.future).getZoomLevel()));
+      _controller.future
+          .then((controller) => controller.animateCamera(cameraUpdate));
     }
   }
 
