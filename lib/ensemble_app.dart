@@ -73,6 +73,16 @@ class EnsemblePreviewConfig {
   EnsemblePreviewConfig(this.isPreview);
 
   bool isPreview;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is EnsemblePreviewConfig &&
+          runtimeType == other.runtimeType &&
+          isPreview == other.isPreview;
+
+  @override
+  int get hashCode => isPreview.hashCode;
 }
 
 /// use this as the root widget for Ensemble
