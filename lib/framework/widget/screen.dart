@@ -10,7 +10,7 @@ import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/page_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:yaml/yaml.dart';
 import 'package:provider/provider.dart';
 
@@ -40,7 +40,7 @@ class _ScreenState extends State<Screen> {
   Widget build(BuildContext context) {
     //log("Screen build() - $hashCode (${Ensemble().deviceInfo.size.width} x ${Ensemble().deviceInfo.size.height})");
 
-    final isPreview = GetIt.I<EnsemblePreviewConfig>().isPreview;
+    final isPreview = GetStorage().read(previewConfig);
 
     return FutureBuilder(
         future: screenRequester,
