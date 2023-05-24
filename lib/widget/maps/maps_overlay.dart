@@ -6,15 +6,15 @@ import 'package:pointer_interceptor/pointer_interceptor.dart';
 class MapsOverlay extends StatelessWidget {
   const MapsOverlay(this.overlayWidget,
       {super.key,
-      this.scrollable = true,
       this.onScrolled,
+      this.onDismissed,
       this.maxWidth,
       this.maxHeight});
   final Widget overlayWidget;
   final int? maxWidth;
   final int? maxHeight;
-  final bool scrollable;
   final OverlayScrollCallback? onScrolled;
+  final OverlayDismissCallback? onDismissed;
 
   @override
   Widget build(BuildContext context) {
@@ -23,17 +23,27 @@ class MapsOverlay extends StatelessWidget {
     var content =
         kIsWeb ? PointerInterceptor(child: overlayWidget) : overlayWidget;
 
-    var gestureWrapper = scrollable && onScrolled != null
+    var gestureWrapper = onDismissed != null || onScrolled != null
         ? GestureDetector(
-            onHorizontalDragEnd: (details) {
-              if (details.primaryVelocity != null) {
-                if (details.primaryVelocity! < 0) {
-                  onScrolled!(true); // next marker
-                } else if (details.primaryVelocity! > 0) {
-                  onScrolled!(false); // previous marker
-                }
-              }
-            },
+            onHorizontalDragEnd: onScrolled != null
+                ? (details) {
+                    if (details.primaryVelocity != null) {
+                      if (details.primaryVelocity! < 0) {
+                        onScrolled!(true); // next marker
+                      } else if (details.primaryVelocity! > 0) {
+                        onScrolled!(false); // previous marker
+                      }
+                    }
+                  }
+                : null,
+            onVerticalDragEnd: onDismissed != null
+                ? (details) {
+                    if (details.primaryVelocity != null &&
+                        details.primaryVelocity! > 0) {
+                      onDismissed!();
+                    }
+                  }
+                : null,
             child: content)
         : content;
 
@@ -52,3 +62,4 @@ class MapsOverlay extends StatelessWidget {
 }
 
 typedef OverlayScrollCallback = void Function(bool isNext);
+typedef OverlayDismissCallback = void Function();

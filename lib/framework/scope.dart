@@ -79,10 +79,10 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
 
   // add repeating timer so we can manage it later.
   void addTimer(StartTimerAction timerAction, Timer timer) {
-    EnsembleTimer newTimer = EnsembleTimer(timer, id: timerAction.payload?.id);
+    EnsembleTimer newTimer = EnsembleTimer(timer, id: timerAction.id);
 
     // if timer is global, add it to the root scope. There can only be one global Timer
-    if (timerAction.payload != null && timerAction.payload!.isGlobal == true) {
+    if (timerAction.isGlobal(dataContext) == true) {
       rootScope.rootTimer?.cancel();
       rootScope.rootTimer = newTimer;
     }
@@ -96,9 +96,9 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
     // save standalone timers to a simple list
     else {
       // if ID is specified, prevents duplicates by removing previous one
-      if (timerAction.payload?.id != null) {
+      if (timerAction.id != null) {
         pageData._timers.removeWhere((item) {
-          if (item.id == timerAction.payload!.id) {
+          if (item.id == timerAction.id) {
             item.timer.cancel();
             return true;
           }

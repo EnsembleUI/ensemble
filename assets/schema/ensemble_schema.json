@@ -1334,8 +1334,9 @@
         "styles": {
           "type": "object",
           "properties": {
-            "alignment": {
-              "$ref": "#/$defs/alignment"
+            "alignChildren": {
+              "$ref": "#/$defs/alignment",
+              "description": "How to align the children within the stack such that their alignment points will be the same (default is topStart). Each child can override this with alignment property."
             }
           }
         }
@@ -3123,6 +3124,10 @@
                 "includeCurrentLocationInAutoZoom": {
                   "type": "boolean"
                 },
+                "showLocationButton": {
+                  "type": "boolean",
+                  "description": "Show the button that animates to the user's location. (Default true)"
+                },
                 "mapType": {
                   "type": "string",
                   "enum": [
@@ -3158,6 +3163,10 @@
                 "scrollableMarkerOverlay": {
                   "type": "boolean",
                   "description": "If using overlay and there are more than one marker, swiping left/right within the overlay will navigate to next/previous marker"
+                },
+                "dismissibleMarkerOverlay": {
+                  "type": "boolean",
+                  "description": "Enabling swiping down to close the overlay."
                 },
                 "autoSelect": {
                   "type": "boolean",
@@ -3388,6 +3397,26 @@
         "expanded": {
           "type": "boolean",
           "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+        },
+        "alignment": {
+          "$ref": "#/$defs/alignment",
+          "description":"Align this widget relative to its parent"
+        },
+        "stackPositionTop": {
+          "type": "integer",
+          "description": "The distance of the child's top edge from the top of the stack. This is applicable only for Stack's children."
+        },
+        "stackPositionBottom": {
+          "type": "integer",
+          "description": "The distance that the child's bottom edge from the bottom of the stack. This is applicable only for Stack's children."
+        },
+        "stackPositionLeft": {
+          "type": "integer",
+          "description": "The distance that the child's left edge from the left of the stack. This is applicable only for Stack's children."
+        },
+        "stackPositionRight": {
+          "type": "integer",
+          "description": "The distance that the child's right edge from the right of the stack. This is applicable only for Stack's children."
         }
       }
     },
