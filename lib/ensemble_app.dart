@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:ui';
 
+import 'package:device_preview/device_preview.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
-import 'package:device_preview/device_preview.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/widget/error_screen.dart';
@@ -18,7 +18,6 @@ import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get_it/get_it.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:provider/provider.dart';
 import 'package:workmanager/workmanager.dart';
 
 const String backgroundUploadTask = 'backgroundUploadTask';
@@ -57,6 +56,7 @@ void callbackDispatcher() {
               sendPort.send(
                   {'error': error.toString(), 'taskId': inputData['taskId']});
             },
+            taskId: inputData['taskId'],
           );
 
           if (sendPort == null || response == null) return response == null;

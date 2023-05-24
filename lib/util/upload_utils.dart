@@ -10,8 +10,13 @@ import 'package:mime/mime.dart';
 typedef ProgressCallback = void Function(double progress);
 typedef OnErrorCallback = void Function(dynamic error);
 
+int getInt(String id) {
+  return id.codeUnits.reduce((a, b) => a + b);
+}
+
 class UploadUtils {
   static Future<Response?> uploadFiles({
+    required String taskId,
     required String method,
     required String url,
     required Map<String, String> headers,
@@ -23,6 +28,7 @@ class UploadUtils {
     OnErrorCallback? onError,
   }) async {
     double previousPercentage = 0.0;
+
     final request = MultipartRequest(
       method,
       Uri.parse(url),
@@ -34,10 +40,11 @@ class UploadUtils {
 
               if (percentage > previousPercentage) {
                 previousPercentage = percentage.toDouble();
-                progressCallback.call(previousPercentage);
+                progressCallback.call(progress);
 
                 if (showNotification) {
-                  notificationUtils.showProgressNotification(percentage);
+                  notificationUtils.showProgressNotification(percentage,
+                      notificationId: getInt(taskId));
                 }
               }
             },
