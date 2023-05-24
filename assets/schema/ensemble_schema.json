@@ -3124,9 +3124,21 @@
                 "includeCurrentLocationInAutoZoom": {
                   "type": "boolean"
                 },
+                "showToolbar": {
+                  "type": "boolean",
+                  "description": "Show the Map toolbar that contains some convenience controls. You can also turn each individual controls on or off."
+                },
+                "showMapTypesButton": {
+                  "type": "boolean",
+                  "description": "Toggle between the different map types. (default true)"
+                },
                 "showLocationButton": {
                   "type": "boolean",
-                  "description": "Show the button that animates to the user's location. (Default true)"
+                  "description": "Show the button that animates to the user's location. (default true)"
+                },
+                "showZoomButtons": {
+                  "type": "boolean",
+                  "description": "Applicable on Web only. Show the zoom in/out controls on the map. (default true on Web)"
                 },
                 "mapType": {
                   "type": "string",

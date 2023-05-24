@@ -34,6 +34,9 @@ abstract class MapsActionableState extends WidgetState<Maps> {
 
 class MapsState extends MapsActionableState
     with TemplatedWidgetState, LocationCapability, MapActions {
+
+  static const selectedMarkerZIndex = 100.0;
+
   final Completer<GoogleMapController> _controller =
       Completer<GoogleMapController>();
   @override
@@ -235,24 +238,26 @@ class MapsState extends MapsActionableState
         }
 
         BitmapDescriptor? markerAsset;
-        if (markerId == _selectedMarkerId) {
-          // selected marker
+        double zIndex = 0;
+        if (markerId == _selectedMarkerId) { // selected marker
           foundSelectedMarker = true;
           markerAsset = await _buildMarkerFromTemplate(
               markerPayload, selectedMarkerTemplate ?? markerTemplate);
+          zIndex = selectedMarkerZIndex;
 
           if (overlayTemplate != null) {
             _overlayWidget = markerPayload.scopeManager
                 .buildWidgetWithScopeFromDefinition(overlayTemplate);
           }
-        } else {
-          // regular marker
+        }
+        else {  // regular marker
           markerAsset =
               await _buildMarkerFromTemplate(markerPayload, markerTemplate);
         }
 
         markerPayload.marker = Marker(
             markerId: markerId,
+            zIndex: zIndex,
             position: markerPayload.latLng,
             icon: markerAsset ?? BitmapDescriptor.defaultMarker,
             consumeTapEvents: true,
@@ -302,7 +307,9 @@ class MapsState extends MapsActionableState
           asset ??= BitmapDescriptor.defaultMarker;
           setState(() {
             previousSelectedMarker.marker =
-                previousSelectedMarker.marker?.copyWith(iconParam: asset);
+                previousSelectedMarker.marker?.copyWith(
+                    iconParam: asset,
+                    zIndexParam: 0);
           });
         });
         // BitmapDescriptor markerAsset = await _buildMarkerFromTemplate(
@@ -333,7 +340,9 @@ class MapsState extends MapsActionableState
           asset ??= BitmapDescriptor.defaultMarker;
           setState(() {
             newSelectedMarker.marker =
-                newSelectedMarker.marker?.copyWith(iconParam: asset);
+                newSelectedMarker.marker?.copyWith(
+                    iconParam: asset,
+                    zIndexParam: selectedMarkerZIndex);
           });
         });
 
@@ -444,8 +453,9 @@ class MapsState extends MapsActionableState
         onMapCreated: _onMapCreated,
         myLocationEnabled: showLocationOnMap,
         mapType: widget.controller.mapType ?? MapType.normal,
-        myLocationButtonEnabled: false,
-        mapToolbarEnabled: true,
+        myLocationButtonEnabled: false, // use our own button
+        mapToolbarEnabled: false,
+        zoomControlsEnabled: false,
         onCameraMove: _onCameraMove,
         initialCameraPosition: CameraPosition(
             target:
@@ -455,14 +465,23 @@ class MapsState extends MapsActionableState
         markers: _getMarkers(),
       ),
       MapsToolbar(
-        onShowLocationButtonCallback: widget.controller.showLocationButton
-            ? () => _moveCamera(MapsUtils.fromPosition(currentLocation)) : null),
+          onMapLayerChanged: widget.controller.showMapTypesButton
+              ? (mapType) {
+                  setState(() {
+                    widget.controller.mapType = mapType;
+                  });
+                }
+              : null,
+          onShowLocationButtonCallback: widget.controller.showLocationButton
+              ? () => _moveCamera(MapsUtils.fromPosition(currentLocation))
+              : null),
       _overlayWidget != null && _selectedMarkerId != null
           ? MapsOverlay(
               _overlayWidget!,
               onScrolled: widget.controller.scrollableMarkerOverlay
-                ? (isNext) => isNext ? _selectNextMarker() : _selectPreviousMarker()
-                : null,
+                  ? (isNext) =>
+                      isNext ? _selectNextMarker() : _selectPreviousMarker()
+                  : null,
               onDismissed: widget.controller.dismissibleMarkerOverlay
                   ? () => _clearSelectedMarker()
                   : null,

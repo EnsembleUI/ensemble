@@ -48,7 +48,13 @@ class Maps extends StatefulWidget
       'includeCurrentLocationInAutoZoom': (value) =>
           _controller.includeCurrentLocationInAutoZoom = Utils.getBool(value,
               fallback: _controller.includeCurrentLocationInAutoZoom),
+
+      // toolbar contains multiple controls
+      'showToolbar': (value) => _controller.showToolbar = Utils.getBool(value, fallback: _controller.showToolbar),
+      'showMapTypesButton': (value) => _controller.showMapTypesButton = Utils.getBool(value, fallback: _controller.showMapTypesButton),
       'showLocationButton': (value) => _controller.showLocationButton = Utils.getBool(value, fallback: _controller.showLocationButton),
+      'showZoomButtons': (value) => _controller.showZoomButtons = Utils.getBool(value, fallback: _controller.showZoomButtons),
+
       'mapType': (value) => _controller.mapType = value,
       'markers': (markerData) => setMarkers(markerData),
       'scrollableMarkerOverlay': (value) => _controller
@@ -132,7 +138,11 @@ class MyController extends WidgetController with LocationCapability {
   bool locationEnabled = false;
   bool includeCurrentLocationInAutoZoom = true;
 
+  // toolbar has multiple button options
+  bool showToolbar = true;
+  bool showMapTypesButton = true;
   bool showLocationButton = true;
+  bool showZoomButtons = true;    // applicable on Web only
 
   EnsembleAction? onMapCreated;
   EnsembleAction? onMarkersUpdated;
