@@ -40,7 +40,7 @@ class _ScreenState extends State<Screen> {
   Widget build(BuildContext context) {
     //log("Screen build() - $hashCode (${Ensemble().deviceInfo.size.width} x ${Ensemble().deviceInfo.size.height})");
 
-    final isPreview = GetStorage().read(previewConfig);
+    final bool isPreview = GetStorage().read(previewConfig) ?? false;
 
     return FutureBuilder(
         future: screenRequester,
