@@ -9,10 +9,10 @@ class MapsToolbar extends StatelessWidget {
   final ShowLocationButtonCallback? onShowLocationButtonCallback;
 
   static final mapLayers = [
-    { "label": "Normal", "value": MapType.normal.name },
-    { "label": "Satellite", "value": MapType.satellite.name },
-    { "label": "Terrain", "value": MapType.terrain.name },
-    { "label": "Hybrid", "value": MapType.hybrid.name },
+    { "label": "Normal", "image": "map_normal", "value": MapType.normal.name },
+    { "label": "Satellite", "image": "map_satellite", "value": MapType.satellite.name },
+    { "label": "Terrain", "image": "map_terrain", "value": MapType.terrain.name },
+    { "label": "Hybrid", "image": "map_hybrid", "value": MapType.hybrid.name },
   ];
 
   void showMapLayers(BuildContext context) {
@@ -20,11 +20,13 @@ class MapsToolbar extends StatelessWidget {
       context: context,
       builder: (context) {
         return ListView.builder(
+          padding: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 10),
           shrinkWrap: true,
           itemCount: mapLayers.length,
           itemBuilder: (context, index) {
             return ListTile(
-              contentPadding: EdgeInsets.only(left: 20),
+              contentPadding: const EdgeInsets.only(bottom: 10),
+              leading: Image.asset("assets/images/${mapLayers[index]['image']!}.png", package: 'ensemble'),
               title: Text(mapLayers[index]['label']!.toString()),
               onTap: () {
                 Navigator.pop(context);
