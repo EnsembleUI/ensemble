@@ -613,6 +613,7 @@ class ScreenController {
         scopeManager?.dispatch(
             ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
       },
+      taskId: taskId,
     );
 
     if (response == null) {
@@ -697,6 +698,7 @@ class ScreenController {
     await Workmanager().registerOneOffTask(
       'uploadTask',
       backgroundUploadTask,
+      tag: taskId,
       inputData: {
         'fieldName': action.fieldName,
         'files': selectedFiles.map((e) => json.encode(e.toJson())).toList(),
@@ -720,12 +722,22 @@ class ScreenController {
       if (data is! Map) return;
       if (data.containsKey('progress')) {
         final taskId = data['taskId'];
+        fileResponse?.setStatus(taskId, UploadStatus.running);
         fileResponse?.setProgress(taskId, data['progress']);
         if (action.id != null) {
           scopeManager?.dispatch(
               ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
         }
       }
+
+      if (data.containsKey('cancel')) {
+        if (action.id != null) {
+          scopeManager?.dispatch(
+              ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
+        }
+        subscription?.cancel();
+      }
+
       if (data.containsKey('error')) {
         final taskId = data['taskId'];
         fileResponse?.setStatus(taskId, UploadStatus.failed);
@@ -736,6 +748,7 @@ class ScreenController {
         if (action.onError != null) {
           executeAction(context, action.onError!);
         }
+        subscription?.cancel();
       }
       if (data.containsKey('responseBody')) {
         final taskId = data['taskId'];

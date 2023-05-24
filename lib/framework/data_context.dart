@@ -1,8 +1,10 @@
 import 'dart:developer';
 import 'dart:io' as io;
+import 'dart:ui';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
@@ -630,7 +632,7 @@ class UserDateTime with Invokable {
   }
 }
 
-enum UploadStatus { started, completed, cancelled, failed }
+enum UploadStatus { pending, running, completed, cancelled, failed }
 
 class UploadTask {
   final String id;
@@ -642,7 +644,7 @@ class UploadTask {
 
   UploadTask(
       {required this.id,
-      this.status = UploadStatus.started,
+      this.status = UploadStatus.pending,
       this.isBackground = false,
       this.progress = 0.0,
       this.body,
@@ -684,7 +686,9 @@ class UploadFilesResponse with Invokable {
   }
 
   void setStatus(String id, UploadStatus status) {
-    getTask(id)?.status = status;
+    final task = getTask(id);
+    if (task?.status == status) return;
+    task?.status = status;
   }
 
   @override
@@ -705,6 +709,19 @@ class UploadFilesResponse with Invokable {
   @override
   Map<String, Function> methods() {
     return {
+      'cancelTask': (String taskId) async {
+        setStatus(taskId, UploadStatus.cancelled);
+        await Workmanager().cancelByTag(taskId);
+        final sendPort = IsolateNameServer.lookupPortByName(taskId);
+        sendPort?.send({'cancel': true, 'taskId': taskId});
+      },
+      'cancelAll': () async {
+        for (var task in tasks) {
+          if (task.status == UploadStatus.completed) return;
+          task.status = UploadStatus.cancelled;
+        }
+        await Workmanager().cancelAll();
+      },
       'clear': () => tasks.clear(),
     };
   }
