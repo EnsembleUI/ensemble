@@ -280,7 +280,7 @@ class MapsState extends MapsActionableState
     // markers are updated but we can't find a selected marker. This may
     // mean that marker is no longer there.
     if (_selectedMarkerId != null && !foundSelectedMarker) {
-      _selectedMarkerId = null;
+      _clearSelectedMarker();
       if (widget.controller.autoSelect) {
         _selectNextMarker();
       }
@@ -319,6 +319,13 @@ class MapsState extends MapsActionableState
         //     previousSelectedMarker.marker?.copyWith(iconParam: markerAsset);
       }
       _selectedMarkerId = null;
+    }
+
+    // clear the overlay
+    if (_overlayWidget != null) {
+      setState(() {
+        _overlayWidget = null;
+      });
     }
   }
 
@@ -368,48 +375,44 @@ class MapsState extends MapsActionableState
       setState(() {});
     }
   }
-
+// wrong logic here. See
   void _selectNextMarker() {
-    if (_markerPayloads.length <= 1) {
-      return;
-    }
-
-    MarkerPayload? nextMarker;
-    if (_selectedMarkerId == null) {
-      nextMarker = _markerPayloads[0];
-    } else {
-      int nextIndex = _markerPayloads.indexWhere((markerPayload) =>
-              markerPayload.marker?.markerId == _selectedMarkerId) +
-          1;
-      if (nextIndex < _markerPayloads.length) {
-        nextMarker = _markerPayloads[nextIndex];
+    if (_markerPayloads.isNotEmpty) {
+      MarkerPayload? nextMarker;
+      if (_selectedMarkerId == null) {
+        nextMarker = _markerPayloads[0];
+      } else {
+        int nextIndex = _markerPayloads.indexWhere((markerPayload) =>
+        markerPayload.marker?.markerId == _selectedMarkerId) +
+            1;
+        if (nextIndex < _markerPayloads.length) {
+          nextMarker = _markerPayloads[nextIndex];
+        }
       }
-    }
 
-    if (nextMarker != null && nextMarker.marker != null) {
-      _selectMarker(nextMarker.marker!.markerId);
+      if (nextMarker != null && nextMarker.marker != null) {
+        _selectMarker(nextMarker.marker!.markerId);
+      }
     }
   }
 
   void _selectPreviousMarker() {
-    if (_markerPayloads.length <= 1) {
-      return;
-    }
-
-    MarkerPayload? previousMarker;
-    if (_selectedMarkerId == null) {
-      previousMarker = _markerPayloads[_markerPayloads.length - 1];
-    } else {
-      int prevIndex = _markerPayloads.indexWhere((markerPayload) =>
-              markerPayload.marker?.markerId == _selectedMarkerId) -
-          1;
-      if (prevIndex >= 0) {
-        previousMarker = _markerPayloads[prevIndex];
+    if (_markerPayloads.isNotEmpty) {
+      MarkerPayload? previousMarker;
+      if (_selectedMarkerId == null) {
+        previousMarker = _markerPayloads[_markerPayloads.length - 1];
+      } else {
+        int prevIndex = _markerPayloads.indexWhere((markerPayload) =>
+        markerPayload.marker?.markerId == _selectedMarkerId) -
+            1;
+        if (prevIndex >= 0) {
+          previousMarker = _markerPayloads[prevIndex];
+        }
       }
-    }
 
-    if (previousMarker != null && previousMarker.marker != null) {
-      _selectMarker(previousMarker.marker!.markerId);
+      if (previousMarker != null && previousMarker.marker != null) {
+        _selectMarker(previousMarker.marker!.markerId);
+      }
     }
   }
 
