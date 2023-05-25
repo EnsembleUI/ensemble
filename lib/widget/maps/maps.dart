@@ -48,11 +48,19 @@ class Maps extends StatefulWidget
       'includeCurrentLocationInAutoZoom': (value) =>
           _controller.includeCurrentLocationInAutoZoom = Utils.getBool(value,
               fallback: _controller.includeCurrentLocationInAutoZoom),
+
+      // toolbar contains multiple controls
+      'showToolbar': (value) => _controller.showToolbar = Utils.getBool(value, fallback: _controller.showToolbar),
+      'showMapTypesButton': (value) => _controller.showMapTypesButton = Utils.getBool(value, fallback: _controller.showMapTypesButton),
+      'showLocationButton': (value) => _controller.showLocationButton = Utils.getBool(value, fallback: _controller.showLocationButton),
+      'showZoomButtons': (value) => _controller.showZoomButtons = Utils.getBool(value, fallback: _controller.showZoomButtons),
+
       'mapType': (value) => _controller.mapType = value,
       'markers': (markerData) => setMarkers(markerData),
       'scrollableMarkerOverlay': (value) => _controller
               .scrollableMarkerOverlay =
           Utils.getBool(value, fallback: _controller.scrollableMarkerOverlay),
+      'dismissibleMarkerOverlay': (value) => _controller.dismissibleMarkerOverlay = Utils.getBool(value, fallback: _controller.dismissibleMarkerOverlay),
       'autoSelect': (value) => _controller.autoSelect =
           Utils.getBool(value, fallback: _controller.autoSelect),
       'onMapCreated': (action) => _controller.onMapCreated =
@@ -117,6 +125,7 @@ class MyController extends WidgetController with LocationCapability {
   int markerOverlayMaxWidth = 500;
   int markerOverlayMaxHeight = 500;
   bool scrollableMarkerOverlay = false;
+  bool dismissibleMarkerOverlay = true;
 
   final defaultCameraLatLng = const LatLng(37.773972, -122.431297);
   final double defaultCameraZoom = 10;
@@ -128,6 +137,12 @@ class MyController extends WidgetController with LocationCapability {
   int? autoZoomPadding;
   bool locationEnabled = false;
   bool includeCurrentLocationInAutoZoom = true;
+
+  // toolbar has multiple button options
+  bool showToolbar = true;
+  bool showMapTypesButton = true;
+  bool showLocationButton = true;
+  bool showZoomButtons = true;    // applicable on Web only
 
   EnsembleAction? onMapCreated;
   EnsembleAction? onMarkersUpdated;

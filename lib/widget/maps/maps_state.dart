@@ -14,6 +14,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/maps/map_actions.dart';
 import 'package:ensemble/widget/maps/maps.dart';
 import 'package:ensemble/widget/maps/maps_overlay.dart';
+import 'package:ensemble/widget/maps/maps_toolbar.dart';
 import 'package:ensemble/widget/maps/maps_utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -28,11 +29,14 @@ abstract class MapsActionableState extends WidgetState<Maps> {
   List<MarkerPayload> getMarkerPayloads();
   Position? getCurrentLocation();
   Future<GoogleMapController> getMapController();
-  void zoom(List<LatLng> points);
+  void zoom(List<LatLng> points, {bool? hasCurrentLocation});
 }
 
 class MapsState extends MapsActionableState
     with TemplatedWidgetState, LocationCapability, MapActions {
+
+  static const selectedMarkerZIndex = 100.0;
+
   final Completer<GoogleMapController> _controller =
       Completer<GoogleMapController>();
   @override
@@ -106,7 +110,7 @@ class MapsState extends MapsActionableState
       // add our own location icon on Web
       if (kIsWeb) {
         BitmapDescriptor.fromAssetImage(
-                ImageConfiguration.empty, 'assets/images/current_location.png',
+                ImageConfiguration.empty, 'assets/images/map_location.png',
                 package: 'ensemble')
             .then((asset) => currentLocationIcon = asset);
       }
@@ -234,24 +238,26 @@ class MapsState extends MapsActionableState
         }
 
         BitmapDescriptor? markerAsset;
-        if (markerId == _selectedMarkerId) {
-          // selected marker
+        double zIndex = 0;
+        if (markerId == _selectedMarkerId) { // selected marker
           foundSelectedMarker = true;
           markerAsset = await _buildMarkerFromTemplate(
               markerPayload, selectedMarkerTemplate ?? markerTemplate);
+          zIndex = selectedMarkerZIndex;
 
           if (overlayTemplate != null) {
             _overlayWidget = markerPayload.scopeManager
                 .buildWidgetWithScopeFromDefinition(overlayTemplate);
           }
-        } else {
-          // regular marker
+        }
+        else {  // regular marker
           markerAsset =
               await _buildMarkerFromTemplate(markerPayload, markerTemplate);
         }
 
         markerPayload.marker = Marker(
             markerId: markerId,
+            zIndex: zIndex,
             position: markerPayload.latLng,
             icon: markerAsset ?? BitmapDescriptor.defaultMarker,
             consumeTapEvents: true,
@@ -290,29 +296,36 @@ class MapsState extends MapsActionableState
     }
   }
 
+  void _clearSelectedMarker() {
+    if (_selectedMarkerId != null) {
+      MarkerPayload? previousSelectedMarker =
+      _getMarkerPayloadById(_selectedMarkerId!);
+      if (previousSelectedMarker != null) {
+        _buildMarkerFromTemplate(
+            previousSelectedMarker, widget.controller.markerTemplate)
+            .then((asset) {
+          asset ??= BitmapDescriptor.defaultMarker;
+          setState(() {
+            previousSelectedMarker.marker =
+                previousSelectedMarker.marker?.copyWith(
+                    iconParam: asset,
+                    zIndexParam: 0);
+          });
+        });
+        // BitmapDescriptor markerAsset = await _buildMarkerFromTemplate(
+        //         previousSelectedMarker, widget.controller.markerTemplate) ??
+        //     BitmapDescriptor.defaultMarker;
+        // previousSelectedMarker.marker =
+        //     previousSelectedMarker.marker?.copyWith(iconParam: markerAsset);
+      }
+      _selectedMarkerId = null;
+    }
+  }
+
   void _selectMarker(MarkerId markerId) {
     if (markerId != _selectedMarkerId) {
       // first reset the previously selected marker
-      if (_selectedMarkerId != null) {
-        MarkerPayload? previousSelectedMarker =
-            _getMarkerPayloadById(_selectedMarkerId!);
-        if (previousSelectedMarker != null) {
-          _buildMarkerFromTemplate(
-                  previousSelectedMarker, widget.controller.markerTemplate)
-              .then((asset) {
-            asset ??= BitmapDescriptor.defaultMarker;
-            setState(() {
-              previousSelectedMarker.marker =
-                  previousSelectedMarker.marker?.copyWith(iconParam: asset);
-            });
-          });
-          // BitmapDescriptor markerAsset = await _buildMarkerFromTemplate(
-          //         previousSelectedMarker, widget.controller.markerTemplate) ??
-          //     BitmapDescriptor.defaultMarker;
-          // previousSelectedMarker.marker =
-          //     previousSelectedMarker.marker?.copyWith(iconParam: markerAsset);
-        }
-      }
+      _clearSelectedMarker();
 
       // mark the markerId as selected
       _selectedMarkerId = markerId;
@@ -327,7 +340,9 @@ class MapsState extends MapsActionableState
           asset ??= BitmapDescriptor.defaultMarker;
           setState(() {
             newSelectedMarker.marker =
-                newSelectedMarker.marker?.copyWith(iconParam: asset);
+                newSelectedMarker.marker?.copyWith(
+                    iconParam: asset,
+                    zIndexParam: selectedMarkerZIndex);
           });
         });
 
@@ -438,8 +453,9 @@ class MapsState extends MapsActionableState
         onMapCreated: _onMapCreated,
         myLocationEnabled: showLocationOnMap,
         mapType: widget.controller.mapType ?? MapType.normal,
-        myLocationButtonEnabled: false,
-        mapToolbarEnabled: true,
+        myLocationButtonEnabled: false, // use our own button
+        mapToolbarEnabled: false,
+        zoomControlsEnabled: false,
         onCameraMove: _onCameraMove,
         initialCameraPosition: CameraPosition(
             target:
@@ -448,12 +464,27 @@ class MapsState extends MapsActionableState
                 widget.controller.defaultCameraZoom),
         markers: _getMarkers(),
       ),
+      MapsToolbar(
+          onMapLayerChanged: widget.controller.showMapTypesButton
+              ? (mapType) {
+                  setState(() {
+                    widget.controller.mapType = mapType;
+                  });
+                }
+              : null,
+          onShowLocationButtonCallback: widget.controller.showLocationButton
+              ? () => _moveCamera(MapsUtils.fromPosition(currentLocation))
+              : null),
       _overlayWidget != null && _selectedMarkerId != null
           ? MapsOverlay(
               _overlayWidget!,
-              scrollable: widget.controller.scrollableMarkerOverlay,
-              onScrolled: (isNext) =>
-                  isNext ? _selectNextMarker() : _selectPreviousMarker(),
+              onScrolled: widget.controller.scrollableMarkerOverlay
+                  ? (isNext) =>
+                      isNext ? _selectNextMarker() : _selectPreviousMarker()
+                  : null,
+              onDismissed: widget.controller.dismissibleMarkerOverlay
+                  ? () => _clearSelectedMarker()
+                  : null,
               maxWidth: widget.controller.markerOverlayMaxWidth,
               maxHeight: widget.controller.markerOverlayMaxHeight,
             )
@@ -474,6 +505,16 @@ class MapsState extends MapsActionableState
     if (kIsWeb && widget.controller.onCameraMove != null) {
       _executeCameraMoveAction(
           widget.controller.onCameraMove!, await controller.getVisibleRegion());
+    }
+  }
+
+  void _moveCamera(LatLng? latLng) async {
+    if (latLng != null) {
+      CameraUpdate cameraUpdate = CameraUpdate.newCameraPosition(CameraPosition(
+          target: latLng,
+          zoom: await (await _controller.future).getZoomLevel()));
+      _controller.future
+          .then((controller) => controller.animateCamera(cameraUpdate));
     }
   }
 
