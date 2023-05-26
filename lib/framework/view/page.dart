@@ -310,6 +310,7 @@ class PageState extends State<Page> {
     Widget rtn = DataScopeWidget(
       scopeManager: _scopeManager,
       child: Scaffold(
+          resizeToAvoidBottomInset: false,
           // slight optimization, if body background is set, let's paint
           // the entire screen including the Safe Area
           backgroundColor: backgroundColor,
