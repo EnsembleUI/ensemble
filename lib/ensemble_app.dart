@@ -10,6 +10,7 @@ import 'package:ensemble/framework/widget/error_screen.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/notification_utils.dart';
+import 'package:ensemble/util/unfocus.dart';
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/foundation.dart';
@@ -151,33 +152,35 @@ class EnsembleAppState extends State<EnsembleApp> {
     //log("EnsembleApp build() - $hashCode");
     GetStorage().write(previewConfig, widget.isPreview);
 
-    return MaterialApp(
-      navigatorKey: Utils.globalAppKey,
-      theme: config.getAppTheme(),
-      localizationsDelegates: [
-        config.getI18NDelegate(),
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate
-      ],
-      home: Scaffold(
-        // this outer scaffold is where the background image would be (if
-        // specified). We do not want it to resize on keyboard popping up.
-        // The Page's Scaffold can handle the resizing.
-        resizeToAvoidBottomInset: false,
+    return Unfocus(
+      child: MaterialApp(
+        navigatorKey: Utils.globalAppKey,
+        theme: config.getAppTheme(),
+        localizationsDelegates: [
+          config.getI18NDelegate(),
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate
+        ],
+        home: Scaffold(
+          // this outer scaffold is where the background image would be (if
+          // specified). We do not want it to resize on keyboard popping up.
+          // The Page's Scaffold can handle the resizing.
+          resizeToAvoidBottomInset: false,
 
-        body: Screen(
-          appProvider:
-              AppProvider(definitionProvider: config.definitionProvider),
-          screenPayload: widget.screenPayload,
+          body: Screen(
+            appProvider:
+                AppProvider(definitionProvider: config.definitionProvider),
+            screenPayload: widget.screenPayload,
+          ),
         ),
+        useInheritedMediaQuery: widget.isPreview,
+        locale: widget.isPreview ? DevicePreview.locale(context) : null,
+        builder: widget.isPreview
+            ? DevicePreview.appBuilder
+            : FlutterI18n.rootAppBuilder(),
+        // TODO: this case translation issue on hot loading. Address this for RTL support
+        //builder: (context, widget) => FlutterI18n.rootAppBuilder().call(context, widget)
       ),
-      useInheritedMediaQuery: widget.isPreview,
-      locale: widget.isPreview ? DevicePreview.locale(context) : null,
-      builder: widget.isPreview
-          ? DevicePreview.appBuilder
-          : FlutterI18n.rootAppBuilder(),
-      // TODO: this case translation issue on hot loading. Address this for RTL support
-      //builder: (context, widget) => FlutterI18n.rootAppBuilder().call(context, widget)
     );
   }
 
