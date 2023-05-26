@@ -67,7 +67,7 @@ class MapsToolbar extends StatelessWidget {
 
     return Positioned(
         right: 10,
-        top: 50,
+        top: 150,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: children,
