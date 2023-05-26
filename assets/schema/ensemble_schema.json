@@ -270,6 +270,10 @@
                     "ellipsis"
                   ]
                 },
+                "maxLines": {
+                  "type": "integer",
+                  "minimum": 1
+                },
                 "textAlign": {
                   "type": "string",
                   "enum": [
@@ -713,6 +717,9 @@
     "TextInput-payload": {
       "allOf": [
         {
+          "$ref": "#/$defs/BaseTextInput-payload"
+        },
+        {
           "$ref": "#/$defs/FormInput-payload"
         },
         {
@@ -721,10 +728,6 @@
         {
           "type": "object",
           "properties": {
-            "onKeyPress": {
-              "$ref": "#/$defs/Action-payload",
-              "description": "On every keystroke, call Ensemble's built-in functions or execute code"
-            },
             "value": {
               "type": "string",
               "description": "Specifying the value of your Text Input"
@@ -766,6 +769,9 @@
     "PasswordInput-payload": {
       "allOf": [
         {
+          "$ref": "#/$defs/BaseTextInput-payload"
+        },
+        {
           "$ref": "#/$defs/FormInput-payload"
         },
         {
@@ -774,10 +780,6 @@
         {
           "type": "object",
           "properties": {
-            "onKeyPress": {
-              "$ref": "#/$defs/Action-payload",
-              "description": "On every keystroke, call Ensemble's built-in functions or execute code"
-            },
             "keyboardAction": {
               "$ref": "#/$defs/keyboardAction"
             },
@@ -1535,6 +1537,23 @@
               "description": "The widget to render for each item"
             }
           }
+        }
+      }
+    },
+    "BaseTextInput-payload": {
+      "type": "object",
+      "properties": {
+        "onKeyPress": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "On every keystroke, call Ensemble's built-in functions or execute code"
+        },
+        "onFocusReceived": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Execute an Ensemble action when the field receives focus"
+        },
+        "onFocusLost": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Execute an Ensemble action when the field loses focus"
         }
       }
     },
@@ -3409,6 +3428,28 @@
         "expanded": {
           "type": "boolean",
           "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
+        },
+        "visible": {
+          "type": "boolean",
+          "description": "Toggle a widget visibility on/off. Note that an invisible widget will not occupy UI space, unless the visibilityTransitionDuration is specified."
+        },
+        "visibilityTransitionDuration": {
+          "type": "number",
+          "description": "Specify the duration in seconds when a widget animates between visible and not visible state. Note that setting this value will cause the widget to still occupy the UI space even when it is not visible."
+        },
+        "elevation": {
+          "type": "integer",
+          "description": "The z-coordinate at which to place this material relative to its parent. A non-zero value will show a shadow, with its size relative to the elevation value.",
+          "minimum": 0,
+          "maximum": 24
+        },
+        "elevationShadowColor": {
+          "$ref": "#/$defs/typeColors",
+          "description": "The shadow color for the elevation"
+        },
+        "elevationBorderRadius": {
+          "$ref": "#/$defs/borderRadius",
+          "description": "If the widget has a borderRadius, this should be changed to have the same value."
         },
         "alignment": {
           "$ref": "#/$defs/alignment",

@@ -24,10 +24,21 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
   Widget build(BuildContext context) {
     if (widget.controller is WidgetController) {
       WidgetController widgetController = widget.controller as WidgetController;
-      if (!widgetController.visible) {
+
+      // if there is not visible transition, we rather not show the widget
+      if (!widgetController.visible && widgetController.visibilityTransitionDuration == null) {
         return const SizedBox.shrink();
       }
+
       Widget rtn = buildWidget(context);
+
+      if (widgetController.elevation != null) {
+        rtn = Material(
+          elevation: widgetController.elevation?.toDouble() ?? 0,
+          shadowColor: widgetController.elevationShadowColor,
+          borderRadius: widgetController.elevationBorderRadius?.getValue(),
+          child: rtn);
+      }
 
       // wrap inside Align if specified
       if (widgetController.alignment != null) {
@@ -35,7 +46,17 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
             alignment: widgetController.alignment!,
             child: rtn);
       }
-      // position if specified should be outside Align
+
+      // if visibility transition is specified, wrap in Opacity to animate
+      if (widgetController.visibilityTransitionDuration != null) {
+        rtn = AnimatedOpacity(
+            opacity: widgetController.visible ? 1 : 0,
+            duration: Duration(milliseconds: (widgetController.visibilityTransitionDuration! * 1000).toInt()),
+            child: rtn);
+      }
+
+      // Note that Positioned or expanded below has to be used directly inside
+      // Stack and FlexBox, respectively. They should be the last widget returned.
       if (widgetController.hasPositions()) {
         rtn = Positioned(
           top: widgetController.stackPositionTop?.toDouble(),
@@ -43,16 +64,13 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
           left: widgetController.stackPositionLeft?.toDouble(),
           right: widgetController.stackPositionRight?.toDouble(),
           child: rtn);
-      }
-
-      if (widgetController.expanded == true) {
+      } else if (widgetController.expanded == true) {
         /// Important notes:
         /// 1. If the Column/Row is scrollable, putting Expanded on the child will cause layout exception
         /// 2. If Column/Row is inside a parent without height/width constraint, it will collapse its size.
         ///    So if we put Expanded on the Column's child, layout exception will occur
         rtn = Expanded(child: rtn);
       }
-
       return rtn;
     }
     throw LanguageError("Wrong usage of widget controller!");

@@ -171,9 +171,10 @@ class InputWrapper extends StatelessWidget {
           // inside a Row (which allow its child to have as much space as it wants)
           // without using expanded flag.
           throw LanguageError(
-              "${type} widget requires a width when used inside a parent like Row.",
+              "${type} widget requires a width when used inside a parent with infinite width.",
               recovery:
-                  "Consider using 'expanded: true' on the ${type} to fill the parent's available width.");
+                  "If the parent is a Row, consider using 'expanded: true' on the ${type} to fill the parent's available width.\n" +
+                  "If the parent is a Stack, use stackPosition's attributes to constraint the width.");
         }
         return rtn;
       });

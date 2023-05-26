@@ -9,7 +9,14 @@ abstract class WidgetController extends Controller {
   // Note: we manage these here so the user doesn't need to do in their widgets
   // base properties applicable to all widgets
   bool expanded = false;
+
   bool visible = true;
+  double? visibilityTransitionDuration; // in seconds
+
+  int? elevation;
+  Color? elevationShadowColor;
+  EBorderRadius? elevationBorderRadius;
+
   String? id; // do we need this?
 
   // wrap widget inside an Align widget
@@ -38,6 +45,10 @@ abstract class WidgetController extends Controller {
     return {
       'expanded': (value) => expanded = Utils.getBool(value, fallback: false),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
+      'visibilityTransitionDuration': (value) => visibilityTransitionDuration = Utils.optionalDouble(value, min: 0),
+      'elevation': (value) => elevation = Utils.optionalInt(value, min: 0, max: 24),
+      'elevationShadowColor': (value) => elevationShadowColor = Utils.getColor(value),
+      'elevationBorderRadius': (value) => elevationBorderRadius = Utils.getBorderRadius(value),
       'alignment': (value) => alignment = Utils.getAlignment(value),
       'stackPositionTop': (value) => stackPositionTop = Utils.optionalInt(value),
       'stackPositionBottom': (value) => stackPositionBottom = Utils.optionalInt(value),
