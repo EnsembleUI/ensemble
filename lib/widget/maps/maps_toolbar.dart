@@ -43,11 +43,18 @@ class MapsToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     List<Widget> children = [];
     if (onMapLayerChanged != null) {
-      children.add(IconButton(
-          onPressed: () => showMapLayers(context),
-          icon: Image.asset(
-            'assets/images/map_layers_button.png',
-            package: 'ensemble')));
+      children.add(
+          IconButton(
+              onPressed: () => showMapLayers(context),
+              icon: Image.asset(
+                  'assets/images/map_layers_button.png',
+                  package: 'ensemble')));
+
+      // children.add(ImageButton(
+      //     onTap: () => showMapLayers(context),
+      //     child: Image.asset(
+      //       'assets/images/map_layers_button.png',
+      //       package: 'ensemble')));
     }
     if (onShowLocationButtonCallback != null) {
       children.add(
@@ -60,7 +67,7 @@ class MapsToolbar extends StatelessWidget {
 
     return Positioned(
         right: 10,
-        bottom: 10,
+        top: 50,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: children,
@@ -71,3 +78,31 @@ class MapsToolbar extends StatelessWidget {
 
 typedef ShowLocationButtonCallback = void Function();
 typedef MapLayerChangeCallback = void Function(String mapType);
+
+
+class ImageButton extends StatelessWidget {
+  const ImageButton({super.key, required this.child, this.size, this.onTap});
+  static const defaultSize = 64.0;
+  final int? size;
+  final Widget child;
+  final Function? onTap;
+  
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap != null ? () => onTap!() : null,
+      splashColor: Colors.red,
+      child: Container(
+        width: size?.toDouble() ?? defaultSize,
+        height: size?.toDouble() ?? defaultSize,
+        //padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(999),
+          // color: Colors.grey[200]
+        ),
+        child: child,
+      ),
+    );
+  }
+  
+}

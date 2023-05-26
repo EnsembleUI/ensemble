@@ -222,7 +222,7 @@ class MapsState extends MapsActionableState
       throw LanguageError("markers is not set properly.");
     }
 
-    bool foundSelectedMarker = false;
+    bool? foundSelectedMarker;
     uniqueMarkerIds.clear();
     for (int i = 0; i < payloads.length; i++) {
       MarkerPayload markerPayload = payloads[i];
@@ -276,19 +276,21 @@ class MapsState extends MapsActionableState
             });
       }
     }
+    // rebuild widget
+    setState(() {
+      _markerPayloads = payloads;
+    });
 
     // markers are updated but we can't find a selected marker. This may
     // mean that marker is no longer there.
-    if (_selectedMarkerId != null && !foundSelectedMarker) {
+    if (_selectedMarkerId != null && foundSelectedMarker != true) {
       _clearSelectedMarker();
       if (widget.controller.autoSelect) {
         _selectNextMarker();
       }
     }
 
-    setState(() {
-      _markerPayloads = payloads;
-    });
+
 
     if (itemTemplate.onMarkersUpdated != null) {
       ScreenController().executeAction(context, itemTemplate.onMarkersUpdated!,
