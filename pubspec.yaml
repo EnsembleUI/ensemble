@@ -112,6 +112,11 @@ flutter:
     - ensemble/integration_tests/themedApp/
 
   fonts:
+    # icon fonts
+    - family: Remix
+      fonts:
+        - asset: assets/iconFonts/remixicon.ttf
+
     # semi-custom fonts
     - family: idealTalent
       fonts:
