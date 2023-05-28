@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/model.dart';
+import 'package:ensemble/util/fonts/remix.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as flutter;
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -25,6 +26,8 @@ class Icon extends flutter.Icon {
       return _defaultIcons[name];
     } else if (library == 'fontAwesome') {
       return _fontAwesomeIcons[name];
+    } else if (library == 'remix') {
+      return _remixIcons[name];
     }
     // tree shaking won't work. Need to add --no-tree-shake-icons to ignore error when building
     else if (name is int) {
@@ -37,6 +40,14 @@ class Icon extends flutter.Icon {
     }
     return null;
   }
+
+  static final Map<String, IconData> _remixIcons = {
+    'time_line': Remix.time_line,
+    'first_aid_kit_line': Remix.first_aid_kit_line,
+    'image_2_line': Remix.image_2_line,
+    'thermometer_line': Remix.thermometer_line,
+    'shield_check_line': Remix.shield_check_line,
+  };
 
   /// Flutter icons
   static final Map<String, IconData> _defaultIcons = {
