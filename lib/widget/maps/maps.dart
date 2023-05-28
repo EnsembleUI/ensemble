@@ -102,7 +102,9 @@ class Maps extends StatefulWidget
 
   @override
   Map<String, Function> getters() {
-    return {};
+    return {
+      'currentBounds': () => controller.currentBounds
+    };
   }
 
   @override
@@ -120,6 +122,10 @@ class MyController extends WidgetController with LocationCapability {
   // a size is required, either explicit or via parent
   int? height;
   int? width;
+
+  // current map boundary exposed as setter
+  // This will be set ever time the camera moves
+  dynamic currentBounds;
 
   // overlay fill available horizontal space, so cap max width/height
   int markerOverlayMaxWidth = 500;

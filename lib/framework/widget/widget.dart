@@ -18,7 +18,7 @@ mixin UpdatableContainer<T extends Widget> {
 
 /// base class for widgets that want to participate in Ensemble layout
 abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
-  ScopeManager? _scopeManager;
+  ScopeManager? scopeManager;
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +51,7 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
       if (widgetController.visibilityTransitionDuration != null) {
         rtn = AnimatedOpacity(
             opacity: widgetController.visible ? 1 : 0,
-            duration: Duration(milliseconds: (widgetController.visibilityTransitionDuration! * 1000).toInt()),
+            duration: widgetController.visibilityTransitionDuration!,
             child: rtn);
       }
 
@@ -82,7 +82,7 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _scopeManager = DataScopeWidget.getScope(context);
+    scopeManager = DataScopeWidget.getScope(context);
   }
 
   @override
@@ -90,10 +90,10 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
     super.changeState();
     // dispatch changes, so anything binding to this will be notified
     if (widget.controller.lastSetterProperty != null) {
-      if (_scopeManager != null &&
+      if (scopeManager != null &&
           widget is Invokable &&
           (widget as Invokable).id != null) {
-        _scopeManager!.dispatch(ModelChangeEvent(
+        scopeManager!.dispatch(ModelChangeEvent(
             WidgetBindingSource((widget as Invokable).id!,
                 property: widget.controller.lastSetterProperty!.key),
             widget.controller.lastSetterProperty!.value));

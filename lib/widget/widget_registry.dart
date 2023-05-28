@@ -8,6 +8,7 @@ import 'package:ensemble/layout/list_view.dart';
 import 'package:ensemble/layout/stack.dart';
 import 'package:ensemble/layout/tab_bar.dart';
 import 'package:ensemble/layout/grid_view.dart';
+import 'package:ensemble/widget/Toggle.dart';
 import 'package:ensemble/widget/conditional.dart';
 import 'package:ensemble/widget/fintech/finicityconnect/finicityconnect.dart';
 import 'package:ensemble/widget/maps/maps.dart';
@@ -59,6 +60,7 @@ class WidgetRegistry {
         EnsembleImage.type: () => EnsembleImage(),
         EnsembleDivider.type: () => EnsembleDivider(),
         EnsembleSpacer.type: () => EnsembleSpacer(),
+        Toggle.type: () => Toggle(),
 
         // misc widgets
         Rating.type: () => Rating(),

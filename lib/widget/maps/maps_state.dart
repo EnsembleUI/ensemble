@@ -437,8 +437,7 @@ class MapsState extends MapsActionableState
             markerPayload.scopeManager.dataContext.eval(template.source!);
         if (source != null) {
           if (markersCache[source] == null) {
-            log("fetch asset " + template.source!);
-            var asset = await MapsUtils.fromAsset(context, template.source!);
+            var asset = await MapsUtils.fromAsset(context, source);
             if (asset != null) {
               markersCache[source] = asset;
             }
@@ -536,18 +535,22 @@ class MapsState extends MapsActionableState
 
   void _executeCameraMoveAction(
       EnsembleAction onCameraMove, LatLngBounds bounds) {
+
+    // save the bound to expose it as getter
+    widget.controller.currentBounds = {
+      "southwest": {
+        "lat": bounds.southwest.latitude,
+        "lng": bounds.southwest.longitude
+      },
+      "northeast": {
+        "lat": bounds.northeast.latitude,
+        "lng": bounds.northeast.longitude
+      }
+    };
+
     ScreenController().executeAction(context, onCameraMove,
         event: EnsembleEvent(widget, data: {
-          'bounds': {
-            "southwest": {
-              "lat": bounds.southwest.latitude,
-              "lng": bounds.southwest.longitude
-            },
-            "northeast": {
-              "lat": bounds.northeast.latitude,
-              "lng": bounds.northeast.longitude
-            }
-          }
+          'bounds': widget.controller.currentBounds
         }));
   }
 
