@@ -62,6 +62,15 @@ class Utils {
     return rtn;
   }
 
+  /// expect a value in seconds
+  static Duration? getDuration(dynamic value) {
+    double? number = optionalDouble(value, min: 0);
+    if (number != null) {
+      return Duration(milliseconds: (number * 1000).toInt());
+    }
+    return null;
+  }
+
   static BackgroundImage? getBackgroundImage(dynamic value) {
     if (value is Map) {
       if (value['source'] != null) {

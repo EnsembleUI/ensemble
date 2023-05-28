@@ -714,6 +714,43 @@
         }
       }
     },
+    "Toggle-payload": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "boolean",
+          "description": "Whether the toggle is On or Off (true or false)"
+        },
+        "inactiveWidget": {
+          "$ref": "#/$defs/Widget",
+          "description": "The widget to render when the toggle is Off"
+        },
+        "activeWidget": {
+          "$ref": "#/$defs/Widget",
+          "description": "The widget to render when the toggle is On"
+        },
+        "onChange": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Action to execute when the toggle's value has changed"
+        },
+        "styles": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "transitionDuration": {
+                  "type": "number",
+                  "description": "The duration in seconds when transitioning between the active and inactive widgets"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
     "TextInput-payload": {
       "allOf": [
         {
@@ -2685,6 +2722,15 @@
             "Spacer": {
               "$ref": "#/$defs/Spacer-payload",
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/1d7e42a9-5bbc-4b4b-9a02-8c102234ee05#"
+            }
+          }
+        },
+        {
+          "title": "Toggle",
+          "required": ["Toggle"],
+          "properties": {
+            "Toggle": {
+              "$ref": "#/$defs/Toggle-payload"
             }
           }
         },
