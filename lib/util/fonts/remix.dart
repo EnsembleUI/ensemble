@@ -13,4 +13,14 @@ class Remix {
     IconData(0xED37, fontFamily: 'Remix', fontPackage: 'ensemble');
   static const IconData shield_check_line =
     IconData(0xF100, fontFamily: 'Remix', fontPackage: 'ensemble');
+  static const IconData road_map_line =
+    IconData(0xF08E, fontFamily: 'Remix', fontPackage: 'ensemble');
+  static const IconData add_circle_line =
+    IconData(0xEA11, fontFamily: 'Remix', fontPackage: 'ensemble');
+  static const IconData user_line =
+    IconData(0xF264, fontFamily: 'Remix', fontPackage: 'ensemble');
+  static const IconData questionnaire_line =
+    IconData(0xF048, fontFamily: 'Remix', fontPackage: 'ensemble');
+
+
 }

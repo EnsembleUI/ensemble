@@ -28,8 +28,9 @@ class Toggle extends StatefulWidget
 
   @override
   Map<String, Function> methods() {
-    // TODO: implement methods
-    throw UnimplementedError();
+    return {
+      'toggle': () => _controller.value = !_controller.value
+    };
   }
 
   @override
