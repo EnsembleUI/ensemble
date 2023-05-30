@@ -77,11 +77,7 @@ class EnsembleApp extends StatefulWidget {
     this.screenPayload,
     this.ensembleConfig,
     this.isPreview = false,
-  }) {
-    // initialize once
-    GetStorage.init();
-    Device().initDeviceInfo();
-  }
+  });
 
   final ScreenPayload? screenPayload;
   final EnsembleConfig? ensembleConfig;
@@ -95,6 +91,10 @@ class EnsembleAppState extends State<EnsembleApp> {
   /// initialize our App with the the passed in config or
   /// read from our ensemble-config file.
   Future<EnsembleConfig> initApp() async {
+    Device().initDeviceInfo();
+    await GetStorage.init();
+    GetStorage().write(previewConfig, widget.isPreview);
+
     // use the config if passed in
     if (widget.ensembleConfig != null) {
       // set the Ensemble config
@@ -116,7 +116,6 @@ class EnsembleAppState extends State<EnsembleApp> {
   @override
   void initState() {
     super.initState();
-    GetStorage().write(previewConfig, widget.isPreview);
     config = initApp();
     if (!kIsWeb) {
       Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
