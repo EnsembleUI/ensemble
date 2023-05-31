@@ -44,7 +44,8 @@ class EnsembleStack extends StatefulWidget
   @override
   Map<String, Function> setters() {
     return {
-      'alignChildren': (value) => _controller.alignChildren = Utils.getAlignment(value),
+      'alignChildren': (value) =>
+          _controller.alignChildren = Utils.getAlignment(value),
     };
   }
 }

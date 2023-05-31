@@ -9,7 +9,8 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/framework/widget/icon.dart' as framework;
 
-class EnsembleIconButton extends StatefulWidget with Invokable, HasController<IconButtonController, IconButtonState> {
+class EnsembleIconButton extends StatefulWidget
+    with Invokable, HasController<IconButtonController, IconButtonState> {
   static const type = 'IconButton';
 
   final IconButtonController _controller = IconButtonController();
@@ -21,9 +22,7 @@ class EnsembleIconButton extends StatefulWidget with Invokable, HasController<Ic
 
   @override
   Map<String, Function> getters() {
-    return {
-
-    };
+    return {};
   }
 
   @override
@@ -40,40 +39,36 @@ class EnsembleIconButton extends StatefulWidget with Invokable, HasController<Ic
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
     };
   }
-
-
 }
 
 class IconButtonController extends WidgetController {
   int? size;
   IconModel? icon;
   EnsembleAction? onTap;
-
 }
 
 class IconButtonState extends WidgetState<EnsembleIconButton> {
-
-
   @override
   Widget buildWidget(BuildContext context) {
     return FrameworkIconButton(
         onTap: widget._controller.onTap != null
-          ? () => onTap(context, widget._controller.onTap!)
-          :null,
+            ? () => onTap(context, widget._controller.onTap!)
+            : null,
         child: widget._controller.icon != null
-          ? framework.Icon.fromModel(widget._controller.icon!)
-          : const SizedBox.shrink());
+            ? framework.Icon.fromModel(widget._controller.icon!)
+            : const SizedBox.shrink());
   }
 
   void onTap(BuildContext context, EnsembleAction onTap) {
-    ScreenController().executeAction(context, onTap, event: EnsembleEvent(widget));
+    ScreenController()
+        .executeAction(context, onTap, event: EnsembleEvent(widget));
   }
-
 }
 
 /// this is also used internally within our framework
 class FrameworkIconButton extends StatelessWidget {
-  const FrameworkIconButton({super.key, required this.child, this.size, this.onTap});
+  const FrameworkIconButton(
+      {super.key, required this.child, this.size, this.onTap});
   final defaultSize = 64.0;
 
   final Widget child;
@@ -85,12 +80,9 @@ class FrameworkIconButton extends StatelessWidget {
     return Material(
         color: Colors.transparent,
         child: InkWell(
-            onTap: onTap != null
-                ? () => onTap!()
-                : null,
+            onTap: onTap != null ? () => onTap!() : null,
             customBorder: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(999)
-            ),
+                borderRadius: BorderRadius.circular(999)),
             child: Container(
               width: size?.toDouble() ?? defaultSize,
               height: size?.toDouble() ?? defaultSize,
@@ -101,5 +93,4 @@ class FrameworkIconButton extends StatelessWidget {
               child: child,
             )));
   }
-
 }
