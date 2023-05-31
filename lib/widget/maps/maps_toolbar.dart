@@ -4,16 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class MapsToolbar extends StatelessWidget {
-  const MapsToolbar({
-    super.key,
-    this.margin,
-    this.alignment,
-    this.top,
-    this.bottom,
-    this.left,
-    this.right,
-    this.onMapLayerChanged,
-    this.onShowLocationButtonCallback});
+  const MapsToolbar(
+      {super.key,
+      this.margin,
+      this.alignment,
+      this.top,
+      this.bottom,
+      this.left,
+      this.right,
+      this.onMapLayerChanged,
+      this.onShowLocationButtonCallback});
 
   final EdgeInsets? margin;
   final Alignment? alignment;
@@ -25,34 +25,40 @@ class MapsToolbar extends StatelessWidget {
   final ShowLocationButtonCallback? onShowLocationButtonCallback;
 
   static final mapLayers = [
-    { "label": "Normal", "image": "map_normal", "value": MapType.normal.name },
-    { "label": "Satellite", "image": "map_satellite", "value": MapType.satellite.name },
-    { "label": "Terrain", "image": "map_terrain", "value": MapType.terrain.name },
-    { "label": "Hybrid", "image": "map_hybrid", "value": MapType.hybrid.name },
+    {"label": "Normal", "image": "map_normal", "value": MapType.normal.name},
+    {
+      "label": "Satellite",
+      "image": "map_satellite",
+      "value": MapType.satellite.name
+    },
+    {"label": "Terrain", "image": "map_terrain", "value": MapType.terrain.name},
+    {"label": "Hybrid", "image": "map_hybrid", "value": MapType.hybrid.name},
   ];
 
   void showMapLayers(BuildContext context) {
     showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return ListView.builder(
-          padding: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 10),
-          shrinkWrap: true,
-          itemCount: mapLayers.length,
-          itemBuilder: (context, index) {
-            return ListTile(
-              contentPadding: const EdgeInsets.only(bottom: 10),
-              leading: Image.asset("assets/images/${mapLayers[index]['image']!}.png", package: 'ensemble'),
-              title: Text(mapLayers[index]['label']!.toString()),
-              onTap: () {
-                Navigator.pop(context);
-                onMapLayerChanged!(mapLayers[index]['value']!);
-              },
-            );
-          },
-
-        );
-      });
+        context: context,
+        builder: (context) {
+          return ListView.builder(
+            padding:
+                const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 10),
+            shrinkWrap: true,
+            itemCount: mapLayers.length,
+            itemBuilder: (context, index) {
+              return ListTile(
+                contentPadding: const EdgeInsets.only(bottom: 10),
+                leading: Image.asset(
+                    "assets/images/${mapLayers[index]['image']!}.png",
+                    package: 'ensemble'),
+                title: Text(mapLayers[index]['label']!.toString()),
+                onTap: () {
+                  Navigator.pop(context);
+                  onMapLayerChanged!(mapLayers[index]['value']!);
+                },
+              );
+            },
+          );
+        });
   }
 
   @override
@@ -61,30 +67,22 @@ class MapsToolbar extends StatelessWidget {
     if (onMapLayerChanged != null) {
       children.add(FrameworkIconButton(
           onTap: () => showMapLayers(context),
-          child: Image.asset(
-            'assets/images/map_layers_button.png',
-            package: 'ensemble')));
+          child: Image.asset('assets/images/map_layers_button.png',
+              package: 'ensemble')));
     }
     if (onShowLocationButtonCallback != null) {
       children.add(FrameworkIconButton(
-              onTap: onShowLocationButtonCallback,
-              child: Image.asset(
-                  'assets/images/map_location_button.png',
-                  package: 'ensemble')));
+          onTap: onShowLocationButtonCallback,
+          child: Image.asset('assets/images/map_location_button.png',
+              package: 'ensemble')));
     }
 
-    Widget rtn = Column(
-      mainAxisSize: MainAxisSize.min,
-      children: children);
+    Widget rtn = Column(mainAxisSize: MainAxisSize.min, children: children);
     if (margin != null) {
-      rtn = Padding(
-        padding: margin!,
-        child: rtn);
+      rtn = Padding(padding: margin!, child: rtn);
     }
     if (alignment != null) {
-      rtn = Align(
-        alignment: alignment!,
-        child: rtn);
+      rtn = Align(alignment: alignment!, child: rtn);
     }
     if (top != null || bottom != null || left != null || right != null) {
       rtn = Positioned(
@@ -96,7 +94,6 @@ class MapsToolbar extends StatelessWidget {
     }
     return rtn;
   }
-
 }
 
 typedef ShowLocationButtonCallback = void Function();

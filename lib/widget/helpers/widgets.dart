@@ -174,7 +174,7 @@ class InputWrapper extends StatelessWidget {
               "${type} widget requires a width when used inside a parent with infinite width.",
               recovery:
                   "If the parent is a Row, consider using 'expanded: true' on the ${type} to fill the parent's available width.\n" +
-                  "If the parent is a Stack, use stackPosition's attributes to constraint the width.");
+                      "If the parent is a Stack, use stackPosition's attributes to constraint the width.");
         }
         return rtn;
       });
