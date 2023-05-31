@@ -47,6 +47,12 @@ class Icon extends flutter.Icon {
     'image_2_line': Remix.image_2_line,
     'thermometer_line': Remix.thermometer_line,
     'shield_check_line': Remix.shield_check_line,
+    'road_map_line': Remix.road_map_line,
+    'add_circle_line': Remix.add_circle_line,
+    'user_line': Remix.user_line,
+    'questionnaire_line': Remix.questionnaire_line,
+    'stack_line': Remix.stack_line,
+    'focus_3_line': Remix.focus_3_line
   };
 
   /// Flutter icons

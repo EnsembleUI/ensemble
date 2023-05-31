@@ -1008,6 +1008,33 @@
         }
       }
     },
+    "IconButton-payload": {
+      "type": "object",
+      "properties": {
+        "icon": {
+          "$ref": "#/$defs/Icon-payload"
+        },
+        "onTap": {
+          "$ref": "#/$defs/Action-payload"
+        }
+        "styles": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "size": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
     "ToggleButton-payload": {
       "type": "object",
       "properties": {
@@ -2811,6 +2838,15 @@
             "Button": {
               "$ref": "#/$defs/Button-payload",
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/09c1087b-f9ee-4a8c-9286-e0e881184c07#"
+            }
+          }
+        },
+        {
+          "title": "IconButton",
+          "required": ["IconButton"],
+          "properties": {
+            "IconButton": {
+              "$ref": "#/$defs/IconButton-payload"
             }
           }
         },

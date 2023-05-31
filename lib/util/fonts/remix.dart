@@ -21,6 +21,11 @@ class Remix {
     IconData(0xF264, fontFamily: 'Remix', fontPackage: 'ensemble');
   static const IconData questionnaire_line =
     IconData(0xF048, fontFamily: 'Remix', fontPackage: 'ensemble');
+  static const IconData stack_line =
+    IconData(0xF181, fontFamily: 'Remix', fontPackage: 'ensemble');
+  static const IconData focus_3_line =
+    IconData(0xED4C, fontFamily: 'Remix', fontPackage: 'ensemble');
+
 
 
 }
