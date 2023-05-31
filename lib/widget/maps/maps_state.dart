@@ -469,6 +469,12 @@ class MapsState extends MapsActionableState
         markers: _getMarkers(),
       ),
       MapsToolbar(
+          margin: widget.controller.toolbarMargin,
+          alignment: widget.controller.toolbarAlignment,
+          top: widget.controller.toolbarTop,
+          bottom: widget.controller.toolbarBottom,
+          left: widget.controller.toolbarLeft,
+          right: widget.controller.toolbarRight,
           onMapLayerChanged: widget.controller.showMapTypesButton
               ? (mapType) {
                   setState(() {

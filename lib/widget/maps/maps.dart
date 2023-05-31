@@ -54,6 +54,12 @@ class Maps extends StatefulWidget
       'showMapTypesButton': (value) => _controller.showMapTypesButton = Utils.getBool(value, fallback: _controller.showMapTypesButton),
       'showLocationButton': (value) => _controller.showLocationButton = Utils.getBool(value, fallback: _controller.showLocationButton),
       'showZoomButtons': (value) => _controller.showZoomButtons = Utils.getBool(value, fallback: _controller.showZoomButtons),
+      'toolbarMargin': (value) => _controller.toolbarMargin = Utils.getInsets(value, fallback: _controller.toolbarMargin),
+      'toolbarAlignment': (alignment) => _controller.toolbarAlignment = Utils.getAlignment(alignment) ?? _controller.toolbarAlignment,
+      'toolbarTop': (value) => _controller.toolbarTop = Utils.optionalInt(value, min: 0),
+      'toolbarBottom': (value) => _controller.toolbarBottom = Utils.optionalInt(value, min: 0),
+      'toolbarLeft': (value) => _controller.toolbarLeft = Utils.optionalInt(value, min: 0),
+      'toolbarRight': (value) => _controller.toolbarRight = Utils.optionalInt(value, min: 0),
 
       'mapType': (value) => _controller.mapType = value,
       'markers': (markerData) => setMarkers(markerData),
@@ -149,6 +155,12 @@ class MyController extends WidgetController with LocationCapability {
   bool showMapTypesButton = true;
   bool showLocationButton = true;
   bool showZoomButtons = true;    // applicable on Web only
+  EdgeInsets toolbarMargin = const EdgeInsets.all(10);
+  Alignment toolbarAlignment = Alignment.bottomRight;
+  int? toolbarTop;
+  int? toolbarBottom;
+  int? toolbarLeft;
+  int? toolbarRight;
 
   EnsembleAction? onMapCreated;
   EnsembleAction? onMarkersUpdated;

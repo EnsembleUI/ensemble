@@ -3205,6 +3205,30 @@
                   "type": "boolean",
                   "description": "Applicable on Web only. Show the zoom in/out controls on the map. (default true on Web)"
                 },
+                "toolbarMargin": {
+                  "$ref": "#/$defs/styleMargin",
+                  "description": "The margin around the toolbar. (default 10 on all sides)"
+                },
+                "toolbarAlignment": {
+                  "$ref": "#/$defs/alignment",
+                  "description":"How to align the toolbar within the map. (default bottom right). If both positioning (top/bottom/left/right) and alignment are used, positions will be applied first, then alignment within the available constraint."
+                },
+                "toolbarTop": {
+                  "type": "integer",
+                  "description": "Offset the toolbar from the top edge of the map"
+                },
+                "toolbarBottom": {
+                  "type": "integer",
+                  "description": "Offset the toolbar from the bottom edge of the map"
+                },
+                "toolbarLeft": {
+                  "type": "integer",
+                  "description": "Offset the toolbar from the left edge of the map"
+                },
+                "toolbarRight": {
+                  "type": "integer",
+                  "description": "Offset the toolbar from the right edge of the map"
+                },
                 "mapType": {
                   "type": "string",
                   "enum": [
