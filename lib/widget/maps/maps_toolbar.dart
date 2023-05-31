@@ -1,10 +1,26 @@
+import 'package:ensemble/widget/icon_button.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class MapsToolbar extends StatelessWidget {
-  const MapsToolbar({super.key, this.onMapLayerChanged, this.onShowLocationButtonCallback});
+  const MapsToolbar({
+    super.key,
+    this.margin,
+    this.alignment,
+    this.top,
+    this.bottom,
+    this.left,
+    this.right,
+    this.onMapLayerChanged,
+    this.onShowLocationButtonCallback});
 
+  final EdgeInsets? margin;
+  final Alignment? alignment;
+  final int? top;
+  final int? bottom;
+  final int? left;
+  final int? right;
   final MapLayerChangeCallback? onMapLayerChanged;
   final ShowLocationButtonCallback? onShowLocationButtonCallback;
 
@@ -43,35 +59,42 @@ class MapsToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     List<Widget> children = [];
     if (onMapLayerChanged != null) {
-      children.add(
-          IconButton(
-              onPressed: () => showMapLayers(context),
-              icon: Image.asset(
-                  'assets/images/map_layers_button.png',
-                  package: 'ensemble')));
-
-      // children.add(ImageButton(
-      //     onTap: () => showMapLayers(context),
-      //     child: Image.asset(
-      //       'assets/images/map_layers_button.png',
-      //       package: 'ensemble')));
+      children.add(FrameworkIconButton(
+          onTap: () => showMapLayers(context),
+          child: Image.asset(
+            'assets/images/map_layers_button.png',
+            package: 'ensemble')));
     }
     if (onShowLocationButtonCallback != null) {
-      children.add(
-        IconButton(
-            onPressed: onShowLocationButtonCallback,
-            icon: Image.asset(
-              'assets/images/map_location_button.png',
-              package: 'ensemble')));
+      children.add(FrameworkIconButton(
+              onTap: onShowLocationButtonCallback,
+              child: Image.asset(
+                  'assets/images/map_location_button.png',
+                  package: 'ensemble')));
     }
 
-    return Positioned(
-        right: 10,
-        top: 150,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: children,
-        ));
+    Widget rtn = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: children);
+    if (margin != null) {
+      rtn = Padding(
+        padding: margin!,
+        child: rtn);
+    }
+    if (alignment != null) {
+      rtn = Align(
+        alignment: alignment!,
+        child: rtn);
+    }
+    if (top != null || bottom != null || left != null || right != null) {
+      rtn = Positioned(
+          top: top?.toDouble(),
+          bottom: bottom?.toDouble(),
+          left: left?.toDouble(),
+          right: right?.toDouble(),
+          child: rtn);
+    }
+    return rtn;
   }
 
 }
@@ -79,30 +102,34 @@ class MapsToolbar extends StatelessWidget {
 typedef ShowLocationButtonCallback = void Function();
 typedef MapLayerChangeCallback = void Function(String mapType);
 
-
-class ImageButton extends StatelessWidget {
-  const ImageButton({super.key, required this.child, this.size, this.onTap});
-  static const defaultSize = 64.0;
-  final int? size;
-  final Widget child;
-  final Function? onTap;
-  
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap != null ? () => onTap!() : null,
-      splashColor: Colors.red,
-      child: Container(
-        width: size?.toDouble() ?? defaultSize,
-        height: size?.toDouble() ?? defaultSize,
-        //padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(999),
-          // color: Colors.grey[200]
-        ),
-        child: child,
-      ),
-    );
-  }
-  
-}
+//
+// class EnsembleIconButton extends StatelessWidget {
+//   const EnsembleIconButton({super.key, required this.child, this.size, this.onTap});
+//
+//   final Widget child;
+//   final Function? onTap;
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Material(
+//
+//       color: Colors.transparent,
+//       child: InkWell(
+//         onTap: onTap != null ? () => onTap!() : null,
+//         // splashColor: Colors.red,
+//         customBorder: RoundedRectangleBorder(
+//           borderRadius: BorderRadius.circular(999)
+//         ),
+//         child: Container(
+//           width: size?.toDouble() ?? defaultSize,
+//           height: size?.toDouble() ?? defaultSize,
+//           //padding: const EdgeInsets.all(8),
+//           decoration: BoxDecoration(
+//             borderRadius: BorderRadius.circular(999),
+//             // color: Colors.grey[200]
+//           ),
+//           child: child,
+//         )));
+//   }
+//
+// }
