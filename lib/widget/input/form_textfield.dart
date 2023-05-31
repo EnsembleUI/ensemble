@@ -202,8 +202,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
       if (focusNode.hasFocus) {
         if (widget._controller.onFocusReceived != null) {
           ScreenController().executeAction(
-              context,
-              widget._controller.onFocusReceived!,
+              context, widget._controller.onFocusReceived!,
               event: EnsembleEvent(widget));
         }
       } else {
@@ -216,8 +215,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
 
         if (widget._controller.onFocusLost != null) {
           ScreenController().executeAction(
-              context,
-              widget._controller.onFocusLost!,
+              context, widget._controller.onFocusLost!,
               event: EnsembleEvent(widget));
         }
       }

@@ -4,8 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
 
 class MapsOverlay extends StatelessWidget {
-  const MapsOverlay(this.overlayWidget, {
-      super.key,
+  const MapsOverlay(this.overlayWidget,
+      {super.key,
       this.onScrolled,
       this.onDismissed,
       this.maxWidth,
@@ -26,23 +26,24 @@ class MapsOverlay extends StatelessWidget {
     var gestureWrapper = onDismissed != null || onScrolled != null
         ? GestureDetector(
             onHorizontalDragEnd: onScrolled != null
-              ? (details) {
-                if (details.primaryVelocity != null) {
-                  if (details.primaryVelocity! < 0) {
-                    onScrolled!(true); // next marker
-                  } else if (details.primaryVelocity! > 0) {
-                    onScrolled!(false); // previous marker
+                ? (details) {
+                    if (details.primaryVelocity != null) {
+                      if (details.primaryVelocity! < 0) {
+                        onScrolled!(true); // next marker
+                      } else if (details.primaryVelocity! > 0) {
+                        onScrolled!(false); // previous marker
+                      }
+                    }
                   }
-                }
-              }
-              : null,
+                : null,
             onVerticalDragEnd: onDismissed != null
-              ? (details) {
-                if (details.primaryVelocity != null && details.primaryVelocity! > 0) {
-                  onDismissed!();
-                }
-              }
-              : null,
+                ? (details) {
+                    if (details.primaryVelocity != null &&
+                        details.primaryVelocity! > 0) {
+                      onDismissed!();
+                    }
+                  }
+                : null,
             child: content)
         : content;
 
