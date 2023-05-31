@@ -367,10 +367,10 @@
     "Icon-payload": {
       "type": "object",
       "required": [
-        "icon"
+        "name"
       ],
       "properties": {
-        "icon": {
+        "name": {
           "type": "string",
           "description": "Icon name from Material Icons or Font Awesome"
         },
@@ -1012,26 +1012,13 @@
       "type": "object",
       "properties": {
         "icon": {
-          "$ref": "#/$defs/Icon-payload"
+          "$ref": "#/$defs/HasIcon"
         },
         "onTap": {
           "$ref": "#/$defs/Action-payload"
         },
         "styles": {
-          "allOf": [
-            {
-              "$ref": "#/$defs/baseStyles"
-            },
-            {
-              "type": "object",
-              "properties": {
-                "size": {
-                  "type": "integer",
-                  "minimum": 0
-                }
-              }
-            }
-          ]
+          "$ref": "#/$defs/baseStyles"
         }
       }
     },
