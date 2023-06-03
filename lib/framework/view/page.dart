@@ -469,8 +469,8 @@ class PageState extends State<Page> {
       // add the bodyWidget
       content.add(Expanded(
           child: SafeArea(
-              top:
-                  _useSafeArea, //widget._pageModel.pageType == PageType.modal ? false : true,
+              top: _useSafeArea,
+              bottom: _useSafeArea,
               child: rootWidget)));
 
       return Row(
@@ -478,8 +478,8 @@ class PageState extends State<Page> {
     }
 
     return SafeArea(
-        top:
-            _useSafeArea, //widget._pageModel.pageType == PageType.modal ? false : true,
+        top: _useSafeArea,
+        bottom: _useSafeArea,
         child: rootWidget);
   }
 
