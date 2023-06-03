@@ -71,6 +71,12 @@ class Utils {
     return null;
   }
 
+  /// value in milliseconds
+  static Duration? getDurationMs(dynamic value) {
+    int? number = optionalInt(value, min: 0);
+    return number != null ? Duration(milliseconds: number) : null;
+  }
+
   static BackgroundImage? getBackgroundImage(dynamic value) {
     if (value is Map) {
       if (value['source'] != null) {

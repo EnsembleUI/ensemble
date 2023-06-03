@@ -41,7 +41,7 @@ class Toggle extends StatefulWidget
       'inactiveWidget': (widget) => _controller.inactiveWidgetDef = widget,
       'activeWidget': (widget) => _controller.activeWidgetDef = widget,
       'transitionDuration': (value) =>
-          _controller.transitionDuration = Utils.getDuration(value)
+          _controller.transitionDuration = Utils.getDurationMs(value)
     };
   }
 }
