@@ -1900,6 +1900,27 @@
           }
         },
         {
+          "title": "Open URL",
+          "type": "object",
+          "required": ["openUrl"],
+          "properties": {
+            "openUrl": {
+              "type": "object",
+              "description": "Open URL in ensemble or a separate app",
+              "properties": {
+                "url" : {
+                  "type": "string",
+                  "description": "The URL to open"
+                },
+                "openInExternalApp": {
+                  "type": "boolean",
+                  "description": "Open URL in an external app"
+                }
+              }
+            }
+          }
+        },
+        {
           "title": "Invoke API",
           "type": "object",
           "required": ["invokeAPI"],
