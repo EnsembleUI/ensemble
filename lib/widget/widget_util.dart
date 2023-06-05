@@ -76,8 +76,10 @@ class WidgetUtils {
 class TextController extends BoxController {
   // set from caller
   String? text;
-  String? overflow;
   String? textAlign;
+
+  String? overflow;
+  int? maxLines;
 
   // use our setters
   String? font; // pre-defined font styles
@@ -222,7 +224,7 @@ class TextUtils {
     return flutter.Text(controller.text ?? '',
         textAlign: textAlign,
         overflow: textOverflow.overflow,
-        maxLines: textOverflow.maxLine,
+        maxLines: controller.maxLines ?? textOverflow.maxLine,
         softWrap: textOverflow.softWrap,
         style: textStyle.copyWith(
             decorationColor: flutter.Colors.blue,

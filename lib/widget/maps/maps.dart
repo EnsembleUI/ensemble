@@ -48,13 +48,37 @@ class Maps extends StatefulWidget
       'includeCurrentLocationInAutoZoom': (value) =>
           _controller.includeCurrentLocationInAutoZoom = Utils.getBool(value,
               fallback: _controller.includeCurrentLocationInAutoZoom),
-      'showLocationButton': (value) => _controller.showLocationButton = Utils.getBool(value, fallback: _controller.showLocationButton),
+
+      // toolbar contains multiple controls
+      'showToolbar': (value) => _controller.showToolbar =
+          Utils.getBool(value, fallback: _controller.showToolbar),
+      'showMapTypesButton': (value) => _controller.showMapTypesButton =
+          Utils.getBool(value, fallback: _controller.showMapTypesButton),
+      'showLocationButton': (value) => _controller.showLocationButton =
+          Utils.getBool(value, fallback: _controller.showLocationButton),
+      'showZoomButtons': (value) => _controller.showZoomButtons =
+          Utils.getBool(value, fallback: _controller.showZoomButtons),
+      'toolbarMargin': (value) => _controller.toolbarMargin =
+          Utils.getInsets(value, fallback: _controller.toolbarMargin),
+      'toolbarAlignment': (alignment) => _controller.toolbarAlignment =
+          Utils.getAlignment(alignment) ?? _controller.toolbarAlignment,
+      'toolbarTop': (value) =>
+          _controller.toolbarTop = Utils.optionalInt(value, min: 0),
+      'toolbarBottom': (value) =>
+          _controller.toolbarBottom = Utils.optionalInt(value, min: 0),
+      'toolbarLeft': (value) =>
+          _controller.toolbarLeft = Utils.optionalInt(value, min: 0),
+      'toolbarRight': (value) =>
+          _controller.toolbarRight = Utils.optionalInt(value, min: 0),
+
       'mapType': (value) => _controller.mapType = value,
       'markers': (markerData) => setMarkers(markerData),
       'scrollableMarkerOverlay': (value) => _controller
               .scrollableMarkerOverlay =
           Utils.getBool(value, fallback: _controller.scrollableMarkerOverlay),
-      'dismissibleMarkerOverlay': (value) => _controller.dismissibleMarkerOverlay = Utils.getBool(value, fallback: _controller.dismissibleMarkerOverlay),
+      'dismissibleMarkerOverlay': (value) => _controller
+              .dismissibleMarkerOverlay =
+          Utils.getBool(value, fallback: _controller.dismissibleMarkerOverlay),
       'autoSelect': (value) => _controller.autoSelect =
           Utils.getBool(value, fallback: _controller.autoSelect),
       'onMapCreated': (action) => _controller.onMapCreated =
@@ -96,7 +120,7 @@ class Maps extends StatefulWidget
 
   @override
   Map<String, Function> getters() {
-    return {};
+    return {'currentBounds': () => controller.currentBounds};
   }
 
   @override
@@ -115,6 +139,10 @@ class MyController extends WidgetController with LocationCapability {
   int? height;
   int? width;
 
+  // current map boundary exposed as setter
+  // This will be set ever time the camera moves
+  dynamic currentBounds;
+
   // overlay fill available horizontal space, so cap max width/height
   int markerOverlayMaxWidth = 500;
   int markerOverlayMaxHeight = 500;
@@ -132,7 +160,17 @@ class MyController extends WidgetController with LocationCapability {
   bool locationEnabled = false;
   bool includeCurrentLocationInAutoZoom = true;
 
+  // toolbar has multiple button options
+  bool showToolbar = true;
+  bool showMapTypesButton = true;
   bool showLocationButton = true;
+  bool showZoomButtons = true; // applicable on Web only
+  EdgeInsets toolbarMargin = const EdgeInsets.all(10);
+  Alignment toolbarAlignment = Alignment.bottomRight;
+  int? toolbarTop;
+  int? toolbarBottom;
+  int? toolbarLeft;
+  int? toolbarRight;
 
   EnsembleAction? onMapCreated;
   EnsembleAction? onMarkersUpdated;
