@@ -7,10 +7,12 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:http/http.dart' as http;
 
 class Address extends StatefulWidget with Invokable, HasController<AddressController, AddressState> {
@@ -41,6 +43,8 @@ class Address extends StatefulWidget with Invokable, HasController<AddressContro
   @override
   Map<String, Function> setters() {
     return {
+      'showRecent': (value) => _controller.showRecent = Utils.getBool(value, fallback: _controller.showRecent),
+      'countryFilter': (value) => _controller.countryFilter = Utils.getListOfStrings(value),
       'onChange': (definition) => _controller.onChange =
           EnsembleAction.fromYaml(definition, initiator: this)
     };
@@ -51,25 +55,43 @@ class Address extends StatefulWidget with Invokable, HasController<AddressContro
 class AddressController extends WidgetController {
   Place? value;
   EnsembleAction? onChange;
+
+  bool showRecent = true;
+
+  List<String>? _countryFilter;
+  set countryFilter(List<String>? items) {
+    if (items != null && items.length > 5) {
+      throw LanguageError("${Address.type}'s countryFilter can only have up to 5 country codes.");
+    }
+    _countryFilter = items;
+  }
 }
 
 class AddressState extends WidgetState<Address> {
   TextEditingController? _textEditingController;
-  List<PlaceSummary> _searchResults = [];
+  FocusNode? _focusNode;
   List<Place> _recentSearches = [];
 
 
-  Future<void> _getSearchResults(String query) async {
+  Future<List<PlaceSummary>> _getSearchResults(String query) async {
+    // log("Query: $query}");
     if (query.isNotEmpty) {
+      // filter by country
+      String countryFilterStr = '';
+      if (widget._controller._countryFilter?.isNotEmpty ?? false) {
+        countryFilterStr =
+        '&countryFilter=${widget._controller._countryFilter!.join(',')}';
+      }
       var url =
-          'https://services-googleplacesautocomplete-2czdl2akpq-uc.a.run.app?query=$query';
+          'https://services-googleplacesautocomplete-2czdl2akpq-uc.a.run.app?query=$query$countryFilterStr';
+      log(url);
       var response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         var jsonResponse = json.decode(response.body);
         if (jsonResponse['error_message'] != null) {
           throw LanguageError("Error fetching the address list");
         }
-        _searchResults = (jsonResponse['predictions'] as List)
+        return (jsonResponse['predictions'] as List)
             .map((item) => PlaceSummary(
                 placeId: item['place_id'],
                 address: item['description']))
@@ -78,7 +100,7 @@ class AddressState extends WidgetState<Address> {
         throw LanguageError('Unable to fetch the address list.');
       }
     } else {
-      _searchResults = [];
+      return widget._controller.showRecent ? _recentSearches : [];
     }
   }
 
@@ -103,25 +125,44 @@ class AddressState extends WidgetState<Address> {
   @override
   Widget buildWidget(BuildContext context) {
     return Autocomplete<PlaceSummary>(
-          optionsBuilder: (TextEditingValue textEditingValue) async {
-            await _getSearchResults(textEditingValue.text);
-            return _searchResults;
-          },
-          displayStringForOption: (address) => address.address,
-          onSelected: (selection) => _executeSelection(selection)
-        );
-        // _textEditingController != null && _textEditingController!.value.text.isNotEmpty
-        //     ? IconButton(
-        //           onPressed: () => _textEditingController?.clear(),
-        //           icon: const Icon(Icons.close))
-        //     : const SizedBox.shrink()
+        fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
+          _textEditingController = textEditingController;
+          _focusNode = focusNode;
+          return TextFormField(
+            controller: textEditingController,
+            focusNode: focusNode,
+            onFieldSubmitted: (String value) {
+              onFieldSubmitted();
+            },
+            decoration: widget._controller.value != null
+              ? InputDecoration(
+                  suffixIcon: IconButton(
+                      onPressed: _clearSelection,
+                      icon: const Icon(Icons.close)))
+              : null
+          );
+        },
+        optionsBuilder: (TextEditingValue textEditingValue) {
+          return _getSearchResults(textEditingValue.text);
 
+        },
+        optionsViewBuilder: (context, onSelected, options) {
+          return CustomAutoCompleteOptions(
+            key: UniqueKey(),
+              displayStringForOption: _displayStringForOption,
+              onSelected: onSelected,
+              options: options,
+              maxOptionsHeight: 250);
+        },
+        displayStringForOption: _displayStringForOption,
+        onSelected: (selection) => _executeSelection(selection));
   }
 
+  String _displayStringForOption(PlaceSummary placeSummary) => placeSummary.address;
+
   void _executeSelection(PlaceSummary placeSummary) async {
-    log('executing selection');
-    //fetch detail
     Place place = await _getPlaceDetail(placeSummary);
+    widget._controller.value = place;
 
     // update recent searches
     _recentSearches.insert(0, place);
@@ -129,11 +170,23 @@ class AddressState extends WidgetState<Address> {
       _recentSearches.removeLast();
     }
 
+    setState(() {
+
+    });
+
     if (widget._controller.onChange != null) {
       ScreenController().executeAction(context, widget._controller.onChange!,
           event: EnsembleEvent(widget, data: place.toMap()));
     }
 
+  }
+
+  void _clearSelection() {
+    setState(() {
+      widget._controller.value = null;
+      _textEditingController?.clear();
+    });
+    _focusNode?.requestFocus();
   }
 
 }
@@ -161,5 +214,95 @@ class Place extends PlaceSummary {
       'lng': lng,
       'address': address
     };
+  }
+}
+
+// taken from Flutter code and modified
+class CustomAutoCompleteOptions<T extends Object> extends StatelessWidget {
+  const CustomAutoCompleteOptions({
+    super.key,
+    required this.displayStringForOption,
+    required this.onSelected,
+    required this.options,
+    required this.maxOptionsHeight,
+  });
+
+  final AutocompleteOptionToString<T> displayStringForOption;
+
+  final AutocompleteOnSelected<T> onSelected;
+
+  final Iterable<T> options;
+  final double maxOptionsHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    // check if this is Recent result or actual Search Result
+    bool isRecent = false;
+    if (options.isNotEmpty && options.first is Place) {
+      isRecent = true;
+    }
+
+    return Align(
+      alignment: Alignment.topLeft,
+      child: Material(
+        elevation: 4.0,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+              maxHeight: maxOptionsHeight,
+              maxWidth: 500),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              isRecent
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                      child: const Row(
+                          children: [
+                            Icon(Icons.access_time, size: 16, color: Colors.black54),
+                            SizedBox(width: 3),
+                            Text(
+                                'RECENT',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black54))
+                          ]))
+                  : const SizedBox.shrink(),
+              Expanded(
+                child: ListView.builder(
+                  padding: isRecent
+                      ? EdgeInsets.symmetric(horizontal: 10, vertical: 0)
+                      : EdgeInsets.zero,
+                  shrinkWrap: true,
+                  itemCount: options.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    final T option = options.elementAt(index);
+                    return InkWell(
+                      onTap: () {
+                        onSelected(option);
+                      },
+                      child: Builder(
+                          builder: (BuildContext context) {
+                            final bool highlight = AutocompleteHighlightedOption.of(context) == index;
+                            if (highlight) {
+                              SchedulerBinding.instance.addPostFrameCallback((Duration timeStamp) {
+                                Scrollable.ensureVisible(context, alignment: 0.5);
+                              });
+                            }
+                            return Container(
+                              color: highlight ? Theme.of(context).focusColor : null,
+                              padding: const EdgeInsets.all(16.0),
+                              child: Text(
+                                  displayStringForOption(option),
+                                  maxLines: isRecent ? 1 : null));
+                          }
+                      ),
+                    );
+                  },
+                )
+              )
+
+            ],
+          )
+        ),
+      ),
+    );
   }
 }
