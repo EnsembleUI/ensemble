@@ -287,7 +287,6 @@ class ScreenController {
     } else if (action is StartTimerAction) {
       // what happened if ScopeManager is null?
       if (scopeManager != null) {
-
         // validate
         bool isRepeat = action.isRepeat(dataContext);
         int? repeatInterval = action.getRepeatInterval(dataContext);
@@ -314,12 +313,13 @@ class ScreenController {
           // else repeating timer
           else if (repeatInterval != null) {
             int? maxTimes = action.getMaxTimes(dataContext);
+
             /// repeatCount value of null means forever by default
             int? repeatCount = maxTimes != null ? maxTimes - 1 : null;
             if (repeatCount != 0) {
               int counter = 0;
-              final timer = Timer.periodic(
-                  Duration(seconds: repeatInterval), (timer) {
+              final timer =
+                  Timer.periodic(Duration(seconds: repeatInterval), (timer) {
                 // execute the action
                 executeActionWithScope(context, scopeManager, action.onTimer);
 
