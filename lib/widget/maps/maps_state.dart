@@ -468,23 +468,25 @@ class MapsState extends MapsActionableState
                 widget.controller.defaultCameraZoom),
         markers: _getMarkers(),
       ),
-      MapsToolbar(
-          margin: widget.controller.toolbarMargin,
-          alignment: widget.controller.toolbarAlignment,
-          top: widget.controller.toolbarTop,
-          bottom: widget.controller.toolbarBottom,
-          left: widget.controller.toolbarLeft,
-          right: widget.controller.toolbarRight,
-          onMapLayerChanged: widget.controller.showMapTypesButton
-              ? (mapType) {
-                  setState(() {
-                    widget.controller.mapType = mapType;
-                  });
-                }
-              : null,
-          onShowLocationButtonCallback: widget.controller.showLocationButton
-              ? () => _moveCamera(MapsUtils.fromPosition(currentLocation))
-              : null),
+      widget.controller.showToolbar
+          ? MapsToolbar(
+              margin: widget.controller.toolbarMargin,
+              alignment: widget.controller.toolbarAlignment,
+              top: widget.controller.toolbarTop,
+              bottom: widget.controller.toolbarBottom,
+              left: widget.controller.toolbarLeft,
+              right: widget.controller.toolbarRight,
+              onMapLayerChanged: widget.controller.showMapTypesButton
+                  ? (mapType) {
+                      setState(() {
+                        widget.controller.mapType = mapType;
+                      });
+                    }
+                  : null,
+              onShowLocationButtonCallback: widget.controller.showLocationButton
+                  ? () => _moveCamera(MapsUtils.fromPosition(currentLocation))
+                  : null)
+          : const SizedBox.shrink(),
       _overlayWidget != null && _selectedMarkerId != null
           ? MapsOverlay(
               _overlayWidget!,
