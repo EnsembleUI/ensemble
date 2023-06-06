@@ -79,14 +79,19 @@ class MapsState extends MapsActionableState
   }
 
   @override
+  void initState() {
+    super.initState();
+    _initInitialCameraPosition(context);
+    _initCurrentLocation();
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
 
     // anti-pattern. We are manipulating State from StatefulWidget
     widget.controller.mapActions = this;
 
-    _initInitialCameraPosition(context);
-    _initCurrentLocation();
     _registerMarkerListener(context);
   }
 

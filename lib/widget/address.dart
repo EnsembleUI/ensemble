@@ -74,7 +74,6 @@ class AddressState extends WidgetState<Address> {
 
 
   Future<List<PlaceSummary>> _getSearchResults(String query) async {
-    // log("Query: $query}");
     if (query.isNotEmpty) {
       // filter by country
       String countryFilterStr = '';
@@ -84,7 +83,6 @@ class AddressState extends WidgetState<Address> {
       }
       var url =
           'https://services-googleplacesautocomplete-2czdl2akpq-uc.a.run.app?query=$query$countryFilterStr';
-      log(url);
       var response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         var jsonResponse = json.decode(response.body);
@@ -148,7 +146,6 @@ class AddressState extends WidgetState<Address> {
 
           },
           optionsViewBuilder: (context, onSelected, options) {
-            log("max width ${constraints.maxWidth}");
             return CustomAutoCompleteOptions(
                 key: UniqueKey(),
                 displayStringForOption: _displayStringForOption,
