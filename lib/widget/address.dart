@@ -124,38 +124,42 @@ class AddressState extends WidgetState<Address> {
 
   @override
   Widget buildWidget(BuildContext context) {
-    return Autocomplete<PlaceSummary>(
-        fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
-          _textEditingController = textEditingController;
-          _focusNode = focusNode;
-          return TextFormField(
-            controller: textEditingController,
-            focusNode: focusNode,
-            onFieldSubmitted: (String value) {
-              onFieldSubmitted();
-            },
-            decoration: widget._controller.value != null
-              ? InputDecoration(
-                  suffixIcon: IconButton(
-                      onPressed: _clearSelection,
-                      icon: const Icon(Icons.close)))
-              : null
-          );
-        },
-        optionsBuilder: (TextEditingValue textEditingValue) {
-          return _getSearchResults(textEditingValue.text);
+    return LayoutBuilder(builder: (context, constraints) {
+      return Autocomplete<PlaceSummary>(
+          fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
+            _textEditingController = textEditingController;
+            _focusNode = focusNode;
+            return TextFormField(
+                controller: textEditingController,
+                focusNode: focusNode,
+                onFieldSubmitted: (String value) {
+                  onFieldSubmitted();
+                },
+                decoration: widget._controller.value != null
+                    ? InputDecoration(
+                    suffixIcon: IconButton(
+                        onPressed: _clearSelection,
+                        icon: const Icon(Icons.close)))
+                    : null
+            );
+          },
+          optionsBuilder: (TextEditingValue textEditingValue) {
+            return _getSearchResults(textEditingValue.text);
 
-        },
-        optionsViewBuilder: (context, onSelected, options) {
-          return CustomAutoCompleteOptions(
-            key: UniqueKey(),
-              displayStringForOption: _displayStringForOption,
-              onSelected: onSelected,
-              options: options,
-              maxOptionsHeight: 250);
-        },
-        displayStringForOption: _displayStringForOption,
-        onSelected: (selection) => _executeSelection(selection));
+          },
+          optionsViewBuilder: (context, onSelected, options) {
+            log("max width ${constraints.maxWidth}");
+            return CustomAutoCompleteOptions(
+                key: UniqueKey(),
+                displayStringForOption: _displayStringForOption,
+                onSelected: onSelected,
+                options: options,
+                maxOptionsWidth: constraints.maxWidth,
+                maxOptionsHeight: 250);
+          },
+          displayStringForOption: _displayStringForOption,
+          onSelected: (selection) => _executeSelection(selection));
+    });
   }
 
   String _displayStringForOption(PlaceSummary placeSummary) => placeSummary.address;
@@ -165,6 +169,7 @@ class AddressState extends WidgetState<Address> {
     widget._controller.value = place;
 
     // update recent searches
+    _recentSearches.removeWhere((element) => element.placeId == placeSummary.placeId);
     _recentSearches.insert(0, place);
     if (_recentSearches.length > 5) {
       _recentSearches.removeLast();
@@ -224,6 +229,7 @@ class CustomAutoCompleteOptions<T extends Object> extends StatelessWidget {
     required this.displayStringForOption,
     required this.onSelected,
     required this.options,
+    required this.maxOptionsWidth,
     required this.maxOptionsHeight,
   });
 
@@ -232,6 +238,7 @@ class CustomAutoCompleteOptions<T extends Object> extends StatelessWidget {
   final AutocompleteOnSelected<T> onSelected;
 
   final Iterable<T> options;
+  final double maxOptionsWidth;
   final double maxOptionsHeight;
 
   @override
@@ -249,7 +256,7 @@ class CustomAutoCompleteOptions<T extends Object> extends StatelessWidget {
         child: ConstrainedBox(
           constraints: BoxConstraints(
               maxHeight: maxOptionsHeight,
-              maxWidth: 500),
+              maxWidth: maxOptionsWidth),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

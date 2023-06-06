@@ -62,7 +62,7 @@ class ToggleContainerController extends WidgetController {
 }
 
 class ToggleContainerState extends WidgetState<ToggleContainer> {
-  final defaultDuration = const Duration(milliseconds: 500);
+  final defaultDuration = const Duration(milliseconds: 300);
   late Widget first;
   late Widget second;
 
