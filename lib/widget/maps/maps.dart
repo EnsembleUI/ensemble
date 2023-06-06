@@ -49,6 +49,15 @@ class Maps extends StatefulWidget
           _controller.includeCurrentLocationInAutoZoom = Utils.getBool(value,
               fallback: _controller.includeCurrentLocationInAutoZoom),
 
+      'rotateEnabled': (value) => _controller.rotateEnabled =
+            Utils.getBool(value, fallback: _controller.rotateEnabled),
+      'scrollEnabled': (value) => _controller.scrollEnabled =
+          Utils.getBool(value, fallback: _controller.scrollEnabled),
+      'tiltEnabled': (value) => _controller.tiltEnabled =
+          Utils.getBool(value, fallback: _controller.tiltEnabled),
+      'zoomEnabled': (value) => _controller.zoomEnabled =
+          Utils.getBool(value, fallback: _controller.zoomEnabled),
+
       // toolbar contains multiple controls
       'showToolbar': (value) => _controller.showToolbar =
           Utils.getBool(value, fallback: _controller.showToolbar),
@@ -159,6 +168,11 @@ class MyController extends WidgetController with LocationCapability {
   int? autoZoomPadding;
   bool locationEnabled = false;
   bool includeCurrentLocationInAutoZoom = true;
+
+  bool rotateEnabled = true;
+  bool scrollEnabled = true;
+  bool tiltEnabled = true;
+  bool zoomEnabled = true;
 
   // toolbar has multiple button options
   bool showToolbar = true;

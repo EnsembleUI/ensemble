@@ -3304,6 +3304,18 @@
                   "type": "boolean",
                   "description": "Applicable on Web only. Show the zoom in/out controls on the map. (default true on Web)"
                 },
+                "rotateEnabled": {
+                  "type": "boolean"
+                },
+                "scrollEnabled": {
+                  "type": "boolean"
+                },
+                "tiltEnabled": {
+                  "type": "boolean"
+                },
+                "zoomEnabled": {
+                  "type": "boolean"
+                },
                 "toolbarMargin": {
                   "$ref": "#/$defs/styleMargin",
                   "description": "The margin around the toolbar. (default 10 on all sides)"
