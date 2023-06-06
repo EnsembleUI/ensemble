@@ -3639,6 +3639,10 @@
         "stackPositionRight": {
           "type": "integer",
           "description": "The distance that the child's right edge from the right of the stack. This is applicable only for Stack's children."
+        },
+        "captureWebPointer": {
+          "type": "boolean",
+          "description": "Applicable for Web only. When overlaying widgets on top of certain HTML container (e.g. Maps), the mouse click is captured by the HTML container, causing issue interacting with the widget. Use this to capture and maintain the mouse pointer on your widget."
         }
       }
     },
