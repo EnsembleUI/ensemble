@@ -461,6 +461,11 @@ class MapsState extends MapsActionableState
         mapToolbarEnabled: false,
         zoomControlsEnabled: false,
         onCameraMove: _onCameraMove,
+        onCameraIdle: _onCameraIdle,
+        rotateGesturesEnabled: widget.controller.rotateEnabled,
+        scrollGesturesEnabled: widget.controller.scrollEnabled,
+        tiltGesturesEnabled: widget.controller.tiltEnabled,
+        zoomGesturesEnabled: widget.controller.zoomEnabled,
         initialCameraPosition: CameraPosition(
             target:
                 initialCameraLatLng ?? widget.controller.defaultCameraLatLng,
@@ -539,6 +544,10 @@ class MapsState extends MapsActionableState
         //log("Camera moved");
       });
     }
+  }
+
+  void _onCameraIdle() {
+    
   }
 
   void _executeCameraMoveAction(
