@@ -27,6 +27,9 @@ abstract class WidgetController extends Controller {
   int? stackPositionLeft;
   int? stackPositionRight;
 
+  // https://pub.dev/packages/pointer_interceptor
+  bool? captureWebPointer;
+
   // optional label/labelHint for use in Forms
   String? label;
   String? description;
@@ -45,15 +48,25 @@ abstract class WidgetController extends Controller {
     return {
       'expanded': (value) => expanded = Utils.getBool(value, fallback: false),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
-      'visibilityTransitionDuration': (value) => visibilityTransitionDuration = Utils.getDuration(value),
-      'elevation': (value) => elevation = Utils.optionalInt(value, min: 0, max: 24),
-      'elevationShadowColor': (value) => elevationShadowColor = Utils.getColor(value),
-      'elevationBorderRadius': (value) => elevationBorderRadius = Utils.getBorderRadius(value),
+      'visibilityTransitionDuration': (value) =>
+          visibilityTransitionDuration = Utils.getDuration(value),
+      'elevation': (value) =>
+          elevation = Utils.optionalInt(value, min: 0, max: 24),
+      'elevationShadowColor': (value) =>
+          elevationShadowColor = Utils.getColor(value),
+      'elevationBorderRadius': (value) =>
+          elevationBorderRadius = Utils.getBorderRadius(value),
       'alignment': (value) => alignment = Utils.getAlignment(value),
-      'stackPositionTop': (value) => stackPositionTop = Utils.optionalInt(value),
-      'stackPositionBottom': (value) => stackPositionBottom = Utils.optionalInt(value),
-      'stackPositionLeft': (value) => stackPositionLeft = Utils.optionalInt(value),
-      'stackPositionRight': (value) => stackPositionRight = Utils.optionalInt(value),
+      'stackPositionTop': (value) =>
+          stackPositionTop = Utils.optionalInt(value),
+      'stackPositionBottom': (value) =>
+          stackPositionBottom = Utils.optionalInt(value),
+      'stackPositionLeft': (value) =>
+          stackPositionLeft = Utils.optionalInt(value),
+      'stackPositionRight': (value) =>
+          stackPositionRight = Utils.optionalInt(value),
+      'captureWebPointer': (value) =>
+          captureWebPointer = Utils.optionalBool(value),
       'label': (value) => label = Utils.optionalString(value),
       'description': (value) => description = Utils.optionalString(value),
       'labelHint': (value) => labelHint = Utils.optionalString(value),
@@ -61,10 +74,11 @@ abstract class WidgetController extends Controller {
   }
 
   bool hasPositions() {
-    return (stackPositionTop
-        ?? stackPositionBottom
-        ?? stackPositionLeft
-        ?? stackPositionRight) != null;
+    return (stackPositionTop ??
+            stackPositionBottom ??
+            stackPositionLeft ??
+            stackPositionRight) !=
+        null;
   }
 }
 

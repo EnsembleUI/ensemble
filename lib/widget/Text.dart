@@ -26,7 +26,8 @@ class EnsembleText extends StatefulWidget
     setters.addAll({
       'text': (newValue) => _controller.text = Utils.optionalString(newValue),
       'overflow': (value) => _controller.overflow = Utils.optionalString(value),
-      'maxLines': (value) => _controller.maxLines = Utils.optionalInt(value, min: 1),
+      'maxLines': (value) =>
+          _controller.maxLines = Utils.optionalInt(value, min: 1),
       'textAlign': (value) =>
           _controller.textAlign = Utils.optionalString(value),
     });
