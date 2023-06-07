@@ -270,6 +270,10 @@
                     "ellipsis"
                   ]
                 },
+                "maxLines": {
+                  "type": "integer",
+                  "minimum": 1
+                },
                 "textAlign": {
                   "type": "string",
                   "enum": [
@@ -363,10 +367,10 @@
     "Icon-payload": {
       "type": "object",
       "required": [
-        "icon"
+        "name"
       ],
       "properties": {
-        "icon": {
+        "name": {
           "type": "string",
           "description": "Icon name from Material Icons or Font Awesome"
         },
@@ -710,8 +714,85 @@
         }
       }
     },
+    "Toggle-payload": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "boolean",
+          "description": "Whether the toggle is On or Off (true or false)"
+        },
+        "inactiveWidget": {
+          "$ref": "#/$defs/Widget",
+          "description": "The widget to render when the toggle is Off"
+        },
+        "activeWidget": {
+          "$ref": "#/$defs/Widget",
+          "description": "The widget to render when the toggle is On"
+        },
+        "onChange": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Action to execute when the toggle's value has changed"
+        },
+        "styles": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "transitionDuration": {
+                  "type": "integer",
+                  "description": "The duration in milliseconds when transitioning between the active and inactive widgets"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "ToggleContainer-payload": {
+      "type": "object",
+      "properties": {
+        "isFirst": {
+          "type": "boolean",
+          "description": "Whether to display the firstWidget or secondWidget"
+        },
+        "firstWidget": {
+          "$ref": "#/$defs/Widget",
+          "description": "The first widget"
+        },
+        "secondWidget": {
+          "$ref": "#/$defs/Widget",
+          "description": "The second widget"
+        },
+        "onToggle": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Action to execute when the widget being displayed has changed"
+        },
+        "styles": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "transitionDuration": {
+                  "type": "integer",
+                  "description": "The duration in milliseconds when transitioning between the firstWidget and secondWidget (default 500ms)"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
     "TextInput-payload": {
       "allOf": [
+        {
+          "$ref": "#/$defs/BaseTextInput-payload"
+        },
         {
           "$ref": "#/$defs/FormInput-payload"
         },
@@ -721,10 +802,6 @@
         {
           "type": "object",
           "properties": {
-            "onKeyPress": {
-              "$ref": "#/$defs/Action-payload",
-              "description": "On every keystroke, call Ensemble's built-in functions or execute code"
-            },
             "value": {
               "type": "string",
               "description": "Specifying the value of your Text Input"
@@ -766,6 +843,9 @@
     "PasswordInput-payload": {
       "allOf": [
         {
+          "$ref": "#/$defs/BaseTextInput-payload"
+        },
+        {
           "$ref": "#/$defs/FormInput-payload"
         },
         {
@@ -774,10 +854,6 @@
         {
           "type": "object",
           "properties": {
-            "onKeyPress": {
-              "$ref": "#/$defs/Action-payload",
-              "description": "On every keystroke, call Ensemble's built-in functions or execute code"
-            },
             "keyboardAction": {
               "$ref": "#/$defs/keyboardAction"
             },
@@ -966,6 +1042,41 @@
               }
             }
           ]
+        }
+      }
+    },
+    "IconButton-payload": {
+      "type": "object",
+      "properties": {
+        "icon": {
+          "$ref": "#/$defs/HasIcon"
+        },
+        "onTap": {
+          "$ref": "#/$defs/Action-payload"
+        },
+        "styles": {
+          "$ref": "#/$defs/baseStyles"
+        }
+      }
+    },
+    "Address-payload": {
+      "type": "object",
+      "properties": {
+        "showRecent": {
+          "type": "boolean",
+          "description": "Whether to show the recent searches (default True)"
+        },
+        "countryFilter": {
+          "type": "array",
+          "maxItems": 5,
+          "description": "Specify a list of country codes (2-letter ISO standard) to filter the result (max of 5)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "onChange": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Dispatch when a suggestion entry is selected"
         }
       }
     },
@@ -1535,6 +1646,23 @@
               "description": "The widget to render for each item"
             }
           }
+        }
+      }
+    },
+    "BaseTextInput-payload": {
+      "type": "object",
+      "properties": {
+        "onKeyPress": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "On every keystroke, call Ensemble's built-in functions or execute code"
+        },
+        "onFocusReceived": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Execute an Ensemble action when the field receives focus"
+        },
+        "onFocusLost": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Execute an Ensemble action when the field loses focus"
         }
       }
     },
@@ -2670,6 +2798,24 @@
           }
         },
         {
+          "title": "Toggle",
+          "required": ["Toggle"],
+          "properties": {
+            "Toggle": {
+              "$ref": "#/$defs/Toggle-payload"
+            }
+          }
+        },
+        {
+          "title": "ToggleContainer",
+          "required": ["ToggleContainer"],
+          "properties": {
+            "ToggleContainer": {
+              "$ref": "#/$defs/ToggleContainer-payload"
+            }
+          }
+        },
+        {
           "title": "TextInput",
           "required": ["TextInput"],
           "properties": {
@@ -2746,6 +2892,24 @@
             "Button": {
               "$ref": "#/$defs/Button-payload",
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/09c1087b-f9ee-4a8c-9286-e0e881184c07#"
+            }
+          }
+        },
+        {
+          "title": "IconButton",
+          "required": ["IconButton"],
+          "properties": {
+            "IconButton": {
+              "$ref": "#/$defs/IconButton-payload"
+            }
+          }
+        },
+        {
+          "title": "Address",
+          "required": ["Address"],
+          "properties": {
+            "Address": {
+              "$ref": "#/$defs/Address-payload"
             }
           }
         },
@@ -3140,6 +3304,42 @@
                   "type": "boolean",
                   "description": "Applicable on Web only. Show the zoom in/out controls on the map. (default true on Web)"
                 },
+                "rotateEnabled": {
+                  "type": "boolean"
+                },
+                "scrollEnabled": {
+                  "type": "boolean"
+                },
+                "tiltEnabled": {
+                  "type": "boolean"
+                },
+                "zoomEnabled": {
+                  "type": "boolean"
+                },
+                "toolbarMargin": {
+                  "$ref": "#/$defs/styleMargin",
+                  "description": "The margin around the toolbar. (default 10 on all sides)"
+                },
+                "toolbarAlignment": {
+                  "$ref": "#/$defs/alignment",
+                  "description":"How to align the toolbar within the map. (default bottom right). If both positioning (top/bottom/left/right) and alignment are used, positions will be applied first, then alignment within the available constraint."
+                },
+                "toolbarTop": {
+                  "type": "integer",
+                  "description": "Offset the toolbar from the top edge of the map"
+                },
+                "toolbarBottom": {
+                  "type": "integer",
+                  "description": "Offset the toolbar from the bottom edge of the map"
+                },
+                "toolbarLeft": {
+                  "type": "integer",
+                  "description": "Offset the toolbar from the left edge of the map"
+                },
+                "toolbarRight": {
+                  "type": "integer",
+                  "description": "Offset the toolbar from the right edge of the map"
+                },
                 "mapType": {
                   "type": "string",
                   "enum": [
@@ -3410,6 +3610,28 @@
           "type": "boolean",
           "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
         },
+        "visible": {
+          "type": "boolean",
+          "description": "Toggle a widget visibility on/off. Note that an invisible widget will not occupy UI space, unless the visibilityTransitionDuration is specified."
+        },
+        "visibilityTransitionDuration": {
+          "type": "number",
+          "description": "Specify the duration in seconds when a widget animates between visible and not visible state. Note that setting this value will cause the widget to still occupy the UI space even when it is not visible."
+        },
+        "elevation": {
+          "type": "integer",
+          "description": "The z-coordinate at which to place this material relative to its parent. A non-zero value will show a shadow, with its size relative to the elevation value.",
+          "minimum": 0,
+          "maximum": 24
+        },
+        "elevationShadowColor": {
+          "$ref": "#/$defs/typeColors",
+          "description": "The shadow color for the elevation"
+        },
+        "elevationBorderRadius": {
+          "$ref": "#/$defs/borderRadius",
+          "description": "If the widget has a borderRadius, this should be changed to have the same value."
+        },
         "alignment": {
           "$ref": "#/$defs/alignment",
           "description":"Align this widget relative to its parent"
@@ -3429,6 +3651,10 @@
         "stackPositionRight": {
           "type": "integer",
           "description": "The distance that the child's right edge from the right of the stack. This is applicable only for Stack's children."
+        },
+        "captureWebPointer": {
+          "type": "boolean",
+          "description": "Applicable for Web only. When overlaying widgets on top of certain HTML container (e.g. Maps), the mouse click is captured by the HTML container, causing issue interacting with the widget. Use this to capture and maintain the mouse pointer on your widget."
         }
       }
     },

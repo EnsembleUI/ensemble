@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensembleLib;
 import 'package:ensemble/screen_controller.dart';
@@ -31,6 +32,7 @@ class EnsembleIcon extends StatefulWidget
   Map<String, Function> setters() {
     return {
       'icon': (value) => _controller.icon = value,
+      'name': (value) => _controller.name = value,
       'library': (value) => _controller.library = Utils.optionalString(value),
       'size': (value) => _controller.size = Utils.optionalInt(value),
       'color': (value) => _controller.color = Utils.getColor(value),
@@ -47,7 +49,10 @@ class EnsembleIcon extends StatefulWidget
 }
 
 class IconController extends BoxController {
+  // use name (icon is legacy fallback)
+  dynamic name;
   dynamic icon;
+
   String? library;
   int? size;
   Color? color;
@@ -58,10 +63,13 @@ class IconController extends BoxController {
 class IconState extends WidgetState<EnsembleIcon> {
   @override
   Widget buildWidget(BuildContext context) {
+    if (widget._controller.name == null && widget._controller.icon == null) {
+      throw LanguageError("Icon requires an icon name");
+    }
     bool tapEnabled = widget._controller.onTap != null;
 
-    Widget icon = BoxWrapper(
-        widget: ensembleLib.Icon(widget._controller.icon,
+    Widget rtn = BoxWrapper(
+        widget: ensembleLib.Icon(widget._controller.name ?? widget._controller.icon,
             library: widget._controller.library,
             size: widget._controller.size,
             color: widget._controller.color),
@@ -71,18 +79,18 @@ class IconState extends WidgetState<EnsembleIcon> {
         );
 
     if (tapEnabled) {
-      icon = InkWell(
-          child: icon,
+      rtn = InkWell(
           splashColor: widget._controller.splashColor ??
               ThemeManager().getSplashColor(context),
           borderRadius: widget._controller.borderRadius?.getValue(),
           onTap: () => ScreenController().executeAction(
               context, widget._controller.onTap!,
-              event: EnsembleEvent(widget)));
+              event: EnsembleEvent(widget)),
+          child: rtn);
       if (widget._controller.margin != null) {
-        icon = Padding(padding: widget._controller.margin!, child: icon);
+        rtn = Padding(padding: widget._controller.margin!, child: rtn);
       }
     }
-    return icon;
+    return rtn;
   }
 }

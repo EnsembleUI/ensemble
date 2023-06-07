@@ -11,6 +11,7 @@ import 'package:ensemble/framework/widget/error_screen.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/notification_utils.dart';
+import 'package:ensemble/util/unfocus.dart';
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/foundation.dart';
@@ -79,11 +80,7 @@ class EnsembleApp extends StatefulWidget {
     this.screenPayload,
     this.ensembleConfig,
     this.isPreview = false,
-  }) {
-    // initialize once
-    GetStorage.init();
-    Device().initDeviceInfo();
-  }
+  });
 
   final ScreenPayload? screenPayload;
   final EnsembleConfig? ensembleConfig;
@@ -97,6 +94,10 @@ class EnsembleAppState extends State<EnsembleApp> {
   /// initialize our App with the the passed in config or
   /// read from our ensemble-config file.
   Future<EnsembleConfig> initApp() async {
+    Device().initDeviceInfo();
+    await GetStorage.init();
+    GetStorage().write(previewConfig, widget.isPreview);
+
     // use the config if passed in
     if (widget.ensembleConfig != null) {
       // set the Ensemble config
@@ -118,7 +119,6 @@ class EnsembleAppState extends State<EnsembleApp> {
   @override
   void initState() {
     super.initState();
-    GetStorage().write(previewConfig, widget.isPreview);
     config = initApp();
     if (!kIsWeb) {
       Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
@@ -154,34 +154,36 @@ class EnsembleAppState extends State<EnsembleApp> {
     //log("EnsembleApp build() - $hashCode");
     GetStorage().write(previewConfig, widget.isPreview);
 
-    return MaterialApp(
-      navigatorKey: Utils.globalAppKey,
-      theme: config.getAppTheme(),
-      localizationsDelegates: [
-        config.getI18NDelegate(),
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate
-      ],
-      home: Scaffold(
-        // this outer scaffold is where the background image would be (if
-        // specified). We do not want it to resize on keyboard popping up.
-        // The Page's Scaffold can handle the resizing.
-        resizeToAvoidBottomInset: false,
+    return Unfocus(
+      child: MaterialApp(
+        navigatorKey: Utils.globalAppKey,
+        theme: config.getAppTheme(),
+        localizationsDelegates: [
+          config.getI18NDelegate(),
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate
+        ],
+        home: Scaffold(
+          // this outer scaffold is where the background image would be (if
+          // specified). We do not want it to resize on keyboard popping up.
+          // The Page's Scaffold can handle the resizing.
+          resizeToAvoidBottomInset: false,
 
-        body: Screen(
-          appProvider:
-              AppProvider(definitionProvider: config.definitionProvider),
-          screenPayload: widget.screenPayload,
-          styles: config.appBundle?.theme,
+          body: Screen(
+            appProvider:
+                AppProvider(definitionProvider: config.definitionProvider),
+            screenPayload: widget.screenPayload,
+            styles: config.appBundle?.theme,
+          ),
         ),
+        useInheritedMediaQuery: widget.isPreview,
+        locale: widget.isPreview ? DevicePreview.locale(context) : null,
+        builder: widget.isPreview
+            ? DevicePreview.appBuilder
+            : FlutterI18n.rootAppBuilder(),
+        // TODO: this case translation issue on hot loading. Address this for RTL support
+        //builder: (context, widget) => FlutterI18n.rootAppBuilder().call(context, widget)
       ),
-      useInheritedMediaQuery: widget.isPreview,
-      locale: widget.isPreview ? DevicePreview.locale(context) : null,
-      builder: widget.isPreview
-          ? DevicePreview.appBuilder
-          : FlutterI18n.rootAppBuilder(),
-      // TODO: this case translation issue on hot loading. Address this for RTL support
-      //builder: (context, widget) => FlutterI18n.rootAppBuilder().call(context, widget)
     );
   }
 

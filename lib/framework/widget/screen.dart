@@ -66,6 +66,7 @@ class _ScreenState extends State<Screen> {
                 backgroundColor: Theme.of(context)
                     .extension<EnsembleThemeExtension>()
                     ?.loadingScreenBackgroundColor,
+                resizeToAvoidBottomInset: false,
                 body: Center(
                     child: CircularProgressIndicator(
                         color: Theme.of(context)
