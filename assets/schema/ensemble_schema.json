@@ -180,7 +180,10 @@
           },
           "parameters": {
             "type": "object",
-            "description": "Specify the key/value pairs to pass along with the URL"
+            "description": "Specify the key/value pairs to pass along with the URL",
+            "additionalProperties": {
+              "type": "string"
+            }
           },
           "body": {
             "type": "string",
