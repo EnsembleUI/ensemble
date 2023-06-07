@@ -139,6 +139,7 @@
       "description": "Javascript snippet for declaring variables and reusable functions, visible anywhere within this screen"
     },
     "Global": {
+      "type": "string",
       "defaultSnippets": [
         {
           "label": "Define variables and functions in Javascript",
