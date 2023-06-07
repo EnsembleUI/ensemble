@@ -24,9 +24,16 @@ mixin MapActions on MapsActionableState {
   }
 
   void moveCamera(LatLng target, {int? zoom}) {
-    getMapController().then((controller) async => controller.moveCamera(
+    getMapController().then((controller) async => controller.animateCamera(
         CameraUpdate.newCameraPosition(CameraPosition(
             target: target,
             zoom: zoom?.toDouble() ?? await controller.getZoomLevel()))));
+  }
+  
+  void moveCameraBounds(LatLng southwest, LatLng northeast, {int? padding}) {
+    getMapController().then((controller) => controller.animateCamera(
+        CameraUpdate.newLatLngBounds(
+            LatLngBounds(southwest: southwest, northeast: northeast),
+            padding?.toDouble() ?? 50)));
   }
 }

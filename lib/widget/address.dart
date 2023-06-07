@@ -112,7 +112,9 @@ class AddressState extends WidgetState<Address> {
             placeId: jsonResponse['result']['place_id'] ,
             address: jsonResponse['result']['formatted_address'],
             lat: jsonResponse['result']['geometry']['location']['lat'],
-            lng: jsonResponse['result']['geometry']['location']['lng']);
+            lng: jsonResponse['result']['geometry']['location']['lng'],
+            types: (jsonResponse['result']['types'] as List<dynamic>).cast<String>(),
+            bounds: jsonResponse['result']['geometry']['viewport']);
       }
     }
     throw LanguageError("Unable to get the address detail.");
@@ -205,16 +207,22 @@ class Place extends PlaceSummary {
     required super.placeId,
     required super.address,
     required this.lat,
-    required this.lng
+    required this.lng,
+    this.types,
+    this.bounds
   });
   double lat;
   double lng;
+  List<String>? types;
+  dynamic bounds;
 
   Map<String, dynamic> toMap() {
     return {
       'lat': lat,
       'lng': lng,
-      'address': address
+      'address': address,
+      'types': types,
+      'bounds': bounds
     };
   }
 }
