@@ -7,6 +7,8 @@ import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:yaml/yaml.dart';
 
 class Utils {
@@ -197,6 +199,20 @@ class Utils {
 
   static bool isUrl(String source) {
     return source.startsWith('https://') || source.startsWith('http://');
+  }
+
+  static LatLng? getLatLng(dynamic value) {
+    if (value is String) {
+      List<String> tokens = value.split(RegExp('\\s+'));
+      if (tokens.length == 2) {
+        double? lat = double.tryParse(tokens[0]);
+        double? lng = double.tryParse(tokens[1]);
+        if (lat != null && lng != null) {
+          return LatLng(lat, lng);
+        }
+      }
+    }
+    return null;
   }
 
   static String getString(dynamic value, {required String fallback}) {

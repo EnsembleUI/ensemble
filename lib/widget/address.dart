@@ -3,6 +3,7 @@ import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -13,6 +14,8 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 
 class Address extends StatefulWidget with Invokable, HasController<AddressController, AddressState> {
@@ -45,6 +48,9 @@ class Address extends StatefulWidget with Invokable, HasController<AddressContro
     return {
       'showRecent': (value) => _controller.showRecent = Utils.getBool(value, fallback: _controller.showRecent),
       'countryFilter': (value) => _controller.countryFilter = Utils.getListOfStrings(value),
+      'proximitySearchEnabled': (value) => _controller._proximitySearchEnabled = Utils.getBool(value, fallback: _controller._proximitySearchEnabled),
+      'proximitySearchCenter': (value) => _controller.proximitySearchCenter = Utils.getLatLng(value),
+      'proximitySearchRadius': (value) => _controller.proximitySearchRadius = Utils.optionalInt(value),
       'onChange': (definition) => _controller.onChange =
           EnsembleAction.fromYaml(definition, initiator: this)
     };
@@ -52,7 +58,7 @@ class Address extends StatefulWidget with Invokable, HasController<AddressContro
 
 }
 
-class AddressController extends WidgetController {
+class AddressController extends WidgetController with LocationCapability {
   Place? value;
   EnsembleAction? onChange;
 
@@ -65,6 +71,18 @@ class AddressController extends WidgetController {
     }
     _countryFilter = items;
   }
+
+  int? proximitySearchRadius;
+  LatLng? proximitySearchCenter;
+
+  bool _proximitySearchEnabled = true;
+  set proximitySearchEnabled(bool value) {
+    _proximitySearchEnabled = value;
+    if (value) {
+      // async. Just trigger the permission request. Don't care about the result yet.
+      getLocationStatus();
+    }
+  }
 }
 
 class AddressState extends WidgetState<Address> {
@@ -75,14 +93,31 @@ class AddressState extends WidgetState<Address> {
 
   Future<List<PlaceSummary>> _getSearchResults(String query) async {
     if (query.isNotEmpty) {
+      // location bias
+      LatLng? center = widget._controller.proximitySearchCenter;
+      if (center == null &&
+          widget._controller._proximitySearchEnabled
+          && widget._controller.getLastLocation() != null) {
+        center = LatLng(
+            widget._controller.getLastLocation()!.latitude,
+            widget._controller.getLastLocation()!.longitude);
+      }
+      String locationBiasStr = '';
+      if (center != null) {
+        locationBiasStr =
+            '&locationbias=circle:${widget._controller.proximitySearchRadius ?? 20000}@${center.latitude},${center.longitude}';
+      }
+
       // filter by country
       String countryFilterStr = '';
       if (widget._controller._countryFilter?.isNotEmpty ?? false) {
         countryFilterStr =
-        '&countryFilter=${widget._controller._countryFilter!.join(',')}';
+            '&components=${widget._controller._countryFilter!.map((e) =>
+                'country:$e').join('|')}';
       }
+
       var url =
-          'https://services-googleplacesautocomplete-2czdl2akpq-uc.a.run.app?query=$query$countryFilterStr';
+          'https://services-googleplacesautocomplete-2czdl2akpq-uc.a.run.app?input=$query$locationBiasStr$countryFilterStr';
       var response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         var jsonResponse = json.decode(response.body);

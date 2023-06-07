@@ -1074,6 +1074,18 @@
             "type": "string"
           }
         },
+        "proximitySearchEnabled": {
+          "type": "boolean",
+          "description": "Use the user's current location to prioritize localized results within the proximityRadius. Note that this will prompt for user's permission to access their location. (default: true)"
+        },
+        "proximitySearchCenter": {
+          "type": "string",
+          "description": "Use the syntax 'latitude longitude' to specify the center used for prioritizing localized results. If specified, this will be used instead of the user's current location."
+        },
+        "proximitySearchRadius": {
+          "type": "integer",
+          "description": "The radius (in meters) from the proximitySearchCenter (or current location) to prioritize localized results. (default 20,000 meters)."
+        },
         "onChange": {
           "$ref": "#/$defs/Action-payload",
           "description": "Dispatch when a suggestion entry is selected"
