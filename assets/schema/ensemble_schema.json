@@ -1080,6 +1080,52 @@
         }
       }
     },
+    "Staggered-Grid-payload": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/Templated-payload"
+        },
+        {
+          "properties": {
+            "onItemTap": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Call Ensemble's built-in functions or execute code when tapping on an item in the list."
+            },
+            "children": {
+              "$ref": "#/$defs/Widgets"
+            },
+            "styles": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/baseStyles"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "crossAxisCount": {
+                      "type": "integer",
+                      "description": "Creates a list of staggered grid tile in the cross axis",
+                      "minimum": 0
+                    },
+                    "verticalGap": {
+                      "type": "integer",
+                      "description": "Vertical gap between the staggered grid tiles",
+                      "minimum": 0
+                    },
+                    "horizontalGap": {
+                      "type": "integer",
+                      "description": "Horizontal gap between the staggered grid tiles",
+                      "minimum": 0
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
     "ToggleButton-payload": {
       "type": "object",
       "properties": {
