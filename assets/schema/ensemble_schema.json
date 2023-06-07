@@ -1946,7 +1946,10 @@
                 },
                 "inputs": {
                   "type": "object",
-                  "description": "Specify the key/value pairs to pass to the API"
+                  "description": "Specify the key/value pairs to pass to the API",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
                 },
                 "onResponse": {
                   "$ref": "#/$defs/Action-payload",
