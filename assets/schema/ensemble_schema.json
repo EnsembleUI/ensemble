@@ -2586,6 +2586,32 @@
         }
       ]
     },
+    "Margin-payload": {
+      "oneOf": [
+        {
+          "title": "string",
+          "type": "string"
+        },
+        {
+          "title": "integer",
+          "type": "integer"
+        }
+      ],
+      "description": "Margin with CSS-style notation (1 to 4 integers) e.g. margin: 5 20 5"
+    },
+    "Padding-payload": {
+      "oneOf": [
+        {
+          "title": "string",
+          "type": "string"
+        },
+        {
+          "title": "integer",
+          "type": "integer"
+        }
+      ],
+      "description": "Padding with CSS-style notation (1 to 4 integers) e.g. padding: 5 20 5"
+    },
     "MenuBase": {
       "type": "object",
       "required": [
@@ -3048,16 +3074,6 @@
           }
         },
         {
-          "title": "Map",
-          "required": ["Map"],
-          "properties": {
-            "Map": {
-              "$ref": "#/$defs/Map-payload",
-              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/36e52d1a-39c5-4a6b-b064-2be6cfe3cf7b#"
-            }
-          }
-        },
-        {
           "title": "Maps",
           "required": ["Maps"],
           "properties": {
@@ -3329,7 +3345,7 @@
                   "type": "boolean"
                 },
                 "toolbarMargin": {
-                  "$ref": "#/$defs/styleMargin",
+                  "$ref": "#/$defs/Margin-payload",
                   "description": "The margin around the toolbar. (default 10 on all sides)"
                 },
                 "toolbarAlignment": {
@@ -3473,86 +3489,6 @@
         }
       }
     },
-    "Map-payload": {
-      "type": "object",
-      "properties": {
-        "styles": {
-          "allOf": [
-            {
-              "$ref": "#/$defs/baseStyles"
-            },
-            {
-              "type": "object",
-              "properties": {
-                "markerWidth": {
-                  "type": "integer",
-                  "description": "The width of each marker. (default 60)"
-                },
-                "markerHeight": {
-                  "type": "integer",
-                  "description": "The height of each marker. (default 30)"
-                }
-              }
-            }
-          ]
-        },
-        "currentLocation": {
-          "type": "object",
-          "properties": {
-            "enabled": {
-              "type": "boolean",
-              "description": "If enabled, this will prompt the user for location access. User location will then be shown on the map"
-            },
-            "widget": {
-              "$ref": "#/$defs/Widget",
-              "description": "The widget to render the user's location"
-            }
-          }
-        },
-        "markers": {
-          "type": "object",
-          "required": [
-            "data",
-            "name",
-            "location",
-            "widget"
-          ],
-          "properties": {
-            "data": {
-              "type": "string"
-            },
-            "name": {
-              "type": "string"
-            },
-            "location": {
-              "type": "object",
-              "properties": {
-                "lat": {
-                  "type": "number",
-                  "description": "The latitude of the marker"
-                },
-                "lng": {
-                  "type": "number",
-                  "description": "The longitude of the marker"
-                }
-              }
-            },
-            "widget": {
-              "$ref": "#/$defs/Widget",
-              "description": "The widget to render each marker"
-            },
-            "selectedWidget": {
-              "$ref": "#/$defs/Widget",
-              "description": "The widget to render a selected marker"
-            },
-            "selectedWidgetOverlay": {
-              "$ref": "#/$defs/Widget",
-              "description": "The widget to render as an overlay at the bottom of the map. Use this to convey more detail info."
-            }
-          }
-        }
-      }
-    },
     "Video-payload": {
       "type": "object",
       "properties": {
@@ -3674,17 +3610,7 @@
       "type": "object",
       "properties": {
         "padding": {
-          "oneOf": [
-            {
-              "title": "string",
-              "type": "string"
-            },
-            {
-              "title": "integer",
-              "type": "integer"
-            }
-          ],
-          "description": "Padding with CSS-style value e.g. padding: 5 20 5"
+          "$ref": "#/$defs/Padding-payload"
         }
       }
     },
@@ -3692,17 +3618,7 @@
       "type": "object",
       "properties": {
         "margin": {
-          "oneOf": [
-            {
-              "title": "string",
-              "type": "string"
-            },
-            {
-              "title": "integer",
-              "type": "integer"
-            }
-          ],
-          "description": "Margin with CSS-style notation e.g. margin: 5 20 5"
+          "$ref": "#/$defs/Margin-payload"
         }
       }
     },
