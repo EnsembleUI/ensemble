@@ -137,7 +137,13 @@ class Maps extends StatefulWidget
     return {
       'runAutoZoom': () => _controller.mapActions?.zoomToFit(),
       'moveCamera': (num lat, num lng, [int? zoom]) => _controller.mapActions
-          ?.moveCamera(LatLng(lat.toDouble(), lng.toDouble()), zoom: zoom)
+          ?.moveCamera(LatLng(lat.toDouble(), lng.toDouble()), zoom: zoom),
+      'moveCameraBounds': (num southwestLat, num southwestLng, num northeastLat,
+              northeastLng, [int? padding]) =>
+          _controller.mapActions?.moveCameraBounds(
+              LatLng(southwestLat.toDouble(), southwestLng.toDouble()),
+              LatLng(northeastLat.toDouble(), northeastLng.toDouble()),
+              padding: padding)
     };
   }
 }
