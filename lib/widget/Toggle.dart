@@ -28,25 +28,22 @@ class Toggle extends StatefulWidget
 
   @override
   Map<String, Function> methods() {
-    // TODO: implement methods
-    throw UnimplementedError();
+    return {'toggle': () => _controller.value = !_controller.value};
   }
 
   @override
   Map<String, Function> setters() {
     return {
       'value': (value) =>
-        _controller.value = Utils.getBool(value, fallback: false),
-      'onChange': (definition) =>
-        _controller.onChange =
+          _controller.value = Utils.getBool(value, fallback: false),
+      'onChange': (definition) => _controller.onChange =
           EnsembleAction.fromYaml(definition, initiator: this),
       'inactiveWidget': (widget) => _controller.inactiveWidgetDef = widget,
       'activeWidget': (widget) => _controller.activeWidgetDef = widget,
-      'transitionDuration': (value) => _controller.transitionDuration = Utils.getDuration(value)
+      'transitionDuration': (value) =>
+          _controller.transitionDuration = Utils.getDurationMs(value)
     };
   }
-
-
 }
 
 class ToggleController extends WidgetController {
@@ -68,47 +65,48 @@ class ToggleState extends WidgetState<Toggle> {
     super.didChangeDependencies();
 
     // pre-built both states
-    Widget? generated = scopeManager?.buildWidgetFromDefinition(
-        widget._controller.inactiveWidgetDef);
+    Widget? generated = scopeManager
+        ?.buildWidgetFromDefinition(widget._controller.inactiveWidgetDef);
     if (generated == null) {
       throw LanguageError('${Toggle.type} requires an inactiveWidget.');
     }
     _inactiveWidget = generated;
 
-    generated = scopeManager?.buildWidgetFromDefinition(
-        widget._controller.activeWidgetDef);
+    generated = scopeManager
+        ?.buildWidgetFromDefinition(widget._controller.activeWidgetDef);
     if (generated == null) {
       throw LanguageError('${Toggle.type} requires an activeWidget.');
     }
     _activeWidget = generated;
   }
 
-
   @override
   Widget buildWidget(BuildContext context) {
     return InkWell(
-      onTap: () {
-        setState(() {
-          widget._controller.value = !widget._controller.value;
-        });
-        if (widget._controller.onChange != null) {
-          ScreenController().executeAction(context, widget._controller.onChange!);
-        }
-      },
-      child: widget._controller.transitionDuration != null
-        ? AnimatedSwitcher(
-            duration: widget._controller.transitionDuration!,
-            transitionBuilder: (child, animation) {
-              // all the scale/resize animation doesn't really go from one
-              // widget to the other (more like randomly). For now only support
-              // fade transition, which will still look strange if the size
-              // is different
-              return FadeTransition(opacity: animation, child: child);
-            },
-            child: widget._controller.value
-              ? KeyedSubtree(key: UniqueKey(), child: _activeWidget)
-              : KeyedSubtree(key: UniqueKey(), child: _inactiveWidget))
-        : widget._controller.value ? _activeWidget : _inactiveWidget);
+        onTap: () {
+          setState(() {
+            widget._controller.value = !widget._controller.value;
+          });
+          if (widget._controller.onChange != null) {
+            ScreenController()
+                .executeAction(context, widget._controller.onChange!);
+          }
+        },
+        child: widget._controller.transitionDuration != null
+            ? AnimatedSwitcher(
+                duration: widget._controller.transitionDuration!,
+                transitionBuilder: (child, animation) {
+                  // all the scale/resize animation doesn't really go from one
+                  // widget to the other (more like randomly). For now only support
+                  // fade transition, which will still look strange if the size
+                  // is different
+                  return FadeTransition(opacity: animation, child: child);
+                },
+                child: widget._controller.value
+                    ? KeyedSubtree(key: UniqueKey(), child: _activeWidget)
+                    : KeyedSubtree(key: UniqueKey(), child: _inactiveWidget))
+            : widget._controller.value
+                ? _activeWidget
+                : _inactiveWidget);
   }
-
 }

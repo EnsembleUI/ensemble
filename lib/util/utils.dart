@@ -21,8 +21,8 @@ class Utils {
 
   /// return an Integer if it is, or null if not
   static int? optionalInt(dynamic value, {int? min, int? max}) {
-    int? rtn = value is int ? value
-        : (value is String ? int.tryParse(value) : null);
+    int? rtn =
+        value is int ? value : (value is String ? int.tryParse(value) : null);
     if (rtn != null && min != null && rtn < min) {
       rtn = null;
     }
@@ -69,6 +69,12 @@ class Utils {
       return Duration(milliseconds: (number * 1000).toInt());
     }
     return null;
+  }
+
+  /// value in milliseconds
+  static Duration? getDurationMs(dynamic value) {
+    int? number = optionalInt(value, min: 0);
+    return number != null ? Duration(milliseconds: number) : null;
   }
 
   static BackgroundImage? getBackgroundImage(dynamic value) {
