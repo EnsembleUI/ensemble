@@ -10,7 +10,8 @@ import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:staggered_grid_view_flutter/widgets/staggered_grid_view.dart';
+import 'package:staggered_grid_view_flutter/widgets/staggered_tile.dart';
 
 class EnsembleStaggeredGrid extends StatefulWidget
     with
@@ -36,6 +37,8 @@ class EnsembleStaggeredGrid extends StatefulWidget
   @override
   Map<String, Function> setters() {
     return {
+      'crossAxisCount': (value) =>
+          _controller.crossAxisCount = Utils.optionalInt(value),
       'horizontalGap': (value) =>
           _controller.horizontalGap = Utils.optionalDouble(value),
       'verticalGap': (value) =>
@@ -60,6 +63,7 @@ class EnsembleStaggeredGrid extends StatefulWidget
 
 class EnsembleStaggeredGridState extends WidgetState<EnsembleStaggeredGrid>
     with TemplatedWidgetState {
+  List<StaggeredTile> _staggeredTiles = [];
   List<Widget>? templatedChildren;
 
   @override
@@ -82,29 +86,26 @@ class EnsembleStaggeredGridState extends WidgetState<EnsembleStaggeredGrid>
   Widget buildWidget(BuildContext context) {
     final items = buildItems();
 
-    return SingleChildScrollView(
-      child: StaggeredGrid.count(
-        crossAxisCount: 4,
-        mainAxisSpacing: widget._controller.verticalGap ?? 0,
-        crossAxisSpacing: widget._controller.horizontalGap ?? 0,
-        children: List.generate(items.length, (index) {
-          final item = items[index];
+    return StaggeredGridView.countBuilder(
+      crossAxisCount: widget._controller.crossAxisCount ?? 4,
+      mainAxisSpacing: widget._controller.verticalGap ?? 0,
+      crossAxisSpacing: widget._controller.horizontalGap ?? 0,
+      padding: widget._controller.padding,
+      itemCount: items.length,
+      staggeredTileBuilder: (index) => _staggeredTiles[index],
+      itemBuilder: (context, index) {
+        final item = items[index];
 
-          return StaggeredGridTile.count(
-            crossAxisCellCount: 2,
-            mainAxisCellCount: getRandomMainAxisCount,
-            child: GestureDetector(
-              onTap: () => _onItemTapped(index),
-              child: item,
-            ),
-          );
-        }),
-      ),
+        return GestureDetector(
+          onTap: () => _onItemTapped(index),
+          child: item,
+        );
+      },
     );
   }
 
-  int get getRandomMainAxisCount {
-    return Random().nextInt(3) + 2;
+  int get getRandomMainCrossAxisCount {
+    return Random().nextInt(2) + 1;
   }
 
   List<Widget> buildItems() {
@@ -117,6 +118,10 @@ class EnsembleStaggeredGridState extends WidgetState<EnsembleStaggeredGrid>
       children.addAll(templatedChildren!);
     }
 
+    _staggeredTiles = List.generate(
+        children.length,
+        (index) => StaggeredTile.count(getRandomMainCrossAxisCount,
+            double.parse(getRandomMainCrossAxisCount.toString())));
     return children;
   }
 
@@ -132,6 +137,7 @@ class EnsembleStaggeredGridState extends WidgetState<EnsembleStaggeredGrid>
 }
 
 class StaggeredGridController extends BoxController {
+  int? crossAxisCount;
   double? horizontalGap;
   double? verticalGap;
 
