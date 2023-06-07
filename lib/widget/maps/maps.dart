@@ -50,7 +50,7 @@ class Maps extends StatefulWidget
               fallback: _controller.includeCurrentLocationInAutoZoom),
 
       'rotateEnabled': (value) => _controller.rotateEnabled =
-            Utils.getBool(value, fallback: _controller.rotateEnabled),
+          Utils.getBool(value, fallback: _controller.rotateEnabled),
       'scrollEnabled': (value) => _controller.scrollEnabled =
           Utils.getBool(value, fallback: _controller.scrollEnabled),
       'tiltEnabled': (value) => _controller.tiltEnabled =
