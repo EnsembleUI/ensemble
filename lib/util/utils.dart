@@ -7,6 +7,8 @@ import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:yaml/yaml.dart';
 
 class Utils {
@@ -21,8 +23,8 @@ class Utils {
 
   /// return an Integer if it is, or null if not
   static int? optionalInt(dynamic value, {int? min, int? max}) {
-    int? rtn = value is int ? value
-        : (value is String ? int.tryParse(value) : null);
+    int? rtn =
+        value is int ? value : (value is String ? int.tryParse(value) : null);
     if (rtn != null && min != null && rtn < min) {
       rtn = null;
     }
@@ -60,6 +62,21 @@ class Utils {
       rtn = null;
     }
     return rtn;
+  }
+
+  /// expect a value in seconds
+  static Duration? getDuration(dynamic value) {
+    double? number = optionalDouble(value, min: 0);
+    if (number != null) {
+      return Duration(milliseconds: (number * 1000).toInt());
+    }
+    return null;
+  }
+
+  /// value in milliseconds
+  static Duration? getDurationMs(dynamic value) {
+    int? number = optionalInt(value, min: 0);
+    return number != null ? Duration(milliseconds: number) : null;
   }
 
   static BackgroundImage? getBackgroundImage(dynamic value) {
@@ -182,6 +199,20 @@ class Utils {
 
   static bool isUrl(String source) {
     return source.startsWith('https://') || source.startsWith('http://');
+  }
+
+  static LatLng? getLatLng(dynamic value) {
+    if (value is String) {
+      List<String> tokens = value.split(RegExp('\\s+'));
+      if (tokens.length == 2) {
+        double? lat = double.tryParse(tokens[0]);
+        double? lng = double.tryParse(tokens[1]);
+        if (lat != null && lng != null) {
+          return LatLng(lat, lng);
+        }
+      }
+    }
+    return null;
   }
 
   static String getString(dynamic value, {required String fallback}) {
