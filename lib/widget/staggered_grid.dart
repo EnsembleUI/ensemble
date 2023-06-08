@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
@@ -56,6 +57,7 @@ class EnsembleStaggeredGrid extends StatefulWidget
 
   @override
   void initChildren({List<Widget>? children, ItemTemplate? itemTemplate}) {
+    _controller.children = children;
     _controller.itemTemplate = itemTemplate;
   }
 }
@@ -110,6 +112,13 @@ class EnsembleStaggeredGridState extends WidgetState<EnsembleStaggeredGrid>
   List<Widget> buildItems() {
     // children will be rendered before templated children
     List<Widget> children = [];
+    if (widget._controller.children != null && templatedChildren != null) {
+      throw LanguageError('Use either children or item-template');
+    }
+
+    if (widget._controller.children != null) {
+      children.addAll(widget._controller.children!);
+    }
     if (templatedChildren != null) {
       children.addAll(templatedChildren!);
     }
@@ -137,6 +146,7 @@ class StaggeredGridController extends BoxController {
   double? horizontalGap;
   double? verticalGap;
 
+  List<Widget>? children;
   ItemTemplate? itemTemplate;
   EnsembleAction? onItemTap;
 }
