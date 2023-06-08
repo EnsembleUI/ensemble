@@ -59,6 +59,9 @@ class EnsembleStaggeredGrid extends StatefulWidget
   void initChildren({List<Widget>? children, ItemTemplate? itemTemplate}) {
     _controller.children = children;
     _controller.itemTemplate = itemTemplate;
+    if (_controller.children != null && itemTemplate != null) {
+      throw LanguageError('Use either children or item-template');
+    }
   }
 }
 
@@ -112,10 +115,6 @@ class EnsembleStaggeredGridState extends WidgetState<EnsembleStaggeredGrid>
   List<Widget> buildItems() {
     // children will be rendered before templated children
     List<Widget> children = [];
-    if (widget._controller.children != null && templatedChildren != null) {
-      throw LanguageError('Use either children or item-template');
-    }
-
     if (widget._controller.children != null) {
       children.addAll(widget._controller.children!);
     }
