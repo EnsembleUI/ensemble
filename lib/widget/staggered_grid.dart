@@ -56,7 +56,6 @@ class EnsembleStaggeredGrid extends StatefulWidget
 
   @override
   void initChildren({List<Widget>? children, ItemTemplate? itemTemplate}) {
-    _controller.children = children;
     _controller.itemTemplate = itemTemplate;
   }
 }
@@ -111,9 +110,6 @@ class EnsembleStaggeredGridState extends WidgetState<EnsembleStaggeredGrid>
   List<Widget> buildItems() {
     // children will be rendered before templated children
     List<Widget> children = [];
-    if (widget._controller.children != null) {
-      children.addAll(widget._controller.children!);
-    }
     if (templatedChildren != null) {
       children.addAll(templatedChildren!);
     }
@@ -141,7 +137,6 @@ class StaggeredGridController extends BoxController {
   double? horizontalGap;
   double? verticalGap;
 
-  List<Widget>? children;
   ItemTemplate? itemTemplate;
   EnsembleAction? onItemTap;
 }
