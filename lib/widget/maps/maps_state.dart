@@ -535,9 +535,7 @@ class MapsState extends MapsActionableState
     }
   }
 
-  void _onCameraIdle() {
-    
-  }
+  void _onCameraIdle() {}
 
   void _executeCameraMoveAction(
       EnsembleAction onCameraMove, LatLngBounds bounds) {
