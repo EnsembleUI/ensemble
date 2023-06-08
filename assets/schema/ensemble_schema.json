@@ -1080,7 +1080,7 @@
         }
       }
     },
-    "Staggered-Grid-payload": {
+    "StaggeredGrid-payload": {
       "type": "object",
       "allOf": [
         {
@@ -3127,6 +3127,26 @@
             "ChartJs": {
               "$ref": "#/$defs/ChartJs-payload",
               "description": "Example from Kitchen Sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/5d7b84de-3bbd-456e-aeea-98e2c9f4c3c7"
+            }
+          }
+        },
+        {
+          "title": "ToggleButton",
+          "required": ["ToggleButton"],
+          "properties": {
+            "ToggleButton": {
+              "$ref": "#/$defs/ToggleButton-payload",
+              "description": "Example from Kitchen Sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/ZbquuD29B4D2PiQow1P5"
+            }
+          }
+        },
+        {
+          "title": "StaggeredGrid",
+          "required": ["StaggeredGrid"],
+          "properties": {
+            "StaggeredGrid": {
+              "$ref": "#/$defs/StaggeredGrid-payload",
+              "description": "Example from Kitchen Sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/a9iIs4wvgqDOhU4rN6GR"
             }
           }
         },
