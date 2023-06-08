@@ -158,18 +158,18 @@ abstract class BaseNavigateScreenAction extends EnsembleAction {
 }
 
 class StartTimerAction extends EnsembleAction {
-  StartTimerAction({
-      super.initiator,
+  StartTimerAction(
+      {super.initiator,
       required this.onTimer,
       this.onTimerComplete,
       this.id,
-      options}) : _options = options;
+      options})
+      : _options = options;
 
   final String? id;
   final EnsembleAction onTimer;
   final EnsembleAction? onTimerComplete;
   final Map<String, dynamic>? _options;
-
 
   // The initial delay in seconds
   int? getStartAfter(DataContext dataContext) =>
@@ -184,12 +184,12 @@ class StartTimerAction extends EnsembleAction {
 
   // how many times to trigger onTimer
   int? getMaxTimes(dataContext) =>
-      Utils.optionalInt(dataContext.eval(_options?['maxNumberOfTimes']), min: 1);
+      Utils.optionalInt(dataContext.eval(_options?['maxNumberOfTimes']),
+          min: 1);
 
   // if global is marked, only 1 instance is available for the entire app
   bool? isGlobal(dataContext) =>
       Utils.optionalBool(dataContext.eval(_options?['isGlobal']));
-
 
   factory StartTimerAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
     EnsembleAction? onTimer =
@@ -203,14 +203,12 @@ class StartTimerAction extends EnsembleAction {
         initiator: initiator);
 
     return StartTimerAction(
-      initiator: initiator,
-      onTimer: onTimer,
-      onTimerComplete: onTimerComplete,
-      id: Utils.optionalString(payload['id']),
-      options: Utils.getMap(payload['options']));
+        initiator: initiator,
+        onTimer: onTimer,
+        onTimerComplete: onTimerComplete,
+        id: Utils.optionalString(payload['id']),
+        options: Utils.getMap(payload['options']));
   }
-
-
 }
 
 class StopTimerAction extends EnsembleAction {
