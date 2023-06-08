@@ -3378,19 +3378,13 @@
                   ]
                 },
                 "initialCameraPosition": {
-                  "type": "object",
-                  "properties": {
-                    "lat": {
-                      "type": "number"
-                    },
-                    "lng": {
-                      "type": "number"
-                    },
-                    "zoom": {
-                      "type": "integer",
-                      "minimum": 0
-                    }
-                  }
+                  "type": "string",
+                  "description": "Using the format 'latitude longitude', specify the initial camera position when the map loads."
+                },
+                "initialCameraZoom": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "The initial zoom value to use when the map first load"
                 },
                 "markerOverlayMaxWidth": {
                   "type": "integer",
@@ -3442,18 +3436,8 @@
               "description": "Give this a name. This is the bindable data for each marker."
             },
             "location": {
-              "type": "object",
-              "required": ["lat", "lng"],
-              "properties": {
-                "lat": {
-                  "type": "number",
-                  "description": "The latitude of the marker"
-                },
-                "lng": {
-                  "type": "number",
-                  "description": "The longitude of the marker"
-                }
-              }
+              "type": "string",
+              "description": "Specify the coordinates for this marker using the format 'latitude longitude'"
             },
             "marker": {
               "type": "object",

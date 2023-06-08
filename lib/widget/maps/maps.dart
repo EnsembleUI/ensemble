@@ -37,8 +37,10 @@ class Maps extends StatefulWidget
           Utils.getInt(value, fallback: _controller.markerOverlayMaxWidth),
       'markerOverlayMaxHeight': (value) => _controller.markerOverlayMaxHeight =
           Utils.getInt(value, fallback: _controller.markerOverlayMaxHeight),
-      'initialCameraPosition': (cameraPosition) =>
-          _controller.initialCameraPosition = cameraPosition,
+      'initialCameraPosition': (value) =>
+          _controller.initialCameraPosition = Utils.getLatLng(value),
+      'initialCameraZoom': (value) =>
+          _controller.initialCameraZoom = Utils.optionalInt(value, min: 0),
       'autoZoom': (value) => _controller.autoZoom =
           Utils.getBool(value, fallback: _controller.autoZoom),
       'autoZoomPadding': (value) =>
@@ -101,16 +103,13 @@ class Maps extends StatefulWidget
     if (markerData is YamlMap) {
       String? data = markerData['data'];
       String? name = markerData['name'];
+      String? latLng = markerData['location'];
 
-      String? lat = markerData['location']?['lat'];
-      String? lng = markerData['location']?['lng'];
-
-      if (data != null && name != null && lat != null && lng != null) {
+      if (data != null && name != null && latLng != null) {
         _controller.markerItemTemplate = MarkerItemTemplate(
             data: data,
             name: name,
-            lat: lat,
-            lng: lng,
+            latLng: latLng,
             template: MarkerTemplate.build(
                 source: markerData['marker']?['source'],
                 widget: markerData['marker']?['widget']),
@@ -166,7 +165,8 @@ class MyController extends WidgetController with LocationCapability {
 
   final defaultCameraLatLng = const LatLng(37.773972, -122.431297);
   final double defaultCameraZoom = 10;
-  dynamic initialCameraPosition;
+  LatLng? initialCameraPosition;
+  int? initialCameraZoom;
 
   bool autoSelect = true;
 
@@ -226,16 +226,14 @@ class MarkerItemTemplate extends ItemTemplate {
       required String name,
       required dynamic
           template, // this is the marker image/widget, just piggyback on the name
-      required this.lat,
-      required this.lng,
+      required this.latLng,
       this.selectedTemplate,
       this.overlayTemplate,
       this.onMarkerTap,
       this.onMarkersUpdated})
       : super(data, name, template);
 
-  String lat;
-  String lng;
+  String latLng;
 
   // `template` and `selectedTemplate` can be one of multiple types
   MarkerTemplate? selectedTemplate;
