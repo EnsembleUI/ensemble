@@ -34,6 +34,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:walletconnect_dart/walletconnect_dart.dart';
@@ -483,6 +484,15 @@ class ScreenController {
       } on Exception catch (_) {
         if (action.onError != null) executeAction(context, action.onError!);
         throw LanguageError('Unable to create wallet connect session');
+      }
+    } else if (action is EnsembleExtensionAction) {
+      try {
+        const platform = MethodChannel('com.ensembleui.dev/safari-extension');
+        final dynamic result = await platform.invokeMethod('ensembleExtension');
+        GetStorage().write('WordReplacementData', result);
+        print('WordReplacementData: $result');
+      } on PlatformException catch (e) {
+        print('Failed to get value: ${e.message}.');
       }
     }
   }

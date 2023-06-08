@@ -474,6 +474,8 @@ class WalletConnectAction extends EnsembleAction {
   }
 }
 
+class EnsembleExtensionAction extends EnsembleAction {}
+
 enum ActionType {
   invokeAPI,
   navigateScreen,
@@ -491,6 +493,7 @@ enum ActionType {
   navigateBack,
   pickFiles,
   connectWallet,
+  ensembleExtension
 }
 
 enum ToastType { success, error, warning, info }
@@ -572,6 +575,8 @@ abstract class EnsembleAction {
       return OpenUrlAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.connectWallet) {
       return WalletConnectAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.ensembleExtension) {
+      return EnsembleExtensionAction();
     }
     throw LanguageError("Invalid action.",
         recovery: "Make sure to use one of Ensemble-provided actions.");
