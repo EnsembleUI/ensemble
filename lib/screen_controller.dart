@@ -287,10 +287,16 @@ class ScreenController {
     } else if (action is StartTimerAction) {
       // what happened if ScopeManager is null?
       if (scopeManager != null) {
-        int delay = action.payload?.startAfter ??
-            (action.payload?.repeat == true
-                ? action.payload?.repeatInterval ?? 0
-                : 0);
+        // validate
+        bool isRepeat = action.isRepeat(dataContext);
+        int? repeatInterval = action.getRepeatInterval(dataContext);
+        if (isRepeat && repeatInterval == null) {
+          throw LanguageError(
+              "${ActionType.startTimer.name}'s repeatInterval needs a value when repeat is on");
+        }
+
+        int delay = action.getStartAfter(dataContext) ??
+            (isRepeat ? repeatInterval! : 0);
 
         // we always execute at least once, delayed by startAfter and fallback to repeatInterval (or immediate if startAfter is 0)
         Timer(Duration(seconds: delay), () {
@@ -298,23 +304,22 @@ class ScreenController {
           executeActionWithScope(context, scopeManager, action.onTimer);
 
           // if no repeat, execute onTimerComplete
-          if (action.payload?.repeat != true) {
+          if (!isRepeat) {
             if (action.onTimerComplete != null) {
               executeActionWithScope(
                   context, scopeManager, action.onTimerComplete!);
             }
           }
           // else repeating timer
-          else if (action.payload?.repeatInterval != null) {
+          else if (repeatInterval != null) {
+            int? maxTimes = action.getMaxTimes(dataContext);
+
             /// repeatCount value of null means forever by default
-            int? repeatCount;
-            if (action.payload?.maxTimes != null) {
-              repeatCount = action.payload!.maxTimes! - 1;
-            }
+            int? repeatCount = maxTimes != null ? maxTimes - 1 : null;
             if (repeatCount != 0) {
               int counter = 0;
-              final timer = Timer.periodic(
-                  Duration(seconds: action.payload!.repeatInterval!), (timer) {
+              final timer =
+                  Timer.periodic(Duration(seconds: repeatInterval), (timer) {
                 // execute the action
                 executeActionWithScope(context, scopeManager, action.onTimer);
 

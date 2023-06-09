@@ -310,6 +310,7 @@ class PageState extends State<Page> {
     Widget rtn = DataScopeWidget(
       scopeManager: _scopeManager,
       child: Scaffold(
+          resizeToAvoidBottomInset: false,
           // slight optimization, if body background is set, let's paint
           // the entire screen including the Safe Area
           backgroundColor: backgroundColor,
@@ -468,18 +469,13 @@ class PageState extends State<Page> {
       // add the bodyWidget
       content.add(Expanded(
           child: SafeArea(
-              top:
-                  _useSafeArea, //widget._pageModel.pageType == PageType.modal ? false : true,
-              child: rootWidget)));
+              top: _useSafeArea, bottom: _useSafeArea, child: rootWidget)));
 
       return Row(
           crossAxisAlignment: CrossAxisAlignment.start, children: content);
     }
 
-    return SafeArea(
-        top:
-            _useSafeArea, //widget._pageModel.pageType == PageType.modal ? false : true,
-        child: rootWidget);
+    return SafeArea(top: _useSafeArea, bottom: _useSafeArea, child: rootWidget);
   }
 
   Drawer? _buildDrawer(BuildContext context, DrawerMenu menu) {

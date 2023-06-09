@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
@@ -161,11 +162,34 @@ class StartTimerAction extends EnsembleAction {
       {super.initiator,
       required this.onTimer,
       this.onTimerComplete,
-      this.payload});
+      this.id,
+      options})
+      : _options = options;
 
+  final String? id;
   final EnsembleAction onTimer;
   final EnsembleAction? onTimerComplete;
-  final TimerPayload? payload;
+  final Map<String, dynamic>? _options;
+
+  // The initial delay in seconds
+  int? getStartAfter(DataContext dataContext) =>
+      Utils.optionalInt(dataContext.eval(_options?['startAfter']), min: 0);
+
+  bool isRepeat(dataContext) =>
+      Utils.getBool(dataContext.eval(_options?['repeat']), fallback: false);
+
+  // The repeat interval in seconds
+  int? getRepeatInterval(dataContext) =>
+      Utils.optionalInt(dataContext.eval(_options?['repeatInterval']), min: 1);
+
+  // how many times to trigger onTimer
+  int? getMaxTimes(dataContext) =>
+      Utils.optionalInt(dataContext.eval(_options?['maxNumberOfTimes']),
+          min: 1);
+
+  // if global is marked, only 1 instance is available for the entire app
+  bool? isGlobal(dataContext) =>
+      Utils.optionalBool(dataContext.eval(_options?['isGlobal']));
 
   factory StartTimerAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
     EnsembleAction? onTimer =
@@ -177,28 +201,13 @@ class StartTimerAction extends EnsembleAction {
     EnsembleAction? onTimerComplete = EnsembleAction.fromYaml(
         payload['onTimerComplete'],
         initiator: initiator);
-    TimerPayload? timerPayload;
-    if (payload['options'] is YamlMap) {
-      timerPayload = TimerPayload(
-          id: Utils.optionalString(payload['id']),
-          startAfter:
-              Utils.optionalInt(payload['options']['startAfter'], min: 0),
-          repeat: Utils.getBool(payload['options']['repeat'], fallback: false),
-          repeatInterval:
-              Utils.optionalInt(payload['options']['repeatInterval'], min: 1),
-          maxTimes:
-              Utils.optionalInt(payload['options']['maxNumberOfTimes'], min: 1),
-          isGlobal: Utils.optionalBool(payload['options']['isGlobal']));
-    }
-    if (timerPayload?.repeat == true && timerPayload?.repeatInterval == null) {
-      throw LanguageError(
-          "${ActionType.startTimer.name}'s repeatInterval needs a value when repeat is on");
-    }
+
     return StartTimerAction(
         initiator: initiator,
         onTimer: onTimer,
         onTimerComplete: onTimerComplete,
-        payload: timerPayload);
+        id: Utils.optionalString(payload['id']),
+        options: Utils.getMap(payload['options']));
   }
 }
 
@@ -317,26 +326,6 @@ class GetLocationAction extends EnsembleAction {
 
   bool? recurring;
   int? recurringDistanceFilter;
-}
-
-class TimerPayload {
-  TimerPayload(
-      {this.id,
-      this.startAfter,
-      required this.repeat,
-      this.repeatInterval,
-      this.maxTimes,
-      this.isGlobal});
-
-  final String? id;
-  final int? startAfter; // The initial delay in seconds
-
-  final bool repeat;
-  final int? repeatInterval; // The repeat interval in seconds
-  final int? maxTimes; // how many times to trigger onTimer
-
-  final bool?
-      isGlobal; // if global is marked, only 1 instance is available for the entire app
 }
 
 class FilePickerAction extends EnsembleAction {
