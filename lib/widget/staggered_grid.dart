@@ -60,7 +60,9 @@ class EnsembleStaggeredGrid extends StatefulWidget
     _controller.children = children;
     _controller.itemTemplate = itemTemplate;
     if (_controller.children != null && itemTemplate != null) {
-      throw LanguageError('Use either children or item-template');
+      throw LanguageError(
+          '${EnsembleStaggeredGrid.type} accepts either children or item-template',
+          recovery: 'Please pick either children or item-template');
     }
   }
 }
