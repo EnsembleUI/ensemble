@@ -343,15 +343,13 @@ mixin ViewBuilder on IsScopeManager {
   /// will register to listen for changes
   void setPropertyAndRegisterBinding(
       ScopeManager scopeManager, Invokable widget, String key, dynamic value) {
-    if (value is String) {
-      DataExpression? expression = Utils.parseDataExpression(value);
-      if (expression != null) {
-        // listen for binding changes
-        (this as PageBindingManager).registerBindingListener(
-            scopeManager, BindingDestination(widget, key), expression);
-        // evaluate the binding as the initial value
-        value = scopeManager.dataContext.eval(value);
-      }
+    DataExpression? expression = Utils.parseDataExpression(value);
+    if (expression != null) {
+      // listen for binding changes
+      (this as PageBindingManager).registerBindingListener(
+          scopeManager, BindingDestination(widget, key), expression);
+      // evaluate the binding as the initial value
+      value = scopeManager.dataContext.eval(value);
     }
     InvokableController.setProperty(widget, key, value);
   }
@@ -383,7 +381,7 @@ mixin PageBindingManager on IsScopeManager {
         // payload only have changes to a variable, but we have to evaluate the entire expression
         // e.g Hello $(firstName.value) $(lastName.value)
         dynamic updatedValue =
-            dataContext.eval(dataExpression.stringifyRawAndAst());
+            dataContext.eval(dataExpression.rawExpression);
         InvokableController.setProperty(bindingDestination.widget,
             bindingDestination.setterProperty, updatedValue);
       });
@@ -551,23 +549,14 @@ class PageData {
 class DataExpression {
   DataExpression(
       {required this.rawExpression,
-      required this.expressions,
-      this.astExpression});
+      required this.expressions});
 
   // the original raw expression e.g my name is ${person.first_name} ${person.last_name}
-  String rawExpression;
+  // or it can be a List [${first} ${last}, 4, ${anotherVar}]
+  // or it can be 1-level Map
+  dynamic rawExpression;
   // each expression in a list e.g [person.first_name, person.last_name]
   List<String> expressions;
-  // the AST which we'll execute by default, and fallback to executing rawExpression
-  String? astExpression;
-
-  // combine both the raw and AST as if they are coming from the server
-  String stringifyRawAndAst() {
-    if (astExpression != null) {
-      return '//@code $rawExpression\n$astExpression';
-    }
-    return rawExpression;
-  }
 }
 
 /// a wrapper around a repeating timer with optional ID.

@@ -58,10 +58,6 @@ class MapsState extends MapsActionableState
   MarkerId? _selectedMarkerId;
   Widget? _overlayWidget;
 
-  // misc
-  LatLng? initialCameraLatLng;
-  int? initialCameraZoom;
-
   Position? currentLocation;
   @override
   Position? getCurrentLocation() => currentLocation;
@@ -81,32 +77,7 @@ class MapsState extends MapsActionableState
   @override
   void initState() {
     super.initState();
-    _initInitialCameraPosition(context);
     _initCurrentLocation();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-
-    // anti-pattern. We are manipulating State from StatefulWidget
-    widget.controller.mapActions = this;
-
-    _registerMarkerListener(context);
-  }
-
-  void _initInitialCameraPosition(BuildContext context) {
-    if (widget.controller.initialCameraPosition is YamlMap) {
-      YamlMap initialCameraPosition =
-          widget.controller.initialCameraPosition as YamlMap;
-      double? lat = Utils.optionalDouble(initialCameraPosition['lat']);
-      double? lng = Utils.optionalDouble(initialCameraPosition['lng']);
-      if (lat != null && lng != null) {
-        initialCameraLatLng = LatLng(lat, lng);
-      }
-      initialCameraZoom =
-          Utils.optionalInt(initialCameraPosition['zoom'], min: 0);
-    }
   }
 
   void _initCurrentLocation() {
@@ -114,8 +85,8 @@ class MapsState extends MapsActionableState
       // add our own location icon on Web
       if (kIsWeb) {
         BitmapDescriptor.fromAssetImage(
-                ImageConfiguration.empty, 'assets/images/map_location.png',
-                package: 'ensemble')
+            ImageConfiguration.empty, 'assets/images/map_location.png',
+            package: 'ensemble')
             .then((asset) => currentLocationIcon = asset);
       }
 
@@ -131,12 +102,24 @@ class MapsState extends MapsActionableState
         bool isAutoZoom = widget.controller.autoZoom &&
             widget.controller.includeCurrentLocationInAutoZoom;
         if (currentLocation != null &&
-            (isAutoZoom || initialCameraLatLng == null)) {
+            (isAutoZoom || widget.controller.initialCameraPosition == null)) {
           zoomToFit();
         }
       });
     }
   }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // anti-pattern. We are manipulating State from StatefulWidget
+    widget.controller.mapActions = this;
+
+    _registerMarkerListener(context);
+  }
+
+
 
   void _registerMarkerListener(BuildContext context) {
     if (widget.controller.markerItemTemplate != null) {
@@ -170,12 +153,13 @@ class MapsState extends MapsActionableState
     if (bound != null) {
       CameraUpdate cameraUpdate;
 
-      // if we only have the current location without markers, use
-      // the initialCameraPosition's zoom or something reasonable
-      if (hasCurrentLocation == true && points.length == 1) {
+      // if we only have 1 marker (also apply to just the current location),
+      // simply move the camera with a reasonable zoom, as the LatLngBound
+      // otherwise may zoom in all the way.
+      if (points.length == 1) {
         cameraUpdate = CameraUpdate.newCameraPosition(CameraPosition(
             target: LatLng(points[0].latitude, points[0].longitude),
-            zoom: initialCameraZoom?.toDouble() ??
+            zoom: widget.controller.initialCameraZoom?.toDouble() ??
                 widget.controller.defaultCameraZoom));
       }
       // otherwise bound the markers and add some reasonable padding
@@ -202,13 +186,11 @@ class MapsState extends MapsActionableState
         dataScope.dataContext.addDataContextById(itemTemplate.name, dataItem);
 
         // eval lat/lng
-        double? lat =
-            Utils.optionalDouble(dataScope.dataContext.eval(itemTemplate.lat));
-        double? lng =
-            Utils.optionalDouble(dataScope.dataContext.eval(itemTemplate.lng));
-        if (lat != null && lng != null) {
+        LatLng? latLng =
+            Utils.getLatLng(dataScope.dataContext.eval(itemTemplate.latLng));
+        if (latLng != null) {
           payloads.add(
-              MarkerPayload(scopeManager: dataScope, latLng: LatLng(lat, lng)));
+              MarkerPayload(scopeManager: dataScope, latLng: latLng));
         }
       }
     }
@@ -452,7 +434,7 @@ class MapsState extends MapsActionableState
 
   @override
   Widget buildWidget(BuildContext context) {
-    return Stack(children: [
+    Widget rtn = Stack(children: [
       GoogleMap(
         onMapCreated: _onMapCreated,
         myLocationEnabled: showLocationOnMap,
@@ -468,8 +450,8 @@ class MapsState extends MapsActionableState
         zoomGesturesEnabled: widget.controller.zoomEnabled,
         initialCameraPosition: CameraPosition(
             target:
-                initialCameraLatLng ?? widget.controller.defaultCameraLatLng,
-            zoom: initialCameraZoom?.toDouble() ??
+                widget.controller.initialCameraPosition ?? widget.controller.defaultCameraLatLng,
+            zoom: widget.controller.initialCameraZoom?.toDouble() ??
                 widget.controller.defaultCameraZoom),
         markers: _getMarkers(),
       ),
@@ -507,6 +489,13 @@ class MapsState extends MapsActionableState
             )
           : const SizedBox.shrink()
     ]);
+    if (widget.controller.width != null || widget.controller.height != null) {
+      rtn = SizedBox(
+          width: widget.controller.width?.toDouble(),
+          height: widget.controller.height?.toDouble(),
+          child: rtn);
+    }
+    return rtn;
   }
 
   void _onMapCreated(GoogleMapController controller) async {
@@ -546,9 +535,7 @@ class MapsState extends MapsActionableState
     }
   }
 
-  void _onCameraIdle() {
-    
-  }
+  void _onCameraIdle() {}
 
   void _executeCameraMoveAction(
       EnsembleAction onCameraMove, LatLngBounds bounds) {
