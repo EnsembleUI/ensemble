@@ -67,15 +67,9 @@ void main() {
   /// This allow us to take in a YamlMap as a value
   test('variable with data map', () {
     Map<String, dynamic> processed = getBaseContext().eval(YamlMap.wrap({
-      'variable': {
-        'name': '\${result.name}',
-        'age': '\${result.age}'
-      }
+      'variable': {'name': '\${result.name}', 'age': '\${result.age}'}
     }));
-    expect(processed['variable'], {
-      'name': 'Peter Parker',
-      'age': 25
-    });
+    expect(processed['variable'], {'name': 'Peter Parker', 'age': 25});
   });
 
   test('variable with data list', () {
