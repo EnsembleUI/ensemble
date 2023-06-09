@@ -69,7 +69,8 @@ class IconState extends WidgetState<EnsembleIcon> {
     bool tapEnabled = widget._controller.onTap != null;
 
     Widget rtn = BoxWrapper(
-        widget: ensembleLib.Icon(widget._controller.name ?? widget._controller.icon,
+        widget: ensembleLib.Icon(
+            widget._controller.name ?? widget._controller.icon,
             library: widget._controller.library,
             size: widget._controller.size,
             color: widget._controller.color),

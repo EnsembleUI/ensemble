@@ -9,6 +9,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
+import 'package:pointer_interceptor/pointer_interceptor.dart';
 import 'package:yaml/yaml.dart';
 
 /// base mixin for Ensemble Container (e.g Column)
@@ -39,6 +40,11 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
             shadowColor: widgetController.elevationShadowColor,
             borderRadius: widgetController.elevationBorderRadius?.getValue(),
             child: rtn);
+      }
+
+      // in Web, capture the pointer if overlay on htmlelementview like Maps
+      if (widgetController.captureWebPointer == true) {
+        rtn = PointerInterceptor(child: rtn);
       }
 
       // wrap inside Align if specified

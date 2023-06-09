@@ -23,9 +23,7 @@ class ToggleContainer extends StatefulWidget
 
   @override
   Map<String, Function> getters() {
-    return {
-      'isFirst': () => _controller.isFirst
-    };
+    return {'isFirst': () => _controller.isFirst};
   }
 
   @override
@@ -42,7 +40,8 @@ class ToggleContainer extends StatefulWidget
     return {
       'onToggle': (definition) => _controller.onToggle =
           EnsembleAction.fromYaml(definition, initiator: this),
-      'isFirst': (value) => _controller.isFirst = Utils.getBool(value, fallback: _controller.isFirst),
+      'isFirst': (value) => _controller.isFirst =
+          Utils.getBool(value, fallback: _controller.isFirst),
       'firstWidget': (widget) => _controller.firstWidget = widget,
       'secondWidget': (widget) => _controller.secondWidget = widget,
       'transitionDuration': (value) =>
@@ -58,11 +57,10 @@ class ToggleContainerController extends WidgetController {
   dynamic firstWidget;
   dynamic secondWidget;
   Duration? transitionDuration;
-
 }
 
 class ToggleContainerState extends WidgetState<ToggleContainer> {
-  final defaultDuration = const Duration(milliseconds: 500);
+  final defaultDuration = const Duration(milliseconds: 300);
   late Widget first;
   late Widget second;
 
@@ -71,21 +69,25 @@ class ToggleContainerState extends WidgetState<ToggleContainer> {
     super.didChangeDependencies();
 
     // build the widgets
-    if (widget._controller.firstWidget == null || widget._controller.secondWidget == null) {
-      throw LanguageError("${ToggleContainer.type} requires both firstWidget and secondWidget.");
+    if (widget._controller.firstWidget == null ||
+        widget._controller.secondWidget == null) {
+      throw LanguageError(
+          "${ToggleContainer.type} requires both firstWidget and secondWidget.");
     }
 
-    Widget? generated = scopeManager
-        ?.buildWidgetFromDefinition(widget._controller.firstWidget);
+    Widget? generated =
+        scopeManager?.buildWidgetFromDefinition(widget._controller.firstWidget);
     if (generated == null) {
-      throw LanguageError('${ToggleContainer.type} requires a valid firstWidget.');
+      throw LanguageError(
+          '${ToggleContainer.type} requires a valid firstWidget.');
     }
     first = generated;
 
     generated = scopeManager
         ?.buildWidgetFromDefinition(widget._controller.secondWidget);
     if (generated == null) {
-      throw LanguageError('${ToggleContainer.type} requires a valid secondWidget.');
+      throw LanguageError(
+          '${ToggleContainer.type} requires a valid secondWidget.');
     }
     second = generated;
   }
@@ -93,13 +95,14 @@ class ToggleContainerState extends WidgetState<ToggleContainer> {
   @override
   Widget buildWidget(BuildContext context) {
     return AnimatedSwitcher(
-        duration: widget._controller.transitionDuration ?? defaultDuration,
-        child: AnimatedCrossFade(
-            duration: widget._controller.transitionDuration ?? defaultDuration,
-            crossFadeState: widget._controller.isFirst ? CrossFadeState.showFirst : CrossFadeState.showSecond,
-            firstChild: first,
-            secondChild: second
-        ),
+      duration: widget._controller.transitionDuration ?? defaultDuration,
+      child: AnimatedCrossFade(
+          duration: widget._controller.transitionDuration ?? defaultDuration,
+          crossFadeState: widget._controller.isFirst
+              ? CrossFadeState.showFirst
+              : CrossFadeState.showSecond,
+          firstChild: first,
+          secondChild: second),
     );
   }
 }
