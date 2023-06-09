@@ -997,6 +997,10 @@
           "$ref": "#/$defs/HasIcon",
           "description": "Icon placed behind the label, according to device text alignment"
         },
+        "gap": {
+          "type": "integer",
+          "description": "The gap between the starting icon and ending icon"
+        },
         "enabled": {
           "type": "boolean"
         },

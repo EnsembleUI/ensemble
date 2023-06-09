@@ -39,6 +39,7 @@ class Button extends StatefulWidget
       'startingIcon': (value) =>
           _controller.startingIcon = Utils.getIcon(value),
       'endingIcon': (value) => _controller.endingIcon = Utils.getIcon(value),
+      'gap': (value) => _controller.gap = Utils.optionalInt(value),
       'onTap': (funcDefinition) => _controller.onTap =
           ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'submitForm': (value) =>
@@ -88,6 +89,7 @@ class ButtonController extends BoxController {
   FontWeight? fontWeight;
   int? buttonWidth;
   int? buttonHeight;
+  int? gap;
 
   IconModel? startingIcon;
   IconModel? endingIcon;
@@ -111,12 +113,15 @@ class ButtonState extends WidgetState<Button> {
     List<Widget> labelParts = [
       Text(Utils.translate(widget._controller.label ?? '', context))
     ];
+
+    final gap = widget._controller.gap?.toDouble() ?? 0;
+
     if (startingIcon != null) {
       // TODO: follow up on icon layout options https://github.com/EnsembleUI/ensemble/pull/358#discussion_r1139023000
-      labelParts.insertAll(0, [startingIcon, const SizedBox(width: 0)]);
+      labelParts.insertAll(0, [startingIcon, SizedBox(width: gap)]);
     }
     if (endingIcon != null) {
-      labelParts.addAll([const SizedBox(width: 0), endingIcon]);
+      labelParts.addAll([SizedBox(width: gap), endingIcon]);
     }
     Widget labelLayout =
         Row(mainAxisSize: MainAxisSize.min, children: labelParts);
