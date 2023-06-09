@@ -100,8 +100,8 @@ class Maps extends StatefulWidget
   }
 
   void setMarkers(dynamic markerData) {
-    if (markerData is YamlMap) {
-      String? data = markerData['data'];
+    if (markerData is Map) {
+      dynamic data = markerData['data'];
       String? name = markerData['name'];
       String? latLng = markerData['location'];
 
@@ -222,7 +222,7 @@ class MyController extends WidgetController with LocationCapability {
 
 class MarkerItemTemplate extends ItemTemplate {
   MarkerItemTemplate(
-      {required String data,
+      {required dynamic data,
       required String name,
       required dynamic
           template, // this is the marker image/widget, just piggyback on the name
