@@ -31,7 +31,7 @@ target 'Runner' do
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 
   pod 'FlutterPluginRegistrant', :path => File.join('Flutter', 'FlutterPluginRegistrant'), :inhibit_warnings => true
-  pod 'FirebaseFirestore', :git => 'https://github.com/invertase/firestore-ios-sdk-frameworks.git', :tag => '10.7.0'
+  pod 'FirebaseFirestore', :git => 'https://github.com/invertase/firestore-ios-sdk-frameworks.git', :tag => '10.9.0'
 end
 
 post_install do |installer|

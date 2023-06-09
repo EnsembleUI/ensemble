@@ -9,6 +9,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
+import 'package:pointer_interceptor/pointer_interceptor.dart';
 import 'package:yaml/yaml.dart';
 
 /// base mixin for Ensemble Container (e.g Column)
@@ -18,16 +19,57 @@ mixin UpdatableContainer<T extends Widget> {
 
 /// base class for widgets that want to participate in Ensemble layout
 abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
-  ScopeManager? _scopeManager;
+  ScopeManager? scopeManager;
 
   @override
   Widget build(BuildContext context) {
     if (widget.controller is WidgetController) {
-      if (!(widget.controller as WidgetController).visible) {
+      WidgetController widgetController = widget.controller as WidgetController;
+
+      // if there is not visible transition, we rather not show the widget
+      if (!widgetController.visible &&
+          widgetController.visibilityTransitionDuration == null) {
         return const SizedBox.shrink();
       }
+
       Widget rtn = buildWidget(context);
-      if ((widget.controller as WidgetController).expanded == true) {
+
+      if (widgetController.elevation != null) {
+        rtn = Material(
+            elevation: widgetController.elevation?.toDouble() ?? 0,
+            shadowColor: widgetController.elevationShadowColor,
+            borderRadius: widgetController.elevationBorderRadius?.getValue(),
+            child: rtn);
+      }
+
+      // in Web, capture the pointer if overlay on htmlelementview like Maps
+      if (widgetController.captureWebPointer == true) {
+        rtn = PointerInterceptor(child: rtn);
+      }
+
+      // wrap inside Align if specified
+      if (widgetController.alignment != null) {
+        rtn = Align(alignment: widgetController.alignment!, child: rtn);
+      }
+
+      // if visibility transition is specified, wrap in Opacity to animate
+      if (widgetController.visibilityTransitionDuration != null) {
+        rtn = AnimatedOpacity(
+            opacity: widgetController.visible ? 1 : 0,
+            duration: widgetController.visibilityTransitionDuration!,
+            child: rtn);
+      }
+
+      // Note that Positioned or expanded below has to be used directly inside
+      // Stack and FlexBox, respectively. They should be the last widget returned.
+      if (widgetController.hasPositions()) {
+        rtn = Positioned(
+            top: widgetController.stackPositionTop?.toDouble(),
+            bottom: widgetController.stackPositionBottom?.toDouble(),
+            left: widgetController.stackPositionLeft?.toDouble(),
+            right: widgetController.stackPositionRight?.toDouble(),
+            child: rtn);
+      } else if (widgetController.expanded == true) {
         /// Important notes:
         /// 1. If the Column/Row is scrollable, putting Expanded on the child will cause layout exception
         /// 2. If Column/Row is inside a parent without height/width constraint, it will collapse its size.
@@ -45,7 +87,7 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _scopeManager = DataScopeWidget.getScope(context);
+    scopeManager = DataScopeWidget.getScope(context);
   }
 
   @override
@@ -53,10 +95,10 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
     super.changeState();
     // dispatch changes, so anything binding to this will be notified
     if (widget.controller.lastSetterProperty != null) {
-      if (_scopeManager != null &&
+      if (scopeManager != null &&
           widget is Invokable &&
           (widget as Invokable).id != null) {
-        _scopeManager!.dispatch(ModelChangeEvent(
+        scopeManager!.dispatch(ModelChangeEvent(
             WidgetBindingSource((widget as Invokable).id!,
                 property: widget.controller.lastSetterProperty!.key),
             widget.controller.lastSetterProperty!.value));

@@ -44,15 +44,15 @@ class EnsembleStack extends StatefulWidget
   @override
   Map<String, Function> setters() {
     return {
-      'alignment': (value) => _controller.alignment = Utils.getAlignment(value),
+      'alignChildren': (value) =>
+          _controller.alignChildren = Utils.getAlignment(value),
     };
   }
 }
 
 class StackController extends WidgetController {
   List<Widget>? children;
-
-  Alignment? alignment;
+  Alignment? alignChildren;
 }
 
 class StackState extends WidgetState<EnsembleStack> {
@@ -64,8 +64,8 @@ class StackState extends WidgetState<EnsembleStack> {
     }
 
     return Stack(
+      alignment: widget._controller.alignChildren ?? Alignment.topLeft,
       children: widget._controller.children!,
-      alignment: widget._controller.alignment ?? AlignmentDirectional.topStart,
     );
   }
 }

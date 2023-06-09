@@ -24,6 +24,11 @@ dependencies:
   flutter:
     sdk: flutter
 
+  device_preview:
+    git:
+      url: https://github.com/vinothvino42/flutter_device_preview.git
+      ref: develop
+
   yaml: ^3.1.2
   font_awesome_flutter: ^9.2.0
   intl: ^0.18.0
@@ -35,7 +40,6 @@ dependencies:
   flutter_rating_bar: ^4.0.0
   fl_chart: ^0.62.0
   signature: ^5.2.1
-  device_preview: ^1.1.0
 
   ensemble_ts_interpreter:
     git:
@@ -79,7 +83,6 @@ dependencies:
   walletconnect_dart: ^0.0.11
   http_parser: ^4.0.2
   shared_preferences: ^2.1.1
-  get_it: ^7.6.0
   google_maps_flutter: ^2.2.6
   google_maps_flutter_web: ^0.4.0+8
   workmanager: ^0.5.1
@@ -109,6 +112,11 @@ flutter:
     - ensemble/integration_tests/themedApp/
 
   fonts:
+    # icon fonts
+    - family: Remix
+      fonts:
+        - asset: assets/iconFonts/remixicon.ttf
+
     # semi-custom fonts
     - family: idealTalent
       fonts:

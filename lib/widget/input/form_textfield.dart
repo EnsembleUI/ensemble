@@ -103,6 +103,10 @@ abstract class BaseTextInput extends StatefulWidget
           EnsembleAction.fromYaml(function, initiator: this),
       'onChange': (definition) => _controller.onChange =
           EnsembleAction.fromYaml(definition, initiator: this),
+      'onFocusReceived': (definition) => _controller.onFocusReceived =
+          EnsembleAction.fromYaml(definition, initiator: this),
+      'onFocusLost': (definition) => _controller.onFocusLost =
+          EnsembleAction.fromYaml(definition, initiator: this),
       'validator': (value) => _controller.validator = Utils.getValidator(value),
       'obscureToggle': (value) =>
           _controller.obscureToggle = Utils.optionalBool(value),
@@ -149,6 +153,9 @@ class TextInputController extends FormFieldController {
   EnsembleAction? onKeyPress;
   TextInputAction? keyboardAction;
 
+  EnsembleAction? onFocusReceived;
+  EnsembleAction? onFocusLost;
+
   // applicable only for TextInput
   bool? obscureText;
 
@@ -192,14 +199,25 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
         widget.isPassword() || widget._controller.obscureText == true;
 
     focusNode.addListener(() {
-      // on focus lost
-      if (!focusNode.hasFocus) {
+      if (focusNode.hasFocus) {
+        if (widget._controller.onFocusReceived != null) {
+          ScreenController().executeAction(
+              context, widget._controller.onFocusReceived!,
+              event: EnsembleEvent(widget));
+        }
+      } else {
         evaluateChanges();
 
         // validate
         /*if (validatorKey.currentState != null) {
           validatorKey.currentState!.validate();
         }*/
+
+        if (widget._controller.onFocusLost != null) {
+          ScreenController().executeAction(
+              context, widget._controller.onFocusLost!,
+              event: EnsembleEvent(widget));
+        }
       }
     });
     super.initState();
