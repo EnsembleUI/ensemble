@@ -469,18 +469,13 @@ class PageState extends State<Page> {
       // add the bodyWidget
       content.add(Expanded(
           child: SafeArea(
-              top: _useSafeArea,
-              bottom: _useSafeArea,
-              child: rootWidget)));
+              top: _useSafeArea, bottom: _useSafeArea, child: rootWidget)));
 
       return Row(
           crossAxisAlignment: CrossAxisAlignment.start, children: content);
     }
 
-    return SafeArea(
-        top: _useSafeArea,
-        bottom: _useSafeArea,
-        child: rootWidget);
+    return SafeArea(top: _useSafeArea, bottom: _useSafeArea, child: rootWidget);
   }
 
   Drawer? _buildDrawer(BuildContext context, DrawerMenu menu) {

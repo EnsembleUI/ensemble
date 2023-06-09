@@ -37,8 +37,10 @@ class Maps extends StatefulWidget
           Utils.getInt(value, fallback: _controller.markerOverlayMaxWidth),
       'markerOverlayMaxHeight': (value) => _controller.markerOverlayMaxHeight =
           Utils.getInt(value, fallback: _controller.markerOverlayMaxHeight),
-      'initialCameraPosition': (cameraPosition) =>
-          _controller.initialCameraPosition = cameraPosition,
+      'initialCameraPosition': (value) =>
+          _controller.initialCameraPosition = Utils.getLatLng(value),
+      'initialCameraZoom': (value) =>
+          _controller.initialCameraZoom = Utils.optionalInt(value, min: 0),
       'autoZoom': (value) => _controller.autoZoom =
           Utils.getBool(value, fallback: _controller.autoZoom),
       'autoZoomPadding': (value) =>
@@ -48,6 +50,15 @@ class Maps extends StatefulWidget
       'includeCurrentLocationInAutoZoom': (value) =>
           _controller.includeCurrentLocationInAutoZoom = Utils.getBool(value,
               fallback: _controller.includeCurrentLocationInAutoZoom),
+
+      'rotateEnabled': (value) => _controller.rotateEnabled =
+          Utils.getBool(value, fallback: _controller.rotateEnabled),
+      'scrollEnabled': (value) => _controller.scrollEnabled =
+          Utils.getBool(value, fallback: _controller.scrollEnabled),
+      'tiltEnabled': (value) => _controller.tiltEnabled =
+          Utils.getBool(value, fallback: _controller.tiltEnabled),
+      'zoomEnabled': (value) => _controller.zoomEnabled =
+          Utils.getBool(value, fallback: _controller.zoomEnabled),
 
       // toolbar contains multiple controls
       'showToolbar': (value) => _controller.showToolbar =
@@ -89,19 +100,16 @@ class Maps extends StatefulWidget
   }
 
   void setMarkers(dynamic markerData) {
-    if (markerData is YamlMap) {
-      String? data = markerData['data'];
+    if (markerData is Map) {
+      dynamic data = markerData['data'];
       String? name = markerData['name'];
+      String? latLng = markerData['location'];
 
-      String? lat = markerData['location']?['lat'];
-      String? lng = markerData['location']?['lng'];
-
-      if (data != null && name != null && lat != null && lng != null) {
+      if (data != null && name != null && latLng != null) {
         _controller.markerItemTemplate = MarkerItemTemplate(
             data: data,
             name: name,
-            lat: lat,
-            lng: lng,
+            latLng: latLng,
             template: MarkerTemplate.build(
                 source: markerData['marker']?['source'],
                 widget: markerData['marker']?['widget']),
@@ -128,7 +136,13 @@ class Maps extends StatefulWidget
     return {
       'runAutoZoom': () => _controller.mapActions?.zoomToFit(),
       'moveCamera': (num lat, num lng, [int? zoom]) => _controller.mapActions
-          ?.moveCamera(LatLng(lat.toDouble(), lng.toDouble()), zoom: zoom)
+          ?.moveCamera(LatLng(lat.toDouble(), lng.toDouble()), zoom: zoom),
+      'moveCameraBounds': (num southwestLat, num southwestLng, num northeastLat,
+              northeastLng, [int? padding]) =>
+          _controller.mapActions?.moveCameraBounds(
+              LatLng(southwestLat.toDouble(), southwestLng.toDouble()),
+              LatLng(northeastLat.toDouble(), northeastLng.toDouble()),
+              padding: padding)
     };
   }
 }
@@ -151,7 +165,8 @@ class MyController extends WidgetController with LocationCapability {
 
   final defaultCameraLatLng = const LatLng(37.773972, -122.431297);
   final double defaultCameraZoom = 10;
-  dynamic initialCameraPosition;
+  LatLng? initialCameraPosition;
+  int? initialCameraZoom;
 
   bool autoSelect = true;
 
@@ -159,6 +174,11 @@ class MyController extends WidgetController with LocationCapability {
   int? autoZoomPadding;
   bool locationEnabled = false;
   bool includeCurrentLocationInAutoZoom = true;
+
+  bool rotateEnabled = true;
+  bool scrollEnabled = true;
+  bool tiltEnabled = true;
+  bool zoomEnabled = true;
 
   // toolbar has multiple button options
   bool showToolbar = true;
@@ -202,20 +222,18 @@ class MyController extends WidgetController with LocationCapability {
 
 class MarkerItemTemplate extends ItemTemplate {
   MarkerItemTemplate(
-      {required String data,
+      {required dynamic data,
       required String name,
       required dynamic
           template, // this is the marker image/widget, just piggyback on the name
-      required this.lat,
-      required this.lng,
+      required this.latLng,
       this.selectedTemplate,
       this.overlayTemplate,
       this.onMarkerTap,
       this.onMarkersUpdated})
       : super(data, name, template);
 
-  String lat;
-  String lng;
+  String latLng;
 
   // `template` and `selectedTemplate` can be one of multiple types
   MarkerTemplate? selectedTemplate;
