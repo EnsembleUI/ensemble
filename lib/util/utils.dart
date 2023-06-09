@@ -523,7 +523,7 @@ class Utils {
 
   // match an expression and AST e.g //@code <expression>\n<AST> in group1 and group2
   static final expressionAndAst =
-      RegExp(r'^//@code\s+([^\n]+)\s*\n+((.|\n)+)', caseSensitive: false);
+      RegExp(r'^//@code\s+([^\n]+)\s*', caseSensitive: false);
 
   //expect r@mystring or r@myapp.myscreen.mystring as long as r@ is there. If r@ is not there, returns the string as-is
   static String translate(String val, BuildContext? ctx) {
@@ -607,14 +607,33 @@ class Utils {
   /// There are two variations:
   /// 1. <expression>
   /// 2. //@code <expression>\n<AST>
-  static DataExpression? parseDataExpression(String input) {
+  static DataExpression? parseDataExpression(dynamic input) {
+    if (input is String) {
+      return _parseDataExpressionFromString(input);
+    } else if (input is List) {
+      List<String> tokens = [];
+      for (final inputEntry in input) {
+        if (inputEntry is String) {
+          DataExpression? dataEntry = _parseDataExpressionFromString(inputEntry);
+          tokens.addAll(dataEntry?.expressions ?? []);
+        }
+      }
+      if (tokens.isNotEmpty) {
+        return DataExpression(
+            rawExpression: input,
+            expressions: tokens);
+      }
+    }
+    return null;
+  }
+
+  static DataExpression? _parseDataExpressionFromString(String input) {
     // first match //@code <expression>\n<AST> as it is what we have
     RegExpMatch? match = expressionAndAst.firstMatch(input);
     if (match != null) {
       return DataExpression(
         rawExpression: match.group(1)!,
-        expressions: getExpressionTokens(match.group(1)!),
-        astExpression: match.group(2)!,
+        expressions: getExpressionTokens(match.group(1)!)
       );
     }
     // fallback to match <expression> only. This is if we don't turn on AST
