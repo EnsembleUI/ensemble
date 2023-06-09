@@ -95,15 +95,13 @@ void main() {
 
   test("get both Expression and AST", () {
     String expr = '\${person.name}';
-    RegExpMatch? match =
-        Utils.expressionAndAst.firstMatch('//@code $expr');
+    RegExpMatch? match = Utils.expressionAndAst.firstMatch('//@code $expr');
     expect(match?.group(1), expr);
   });
 
   test("parse into a DataExpression", () {
     String expr = 'Name is \${person.first} \${person.last}';
-    DataExpression? dataExpression =
-        Utils.parseDataExpression('//@code $expr');
+    DataExpression? dataExpression = Utils.parseDataExpression('//@code $expr');
     expect(dataExpression?.rawExpression, expr);
     expect(
         dataExpression?.expressions, ['\${person.first}', '\${person.last}']);
@@ -118,8 +116,7 @@ void main() {
   test('parse short-hand ifelse', () {
     String expr =
         '\${ getWifiStatus.body.data.Status ? 0xFF009900 : 0xFFE52E2E }';
-    DataExpression? dataExpression =
-        Utils.parseDataExpression('//@code $expr');
+    DataExpression? dataExpression = Utils.parseDataExpression('//@code $expr');
     expect(dataExpression?.rawExpression, expr);
     expect(dataExpression?.expressions, [expr]);
   });
@@ -127,8 +124,7 @@ void main() {
   test("another short-hand", () {
     String expr =
         "\${getPrivWiFi.body.status.wlanvap.vap5g0priv.VAPStatus == 'Up' ? true : false }";
-    DataExpression? dataExpression =
-        Utils.parseDataExpression('//@code $expr');
+    DataExpression? dataExpression = Utils.parseDataExpression('//@code $expr');
     expect(dataExpression?.rawExpression, expr);
     expect(dataExpression?.expressions, [expr]);
   });

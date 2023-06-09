@@ -614,14 +614,13 @@ class Utils {
       List<String> tokens = [];
       for (final inputEntry in input) {
         if (inputEntry is String) {
-          DataExpression? dataEntry = _parseDataExpressionFromString(inputEntry);
+          DataExpression? dataEntry =
+              _parseDataExpressionFromString(inputEntry);
           tokens.addAll(dataEntry?.expressions ?? []);
         }
       }
       if (tokens.isNotEmpty) {
-        return DataExpression(
-            rawExpression: input,
-            expressions: tokens);
+        return DataExpression(rawExpression: input, expressions: tokens);
       }
     }
     return null;
@@ -632,9 +631,8 @@ class Utils {
     RegExpMatch? match = expressionAndAst.firstMatch(input);
     if (match != null) {
       return DataExpression(
-        rawExpression: match.group(1)!,
-        expressions: getExpressionTokens(match.group(1)!)
-      );
+          rawExpression: match.group(1)!,
+          expressions: getExpressionTokens(match.group(1)!));
     }
     // fallback to match <expression> only. This is if we don't turn on AST
     List<String> tokens = getExpressionTokens(input);
