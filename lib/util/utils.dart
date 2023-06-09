@@ -623,6 +623,20 @@ class Utils {
             rawExpression: input,
             expressions: tokens);
       }
+    } else if (input is Map) {
+      // no recursive, just a straight map is good
+      List<String> tokens = [];
+      input.forEach((_, value) {
+        if (value is String) {
+          DataExpression? dataEntry = _parseDataExpressionFromString(value);
+          tokens.addAll(dataEntry?.expressions ?? []);
+        }
+      });
+      if (tokens.isNotEmpty) {
+        return DataExpression(
+            rawExpression: input,
+            expressions: tokens);
+      }
     }
     return null;
   }
