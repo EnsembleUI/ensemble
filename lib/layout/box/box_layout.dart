@@ -1,6 +1,7 @@
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/box/base_box_layout.dart';
 import 'package:ensemble/layout/templated.dart';
@@ -88,6 +89,8 @@ abstract class BoxLayout extends StatefulWidget
     return {
       'onTap': (funcDefinition) => _controller.onTap =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onItemTap': (funcDefinition) => _controller.onItemTap =
+          EnsembleAction.fromYaml(funcDefinition, initiator: this),
     };
   }
 
@@ -145,9 +148,16 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
 
   @override
   Widget buildWidget(BuildContext context) {
+    List<Widget>? childrenList = widget._controller.children;
+    List<Widget>? templatedList = templatedChildren;
+
+    if (widget._controller.onItemTap != null) {
+      childrenList = ViewUtil.addGesture(childrenList ?? [], _onItemTap);
+      templatedList = ViewUtil.addGesture(templatedList ?? [], _onItemTap);
+    }
+
     List<Widget> items = BoxUtils.buildChildrenAndGap(widget._controller,
-        children: widget._controller.children,
-        templatedChildren: templatedChildren);
+        children: childrenList, templatedChildren: templatedList);
     if (items.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -214,5 +224,15 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
             scrollDirection:
                 widget.isVertical() ? Axis.vertical : Axis.horizontal,
             child: rtn);
+  }
+
+  void _onItemTap(int index) {
+    if (widget.controller.onItemTap != null) {
+      ScreenController().executeAction(
+        context,
+        widget._controller.onItemTap!,
+        event: EnsembleEvent(widget, data: {'selectedItemIndex': index}),
+      );
+    }
   }
 }
