@@ -100,7 +100,7 @@ class DataContext {
   /// evaluate single inline binding expression (getters only) e.g Hello ${myVar.name}.
   /// Note that this expects the variable (if any) to be inside ${...}
   dynamic eval(dynamic expression) {
-    if (expression is YamlMap) {
+    if (expression is Map) {
       return _evalMap(expression);
     }
     if (expression is List) {
@@ -144,7 +144,7 @@ class DataContext {
     return value;
   }
 
-  Map<String, dynamic> _evalMap(YamlMap yamlMap) {
+  Map<String, dynamic> _evalMap(Map yamlMap) {
     Map<String, dynamic> map = {};
     yamlMap.forEach((k, v) {
       dynamic value;
