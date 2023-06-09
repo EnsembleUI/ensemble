@@ -27,6 +27,9 @@ abstract class WidgetController extends Controller {
   int? stackPositionLeft;
   int? stackPositionRight;
 
+  // https://pub.dev/packages/pointer_interceptor
+  bool? captureWebPointer;
+
   // optional label/labelHint for use in Forms
   String? label;
   String? description;
@@ -62,6 +65,8 @@ abstract class WidgetController extends Controller {
           stackPositionLeft = Utils.optionalInt(value),
       'stackPositionRight': (value) =>
           stackPositionRight = Utils.optionalInt(value),
+      'captureWebPointer': (value) =>
+          captureWebPointer = Utils.optionalBool(value),
       'label': (value) => label = Utils.optionalString(value),
       'description': (value) => description = Utils.optionalString(value),
       'labelHint': (value) => labelHint = Utils.optionalString(value),
