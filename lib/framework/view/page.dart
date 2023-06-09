@@ -15,6 +15,8 @@ import 'package:ensemble/page_model.dart' as model;
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/button.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:flutter/material.dart';
 
 import '../widget/custom_view.dart';
@@ -554,18 +556,30 @@ class PageState extends State<Page> {
   Widget? _buildFooter(ScopeManager scopeManager, SinglePageModel pageModel) {
     // Footer can only take 1 child by our design. Ignore the rest
     if (pageModel.footer != null && pageModel.footer!.children.isNotEmpty) {
+      final footerStyles = pageModel.footer?.styles;
+      final boxController = BoxController()
+        ..padding = Utils.getInsets(footerStyles?['padding'],
+            fallback:
+                const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 32))
+        ..margin = Utils.optionalInsets(footerStyles?['margin'])
+        ..width = Utils.optionalInt(footerStyles?['width'])
+        ..height = Utils.getInt(footerStyles?['height'], fallback: 110)
+        ..backgroundColor = Utils.getColor(footerStyles?['backgroundColor'])
+        ..backgroundGradient =
+            Utils.getBackgroundGradient(footerStyles?['backgroundGradient'])
+        ..shadowColor = Utils.getColor(footerStyles?['shadowColor'])
+        ..borderRadius = Utils.getBorderRadius(footerStyles?['borderRadius'])
+        ..borderColor = Utils.getColor(footerStyles?['borderColor'])
+        ..borderWidth = Utils.optionalInt(footerStyles?['borderWidth']);
+
       return AnimatedOpacity(
-          opacity: 1.0,
-          duration: const Duration(milliseconds: 500),
-          child: SizedBox(
-              width: double.infinity,
-              height: 110,
-              child: Padding(
-                padding: const EdgeInsets.only(
-                    left: 16, right: 16, top: 16, bottom: 32),
-                child:
-                    scopeManager.buildWidget(pageModel.footer!.children.first),
-              )));
+        opacity: 1.0,
+        duration: const Duration(milliseconds: 500),
+        child: BoxWrapper(
+          boxController: boxController,
+          widget: scopeManager.buildWidget(pageModel.footer!.children.first),
+        ),
+      );
     }
     return null;
   }
