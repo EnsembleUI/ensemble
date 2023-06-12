@@ -271,6 +271,11 @@ class Utils {
     return null;
   }
 
+  static YamlMap? getYamlMap(dynamic value) {
+    Map? map = getMap(value);
+    return map != null ? YamlMap.wrap(map) : null;
+  }
+
   static Color? getColor(dynamic value) {
     if (value is String) {
       switch (value) {
