@@ -2292,19 +2292,8 @@
                       "type": "boolean",
                       "description": "Whether to show a dismiss button (default is True)"
                     },
-                    "position": {
-                      "type": "string",
-                      "enum": [
-                        "top",
-                        "topLeft",
-                        "topRight",
-                        "center",
-                        "centerLeft",
-                        "centerRight",
-                        "bottom",
-                        "bottomLeft",
-                        "bottomRight"
-                      ]
+                    "alignment": {
+                      "$ref": "#/$defs/alignment"
                     },
                     "duration": {
                       "type": "integer",

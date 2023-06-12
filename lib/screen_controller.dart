@@ -662,7 +662,7 @@ class ScreenController {
           ShowToastAction(
               type: ToastType.error,
               message: message,
-              position: 'bottom',
+              alignment: Alignment.bottomCenter,
               duration: 3),
           null);
       if (action.onError != null) executeAction(context, action.onError!);
