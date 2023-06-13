@@ -646,4 +646,11 @@ class Utils {
     RegExpMatch? match = RegExp('^([^?]*)\\??').firstMatch(asset);
     return match?.group(1) ?? asset;
   }
+
+  static String evaluate(String data, Map<String, dynamic> dataContext) {
+    return data.replaceAllMapped(RegExp(r'\${(\w+)}'), (match) {
+      String key = match.group(1)!;
+      return dataContext.containsKey(key) ? dataContext[key]! : match.group(0)!;
+    });
+  }
 }
