@@ -474,6 +474,35 @@ class WalletConnectAction extends EnsembleAction {
   }
 }
 
+class NotificationAction extends EnsembleAction {
+  NotificationAction({this.onTap, this.onReceive});
+
+  EnsembleAction? onTap;
+  EnsembleAction? onReceive;
+
+  factory NotificationAction.fromYaml(
+      {Invokable? initiator, YamlMap? payload}) {
+    return NotificationAction(
+      onTap: EnsembleAction.fromYaml(payload?['onTap']),
+      onReceive: EnsembleAction.fromYaml(payload?['onReceive']),
+    );
+  }
+}
+
+class ShowNotificationAction extends EnsembleAction {
+  late String title;
+  late String body;
+
+  ShowNotificationAction({this.title = '', this.body = ''});
+
+  factory ShowNotificationAction.fromYaml({YamlMap? payload}) {
+    return ShowNotificationAction(
+      title: Utils.getString(payload?['title'], fallback: ''),
+      body: Utils.getString(payload?['body'], fallback: ''),
+    );
+  }
+}
+
 enum ActionType {
   invokeAPI,
   navigateScreen,
@@ -491,6 +520,8 @@ enum ActionType {
   navigateBack,
   pickFiles,
   connectWallet,
+  notification,
+  showNotification,
 }
 
 enum ToastType { success, error, warning, info }
@@ -572,6 +603,10 @@ abstract class EnsembleAction {
       return OpenUrlAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.connectWallet) {
       return WalletConnectAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.notification) {
+      return NotificationAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.showNotification) {
+      return ShowNotificationAction.fromYaml(payload: payload);
     }
     throw LanguageError("Invalid action.",
         recovery: "Make sure to use one of Ensemble-provided actions.");

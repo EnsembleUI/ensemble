@@ -1,8 +1,17 @@
+import 'dart:developer';
+
+import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/screen_controller.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 final notificationUtils = _NotificationUtils();
 
 class _NotificationUtils {
+  BuildContext? context;
+  EnsembleAction? onRemoteNotification;
+  EnsembleAction? onRemoteNotificationOpened;
+
   final FlutterLocalNotificationsPlugin localNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
@@ -15,6 +24,36 @@ class _NotificationUtils {
       iOS: initializationSettingsIOS,
     );
     await localNotificationsPlugin.initialize(initializationSettings);
+  }
+
+  Future<void> showNotification(
+    String? title,
+    String? body, {
+    String? imageUrl,
+  }) async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'channel_id',
+      'channel_name',
+      importance: Importance.max,
+      priority: Priority.high,
+      enableVibration: true,
+      playSound: true,
+    );
+    const DarwinNotificationDetails iOSPlatformChannelSpecifics =
+        DarwinNotificationDetails();
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+      iOS: iOSPlatformChannelSpecifics,
+    );
+
+    await localNotificationsPlugin.show(
+      0,
+      title ?? 'Notification Title',
+      body ?? 'Notification Body',
+      platformChannelSpecifics,
+      payload: 'notification_payload',
+    );
   }
 
   Future<void> showProgressNotification(
@@ -48,5 +87,21 @@ class _NotificationUtils {
       progress == 100 ? 'Uploaded' : 'Progress $progress %',
       platformChannelSpecifics,
     );
+  }
+
+  void handleRemoteNotification() {
+    if (context != null && onRemoteNotification != null) {
+      ScreenController().executeAction(context!, onRemoteNotification!);
+    } else {
+      log('No context or action to handle remote notification');
+    }
+  }
+
+  void handleRemoteNotificationOpened() {
+    if (context != null && onRemoteNotificationOpened != null) {
+      ScreenController().executeAction(context!, onRemoteNotificationOpened!);
+    } else {
+      log('No context or action to handle remote notification');
+    }
   }
 }

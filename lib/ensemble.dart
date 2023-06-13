@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/ensemble_provider.dart';
-import 'package:ensemble/ensemble_theme.dart';
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
@@ -10,7 +10,6 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/provider.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_i18n/flutter_i18n_delegate.dart';
@@ -23,6 +22,10 @@ import 'layout/ensemble_page_route.dart';
 /// Singleton Controller
 class Ensemble {
   static final Ensemble _instance = Ensemble._internal();
+
+  late FirebaseApp ensembleFirebaseApp;
+  static final Map<String, dynamic> externalDataContext = {};
+
   Ensemble._internal();
   factory Ensemble() {
     return _instance;
@@ -58,7 +61,8 @@ class Ensemble {
     if (yamlMap['definitions']?['from'] == 'ensemble') {
       // These are not secrets so OK to include here.
       // https://firebase.google.com/docs/projects/api-keys#api-keys-for-firebase-are-different
-      await Firebase.initializeApp(
+      ensembleFirebaseApp = await Firebase.initializeApp(
+          name: Firebase.apps.isNotEmpty ? 'ensemble' : null,
           options: const FirebaseOptions(
               apiKey: 'AIzaSyBAZ7wf436RSbcXvhhfg7e4TUh6A2SKve8',
               appId: '1:326748243798:ios:30f2a4f824dc58ea94b8f7',

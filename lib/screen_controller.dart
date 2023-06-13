@@ -25,6 +25,7 @@ import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble/util/http_utils.dart';
+import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_registry.dart';
@@ -81,6 +82,8 @@ class ScreenController {
     ScopeManager? scopeManager = _getScopeManager(context);
     if (scopeManager != null) {
       executeActionWithScope(context, scopeManager, action, event: event);
+    } else {
+      throw Exception('Cannot find ScopeManager to execute action');
     }
   }
 
@@ -484,7 +487,20 @@ class ScreenController {
         if (action.onError != null) executeAction(context, action.onError!);
         throw LanguageError('Unable to create wallet connect session');
       }
+    } else if (action is NotificationAction) {
+      notificationUtils.context = context;
+      notificationUtils.onRemoteNotification = action.onReceive;
+      notificationUtils.onRemoteNotificationOpened = action.onTap;
+    } else if (action is ShowNotificationAction) {
+      notificationUtils.showNotification(action.title, action.body);
     }
+  }
+
+  String evaluateString(String input, Map<String, String> contextMap) {
+    return input.replaceAllMapped(RegExp(r'\$(\w+)'), (match) {
+      final key = match.group(1);
+      return contextMap[key] ?? match.group(0) ?? input;
+    });
   }
 
   void updateWalletData(WalletConnectAction action, ScopeManager? scopeManager,
