@@ -322,8 +322,9 @@ class NativeInvokable with Invokable {
       ActionType.openCamera.name: showCamera,
       ActionType.navigateBack.name: navigateBack,
       ActionType.showToast.name: (inputs) => ScreenController().executeAction(
-          _buildContext,
-          ShowToastAction.fromMap(inputs)),
+          _buildContext, ShowToastAction.fromMap(inputs)),
+      ActionType.startTimer.name: (inputs) => ScreenController().executeAction(
+          _buildContext, StartTimerAction.fromMap(inputs)),
       ActionType.uploadFiles.name: uploadFiles,
 
       'debug': (value) => debugPrint('Debug: $value'),

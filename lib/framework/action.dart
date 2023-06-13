@@ -210,6 +210,9 @@ class StartTimerAction extends EnsembleAction {
         id: Utils.optionalString(payload['id']),
         options: Utils.getMap(payload['options']));
   }
+
+  factory StartTimerAction.fromMap(dynamic inputs) =>
+      StartTimerAction.fromYaml(payload: Utils.getYamlMap(inputs));
 }
 
 class StopTimerAction extends EnsembleAction {
