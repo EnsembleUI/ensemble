@@ -4,6 +4,7 @@ import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:flutter/material.dart';
 import 'package:source_span/source_span.dart';
 import 'package:yaml/yaml.dart';
 
@@ -209,6 +210,9 @@ class StartTimerAction extends EnsembleAction {
         id: Utils.optionalString(payload['id']),
         options: Utils.getMap(payload['options']));
   }
+
+  factory StartTimerAction.fromMap(dynamic inputs) =>
+      StartTimerAction.fromYaml(payload: Utils.getYamlMap(inputs));
 }
 
 class StopTimerAction extends EnsembleAction {
@@ -274,45 +278,47 @@ class NavigateBack extends EnsembleAction {}
 class ShowToastAction extends EnsembleAction {
   ShowToastAction(
       {super.initiator,
-      required this.type,
+      this.type,
       this.title,
       this.message,
       this.widget,
       this.dismissible,
-      this.position,
+      this.alignment,
       this.duration,
       this.styles});
 
-  final ToastType type;
+  ToastType? type;
+  final String? title;
 
   // either message or widget is needed
-  final String? title;
   final String? message;
   final dynamic widget;
 
   final bool? dismissible;
-  final String? position;
+
+  final Alignment? alignment;
   final int? duration; // the during in seconds before toast is dismissed
   final Map<String, dynamic>? styles;
 
   factory ShowToastAction.fromYaml({YamlMap? payload}) {
     if (payload == null ||
-        ((payload['title'] == null && payload['message'] == null) &&
-            payload['widget'] == null)) {
+        (payload['message'] == null && payload['widget'] == null)) {
       throw LanguageError(
-          "${ActionType.showToast.name} requires either a title/message or a widget to render.");
+          "${ActionType.showToast.name} requires either a message or a widget to render.");
     }
     return ShowToastAction(
-        type: ToastType.values.from(payload['options']?['type']) ??
-            ToastType.info,
+        type: ToastType.values.from(payload['options']?['type']),
         title: Utils.optionalString(payload['title']),
         message: payload['message']?.toString(),
         widget: payload['widget'],
         dismissible: Utils.optionalBool(payload['options']?['dismissible']),
-        position: Utils.optionalString(payload['options']?['position']),
+        alignment: Utils.getAlignment(payload['options']?['alignment']),
         duration: Utils.optionalInt(payload['options']?['duration'], min: 1),
         styles: Utils.getMap(payload['styles']));
   }
+
+  factory ShowToastAction.fromMap(dynamic inputs) =>
+      ShowToastAction.fromYaml(payload: Utils.getYamlMap(inputs));
 }
 
 class GetLocationAction extends EnsembleAction {

@@ -4,6 +4,7 @@ import 'package:ensemble/framework/widget/custom_view.dart';
 import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/util/gesture_detector.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
@@ -265,6 +266,29 @@ class ViewUtil {
         _traverseScopes(child, child.children);
       }
     }
+  }
+
+  static void checkValidWidget(
+      List<Widget>? children, ItemTemplate? itemTemplate) {
+    final isInvalid =
+        children != null && children.isNotEmpty && itemTemplate != null;
+
+    if (isInvalid) {
+      throw LanguageError("You can't have both children and item-template");
+    }
+  }
+
+  static List<Widget> addGesture(
+      List<Widget> children, Function(int) onItemTap) {
+    List<Widget> clickableWidgets = [];
+    children.asMap().forEach((index, value) {
+      final child = EnsembleGestureDetector(
+        child: value,
+        onTap: () => onItemTap(index),
+      );
+      clickableWidgets.add(child);
+    });
+    return clickableWidgets;
   }
 }
 
