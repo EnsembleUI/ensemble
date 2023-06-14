@@ -85,8 +85,8 @@ class MapsState extends MapsActionableState
       // add our own location icon on Web
       if (kIsWeb) {
         BitmapDescriptor.fromAssetImage(
-            ImageConfiguration.empty, 'assets/images/map_location.png',
-            package: 'ensemble')
+                ImageConfiguration.empty, 'assets/images/map_location.png',
+                package: 'ensemble')
             .then((asset) => currentLocationIcon = asset);
       }
 
@@ -118,8 +118,6 @@ class MapsState extends MapsActionableState
 
     _registerMarkerListener(context);
   }
-
-
 
   void _registerMarkerListener(BuildContext context) {
     if (widget.controller.markerItemTemplate != null) {
@@ -189,8 +187,7 @@ class MapsState extends MapsActionableState
         LatLng? latLng =
             Utils.getLatLng(dataScope.dataContext.eval(itemTemplate.latLng));
         if (latLng != null) {
-          payloads.add(
-              MarkerPayload(scopeManager: dataScope, latLng: latLng));
+          payloads.add(MarkerPayload(scopeManager: dataScope, latLng: latLng));
         }
       }
     }
@@ -449,8 +446,8 @@ class MapsState extends MapsActionableState
         tiltGesturesEnabled: widget.controller.tiltEnabled,
         zoomGesturesEnabled: widget.controller.zoomEnabled,
         initialCameraPosition: CameraPosition(
-            target:
-                widget.controller.initialCameraPosition ?? widget.controller.defaultCameraLatLng,
+            target: widget.controller.initialCameraPosition ??
+                widget.controller.defaultCameraLatLng,
             zoom: widget.controller.initialCameraZoom?.toDouble() ??
                 widget.controller.defaultCameraZoom),
         markers: _getMarkers(),

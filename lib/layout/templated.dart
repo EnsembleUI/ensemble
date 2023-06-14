@@ -22,14 +22,15 @@ mixin TemplatedWidgetState<W extends StatefulWidget> on State<W> {
         // listen to the binding from our itemTemplate
         // data: $(apiName.*)
         scopeManager.listen(scopeManager, dataExpression.rawExpression,
-            destination: BindingDestination(widget as Invokable, 'item-template'),
+            destination:
+                BindingDestination(widget as Invokable, 'item-template'),
             onDataChange: (ModelChangeEvent event) {
-              // evaluate the expression
-              dynamic dataList = scopeManager.dataContext.eval(itemTemplate.data);
-              if (dataList is List) {
-                onDataChanged(dataList);
-              }
-            });
+          // evaluate the expression
+          dynamic dataList = scopeManager.dataContext.eval(itemTemplate.data);
+          if (dataList is List) {
+            onDataChanged(dataList);
+          }
+        });
       }
 
       // if specified to evaluate initial value, then evaluate the data list now

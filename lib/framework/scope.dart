@@ -380,8 +380,7 @@ mixin PageBindingManager on IsScopeManager {
         */
         // payload only have changes to a variable, but we have to evaluate the entire expression
         // e.g Hello $(firstName.value) $(lastName.value)
-        dynamic updatedValue =
-            dataContext.eval(dataExpression.rawExpression);
+        dynamic updatedValue = dataContext.eval(dataExpression.rawExpression);
         InvokableController.setProperty(bindingDestination.widget,
             bindingDestination.setterProperty, updatedValue);
       });
@@ -547,9 +546,7 @@ class PageData {
 /// This may also contain an equivalent AST definition, which we'll use to
 /// execute by default, otherwise fallback to execute the expression directly.
 class DataExpression {
-  DataExpression(
-      {required this.rawExpression,
-      required this.expressions});
+  DataExpression({required this.rawExpression, required this.expressions});
 
   // the original raw expression e.g my name is ${person.first_name} ${person.last_name}
   // or it can be a List [${first} ${last}, 4, ${anotherVar}]
