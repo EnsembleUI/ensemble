@@ -217,9 +217,10 @@ class DataContext {
       _contextMap['getStringValue'] = Utils.optionalString;
       return JSInterpreter.fromCode(codeBlock, _contextMap).evaluate();
     } on JSException catch (e) {
-      if (e.originalError is EnsembleError) {
-        throw e.originalError;
+      if (e.detailedError is EnsembleError) {
+        throw e.detailedError.toString();
       }
+
       /// not all JS errors are actual errors. API binding resolving to null
       /// may be considered a normal condition as binding may not resolved
       /// until later e.g myAPI.value.prettyDateTime()
@@ -321,12 +322,11 @@ class NativeInvokable with Invokable {
       ActionType.stopTimer.name: stopTimer,
       ActionType.openCamera.name: showCamera,
       ActionType.navigateBack.name: navigateBack,
-      ActionType.showToast.name: (inputs) => ScreenController().executeAction(
-          _buildContext, ShowToastAction.fromMap(inputs)),
-      ActionType.startTimer.name: (inputs) => ScreenController().executeAction(
-          _buildContext, StartTimerAction.fromMap(inputs)),
+      ActionType.showToast.name: (inputs) => ScreenController()
+          .executeAction(_buildContext, ShowToastAction.fromMap(inputs)),
+      ActionType.startTimer.name: (inputs) => ScreenController()
+          .executeAction(_buildContext, StartTimerAction.fromMap(inputs)),
       ActionType.uploadFiles.name: uploadFiles,
-
       'debug': (value) => debugPrint('Debug: $value'),
       'copyToClipboard': (value) =>
           Clipboard.setData(ClipboardData(text: value))

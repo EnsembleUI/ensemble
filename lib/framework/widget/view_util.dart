@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/custom_view.dart';
@@ -50,6 +51,20 @@ class ViewUtil {
             line: node.span.end.line,
             column: node.span.end.column),
         node.span.text);
+  }
+
+  /// wrap a widget inside a screen so it can be displayed
+  static YamlMap getWidgetAsScreen(YamlMap widgetContent) {
+    // use random name so we don't accidentally collide with other names
+    String randomWidgetName = "Widget${math.Random().nextInt(100)}";
+
+    return YamlMap.wrap({
+      'View': {
+        'styles': {'useSafeArea': true},
+        'body': {randomWidgetName: null}
+      },
+      randomWidgetName: widgetContent
+    });
   }
 
   ///convert a YAML representing a widget to a WidgetModel

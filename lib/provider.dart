@@ -3,6 +3,7 @@ import 'dart:async';
 
 import 'dart:ui';
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
@@ -68,6 +69,12 @@ class LocalDefinitionProvider extends DefinitionProvider {
     var pageStr = await rootBundle.loadString(
         '$path${screenId ?? screenName ?? appHome}.yaml',
         cache: foundation.kReleaseMode);
+    final pageYaml = loadYaml(pageStr);
+    if (pageYaml is YamlMap) {
+      if (pageYaml.keys.length == 1 && pageYaml['Widget'] != null) {
+        return ViewUtil.getWidgetAsScreen(pageYaml['Widget']);
+      }
+    }
     return loadYaml(pageStr);
   }
 
