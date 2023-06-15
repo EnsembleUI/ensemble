@@ -15,6 +15,7 @@ import 'package:ensemble/widget/conditional.dart';
 import 'package:ensemble/widget/fintech/finicityconnect/finicityconnect.dart';
 import 'package:ensemble/widget/icon_button.dart';
 import 'package:ensemble/widget/maps/maps.dart';
+import 'package:ensemble/widget/staggered_grid.dart';
 import 'package:ensemble/widget/text.dart';
 import 'package:ensemble/widget/toggle_button.dart';
 // import 'package:ensemble/widget/camera_widget.dart';
@@ -102,6 +103,7 @@ class WidgetRegistry {
         Row.type: () => Row(),
         ListView.type: () => ListView(),
         GridView.type: () => GridView(),
+        EnsembleStaggeredGrid.type: () => EnsembleStaggeredGrid(),
         Flex.type: () => Flex(),
         EnsembleStack.type: () => EnsembleStack(),
         Flow.type: () => Flow(),
