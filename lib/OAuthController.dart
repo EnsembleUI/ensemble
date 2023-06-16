@@ -100,7 +100,7 @@ class OAuthController {
   Future<OAuthServicePayload?> getGmailServicePayload() async {
     return Future.value(OAuthServicePayload(
         authorizationURL: 'https://accounts.google.com/o/oauth2/v2/auth?access_type=offline&prompt=consent',
-        clientId: '126811761383-pqp9ed6d7ug1649udgpuf4c3tsfv1ard.apps.googleusercontent.com'));
+        clientId: '326748243798-btoriljk7i7sgsr9mvas90b0gn9vfebm.apps.googleusercontent.com'));
   }
   Future<OAuthServicePayload?> getMicrosoftServicePayload() async {
     return Future.value(OAuthServicePayload(
