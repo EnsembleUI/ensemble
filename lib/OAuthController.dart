@@ -9,7 +9,7 @@ import 'package:http/http.dart' as http;
 class OAuthController {
   static const accessTokenKey = '_accessToken';
   static const refreshTokenKey = '_refreshToken';
-  static const redirectURL = 'https://app.ensembleui.com/oauth';
+  static const redirectURL = 'https://app.ensembleui.com/oauth-go';
 
   Future<OAuthServiceToken?> authorize(String serviceId,
       {required String scope, bool forceNewTokens = false}) async {
