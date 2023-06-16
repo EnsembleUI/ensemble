@@ -28,6 +28,7 @@ class InvokeAPIAction extends EnsembleAction {
       throw LanguageError(
           "${ActionType.invokeAPI.name} requires the 'name' of the API.");
     }
+    
     return InvokeAPIAction(
         initiator: initiator,
         apiName: payload['name'],
@@ -480,6 +481,25 @@ class WalletConnectAction extends EnsembleAction {
   }
 }
 
+/// not in use yet
+class AuthorizeOAuthAction extends EnsembleAction {
+  AuthorizeOAuthAction(this.id, {this.onResponse, this.onError});
+  final String id;
+  EnsembleAction? onResponse;
+  EnsembleAction? onError;
+
+  factory AuthorizeOAuthAction.fromYaml({YamlMap? payload}) {
+    if (payload == null || payload['id'] == null) {
+      throw LanguageError('${ActionType.authorizeOAuthService.name} requires the service ID.');
+    }
+   return AuthorizeOAuthAction(
+      payload['id'],
+      onResponse: EnsembleAction.fromYaml(payload['onResponse']),
+      onError: EnsembleAction.fromYaml(payload['onError']),
+   );
+  }
+}
+
 enum ActionType {
   invokeAPI,
   navigateScreen,
@@ -497,6 +517,7 @@ enum ActionType {
   navigateBack,
   pickFiles,
   connectWallet,
+  authorizeOAuthService,
 }
 
 enum ToastType { success, error, warning, info }
@@ -578,6 +599,8 @@ abstract class EnsembleAction {
       return OpenUrlAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.connectWallet) {
       return WalletConnectAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.authorizeOAuthService) {
+      return AuthorizeOAuthAction.fromYaml(payload: payload);
     }
     throw LanguageError("Invalid action.",
         recovery: "Make sure to use one of Ensemble-provided actions.");
