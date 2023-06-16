@@ -45,7 +45,7 @@ class OAuthController {
       final resultUri = Uri.parse(result);
       String? code = resultUri.queryParameters['code'];
       if (code != null && state == resultUri.queryParameters['state']) {
-        OAuthServiceToken? token = await exchangeCodeForTokens(code);
+        OAuthServiceToken? token = await exchangeCodeForTokens(code, serviceId);
         if (token != null) {
           await storage.write(key: serviceId + accessTokenKey, value: token.accessToken);
           if (token.refreshToken != null) {
@@ -59,9 +59,10 @@ class OAuthController {
     return null;
   }
 
-  Future<OAuthServiceToken?> exchangeCodeForTokens(String code) async {
+  Future<OAuthServiceToken?> exchangeCodeForTokens(String code, String serviceId) async {
     var data = json.encode({
-      'code': code
+      'code': code,
+      'serviceId': serviceId
     });
     var response = await http.post(
         Uri.parse('https://us-central1-ensemble-web-studio.cloudfunctions.net/oauth-gettoken'),
@@ -104,8 +105,8 @@ class OAuthController {
   }
   Future<OAuthServicePayload?> getMicrosoftServicePayload() async {
     return Future.value(OAuthServicePayload(
-        authorizationURL: '',
-        clientId: ''));
+        authorizationURL: 'https://login.microsoftonline.com/f3a999e9-2d73-4a55-86fb-0f90c0294c5f/oauth2/v2.0/authorize',
+        clientId: '36501417-8ad8-4885-82eb-232f345524ac'));
   }
 
 }
