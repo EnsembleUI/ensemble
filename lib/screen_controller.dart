@@ -126,7 +126,8 @@ class ScreenController {
     }
 
     if (action is InvokeAPIAction) {
-      InvokeAPIController().execute(action, context, dataContext, scopeManager, apiMap);
+      InvokeAPIController()
+          .execute(action, context, dataContext, scopeManager, apiMap);
     } else if (action is BaseNavigateScreenAction) {
       // process input parameters
       Map<String, dynamic>? nextArgs = {};
@@ -710,8 +711,6 @@ class ScreenController {
       scopeManager.dispatch(ModelChangeEvent(StorageBindingSource(key), value));
     }
   }
-
-
 
   /// Navigate to another screen
   /// [screenName] - navigate to the screen if specified, otherwise to appHome
