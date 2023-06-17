@@ -14,9 +14,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:yaml/yaml.dart';
 
 class InvokeAPIController {
-
-
-  void execute(InvokeAPIAction action, BuildContext context, DataContext dataContext, ScopeManager? scopeManager, Map<String, YamlMap>? apiMap) async {
+  void execute(
+      InvokeAPIAction action,
+      BuildContext context,
+      DataContext dataContext,
+      ScopeManager? scopeManager,
+      Map<String, YamlMap>? apiMap) async {
     YamlMap? apiDefinition = apiMap?[action.apiName];
     if (apiDefinition != null) {
       // evaluate input arguments and add them to context
@@ -42,8 +45,7 @@ class InvokeAPIController {
           .onError((error, stackTrace) => processAPIError(context, dataContext,
               action, apiDefinition, error, apiMap, scopeManager));
     } else {
-      throw RuntimeError(
-          "Unable to find api definition for ${action.apiName}");
+      throw RuntimeError("Unable to find api definition for ${action.apiName}");
     }
   }
 
@@ -89,8 +91,8 @@ class InvokeAPIController {
       Map<String, YamlMap>? apiMap,
       ScopeManager? scopeManager,
       {Function? apiChangeHandler,
-        InvokeAPIAction? action,
-        bool? modifiableAPIResponse}) {
+      InvokeAPIAction? action,
+      bool? modifiableAPIResponse}) {
     // execute the onResponse on the API definition
     APIResponse apiResponse = modifiableAPIResponse == true
         ? ModifiableAPIResponse(response: response)
@@ -119,10 +121,11 @@ class InvokeAPIController {
     log("Error: $error");
 
     EnsembleAction? onErrorAction =
-    EnsembleAction.fromYaml(apiDefinition['onError']);
+        EnsembleAction.fromYaml(apiDefinition['onError']);
     if (onErrorAction != null) {
       // probably want to include the error?
-      ScreenController().nowExecuteAction(context, dataContext, onErrorAction, apiMap, scopeManager);
+      ScreenController().nowExecuteAction(
+          context, dataContext, onErrorAction, apiMap, scopeManager);
     }
 
     // if our Action has onError, invoke that next
@@ -167,5 +170,4 @@ class InvokeAPIController {
       }
     }
   }
-
 }
