@@ -2040,102 +2040,104 @@
                 },
                 "options": {
                   "type": "object",
-                  "mode": {
-                    "type": "string",
-                    "description": "Modes of camera. It can be photo only i.e allows to capture just photo. Similarly video or can be both.",
-                    "enum": [
-                      "photo",
-                      "video",
-                      "both"
-                    ]
-                  },
-                  "initialCamera": {
-                    "type": "string",
-                    "description": "Initialize either camera, back or front",
-                    "enum": [
-                      "back",
-                      "front"
-                    ]
-                  },
-                  "allowGalleryPicker": {
-                    "type": "boolean",
-                    "description": "Allow users to pick media from gallery. Default (true)."
-                  },
-                  "allowCameraRotate": {
-                    "type": "boolean",
-                    "description": "Allow users rotate camera i.e back and front. Default (true)."
-                  },
-                  "allowFlashControl": {
-                    "type": "boolean",
-                    "description": "Allow users to control flash options. Default (true)."
-                  },
-                  "preview": {
-                    "type": "boolean",
-                    "description": "If set true, users can view captured/selected media."
-                  },
-                  "maxCount": {
-                    "type": "number",
-                    "description": "It used to control number of media that can be captured/selected"
-                  },
-                  "maxCountMessage": {
-                    "type": "string",
-                    "description": "Custom message to show when captured/selected media is greater than maxCount"
-                  },
-                  "permissionDeniedMessage": {
-                    "type": "string",
-                    "description": "Set custom message when access to camera is denied"
-                  },
-                  "nextButtonLabel": {
-                    "type": "string",
-                    "description": "Set custom label on next button."
-                  },
-                  "cameraRotateIcon": {
-                    "$ref": "#/$defs/Icon-payload",
-                    "description": "Set custom icon for camera rotate button"
-                  },
-                  "galleryPickerIcon": {
-                    "$ref": "#/$defs/Icon-payload",
-                    "description": "Set custom icon for gallery picker button"
-                  },
-                  "focusIcon": {
-                    "$ref": "#/$defs/Icon-payload",
-                    "description": "Set custom icon for focus node."
-                  },
-                  "assistAngle": {
-                    "type": "object",
-                    "description": "Show assist message whenever angle goes below minAngle or above minAngle",
-                    "properties": {
-                      "minAngle": {
-                        "type": "number",
-                        "description": "Minimum angle "
-                      },
-                      "maxAngle": {
-                        "type": "number",
-                        "description": "Maximum angle "
-                      },
-                      "maxAngleassistAngleMessage": {
-                        "type": "number",
-                        "description": "Custom message to show when condition is hit."
+                  "properties": {
+                    "mode": {
+                      "type": "string",
+                      "description": "Modes of camera. It can be photo only i.e allows to capture just photo. Similarly video or can be both.",
+                      "enum": [
+                        "photo",
+                        "video",
+                        "both"
+                      ]
+                    },
+                    "initialCamera": {
+                      "type": "string",
+                      "description": "Initialize either camera, back or front",
+                      "enum": [
+                        "back",
+                        "front"
+                      ]
+                    },
+                    "allowGalleryPicker": {
+                      "type": "boolean",
+                      "description": "Allow users to pick media from gallery. Default (true)."
+                    },
+                    "allowCameraRotate": {
+                      "type": "boolean",
+                      "description": "Allow users rotate camera i.e back and front. Default (true)."
+                    },
+                    "allowFlashControl": {
+                      "type": "boolean",
+                      "description": "Allow users to control flash options. Default (true)."
+                    },
+                    "preview": {
+                      "type": "boolean",
+                      "description": "If set true, users can view captured/selected media."
+                    },
+                    "maxCount": {
+                      "type": "number",
+                      "description": "It used to control number of media that can be captured/selected"
+                    },
+                    "maxCountMessage": {
+                      "type": "string",
+                      "description": "Custom message to show when captured/selected media is greater than maxCount"
+                    },
+                    "permissionDeniedMessage": {
+                      "type": "string",
+                      "description": "Set custom message when access to camera is denied"
+                    },
+                    "nextButtonLabel": {
+                      "type": "string",
+                      "description": "Set custom label on next button."
+                    },
+                    "cameraRotateIcon": {
+                      "$ref": "#/$defs/Icon-payload",
+                      "description": "Set custom icon for camera rotate button"
+                    },
+                    "galleryPickerIcon": {
+                      "$ref": "#/$defs/Icon-payload",
+                      "description": "Set custom icon for gallery picker button"
+                    },
+                    "focusIcon": {
+                      "$ref": "#/$defs/Icon-payload",
+                      "description": "Set custom icon for focus node."
+                    },
+                    "assistAngle": {
+                      "type": "object",
+                      "description": "Show assist message whenever angle goes below minAngle or above minAngle",
+                      "properties": {
+                        "minAngle": {
+                          "type": "number",
+                          "description": "Minimum angle "
+                        },
+                        "maxAngle": {
+                          "type": "number",
+                          "description": "Maximum angle "
+                        },
+                        "maxAngleassistAngleMessage": {
+                          "type": "number",
+                          "description": "Custom message to show when condition is hit."
+                        }
                       }
-                    }
-                  },
-                  "assistSpeed": {
-                    "type": "object",
-                    "description": "Show assist message whenever camera is moving faster than maxSpeed",
-                    "properties": {
-                      "maxSpeed": {
-                        "type": "number",
-                        "description": "Maxium speed in km/hr."
-                      },
-                      "assistSpeedMessage": {
-                        "type": "number",
-                        "description": "Custom message to show when condition is hit."
+                    },
+                    "assistSpeed": {
+                      "type": "object",
+                      "description": "Show assist message whenever camera is moving faster than maxSpeed",
+                      "properties": {
+                        "maxSpeed": {
+                          "type": "number",
+                          "description": "Maxium speed in km/hr."
+                        },
+                        "assistSpeedMessage": {
+                          "type": "number",
+                          "description": "Custom message to show when condition is hit."
+                        }
                       }
+                    },
+                    "autoCaptureInterval": {
+                      "type": "integer",
+                      "description": "If set any number n, on each n interval camera will capture"
                     }
-                  },
-                  "autoCaptureInterval": {
-                    "type": "integer",
-                    "description": "If set any number n, on each n interval camera will capture"
                   }
                 }
               }
