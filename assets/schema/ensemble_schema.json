@@ -1002,7 +1002,10 @@
           "description": "The gap between the starting icon and ending icon"
         },
         "enabled": {
-          "type": "boolean"
+          "oneOf": [
+            { "type": "boolean", "title": "Boolean" },
+            { "type": "string", "title": "Expression" } 
+          ]
         },
         "submitForm": {
           "type": "boolean",
@@ -1217,7 +1220,10 @@
       "required": ["children"],
       "properties": {
         "enabled": {
-          "type": "boolean"
+          "oneOf": [
+            { "type": "boolean", "title": "Boolean" },
+            { "type": "string", "title": "Expression" } 
+          ]
         },
         "onSubmit": {
           "$ref": "#/$defs/Action-payload",
@@ -1760,7 +1766,10 @@
           "type": "boolean"
         },
         "enabled": {
-          "type": "boolean"
+          "oneOf": [
+            { "type": "boolean", "title": "Boolean" },
+            { "type": "string", "title": "Expression" } 
+          ]
         },
         "icon": {
           "$ref": "#/$defs/HasIcon",
@@ -3627,11 +3636,17 @@
       "type": "object",
       "properties": {
         "expanded": {
-          "type": "boolean",
+          "oneOf": [
+            { "type": "boolean", "title": "Boolean" },
+            { "type": "string", "title": "Expression" } 
+          ],
           "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
         },
         "visible": {
-          "type": "boolean",
+          "oneOf": [
+            { "type": "boolean", "title": "Boolean" },
+            { "type": "string", "title": "Expression" }
+          ],
           "description": "Toggle a widget visibility on/off. Note that an invisible widget will not occupy UI space, unless the visibilityTransitionDuration is specified."
         },
         "visibilityTransitionDuration": {
