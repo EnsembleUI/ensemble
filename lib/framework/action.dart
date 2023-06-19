@@ -119,6 +119,17 @@ class NavigateScreenAction extends BaseNavigateScreenAction {
       transition: Utils.getMap(payload['transition']),
     );
   }
+
+  factory NavigateScreenAction.fromMap(dynamic inputs) {
+    // just have the screen name only
+    if (inputs is String) {
+      return NavigateScreenAction(screenName: inputs);
+    }
+    return NavigateScreenAction.fromYaml(payload: Utils.getYamlMap(inputs));
+  }
+
+
+
 }
 
 class NavigateModalScreenAction extends BaseNavigateScreenAction {
