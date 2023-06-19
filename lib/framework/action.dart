@@ -127,9 +127,6 @@ class NavigateScreenAction extends BaseNavigateScreenAction {
     }
     return NavigateScreenAction.fromYaml(payload: Utils.getYamlMap(inputs));
   }
-
-
-
 }
 
 class NavigateModalScreenAction extends BaseNavigateScreenAction {
