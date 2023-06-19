@@ -23,6 +23,7 @@ import 'package:workmanager/workmanager.dart';
 
 const String previewConfig = 'preview-config';
 const String backgroundUploadTask = 'backgroundUploadTask';
+final errorKey = GlobalKey<AppHandlerState>();
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
@@ -72,7 +73,7 @@ void callbackDispatcher() {
 
 /// use this as the root widget for Ensemble
 class EnsembleApp extends StatefulWidget {
-  EnsembleApp({
+  const EnsembleApp({
     super.key,
     this.screenPayload,
     this.ensembleConfig,
@@ -116,12 +117,35 @@ class EnsembleAppState extends State<EnsembleApp> {
   @override
   void initState() {
     super.initState();
+    _handleErrors();
     config = initApp();
     if (!kIsWeb) {
       Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
     }
 
     notificationUtils.initNotifications();
+  }
+
+  void _handleErrors() {
+    FlutterError.onError = (details) {
+      print('onError else called');
+      debugPrint(details.exception.toString());
+      final state = errorKey.currentState;
+      if (state != null && !state.isOverlay) {
+        state.createErrorOverlay(FlutterErrorDetails(exception: details));
+      }
+    };
+
+    // async error
+    PlatformDispatcher.instance.onError = (error, stack) {
+      debugPrint("Async Error: " + error.toString());
+      final state = errorKey.currentState;
+      if (state != null && !state.isOverlay) {
+        state.createErrorOverlay(FlutterErrorDetails(exception: error));
+      }
+
+      return true;
+    };
   }
 
   @override
@@ -151,34 +175,37 @@ class EnsembleAppState extends State<EnsembleApp> {
     //log("EnsembleApp build() - $hashCode");
     GetStorage().write(previewConfig, widget.isPreview);
 
-    return Unfocus(
-      child: MaterialApp(
-        navigatorKey: Utils.globalAppKey,
-        theme: config.getAppTheme(),
-        localizationsDelegates: [
-          config.getI18NDelegate(),
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate
-        ],
-        home: Scaffold(
-          // this outer scaffold is where the background image would be (if
-          // specified). We do not want it to resize on keyboard popping up.
-          // The Page's Scaffold can handle the resizing.
-          resizeToAvoidBottomInset: false,
+    return MaterialApp(
+      home: AppHandler(
+        key: errorKey,
+        child: MaterialApp(
+          navigatorKey: Utils.globalAppKey,
+          theme: config.getAppTheme(),
+          localizationsDelegates: [
+            config.getI18NDelegate(),
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate
+          ],
+          home: Scaffold(
+            // this outer scaffold is where the background image would be (if
+            // specified). We do not want it to resize on keyboard popping up.
+            // The Page's Scaffold can handle the resizing.
+            resizeToAvoidBottomInset: false,
 
-          body: Screen(
-            appProvider:
-                AppProvider(definitionProvider: config.definitionProvider),
-            screenPayload: widget.screenPayload,
+            body: Screen(
+              appProvider:
+                  AppProvider(definitionProvider: config.definitionProvider),
+              screenPayload: widget.screenPayload,
+            ),
           ),
+          useInheritedMediaQuery: widget.isPreview,
+          locale: widget.isPreview ? DevicePreview.locale(context) : null,
+          builder: widget.isPreview
+              ? DevicePreview.appBuilder
+              : FlutterI18n.rootAppBuilder(),
+          // TODO: this case translation issue on hot loading. Address this for RTL support
+          //builder: (context, widget) => FlutterI18n.rootAppBuilder().call(context, widget)
         ),
-        useInheritedMediaQuery: widget.isPreview,
-        locale: widget.isPreview ? DevicePreview.locale(context) : null,
-        builder: widget.isPreview
-            ? DevicePreview.appBuilder
-            : FlutterI18n.rootAppBuilder(),
-        // TODO: this case translation issue on hot loading. Address this for RTL support
-        //builder: (context, widget) => FlutterI18n.rootAppBuilder().call(context, widget)
       ),
     );
   }
@@ -189,5 +216,119 @@ class EnsembleAppState extends State<EnsembleApp> {
       {Widget? widget, Color? loadingBackgroundColor}) {
     return MaterialApp(
         home: Scaffold(backgroundColor: loadingBackgroundColor, body: widget));
+  }
+}
+
+class AppHandler extends StatefulWidget {
+  const AppHandler({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  State<AppHandler> createState() => AppHandlerState();
+}
+
+class AppHandlerState extends State<AppHandler> {
+  OverlayEntry? overlayEntry;
+  bool isOverlay = false;
+
+  void createErrorOverlay(FlutterErrorDetails? errorDetails) {
+    // Remove the existing OverlayEntry.
+    removeErrorOverlay();
+    if (errorDetails == null) {
+      removeErrorOverlay();
+      return;
+    }
+
+    assert(overlayEntry == null);
+
+    List<Widget> children = [];
+
+    // main error and graphics
+    children.add(Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(Utils.randomize(["Oh Snap", "Uh Oh ..", "Foo Bar"]),
+            style: const TextStyle(
+                fontSize: 28,
+                color: Color(0xFFF7535A),
+                fontWeight: FontWeight.w500)),
+        const Image(
+            image: AssetImage("assets/images/error.png", package: 'ensemble'),
+            width: 200),
+        const SizedBox(height: 16),
+        // Text(
+        //   widget.errorText +
+        //       (widget.recovery != null ? '\n${widget.recovery}' : ''),
+        //   textAlign: TextAlign.center,
+        //   style: const TextStyle(fontSize: 16, height: 1.4),
+        // ),
+      ],
+    ));
+
+    // add detail
+    if (kDebugMode) {
+      children.add(Column(children: [
+        const SizedBox(height: 30),
+        const Text('DETAILS',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 10),
+        Text(errorDetails.exception.toString(),
+            textAlign: TextAlign.start,
+            style: const TextStyle(fontSize: 14, color: Colors.black87))
+      ]));
+    }
+
+    overlayEntry = OverlayEntry(
+      // Create a new OverlayEntry.
+      builder: (BuildContext context) {
+        // Align is used to position the highlight overlay
+        // relative to the NavigationBar destination.
+        return MaterialApp(
+          home: Scaffold(
+            body: SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(left: 40, right: 40, top: 40),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: children),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    // Add the OverlayEntry to the Overlay.
+    isOverlay = true;
+    Future.delayed(const Duration(milliseconds: 100), () {
+      Overlay.of(context, debugRequiredFor: widget).insert(overlayEntry!);
+    });
+  }
+
+  void removeErrorOverlay() {
+    isOverlay = false;
+    overlayEntry?.remove();
+    overlayEntry = null;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => createErrorOverlay(null));
+  }
+
+  @override
+  void dispose() {
+    // Make sure to remove OverlayEntry when the widget is disposed.
+    removeErrorOverlay();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return widget.child;
   }
 }
