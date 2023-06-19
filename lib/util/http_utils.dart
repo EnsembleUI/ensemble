@@ -13,17 +13,19 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' as foundation;
 
 class HttpUtils {
-  static Future<http.Response> invokeApi(YamlMap api, DataContext eContext) async {
+  static Future<http.Response> invokeApi(
+      YamlMap api, DataContext eContext) async {
     // headers
     Map<String, String> headers = {};
 
     // include the OAuth token if applicable
     String? oauthId = Utils.optionalString(api['authorization']?['oauthId']);
     String? scope = Utils.optionalString(api['authorization']?['scope']);
-    bool forceNewTokens = Utils.getBool(api['authorization']?['forceNewTokens'], fallback: false);
+    bool forceNewTokens =
+        Utils.getBool(api['authorization']?['forceNewTokens'], fallback: false);
     if (oauthId != null && scope != null) {
-      OAuthServiceToken? token =
-          await OAuthController().authorize(oauthId, scope: scope, forceNewTokens: forceNewTokens);
+      OAuthServiceToken? token = await OAuthController()
+          .authorize(oauthId, scope: scope, forceNewTokens: forceNewTokens);
       if (token != null) {
         headers['Authorization'] = 'Bearer ${token.accessToken}';
       }

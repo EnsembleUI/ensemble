@@ -28,7 +28,7 @@ class InvokeAPIAction extends EnsembleAction {
       throw LanguageError(
           "${ActionType.invokeAPI.name} requires the 'name' of the API.");
     }
-    
+
     return InvokeAPIAction(
         initiator: initiator,
         apiName: payload['name'],
@@ -501,13 +501,14 @@ class AuthorizeOAuthAction extends EnsembleAction {
 
   factory AuthorizeOAuthAction.fromYaml({YamlMap? payload}) {
     if (payload == null || payload['id'] == null) {
-      throw LanguageError('${ActionType.authorizeOAuthService.name} requires the service ID.');
+      throw LanguageError(
+          '${ActionType.authorizeOAuthService.name} requires the service ID.');
     }
-   return AuthorizeOAuthAction(
+    return AuthorizeOAuthAction(
       payload['id'],
       onResponse: EnsembleAction.fromYaml(payload['onResponse']),
       onError: EnsembleAction.fromYaml(payload['onError']),
-   );
+    );
   }
 }
 
