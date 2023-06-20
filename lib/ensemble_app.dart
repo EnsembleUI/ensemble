@@ -128,8 +128,11 @@ class EnsembleAppState extends State<EnsembleApp> {
   }
 
   void _handleErrors() {
+    ErrorWidget.builder = (FlutterErrorDetails errorDetails) {
+      return const SizedBox();
+    };
+
     FlutterError.onError = (details) {
-      print('onError else called');
       debugPrint(details.exception.toString());
       final state = errorKey.currentState;
       if (state != null && !state.isOverlay) {
@@ -139,7 +142,7 @@ class EnsembleAppState extends State<EnsembleApp> {
 
     // async error
     PlatformDispatcher.instance.onError = (error, stack) {
-      debugPrint("Async Error: " + error.toString());
+      debugPrint('Async Error: ${error.toString()}');
       final state = errorKey.currentState;
       if (state != null && !state.isOverlay) {
         state.createErrorOverlay(FlutterErrorDetails(exception: error));
@@ -253,40 +256,29 @@ class AppHandlerState extends State<AppHandler> {
     List<Widget> children = [];
 
     // main error and graphics
-    children.add(Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(Utils.randomize(["Oh Snap", "Uh Oh ..", "Foo Bar"]),
-            style: const TextStyle(
-                fontSize: 28,
-                color: Color(0xFFF7535A),
-                fontWeight: FontWeight.w500)),
-        const Image(
-            image: AssetImage("assets/images/error.png", package: 'ensemble'),
-            width: 200),
-        const SizedBox(height: 16),
-        // Text(
-        //   widget.errorText +
-        //       (widget.recovery != null ? '\n${widget.recovery}' : ''),
-        //   textAlign: TextAlign.center,
-        //   style: const TextStyle(fontSize: 16, height: 1.4),
-        // ),
-      ],
-    ));
-
-    // add detail
-    if (kDebugMode) {
-      children.add(Column(children: [
-        const SizedBox(height: 30),
-        const Text('DETAILS',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 10),
-        Text(errorDetails.exception.toString(),
-            textAlign: TextAlign.start,
-            style: const TextStyle(fontSize: 14, color: Colors.black87))
-      ]));
-    }
+    children.add(
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(Utils.randomize(["Oh Snap", "Uh Oh ..", "Foo Bar"]),
+              style: const TextStyle(
+                  fontSize: 28,
+                  color: Color(0xFFF7535A),
+                  fontWeight: FontWeight.w500)),
+          const Image(
+              image: AssetImage("assets/images/error.png", package: 'ensemble'),
+              width: 200),
+          const SizedBox(height: 30),
+          const Text('DETAILS',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 10),
+          Text(errorDetails.exception.toString(),
+              textAlign: TextAlign.start,
+              style: const TextStyle(fontSize: 14, color: Colors.black87))
+        ],
+      ),
+    );
 
     overlayEntry = OverlayEntry(
       // Create a new OverlayEntry.
@@ -299,8 +291,9 @@ class AppHandlerState extends State<AppHandler> {
               child: SingleChildScrollView(
                 padding: const EdgeInsets.only(left: 40, right: 40, top: 40),
                 child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: children),
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: children,
+                ),
               ),
             ),
           ),
