@@ -315,7 +315,8 @@ class NativeInvokable with Invokable {
   @override
   Map<String, Function> methods() {
     return {
-      ActionType.navigateScreen.name: navigateToScreen,
+      ActionType.navigateScreen.name: (inputs) => ScreenController()
+          .executeAction(_buildContext, NavigateScreenAction.fromMap(inputs)),
       ActionType.navigateModalScreen.name: navigateToModalScreen,
       ActionType.showDialog.name: showDialog,
       ActionType.invokeAPI.name: invokeAPI,
@@ -345,12 +346,6 @@ class NativeInvokable with Invokable {
       _buildContext,
       FileUploadAction.fromYaml(payload: YamlMap.wrap(inputMap)),
     );
-  }
-
-  void navigateToScreen(String screenName, [dynamic inputs]) {
-    Map<String, dynamic>? inputMap = Utils.getMap(inputs);
-    ScreenController().navigateToScreen(_buildContext,
-        screenName: screenName, pageArgs: inputMap, asModal: false);
   }
 
   void navigateToModalScreen(String screenName, [dynamic inputs]) {
