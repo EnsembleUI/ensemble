@@ -185,6 +185,13 @@
               "type": "string"
             }
           },
+          "headers": {
+            "type": "object",
+            "description": "Specify the key/value pairs for headers",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
           "body": {
             "type": "string",
             "description": "The request body to pass along with the URL"
