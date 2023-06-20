@@ -125,8 +125,7 @@ class AppModel {
     });
 
     // hardcoded to Ensemble public widget library
-    // initWidgetArtifactListeners(EnsembleDefinitionProvider.ensembleLibraryId);
-    initWidgetArtifactListeners(appId);
+    initWidgetArtifactListeners(EnsembleDefinitionProvider.ensembleLibraryId);
   }
 
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>
