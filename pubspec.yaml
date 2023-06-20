@@ -92,6 +92,8 @@ dependencies:
   flutter_web_auth_2: ^2.1.4
   flutter_secure_storage: ^8.0.0
   staggered_grid_view_flutter: ^0.0.4
+  dart_jsonwebtoken: ^2.8.2
+  flutter_dotenv: ^5.1.0
 
 dev_dependencies:
   flutter_test:
