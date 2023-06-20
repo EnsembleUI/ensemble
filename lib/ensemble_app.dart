@@ -19,6 +19,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:provider/provider.dart';
 import 'package:workmanager/workmanager.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 const String previewConfig = 'preview-config';
 const String backgroundUploadTask = 'backgroundUploadTask';
@@ -90,6 +91,7 @@ class EnsembleAppState extends State<EnsembleApp> {
   /// initialize our App with the the passed in config or
   /// read from our ensemble-config file.
   Future<EnsembleConfig> initApp() async {
+    await dotenv.load();
     Device().initDeviceInfo();
     await GetStorage.init();
     GetStorage().write(previewConfig, widget.isPreview);
