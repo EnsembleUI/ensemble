@@ -324,33 +324,37 @@ class Services {
     if (input is YamlMap && input['apiAuthorization'] is YamlMap) {
       tokenExchangeServer = input['apiAuthorization']['tokenExchangeServer'];
       if (input['apiAuthorization']['providers'] is YamlMap) {
-        (input['apiAuthorization']['providers'] as YamlMap).forEach((key, value) {
+        (input['apiAuthorization']['providers'] as YamlMap)
+            .forEach((key, value) {
           var redirectKey = ServiceName.values.from(key);
-          if (redirectKey != null && value is YamlMap &&
-              value['clientId'] is String && value['redirectUri'] is String) {
+          if (redirectKey != null &&
+              value is YamlMap &&
+              value['clientId'] is String &&
+              value['redirectUri'] is String) {
             var redirectValue = APICredential(
                 clientId: value['clientId'],
                 redirectUri: value['redirectUri'],
                 redirectScheme: value['redirectScheme']);
-            (credentials ??= <ServiceName, APICredential>{})[redirectKey] = redirectValue;
+            (credentials ??= <ServiceName, APICredential>{})[redirectKey] =
+                redirectValue;
           }
         });
       }
-
     }
-    return Services._(tokenExchangeServer: tokenExchangeServer, apiCredentials: credentials);
+    return Services._(
+        tokenExchangeServer: tokenExchangeServer, apiCredentials: credentials);
   }
 }
+
 class APICredential {
-  APICredential({required this.clientId, required this.redirectUri, this.redirectScheme});
+  APICredential(
+      {required this.clientId, required this.redirectUri, this.redirectScheme});
   String clientId;
   String redirectUri;
   String? redirectScheme;
 }
-enum ServiceName {
-  google,
-  microsoft
-}
+
+enum ServiceName { google, microsoft }
 
 /// user configuration for the App
 class UserAppConfig {
