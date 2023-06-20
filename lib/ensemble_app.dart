@@ -10,7 +10,6 @@ import 'package:ensemble/framework/widget/error_screen.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/notification_utils.dart';
-import 'package:ensemble/util/unfocus.dart';
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/foundation.dart';
@@ -20,6 +19,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:provider/provider.dart';
 import 'package:workmanager/workmanager.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 const String previewConfig = 'preview-config';
 const String backgroundUploadTask = 'backgroundUploadTask';
@@ -92,6 +92,7 @@ class EnsembleAppState extends State<EnsembleApp> {
   /// initialize our App with the the passed in config or
   /// read from our ensemble-config file.
   Future<EnsembleConfig> initApp() async {
+    await dotenv.load();
     Device().initDeviceInfo();
     await GetStorage.init();
     GetStorage().write(previewConfig, widget.isPreview);
@@ -207,6 +208,13 @@ class EnsembleAppState extends State<EnsembleApp> {
           //builder: (context, widget) => FlutterI18n.rootAppBuilder().call(context, widget)
         ),
       ),
+      useInheritedMediaQuery: widget.isPreview,
+      locale: widget.isPreview ? DevicePreview.locale(context) : null,
+      builder: widget.isPreview
+          ? DevicePreview.appBuilder
+          : FlutterI18n.rootAppBuilder(),
+      // TODO: this case translation issue on hot loading. Address this for RTL support
+      //builder: (context, widget) => FlutterI18n.rootAppBuilder().call(context, widget)
     );
   }
 
