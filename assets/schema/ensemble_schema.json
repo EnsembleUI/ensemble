@@ -1100,6 +1100,52 @@
         }
       }
     },
+    "StaggeredGrid-payload": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/Templated-payload"
+        },
+        {
+          "properties": {
+            "onItemTap": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Call Ensemble's built-in functions or execute code when tapping on an item in the list."
+            },
+            "children": {
+              "$ref": "#/$defs/Widgets"
+            },
+            "styles": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/baseStyles"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "crossAxisCount": {
+                      "type": "integer",
+                      "description": "Creates a list of staggered grid tile in the cross axis",
+                      "minimum": 0
+                    },
+                    "verticalGap": {
+                      "type": "integer",
+                      "description": "Vertical gap between the staggered grid tiles",
+                      "minimum": 0
+                    },
+                    "horizontalGap": {
+                      "type": "integer",
+                      "description": "Horizontal gap between the staggered grid tiles",
+                      "minimum": 0
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
     "ToggleButton-payload": {
       "type": "object",
       "properties": {
@@ -1994,102 +2040,104 @@
                 },
                 "options": {
                   "type": "object",
-                  "mode": {
-                    "type": "string",
-                    "description": "Modes of camera. It can be photo only i.e allows to capture just photo. Similarly video or can be both.",
-                    "enum": [
-                      "photo",
-                      "video",
-                      "both"
-                    ]
-                  },
-                  "initialCamera": {
-                    "type": "string",
-                    "description": "Initialize either camera, back or front",
-                    "enum": [
-                      "back",
-                      "front"
-                    ]
-                  },
-                  "allowGalleryPicker": {
-                    "type": "boolean",
-                    "description": "Allow users to pick media from gallery. Default (true)."
-                  },
-                  "allowCameraRotate": {
-                    "type": "boolean",
-                    "description": "Allow users rotate camera i.e back and front. Default (true)."
-                  },
-                  "allowFlashControl": {
-                    "type": "boolean",
-                    "description": "Allow users to control flash options. Default (true)."
-                  },
-                  "preview": {
-                    "type": "boolean",
-                    "description": "If set true, users can view captured/selected media."
-                  },
-                  "maxCount": {
-                    "type": "number",
-                    "description": "It used to control number of media that can be captured/selected"
-                  },
-                  "maxCountMessage": {
-                    "type": "string",
-                    "description": "Custom message to show when captured/selected media is greater than maxCount"
-                  },
-                  "permissionDeniedMessage": {
-                    "type": "string",
-                    "description": "Set custom message when access to camera is denied"
-                  },
-                  "nextButtonLabel": {
-                    "type": "string",
-                    "description": "Set custom label on next button."
-                  },
-                  "cameraRotateIcon": {
-                    "$ref": "#/$defs/Icon-payload",
-                    "description": "Set custom icon for camera rotate button"
-                  },
-                  "galleryPickerIcon": {
-                    "$ref": "#/$defs/Icon-payload",
-                    "description": "Set custom icon for gallery picker button"
-                  },
-                  "focusIcon": {
-                    "$ref": "#/$defs/Icon-payload",
-                    "description": "Set custom icon for focus node."
-                  },
-                  "assistAngle": {
-                    "type": "object",
-                    "description": "Show assist message whenever angle goes below minAngle or above minAngle",
-                    "properties": {
-                      "minAngle": {
-                        "type": "number",
-                        "description": "Minimum angle "
-                      },
-                      "maxAngle": {
-                        "type": "number",
-                        "description": "Maximum angle "
-                      },
-                      "maxAngleassistAngleMessage": {
-                        "type": "number",
-                        "description": "Custom message to show when condition is hit."
+                  "properties": {
+                    "mode": {
+                      "type": "string",
+                      "description": "Modes of camera. It can be photo only i.e allows to capture just photo. Similarly video or can be both.",
+                      "enum": [
+                        "photo",
+                        "video",
+                        "both"
+                      ]
+                    },
+                    "initialCamera": {
+                      "type": "string",
+                      "description": "Initialize either camera, back or front",
+                      "enum": [
+                        "back",
+                        "front"
+                      ]
+                    },
+                    "allowGalleryPicker": {
+                      "type": "boolean",
+                      "description": "Allow users to pick media from gallery. Default (true)."
+                    },
+                    "allowCameraRotate": {
+                      "type": "boolean",
+                      "description": "Allow users rotate camera i.e back and front. Default (true)."
+                    },
+                    "allowFlashControl": {
+                      "type": "boolean",
+                      "description": "Allow users to control flash options. Default (true)."
+                    },
+                    "preview": {
+                      "type": "boolean",
+                      "description": "If set true, users can view captured/selected media."
+                    },
+                    "maxCount": {
+                      "type": "number",
+                      "description": "It used to control number of media that can be captured/selected"
+                    },
+                    "maxCountMessage": {
+                      "type": "string",
+                      "description": "Custom message to show when captured/selected media is greater than maxCount"
+                    },
+                    "permissionDeniedMessage": {
+                      "type": "string",
+                      "description": "Set custom message when access to camera is denied"
+                    },
+                    "nextButtonLabel": {
+                      "type": "string",
+                      "description": "Set custom label on next button."
+                    },
+                    "cameraRotateIcon": {
+                      "$ref": "#/$defs/Icon-payload",
+                      "description": "Set custom icon for camera rotate button"
+                    },
+                    "galleryPickerIcon": {
+                      "$ref": "#/$defs/Icon-payload",
+                      "description": "Set custom icon for gallery picker button"
+                    },
+                    "focusIcon": {
+                      "$ref": "#/$defs/Icon-payload",
+                      "description": "Set custom icon for focus node."
+                    },
+                    "assistAngle": {
+                      "type": "object",
+                      "description": "Show assist message whenever angle goes below minAngle or above minAngle",
+                      "properties": {
+                        "minAngle": {
+                          "type": "number",
+                          "description": "Minimum angle "
+                        },
+                        "maxAngle": {
+                          "type": "number",
+                          "description": "Maximum angle "
+                        },
+                        "maxAngleassistAngleMessage": {
+                          "type": "number",
+                          "description": "Custom message to show when condition is hit."
+                        }
                       }
-                    }
-                  },
-                  "assistSpeed": {
-                    "type": "object",
-                    "description": "Show assist message whenever camera is moving faster than maxSpeed",
-                    "properties": {
-                      "maxSpeed": {
-                        "type": "number",
-                        "description": "Maxium speed in km/hr."
-                      },
-                      "assistSpeedMessage": {
-                        "type": "number",
-                        "description": "Custom message to show when condition is hit."
+                    },
+                    "assistSpeed": {
+                      "type": "object",
+                      "description": "Show assist message whenever camera is moving faster than maxSpeed",
+                      "properties": {
+                        "maxSpeed": {
+                          "type": "number",
+                          "description": "Maxium speed in km/hr."
+                        },
+                        "assistSpeedMessage": {
+                          "type": "number",
+                          "description": "Custom message to show when condition is hit."
+                        }
                       }
+                    },
+                    "autoCaptureInterval": {
+                      "type": "integer",
+                      "description": "If set any number n, on each n interval camera will capture"
                     }
-                  },
-                  "autoCaptureInterval": {
-                    "type": "integer",
-                    "description": "If set any number n, on each n interval camera will capture"
                   }
                 }
               }
@@ -3129,6 +3177,26 @@
             "ChartJs": {
               "$ref": "#/$defs/ChartJs-payload",
               "description": "Example from Kitchen Sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/5d7b84de-3bbd-456e-aeea-98e2c9f4c3c7"
+            }
+          }
+        },
+        {
+          "title": "ToggleButton",
+          "required": ["ToggleButton"],
+          "properties": {
+            "ToggleButton": {
+              "$ref": "#/$defs/ToggleButton-payload",
+              "description": "Example from Kitchen Sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/ZbquuD29B4D2PiQow1P5"
+            }
+          }
+        },
+        {
+          "title": "StaggeredGrid",
+          "required": ["StaggeredGrid"],
+          "properties": {
+            "StaggeredGrid": {
+              "$ref": "#/$defs/StaggeredGrid-payload",
+              "description": "Example from Kitchen Sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/a9iIs4wvgqDOhU4rN6GR"
             }
           }
         },

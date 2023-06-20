@@ -220,6 +220,7 @@ class DataContext {
       if (e.originalError is EnsembleError) {
         throw e.originalError;
       }
+
       /// not all JS errors are actual errors. API binding resolving to null
       /// may be considered a normal condition as binding may not resolved
       /// until later e.g myAPI.value.prettyDateTime()
@@ -314,19 +315,19 @@ class NativeInvokable with Invokable {
   @override
   Map<String, Function> methods() {
     return {
-      ActionType.navigateScreen.name: navigateToScreen,
+      ActionType.navigateScreen.name: (inputs) => ScreenController()
+          .executeAction(_buildContext, NavigateScreenAction.fromMap(inputs)),
       ActionType.navigateModalScreen.name: navigateToModalScreen,
       ActionType.showDialog.name: showDialog,
       ActionType.invokeAPI.name: invokeAPI,
       ActionType.stopTimer.name: stopTimer,
       ActionType.openCamera.name: showCamera,
       ActionType.navigateBack.name: navigateBack,
-      ActionType.showToast.name: (inputs) => ScreenController().executeAction(
-          _buildContext, ShowToastAction.fromMap(inputs)),
-      ActionType.startTimer.name: (inputs) => ScreenController().executeAction(
-          _buildContext, StartTimerAction.fromMap(inputs)),
+      ActionType.showToast.name: (inputs) => ScreenController()
+          .executeAction(_buildContext, ShowToastAction.fromMap(inputs)),
+      ActionType.startTimer.name: (inputs) => ScreenController()
+          .executeAction(_buildContext, StartTimerAction.fromMap(inputs)),
       ActionType.uploadFiles.name: uploadFiles,
-
       'debug': (value) => debugPrint('Debug: $value'),
       'copyToClipboard': (value) =>
           Clipboard.setData(ClipboardData(text: value))
@@ -345,12 +346,6 @@ class NativeInvokable with Invokable {
       _buildContext,
       FileUploadAction.fromYaml(payload: YamlMap.wrap(inputMap)),
     );
-  }
-
-  void navigateToScreen(String screenName, [dynamic inputs]) {
-    Map<String, dynamic>? inputMap = Utils.getMap(inputs);
-    ScreenController().navigateToScreen(_buildContext,
-        screenName: screenName, pageArgs: inputMap, asModal: false);
   }
 
   void navigateToModalScreen(String screenName, [dynamic inputs]) {
