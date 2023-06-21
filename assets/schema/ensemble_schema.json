@@ -1424,7 +1424,11 @@
         {
           "properties": {
             "children": {
-                "$ref": "#/$defs/DataRow"
+              "type": "array",
+              "description": "List of data row widgets",
+              "items": {
+                "$ref": "#/$defs/DataRows-payload"
+              }
             },
             "styles": {
               "allOf": [
@@ -1435,15 +1439,122 @@
                   "$ref": "#/$defs/boxLayoutStyles"
                 },
                 {
-                  "headingText": {
-                    "type": "object",
-                    "description": "Set the text style for the heading text",
-                    "$ref": "#/$defs/TextStyle"
-                  },
-                  "dataText": {
-                    "type": "object",
-                    "description": "Set the text style for the data item text",
-                    "$ref": "#/$defs/TextStyle"
+                  "type": "object",
+                  "properties": {
+                    "headingText": {
+                      "type": "object",
+                      "description": "Set the text style for the heading text",
+                      "allOf": [
+                        {
+                          "$ref": "#/$defs/TextStyle"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                              "font": {
+                                "type": "string",
+                                "description": "Default built-in style for this text",
+                                "enum": [
+                                  "heading",
+                                  "title",
+                                  "subtitle"
+                                ]
+                              },
+                              "fontSize": {
+                                "type": "integer",
+                                "minimum": 6
+                              },
+                              "fontWeight": {
+                                "$ref": "#/$defs/type-fontWeight"
+                              },
+                              "color": {
+                                "$ref": "#/$defs/typeColors"
+                              },
+                              "lineHeight": {
+                                "oneOf": [
+                                  {
+                                    "title": "string",
+                                    "type": "string"
+                                  },
+                                  {
+                                    "title": "number",
+                                    "type": "number"
+                                  },
+                                  {
+                                    "title": "enum",
+                                    "enum": [
+                                      "default",
+                                      "1.0",
+                                      "1.15",
+                                      "1.25",
+                                      "1.5",
+                                      "2.0",
+                                      "2.5"
+                                    ]
+                                  }
+                                ]
+                              }
+                          }
+                        }
+                      ]
+                    },
+                    "dataText": {
+                      "type": "object",
+                      "description": "Set the text style for the data item text",
+                       "allOf": [
+                        {
+                          "$ref": "#/$defs/TextStyle"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                              "font": {
+                                "type": "string",
+                                "description": "Default built-in style for this text",
+                                "enum": [
+                                  "heading",
+                                  "title",
+                                  "subtitle"
+                                ]
+                              },
+                              "fontSize": {
+                                "type": "integer",
+                                "minimum": 6
+                              },
+                              "fontWeight": {
+                                "$ref": "#/$defs/type-fontWeight"
+                              },
+                              "color": {
+                                "$ref": "#/$defs/typeColors"
+                              },
+                              "lineHeight": {
+                                "oneOf": [
+                                  {
+                                    "title": "string",
+                                    "type": "string"
+                                  },
+                                  {
+                                    "title": "number",
+                                    "type": "number"
+                                  },
+                                  {
+                                    "title": "enum",
+                                    "enum": [
+                                      "default",
+                                      "1.0",
+                                      "1.15",
+                                      "1.25",
+                                      "1.5",
+                                      "2.0",
+                                      "2.5"
+                                    ]
+                                  }
+                                ]
+                              }
+                          }
+                        }
+                      ]
+                    }
                   }
                 }
               ]
@@ -1498,18 +1609,31 @@
               "description": "Set the name to reference as you iterate through the array of data"
             },
             "template": {
-              "$ref": "#/$defs/DataRow",
+              "$ref": "#/$defs/DataRows-payload",
               "description": "The data row widget to render for each item"
             }
           }
         }
       }
     },
+    "DataRows-payload": {
+      "title": "DataRow",
+      "required": ["DataRow"],
+      "properties": {
+        "DataRow": {
+          "$ref": "#/$defs/DataRow",
+          "description": "Example from Kitchen Sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/c87f8b09-58e2-4c2f-99a1-cbbe9e25e9a5"
+        }
+      }
+    },
     "DataRow": {
-      "type": "array",
-      "description": "List of DataRow items",
-      "children": {
-        "$ref": "#/$defs/Widget"
+      "type": "object",
+      "description": "List of widgets",
+      "required": ["children"],
+      "properties": {
+        "children": {
+          "$ref": "#/$defs/Widgets"
+        }
       }
     },
     "DataColumn-Item": {
