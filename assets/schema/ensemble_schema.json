@@ -1303,6 +1303,9 @@
           "$ref": "#/$defs/Templated-payload"
         },
         {
+          "$ref": "#/$defs/IsTapEnabled"
+        },
+        {
           "properties": {
             "children": {
               "$ref": "#/$defs/Widgets"
@@ -1319,6 +1322,9 @@
       "allOf": [
         {
           "$ref": "#/$defs/Templated-payload"
+        },
+        {
+          "$ref": "#/$defs/IsTapEnabled"
         },
         {
           "properties": {
@@ -1401,6 +1407,12 @@
       "type": "object",
       "allOf": [
         {
+          "$ref": "#/$defs/Templated-payload"
+        },
+        {
+          "$ref": "#/$defs/IsTapEnabled"
+        },
+        {
           "properties": {
             "children": {
               "$ref": "#/$defs/Widgets"
@@ -1409,9 +1421,6 @@
               "$ref": "#/$defs/flexStyles"
             }
           }
-        },
-        {
-          "$ref": "#/$defs/Templated-payload"
         }
       ]
     },
@@ -3978,6 +3987,10 @@
         "children": {
           "$ref": "#/$defs/Widgets"
         },
+        "onTap": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Call Ensemble's built-in functions"
+        },
         "styles": {
           "allOf": [
             {
@@ -4524,6 +4537,15 @@
         "size": {
           "type": "integer",
           "minimum": 0
+        }
+      }
+    },
+    "IsTapEnabled": {
+      "type": "object",
+      "properties": {
+        "onTap": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Call Ensemble's built-in functions"
         }
       }
     }
