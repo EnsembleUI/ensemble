@@ -1435,18 +1435,25 @@
                   "$ref": "#/$defs/boxLayoutStyles"
                 },
                 {
-                  "headingTextStyle": {
+                  "headingText": {
                     "type": "object",
                     "description": "Set the text style for the heading text",
                     "$ref": "#/$defs/TextStyle"
                   },
-                  "dataTextStyle": {
+                  "dataText": {
                     "type": "object",
                     "description": "Set the text style for the data item text",
                     "$ref": "#/$defs/TextStyle"
                   }
                 }
               ]
+            },
+            "DataColumns": {
+              "type": "array",
+              "description": "List of data columns",
+              "children": {
+                "$ref": "#/$defs/DataColumn-Item"
+              }
             },
             "horizontalMargin": {
               "type": "integer",
@@ -1467,6 +1474,10 @@
               "type": "number",
               "description": "Set the padding for the column.",
               "minimum": 0
+            },
+            "dividerThickness": {
+              "type": "integer",
+              "description": "The thickness of the divider"
             }
           }
         }
@@ -1496,9 +1507,27 @@
     },
     "DataRow": {
       "type": "array",
-      "description": "List of widgets",
-      "items": {
+      "description": "List of DataRow items",
+      "children": {
         "$ref": "#/$defs/Widget"
+      }
+    },
+    "DataColumn-Item": {
+      "type": "object",
+      "description": "List of DataColumn items",
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "Set the label of the data column"
+        },
+        "type": {
+          "type": "string",
+          "description": "Set the type of the data column"
+        },
+        "tooltip": {
+          "type": "string",
+          "description": "Set the tooltip for the data column"
+        }
       }
     },
     "Stack-payload": {
