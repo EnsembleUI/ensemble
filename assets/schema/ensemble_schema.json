@@ -1451,7 +1451,7 @@
             "DataColumns": {
               "type": "array",
               "description": "List of data columns",
-              "children": {
+              "items": {
                 "$ref": "#/$defs/DataColumn-Item"
               }
             },
