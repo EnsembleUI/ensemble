@@ -10,7 +10,7 @@
 .svn/
 .firebase/
 .flutter-plugins-dependencies
-
+.vscode
 # IntelliJ related
 *.iml
 *.ipr
