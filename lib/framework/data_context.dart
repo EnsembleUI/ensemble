@@ -217,8 +217,8 @@ class DataContext {
       _contextMap['getStringValue'] = Utils.optionalString;
       return JSInterpreter.fromCode(codeBlock, _contextMap).evaluate();
     } on JSException catch (e) {
-      if (e.originalError is EnsembleError) {
-        throw e.originalError;
+      if (e.detailedError is EnsembleError) {
+        throw e.detailedError.toString();
       }
 
       /// not all JS errors are actual errors. API binding resolving to null
