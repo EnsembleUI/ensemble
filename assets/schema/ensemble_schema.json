@@ -1514,7 +1514,7 @@
     },
     "DataColumn-Item": {
       "type": "object",
-      "description": "List of DataColumn items",
+      "description": "A DataColumn item for the data grid",
       "properties": {
         "label": {
           "type": "string",
