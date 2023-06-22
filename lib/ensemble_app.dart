@@ -17,13 +17,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:provider/provider.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 const String previewConfig = 'preview-config';
 const String backgroundUploadTask = 'backgroundUploadTask';
-final errorKey = GlobalKey<AppHandlerState>();
+final errorKey = GlobalKey<AppErrorHandlerState>();
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
@@ -180,7 +179,7 @@ class EnsembleAppState extends State<EnsembleApp> {
     GetStorage().write(previewConfig, widget.isPreview);
 
     return MaterialApp(
-      home: AppHandler(
+      home: AppErrorHandler(
         key: errorKey,
         child: MaterialApp(
           navigatorKey: Utils.globalAppKey,
@@ -211,13 +210,6 @@ class EnsembleAppState extends State<EnsembleApp> {
           //builder: (context, widget) => FlutterI18n.rootAppBuilder().call(context, widget)
         ),
       ),
-      useInheritedMediaQuery: widget.isPreview,
-      locale: widget.isPreview ? DevicePreview.locale(context) : null,
-      builder: widget.isPreview
-          ? DevicePreview.appBuilder
-          : FlutterI18n.rootAppBuilder(),
-      // TODO: this case translation issue on hot loading. Address this for RTL support
-      //builder: (context, widget) => FlutterI18n.rootAppBuilder().call(context, widget)
     );
   }
 
@@ -230,74 +222,91 @@ class EnsembleAppState extends State<EnsembleApp> {
   }
 }
 
-class AppHandler extends StatefulWidget {
-  const AppHandler({super.key, required this.child});
+class ErrorState {
+  ErrorState({
+    required this.errorText,
+    this.recovery,
+    this.detailError,
+  });
+
+  final String errorText;
+  final String? recovery;
+  final String? detailError;
+}
+
+class AppErrorHandler extends StatefulWidget {
+  const AppErrorHandler({super.key, required this.child});
 
   final Widget child;
 
   @override
-  State<AppHandler> createState() => AppHandlerState();
+  State<AppErrorHandler> createState() => AppErrorHandlerState();
 }
 
-class AppHandlerState extends State<AppHandler> {
+class AppErrorHandlerState extends State<AppErrorHandler> {
   OverlayEntry? overlayEntry;
   bool isOverlay = false;
+  late ErrorState errorState;
 
-  void createErrorOverlay(FlutterErrorDetails? errorDetails) {
+  void createErrorOverlay(Object error) {
+    // Setup Error
+    _setupError(error);
     // Remove the existing OverlayEntry.
     removeErrorOverlay();
-    if (errorDetails == null) {
-      removeErrorOverlay();
-      return;
-    }
 
     assert(overlayEntry == null);
 
     List<Widget> children = [];
 
     // main error and graphics
-    children.add(
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(Utils.randomize(["Oh Snap", "Uh Oh ..", "Foo Bar"]),
-              style: const TextStyle(
-                  fontSize: 28,
-                  color: Color(0xFFF7535A),
-                  fontWeight: FontWeight.w500)),
-          const Image(
-              image: AssetImage("assets/images/error.png", package: 'ensemble'),
-              width: 200),
-          const SizedBox(height: 30),
-          const Text('DETAILS',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 10),
-          Text(errorDetails.exception.toString(),
-              textAlign: TextAlign.start,
-              style: const TextStyle(fontSize: 14, color: Colors.black87))
-        ],
-      ),
-    );
+    children.add(Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(Utils.randomize(["Oh Snap", "Uh Oh ..", "Foo Bar"]),
+            style: const TextStyle(
+                fontSize: 28,
+                color: Color(0xFFF7535A),
+                fontWeight: FontWeight.w500)),
+        const Image(
+            image: AssetImage("assets/images/error.png", package: 'ensemble'),
+            width: 200),
+        const SizedBox(height: 16),
+        Text(
+          errorState.errorText +
+              (errorState.recovery != null ? '\n${errorState.recovery}' : ''),
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 16, height: 1.4),
+        ),
+      ],
+    ));
+
+    // add detail
+    if (errorState.detailError != null && kDebugMode) {
+      children.add(Column(children: [
+        const SizedBox(height: 30),
+        const Text('DETAILS',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 10),
+        Text(errorState.detailError!,
+            textAlign: TextAlign.start,
+            style: const TextStyle(fontSize: 14, color: Colors.black87))
+      ]));
+    }
 
     overlayEntry = OverlayEntry(
       // Create a new OverlayEntry.
       builder: (BuildContext context) {
         // Align is used to position the highlight overlay
         // relative to the NavigationBar destination.
-        return MaterialApp(
-          home: Scaffold(
+        return Scaffold(
             body: SafeArea(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.only(left: 40, right: 40, top: 40),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: children,
-                ),
-              ),
-            ),
-          ),
-        );
+                child: SingleChildScrollView(
+                    padding:
+                        const EdgeInsets.only(left: 40, right: 40, top: 40),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: children))));
       },
     );
 
@@ -306,6 +315,50 @@ class AppHandlerState extends State<AppHandler> {
     Future.delayed(const Duration(milliseconds: 100), () {
       Overlay.of(context, debugRequiredFor: widget).insert(overlayEntry!);
     });
+  }
+
+  void _setupError(Object error) {
+    Object myError = error;
+    StackTrace? stackTrace;
+    if (error is FlutterErrorDetails) {
+      myError = error.exception;
+      stackTrace = error.stack;
+    }
+
+    // process the error
+    if (myError is EnsembleError) {
+      List<String> detail = [];
+      if (myError.detailError != null) {
+        detail.add(myError.detailError!);
+      }
+      errorState = ErrorState(
+        errorText: myError.error,
+        recovery: myError.recovery,
+        detailError: join(myError.detailError, stackTrace?.toString()),
+      );
+    } else if (myError is Error) {
+      errorState = ErrorState(
+        errorText: myError.toString(),
+        detailError:
+            join(myError.stackTrace?.toString(), stackTrace?.toString()),
+      );
+    } else {
+      errorState = ErrorState(
+        errorText: 'Unknown Error occurred.',
+        detailError: stackTrace?.toString(),
+      );
+    }
+  }
+
+  static String join(String? first, String? second) {
+    List<String> list = [];
+    if (first != null) {
+      list.add(first);
+    }
+    if (second != null) {
+      list.add(second);
+    }
+    return list.join('\n');
   }
 
   void removeErrorOverlay() {
@@ -317,8 +370,8 @@ class AppHandlerState extends State<AppHandler> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) => createErrorOverlay(null));
+    // WidgetsBinding.instance
+    //     .addPostFrameCallback((_) => createErrorOverlay(null));
   }
 
   @override
