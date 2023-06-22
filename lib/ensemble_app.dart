@@ -281,7 +281,7 @@ class AppErrorHandlerState extends State<AppErrorHandler> {
     ));
 
     // add detail
-    if (errorState.detailError != null && kDebugMode) {
+    if (errorState.detailError != null) {
       children.add(Column(children: [
         const SizedBox(height: 30),
         const Text('DETAILS',
