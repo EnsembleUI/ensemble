@@ -1303,6 +1303,9 @@
           "$ref": "#/$defs/Templated-payload"
         },
         {
+          "$ref": "#/$defs/IsTapEnabled"
+        },
+        {
           "properties": {
             "children": {
               "$ref": "#/$defs/Widgets"
@@ -1319,6 +1322,9 @@
       "allOf": [
         {
           "$ref": "#/$defs/Templated-payload"
+        },
+        {
+          "$ref": "#/$defs/IsTapEnabled"
         },
         {
           "properties": {
@@ -1401,6 +1407,12 @@
       "type": "object",
       "allOf": [
         {
+          "$ref": "#/$defs/Templated-payload"
+        },
+        {
+          "$ref": "#/$defs/IsTapEnabled"
+        },
+        {
           "properties": {
             "children": {
               "$ref": "#/$defs/Widgets"
@@ -1409,9 +1421,6 @@
               "$ref": "#/$defs/flexStyles"
             }
           }
-        },
-        {
-          "$ref": "#/$defs/Templated-payload"
         }
       ]
     },
@@ -1424,7 +1433,11 @@
         {
           "properties": {
             "children": {
-                "$ref": "#/$defs/DataRow"
+              "type": "array",
+              "description": "List of data row widgets",
+              "items": {
+                "$ref": "#/$defs/DataRows-payload"
+              }
             },
             "styles": {
               "allOf": [
@@ -1435,18 +1448,132 @@
                   "$ref": "#/$defs/boxLayoutStyles"
                 },
                 {
-                  "headingTextStyle": {
-                    "type": "object",
-                    "description": "Set the text style for the heading text",
-                    "$ref": "#/$defs/TextStyle"
-                  },
-                  "dataTextStyle": {
-                    "type": "object",
-                    "description": "Set the text style for the data item text",
-                    "$ref": "#/$defs/TextStyle"
+                  "type": "object",
+                  "properties": {
+                    "headingText": {
+                      "type": "object",
+                      "description": "Set the text style for the heading text",
+                      "allOf": [
+                        {
+                          "$ref": "#/$defs/TextStyle"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                              "font": {
+                                "type": "string",
+                                "description": "Default built-in style for this text",
+                                "enum": [
+                                  "heading",
+                                  "title",
+                                  "subtitle"
+                                ]
+                              },
+                              "fontSize": {
+                                "type": "integer",
+                                "minimum": 6
+                              },
+                              "fontWeight": {
+                                "$ref": "#/$defs/type-fontWeight"
+                              },
+                              "color": {
+                                "$ref": "#/$defs/typeColors"
+                              },
+                              "lineHeight": {
+                                "oneOf": [
+                                  {
+                                    "title": "string",
+                                    "type": "string"
+                                  },
+                                  {
+                                    "title": "number",
+                                    "type": "number"
+                                  },
+                                  {
+                                    "title": "enum",
+                                    "enum": [
+                                      "default",
+                                      "1.0",
+                                      "1.15",
+                                      "1.25",
+                                      "1.5",
+                                      "2.0",
+                                      "2.5"
+                                    ]
+                                  }
+                                ]
+                              }
+                          }
+                        }
+                      ]
+                    },
+                    "dataText": {
+                      "type": "object",
+                      "description": "Set the text style for the data item text",
+                       "allOf": [
+                        {
+                          "$ref": "#/$defs/TextStyle"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                              "font": {
+                                "type": "string",
+                                "description": "Default built-in style for this text",
+                                "enum": [
+                                  "heading",
+                                  "title",
+                                  "subtitle"
+                                ]
+                              },
+                              "fontSize": {
+                                "type": "integer",
+                                "minimum": 6
+                              },
+                              "fontWeight": {
+                                "$ref": "#/$defs/type-fontWeight"
+                              },
+                              "color": {
+                                "$ref": "#/$defs/typeColors"
+                              },
+                              "lineHeight": {
+                                "oneOf": [
+                                  {
+                                    "title": "string",
+                                    "type": "string"
+                                  },
+                                  {
+                                    "title": "number",
+                                    "type": "number"
+                                  },
+                                  {
+                                    "title": "enum",
+                                    "enum": [
+                                      "default",
+                                      "1.0",
+                                      "1.15",
+                                      "1.25",
+                                      "1.5",
+                                      "2.0",
+                                      "2.5"
+                                    ]
+                                  }
+                                ]
+                              }
+                          }
+                        }
+                      ]
+                    }
                   }
                 }
               ]
+            },
+            "DataColumns": {
+              "type": "array",
+              "description": "List of data columns",
+              "items": {
+                "$ref": "#/$defs/DataColumn-Item"
+              }
             },
             "horizontalMargin": {
               "type": "integer",
@@ -1467,6 +1594,10 @@
               "type": "number",
               "description": "Set the padding for the column.",
               "minimum": 0
+            },
+            "dividerThickness": {
+              "type": "integer",
+              "description": "The thickness of the divider"
             }
           }
         }
@@ -1487,18 +1618,49 @@
               "description": "Set the name to reference as you iterate through the array of data"
             },
             "template": {
-              "$ref": "#/$defs/DataRow",
+              "$ref": "#/$defs/DataRows-payload",
               "description": "The data row widget to render for each item"
             }
           }
         }
       }
     },
+    "DataRows-payload": {
+      "title": "DataRow",
+      "required": ["DataRow"],
+      "properties": {
+        "DataRow": {
+          "$ref": "#/$defs/DataRow",
+          "description": "Example from Kitchen Sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/c87f8b09-58e2-4c2f-99a1-cbbe9e25e9a5"
+        }
+      }
+    },
     "DataRow": {
-      "type": "array",
+      "type": "object",
       "description": "List of widgets",
-      "items": {
-        "$ref": "#/$defs/Widget"
+      "required": ["children"],
+      "properties": {
+        "children": {
+          "$ref": "#/$defs/Widgets"
+        }
+      }
+    },
+    "DataColumn-Item": {
+      "type": "object",
+      "description": "A DataColumn item for the data grid",
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "Set the label of the data column"
+        },
+        "type": {
+          "type": "string",
+          "description": "Set the type of the data column"
+        },
+        "tooltip": {
+          "type": "string",
+          "description": "Set the tooltip for the data column"
+        }
       }
     },
     "Stack-payload": {
@@ -3825,6 +3987,10 @@
         "children": {
           "$ref": "#/$defs/Widgets"
         },
+        "onTap": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Call Ensemble's built-in functions"
+        },
         "styles": {
           "allOf": [
             {
@@ -4371,6 +4537,15 @@
         "size": {
           "type": "integer",
           "minimum": 0
+        }
+      }
+    },
+    "IsTapEnabled": {
+      "type": "object",
+      "properties": {
+        "onTap": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Call Ensemble's built-in functions"
         }
       }
     }
