@@ -135,7 +135,7 @@ class EnsembleAppState extends State<EnsembleApp> {
       debugPrint(details.exception.toString());
       final state = errorKey.currentState;
       if (state != null && !state.isOverlay) {
-        state.createErrorOverlay(FlutterErrorDetails(exception: details));
+        state.createErrorOverlay(details);
       }
     };
 
@@ -144,7 +144,7 @@ class EnsembleAppState extends State<EnsembleApp> {
       debugPrint('Async Error: ${error.toString()}');
       final state = errorKey.currentState;
       if (state != null && !state.isOverlay) {
-        state.createErrorOverlay(FlutterErrorDetails(exception: error));
+        state.createErrorOverlay(error);
       }
 
       return true;
@@ -259,39 +259,45 @@ class AppErrorHandlerState extends State<AppErrorHandler> {
     List<Widget> children = [];
 
     // main error and graphics
-    children.add(Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(Utils.randomize(["Oh Snap", "Uh Oh ..", "Foo Bar"]),
-            style: const TextStyle(
-                fontSize: 28,
-                color: Color(0xFFF7535A),
-                fontWeight: FontWeight.w500)),
-        const Image(
-            image: AssetImage("assets/images/error.png", package: 'ensemble'),
-            width: 200),
-        const SizedBox(height: 16),
-        Text(
-          errorState.errorText +
-              (errorState.recovery != null ? '\n${errorState.recovery}' : ''),
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 16, height: 1.4),
-        ),
-      ],
-    ));
+    children.add(
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(Utils.randomize(["Oh Snap", "Uh Oh ..", "Foo Bar"]),
+              style: const TextStyle(
+                  fontSize: 28,
+                  color: Color(0xFFF7535A),
+                  fontWeight: FontWeight.w500)),
+          const Image(
+              image: AssetImage("assets/images/error.png", package: 'ensemble'),
+              width: 200),
+          const SizedBox(height: 16),
+          Text(
+            errorState.errorText +
+                (errorState.recovery != null ? '\n${errorState.recovery}' : ''),
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 16, height: 1.4),
+          ),
+        ],
+      ),
+    );
 
     // add detail
     if (errorState.detailError != null) {
-      children.add(Column(children: [
-        const SizedBox(height: 30),
-        const Text('DETAILS',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 10),
-        Text(errorState.detailError!,
-            textAlign: TextAlign.start,
-            style: const TextStyle(fontSize: 14, color: Colors.black87))
-      ]));
+      children.add(
+        Column(
+          children: [
+            const SizedBox(height: 30),
+            const Text('DETAILS',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 10),
+            Text(errorState.detailError!,
+                textAlign: TextAlign.start,
+                style: const TextStyle(fontSize: 14, color: Colors.black87))
+          ],
+        ),
+      );
     }
 
     overlayEntry = OverlayEntry(
