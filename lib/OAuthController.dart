@@ -103,6 +103,8 @@ class OAuthController {
       return getGoogleServicePayload();
     } else if (serviceId == 'microsoft') {
       return getMicrosoftServicePayload();
+    } else if (serviceId == 'yahoo') {
+      return getYahooServicePayload();
     }
     return Future.value(null);
   }
@@ -127,6 +129,19 @@ class OAuthController {
       return Future.value(OAuthServicePayload(
           authorizationURL:
               'https://login.microsoftonline.com/f3a999e9-2d73-4a55-86fb-0f90c0294c5f/oauth2/v2.0/authorize',
+          clientId: credential.clientId,
+          redirectUri: credential.redirectUri,
+          redirectScheme: credential.redirectScheme));
+    }
+    return null;
+  }
+
+  Future<OAuthServicePayload?> getYahooServicePayload() async {
+    APICredential? credential = _getAPICredential(ServiceName.yahoo);
+    if (credential != null) {
+      return Future.value(OAuthServicePayload(
+          authorizationURL:
+          'https://api.login.yahoo.com/oauth2/request_auth',
           clientId: credential.clientId,
           redirectUri: credential.redirectUri,
           redirectScheme: credential.redirectScheme));

@@ -73,7 +73,7 @@ class WidgetUtils {
   }
 }
 
-class TextController extends BoxController {
+class GenericTextController extends BoxController {
   // set from caller
   String? text;
   String? textAlign;
@@ -92,7 +92,7 @@ class TextController extends BoxController {
 }
 
 class TextUtils {
-  static void setStyles(Map styles, TextController controller) {
+  static void setStyles(Map styles, GenericTextController controller) {
     Map<String, Function> setters = styleSetters(controller);
     styles.forEach((key, value) {
       if (setters.containsKey(key)) {
@@ -103,7 +103,7 @@ class TextUtils {
     });
   }
 
-  static Map<String, Function> styleSetters(TextController _controller) {
+  static Map<String, Function> styleSetters(GenericTextController _controller) {
     return {
       'font': (value) => _controller.font = Utils.optionalString(value),
       'fontFamily': (value) =>
@@ -119,7 +119,7 @@ class TextUtils {
     };
   }
 
-  static flutter.Text buildText(TextController controller) {
+  static flutter.Text buildText(GenericTextController controller) {
     FontWeight? fontWeight;
     double? fontSize;
     Color? fontColor;
