@@ -343,12 +343,12 @@
                 "textStyle": {
                   "type": "object",
                   "description": "Styling for regular text. Default to theme's bodyMedium styling",
-                  "$ref": "#/$defs/TextStyle"
+                  "$ref": "#/$defs/OldTextStyle"
                 },
                 "linkStyle": {
                   "type": "object",
                   "description": "Styling for URL",
-                  "$ref": "#/$defs/TextStyle"
+                  "$ref": "#/$defs/OldTextStyle"
                 }
               }
             },
@@ -1455,7 +1455,7 @@
                       "description": "Set the text style for the heading text",
                       "allOf": [
                         {
-                          "$ref": "#/$defs/TextStyle"
+                          "$ref": "#/$defs/OldTextStyle"
                         },
                         {
                           "type": "object",
@@ -1512,7 +1512,7 @@
                       "description": "Set the text style for the data item text",
                        "allOf": [
                         {
-                          "$ref": "#/$defs/TextStyle"
+                          "$ref": "#/$defs/OldTextStyle"
                         },
                         {
                           "type": "object",
@@ -4390,6 +4390,67 @@
       }
     },
     "TextStyle": {
+      "type": "object",
+      "properties": {
+        "fontFamily": {
+          "type": "string"
+        },
+        "fontSize": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "lineHeightFactor": {
+          "type": "number",
+          "description": "A multiple of the fontSize to determine the line height. (e.g. 2.0 means the line height is double the space the font size occupies). Default null. (note that 1.0 is not the default depending on the font)"
+        },
+        "fontWeight": {
+          "$ref": "#/$defs/type-fontWeight"
+        },
+        "isItalic": {
+          "type": "boolean"
+        },
+        "color": {
+          "$ref": "#/$defs/typeColors"
+        },
+        "backgroundColor": {
+          "$ref": "#/$defs/typeColors"
+        },
+        "decoration": {
+          "type": "string",
+          "enum": [
+            "none",
+            "lineThrough",
+            "underline",
+            "overline"
+          ]
+        },
+        "decorationStyle": {
+          "type": "string",
+          "enum": [
+            "solid", "double", "dotted", "dashed", "wavy"
+          ],
+          "description": "The style of the decoration (ignored if decoration=none)"
+        },
+        "overflow": {
+          "type": "string",
+          "description": "Set treatment of text longer than available space",
+          "enum": [
+            "clip",
+            "fade",
+            "ellipsis",
+            "visible"
+          ]
+        },
+        "letterSpacing": {
+          "type": "integer"
+        },
+        "wordSpacing": {
+          "type": "integer"
+        }
+      }
+    },
+    "OldTextStyle": {
       "type": "object",
       "properties": {
         "fontSize": {

@@ -150,11 +150,11 @@ class EnsembleDataRowState extends State<EnsembleDataRow> {
 class DataGridController extends BoxController {
   List<Widget>? children;
   double? horizontalMargin;
-  TextController? headingTextController;
+  GenericTextController? headingTextController;
   double? dataRowHeight;
   double? headingRowHeight;
   double? columnSpacing;
-  TextController? dataTextController;
+  GenericTextController? dataTextController;
   double? dividerThickness;
   TableBorder border = const TableBorder();
   EnsembleAction? onItemTap;
@@ -165,11 +165,11 @@ class DataGridController extends BoxController {
     Map<String, Function> setters = super.getBaseSetters();
     setters.addAll({
       'headingText': (Map styles) {
-        headingTextController = TextController();
+        headingTextController = GenericTextController();
         TextUtils.setStyles(styles, headingTextController!);
       },
       'dataText': (Map styles) {
-        dataTextController = TextController();
+        dataTextController = GenericTextController();
         TextUtils.setStyles(styles, dataTextController!);
       },
     });

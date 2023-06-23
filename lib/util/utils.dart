@@ -1,4 +1,6 @@
+import 'dart:ffi';
 import 'dart:math';
+import 'dart:ui';
 
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
@@ -372,37 +374,38 @@ class Utils {
     return null;
   }
 
-  static TextStyle? getTextStyle(dynamic textStyle) {
-    if (textStyle is YamlMap) {
-      String? fontFamily = Utils.optionalString(textStyle['fontFamily']);
-      int? fontSize =
-          Utils.optionalInt(textStyle['fontSize'], min: 1, max: 100);
-      Color? color = Utils.getColor(textStyle['color']);
-      FontWeight? fontWeight = getFontWeight(textStyle['fontWeight']);
+  static TextStyle? getTextStyle(dynamic style) {
+    if (style is Map) {
+      return TextStyle(
+        fontFamily: Utils.optionalString(style['fontFamily']),
+        fontSize: Utils.optionalInt(style['fontSize'], min: 1, max: 1000)?.toDouble(),
+        height: Utils.optionalDouble(style['lineHeightFactor'], min: 0.1, max: 10),
+        fontWeight: getFontWeight(style['fontWeight']),
+        fontStyle: Utils.optionalBool(style['isItalic']) == true ? FontStyle.italic : FontStyle.normal,
+        color: Utils.getColor(style['color']),
+        backgroundColor: Utils.getColor(style['backgroundColor']),
+        decoration: _getDecoration(style['decoration']),
+        decorationStyle: TextDecorationStyle.values.from(style['decorationStyle']),
 
-      TextDecoration? decoration;
-      switch (textStyle['decoration']) {
+        overflow: TextOverflow.values.from(style['overflow']),
+        letterSpacing: Utils.optionalDouble(style['letterSpacing']),
+        wordSpacing: Utils.optionalDouble(style['wordSpacing'])
+      );
+    } else if (style is String) {
+
+    }
+    return null;
+  }
+
+  static TextDecoration? _getDecoration(dynamic decoration) {
+    if (decoration is String) {
+      switch (decoration) {
         case 'underline':
-          decoration = TextDecoration.underline;
-          break;
+          return TextDecoration.underline;
         case 'overline':
-          decoration = TextDecoration.overline;
-          break;
+          return TextDecoration.overline;
         case 'lineThrough':
-          decoration = TextDecoration.lineThrough;
-          break;
-        case 'none':
-          decoration = TextDecoration.none;
-          break;
-      }
-
-      if (fontSize != null || color != null) {
-        return TextStyle(
-            fontFamily: fontFamily,
-            fontSize: fontSize?.toDouble(),
-            color: color,
-            decoration: decoration,
-            fontWeight: fontWeight);
+          return TextDecoration.lineThrough;
       }
     }
     return null;

@@ -354,7 +354,7 @@ class APICredential {
   String? redirectScheme;
 }
 
-enum ServiceName { google, microsoft }
+enum ServiceName { google, microsoft, yahoo }
 
 /// user configuration for the App
 class UserAppConfig {
