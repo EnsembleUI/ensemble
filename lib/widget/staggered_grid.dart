@@ -93,6 +93,7 @@ class EnsembleStaggeredGridState extends WidgetState<EnsembleStaggeredGrid>
     final items = buildItems();
 
     return StaggeredGridView.countBuilder(
+      shrinkWrap: true,
       crossAxisCount: widget._controller.crossAxisCount ?? 4,
       mainAxisSpacing: widget._controller.verticalGap ?? 0,
       crossAxisSpacing: widget._controller.horizontalGap ?? 0,
