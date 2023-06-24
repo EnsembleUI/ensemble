@@ -243,37 +243,11 @@
               "$ref": "#/$defs/boxStyles"
             },
             {
+              "$ref": "#/$defs/TextStyle"
+            },
+            {
               "type": "object",
               "properties": {
-                "font": {
-                  "type": "string",
-                  "description": "Default built-in style for this text",
-                  "enum": [
-                    "heading",
-                    "title",
-                    "subtitle"
-                  ]
-                },
-                "fontSize": {
-                  "type": "integer",
-                  "minimum": 6
-                },
-                "fontWeight": {
-                  "$ref": "#/$defs/type-fontWeight"
-                },
-                "color": {
-                  "$ref": "#/$defs/typeColors"
-                },
-                "overflow": {
-                  "type": "string",
-                  "description": "Set treatment of text longer than available space",
-                  "enum": [
-                    "wrap",
-                    "visible",
-                    "clip",
-                    "ellipsis"
-                  ]
-                },
                 "maxLines": {
                   "type": "integer",
                   "minimum": 1
@@ -285,41 +259,6 @@
                     "end",
                     "center",
                     "justify"
-                  ]
-                },
-                "textStyle": {
-                  "type": "string",
-                  "enum": [
-                    "normal",
-                    "italic",
-                    "underline",
-                    "strikethrough",
-                    "italic_underline",
-                    "italic_strikethrough"
-                  ]
-                },
-                "lineHeight": {
-                  "oneOf": [
-                    {
-                      "title": "string",
-                      "type": "string"
-                    },
-                    {
-                      "title": "number",
-                      "type": "number"
-                    },
-                    {
-                      "title": "enum",
-                      "enum": [
-                        "default",
-                        "1.0",
-                        "1.15",
-                        "1.25",
-                        "1.5",
-                        "2.0",
-                        "2.5"
-                      ]
-                    }
                   ]
                 }
               }
