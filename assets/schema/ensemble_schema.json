@@ -243,11 +243,11 @@
               "$ref": "#/$defs/boxStyles"
             },
             {
-              "$ref": "#/$defs/TextStyle"
-            },
-            {
               "type": "object",
               "properties": {
+                "textStyle": {
+                  "$ref": "#/$defs/TextStyle"
+                },
                 "maxLines": {
                   "type": "integer",
                   "minimum": 1
