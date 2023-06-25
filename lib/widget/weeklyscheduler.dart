@@ -297,7 +297,7 @@ class WeeklySchedulerController extends WidgetController {
     for (int i = 0; i < dayLabels.length; i++) {
       DailyScheduler scheduler = DailyScheduler(dailyControllers[i]);
       if (displayDayLabels) {
-        widget_utils.TextController tc = widget_utils.TextController();
+        widget_utils.GenericTextController tc = widget_utils.GenericTextController();
         widget_utils.TextUtils.setStyles(dayLabelStyles, tc);
         tc.overflow = 'ellipsis';
         tc.text = dayLabels[i];

@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:ui';
 
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
@@ -271,6 +272,11 @@ class Utils {
     return null;
   }
 
+  static YamlMap? getYamlMap(dynamic value) {
+    Map? map = getMap(value);
+    return map != null ? YamlMap.wrap(map) : null;
+  }
+
   static Color? getColor(dynamic value) {
     if (value is String) {
       switch (value) {
@@ -367,37 +373,38 @@ class Utils {
     return null;
   }
 
-  static TextStyle? getTextStyle(dynamic textStyle) {
-    if (textStyle is YamlMap) {
-      String? fontFamily = Utils.optionalString(textStyle['fontFamily']);
-      int? fontSize =
-          Utils.optionalInt(textStyle['fontSize'], min: 1, max: 100);
-      Color? color = Utils.getColor(textStyle['color']);
-      FontWeight? fontWeight = getFontWeight(textStyle['fontWeight']);
+  static TextStyle? getTextStyle(dynamic style) {
+    if (style is Map) {
+      return TextStyle(
+        fontFamily: Utils.optionalString(style['fontFamily']),
+        fontSize: Utils.optionalInt(style['fontSize'], min: 1, max: 1000)?.toDouble(),
+        height: Utils.optionalDouble(style['lineHeightFactor'], min: 0.1, max: 10),
+        fontWeight: getFontWeight(style['fontWeight']),
+        fontStyle: Utils.optionalBool(style['isItalic']) == true ? FontStyle.italic : FontStyle.normal,
+        color: Utils.getColor(style['color']),
+        backgroundColor: Utils.getColor(style['backgroundColor']),
+        decoration: _getDecoration(style['decoration']),
+        decorationStyle: TextDecorationStyle.values.from(style['decorationStyle']),
 
-      TextDecoration? decoration;
-      switch (textStyle['decoration']) {
+        overflow: TextOverflow.values.from(style['overflow']),
+        letterSpacing: Utils.optionalDouble(style['letterSpacing']),
+        wordSpacing: Utils.optionalDouble(style['wordSpacing'])
+      );
+    } else if (style is String) {
+
+    }
+    return null;
+  }
+
+  static TextDecoration? _getDecoration(dynamic decoration) {
+    if (decoration is String) {
+      switch (decoration) {
         case 'underline':
-          decoration = TextDecoration.underline;
-          break;
+          return TextDecoration.underline;
         case 'overline':
-          decoration = TextDecoration.overline;
-          break;
+          return TextDecoration.overline;
         case 'lineThrough':
-          decoration = TextDecoration.lineThrough;
-          break;
-        case 'none':
-          decoration = TextDecoration.none;
-          break;
-      }
-
-      if (fontSize != null || color != null) {
-        return TextStyle(
-            fontFamily: fontFamily,
-            fontSize: fontSize?.toDouble(),
-            color: color,
-            decoration: decoration,
-            fontWeight: fontWeight);
+          return TextDecoration.lineThrough;
       }
     }
     return null;
@@ -614,14 +621,13 @@ class Utils {
       List<String> tokens = [];
       for (final inputEntry in input) {
         if (inputEntry is String) {
-          DataExpression? dataEntry = _parseDataExpressionFromString(inputEntry);
+          DataExpression? dataEntry =
+              _parseDataExpressionFromString(inputEntry);
           tokens.addAll(dataEntry?.expressions ?? []);
         }
       }
       if (tokens.isNotEmpty) {
-        return DataExpression(
-            rawExpression: input,
-            expressions: tokens);
+        return DataExpression(rawExpression: input, expressions: tokens);
       }
     } else if (input is Map) {
       // no recursive, just a straight map is good
@@ -646,9 +652,8 @@ class Utils {
     RegExpMatch? match = expressionAndAst.firstMatch(input);
     if (match != null) {
       return DataExpression(
-        rawExpression: match.group(1)!,
-        expressions: getExpressionTokens(match.group(1)!)
-      );
+          rawExpression: match.group(1)!,
+          expressions: getExpressionTokens(match.group(1)!));
     }
     // fallback to match <expression> only. This is if we don't turn on AST
     List<String> tokens = getExpressionTokens(input);

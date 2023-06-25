@@ -52,6 +52,13 @@ class PageState extends State<Page> {
   int selectedPage = 0;
 
   @override
+  void didUpdateWidget(covariant Page oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // widget can be re-created at any time, we need to keep the Scope intact.
+    widget.rootScopeManager = _scopeManager;
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     // if our widget changes, we need to save the scopeManager to it.
