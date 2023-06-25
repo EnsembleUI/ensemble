@@ -29,6 +29,9 @@ class Maps extends StatefulWidget
   MyController get controller => _controller;
 
   @override
+  List<String> passthroughSetters() => ['markers'];
+
+  @override
   Map<String, Function> setters() {
     return {
       'width': (value) => _controller.width = Utils.optionalInt(value),
