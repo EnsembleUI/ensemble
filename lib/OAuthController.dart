@@ -140,8 +140,7 @@ class OAuthController {
     APICredential? credential = _getAPICredential(ServiceName.yahoo);
     if (credential != null) {
       return Future.value(OAuthServicePayload(
-          authorizationURL:
-          'https://api.login.yahoo.com/oauth2/request_auth',
+          authorizationURL: 'https://api.login.yahoo.com/oauth2/request_auth',
           clientId: credential.clientId,
           redirectUri: credential.redirectUri,
           redirectScheme: credential.redirectScheme));
