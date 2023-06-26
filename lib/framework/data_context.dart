@@ -100,7 +100,7 @@ class DataContext {
   /// evaluate single inline binding expression (getters only) e.g Hello ${myVar.name}.
   /// Note that this expects the variable (if any) to be inside ${...}
   dynamic eval(dynamic expression) {
-    if (expression is YamlMap) {
+    if (expression is Map) {
       return _evalMap(expression);
     }
     if (expression is List) {
@@ -144,7 +144,7 @@ class DataContext {
     return value;
   }
 
-  Map<String, dynamic> _evalMap(YamlMap yamlMap) {
+  Map<String, dynamic> _evalMap(Map yamlMap) {
     Map<String, dynamic> map = {};
     yamlMap.forEach((k, v) {
       dynamic value;
@@ -217,6 +217,10 @@ class DataContext {
       _contextMap['getStringValue'] = Utils.optionalString;
       return JSInterpreter.fromCode(codeBlock, _contextMap).evaluate();
     } on JSException catch (e) {
+      if (e.detailedError is EnsembleError) {
+        throw e.detailedError.toString();
+      }
+
       /// not all JS errors are actual errors. API binding resolving to null
       /// may be considered a normal condition as binding may not resolved
       /// until later e.g myAPI.value.prettyDateTime()
@@ -311,13 +315,18 @@ class NativeInvokable with Invokable {
   @override
   Map<String, Function> methods() {
     return {
-      ActionType.navigateScreen.name: navigateToScreen,
+      ActionType.navigateScreen.name: (inputs) => ScreenController()
+          .executeAction(_buildContext, NavigateScreenAction.fromMap(inputs)),
       ActionType.navigateModalScreen.name: navigateToModalScreen,
       ActionType.showDialog.name: showDialog,
       ActionType.invokeAPI.name: invokeAPI,
       ActionType.stopTimer.name: stopTimer,
       ActionType.openCamera.name: showCamera,
       ActionType.navigateBack.name: navigateBack,
+      ActionType.showToast.name: (inputs) => ScreenController()
+          .executeAction(_buildContext, ShowToastAction.fromMap(inputs)),
+      ActionType.startTimer.name: (inputs) => ScreenController()
+          .executeAction(_buildContext, StartTimerAction.fromMap(inputs)),
       ActionType.uploadFiles.name: uploadFiles,
       'debug': (value) => debugPrint('Debug: $value'),
       'copyToClipboard': (value) =>
@@ -337,12 +346,6 @@ class NativeInvokable with Invokable {
       _buildContext,
       FileUploadAction.fromYaml(payload: YamlMap.wrap(inputMap)),
     );
-  }
-
-  void navigateToScreen(String screenName, [dynamic inputs]) {
-    Map<String, dynamic>? inputMap = Utils.getMap(inputs);
-    ScreenController().navigateToScreen(_buildContext,
-        screenName: screenName, pageArgs: inputMap, asModal: false);
   }
 
   void navigateToModalScreen(String screenName, [dynamic inputs]) {

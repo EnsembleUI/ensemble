@@ -915,7 +915,7 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
         ShowToastAction(
             type: ToastType.error,
             message: errorMessage,
-            position: 'top',
+            alignment: Alignment.topCenter,
             dismissible: true,
             duration: 3),
         null);
@@ -1137,7 +1137,7 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
             ShowToastAction(
                 type: ToastType.error,
                 message: errorMessage,
-                position: 'top',
+                alignment: Alignment.topCenter,
                 dismissible: true,
                 duration: 3),
             null);

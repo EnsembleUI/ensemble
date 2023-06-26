@@ -14,20 +14,24 @@ mixin TemplatedWidgetState<W extends StatefulWidget> on State<W> {
   void registerItemTemplate(BuildContext context, ItemTemplate itemTemplate,
       {bool? evaluateInitialValue, required Function onDataChanged}) {
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
-    DataExpression? dataExpression =
-        Utils.parseDataExpression(itemTemplate.data);
-    if (scopeManager != null && dataExpression != null) {
-      // listen to the binding from our itemTemplate
-      // data: $(apiName.*)
-      scopeManager.listen(scopeManager, dataExpression.rawExpression,
-          destination: BindingDestination(widget as Invokable, 'item-template'),
-          onDataChange: (ModelChangeEvent event) {
-        // evaluate the expression
-        dynamic dataList = scopeManager.dataContext.eval(itemTemplate.data);
-        if (dataList is List) {
-          onDataChanged(dataList);
-        }
-      });
+
+    if (scopeManager != null) {
+      DataExpression? dataExpression =
+          Utils.parseDataExpression(itemTemplate.data);
+      if (dataExpression != null) {
+        // listen to the binding from our itemTemplate
+        // data: $(apiName.*)
+        scopeManager.listen(scopeManager, dataExpression.rawExpression,
+            destination:
+                BindingDestination(widget as Invokable, 'item-template'),
+            onDataChange: (ModelChangeEvent event) {
+          // evaluate the expression
+          dynamic dataList = scopeManager.dataContext.eval(itemTemplate.data);
+          if (dataList is List) {
+            onDataChanged(dataList);
+          }
+        });
+      }
 
       // if specified to evaluate initial value, then evaluate the data list now
       // and dispatch it as a data change
