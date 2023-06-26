@@ -34,6 +34,8 @@ abstract class MapsActionableState extends WidgetState<Maps> {
 
 class MapsState extends MapsActionableState
     with TemplatedWidgetState, LocationCapability, MapActions {
+  static const selectedMarkerZIndex = 100.0;
+
   final Completer<GoogleMapController> _controller =
       Completer<GoogleMapController>();
   @override
@@ -56,10 +58,6 @@ class MapsState extends MapsActionableState
   MarkerId? _selectedMarkerId;
   Widget? _overlayWidget;
 
-  // misc
-  LatLng? initialCameraLatLng;
-  int? initialCameraZoom;
-
   Position? currentLocation;
   @override
   Position? getCurrentLocation() => currentLocation;
@@ -77,29 +75,9 @@ class MapsState extends MapsActionableState
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-
-    // anti-pattern. We are manipulating State from StatefulWidget
-    widget.controller.mapActions = this;
-
-    _initInitialCameraPosition(context);
+  void initState() {
+    super.initState();
     _initCurrentLocation();
-    _registerMarkerListener(context);
-  }
-
-  void _initInitialCameraPosition(BuildContext context) {
-    if (widget.controller.initialCameraPosition is YamlMap) {
-      YamlMap initialCameraPosition =
-          widget.controller.initialCameraPosition as YamlMap;
-      double? lat = Utils.optionalDouble(initialCameraPosition['lat']);
-      double? lng = Utils.optionalDouble(initialCameraPosition['lng']);
-      if (lat != null && lng != null) {
-        initialCameraLatLng = LatLng(lat, lng);
-      }
-      initialCameraZoom =
-          Utils.optionalInt(initialCameraPosition['zoom'], min: 0);
-    }
   }
 
   void _initCurrentLocation() {
@@ -124,11 +102,21 @@ class MapsState extends MapsActionableState
         bool isAutoZoom = widget.controller.autoZoom &&
             widget.controller.includeCurrentLocationInAutoZoom;
         if (currentLocation != null &&
-            (isAutoZoom || initialCameraLatLng == null)) {
+            (isAutoZoom || widget.controller.initialCameraPosition == null)) {
           zoomToFit();
         }
       });
     }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // anti-pattern. We are manipulating State from StatefulWidget
+    widget.controller.mapActions = this;
+
+    _registerMarkerListener(context);
   }
 
   void _registerMarkerListener(BuildContext context) {
@@ -163,12 +151,13 @@ class MapsState extends MapsActionableState
     if (bound != null) {
       CameraUpdate cameraUpdate;
 
-      // if we only have the current location without markers, use
-      // the initialCameraPosition's zoom or something reasonable
-      if (hasCurrentLocation == true && points.length == 1) {
+      // if we only have 1 marker (also apply to just the current location),
+      // simply move the camera with a reasonable zoom, as the LatLngBound
+      // otherwise may zoom in all the way.
+      if (points.length == 1) {
         cameraUpdate = CameraUpdate.newCameraPosition(CameraPosition(
             target: LatLng(points[0].latitude, points[0].longitude),
-            zoom: initialCameraZoom?.toDouble() ??
+            zoom: widget.controller.initialCameraZoom?.toDouble() ??
                 widget.controller.defaultCameraZoom));
       }
       // otherwise bound the markers and add some reasonable padding
@@ -195,13 +184,10 @@ class MapsState extends MapsActionableState
         dataScope.dataContext.addDataContextById(itemTemplate.name, dataItem);
 
         // eval lat/lng
-        double? lat =
-            Utils.optionalDouble(dataScope.dataContext.eval(itemTemplate.lat));
-        double? lng =
-            Utils.optionalDouble(dataScope.dataContext.eval(itemTemplate.lng));
-        if (lat != null && lng != null) {
-          payloads.add(
-              MarkerPayload(scopeManager: dataScope, latLng: LatLng(lat, lng)));
+        LatLng? latLng =
+            Utils.getLatLng(dataScope.dataContext.eval(itemTemplate.latLng));
+        if (latLng != null) {
+          payloads.add(MarkerPayload(scopeManager: dataScope, latLng: latLng));
         }
       }
     }
@@ -219,7 +205,7 @@ class MapsState extends MapsActionableState
       throw LanguageError("markers is not set properly.");
     }
 
-    bool foundSelectedMarker = false;
+    bool? foundSelectedMarker;
     uniqueMarkerIds.clear();
     for (int i = 0; i < payloads.length; i++) {
       MarkerPayload markerPayload = payloads[i];
@@ -235,11 +221,13 @@ class MapsState extends MapsActionableState
         }
 
         BitmapDescriptor? markerAsset;
+        double zIndex = 0;
         if (markerId == _selectedMarkerId) {
           // selected marker
           foundSelectedMarker = true;
           markerAsset = await _buildMarkerFromTemplate(
               markerPayload, selectedMarkerTemplate ?? markerTemplate);
+          zIndex = selectedMarkerZIndex;
 
           if (overlayTemplate != null) {
             _overlayWidget = markerPayload.scopeManager
@@ -253,6 +241,7 @@ class MapsState extends MapsActionableState
 
         markerPayload.marker = Marker(
             markerId: markerId,
+            zIndex: zIndex,
             position: markerPayload.latLng,
             icon: markerAsset ?? BitmapDescriptor.defaultMarker,
             consumeTapEvents: true,
@@ -271,19 +260,19 @@ class MapsState extends MapsActionableState
             });
       }
     }
+    // rebuild widget
+    setState(() {
+      _markerPayloads = payloads;
+    });
 
     // markers are updated but we can't find a selected marker. This may
     // mean that marker is no longer there.
-    if (_selectedMarkerId != null && !foundSelectedMarker) {
-      _selectedMarkerId = null;
+    if (_selectedMarkerId != null && foundSelectedMarker != true) {
+      _clearSelectedMarker();
       if (widget.controller.autoSelect) {
         _selectNextMarker();
       }
     }
-
-    setState(() {
-      _markerPayloads = payloads;
-    });
 
     if (itemTemplate.onMarkersUpdated != null) {
       ScreenController().executeAction(context, itemTemplate.onMarkersUpdated!,
@@ -301,8 +290,8 @@ class MapsState extends MapsActionableState
             .then((asset) {
           asset ??= BitmapDescriptor.defaultMarker;
           setState(() {
-            previousSelectedMarker.marker =
-                previousSelectedMarker.marker?.copyWith(iconParam: asset);
+            previousSelectedMarker.marker = previousSelectedMarker.marker
+                ?.copyWith(iconParam: asset, zIndexParam: 0);
           });
         });
         // BitmapDescriptor markerAsset = await _buildMarkerFromTemplate(
@@ -312,6 +301,13 @@ class MapsState extends MapsActionableState
         //     previousSelectedMarker.marker?.copyWith(iconParam: markerAsset);
       }
       _selectedMarkerId = null;
+    }
+
+    // clear the overlay
+    if (_overlayWidget != null) {
+      setState(() {
+        _overlayWidget = null;
+      });
     }
   }
 
@@ -332,8 +328,8 @@ class MapsState extends MapsActionableState
             .then((asset) {
           asset ??= BitmapDescriptor.defaultMarker;
           setState(() {
-            newSelectedMarker.marker =
-                newSelectedMarker.marker?.copyWith(iconParam: asset);
+            newSelectedMarker.marker = newSelectedMarker.marker
+                ?.copyWith(iconParam: asset, zIndexParam: selectedMarkerZIndex);
           });
         });
 
@@ -360,47 +356,44 @@ class MapsState extends MapsActionableState
     }
   }
 
+// wrong logic here. See
   void _selectNextMarker() {
-    if (_markerPayloads.length <= 1) {
-      return;
-    }
-
-    MarkerPayload? nextMarker;
-    if (_selectedMarkerId == null) {
-      nextMarker = _markerPayloads[0];
-    } else {
-      int nextIndex = _markerPayloads.indexWhere((markerPayload) =>
-              markerPayload.marker?.markerId == _selectedMarkerId) +
-          1;
-      if (nextIndex < _markerPayloads.length) {
-        nextMarker = _markerPayloads[nextIndex];
+    if (_markerPayloads.isNotEmpty) {
+      MarkerPayload? nextMarker;
+      if (_selectedMarkerId == null) {
+        nextMarker = _markerPayloads[0];
+      } else {
+        int nextIndex = _markerPayloads.indexWhere((markerPayload) =>
+                markerPayload.marker?.markerId == _selectedMarkerId) +
+            1;
+        if (nextIndex < _markerPayloads.length) {
+          nextMarker = _markerPayloads[nextIndex];
+        }
       }
-    }
 
-    if (nextMarker != null && nextMarker.marker != null) {
-      _selectMarker(nextMarker.marker!.markerId);
+      if (nextMarker != null && nextMarker.marker != null) {
+        _selectMarker(nextMarker.marker!.markerId);
+      }
     }
   }
 
   void _selectPreviousMarker() {
-    if (_markerPayloads.length <= 1) {
-      return;
-    }
-
-    MarkerPayload? previousMarker;
-    if (_selectedMarkerId == null) {
-      previousMarker = _markerPayloads[_markerPayloads.length - 1];
-    } else {
-      int prevIndex = _markerPayloads.indexWhere((markerPayload) =>
-              markerPayload.marker?.markerId == _selectedMarkerId) -
-          1;
-      if (prevIndex >= 0) {
-        previousMarker = _markerPayloads[prevIndex];
+    if (_markerPayloads.isNotEmpty) {
+      MarkerPayload? previousMarker;
+      if (_selectedMarkerId == null) {
+        previousMarker = _markerPayloads[_markerPayloads.length - 1];
+      } else {
+        int prevIndex = _markerPayloads.indexWhere((markerPayload) =>
+                markerPayload.marker?.markerId == _selectedMarkerId) -
+            1;
+        if (prevIndex >= 0) {
+          previousMarker = _markerPayloads[prevIndex];
+        }
       }
-    }
 
-    if (previousMarker != null && previousMarker.marker != null) {
-      _selectMarker(previousMarker.marker!.markerId);
+      if (previousMarker != null && previousMarker.marker != null) {
+        _selectMarker(previousMarker.marker!.markerId);
+      }
     }
   }
 
@@ -423,8 +416,7 @@ class MapsState extends MapsActionableState
             markerPayload.scopeManager.dataContext.eval(template.source!);
         if (source != null) {
           if (markersCache[source] == null) {
-            log("fetch asset " + template.source!);
-            var asset = await MapsUtils.fromAsset(context, template.source!);
+            var asset = await MapsUtils.fromAsset(context, source);
             if (asset != null) {
               markersCache[source] = asset;
             }
@@ -439,25 +431,46 @@ class MapsState extends MapsActionableState
 
   @override
   Widget buildWidget(BuildContext context) {
-    return Stack(children: [
+    Widget rtn = Stack(children: [
       GoogleMap(
         onMapCreated: _onMapCreated,
         myLocationEnabled: showLocationOnMap,
         mapType: widget.controller.mapType ?? MapType.normal,
-        myLocationButtonEnabled: false,
-        mapToolbarEnabled: true,
+        myLocationButtonEnabled: false, // use our own button
+        mapToolbarEnabled: false,
+        zoomControlsEnabled: false,
         onCameraMove: _onCameraMove,
+        onCameraIdle: _onCameraIdle,
+        rotateGesturesEnabled: widget.controller.rotateEnabled,
+        scrollGesturesEnabled: widget.controller.scrollEnabled,
+        tiltGesturesEnabled: widget.controller.tiltEnabled,
+        zoomGesturesEnabled: widget.controller.zoomEnabled,
         initialCameraPosition: CameraPosition(
-            target:
-                initialCameraLatLng ?? widget.controller.defaultCameraLatLng,
-            zoom: initialCameraZoom?.toDouble() ??
+            target: widget.controller.initialCameraPosition ??
+                widget.controller.defaultCameraLatLng,
+            zoom: widget.controller.initialCameraZoom?.toDouble() ??
                 widget.controller.defaultCameraZoom),
         markers: _getMarkers(),
       ),
-      MapsToolbar(
-          onShowLocationButtonCallback: widget.controller.showLocationButton
-              ? () => _moveCamera(MapsUtils.fromPosition(currentLocation))
-              : null),
+      widget.controller.showToolbar
+          ? MapsToolbar(
+              margin: widget.controller.toolbarMargin,
+              alignment: widget.controller.toolbarAlignment,
+              top: widget.controller.toolbarTop,
+              bottom: widget.controller.toolbarBottom,
+              left: widget.controller.toolbarLeft,
+              right: widget.controller.toolbarRight,
+              onMapLayerChanged: widget.controller.showMapTypesButton
+                  ? (mapType) {
+                      setState(() {
+                        widget.controller.mapType = mapType;
+                      });
+                    }
+                  : null,
+              onShowLocationButtonCallback: widget.controller.showLocationButton
+                  ? () => _moveCamera(MapsUtils.fromPosition(currentLocation))
+                  : null)
+          : const SizedBox.shrink(),
       _overlayWidget != null && _selectedMarkerId != null
           ? MapsOverlay(
               _overlayWidget!,
@@ -473,6 +486,13 @@ class MapsState extends MapsActionableState
             )
           : const SizedBox.shrink()
     ]);
+    if (widget.controller.width != null || widget.controller.height != null) {
+      rtn = SizedBox(
+          width: widget.controller.width?.toDouble(),
+          height: widget.controller.height?.toDouble(),
+          child: rtn);
+    }
+    return rtn;
   }
 
   void _onMapCreated(GoogleMapController controller) async {
@@ -512,21 +532,25 @@ class MapsState extends MapsActionableState
     }
   }
 
+  void _onCameraIdle() {}
+
   void _executeCameraMoveAction(
       EnsembleAction onCameraMove, LatLngBounds bounds) {
+    // save the bound to expose it as getter
+    widget.controller.currentBounds = {
+      "southwest": {
+        "lat": bounds.southwest.latitude,
+        "lng": bounds.southwest.longitude
+      },
+      "northeast": {
+        "lat": bounds.northeast.latitude,
+        "lng": bounds.northeast.longitude
+      }
+    };
+
     ScreenController().executeAction(context, onCameraMove,
-        event: EnsembleEvent(widget, data: {
-          'bounds': {
-            "southwest": {
-              "lat": bounds.southwest.latitude,
-              "lng": bounds.southwest.longitude
-            },
-            "northeast": {
-              "lat": bounds.northeast.latitude,
-              "lng": bounds.northeast.longitude
-            }
-          }
-        }));
+        event: EnsembleEvent(widget,
+            data: {'bounds': widget.controller.currentBounds}));
   }
 
   Set<Marker> _getMarkers() {

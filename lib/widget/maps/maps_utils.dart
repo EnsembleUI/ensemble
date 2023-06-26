@@ -32,7 +32,6 @@ class MapsUtils {
     return null;
   }
 
-  // TODO: assets from local
   static Future<BitmapDescriptor?> fromAsset(
       BuildContext context, String asset) async {
     /// assets load from URL uses actual pixels, which may appear smaller

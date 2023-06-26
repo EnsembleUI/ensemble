@@ -16,10 +16,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:get_it/get_it.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:workmanager/workmanager.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+const String previewConfig = 'preview-config';
 const String backgroundUploadTask = 'backgroundUploadTask';
 
 @pragma('vm:entry-point')
@@ -77,12 +78,6 @@ void callbackDispatcher() {
   });
 }
 
-class EnsemblePreviewConfig {
-  EnsemblePreviewConfig(this.isPreview);
-
-  bool isPreview;
-}
-
 /// use this as the root widget for Ensemble
 class EnsembleApp extends StatefulWidget {
   EnsembleApp({
@@ -90,11 +85,7 @@ class EnsembleApp extends StatefulWidget {
     this.screenPayload,
     this.ensembleConfig,
     this.isPreview = false,
-  }) {
-    // initialize once
-    GetStorage.init();
-    Device().initDeviceInfo();
-  }
+  });
 
   final ScreenPayload? screenPayload;
   final EnsembleConfig? ensembleConfig;
@@ -108,6 +99,11 @@ class EnsembleAppState extends State<EnsembleApp> {
   /// initialize our App with the the passed in config or
   /// read from our ensemble-config file.
   Future<EnsembleConfig> initApp() async {
+    await dotenv.load();
+    Device().initDeviceInfo();
+    await GetStorage.init();
+    GetStorage().write(previewConfig, widget.isPreview);
+
     // use the config if passed in
     if (widget.ensembleConfig != null) {
       // set the Ensemble config
@@ -129,10 +125,6 @@ class EnsembleAppState extends State<EnsembleApp> {
   @override
   void initState() {
     super.initState();
-    final isPreview = widget.isPreview;
-    GetIt.I.registerSingleton<EnsemblePreviewConfig>(
-        EnsemblePreviewConfig(isPreview));
-    GetIt.I.allowReassignment = true;
     config = initApp();
     if (!kIsWeb) {
       Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
@@ -166,8 +158,7 @@ class EnsembleAppState extends State<EnsembleApp> {
 
   Widget renderApp(EnsembleConfig config) {
     //log("EnsembleApp build() - $hashCode");
-    final isPreview = widget.isPreview;
-    GetIt.I<EnsemblePreviewConfig>().isPreview = isPreview;
+    GetStorage().write(previewConfig, widget.isPreview);
 
     return MaterialApp(
       navigatorKey: Utils.globalAppKey,
@@ -189,10 +180,11 @@ class EnsembleAppState extends State<EnsembleApp> {
           screenPayload: widget.screenPayload,
         ),
       ),
-      useInheritedMediaQuery: isPreview,
-      locale: isPreview ? DevicePreview.locale(context) : null,
-      builder:
-          isPreview ? DevicePreview.appBuilder : FlutterI18n.rootAppBuilder(),
+      useInheritedMediaQuery: widget.isPreview,
+      locale: widget.isPreview ? DevicePreview.locale(context) : null,
+      builder: widget.isPreview
+          ? DevicePreview.appBuilder
+          : FlutterI18n.rootAppBuilder(),
       // TODO: this case translation issue on hot loading. Address this for RTL support
       //builder: (context, widget) => FlutterI18n.rootAppBuilder().call(context, widget)
     );

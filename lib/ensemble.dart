@@ -4,6 +4,7 @@ import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/ensemble_provider.dart';
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/page_model.dart';
@@ -81,6 +82,7 @@ class Ensemble {
         account: Account(
             mapAccessToken: yamlMap['accounts']?['maps']
                 ?['mapbox_access_token']),
+        services: Services.fromYaml(yamlMap['services']),
         envOverrides: envOverrides);
     return _config!;
   }
@@ -171,6 +173,10 @@ class Ensemble {
     return _config?.account;
   }
 
+  Services? getServices() {
+    return _config?.services;
+  }
+
   EnsembleConfig? getConfig() {
     return _config;
   }
@@ -248,10 +254,12 @@ class EnsembleConfig {
   EnsembleConfig(
       {required this.definitionProvider,
       this.account,
+      this.services,
       this.envOverrides,
       this.appBundle});
   final DefinitionProvider definitionProvider;
   Account? account;
+  Services? services;
 
   // environment variable overrides
   Map<String, dynamic>? envOverrides;
@@ -303,6 +311,50 @@ class Account {
   Account({this.mapAccessToken});
   String? mapAccessToken;
 }
+
+/// for social sign-in and API authorization via OAuth2
+class Services {
+  Services._({this.tokenExchangeServer, this.apiCredentials});
+  String? tokenExchangeServer;
+  Map<ServiceName, APICredential>? apiCredentials;
+
+  factory Services.fromYaml(dynamic input) {
+    String? tokenExchangeServer;
+    Map<ServiceName, APICredential>? credentials;
+    if (input is YamlMap && input['apiAuthorization'] is YamlMap) {
+      tokenExchangeServer = input['apiAuthorization']['tokenExchangeServer'];
+      if (input['apiAuthorization']['providers'] is YamlMap) {
+        (input['apiAuthorization']['providers'] as YamlMap)
+            .forEach((key, value) {
+          var redirectKey = ServiceName.values.from(key);
+          if (redirectKey != null &&
+              value is YamlMap &&
+              value['clientId'] is String &&
+              value['redirectUri'] is String) {
+            var redirectValue = APICredential(
+                clientId: value['clientId'],
+                redirectUri: value['redirectUri'],
+                redirectScheme: value['redirectScheme']);
+            (credentials ??= <ServiceName, APICredential>{})[redirectKey] =
+                redirectValue;
+          }
+        });
+      }
+    }
+    return Services._(
+        tokenExchangeServer: tokenExchangeServer, apiCredentials: credentials);
+  }
+}
+
+class APICredential {
+  APICredential(
+      {required this.clientId, required this.redirectUri, this.redirectScheme});
+  String clientId;
+  String redirectUri;
+  String? redirectScheme;
+}
+
+enum ServiceName { google, microsoft, yahoo }
 
 /// user configuration for the App
 class UserAppConfig {

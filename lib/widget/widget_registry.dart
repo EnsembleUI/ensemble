@@ -8,9 +8,14 @@ import 'package:ensemble/layout/list_view.dart';
 import 'package:ensemble/layout/stack.dart';
 import 'package:ensemble/layout/tab_bar.dart';
 import 'package:ensemble/layout/grid_view.dart';
+import 'package:ensemble/layout/toggle_container.dart';
+import 'package:ensemble/widget/Toggle.dart';
+import 'package:ensemble/widget/address.dart';
 import 'package:ensemble/widget/conditional.dart';
 import 'package:ensemble/widget/fintech/finicityconnect/finicityconnect.dart';
+import 'package:ensemble/widget/icon_button.dart';
 import 'package:ensemble/widget/maps/maps.dart';
+import 'package:ensemble/widget/staggered_grid.dart';
 import 'package:ensemble/widget/text.dart';
 import 'package:ensemble/widget/toggle_button.dart';
 // import 'package:ensemble/widget/camera_widget.dart';
@@ -59,8 +64,10 @@ class WidgetRegistry {
         EnsembleImage.type: () => EnsembleImage(),
         EnsembleDivider.type: () => EnsembleDivider(),
         EnsembleSpacer.type: () => EnsembleSpacer(),
+        Toggle.type: () => Toggle(),
 
         // misc widgets
+        Address.type: () => Address(),
         Rating.type: () => Rating(),
         EnsembleWebView.type: () => EnsembleWebView(),
         QRCode.type: () => QRCode(),
@@ -85,15 +92,18 @@ class WidgetRegistry {
         EnsembleSwitch.type: () => EnsembleSwitch(),
         Dropdown.type: () => Dropdown(),
         Button.type: () => Button(),
+        EnsembleIconButton.type: () => EnsembleIconButton(),
         EnsembleToggleButton.type: () => EnsembleToggleButton(),
 
         // containers
+        ToggleContainer.type: () => ToggleContainer(),
         FittedRow.type: () => FittedRow(),
         FittedColumn.type: () => FittedColumn(),
         Column.type: () => Column(),
         Row.type: () => Row(),
         ListView.type: () => ListView(),
         GridView.type: () => GridView(),
+        EnsembleStaggeredGrid.type: () => EnsembleStaggeredGrid(),
         Flex.type: () => Flex(),
         EnsembleStack.type: () => EnsembleStack(),
         Flow.type: () => Flow(),

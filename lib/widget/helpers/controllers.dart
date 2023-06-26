@@ -9,7 +9,14 @@ abstract class WidgetController extends Controller {
   // Note: we manage these here so the user doesn't need to do in their widgets
   // base properties applicable to all widgets
   bool expanded = false;
+
   bool visible = true;
+  Duration? visibilityTransitionDuration; // in seconds
+
+  int? elevation;
+  Color? elevationShadowColor;
+  EBorderRadius? elevationBorderRadius;
+
   String? id; // do we need this?
 
   // wrap widget inside an Align widget
@@ -19,6 +26,9 @@ abstract class WidgetController extends Controller {
   int? stackPositionBottom;
   int? stackPositionLeft;
   int? stackPositionRight;
+
+  // https://pub.dev/packages/pointer_interceptor
+  bool? captureWebPointer;
 
   // optional label/labelHint for use in Forms
   String? label;
@@ -38,6 +48,14 @@ abstract class WidgetController extends Controller {
     return {
       'expanded': (value) => expanded = Utils.getBool(value, fallback: false),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
+      'visibilityTransitionDuration': (value) =>
+          visibilityTransitionDuration = Utils.getDuration(value),
+      'elevation': (value) =>
+          elevation = Utils.optionalInt(value, min: 0, max: 24),
+      'elevationShadowColor': (value) =>
+          elevationShadowColor = Utils.getColor(value),
+      'elevationBorderRadius': (value) =>
+          elevationBorderRadius = Utils.getBorderRadius(value),
       'alignment': (value) => alignment = Utils.getAlignment(value),
       'stackPositionTop': (value) =>
           stackPositionTop = Utils.optionalInt(value),
@@ -47,6 +65,8 @@ abstract class WidgetController extends Controller {
           stackPositionLeft = Utils.optionalInt(value),
       'stackPositionRight': (value) =>
           stackPositionRight = Utils.optionalInt(value),
+      'captureWebPointer': (value) =>
+          captureWebPointer = Utils.optionalBool(value),
       'label': (value) => label = Utils.optionalString(value),
       'description': (value) => description = Utils.optionalString(value),
       'labelHint': (value) => labelHint = Utils.optionalString(value),
