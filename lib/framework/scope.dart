@@ -313,9 +313,8 @@ mixin ViewBuilder on IsScopeManager {
   ///    automatically and don't need to be specified here
   bool _isPassthroughProperty(String property, dynamic widget) =>
       property.startsWith('on') ||
-          (widget is HasController &&
-              widget.passthroughSetters().contains(property));
-
+      (widget is HasController &&
+          widget.passthroughSetters().contains(property));
 
   /// iterate through and set/evaluate the widget's properties/styles/...
   /*void _updateWidgetBindings(Map<WidgetModel, Invokable> widgetMap) {
