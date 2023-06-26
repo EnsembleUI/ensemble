@@ -503,7 +503,13 @@ class ScreenController {
     }
 
     if (action.id != null && scopeManager != null) {
-      scopeManager.dataContext.addInvokableContext(action.id!, APIResponse());
+      final uploadFilesResponse =
+          scopeManager.dataContext.getContextById(action.id!);
+      scopeManager.dataContext.addInvokableContext(
+          action.id!,
+          (uploadFilesResponse is UploadFilesResponse)
+              ? uploadFilesResponse
+              : UploadFilesResponse());
     }
 
     final apiDefinition = apiMap?[action.uploadApi];
@@ -544,7 +550,8 @@ class ScreenController {
     String method = apiDefinition['method']?.toString().toUpperCase() ?? 'POST';
     final fileResponse = action.id == null
         ? null
-        : scopeManager?.dataContext.getContextById(action.id!) as APIResponse;
+        : scopeManager?.dataContext.getContextById(action.id!)
+            as UploadFilesResponse;
 
     if (action.isBackgroundTask) {
       if (kIsWeb) {
@@ -564,6 +571,8 @@ class ScreenController {
 
       return;
     }
+    final taskId = generateRandomId(8);
+    fileResponse?.addTask(UploadTask(id: taskId));
 
     final response = await UploadUtils.uploadFiles(
       headers: headers,
@@ -577,14 +586,20 @@ class ScreenController {
           ? null
           : (error) => executeAction(context, action.onError!),
       progressCallback: (progress) {
-        fileResponse?.setProgress(progress);
+        fileResponse?.setProgress(taskId, progress);
         scopeManager?.dispatch(
             ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
       },
+      taskId: taskId,
     );
 
-    if (response == null) return;
-    fileResponse?.setAPIResponse(response);
+    if (response == null) {
+      fileResponse?.setStatus(taskId, UploadStatus.failed);
+      return;
+    }
+    fileResponse?.setHeaders(taskId, response.headers);
+    fileResponse?.setBody(taskId, response.body);
+    fileResponse?.setStatus(taskId, UploadStatus.completed);
     scopeManager?.dispatch(
         ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
 
@@ -651,14 +666,16 @@ class ScreenController {
     required Map<String, String> fields,
     required String method,
     required String url,
-    APIResponse? fileResponse,
+    UploadFilesResponse? fileResponse,
     ScopeManager? scopeManager,
   }) async {
     final taskId = generateRandomId(8);
+    fileResponse?.addTask(UploadTask(id: taskId, isBackground: true));
 
     await Workmanager().registerOneOffTask(
       'uploadTask',
       backgroundUploadTask,
+      tag: taskId,
       inputData: {
         'fieldName': action.fieldName,
         'files': selectedFiles.map((e) => json.encode(e.toJson())).toList(),
@@ -681,17 +698,43 @@ class ScreenController {
     subscription = port.listen((dynamic data) async {
       if (data is! Map) return;
       if (data.containsKey('progress')) {
-        fileResponse?.setProgress(data['progress']);
+        final taskId = data['taskId'];
+        fileResponse?.setStatus(taskId, UploadStatus.running);
+        fileResponse?.setProgress(taskId, data['progress']);
         if (action.id != null) {
           scopeManager?.dispatch(
               ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
         }
       }
+
+      if (data.containsKey('cancel')) {
+        if (action.id != null) {
+          scopeManager?.dispatch(
+              ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
+        }
+        subscription?.cancel();
+      }
+
       if (data.containsKey('error')) {
-        executeAction(context, action.onError!);
+        final taskId = data['taskId'];
+        fileResponse?.setStatus(taskId, UploadStatus.failed);
+        if (action.id != null) {
+          scopeManager?.dispatch(
+              ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
+        }
+        if (action.onError != null) {
+          executeAction(context, action.onError!);
+        }
+        subscription?.cancel();
       }
       if (data.containsKey('responseBody')) {
-        fileResponse?.setAPIResponse(Response.fromBody(data['responseBody']));
+        final taskId = data['taskId'];
+        final response =
+            Response.fromBody(data['responseBody'], data['responseHeaders']);
+        fileResponse?.setBody(taskId, response.body);
+        fileResponse?.setHeaders(taskId, response.headers);
+        fileResponse?.setStatus(taskId, UploadStatus.completed);
+
         if (action.id != null) {
           scopeManager?.dispatch(
               ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
