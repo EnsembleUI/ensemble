@@ -376,23 +376,24 @@ class Utils {
   static TextStyle? getTextStyle(dynamic style) {
     if (style is Map) {
       return TextStyle(
-        fontFamily: Utils.optionalString(style['fontFamily']),
-        fontSize: Utils.optionalInt(style['fontSize'], min: 1, max: 1000)?.toDouble(),
-        height: Utils.optionalDouble(style['lineHeightFactor'], min: 0.1, max: 10),
-        fontWeight: getFontWeight(style['fontWeight']),
-        fontStyle: Utils.optionalBool(style['isItalic']) == true ? FontStyle.italic : FontStyle.normal,
-        color: Utils.getColor(style['color']),
-        backgroundColor: Utils.getColor(style['backgroundColor']),
-        decoration: _getDecoration(style['decoration']),
-        decorationStyle: TextDecorationStyle.values.from(style['decorationStyle']),
-
-        overflow: TextOverflow.values.from(style['overflow']),
-        letterSpacing: Utils.optionalDouble(style['letterSpacing']),
-        wordSpacing: Utils.optionalDouble(style['wordSpacing'])
-      );
-    } else if (style is String) {
-
-    }
+          fontFamily: Utils.optionalString(style['fontFamily']),
+          fontSize: Utils.optionalInt(style['fontSize'], min: 1, max: 1000)
+              ?.toDouble(),
+          height: Utils.optionalDouble(style['lineHeightFactor'],
+              min: 0.1, max: 10),
+          fontWeight: getFontWeight(style['fontWeight']),
+          fontStyle: Utils.optionalBool(style['isItalic']) == true
+              ? FontStyle.italic
+              : FontStyle.normal,
+          color: Utils.getColor(style['color']),
+          backgroundColor: Utils.getColor(style['backgroundColor']),
+          decoration: _getDecoration(style['decoration']),
+          decorationStyle:
+              TextDecorationStyle.values.from(style['decorationStyle']),
+          overflow: TextOverflow.values.from(style['overflow']),
+          letterSpacing: Utils.optionalDouble(style['letterSpacing']),
+          wordSpacing: Utils.optionalDouble(style['wordSpacing']));
+    } else if (style is String) {}
     return null;
   }
 
@@ -639,9 +640,7 @@ class Utils {
         }
       });
       if (tokens.isNotEmpty) {
-        return DataExpression(
-            rawExpression: input,
-            expressions: tokens);
+        return DataExpression(rawExpression: input, expressions: tokens);
       }
     }
     return null;

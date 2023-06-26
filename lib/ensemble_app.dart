@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:ui';
 
+import 'package:device_preview/device_preview.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
-import 'package:device_preview/device_preview.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/widget/error_screen.dart';
@@ -17,7 +17,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:provider/provider.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -44,21 +43,30 @@ void callbackDispatcher() {
                 Map<String, String>.from(json.decode(inputData['headers'])),
             method: inputData['method'],
             url: inputData['url'],
-            fields: inputData['fields'],
+            fields: Map<String, String>.from(json.decode(inputData['fields'])),
             showNotification: inputData['showNotification'],
             progressCallback: (progress) {
               if (sendPort == null) return;
-              sendPort.send({'progress': progress});
+              sendPort.send({
+                'progress': progress,
+                'taskId': inputData['taskId'],
+              });
             },
             onError: (error) {
               if (sendPort == null) return;
-              sendPort.send({'error': error});
+              sendPort.send(
+                  {'error': error.toString(), 'taskId': inputData['taskId']});
             },
+            taskId: inputData['taskId'],
           );
 
           if (sendPort == null || response == null) return response == null;
 
-          sendPort.send({'responseBody': response.body});
+          sendPort.send({
+            'responseBody': response.body,
+            'taskId': inputData['taskId'],
+            'responseHeaders': response.headers,
+          });
         } catch (e) {
           throw LanguageError('Failed to process backgroud upload task');
         }
