@@ -386,11 +386,14 @@ class ScreenController {
       }
     } else if (action is CopyToClipboardAction) {
       if (action.value != null) {
-        Clipboard.setData(ClipboardData(text: action.value!)).then((value) {
-          if (action.onSuccess != null) {
-            executeAction(context, action.onSuccess!);
-          }
-        });
+        String? clipboardValue = dataContext.eval(action.value);
+        if (clipboardValue != null) {
+          Clipboard.setData(ClipboardData(text: clipboardValue)).then((value) {
+            if (action.onSuccess != null) {
+              executeAction(context, action.onSuccess!);
+            }
+          });
+        }
       } else {
         if (action.onFailure != null) executeAction(context, action.onFailure!);
       }
