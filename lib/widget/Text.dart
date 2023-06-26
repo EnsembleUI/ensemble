@@ -39,7 +39,10 @@ class EnsembleText extends StatefulWidget
       'fontWeight': (value) =>
           _controller.fontWeight = Utils.getFontWeight(value),
       'color': (value) => _controller.color = Utils.getColor(value),
-      'overflow': (value) => _controller.overflow = TextOverflow.values.from(value),
+      'gradient': (value) =>
+          _controller.gradient = Utils.getBackgroundGradient(value),
+      'overflow': (value) =>
+          _controller.overflow = TextOverflow.values.from(value),
     };
   }
 
@@ -63,6 +66,7 @@ class TextController extends BoxController {
   int? fontSize;
   FontWeight? fontWeight;
   Color? color;
+  LinearGradient? gradient;
   TextOverflow? overflow;
 }
 
@@ -70,29 +74,29 @@ class EnsembleTextState extends framework.WidgetState<EnsembleText> {
   @override
   Widget buildWidget(BuildContext context) {
     return BoxWrapper(
-        widget: buildText(widget.controller),
-        boxController: widget.controller);
+        widget: buildText(widget.controller), boxController: widget.controller);
   }
 
-  Text buildText(TextController controller) {
+  Widget buildText(TextController controller) {
     var textStyle = const TextStyle();
 
     // also fallback to legacy
     var fontFamily = controller.textStyle?.fontFamily ?? controller.fontFamily;
-    var fontSize = (controller.textStyle?.fontSize ?? controller.fontSize)?.toDouble();
+    var fontSize =
+        (controller.textStyle?.fontSize ?? controller.fontSize)?.toDouble();
     var fontWeight = controller.textStyle?.fontWeight ?? controller.fontWeight;
     var color = controller.textStyle?.color ?? controller.color;
     var overflow = controller.textStyle?.overflow ?? controller.overflow;
 
     if (fontFamily != null) {
       try {
-        textStyle =
-            GoogleFonts.getFont(fontFamily.trim(), color: Colors.black);
+        textStyle = GoogleFonts.getFont(fontFamily.trim(), color: Colors.black);
       } catch (_) {
         textStyle.copyWith(fontFamily: fontFamily.trim());
       }
     }
-    return Text(controller.text ?? '',
+
+    Widget rtn = Text(controller.text ?? '',
         textAlign: controller.textAlign,
         maxLines: controller.maxLines,
         style: textStyle.copyWith(
@@ -100,13 +104,40 @@ class EnsembleTextState extends framework.WidgetState<EnsembleText> {
             height: controller.textStyle?.height,
             fontWeight: fontWeight,
             fontStyle: controller.textStyle?.fontStyle,
-            color: color,
+            color: controller.gradient == null ? color : null,
             backgroundColor: controller.textStyle?.backgroundColor,
             decoration: controller.textStyle?.decoration,
             decorationStyle: controller.textStyle?.decorationStyle,
-
             overflow: overflow,
             letterSpacing: controller.textStyle?.letterSpacing,
             wordSpacing: controller.textStyle?.wordSpacing));
+
+    if (controller.gradient != null) {
+      return _GradientText(
+        gradient: controller.gradient!,
+        child: rtn,
+      );
+    }
+
+    return rtn;
+  }
+}
+
+class _GradientText extends StatelessWidget {
+  const _GradientText({
+    required this.gradient,
+    required this.child,
+  });
+
+  final Gradient gradient;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ShaderMask(
+      blendMode: BlendMode.srcIn,
+      shaderCallback: (bounds) => gradient.createShader(bounds),
+      child: child,
+    );
   }
 }
