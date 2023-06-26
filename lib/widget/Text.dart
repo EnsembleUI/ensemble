@@ -39,7 +39,8 @@ class EnsembleText extends StatefulWidget
       'fontWeight': (value) =>
           _controller.fontWeight = Utils.getFontWeight(value),
       'color': (value) => _controller.color = Utils.getColor(value),
-      'overflow': (value) => _controller.overflow = TextOverflow.values.from(value),
+      'overflow': (value) =>
+          _controller.overflow = TextOverflow.values.from(value),
     };
   }
 
@@ -70,8 +71,7 @@ class EnsembleTextState extends framework.WidgetState<EnsembleText> {
   @override
   Widget buildWidget(BuildContext context) {
     return BoxWrapper(
-        widget: buildText(widget.controller),
-        boxController: widget.controller);
+        widget: buildText(widget.controller), boxController: widget.controller);
   }
 
   Text buildText(TextController controller) {
@@ -79,15 +79,15 @@ class EnsembleTextState extends framework.WidgetState<EnsembleText> {
 
     // also fallback to legacy
     var fontFamily = controller.textStyle?.fontFamily ?? controller.fontFamily;
-    var fontSize = (controller.textStyle?.fontSize ?? controller.fontSize)?.toDouble();
+    var fontSize =
+        (controller.textStyle?.fontSize ?? controller.fontSize)?.toDouble();
     var fontWeight = controller.textStyle?.fontWeight ?? controller.fontWeight;
     var color = controller.textStyle?.color ?? controller.color;
     var overflow = controller.textStyle?.overflow ?? controller.overflow;
 
     if (fontFamily != null) {
       try {
-        textStyle =
-            GoogleFonts.getFont(fontFamily.trim(), color: Colors.black);
+        textStyle = GoogleFonts.getFont(fontFamily.trim(), color: Colors.black);
       } catch (_) {
         textStyle.copyWith(fontFamily: fontFamily.trim());
       }
@@ -104,7 +104,6 @@ class EnsembleTextState extends framework.WidgetState<EnsembleText> {
             backgroundColor: controller.textStyle?.backgroundColor,
             decoration: controller.textStyle?.decoration,
             decorationStyle: controller.textStyle?.decorationStyle,
-
             overflow: overflow,
             letterSpacing: controller.textStyle?.letterSpacing,
             wordSpacing: controller.textStyle?.wordSpacing));
