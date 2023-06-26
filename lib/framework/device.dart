@@ -3,12 +3,14 @@ import 'dart:io';
 import 'dart:developer';
 
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:intl/intl.dart';
 
 /// get device information as well as requesting device permissions
@@ -57,6 +59,10 @@ mixin MediaQueryCapability {
   static MediaQueryData? data;
 
   MediaQueryData _getData() {
+    final bool isPreview = GetStorage().read(previewConfig) ?? false;
+    if (isPreview) {
+      return MediaQuery.of(Utils.globalAppKey.currentContext!);
+    }
     return data ??= MediaQuery.of(Utils.globalAppKey.currentContext!);
   }
 

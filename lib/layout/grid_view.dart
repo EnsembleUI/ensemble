@@ -6,7 +6,9 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/util/gesture_detector.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
@@ -35,7 +37,9 @@ class GridView extends StatefulWidget
 
   @override
   Map<String, Function> getters() {
-    return {};
+    return {
+      'selectedItemIndex': () => _controller.selectedItemIndex,
+    };
   }
 
   @override
@@ -77,6 +81,7 @@ class GridViewController extends BoxController {
 
   ItemTemplate? itemTemplate;
   EnsembleAction? onItemTap;
+  int selectedItemIndex = -1;
 
   // single number, 3 numbers (small, medium, large), or 5 numbers (xSmall, small, medium, large, xLarge)
   // min 1, max 5
@@ -176,28 +181,48 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
     }
 
     return BoxWrapper(
-        boxController: widget._controller,
-        // we handle padding in the GridView so the scrollbar doesn't overlap content
-        ignoresPadding: true,
-        widget: LayoutBuilder(
-            builder: (context, constraints) => flutter.GridView.builder(
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: _getTileCount(constraints),
-                  crossAxisSpacing:
-                      widget._controller.horizontalGap?.toDouble() ?? gap,
-                  mainAxisSpacing:
-                      widget._controller.verticalGap?.toDouble() ?? gap,
+      boxController: widget._controller,
+      // we handle padding in the GridView so the scrollbar doesn't overlap content
+      ignoresPadding: true,
+      widget: LayoutBuilder(
+        builder: (context, constraints) => flutter.GridView.builder(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: _getTileCount(constraints),
+            crossAxisSpacing:
+                widget._controller.horizontalGap?.toDouble() ?? gap,
+            mainAxisSpacing: widget._controller.verticalGap?.toDouble() ?? gap,
 
-                  // itemHeight take precedent, then itemAspectRatio
-                  mainAxisExtent: widget._controller.itemHeight?.toDouble(),
-                  childAspectRatio:
-                      widget._controller.itemAspectRatio?.toDouble() ?? 1.0,
-                ),
-                itemCount: _items.length,
-                scrollDirection: Axis.vertical,
-                cacheExtent: cachedPixels,
-                padding: widget._controller.padding,
-                itemBuilder: (context, index) => buildWidgetForIndex(context,
-                    _items, widget._controller.itemTemplate!, index))));
+            // itemHeight take precedent, then itemAspectRatio
+            mainAxisExtent: widget._controller.itemHeight?.toDouble(),
+            childAspectRatio:
+                widget._controller.itemAspectRatio?.toDouble() ?? 1.0,
+          ),
+          itemCount: _items.length,
+          scrollDirection: Axis.vertical,
+          cacheExtent: cachedPixels,
+          padding: widget._controller.padding,
+          itemBuilder: (context, index) => _buildItem(index),
+        ),
+      ),
+    );
+  }
+
+  dynamic _buildItem(int index) {
+    if (widget._controller.onItemTap != null) {
+      return EnsembleGestureDetector(
+        onTap: (() => _onItemTap(index)),
+        child: buildWidgetForIndex(
+            context, _items, widget._controller.itemTemplate!, index),
+      );
+    }
+    return buildWidgetForIndex(
+        context, _items, widget._controller.itemTemplate!, index);
+  }
+
+  void _onItemTap(int index) {
+    if (widget.controller.onItemTap != null) {
+      widget._controller.selectedItemIndex = index;
+      ScreenController().executeAction(context, widget._controller.onItemTap!);
+    }
   }
 }

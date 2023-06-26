@@ -1,9 +1,13 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/page.dart';
+import 'package:ensemble/framework/widget/screen.dart';
+import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -60,6 +64,8 @@ class Carousel extends StatefulWidget
           _controller.indicatorColor = Utils.getColor(value),
       'onItemChange': (action) => _controller.onItemChange =
           EnsembleAction.fromYaml(action, initiator: this),
+      'onItemTap': (funcDefinition) => _controller.onItemTap =
+          EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'indicatorWidget': (widget) => _controller.indicatorWidget = widget,
       'selectedIndicatorWidget': (widget) =>
           _controller.selectedIndicatorWidget = widget,
@@ -69,7 +75,7 @@ class Carousel extends StatefulWidget
   @override
   Map<String, Function> getters() {
     return {
-      'selectedIndex': () => _controller.selectedIndex,
+      'selectedItemIndex': () => _controller.selectedItemIndex,
     };
   }
 
@@ -127,8 +133,9 @@ class MyController extends BoxController {
 
   // for single view the current item index is dispatched,
   // for multi view this dispatch when clicking on a card
+  EnsembleAction? onItemTap;
   EnsembleAction? onItemChange;
-  int selectedIndex = 0;
+  int selectedItemIndex = -1;
 
   final CarouselController _carouselController = CarouselController();
 }
@@ -245,13 +252,22 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
   }
 
   List<Widget> buildItems() {
+    ViewUtil.checkValidWidget(
+        widget._controller.children, widget._controller.itemTemplate);
+
     // children will be rendered before templated children
     List<Widget> children = [];
+
     if (widget._controller.children != null) {
       children.addAll(widget._controller.children!);
     }
+
     if (templatedChildren != null) {
       children.addAll(templatedChildren!);
+    }
+
+    if (widget._controller.onItemTap != null) {
+      children = ViewUtil.addGesture(children, _onItemTap);
     }
 
     // wrap each child inside Container to add padding and gap
@@ -263,22 +279,29 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
     for (int i = 0; i < children.length; i++) {
       Widget child = children[i];
 
-      items.add(GestureDetector(
-          child: Container(
-            padding: EdgeInsets.only(
-                left: i == 0 ? leadingGap : gap / 2,
-                right: i == children.length - 1 ? trailingGap : gap / 2),
-            child: child,
-          ),
-          onTap: (() => _onItemChange(i))));
+      items.add(
+        Padding(
+          padding: EdgeInsets.only(
+              left: i == 0 ? leadingGap : gap / 2,
+              right: i == children.length - 1 ? trailingGap : gap / 2),
+          child: child,
+        ),
+      );
     }
     return items;
   }
 
+  void _onItemTap(int index) {
+    if (widget.controller.onItemTap != null) {
+      widget._controller.selectedItemIndex = index;
+      ScreenController().executeAction(context, widget._controller.onItemTap!);
+    }
+  }
+
   _onItemChange(int index) {
-    if (index != widget._controller.selectedIndex &&
+    if (index != widget._controller.selectedItemIndex &&
         widget._controller.onItemChange != null) {
-      widget._controller.selectedIndex = index;
+      widget._controller.selectedItemIndex = index;
       //log("Changed to index $index");
       ScreenController()
           .executeAction(context, widget._controller.onItemChange!);

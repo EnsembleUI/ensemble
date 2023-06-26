@@ -5,6 +5,8 @@ import 'dart:isolate';
 import 'dart:math' show Random;
 import 'dart:ui';
 
+import 'package:ensemble/OAuthController.dart';
+import 'package:ensemble/action/InvokeAPIController.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/framework/action.dart';
@@ -87,13 +89,13 @@ class ScreenController {
   void executeActionWithScope(
       BuildContext context, ScopeManager scopeManager, EnsembleAction action,
       {EnsembleEvent? event}) {
-    _executeAction(context, scopeManager.dataContext, action,
+    nowExecuteAction(context, scopeManager.dataContext, action,
         scopeManager.pageData.apiMap, scopeManager,
         event: event);
   }
 
   /// internally execute an Action
-  Future<void> _executeAction(
+  Future<void> nowExecuteAction(
       BuildContext context,
       DataContext providedDataContext,
       EnsembleAction action,
@@ -124,40 +126,8 @@ class ScreenController {
     }
 
     if (action is InvokeAPIAction) {
-      YamlMap? apiDefinition = apiMap?[action.apiName];
-      if (apiDefinition != null) {
-        // evaluate input arguments and add them to context
-        if (apiDefinition['inputs'] is YamlList && action.inputs != null) {
-          for (var input in apiDefinition['inputs']) {
-            dynamic value = dataContext.eval(action.inputs![input]);
-            if (value != null) {
-              dataContext.addDataContextById(input, value);
-            }
-          }
-        }
-
-        // if invokeAPI has an ID, add it to context so we can bind to it
-        // This is useful when the API is called in a loop, so binding to its API name won't work properly
-        if (action.id != null && !dataContext.hasContext(action.id!)) {
-          scopeManager!.dataContext
-              .addInvokableContext(action.id!, APIResponse());
-        }
-
-        HttpUtils.invokeApi(apiDefinition, dataContext)
-            .then((response) => _onAPIComplete(context, dataContext, action,
-                apiDefinition, Response(response), apiMap, scopeManager))
-            .onError((error, stackTrace) => processAPIError(
-                context,
-                dataContext,
-                action,
-                apiDefinition,
-                error,
-                apiMap,
-                scopeManager));
-      } else {
-        throw RuntimeError(
-            "Unable to find api definition for ${action.apiName}");
-      }
+      InvokeAPIController()
+          .execute(action, context, dataContext, scopeManager, apiMap);
     } else if (action is BaseNavigateScreenAction) {
       // process input parameters
       Map<String, dynamic>? nextArgs = {};
@@ -484,6 +454,8 @@ class ScreenController {
         if (action.onError != null) executeAction(context, action.onError!);
         throw LanguageError('Unable to create wallet connect session');
       }
+    } else if (action is AuthorizeOAuthAction) {
+      // TODO
     }
   }
 
@@ -677,7 +649,7 @@ class ScreenController {
           ShowToastAction(
               type: ToastType.error,
               message: message,
-              position: 'bottom',
+              alignment: Alignment.bottomCenter,
               duration: 3),
           null);
       if (action.onError != null) executeAction(context, action.onError!);
@@ -776,132 +748,11 @@ class ScreenController {
     });
   }
 
-  /// e.g upon return of API result
-  void _onAPIComplete(
-      BuildContext context,
-      DataContext dataContext,
-      InvokeAPIAction action,
-      YamlMap apiDefinition,
-      Response response,
-      Map<String, YamlMap>? apiMap,
-      ScopeManager? scopeManager) {
-    // first execute API's onResponse code block
-    EnsembleAction? onResponse = EnsembleAction.fromYaml(
-        apiDefinition['onResponse'],
-        initiator: action.initiator);
-    if (onResponse != null) {
-      processAPIResponse(
-          context, dataContext, onResponse, response, apiMap, scopeManager,
-          apiChangeHandler: dispatchAPIChanges,
-          action: action,
-          modifiableAPIResponse: true);
-    }
-    // dispatch changes even if we don't have onResponse
-    else {
-      dispatchAPIChanges(scopeManager, action, APIResponse(response: response));
-    }
-
-    // if our Action has onResponse, invoke that next
-    if (action.onResponse != null) {
-      processAPIResponse(context, dataContext, action.onResponse!, response,
-          apiMap, scopeManager);
-    }
-  }
-
   void dispatchStorageChanges(BuildContext context, String key, dynamic value) {
     ScopeManager? scopeManager = _getScopeManager(context);
     if (scopeManager != null) {
       scopeManager.dispatch(ModelChangeEvent(StorageBindingSource(key), value));
     }
-  }
-
-  void dispatchAPIChanges(ScopeManager? scopeManager, InvokeAPIAction action,
-      APIResponse apiResponse) {
-    // update the API response in our DataContext and fire changes to all listeners.
-    // Make sure we don't override the key here, as all the scopes referenced the same API
-    if (scopeManager != null) {
-      dynamic api = scopeManager.dataContext.getContextById(action.apiName);
-      if (api == null || api is! Invokable) {
-        throw RuntimeException(
-            "Unable to update API Binding as it doesn't exists");
-      }
-      Response? _response = apiResponse.getAPIResponse();
-      if (_response != null) {
-        // for convenience, the result of the API contain the API response
-        // so it can be referenced from anywhere.
-        // Here we set the response and dispatch changes
-        if (api is APIResponse) {
-          api.setAPIResponse(_response);
-          scopeManager.dispatch(
-              ModelChangeEvent(APIBindingSource(action.apiName), api));
-        }
-
-        // if the API has an ID, update its reference and se
-        if (action.id != null) {
-          dynamic apiById = scopeManager.dataContext.getContextById(action.id!);
-          if (apiById is APIResponse) {
-            apiById.setAPIResponse(_response);
-            scopeManager.dispatch(
-                ModelChangeEvent(APIBindingSource(action.id!), apiById));
-          }
-        }
-      }
-    }
-  }
-
-  /// Executing the onResponse action. Note that this can be
-  /// the API's onResponse or a caller's onResponse (e.g. onPageLoad's onResponse)
-  void processAPIResponse(
-      BuildContext context,
-      DataContext dataContext,
-      EnsembleAction onResponseAction,
-      Response response,
-      Map<String, YamlMap>? apiMap,
-      ScopeManager? scopeManager,
-      {Function? apiChangeHandler,
-      InvokeAPIAction? action,
-      bool? modifiableAPIResponse}) {
-    // execute the onResponse on the API definition
-    APIResponse apiResponse = modifiableAPIResponse == true
-        ? ModifiableAPIResponse(response: response)
-        : APIResponse(response: response);
-
-    DataContext localizedContext = dataContext.clone();
-    localizedContext.addInvokableContext('response', apiResponse);
-    _executeAction(
-        context, localizedContext, onResponseAction, apiMap, scopeManager);
-
-    if (modifiableAPIResponse == true) {
-      // should be on Action's callback instead
-      apiChangeHandler?.call(scopeManager, action, apiResponse);
-    }
-  }
-
-  /// executing the onError action
-  void processAPIError(
-      BuildContext context,
-      DataContext dataContext,
-      InvokeAPIAction action,
-      YamlMap apiDefinition,
-      Object? error,
-      Map<String, YamlMap>? apiMap,
-      ScopeManager? scopeManager) {
-    log("Error: $error");
-
-    EnsembleAction? onErrorAction =
-        EnsembleAction.fromYaml(apiDefinition['onError']);
-    if (onErrorAction != null) {
-      // probably want to include the error?
-      _executeAction(context, dataContext, onErrorAction, apiMap, scopeManager);
-    }
-
-    // if our Action has onError, invoke that next
-    if (action.onError != null) {
-      _executeAction(
-          context, dataContext, action.onError!, apiMap, scopeManager);
-    }
-
-    // silently fail if error handle is not defined? or should we alert user?
   }
 
   /// Navigate to another screen
@@ -999,7 +850,7 @@ class ScreenController {
               } else if (action.onError != null) {
                 DataContext localizedContext = dataContext.clone();
                 localizedContext.addDataContextById('reason', 'unknown');
-                _executeAction(context, localizedContext, action.onError!,
+                nowExecuteAction(context, localizedContext, action.onError!,
                     scopeManager.pageData.apiMap, scopeManager);
               }
             });
@@ -1013,7 +864,7 @@ class ScreenController {
         } else if (action.onError != null) {
           DataContext localizedContext = dataContext.clone();
           localizedContext.addDataContextById('reason', status.name);
-          _executeAction(context, localizedContext, action.onError!,
+          nowExecuteAction(context, localizedContext, action.onError!,
               scopeManager.pageData.apiMap, scopeManager);
         }
       });
@@ -1029,7 +880,7 @@ class ScreenController {
     DataContext localizedContext = dataContext.clone();
     localizedContext.addDataContextById('latitude', location.latitude);
     localizedContext.addDataContextById('longitude', location.longitude);
-    _executeAction(context, localizedContext, onLocationReceived,
+    nowExecuteAction(context, localizedContext, onLocationReceived,
         scopeManager.pageData.apiMap, scopeManager);
   }
 

@@ -63,6 +63,22 @@ void main() {
     expect(processed['payload']['superhero'], true);
   });
 
+  /// this is very different than the above. We are testing a variable receiving a map.
+  /// This allow us to take in a YamlMap as a value
+  test('variable with data map', () {
+    Map<String, dynamic> processed = getBaseContext().eval(YamlMap.wrap({
+      'variable': {'name': '\${result.name}', 'age': '\${result.age}'}
+    }));
+    expect(processed['variable'], {'name': 'Peter Parker', 'age': 25});
+  });
+
+  test('variable with data list', () {
+    Map<String, dynamic> processed = getBaseContext().eval(YamlMap.wrap({
+      'variable': ['\${result.name}', 100, '\${result.age}', 'hello']
+    }));
+    expect(processed['variable'], ['Peter Parker', 100, 25, 'hello']);
+  });
+
   test('url', () {
     expect(getBaseContext().eval("https://site.com/age/\${result.age}/detail"),
         "https://site.com/age/25/detail");
