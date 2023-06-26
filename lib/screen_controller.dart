@@ -340,7 +340,22 @@ class ScreenController {
       if (scopeManager != null && action.widget != null) {
         customToastBody = scopeManager.buildWidgetFromDefinition(action.widget);
       }
-      ToastController().showToast(context, action, customToastBody);
+
+      final toastMessage = dataContext.eval(action.message);
+      final modifiedToastAction = ShowToastAction(
+        message: toastMessage,
+        initiator: action.initiator,
+        type: action.type,
+        title: action.title,
+        widget: action.widget,
+        dismissible: action.dismissible,
+        alignment: action.alignment,
+        duration: action.duration,
+        styles: action.styles,
+      );
+
+      ToastController()
+          .showToast(context, modifiedToastAction, customToastBody);
     } else if (action is OpenUrlAction) {
       dynamic value = dataContext.eval(action.url);
       value ??= '';
