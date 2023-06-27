@@ -962,29 +962,12 @@
             {
               "type": "object",
               "properties": {
+                "labelStyle": {
+                  "$ref": "#/$defs/TextStyle"
+                },
                 "outline": {
                   "type": "boolean",
                   "description": "Whether the button should have an outline border instead of filled background"
-                },
-                "color": {
-                  "oneOf": [
-                    {
-                      "title": "string",
-                      "type": "string"
-                    },
-                    {
-                      "title": "number",
-                      "type": "number"
-                    }
-                  ],
-                  "description": "Set the color for the button label starting with '0xFF' for full opacity"
-                },
-                "fontSize": {
-                  "type": "integer",
-                  "minimum": 6
-                },
-                "fontWeight": {
-                  "$ref": "#/$defs/type-fontWeight"
                 }
               }
             }
@@ -4339,9 +4322,9 @@
           "minimum": 1,
           "maximum": 1000
         },
-        "lineHeightFactor": {
+        "lineHeightMultiple": {
           "type": "number",
-          "description": "A multiple of the fontSize to determine the line height. (e.g. 2.0 means the line height is double the space the font size occupies). Default null. (note that 1.0 is not the default depending on the font)"
+          "description": "A multiple of the fontSize to determine the line height. (e.g. 2.0 means the line height is double the height the font size occupies). Default null. (note that 1.0 is not the default depending on the font)"
         },
         "fontWeight": {
           "$ref": "#/$defs/type-fontWeight"
