@@ -1,11 +1,14 @@
+import 'dart:io';
 import 'dart:math';
 import 'dart:ui';
+import 'package:path/path.dart' as p;
 
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:geolocator/geolocator.dart';
@@ -675,6 +678,24 @@ class Utils {
   /// stripping any unnecessary query params (e.g. anything after the first ?)
   static String getLocalAssetFullPath(String asset) {
     return 'ensemble/assets/${stripQueryParamsFromAsset(asset)}';
+  }
+
+  static bool isMemoryPath(String path) {
+    if (kIsWeb) {
+      return path.contains('blob:');
+    } else if (Platform.isWindows) {
+      final pattern = RegExp(r'^[a-zA-Z]:[\\\/]');
+      return pattern.hasMatch(path) && p.isAbsolute(path);
+    } else if (Platform.isAndroid) {
+      return path.startsWith('/data/user/0/');
+    } else if (Platform.isIOS) {
+      return path.startsWith('/private/var/mobile/');
+    } else if (Platform.isMacOS) {
+      return path.startsWith('/Users/');
+    } else if (Platform.isLinux) {
+      return path.startsWith('/home/');
+    }
+    return false;
   }
 
   /// strip any query params (anything after the first ?) from our assets e.g. my-image?x=abc
