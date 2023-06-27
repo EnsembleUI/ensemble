@@ -30,17 +30,8 @@ class EnsembleText extends StatefulWidget
           _controller.textAlign = TextAlign.values.from(value),
       'maxLines': (value) =>
           _controller.maxLines = Utils.optionalInt(value, min: 1),
-      'textStyle': (style) => _controller.textStyle = Utils.getTextStyle(style),
-
-      // legacy
-      'fontFamily': (value) =>
-          _controller.fontFamily = Utils.optionalString(value),
-      'fontSize': (value) => _controller.fontSize = Utils.optionalInt(value),
-      'fontWeight': (value) =>
-          _controller.fontWeight = Utils.getFontWeight(value),
-      'color': (value) => _controller.color = Utils.getColor(value),
-      'overflow': (value) =>
-          _controller.overflow = TextOverflow.values.from(value),
+      'textStyle': (style) =>
+          _controller.textStyle = Utils.getTextStyleAsComposite(_controller, style: style),
     };
   }
 
@@ -57,14 +48,10 @@ class TextController extends BoxController {
   String? text;
   TextAlign? textAlign;
   int? maxLines;
-  TextStyle? textStyle;
 
-  // legacy, for backward compatible
-  String? fontFamily;
-  int? fontSize;
-  FontWeight? fontWeight;
-  Color? color;
-  TextOverflow? overflow;
+  TextStyleComposite? _textStyle;
+  TextStyleComposite get textStyle => _textStyle ??= TextStyleComposite(this);
+  set textStyle(TextStyleComposite style) => _textStyle = style;
 }
 
 class EnsembleTextState extends framework.WidgetState<EnsembleText> {
@@ -75,37 +62,9 @@ class EnsembleTextState extends framework.WidgetState<EnsembleText> {
   }
 
   Text buildText(TextController controller) {
-    var textStyle = const TextStyle();
-
-    // also fallback to legacy
-    var fontFamily = controller.textStyle?.fontFamily ?? controller.fontFamily;
-    var fontSize =
-        (controller.textStyle?.fontSize ?? controller.fontSize)?.toDouble();
-    var fontWeight = controller.textStyle?.fontWeight ?? controller.fontWeight;
-    var color = controller.textStyle?.color ?? controller.color;
-    var overflow = controller.textStyle?.overflow ?? controller.overflow;
-
-    if (fontFamily != null) {
-      try {
-        textStyle = GoogleFonts.getFont(fontFamily.trim(), color: Colors.black);
-      } catch (_) {
-        textStyle.copyWith(fontFamily: fontFamily.trim());
-      }
-    }
     return Text(controller.text ?? '',
         textAlign: controller.textAlign,
         maxLines: controller.maxLines,
-        style: textStyle.copyWith(
-            fontSize: fontSize,
-            height: controller.textStyle?.height,
-            fontWeight: fontWeight,
-            fontStyle: controller.textStyle?.fontStyle,
-            color: color,
-            backgroundColor: controller.textStyle?.backgroundColor,
-            decoration: controller.textStyle?.decoration,
-            decorationStyle: controller.textStyle?.decorationStyle,
-            overflow: overflow,
-            letterSpacing: controller.textStyle?.letterSpacing,
-            wordSpacing: controller.textStyle?.wordSpacing));
+        style: controller.textStyle?.getTextStyle());
   }
 }

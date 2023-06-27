@@ -5,10 +5,12 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:yaml/yaml.dart';
 
@@ -373,13 +375,16 @@ class Utils {
     return null;
   }
 
+  static TextStyleComposite getTextStyleAsComposite(WidgetController widgetController, {dynamic style}) {
+    return TextStyleComposite(widgetController, styleWithFontFamily: getTextStyle(style));
+  }
+
   static TextStyle? getTextStyle(dynamic style) {
     if (style is Map) {
-      return TextStyle(
-          fontFamily: Utils.optionalString(style['fontFamily']),
-          fontSize: Utils.optionalInt(style['fontSize'], min: 1, max: 1000)
-              ?.toDouble(),
-          height: Utils.optionalDouble(style['lineHeightFactor'],
+      TextStyle textStyle = getFontFamily(style['fontFamily']) ?? const TextStyle();
+      return textStyle.copyWith(
+          fontSize: Utils.optionalInt(style['fontSize'], min: 1, max: 1000)?.toDouble(),
+          height: Utils.optionalDouble(style['lineHeightMultiple'],
               min: 0.1, max: 10),
           fontWeight: getFontWeight(style['fontWeight']),
           fontStyle: Utils.optionalBool(style['isItalic']) == true
@@ -387,7 +392,7 @@ class Utils {
               : FontStyle.normal,
           color: Utils.getColor(style['color']),
           backgroundColor: Utils.getColor(style['backgroundColor']),
-          decoration: _getDecoration(style['decoration']),
+          decoration: getDecoration(style['decoration']),
           decorationStyle:
               TextDecorationStyle.values.from(style['decorationStyle']),
           overflow: TextOverflow.values.from(style['overflow']),
@@ -397,7 +402,19 @@ class Utils {
     return null;
   }
 
-  static TextDecoration? _getDecoration(dynamic decoration) {
+  static TextStyle? getFontFamily(dynamic name) {
+    String? fontFamily = name?.toString().trim();
+    if (fontFamily != null && fontFamily.isNotEmpty) {
+      try {
+        return GoogleFonts.getFont(fontFamily.trim());
+      } catch (_) {
+        return TextStyle(fontFamily: fontFamily);
+      }
+    }
+    return null;
+  }
+
+  static TextDecoration? getDecoration(dynamic decoration) {
     if (decoration is String) {
       switch (decoration) {
         case 'underline':
