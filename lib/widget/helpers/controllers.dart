@@ -25,8 +25,8 @@ abstract class WidgetCompositeProperty with Invokable {
 }
 
 class TextStyleComposite extends WidgetCompositeProperty {
-  TextStyleComposite(super.widgetController, {TextStyle? styleWithFontFamily}) :
-        fontFamily = styleWithFontFamily,
+  TextStyleComposite(super.widgetController, {TextStyle? styleWithFontFamily})
+      : fontFamily = styleWithFontFamily,
         fontSize = styleWithFontFamily?.fontSize?.toInt(),
         lineHeightMultiple = styleWithFontFamily?.height,
         fontWeight = styleWithFontFamily?.fontWeight,
@@ -69,14 +69,17 @@ class TextStyleComposite extends WidgetCompositeProperty {
   Map<String, Function> setters() {
     return {
       'fontFamily': (value) => fontFamily = Utils.getFontFamily(value),
-      'fontSize': (value) => fontSize = Utils.optionalInt(value, min: 1, max: 1000),
-      'lineHeightMultiple': (value) => lineHeightMultiple = Utils.optionalDouble(value),
+      'fontSize': (value) =>
+          fontSize = Utils.optionalInt(value, min: 1, max: 1000),
+      'lineHeightMultiple': (value) =>
+          lineHeightMultiple = Utils.optionalDouble(value),
       'fontWeight': (value) => fontWeight = Utils.getFontWeight(value),
       'isItalic': (value) => isItalic = Utils.optionalBool(value),
       'color': (value) => color = Utils.getColor(value),
       'backgroundColor': (value) => backgroundColor = Utils.getColor(value),
       'decoration': (value) => decoration = Utils.getDecoration(value),
-      'decorationStyle': (value) => decorationStyle = TextDecorationStyle.values.from(value),
+      'decorationStyle': (value) =>
+          decorationStyle = TextDecorationStyle.values.from(value),
       'overflow': (value) => overflow = TextOverflow.values.from(value),
       'letterSpacing': (value) => letterSpacing = Utils.optionalDouble(value),
       'wordSpacing': (value) => wordSpacing = Utils.optionalDouble(value),
@@ -92,7 +95,6 @@ class TextStyleComposite extends WidgetCompositeProperty {
   Map<String, Function> methods() {
     return {};
   }
-
 }
 
 /// base Controller class for your Ensemble widget
