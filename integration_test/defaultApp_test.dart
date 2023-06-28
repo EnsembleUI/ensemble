@@ -97,13 +97,16 @@ void main() {
           matching: find.text('First person: Rachel'));
       expect(person, findsOneWidget);
     });
-    
+
     // test nested textSTyle
     testWidgets('Nested TextStyle update via Bindings/JS', (tester) async {
-      await TestHelper.loadScreen(screenName: 'Nested TextStyle', config: config);
+      await TestHelper.loadScreen(
+          screenName: 'Nested TextStyle', config: config);
       await tester.pumpAndSettle();
 
-      Finder textFinder = find.descendant(of: find.byType(EnsembleText), matching: find.text('This textStyle can change'));
+      Finder textFinder = find.descendant(
+          of: find.byType(EnsembleText),
+          matching: find.text('This textStyle can change'));
       expect(textFinder, findsOneWidget);
       Text textWidget = tester.widget(textFinder);
       expect(textWidget.style?.color, null);
@@ -124,7 +127,9 @@ void main() {
       expect(textWidget.style?.fontFamily, 'RandomFont');
 
       // JS Test: click on button to change color
-      Finder buttonFinder = find.descendant(of: find.byType(Button), matching: find.text('Change text color to red'));
+      Finder buttonFinder = find.descendant(
+          of: find.byType(Button),
+          matching: find.text('Change text color to red'));
       await tester.tap(buttonFinder);
       await tester.pumpAndSettle();
 
@@ -133,13 +138,13 @@ void main() {
       expect(textWidget.style?.color, Colors.red);
 
       // JS Test: click on button to change size
-      buttonFinder = find.descendant(of: find.byType(Button), matching: find.text('Change font size to 40'));
+      buttonFinder = find.descendant(
+          of: find.byType(Button),
+          matching: find.text('Change font size to 40'));
       await tester.tap(buttonFinder);
       await tester.pumpAndSettle();
       textWidget = tester.widget(textFinder);
       expect(textWidget.style?.fontSize, 40);
-      
     });
-    
   });
 }

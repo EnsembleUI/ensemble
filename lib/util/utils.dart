@@ -378,15 +378,20 @@ class Utils {
     return null;
   }
 
-  static TextStyleComposite getTextStyleAsComposite(WidgetController widgetController, {dynamic style}) {
-    return TextStyleComposite(widgetController, styleWithFontFamily: getTextStyle(style));
+  static TextStyleComposite getTextStyleAsComposite(
+      WidgetController widgetController,
+      {dynamic style}) {
+    return TextStyleComposite(widgetController,
+        styleWithFontFamily: getTextStyle(style));
   }
 
   static TextStyle? getTextStyle(dynamic style) {
     if (style is Map) {
-      TextStyle textStyle = getFontFamily(style['fontFamily']) ?? const TextStyle();
+      TextStyle textStyle =
+          getFontFamily(style['fontFamily']) ?? const TextStyle();
       return textStyle.copyWith(
-          fontSize: Utils.optionalInt(style['fontSize'], min: 1, max: 1000)?.toDouble(),
+          fontSize: Utils.optionalInt(style['fontSize'], min: 1, max: 1000)
+              ?.toDouble(),
           height: Utils.optionalDouble(style['lineHeightMultiple'],
               min: 0.1, max: 10),
           fontWeight: getFontWeight(style['fontWeight']),
