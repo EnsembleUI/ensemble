@@ -30,9 +30,7 @@ class Button extends StatefulWidget
 
   @override
   Map<String, Function> getters() {
-    return {
-      'labelStyle': () => _controller.labelStyle
-    };
+    return {'labelStyle': () => _controller.labelStyle};
   }
 
   @override

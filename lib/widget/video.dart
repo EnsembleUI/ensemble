@@ -54,20 +54,21 @@ class MyController extends WidgetController {
             log(value.toString());
             notifyListeners();
           });
-      } else if (value.contains('assets')) {
-        _playerController = VideoPlayerController.asset(value)
-          ..initialize().then((_) {
-            VideoPlayerValue value = _playerController!.value;
-            log(value.toString());
-            notifyListeners();
-          });
-      } else {
+      } else if (Utils.isMemoryPath(value)) {
         _playerController = VideoPlayerController.file(File(value))
           ..initialize().then((_) {
             VideoPlayerValue value = _playerController!.value;
             log(value.toString());
             notifyListeners();
           });
+      } else {
+        _playerController =
+            VideoPlayerController.asset(Utils.getLocalAssetFullPath(value))
+              ..initialize().then((_) {
+                VideoPlayerValue value = _playerController!.value;
+                log(value.toString());
+                notifyListeners();
+              });
       }
 
       _playerController!.addListener(() {

@@ -33,8 +33,8 @@ class EnsembleText extends StatefulWidget
           _controller.textAlign = TextAlign.values.from(value),
       'maxLines': (value) =>
           _controller.maxLines = Utils.optionalInt(value, min: 1),
-      'textStyle': (style) =>
-          _controller.textStyle = Utils.getTextStyleAsComposite(_controller, style: style),
+      'textStyle': (style) => _controller.textStyle =
+          Utils.getTextStyleAsComposite(_controller, style: style),
     };
   }
 
