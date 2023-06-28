@@ -99,7 +99,9 @@ class EnsembleAppState extends State<EnsembleApp> {
   /// initialize our App with the the passed in config or
   /// read from our ensemble-config file.
   Future<EnsembleConfig> initApp() async {
-    await dotenv.load();
+    try {
+      await dotenv.load();
+    } catch (_) {}
     Device().initDeviceInfo();
     await GetStorage.init();
     GetStorage().write(previewConfig, widget.isPreview);
