@@ -99,7 +99,7 @@ void main() {
     });
     
     // test nested textSTyle
-    testWidgets('Nested TextStyle update via JS', (tester) async {
+    testWidgets('Nested TextStyle update via Bindings/JS', (tester) async {
       await TestHelper.loadScreen(screenName: 'Nested TextStyle', config: config);
       await tester.pumpAndSettle();
 
