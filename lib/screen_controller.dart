@@ -15,11 +15,11 @@ import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/placeholder/camera_manager.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/view/page_group.dart';
-import 'package:ensemble/framework/widget/camera_manager.dart';
 import 'package:ensemble/framework/widget/modal_screen.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/framework/widget/toast.dart';
@@ -30,7 +30,6 @@ import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_registry.dart';
-import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -41,6 +40,7 @@ import 'package:url_launcher/url_launcher_string.dart';
 import 'package:walletconnect_dart/walletconnect_dart.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:yaml/yaml.dart';
+import 'package:get_it/get_it.dart';
 
 import 'framework/widget/wallet_connect_modal.dart';
 
@@ -163,7 +163,7 @@ class ScreenController {
         });
       }
     } else if (action is ShowCameraAction) {
-      CameraManager().openCamera(context, action, scopeManager);
+      GetIt.I<CameraManager>().openCamera(context, action, scopeManager);
     } else if (action is ShowDialogAction) {
       if (scopeManager != null) {
         Widget widget = scopeManager.buildWidgetFromDefinition(action.widget);
