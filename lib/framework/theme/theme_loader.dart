@@ -139,16 +139,8 @@ mixin ThemeLoader {
   }
 
   TextTheme _buildTextTheme([YamlMap? textTheme]) {
-    final fontFamily = Utils.optionalString(textTheme?['fontFamily']);
-
-    TextStyle defaultStyle = const TextStyle(
-        fontFamily: 'Inter', fontWeight: FontWeight.w400, color: Colors.black);
-    try {
-      if (fontFamily != null) {
-        defaultStyle =
-            GoogleFonts.getFont(fontFamily.trim(), color: Colors.black);
-      }
-    } catch (_) {}
+    TextStyle defaultStyle = Utils.getTextStyle(textTheme)?.copyWith(color: Colors.black) ??
+        const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w400, color: Colors.black);
 
     return ThemeData.light()
         .textTheme
