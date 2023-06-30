@@ -114,6 +114,9 @@ abstract class BaseTextInput extends StatefulWidget
       'maxLines': (value) => _controller.maxLines =
           Utils.getInt(value, min: 1, fallback: _controller.maxLines),
       'textStyle': (style) => _controller.textStyle = Utils.getTextStyle(style),
+      'hintStyle': (style) => _controller.hintStyle = Utils.getTextStyle(style),
+      'labelStyle': (style) =>
+          _controller.labelStyle = Utils.getTextStyle(style),
     };
   }
 
@@ -166,6 +169,8 @@ class TextInputController extends FormFieldController {
   String? inputType;
   int maxLines = 1;
   TextStyle? textStyle;
+  TextStyle? hintStyle;
+  TextStyle? labelStyle;
 }
 
 class TextInputState extends FormFieldWidgetState<BaseTextInput> {
@@ -242,7 +247,11 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
   @override
   Widget buildWidget(BuildContext context) {
     // for password, show the toggle plain text/obscure text
-    InputDecoration decoration = inputDecoration;
+    InputDecoration decoration = inputDecoration.copyWith(
+      hintStyle: widget._controller.hintStyle,
+      labelStyle: widget._controller.labelStyle,
+    );
+
     if ((widget.isPassword() || widget._controller.obscureText == true) &&
         widget._controller.obscureToggle == true) {
       decoration = decoration.copyWith(
