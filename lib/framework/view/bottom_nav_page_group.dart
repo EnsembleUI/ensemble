@@ -68,9 +68,9 @@ class BottomNavPageGroup extends StatefulWidget {
 
 class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
   late List<MenuItem> menuItems;
-  Widget? fab;
-  FloatingAlignment floatingAlignment = FloatingAlignment.none;
+  FloatingAlignment floatingAlignment = FloatingAlignment.center;
   int? floatingMargin;
+  MenuItem? fabMenuItem;
 
   @override
   void initState() {
@@ -85,26 +85,41 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
       throw LanguageError('There should be only one floating nav bar item');
     }
     if (fabItems.isNotEmpty) {
-      final fabMenuItem = fabItems.first;
-      floatingMargin = fabMenuItem.floatingMargin;
-      final dynamic customIcon = _buildCustomIcon(fabMenuItem);
-      fab = Theme(
+      fabMenuItem = fabItems.first;
+    }
+    if (fabMenuItem != null && fabMenuItem?.floatingAlignment != null) {
+      floatingAlignment =
+          FloatingAlignment.values.byName(fabMenuItem!.floatingAlignment);
+    }
+  }
+
+  Widget? _buildFloatingButton() {
+    if (fabMenuItem != null) {
+      floatingMargin = fabMenuItem!.floatingMargin;
+      final dynamic customIcon = _buildCustomIcon(fabMenuItem!);
+
+      final floatingItemColor =
+          Utils.getColor(widget.menu.styles?['floatingIconColor']) ??
+              Theme.of(context).colorScheme.onSecondary;
+      final floatingBackgroundColor =
+          Utils.getColor(widget.menu.styles?['floatingBackgroundColor']) ??
+              Theme.of(context).colorScheme.secondary;
+
+      return Theme(
         data: ThemeData(useMaterial3: false),
         child: customIcon ??
             FloatingActionButton(
+              backgroundColor: floatingBackgroundColor,
               child: ensemble.Icon(
-                fabMenuItem.icon ?? '',
-                library: fabMenuItem.iconLibrary,
-                color: Colors.white,
+                fabMenuItem!.icon ?? '',
+                library: fabMenuItem!.iconLibrary,
+                color: floatingItemColor,
               ),
-              onPressed: () => _floatingButtonTapped(fabMenuItem),
+              onPressed: () => _floatingButtonTapped(fabMenuItem!),
             ),
       );
-      if (fab != null) {
-        floatingAlignment =
-            FloatingAlignment.values.byName(fabMenuItem.floatingAlignment);
-      }
     }
+    return null;
   }
 
   void _floatingButtonTapped(MenuItem fabMenuItem) {
@@ -117,14 +132,17 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
 
   @override
   Widget build(BuildContext context) {
+    final notchColor = Utils.getColor(widget.menu.styles?['notchColor']) ??
+        Theme.of(context).scaffoldBackgroundColor;
+
     return Scaffold(
       resizeToAvoidBottomInset: false,
+      backgroundColor: notchColor,
       bottomNavigationBar: _buildBottomNavBar(),
       floatingActionButtonLocation: floatingAlignment == FloatingAlignment.none
           ? null
           : floatingAlignment.location,
-      floatingActionButton:
-          floatingAlignment == FloatingAlignment.none ? null : fab,
+      floatingActionButton: _buildFloatingButton(),
       body: PageGroupWidget(
         scopeManager: widget.scopeManager,
         child: widget.child,
@@ -134,6 +152,12 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
 
   EnsembleBottomAppBar? _buildBottomNavBar() {
     List<FABBottomAppBarItem> navItems = [];
+
+    final unselectedColor = Utils.getColor(widget.menu.styles?['color']) ??
+        Theme.of(context).unselectedWidgetColor;
+    final selectedColor =
+        Utils.getColor(widget.menu.styles?['selectedColor']) ??
+            Theme.of(context).primaryColor;
 
     // final menu = widget.menu;
     for (int i = 0; i < menuItems.length; i++) {
@@ -148,13 +172,13 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
           ensemble.Icon(
             item.activeIcon ?? item.icon,
             library: item.iconLibrary,
-            color: Colors.white,
+            color: selectedColor,
           );
       final icon = customIcon ??
           ensemble.Icon(
             item.icon ?? '',
             library: item.iconLibrary,
-            color: Colors.white60,
+            color: unselectedColor,
           );
       navItems.add(
         FABBottomAppBarItem(
@@ -169,11 +193,14 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
     return EnsembleBottomAppBar(
       backgroundColor: Utils.getColor(widget.menu.styles?['backgroundColor']) ??
           Colors.white,
-      color: Colors.white60,
-      selectedColor: Colors.white,
+      height: Utils.optionalDouble(widget.menu.styles?['height'] ?? 60),
+      padding: widget.menu.styles?['padding'],
+      color: unselectedColor,
+      selectedColor: selectedColor,
       notchedShape: const CircularNotchedRectangle(),
       onTabSelected: widget.onTabSelected,
       items: navItems,
+      isFloating: fabMenuItem != null,
       floatingAlignment: floatingAlignment,
       floatingMargin: floatingMargin,
     );
@@ -197,13 +224,15 @@ class EnsembleBottomAppBar extends StatefulWidget {
   EnsembleBottomAppBar({
     super.key,
     required this.items,
-    this.height = 80.0,
+    this.height,
+    this.padding,
     this.iconSize = 24.0,
     required this.backgroundColor,
     required this.color,
     required this.selectedColor,
     required this.notchedShape,
     required this.onTabSelected,
+    required this.isFloating,
     required this.floatingAlignment,
     this.onFabTapped,
     this.floatingMargin,
@@ -211,12 +240,14 @@ class EnsembleBottomAppBar extends StatefulWidget {
     // assert(items.length == 2 || items.length == 4);
   }
   final List<FABBottomAppBarItem> items;
-  final double height;
+  final double? height;
+  final dynamic padding;
   final double iconSize;
   final int? floatingMargin;
   final Color backgroundColor;
   final Color color;
   final Color selectedColor;
+  final bool isFloating;
   final FloatingAlignment floatingAlignment;
   final NotchedShape notchedShape;
   final VoidCallback? onFabTapped;
@@ -238,6 +269,8 @@ class EnsembleBottomAppBarState extends State<EnsembleBottomAppBar> {
   }
 
   int? getFabIndex() {
+    if (!widget.isFloating) return null;
+
     switch (widget.floatingAlignment) {
       case FloatingAlignment.center:
         switch (widget.items.length) {
@@ -284,10 +317,13 @@ class EnsembleBottomAppBarState extends State<EnsembleBottomAppBar> {
         shape: widget.notchedShape,
         color: widget.backgroundColor,
         notchMargin: _defaultFloatingNotch,
-        child: Row(
-          mainAxisSize: MainAxisSize.max,
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: items,
+        child: Padding(
+          padding: Utils.optionalInsets(widget.padding) ?? EdgeInsets.zero,
+          child: Row(
+            mainAxisSize: MainAxisSize.max,
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: items,
+          ),
         ),
       ),
     );
@@ -316,6 +352,7 @@ class EnsembleBottomAppBarState extends State<EnsembleBottomAppBar> {
         child: Material(
           type: MaterialType.transparency,
           child: InkWell(
+            customBorder: const CircleBorder(),
             onTap: () => onPressed(index),
             child: item.isCustom
                 ? icon

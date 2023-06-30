@@ -1,8 +1,10 @@
+import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:flutter/material.dart';
 import 'package:source_span/source_span.dart';
 import 'package:yaml/yaml.dart';
 
@@ -26,6 +28,7 @@ class InvokeAPIAction extends EnsembleAction {
       throw LanguageError(
           "${ActionType.invokeAPI.name} requires the 'name' of the API.");
     }
+
     return InvokeAPIAction(
         initiator: initiator,
         apiName: payload['name'],
@@ -116,6 +119,14 @@ class NavigateScreenAction extends BaseNavigateScreenAction {
       transition: Utils.getMap(payload['transition']),
     );
   }
+
+  factory NavigateScreenAction.fromMap(dynamic inputs) {
+    // just have the screen name only
+    if (inputs is String) {
+      return NavigateScreenAction(screenName: inputs);
+    }
+    return NavigateScreenAction.fromYaml(payload: Utils.getYamlMap(inputs));
+  }
 }
 
 class NavigateModalScreenAction extends BaseNavigateScreenAction {
@@ -161,11 +172,34 @@ class StartTimerAction extends EnsembleAction {
       {super.initiator,
       required this.onTimer,
       this.onTimerComplete,
-      this.payload});
+      this.id,
+      options})
+      : _options = options;
 
+  final String? id;
   final EnsembleAction onTimer;
   final EnsembleAction? onTimerComplete;
-  final TimerPayload? payload;
+  final Map<String, dynamic>? _options;
+
+  // The initial delay in seconds
+  int? getStartAfter(DataContext dataContext) =>
+      Utils.optionalInt(dataContext.eval(_options?['startAfter']), min: 0);
+
+  bool isRepeat(dataContext) =>
+      Utils.getBool(dataContext.eval(_options?['repeat']), fallback: false);
+
+  // The repeat interval in seconds
+  int? getRepeatInterval(dataContext) =>
+      Utils.optionalInt(dataContext.eval(_options?['repeatInterval']), min: 1);
+
+  // how many times to trigger onTimer
+  int? getMaxTimes(dataContext) =>
+      Utils.optionalInt(dataContext.eval(_options?['maxNumberOfTimes']),
+          min: 1);
+
+  // if global is marked, only 1 instance is available for the entire app
+  bool? isGlobal(dataContext) =>
+      Utils.optionalBool(dataContext.eval(_options?['isGlobal']));
 
   factory StartTimerAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
     EnsembleAction? onTimer =
@@ -177,29 +211,17 @@ class StartTimerAction extends EnsembleAction {
     EnsembleAction? onTimerComplete = EnsembleAction.fromYaml(
         payload['onTimerComplete'],
         initiator: initiator);
-    TimerPayload? timerPayload;
-    if (payload['options'] is YamlMap) {
-      timerPayload = TimerPayload(
-          id: Utils.optionalString(payload['id']),
-          startAfter:
-              Utils.optionalInt(payload['options']['startAfter'], min: 0),
-          repeat: Utils.getBool(payload['options']['repeat'], fallback: false),
-          repeatInterval:
-              Utils.optionalInt(payload['options']['repeatInterval'], min: 1),
-          maxTimes:
-              Utils.optionalInt(payload['options']['maxNumberOfTimes'], min: 1),
-          isGlobal: Utils.optionalBool(payload['options']['isGlobal']));
-    }
-    if (timerPayload?.repeat == true && timerPayload?.repeatInterval == null) {
-      throw LanguageError(
-          "${ActionType.startTimer.name}'s repeatInterval needs a value when repeat is on");
-    }
+
     return StartTimerAction(
         initiator: initiator,
         onTimer: onTimer,
         onTimerComplete: onTimerComplete,
-        payload: timerPayload);
+        id: Utils.optionalString(payload['id']),
+        options: Utils.getMap(payload['options']));
   }
+
+  factory StartTimerAction.fromMap(dynamic inputs) =>
+      StartTimerAction.fromYaml(payload: Utils.getYamlMap(inputs));
 }
 
 class StopTimerAction extends EnsembleAction {
@@ -265,45 +287,47 @@ class NavigateBack extends EnsembleAction {}
 class ShowToastAction extends EnsembleAction {
   ShowToastAction(
       {super.initiator,
-      required this.type,
+      this.type,
       this.title,
       this.message,
       this.widget,
       this.dismissible,
-      this.position,
+      this.alignment,
       this.duration,
       this.styles});
 
-  final ToastType type;
+  ToastType? type;
+  final String? title;
 
   // either message or widget is needed
-  final String? title;
   final String? message;
   final dynamic widget;
 
   final bool? dismissible;
-  final String? position;
+
+  final Alignment? alignment;
   final int? duration; // the during in seconds before toast is dismissed
   final Map<String, dynamic>? styles;
 
   factory ShowToastAction.fromYaml({YamlMap? payload}) {
     if (payload == null ||
-        ((payload['title'] == null && payload['message'] == null) &&
-            payload['widget'] == null)) {
+        (payload['message'] == null && payload['widget'] == null)) {
       throw LanguageError(
-          "${ActionType.showToast.name} requires either a title/message or a widget to render.");
+          "${ActionType.showToast.name} requires either a message or a widget to render.");
     }
     return ShowToastAction(
-        type: ToastType.values.from(payload['options']?['type']) ??
-            ToastType.info,
+        type: ToastType.values.from(payload['options']?['type']),
         title: Utils.optionalString(payload['title']),
         message: payload['message']?.toString(),
         widget: payload['widget'],
         dismissible: Utils.optionalBool(payload['options']?['dismissible']),
-        position: Utils.optionalString(payload['options']?['position']),
+        alignment: Utils.getAlignment(payload['options']?['alignment']),
         duration: Utils.optionalInt(payload['options']?['duration'], min: 1),
         styles: Utils.getMap(payload['styles']));
   }
+
+  factory ShowToastAction.fromMap(dynamic inputs) =>
+      ShowToastAction.fromYaml(payload: Utils.getYamlMap(inputs));
 }
 
 class GetLocationAction extends EnsembleAction {
@@ -317,26 +341,6 @@ class GetLocationAction extends EnsembleAction {
 
   bool? recurring;
   int? recurringDistanceFilter;
-}
-
-class TimerPayload {
-  TimerPayload(
-      {this.id,
-      this.startAfter,
-      required this.repeat,
-      this.repeatInterval,
-      this.maxTimes,
-      this.isGlobal});
-
-  final String? id;
-  final int? startAfter; // The initial delay in seconds
-
-  final bool repeat;
-  final int? repeatInterval; // The repeat interval in seconds
-  final int? maxTimes; // how many times to trigger onTimer
-
-  final bool?
-      isGlobal; // if global is marked, only 1 instance is available for the entire app
 }
 
 class FilePickerAction extends EnsembleAction {
@@ -485,6 +489,26 @@ class WalletConnectAction extends EnsembleAction {
   }
 }
 
+/// not in use yet
+class AuthorizeOAuthAction extends EnsembleAction {
+  AuthorizeOAuthAction(this.id, {this.onResponse, this.onError});
+  final String id;
+  EnsembleAction? onResponse;
+  EnsembleAction? onError;
+
+  factory AuthorizeOAuthAction.fromYaml({YamlMap? payload}) {
+    if (payload == null || payload['id'] == null) {
+      throw LanguageError(
+          '${ActionType.authorizeOAuthService.name} requires the service ID.');
+    }
+    return AuthorizeOAuthAction(
+      payload['id'],
+      onResponse: EnsembleAction.fromYaml(payload['onResponse']),
+      onError: EnsembleAction.fromYaml(payload['onError']),
+    );
+  }
+}
+
 enum ActionType {
   invokeAPI,
   navigateScreen,
@@ -502,6 +526,7 @@ enum ActionType {
   navigateBack,
   pickFiles,
   connectWallet,
+  authorizeOAuthService,
 }
 
 enum ToastType { success, error, warning, info }
@@ -583,6 +608,8 @@ abstract class EnsembleAction {
       return OpenUrlAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.connectWallet) {
       return WalletConnectAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.authorizeOAuthService) {
+      return AuthorizeOAuthAction.fromYaml(payload: payload);
     }
     throw LanguageError("Invalid action.",
         recovery: "Make sure to use one of Ensemble-provided actions.");

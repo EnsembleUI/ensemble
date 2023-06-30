@@ -1,12 +1,13 @@
 // manage Camera
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/bindings.dart';
+import 'package:ensemble/framework/placeholder/camera_manager.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/widget/camera.dart';
 import 'package:flutter/material.dart';
 
-const optionMappings = {
+const _optionMappings = {
   'mode': 'mode',
   'initialCamera': 'initialCamera',
   'allowGalleryPicker': 'allowGalleryPicker',
@@ -25,18 +26,19 @@ const optionMappings = {
   'autoCaptureInterval': 'autoCaptureInterval',
 };
 
-const angleAssistOptions = {
+const _angleAssistOptions = {
   'assistAngleMessage': 'assistAngleMessage',
   'maxAngle': 'maxAngle',
   'minAngle': 'minAngle',
 };
 
-const speedAssistOptions = {
+const _speedAssistOptions = {
   'assistSpeedMessage': 'assistSpeedMessage',
   'maxSpeed': 'maxSpeed',
 };
 
-class CameraManager {
+class CameraManagerImpl extends CameraManager {
+  @override
   Future<void> openCamera(BuildContext context, ShowCameraAction cameraAction,
       ScopeManager? scopeManager) async {
     Camera camera = Camera(
@@ -52,11 +54,6 @@ class CameraManager {
               ScreenController()
                   .executeAction(context, cameraAction.onComplete!);
             },
-      onClose: cameraAction.onClose == null
-          ? null
-          : () {
-              ScreenController().executeAction(context, cameraAction.onClose!);
-            },
     );
 
     if (cameraAction.id != null) {
@@ -70,7 +67,7 @@ class CameraManager {
       if (cameraAction.options!['assistAngle'] != null) {
         camera.setProperty('assistAngle', true);
         for (var option in cameraAction.options!['assistAngle'].keys) {
-          final property = angleAssistOptions[option];
+          final property = _angleAssistOptions[option];
           if (property != null) {
             camera.setProperty(
                 property, cameraAction.options!['assistAngle']![option]);
@@ -81,7 +78,7 @@ class CameraManager {
       if (cameraAction.options!['assistSpeed'] != null) {
         camera.setProperty('assistSpeed', true);
         for (var option in cameraAction.options!['assistSpeed'].keys) {
-          final property = speedAssistOptions[option];
+          final property = _speedAssistOptions[option];
           if (property != null) {
             camera.setProperty(
                 property, cameraAction.options!['assistSpeed']![option]);
@@ -90,7 +87,7 @@ class CameraManager {
       }
 
       for (var option in cameraAction.options!.keys) {
-        final property = optionMappings[option];
+        final property = _optionMappings[option];
         if (property != null) {
           camera.setProperty(property, cameraAction.options![option]);
         }
@@ -103,6 +100,12 @@ class CameraManager {
         builder: (context) => camera,
       ),
     );
+
+    if (cameraAction.onClose != null) {
+      try {
+        ScreenController().executeAction(context, cameraAction.onClose!);
+      } catch (_) {}
+    }
 
     if (cameraAction.id != null) {
       scopeManager?.dispatch(

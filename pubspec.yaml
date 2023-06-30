@@ -24,6 +24,11 @@ dependencies:
   flutter:
     sdk: flutter
 
+  device_preview:
+    git:
+      url: https://github.com/vinothvino42/flutter_device_preview.git
+      ref: develop
+
   yaml: ^3.1.2
   font_awesome_flutter: ^9.2.0
   intl: ^0.18.0
@@ -35,7 +40,6 @@ dependencies:
   flutter_rating_bar: ^4.0.0
   fl_chart: ^0.62.0
   signature: ^5.2.1
-  device_preview: ^1.1.0
 
   ensemble_ts_interpreter:
     git:
@@ -46,7 +50,6 @@ dependencies:
   high_chart:
     git: https://github.com/EnsembleUI/high_chart.git
   event_bus: ^2.0.0
-  mockito: ^5.1.0
   flutter_layout_grid: ^2.0.3
   email_validator: ^2.0.1
   form_validator: ^2.1.1
@@ -79,13 +82,18 @@ dependencies:
   walletconnect_dart: ^0.0.11
   http_parser: ^4.0.2
   shared_preferences: ^2.1.1
-  get_it: ^7.6.0
   google_maps_flutter: ^2.2.6
   google_maps_flutter_web: ^0.4.0+8
   workmanager: ^0.5.1
   flutter_local_notifications: ^14.0.0+2
   flutter_i18n: ^0.33.0
   pointer_interceptor: ^0.9.3+4
+  flutter_web_auth_2: ^2.1.4
+  flutter_secure_storage: ^8.0.0
+  staggered_grid_view_flutter: ^0.0.4
+  dart_jsonwebtoken: ^2.8.2
+  flutter_dotenv: ^5.1.0
+  get_it: ^7.6.0
 
 dev_dependencies:
   flutter_test:
@@ -93,6 +101,7 @@ dev_dependencies:
   integration_test:
     sdk: flutter
   flutter_lints: ^2.0.1
+  mockito: ^5.1.0
 
 flutter:
   # The following line ensures that the Material Icons font is
@@ -109,6 +118,11 @@ flutter:
     - ensemble/integration_tests/themedApp/
 
   fonts:
+    # icon fonts
+    - family: Remix
+      fonts:
+        - asset: assets/iconFonts/remixicon.ttf
+
     # semi-custom fonts
     - family: idealTalent
       fonts:

@@ -27,39 +27,26 @@ class ToastController {
     _toast.removeQueuedCustomToasts();
 
     ToastGravity toastGravity;
-    switch (toastAction.position) {
-      case 'top':
-        toastGravity = ToastGravity.TOP;
-        break;
-      case 'topLeft':
-        toastGravity = ToastGravity.TOP_LEFT;
-        break;
-      case 'topRight':
-        toastGravity = ToastGravity.TOP_RIGHT;
-        break;
-      case 'center':
-        toastGravity = ToastGravity.CENTER;
-        break;
-      case 'centerLeft':
-        toastGravity = ToastGravity.CENTER_LEFT;
-        break;
-      case 'centerRight':
-        toastGravity = ToastGravity.CENTER_RIGHT;
-        break;
-      case 'bottom':
-        toastGravity = ToastGravity.BOTTOM;
-        break;
-      case 'bottomLeft':
-        toastGravity = ToastGravity.BOTTOM_LEFT;
-        break;
-      case 'bottomRight':
-        toastGravity = ToastGravity.BOTTOM_RIGHT;
-        break;
-      default:
-        toastGravity = ToastGravity.TOP_RIGHT;
-        break;
+    if (toastAction.alignment == Alignment.topCenter) {
+      toastGravity = ToastGravity.TOP;
+    } else if (toastAction.alignment == Alignment.topLeft) {
+      toastGravity = ToastGravity.TOP_LEFT;
+    } else if (toastAction.alignment == Alignment.center) {
+      toastGravity = ToastGravity.CENTER;
+    } else if (toastAction.alignment == Alignment.centerLeft) {
+      toastGravity = ToastGravity.CENTER_LEFT;
+    } else if (toastAction.alignment == Alignment.centerRight) {
+      toastGravity = ToastGravity.CENTER_RIGHT;
+    } else if (toastAction.alignment == Alignment.bottomCenter) {
+      toastGravity = ToastGravity.BOTTOM;
+    } else if (toastAction.alignment == Alignment.bottomLeft) {
+      toastGravity = ToastGravity.BOTTOM_LEFT;
+    } else if (toastAction.alignment == Alignment.bottomRight) {
+      toastGravity = ToastGravity.BOTTOM_RIGHT;
+    } else {
+      // default
+      toastGravity = ToastGravity.TOP_RIGHT;
     }
-
     _toast.showToast(
         gravity: toastGravity,
         toastDuration: toastAction.duration != null
@@ -89,13 +76,13 @@ class ToastController {
       IconData icon;
       if (toastAction.type == ToastType.success) {
         icon = Icons.check_circle_outline;
-        bgColor ??= DesignSystem.successColor;
+        bgColor ??= DesignSystem.successBackgroundColor;
       } else if (toastAction.type == ToastType.error) {
         icon = Icons.error_outline;
-        bgColor ??= DesignSystem.errorColor;
+        bgColor ??= DesignSystem.errorBackgroundColor;
       } else if (toastAction.type == ToastType.warning) {
         icon = Icons.warning;
-        bgColor ??= DesignSystem.warningColor;
+        bgColor ??= DesignSystem.warningBackgroundColor;
       } else {
         // info by default
         icon = Icons.info;

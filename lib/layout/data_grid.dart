@@ -1,9 +1,12 @@
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/util/gesture_detector.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/widget_util.dart';
 import 'package:flutter/foundation.dart';
@@ -31,7 +34,9 @@ class DataGrid extends StatefulWidget
 
   @override
   Map<String, Function> getters() {
-    return {};
+    return {
+      'selectedItemIndex': () => _controller.selectedItemIndex,
+    };
   }
 
   @override
@@ -62,14 +67,6 @@ class DataGrid extends StatefulWidget
       'DataColumns': (List cols) {
         this.cols = cols;
       },
-      'headingTextStyle': (Map styles) {
-        controller.headingTextController = TextController();
-        TextUtils.setStyles(styles, controller.headingTextController!);
-      },
-      'dataTextStyle': (Map styles) {
-        controller.dataTextController = TextController();
-        TextUtils.setStyles(styles, controller.dataTextController!);
-      },
       'horizontalMargin': (val) =>
           controller.horizontalMargin = Utils.optionalDouble(val),
       'dataRowHeight': (val) =>
@@ -80,29 +77,6 @@ class DataGrid extends StatefulWidget
           controller.columnSpacing = Utils.optionalDouble(val),
       'dividerThickness': (val) =>
           controller.dividerThickness = Utils.optionalDouble(val),
-      'border': (Map val) {
-        Map<String, dynamic> map = {};
-        val.forEach((key, value) {
-          if (value is Map) {
-            Color color = Utils.getColor(value['color']) ?? Colors.black;
-            double width = Utils.getDouble(value['width'], fallback: 1.0);
-            map[key] = BorderSide(color: color, width: width);
-          } else if (key == 'borderRadius') {
-            double? radius = Utils.optionalDouble(value);
-            map[key] = (radius == null)
-                ? BorderRadius.zero
-                : BorderRadius.circular(radius);
-          }
-        });
-        controller.border = TableBorder(
-            top: map['top'] ?? BorderSide.none,
-            right: map['right'] ?? BorderSide.none,
-            bottom: map['bottom'] ?? BorderSide.none,
-            left: map['left'] ?? BorderSide.none,
-            horizontalInside: map['horizontalInside'] ?? BorderSide.none,
-            verticalInside: map['verticalInside'] ?? BorderSide.none,
-            borderRadius: map['borderRadius'] ?? BorderRadius.zero);
-      },
     };
   }
 }
@@ -173,16 +147,34 @@ class EnsembleDataRowState extends State<EnsembleDataRow> {
   }
 }
 
-class DataGridController extends WidgetController {
+class DataGridController extends BoxController {
   List<Widget>? children;
   double? horizontalMargin;
-  TextController? headingTextController;
+  GenericTextController? headingTextController;
   double? dataRowHeight;
   double? headingRowHeight;
   double? columnSpacing;
-  TextController? dataTextController;
+  GenericTextController? dataTextController;
   double? dividerThickness;
   TableBorder border = const TableBorder();
+  EnsembleAction? onItemTap;
+  int selectedItemIndex = -1;
+
+  @override
+  Map<String, Function> getBaseSetters() {
+    Map<String, Function> setters = super.getBaseSetters();
+    setters.addAll({
+      'headingText': (Map styles) {
+        headingTextController = GenericTextController();
+        TextUtils.setStyles(styles, headingTextController!);
+      },
+      'dataText': (Map styles) {
+        dataTextController = GenericTextController();
+        TextUtils.setStyles(styles, dataTextController!);
+      },
+    });
+    return setters;
+  }
 }
 
 class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
@@ -235,8 +227,7 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
     List<EnsembleDataColumn> columns = List<EnsembleDataColumn>.generate(
         widget.cols.length,
         (index) => EnsembleDataColumn.fromYaml(
-            map: widget.cols[index] as Map,
-            context: scopeManager!.dataContext));
+            map: widget.cols[index] as Map, context: scopeManager.dataContext));
     List<Widget> children = [];
     if (widget._controller.children != null) {
       children.addAll(widget._controller.children!);
@@ -244,6 +235,7 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
     if (templatedChildren != null) {
       children.addAll(templatedChildren!);
     }
+
     List<DataRow> rows = [];
     for (Widget w in children) {
       DataScopeWidget? rowScope;
@@ -261,17 +253,27 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
       }
       List<DataCell> cells = [];
       if (child.children != null) {
-        for (Widget c in child.children!) {
+        child.children!.asMap().forEach((index, Widget c) {
           // for templated row only, wrap each cell widget in a DataScopeWidget, and simply use the row's datascope
           if (rowScope != null) {
             Widget scopeWidget =
                 DataScopeWidget(scopeManager: rowScope.scopeManager, child: c);
 
-            cells.add(DataCell(scopeWidget));
+            cells.add(
+              DataCell(EnsembleGestureDetector(
+                child: scopeWidget,
+                onTap: () => _onItemTap(index),
+              )),
+            );
           } else {
-            cells.add(DataCell(c));
+            cells.add(
+              DataCell(EnsembleGestureDetector(
+                child: c,
+                onTap: () => _onItemTap(index),
+              )),
+            );
           }
-        }
+        });
       }
       if (columns.length != cells.length) {
         if (kDebugMode) {
@@ -317,7 +319,12 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
       dataTextStyle: dataTextStyle,
       columnSpacing: widget.controller.columnSpacing,
       dividerThickness: widget.controller.dividerThickness,
-      border: widget.controller.border,
+      border: TableBorder.all(
+        color: widget.controller.borderColor ?? Colors.black,
+        width: widget.controller.borderWidth?.toDouble() ?? 1.0,
+        borderRadius:
+            widget.controller.borderRadius?.getValue() ?? BorderRadius.zero,
+      ),
     );
     return SingleChildScrollView(
         scrollDirection: Axis.vertical,
@@ -328,5 +335,12 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
             // Some widgets don't like that so we expose this so the widgets
             // can react accordingly
             child: RequiresChildWithIntrinsicDimension(child: grid)));
+  }
+
+  void _onItemTap(int index) {
+    if (widget.controller.onItemTap != null) {
+      widget._controller.selectedItemIndex = index;
+      ScreenController().executeAction(context, widget._controller.onItemTap!);
+    }
   }
 }
