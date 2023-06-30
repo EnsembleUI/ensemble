@@ -20,13 +20,20 @@ mixin MapActions on MapsActionableState {
       points.add(payload.latLng);
     }
 
-    zoom(points);
+    zoom(points, hasCurrentLocation: currentLocation != null);
   }
 
   void moveCamera(LatLng target, {int? zoom}) {
-    getMapController().then((controller) => controller.moveCamera(
-        CameraUpdate.newCameraPosition(zoom != null
-            ? CameraPosition(target: target, zoom: zoom.toDouble())
-            : CameraPosition(target: target))));
+    getMapController().then((controller) async => controller.animateCamera(
+        CameraUpdate.newCameraPosition(CameraPosition(
+            target: target,
+            zoom: zoom?.toDouble() ?? await controller.getZoomLevel()))));
+  }
+
+  void moveCameraBounds(LatLng southwest, LatLng northeast, {int? padding}) {
+    getMapController().then((controller) => controller.animateCamera(
+        CameraUpdate.newLatLngBounds(
+            LatLngBounds(southwest: southwest, northeast: northeast),
+            padding?.toDouble() ?? 50)));
   }
 }

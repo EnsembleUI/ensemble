@@ -30,12 +30,10 @@ class Camera extends StatefulWidget
   Camera({
     Key? key,
     this.onCapture,
-    this.onClose,
     this.onComplete,
   }) : super(key: key);
 
   final Function? onCapture;
-  final Function? onClose;
   final Function? onComplete;
 
   final MyCameraController _controller = MyCameraController();
@@ -917,7 +915,7 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
         ShowToastAction(
             type: ToastType.error,
             message: errorMessage,
-            position: 'top',
+            alignment: Alignment.topCenter,
             dismissible: true,
             duration: 3),
         null);
@@ -996,8 +994,6 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
             backgroundColor: Colors.white.withOpacity(0.1),
             onPressed: () {
               widget._controller.cameraController?.pausePreview();
-
-              widget.onClose?.call();
               Navigator.pop(context, widget._controller.files);
             },
           ),
@@ -1141,7 +1137,7 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
             ShowToastAction(
                 type: ToastType.error,
                 message: errorMessage,
-                position: 'top',
+                alignment: Alignment.topCenter,
                 dismissible: true,
                 duration: 3),
             null);

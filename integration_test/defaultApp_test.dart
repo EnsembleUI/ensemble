@@ -4,8 +4,12 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/input/form_textfield.dart';
 import 'package:ensemble/widget/text.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../test/widget/test_utils.dart';
 import 'framework/test_helper.dart';
 
 void main() {
@@ -92,6 +96,55 @@ void main() {
           of: find.byType(EnsembleText),
           matching: find.text('First person: Rachel'));
       expect(person, findsOneWidget);
+    });
+
+    // test nested textSTyle
+    testWidgets('Nested TextStyle update via Bindings/JS', (tester) async {
+      await TestHelper.loadScreen(
+          screenName: 'Nested TextStyle', config: config);
+      await tester.pumpAndSettle();
+
+      Finder textFinder = find.descendant(
+          of: find.byType(EnsembleText),
+          matching: find.text('This textStyle can change'));
+      expect(textFinder, findsOneWidget);
+      Text textWidget = tester.widget(textFinder);
+      expect(textWidget.style?.color, null);
+      expect(textWidget.style?.fontFamily, null);
+
+      // Binding Test: change the font to Google font Abel
+      Finder inputFinder = find.byType(TextInput);
+      await tester.enterText(inputFinder, 'Abel');
+      await TestHelper.removeFocus(tester);
+      textWidget = tester.widget(textFinder);
+      expect(textWidget.style?.fontFamily, 'Abel_regular');
+
+      // Binding Test: change to non-Google 'RandomFont' and confirm
+      await tester.tap(inputFinder);
+      await tester.enterText(inputFinder, 'RandomFont');
+      await TestHelper.removeFocus(tester);
+      textWidget = tester.widget(textFinder);
+      expect(textWidget.style?.fontFamily, 'RandomFont');
+
+      // JS Test: click on button to change color
+      Finder buttonFinder = find.descendant(
+          of: find.byType(Button),
+          matching: find.text('Change text color to red'));
+      await tester.tap(buttonFinder);
+      await tester.pumpAndSettle();
+
+      // confirm text color is now red
+      textWidget = tester.widget(textFinder);
+      expect(textWidget.style?.color, Colors.red);
+
+      // JS Test: click on button to change size
+      buttonFinder = find.descendant(
+          of: find.byType(Button),
+          matching: find.text('Change font size to 40'));
+      await tester.tap(buttonFinder);
+      await tester.pumpAndSettle();
+      textWidget = tester.widget(textFinder);
+      expect(textWidget.style?.fontSize, 40);
     });
   });
 }

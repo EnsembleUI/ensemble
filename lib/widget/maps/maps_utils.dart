@@ -6,6 +6,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
@@ -31,7 +32,6 @@ class MapsUtils {
     return null;
   }
 
-  // TODO: assets from local
   static Future<BitmapDescriptor?> fromAsset(
       BuildContext context, String asset) async {
     /// assets load from URL uses actual pixels, which may appear smaller
@@ -88,6 +88,13 @@ class MapsUtils {
       return response.bodyBytes;
     }
     log('Failed to load image from url: $url');
+    return null;
+  }
+
+  static LatLng? fromPosition(Position? position) {
+    if (position != null) {
+      return LatLng(position.latitude, position.longitude);
+    }
     return null;
   }
 }
