@@ -117,13 +117,15 @@ class Utils {
             for (dynamic stop in value['stops']) {
               double? stopValue = Utils.optionalDouble(stop, min: 0, max: 1.0);
               if (stopValue == null) {
-                throw LanguageError("Gradient's stop has to be a number from 0.0 to 1.0");
+                throw LanguageError(
+                    "Gradient's stop has to be a number from 0.0 to 1.0");
               }
               (stops ??= []).add(stopValue);
             }
           }
           if (stops != null && stops.length != colors.length) {
-            throw LanguageError("Gradient's number of colors and stops should be the same.");
+            throw LanguageError(
+                "Gradient's number of colors and stops should be the same.");
           }
           return LinearGradient(
               colors: colors,
