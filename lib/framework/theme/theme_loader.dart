@@ -50,6 +50,11 @@ mixin ThemeLoader {
           ),
         ),
       ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          textStyle: const TextStyle(fontSize: 16),
+        ),
+      ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
             textStyle: const TextStyle(fontSize: 16),
@@ -139,8 +144,12 @@ mixin ThemeLoader {
   }
 
   TextTheme _buildTextTheme([YamlMap? textTheme]) {
-    TextStyle defaultStyle = Utils.getTextStyle(textTheme)?.copyWith(color: Colors.black) ??
-        const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w400, color: Colors.black);
+    TextStyle defaultStyle =
+        Utils.getTextStyle(textTheme)?.copyWith(color: Colors.black) ??
+            const TextStyle(
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w400,
+                color: Colors.black);
 
     return ThemeData.light()
         .textTheme
@@ -319,11 +328,11 @@ mixin ThemeLoader {
                     .toDouble()));
 
     return getButtonStyle(
-      isOutline: isOutline,
-      backgroundColor: backgroundColor,
-      border: border,
-      padding: Utils.optionalInsets(input['padding']) ?? _buttonPadding,
-      labelStyle: Utils.getTextStyle('labelStyle'));
+        isOutline: isOutline,
+        backgroundColor: backgroundColor,
+        border: border,
+        padding: Utils.optionalInsets(input['padding']) ?? _buttonPadding,
+        labelStyle: Utils.getTextStyle('labelStyle'));
   }
 
   InputBorder? getInputBorder(
@@ -357,7 +366,6 @@ mixin ThemeLoader {
       double? buttonWidth,
       double? buttonHeight,
       TextStyle? labelStyle}) {
-
     if (isOutline) {
       return OutlinedButton.styleFrom(
           padding: padding,
