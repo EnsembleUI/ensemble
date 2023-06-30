@@ -1,4 +1,3 @@
-
 import 'dart:developer';
 
 import 'package:ensemble/framework/action.dart';
@@ -7,13 +6,15 @@ import 'package:ensemble/framework/scope.dart';
 import 'package:flutter/cupertino.dart';
 
 abstract class CameraManager {
-  Future<void> openCamera(BuildContext context, ShowCameraAction cameraAction, ScopeManager? scopeManager);
+  Future<void> openCamera(BuildContext context, ShowCameraAction cameraAction,
+      ScopeManager? scopeManager);
 }
 
 class CameraManagerPlaceholder extends CameraManager {
   @override
-  Future<void> openCamera(BuildContext context, ShowCameraAction cameraAction, ScopeManager? scopeManager) {
-    throw ConfigError("Camera Service is not enabled. Please review the Ensemble documentation.");
+  Future<void> openCamera(BuildContext context, ShowCameraAction cameraAction,
+      ScopeManager? scopeManager) {
+    throw ConfigError(
+        "Camera Service is not enabled. Please review the Ensemble documentation.");
   }
-
 }
