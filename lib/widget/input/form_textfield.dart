@@ -69,8 +69,7 @@ class PasswordInput extends BaseTextInput {
   Map<String, Function> setters() {
     Map<String, Function> setters = super.setters();
     setters.addAll({
-      'value': (newValue) =>
-          textController.text = Utils.getString(newValue, fallback: '')
+      'value': (newValue) => textController.text = newValue
     });
     return setters;
   }
