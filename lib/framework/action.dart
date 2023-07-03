@@ -165,6 +165,14 @@ abstract class BaseNavigateScreenAction extends EnsembleAction {
   bool asModal;
   Map<String, dynamic>? transition;
   final Map<String, dynamic>? options;
+
+  // To clear all the screens
+  bool get isClearAllScreens =>
+      Utils.getBool(options?['clearAllScreens'], fallback: false);
+
+  // To replace the current screen
+  bool get isReplaceCurrentScreen =>
+      Utils.getBool(options?['replaceCurrentScreen'], fallback: false);
 }
 
 class StartTimerAction extends EnsembleAction {

@@ -137,9 +137,9 @@ class ScreenController {
 
       RouteOption? routeOption;
       if (action is NavigateScreenAction) {
-        if (action.options?['clearAllScreens'] == true) {
+        if (action.isClearAllScreens) {
           routeOption = RouteOption.clearAllScreens;
-        } else if (action.options?['replaceCurrentScreen'] == true) {
+        } else if (action.isReplaceCurrentScreen) {
           routeOption = RouteOption.replaceCurrentScreen;
         }
       }
