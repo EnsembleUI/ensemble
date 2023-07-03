@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/model.dart';
@@ -12,17 +13,20 @@ import 'package:fluttertoast/fluttertoast.dart';
 class ToastController {
   static final FToast _toast = FToast();
 
+  late DataContext _dataContext;
   // Singleton
   static final ToastController _instance = ToastController._internal();
   ToastController._internal() {
     //_toast.init(Utils.globalAppKey.currentContext!);
   }
+
   factory ToastController() {
     return _instance;
   }
 
-  void showToast(BuildContext context, ShowToastAction toastAction,
-      Widget? customToastBody) {
+  void showToast(BuildContext context, DataContext dataContext,
+      ShowToastAction toastAction, Widget? customToastBody) {
+    _dataContext = dataContext;
     _toast.init(context);
     _toast.removeQueuedCustomToasts();
 
@@ -101,7 +105,7 @@ class ToastController {
           if (toastAction.message != null && toastAction.message!.isNotEmpty)
             Flexible(
               child: Text(
-                toastAction.message!,
+                toastAction.getMessage(_dataContext),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),

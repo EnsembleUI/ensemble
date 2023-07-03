@@ -910,15 +910,21 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
     final errorMessage = widget._controller.maxCountMessage ??
         Utils.translateWithFallback('ensemble.input.maxCountMessage',
             'Maximum ${widget._controller.maxCount} files can be selected');
-    ToastController().showToast(
-        context,
-        ShowToastAction(
-            type: ToastType.error,
-            message: errorMessage,
-            alignment: Alignment.topCenter,
-            dismissible: true,
-            duration: 3),
-        null);
+
+    final dataContext = scopeManager?.dataContext;
+    if (dataContext != null) {
+      ToastController().showToast(
+          context,
+          dataContext,
+          ShowToastAction(
+              type: ToastType.error,
+              message: errorMessage,
+              alignment: Alignment.topCenter,
+              dismissible: true,
+              duration: 3),
+          null);
+    }
+
     return false;
   }
 
@@ -1132,15 +1138,20 @@ class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
             Utils.translateWithFallback('ensemble.input.maxCountMessage',
                 'Maximum ${widget._controller.maxCount} files can be selected');
 
-        ToastController().showToast(
-            context,
-            ShowToastAction(
-                type: ToastType.error,
-                message: errorMessage,
-                alignment: Alignment.topCenter,
-                dismissible: true,
-                duration: 3),
-            null);
+        final dataContext = scopeManager?.dataContext;
+        if (dataContext != null) {
+          ToastController().showToast(
+              context,
+              dataContext,
+              ShowToastAction(
+                  type: ToastType.error,
+                  message: errorMessage,
+                  alignment: Alignment.topCenter,
+                  dismissible: true,
+                  duration: 3),
+              null);
+        }
+
         return;
       }
     }

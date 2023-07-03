@@ -340,7 +340,8 @@ class ScreenController {
       if (scopeManager != null && action.widget != null) {
         customToastBody = scopeManager.buildWidgetFromDefinition(action.widget);
       }
-      ToastController().showToast(context, action, customToastBody);
+      ToastController()
+          .showToast(context, dataContext, action, customToastBody);
     } else if (action is OpenUrlAction) {
       dynamic value = dataContext.eval(action.url);
       value ??= '';
@@ -386,11 +387,16 @@ class ScreenController {
       }
     } else if (action is CopyToClipboardAction) {
       if (action.value != null) {
-        Clipboard.setData(ClipboardData(text: action.value!)).then((value) {
-          if (action.onSuccess != null) {
-            executeAction(context, action.onSuccess!);
-          }
-        });
+        final clipboardValue = action.getValue(dataContext);
+        if (clipboardValue != null) {
+          print('Clipboard Value: $clipboardValue');
+          Clipboard.setData(ClipboardData(text: clipboardValue.toString()))
+              .then((value) {
+            if (action.onSuccess != null) {
+              executeAction(context, action.onSuccess!);
+            }
+          });
+        }
       } else {
         if (action.onFailure != null) executeAction(context, action.onFailure!);
       }
@@ -497,7 +503,7 @@ class ScreenController {
     selectedFiles =
         rawFiles.map((data) => File.fromJson(data)).toList().cast<File>();
 
-    if (isFileSizeOverLimit(context, selectedFiles, action)) {
+    if (isFileSizeOverLimit(context, dataContext, selectedFiles, action)) {
       if (action.onError != null) executeAction(context, action.onError!);
       return;
     }
@@ -628,8 +634,8 @@ class ScreenController {
     return null;
   }
 
-  bool isFileSizeOverLimit(
-      BuildContext context, List<File> selectedFiles, FileUploadAction action) {
+  bool isFileSizeOverLimit(BuildContext context, DataContext dataContext,
+      List<File> selectedFiles, FileUploadAction action) {
     final defaultMaxFileSize = 100.mb;
     const defaultOverMaxFileSizeMessage =
         'The size of is which is larger than the maximum allowed';
@@ -646,6 +652,7 @@ class ScreenController {
     if (totalSize > maxFileSize) {
       ToastController().showToast(
           context,
+          dataContext,
           ShowToastAction(
               type: ToastType.error,
               message: message,
