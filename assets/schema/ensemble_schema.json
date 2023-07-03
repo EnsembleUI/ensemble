@@ -178,6 +178,10 @@
               "DELETE"
             ]
           },
+          "headers": {
+            "type": "object",
+            "description": "Pass the headers' key/value pairs to your service"
+          },
           "parameters": {
             "type": "object",
             "description": "Specify the key/value pairs to pass along with the URL",
