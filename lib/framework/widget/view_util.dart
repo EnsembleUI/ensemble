@@ -36,7 +36,7 @@ class ViewUtil {
     if (node == null) {
       return SourceSpanBase(SourceLocationBase(0), SourceLocationBase(0), '');
     }
-    return getDefinition(node!);
+    return getDefinition(node);
   }
 
   static SourceSpan getDefinition(YamlNode node) {
