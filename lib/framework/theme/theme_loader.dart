@@ -203,10 +203,12 @@ mixin ThemeLoader {
     if (input == null) return null;
     Color? fillColor = Utils.getColor(input['fillColor']);
     InputDecorationTheme baseInputDecoration = InputDecorationTheme(
-        // dense so user can control the contentPadding effectively
-        isDense: true,
-        filled: fillColor != null,
-        fillColor: fillColor);
+      // dense so user can control the contentPadding effectively
+      isDense: true,
+      filled: fillColor != null,
+      fillColor: fillColor,
+      hintStyle: Utils.getTextStyle(input['hintStyle']),
+    );
 
     InputVariant? variant = InputVariant.values.from(input['variant']);
     EdgeInsets? contentPadding = Utils.optionalInsets(input['contentPadding']);
