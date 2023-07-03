@@ -788,11 +788,6 @@
               "type": "object",
               "description": "Styling the hint text. Default to theme's bodyMedium styling",
               "$ref": "#/$defs/TextStyle"
-            },
-            "labelStyle": {
-              "type": "object",
-              "description": "Styling the label text. Default to theme's bodyMedium styling",
-              "$ref": "#/$defs/TextStyle"
             }
           }
         }
