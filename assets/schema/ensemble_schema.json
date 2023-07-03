@@ -778,6 +778,16 @@
                   "minimum": 6
                 }
               }
+            }, 
+            "textStyle": {
+              "type": "object",
+              "description": "Styling the input text. Default to theme's bodyMedium styling",
+              "$ref": "#/$defs/TextStyle"
+            },
+            "hintStyle": {
+              "type": "object",
+              "description": "Styling the hint text. Default to theme's bodyMedium styling",
+              "$ref": "#/$defs/TextStyle"
             }
           }
         }

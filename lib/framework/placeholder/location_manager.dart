@@ -1,4 +1,1 @@
-
-abstract class LocationManager {
-
-}
+abstract class LocationManager {}
