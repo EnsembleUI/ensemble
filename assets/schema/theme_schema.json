@@ -184,6 +184,9 @@
         "focusedErrorBorderColor": {
           "$ref": "#/$defs/Color",
           "description": "The border color of the input field when it is receiving focus in its error state."
+        },
+        "hintStyle": {
+          "$ref": "#/$defs/TextStyle"
         }
       }
     },

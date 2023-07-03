@@ -68,9 +68,7 @@ class PasswordInput extends BaseTextInput {
   @override
   Map<String, Function> setters() {
     Map<String, Function> setters = super.setters();
-    setters.addAll({
-      'value': (newValue) => textController.text = newValue
-    });
+    setters.addAll({'value': (newValue) => textController.text = newValue});
     return setters;
   }
 }
@@ -112,6 +110,8 @@ abstract class BaseTextInput extends StatefulWidget
           _controller.keyboardAction = _getKeyboardAction(value),
       'maxLines': (value) => _controller.maxLines =
           Utils.getInt(value, min: 1, fallback: _controller.maxLines),
+      'textStyle': (style) => _controller.textStyle = Utils.getTextStyle(style),
+      'hintStyle': (style) => _controller.hintStyle = Utils.getTextStyle(style),
     };
   }
 
@@ -163,6 +163,8 @@ class TextInputController extends FormFieldController {
   model.InputValidator? validator;
   String? inputType;
   int maxLines = 1;
+  TextStyle? textStyle;
+  TextStyle? hintStyle;
 }
 
 class TextInputState extends FormFieldWidgetState<BaseTextInput> {
@@ -238,19 +240,11 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
 
   @override
   Widget buildWidget(BuildContext context) {
-    // TextField doesn't take the global disabled color for some reason,
-    // so we have to account for it here
-    TextStyle textStyle;
-    if (isEnabled()) {
-      textStyle = TextStyle(fontSize: widget.controller.fontSize?.toDouble());
-    } else {
-      textStyle = TextStyle(
-          color: Theme.of(context).disabledColor,
-          fontSize: widget.controller.fontSize?.toDouble());
-    }
-
     // for password, show the toggle plain text/obscure text
-    InputDecoration decoration = inputDecoration;
+    InputDecoration decoration = inputDecoration.copyWith(
+      hintStyle: widget._controller.hintStyle,
+    );
+
     if ((widget.isPassword() || widget._controller.obscureText == true) &&
         widget._controller.obscureToggle == true) {
       decoration = decoration.copyWith(
@@ -356,7 +350,11 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
               }
             }
           },
-          style: textStyle,
+          style: isEnabled()
+              ? widget._controller.textStyle
+              : widget._controller.textStyle?.copyWith(
+                  color: Theme.of(context).disabledColor,
+                ),
           decoration: decoration,
         ));
   }
