@@ -83,7 +83,7 @@ class TestHelper {
     return null;
   }
 
-  /// only work for labelPosition=start for now
+  /// Side-by-side form widget's structure is more complex:
   /// Form:
   ///   Column:
   ///     Row:
