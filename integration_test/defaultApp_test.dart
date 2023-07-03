@@ -152,7 +152,7 @@ void main() {
     /// We have 2 dropdowns inside 2 Forms, one with label on top and another
     /// with side-by-side labels. The structure for both is different hence
     /// the demonstration on how to do for each
-    testWidgets('Test finding dropdowns in Forms', (tester) async {
+    testWidgets('Test finding Ensemble widgets in Forms', (tester) async {
       await TestHelper.loadScreen(
           screenName: 'Dropdown and Form', config: config);
       await tester.pumpAndSettle();
