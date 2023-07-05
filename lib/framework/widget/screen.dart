@@ -64,13 +64,7 @@ class _ScreenState extends State<Screen> {
                             .extension<EnsembleThemeExtension>()
                             ?.loadingScreenIndicatorColor)));
           }
-
-          if (isPreview) {
-            return renderScreen(PageModel.fromYaml(snapshot.data as YamlMap));
-          }
-          return SelectionArea(
-              child:
-                  renderScreen(PageModel.fromYaml(snapshot.data as YamlMap)));
+          return renderScreen(PageModel.fromYaml(snapshot.data as YamlMap));
         });
   }
 
