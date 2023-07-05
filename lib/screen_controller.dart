@@ -137,9 +137,9 @@ class ScreenController {
 
       RouteOption? routeOption;
       if (action is NavigateScreenAction) {
-        if (action.isClearAllScreens) {
+        if (action.isClearAllScreens(dataContext)) {
           routeOption = RouteOption.clearAllScreens;
-        } else if (action.isReplaceCurrentScreen) {
+        } else if (action.isReplaceCurrentScreen(dataContext)) {
           routeOption = RouteOption.replaceCurrentScreen;
         }
       }
@@ -343,10 +343,12 @@ class ScreenController {
       ToastController()
           .showToast(context, dataContext, action, customToastBody);
     } else if (action is OpenUrlAction) {
-      dynamic value = dataContext.eval(action.url);
+      dynamic value = action.getUrl(dataContext);
       value ??= '';
+      dynamic isToOpenInExternalApp = action.isOpenInExternalApp(dataContext);
+
       launchUrl(Uri.parse(value),
-          mode: (action.openInExternalApp)
+          mode: (isToOpenInExternalApp)
               ? LaunchMode.externalApplication
               : LaunchMode.platformDefault);
     } else if (action is FileUploadAction) {
