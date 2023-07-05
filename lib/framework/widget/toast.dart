@@ -31,44 +31,50 @@ class ToastController {
     _toast.removeQueuedCustomToasts();
 
     ToastGravity toastGravity;
-    if (toastAction.alignment == Alignment.topCenter) {
+    Alignment? taostAlignment = toastAction.getAlignment(_dataContext);
+
+    if (taostAlignment == Alignment.topCenter) {
       toastGravity = ToastGravity.TOP;
-    } else if (toastAction.alignment == Alignment.topLeft) {
+    } else if (taostAlignment == Alignment.topLeft) {
       toastGravity = ToastGravity.TOP_LEFT;
-    } else if (toastAction.alignment == Alignment.center) {
+    } else if (taostAlignment == Alignment.center) {
       toastGravity = ToastGravity.CENTER;
-    } else if (toastAction.alignment == Alignment.centerLeft) {
+    } else if (taostAlignment == Alignment.centerLeft) {
       toastGravity = ToastGravity.CENTER_LEFT;
-    } else if (toastAction.alignment == Alignment.centerRight) {
+    } else if (taostAlignment == Alignment.centerRight) {
       toastGravity = ToastGravity.CENTER_RIGHT;
-    } else if (toastAction.alignment == Alignment.bottomCenter) {
+    } else if (taostAlignment == Alignment.bottomCenter) {
       toastGravity = ToastGravity.BOTTOM;
-    } else if (toastAction.alignment == Alignment.bottomLeft) {
+    } else if (taostAlignment == Alignment.bottomLeft) {
       toastGravity = ToastGravity.BOTTOM_LEFT;
-    } else if (toastAction.alignment == Alignment.bottomRight) {
+    } else if (taostAlignment == Alignment.bottomRight) {
       toastGravity = ToastGravity.BOTTOM_RIGHT;
     } else {
       // default
       toastGravity = ToastGravity.TOP_RIGHT;
     }
+    int? duration = toastAction.getDuration(_dataContext);
+
     _toast.showToast(
         gravity: toastGravity,
-        toastDuration: toastAction.duration != null
-            ? Duration(seconds: toastAction.duration!)
+        toastDuration: duration != null
+            ? Duration(seconds: duration)
             : const Duration(days: 99),
         child: getToastWidget(toastAction, customToastBody));
   }
 
   Widget getToastWidget(ShowToastAction toastAction, Widget? customToastBody) {
-    EdgeInsets padding = Utils.getInsets(toastAction.styles?['padding'],
+    Map<String, dynamic>? toastStyles = toastAction.getStyles(_dataContext);
+
+    EdgeInsets padding = Utils.getInsets(toastStyles?['padding'],
         fallback: const EdgeInsets.symmetric(vertical: 20, horizontal: 22));
-    Color? bgColor = Utils.getColor(toastAction.styles?['backgroundColor']);
+    Color? bgColor = Utils.getColor(toastStyles?['backgroundColor']);
     EBorderRadius? borderRadius =
-        Utils.getBorderRadius(toastAction.styles?['borderRadius']);
-    Color? shadowColor = Utils.getColor(toastAction.styles?['shadowColor']);
+        Utils.getBorderRadius(toastStyles?['borderRadius']);
+    Color? shadowColor = Utils.getColor(toastStyles?['shadowColor']);
     double? shadowRadius =
-        Utils.optionalDouble(toastAction.styles?['shadowRadius'], min: 0);
-    Offset? shadowOffset = Utils.getOffset(toastAction.styles?['shadowOffset']);
+        Utils.optionalDouble(toastStyles?['shadowRadius'], min: 0);
+    Offset? shadowOffset = Utils.getOffset(toastStyles?['shadowOffset']);
 
     Widget? content = customToastBody;
     if (content == null) {
@@ -78,13 +84,14 @@ class ToastController {
       }
       // render the message as the body
       IconData icon;
-      if (toastAction.type == ToastType.success) {
+      ToastType? toastType = toastAction.getType(_dataContext);
+      if (toastType == ToastType.success) {
         icon = Icons.check_circle_outline;
         bgColor ??= DesignSystem.successBackgroundColor;
-      } else if (toastAction.type == ToastType.error) {
+      } else if (toastType == ToastType.error) {
         icon = Icons.error_outline;
         bgColor ??= DesignSystem.errorBackgroundColor;
-      } else if (toastAction.type == ToastType.warning) {
+      } else if (toastType == ToastType.warning) {
         icon = Icons.warning;
         bgColor ??= DesignSystem.warningBackgroundColor;
       } else {
@@ -110,7 +117,7 @@ class ToastController {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-          if (toastAction.dismissible != false)
+          if (toastAction.getDismissible(_dataContext) != false)
             InkWell(
               child: const CircleAvatar(
                 backgroundColor: Colors.transparent,

@@ -167,12 +167,14 @@ abstract class BaseNavigateScreenAction extends EnsembleAction {
   final Map<String, dynamic>? options;
 
   // To clear all the screens
-  bool get isClearAllScreens =>
-      Utils.getBool(options?['clearAllScreens'], fallback: false);
+  bool isClearAllScreens(DataContext dataContext) =>
+      Utils.getBool(dataContext.eval(options?['clearAllScreens']),
+          fallback: false);
 
   // To replace the current screen
-  bool get isReplaceCurrentScreen =>
-      Utils.getBool(options?['replaceCurrentScreen'], fallback: false);
+  bool isReplaceCurrentScreen(DataContext dataContext) =>
+      Utils.getBool(dataContext.eval(options?['replaceCurrentScreen']),
+          fallback: false);
 }
 
 class StartTimerAction extends EnsembleAction {
@@ -193,15 +195,15 @@ class StartTimerAction extends EnsembleAction {
   int? getStartAfter(DataContext dataContext) =>
       Utils.optionalInt(dataContext.eval(_options?['startAfter']), min: 0);
 
-  bool isRepeat(dataContext) =>
+  bool isRepeat(DataContext dataContext) =>
       Utils.getBool(dataContext.eval(_options?['repeat']), fallback: false);
 
   // The repeat interval in seconds
-  int? getRepeatInterval(dataContext) =>
+  int? getRepeatInterval(DataContext dataContext) =>
       Utils.optionalInt(dataContext.eval(_options?['repeatInterval']), min: 1);
 
   // how many times to trigger onTimer
-  int? getMaxTimes(dataContext) =>
+  int? getMaxTimes(DataContext dataContext) =>
       Utils.optionalInt(dataContext.eval(_options?['maxNumberOfTimes']),
           min: 1);
 
@@ -280,6 +282,11 @@ class OpenUrlAction extends EnsembleAction {
   String url;
   bool openInExternalApp;
 
+  String? getUrl(dataContext) => Utils.optionalString(dataContext.eval(url));
+
+  bool? isOpenInExternalApp(dataContext) =>
+      Utils.optionalBool(dataContext.eval(url));
+
   factory OpenUrlAction.fromYaml({YamlMap? payload}) {
     if (payload == null || payload['url'] == null) {
       throw LanguageError("${ActionType.openUrl.name} requires the 'url'.");
@@ -317,9 +324,26 @@ class ShowToastAction extends EnsembleAction {
   final int? duration; // the during in seconds before toast is dismissed
   final Map<String, dynamic>? styles;
 
-  // The clipboard value
+  dynamic getType(DataContext dataContext) => dataContext.eval(type);
+
+  dynamic getTitle(DataContext dataContext) =>
+      Utils.optionalString(dataContext.eval(title));
+
   dynamic getMessage(DataContext dataContext) =>
       Utils.optionalString(dataContext.eval(message));
+
+  dynamic getWidget(DataContext dataContext) => dataContext.eval(widget);
+
+  dynamic getDismissible(DataContext dataContext) =>
+      Utils.optionalBool(dataContext.eval(dismissible));
+
+  dynamic getAlignment(DataContext dataContext) =>
+      Utils.getAlignment(dataContext.eval(alignment));
+
+  dynamic getDuration(DataContext dataContext) =>
+      Utils.optionalInt(dataContext.eval(duration));
+
+  dynamic getStyles(DataContext dataContext) => dataContext.eval(alignment);
 
   factory ShowToastAction.fromYaml({YamlMap? payload}) {
     if (payload == null ||
