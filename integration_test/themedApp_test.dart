@@ -19,7 +19,7 @@ void main() {
     config = await TestHelper.setupApp(appName: 'themedApp');
   });
 
-  group('Default App Tests', () {
+  group('Theme App Tests', () {
     testWidgets("Test Widgets inheriting from themes", (tester) async {
       await TestHelper.loadScreen(screenName: 'Widgets', config: config);
       await tester.pumpAndSettle();

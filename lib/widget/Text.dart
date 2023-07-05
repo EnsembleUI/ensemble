@@ -68,6 +68,6 @@ class EnsembleTextState extends framework.WidgetState<EnsembleText> {
     return Text(controller.text ?? '',
         textAlign: controller.textAlign,
         maxLines: controller.maxLines,
-        style: controller.textStyle?.getTextStyle());
+        style: controller.textStyle.getTextStyle());
   }
 }
