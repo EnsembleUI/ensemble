@@ -359,12 +359,14 @@ class ScreenController {
           apiMap: apiMap,
           scopeManager: scopeManager);
     } else if (action is FilePickerAction) {
+      dynamic allowedExtensions = action.getAllowedExtension(dataContext);
+
       FilePicker.platform
           .pickFiles(
-        type: action.allowedExtensions == null ? FileType.any : FileType.custom,
-        allowedExtensions: action.allowedExtensions,
-        allowCompression: action.allowCompression ?? true,
-        allowMultiple: action.allowMultiple ?? false,
+        type: allowedExtensions == null ? FileType.any : FileType.custom,
+        allowedExtensions: allowedExtensions,
+        allowCompression: action.getAllowCompression(dataContext) ?? true,
+        allowMultiple: action.getAllowMultiple(dataContext) ?? false,
       )
           .then((result) {
         if (result == null || result.files.isEmpty) {
