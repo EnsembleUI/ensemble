@@ -1768,7 +1768,7 @@
                     },
                     "autoplay": {
                       "type": "boolean",
-                      "description": "If true, Enables autoplay, sliding one page at a time. Default (true)"
+                      "description": "If true, Enables autoplay, sliding one page at a time. Default (false)"
                     },
                     "autoplayInterval": {
                       "type": "integer",

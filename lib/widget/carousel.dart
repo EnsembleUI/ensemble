@@ -42,7 +42,7 @@ class Carousel extends StatefulWidget
           _controller.autoLayoutBreakpoint = Utils.optionalInt(value, min: 0),
       'autoplay': (value) => _controller.autoplay = Utils.optionalBool(value),
       'autoplayInterval': (value) =>
-          _controller.autoplayInterval = Utils.optionalInt(value),
+          _controller.autoplayInterval = Utils.optionalInt(value, min: 1),
       'height': (height) => _controller.height = Utils.optionalInt(height),
       'gap': (gap) => _controller.gap = Utils.optionalInt(gap),
       'leadingGap': (gap) => _controller.leadingGap = Utils.optionalInt(gap),
