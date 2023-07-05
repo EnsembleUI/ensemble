@@ -69,7 +69,8 @@ class ViewUtil {
 
   ///convert a YAML representing a widget to a WidgetModel
   static WidgetModel buildModel(
-      dynamic item, Map<String, dynamic>? customWidgetMap) {
+      dynamic item, Map<String, dynamic>? customWidgetMap,
+      {dynamic inputs}) {
     String? widgetType;
     YamlMap? payload;
     SourceSpan def =
@@ -118,6 +119,13 @@ class ViewUtil {
     ItemTemplate? itemTemplate;
     Map<String, dynamic> props = {};
     Map<String, dynamic> styles = {};
+    Map<String, dynamic> inputPayload = {};
+
+    if (inputs is YamlMap && inputs.isNotEmpty) {
+      inputs.forEach((key, value) {
+        inputPayload[key] = value;
+      });
+    }
 
     payload.forEach((key, value) {
       if (value != null) {

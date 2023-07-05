@@ -203,7 +203,8 @@ class SinglePageModel extends PageModel {
   WidgetModel buildRootModel(
       YamlMap viewMap, Map<String, dynamic>? customViewDefinitions) {
     if (viewMap['body'] != null) {
-      return ViewUtil.buildModel(viewMap['body'], customViewDefinitions);
+      return ViewUtil.buildModel(viewMap['body'], customViewDefinitions,
+          inputs: viewMap['inputs']);
     }
     // backward compatible
     else {
@@ -266,9 +267,10 @@ class WidgetModel {
   // a layout can either have children or itemTemplate, but not both
   final List<WidgetModel>? children;
   final ItemTemplate? itemTemplate;
+  Map<String, dynamic>? inputs;
 
   WidgetModel(this.definition, this.type, this.styles, this.props,
-      {this.children, this.itemTemplate});
+      {this.children, this.itemTemplate, this.inputs});
 }
 
 class CustomWidgetModel extends WidgetModel {
