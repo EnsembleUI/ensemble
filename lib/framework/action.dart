@@ -396,6 +396,20 @@ class FilePickerAction extends EnsembleAction {
   EnsembleAction? onComplete;
   EnsembleAction? onError;
 
+  dynamic getAllowedExtension(DataContext dataContext) =>
+      dataContext.eval(allowedExtensions);
+
+  dynamic getAllowMultiple(DataContext dataContext) =>
+      dataContext.eval(allowMultiple);
+
+  dynamic getAllowCompression(DataContext dataContext) =>
+      dataContext.eval(allowCompression);
+
+  dynamic getOnComplete(DataContext dataContext) =>
+      dataContext.eval(onComplete);
+
+  dynamic getOnError(DataContext dataContext) => dataContext.eval(onError);
+
   factory FilePickerAction.fromYaml({YamlMap? payload}) {
     if (payload == null || payload['id'] == null) {
       throw LanguageError("${ActionType.pickFiles.name} requires 'id'.");
