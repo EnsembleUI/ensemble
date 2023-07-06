@@ -1766,6 +1766,14 @@
                     "indicatorHeight": {
                       "type": "integer"
                     },
+                    "autoplay": {
+                      "type": "boolean",
+                      "description": "If true, Enables autoplay, sliding one page at a time. Default (false)"
+                    },
+                    "autoplayInterval": {
+                      "type": "integer",
+                      "description": "Sets the duration in seconds for the autoplay. Default (4 second)"
+                    },
                     "indicatorMargin": {
                       "oneOf": [
                         {

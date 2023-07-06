@@ -1,4 +1,3 @@
-
 import 'package:ensemble/widget/input/dropdown.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -23,6 +22,5 @@ void main() {
 
     // verified value is selected after dropdown has closed
     expect(find.text('two'), findsOneWidget);
-
   });
 }
