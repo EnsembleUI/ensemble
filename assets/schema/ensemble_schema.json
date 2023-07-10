@@ -2062,34 +2062,34 @@
         {
           "title": "Show Modal Bottom Sheet",
           "type": "object",
-          "required": ["showModalSheet"],
+          "required": ["showModalBottomSheet"],
           "properties": {
-            "showModalSheet": {
+            "showModalBottomSheet": {
               "type": "object",
-              "description": "Open a view as bottom modal sheet",
+              "description": "Open a view as a modal bottom sheet",
               "required": [
                 "widget"
               ],
               "properties": {
                 "widget": {
                   "$ref": "#/$defs/Widget",
-                  "description": "The custom widget to show as the bottom modal sheet."
+                  "description": "The custom widget to show as the modal bottom sheet."
                 },
                 "backgroundColor": {
                   "$ref": "#/$defs/typeColors",
-                  "description": "By default the background color uses the theme's 'bottomSheetTheme.backgroundColor'. You can override the bottom sheet's background color here."
+                  "description": "By default the background color uses the theme's 'bottomSheetTheme.backgroundColor'. You can override the modal bottom sheet's background color here."
                 },
                 "barrierColor": {
                   "$ref": "#/$defs/typeColors",
-                  "description": "By default the barrierColor color use theme's 'bottomSheetTheme.modalBarrierColor' . You can override the bottom sheet's barrierColor color here."
+                  "description": "By default the barrierColor color use theme's 'bottomSheetTheme.modalBarrierColor' . You can override the modal bottom sheet's barrierColor color here."
                 },
                 "enableDrag": {
                   "type": "boolean",
-                  "description": "Whether to drag a bottom modal sheet (default is True)"
+                  "description": "Whether to drag a modal bottom sheet (default is True)"
                 },
                 "showDragHandle": {
                   "type": "boolean",
-                  "description": "Whether to show a drag handle on top of the bottom sheet for dragging (default is False)"
+                  "description": "Whether to show a drag handle on top of the modal bottom sheet for dragging (default is False)"
                 }
               }
             }

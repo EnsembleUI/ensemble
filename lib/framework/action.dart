@@ -167,8 +167,8 @@ abstract class BaseNavigateScreenAction extends EnsembleAction {
   final Map<String, dynamic>? options;
 }
 
-class ShowModalSheetAction extends EnsembleAction {
-  ShowModalSheetAction({
+class ShowModalBottomSheetAction extends EnsembleAction {
+  ShowModalBottomSheetAction({
     super.initiator,
     super.inputs,
     this.widget,
@@ -184,14 +184,14 @@ class ShowModalSheetAction extends EnsembleAction {
   final bool? showDragHandle;
   final bool? enableDrag;
 
-  factory ShowModalSheetAction.fromYaml(
+  factory ShowModalBottomSheetAction.fromYaml(
       {Invokable? initiator, YamlMap? payload}) {
     if (payload == null || payload['widget'] == null) {
       throw LanguageError(
-          "${ActionType.showModalSheet.name} requires the widget to show as a modal bottom sheet.");
+          "${ActionType.showModalBottomSheet.name} requires the widget to show as a modal bottom sheet.");
     }
 
-    return ShowModalSheetAction(
+    return ShowModalBottomSheetAction(
       initiator: initiator,
       inputs: Utils.getMap(payload['inputs']),
       widget: payload['widget'],
@@ -549,7 +549,7 @@ enum ActionType {
   invokeAPI,
   navigateScreen,
   navigateModalScreen,
-  showModalSheet,
+  showModalBottomSheet,
   showDialog,
   startTimer,
   stopTimer,
@@ -610,8 +610,8 @@ abstract class EnsembleAction {
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.navigateBack) {
       return NavigateBack();
-    } else if (actionType == ActionType.showModalSheet) {
-      return ShowModalSheetAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.showModalBottomSheet) {
+      return ShowModalBottomSheetAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.invokeAPI) {
       return InvokeAPIAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.openCamera) {
