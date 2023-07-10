@@ -167,6 +167,42 @@ abstract class BaseNavigateScreenAction extends EnsembleAction {
   final Map<String, dynamic>? options;
 }
 
+class ShowModalSheetAction extends EnsembleAction {
+  ShowModalSheetAction({
+    super.initiator,
+    super.inputs,
+    this.widget,
+    this.backgroundColor,
+    this.barrierColor,
+    this.showDragHandle,
+    this.enableDrag,
+  });
+
+  final dynamic widget;
+  final Color? backgroundColor;
+  final Color? barrierColor;
+  final bool? showDragHandle;
+  final bool? enableDrag;
+
+  factory ShowModalSheetAction.fromYaml(
+      {Invokable? initiator, YamlMap? payload}) {
+    if (payload == null || payload['widget'] == null) {
+      throw LanguageError(
+          "${ActionType.showModalSheet.name} requires the widget to show as a modal bottom sheet.");
+    }
+
+    return ShowModalSheetAction(
+      initiator: initiator,
+      inputs: Utils.getMap(payload['inputs']),
+      widget: payload['widget'],
+      backgroundColor: Utils.getColor(payload['backgroundColor']),
+      barrierColor: Utils.getColor(payload['barrierColor']),
+      showDragHandle: Utils.getBool(payload['showDragHandle'], fallback: false),
+      enableDrag: Utils.getBool(payload['enableDrag'], fallback: true),
+    );
+  }
+}
+
 class StartTimerAction extends EnsembleAction {
   StartTimerAction(
       {super.initiator,
@@ -513,6 +549,7 @@ enum ActionType {
   invokeAPI,
   navigateScreen,
   navigateModalScreen,
+  showModalSheet,
   showDialog,
   startTimer,
   stopTimer,
@@ -573,6 +610,8 @@ abstract class EnsembleAction {
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.navigateBack) {
       return NavigateBack();
+    } else if (actionType == ActionType.showModalSheet) {
+      return ShowModalSheetAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.invokeAPI) {
       return InvokeAPIAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.openCamera) {
