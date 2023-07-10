@@ -2060,6 +2060,42 @@
           }
         },
         {
+          "title": "Show Modal Bottom Sheet",
+          "type": "object",
+          "required": ["showModalSheet"],
+          "properties": {
+            "showModalSheet": {
+              "type": "object",
+              "description": "Open a view as bottom modal sheet",
+              "required": [
+                "widget"
+              ],
+              "properties": {
+                "widget": {
+                  "$ref": "#/$defs/Widget",
+                  "description": "The custom widget to show as the bottom modal sheet."
+                },
+                "backgroundColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "By default the background color uses the theme's 'bottomSheetTheme.backgroundColor'. You can override the bottom sheet's background color here."
+                },
+                "barrierColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "By default the barrierColor color use theme's 'bottomSheetTheme.modalBarrierColor' . You can override the bottom sheet's barrierColor color here."
+                },
+                "enableDrag": {
+                  "type": "boolean",
+                  "description": "Whether to drag a bottom modal sheet (default is True)"
+                },
+                "showDragHandle": {
+                  "type": "boolean",
+                  "description": "Whether to show a drag handle on top of the bottom sheet for dragging (default is False)"
+                }
+              }
+            }
+          }
+        },
+        {
           "title": "Open URL",
           "type": "object",
           "required": ["openUrl"],
