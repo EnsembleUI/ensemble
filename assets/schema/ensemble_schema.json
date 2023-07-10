@@ -1637,11 +1637,7 @@
               "type": "integer",
               "description": "Selecting a ListView item gives the index of selected item"
             },
-            "swipeToRefresh": {
-              "type": "boolean",
-              "description": "Used for swipe to refresh the ListView, onRefresh callback will be called"
-            },
-            "onRefresh": {
+            "onSwipeToRefresh": {
               "description": "The event will be called when the ListView is swiped from top to bottom (Pull To Refresh)",
               "$ref": "#/$defs/Action-payload"
             },
