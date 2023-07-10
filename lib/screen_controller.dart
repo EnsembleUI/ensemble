@@ -162,6 +162,25 @@ class ScreenController {
           executeActionWithScope(context, scopeManager, action.onModalDismiss!);
         });
       }
+    } else if (action is ShowModalSheetAction) {
+      Widget? widget;
+      if (scopeManager != null && action.widget != null) {
+        widget = scopeManager.buildWidgetFromDefinition(action.widget);
+      }
+
+      if (widget != null) {
+        showModalBottomSheet(
+          context: context,
+          backgroundColor: action.backgroundColor,
+          barrierColor: action.barrierColor,
+          isScrollControlled: true,
+          enableDrag: action.enableDrag!,
+          showDragHandle: action.showDragHandle,
+          builder: (context) {
+            return widget!;
+          },
+        );
+      }
     } else if (action is ShowCameraAction) {
       GetIt.I<CameraManager>().openCamera(context, action, scopeManager);
     } else if (action is ShowDialogAction) {
