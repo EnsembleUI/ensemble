@@ -162,7 +162,7 @@ class ScreenController {
           executeActionWithScope(context, scopeManager, action.onModalDismiss!);
         });
       }
-    } else if (action is ShowModalSheetAction) {
+    } else if (action is ShowModalBottomSheetAction) {
       Widget? widget;
       if (scopeManager != null && action.widget != null) {
         widget = scopeManager.buildWidgetFromDefinition(action.widget);
