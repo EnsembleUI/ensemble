@@ -314,10 +314,12 @@ class PageState extends State<Page> {
       );
     }
 
+    bool? resizeView = widget._pageModel.pageStyles?['resizeView'] ?? false;
+
     Widget rtn = DataScopeWidget(
       scopeManager: _scopeManager,
       child: Scaffold(
-          resizeToAvoidBottomInset: false,
+          resizeToAvoidBottomInset: resizeView,
           // slight optimization, if body background is set, let's paint
           // the entire screen including the Safe Area
           backgroundColor: backgroundColor,

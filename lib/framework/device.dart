@@ -37,6 +37,7 @@ class Device
       "height": () => screenHeight,
       "safeAreaTop": () => safeAreaTop,
       "safeAreaBottom": () => safeAreaBottom,
+      "viewInsetBottom": () => viewInsetBottom,
 
       // Misc Info
       "platform": () => DeviceInfoCapability.platform,
@@ -63,7 +64,8 @@ mixin MediaQueryCapability {
     if (isPreview) {
       return MediaQuery.of(Utils.globalAppKey.currentContext!);
     }
-    return data ??= MediaQuery.of(Utils.globalAppKey.currentContext!);
+    data = MediaQuery.of(Utils.globalAppKey.currentContext!);
+    return data!;
   }
 
   int get screenWidth {
@@ -80,6 +82,10 @@ mixin MediaQueryCapability {
 
   int get safeAreaBottom {
     return _getData().padding.bottom.toInt();
+  }
+
+  int get viewInsetBottom {
+    return _getData().viewInsets.bottom.toInt();
   }
 }
 
