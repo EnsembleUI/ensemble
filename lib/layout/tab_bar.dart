@@ -65,6 +65,8 @@ abstract class BaseTabBar extends StatefulWidget
           _controller.activeTabColor = Utils.getColor(color),
       'inactiveTabColor': (color) =>
           _controller.inactiveTabColor = Utils.getColor(color),
+      'dividerColor': (color) =>
+          _controller.dividerColor = Utils.getColor(color),
       'indicatorColor': (color) =>
           _controller.indicatorColor = Utils.getColor(color),
       'indicatorThickness': (thickness) =>
@@ -88,6 +90,7 @@ class TabBarController extends WidgetController {
   Color? activeTabColor;
   Color? inactiveTabColor;
   Color? indicatorColor;
+  Color? dividerColor;
   int? indicatorThickness;
 
   EnsembleAction? onTabSelection;
@@ -221,6 +224,7 @@ class TabBarState extends WidgetState<BaseTabBar>
 
     Widget tabBar = TabBar(
       labelPadding: labelPadding,
+      dividerColor: widget._controller.dividerColor,
       indicator: indicatorThickness == 0
           ? const BoxDecoration()
           : UnderlineTabIndicator(

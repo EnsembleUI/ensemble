@@ -3430,6 +3430,10 @@
                   "$ref": "#/$defs/typeColors",
                   "description": "The color of the selected tab's text"
                 },
+                "dividerColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "The color of the tabbar divider color"
+                },
                 "inactiveTabColor": {
                   "$ref": "#/$defs/typeColors",
                   "description": "The color of the un-selected tabs' text"
