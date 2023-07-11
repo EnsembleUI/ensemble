@@ -207,22 +207,28 @@ class TabBarState extends WidgetState<BaseTabBar>
         const EdgeInsets.only(left: 0, right: 30, top: 0, bottom: 0);
     // default indicator is finicky and doesn't line up when label has padding.
     // Also we shouldn't allow vertical padding for indicator
-    EdgeInsets indicatorPadding =
-        EdgeInsets.only(left: labelPadding.left, right: labelPadding.right);
+
+    // It's disabled due to underline indicator shrinking problem
+    // EdgeInsets indicatorPadding = const EdgeInsets.only(bottom: 0);
 
     // TODO: center-align labels in its compact form
     // Only stretch or left-align currently
     bool labelPosition =
         widget._controller.tabPosition == 'stretch' ? false : true;
 
+    double indicatorThickness =
+        widget._controller.indicatorThickness?.toDouble() ?? 2;
+
     Widget tabBar = TabBar(
       labelPadding: labelPadding,
-      indicator: UnderlineTabIndicator(
-          borderSide: BorderSide(
-              width: widget._controller.indicatorThickness?.toDouble() ?? 2,
-              color: widget._controller.indicatorColor ??
-                  Theme.of(context).colorScheme.primary),
-          insets: indicatorPadding),
+      indicator: indicatorThickness == 0
+          ? const BoxDecoration()
+          : UnderlineTabIndicator(
+              borderSide: BorderSide(
+                  width: indicatorThickness,
+                  color: widget._controller.indicatorColor ??
+                      Theme.of(context).colorScheme.primary),
+            ),
       controller: _tabController,
       isScrollable: labelPosition,
       labelStyle: tabStyle,
