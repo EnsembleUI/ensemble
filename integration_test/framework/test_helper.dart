@@ -3,7 +3,10 @@ import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/provider.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:mockito/mockito.dart';
 
 class TestHelper {
   /// Setup the App once for every Test Group.
@@ -31,6 +34,7 @@ class TestHelper {
       throw Exception(
           'Config is required. Please run setupApp() per Test Class to initialize the EnsembleConfig once !');
     }
+
     runApp(EnsembleApp(
       key: UniqueKey(),
       ensembleConfig: config,
@@ -48,4 +52,14 @@ class TestHelper {
     EnsembleConfig config = await setupApp(appName: appName);
     loadScreen(screenName: screenName, config: config);
   }
+
+  /// remove focus if any widget currently has focus
+  static Future<void> removeFocus(WidgetTester tester) async {
+    FocusNode blankNode = FocusNode();
+    tester.binding.focusManager.rootScope.requestFocus(blankNode);
+    await tester.pump();
+  }
 }
+
+// DotEnv don't have access to the .env file so it'll fail in test
+class MockDotEnv extends Mock implements DotEnv {}

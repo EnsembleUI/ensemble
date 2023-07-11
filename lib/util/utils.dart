@@ -1,13 +1,18 @@
+import 'dart:io';
 import 'dart:math';
+import 'dart:ui';
+import 'package:path/path.dart' as p;
 
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:yaml/yaml.dart';
 
@@ -372,37 +377,59 @@ class Utils {
     return null;
   }
 
-  static TextStyle? getTextStyle(dynamic textStyle) {
-    if (textStyle is YamlMap) {
-      String? fontFamily = Utils.optionalString(textStyle['fontFamily']);
-      int? fontSize =
-          Utils.optionalInt(textStyle['fontSize'], min: 1, max: 100);
-      Color? color = Utils.getColor(textStyle['color']);
-      FontWeight? fontWeight = getFontWeight(textStyle['fontWeight']);
+  static TextStyleComposite getTextStyleAsComposite(
+      WidgetController widgetController,
+      {dynamic style}) {
+    return TextStyleComposite(widgetController,
+        styleWithFontFamily: getTextStyle(style));
+  }
 
-      TextDecoration? decoration;
-      switch (textStyle['decoration']) {
-        case 'underline':
-          decoration = TextDecoration.underline;
-          break;
-        case 'overline':
-          decoration = TextDecoration.overline;
-          break;
-        case 'lineThrough':
-          decoration = TextDecoration.lineThrough;
-          break;
-        case 'none':
-          decoration = TextDecoration.none;
-          break;
+  static TextStyle? getTextStyle(dynamic style) {
+    if (style is Map) {
+      TextStyle textStyle =
+          getFontFamily(style['fontFamily']) ?? const TextStyle();
+      return textStyle.copyWith(
+          fontSize: Utils.optionalInt(style['fontSize'], min: 1, max: 1000)
+              ?.toDouble(),
+          height: Utils.optionalDouble(style['lineHeightMultiple'],
+              min: 0.1, max: 10),
+          fontWeight: getFontWeight(style['fontWeight']),
+          fontStyle: Utils.optionalBool(style['isItalic']) == true
+              ? FontStyle.italic
+              : FontStyle.normal,
+          color: Utils.getColor(style['color']),
+          backgroundColor: Utils.getColor(style['backgroundColor']),
+          decoration: getDecoration(style['decoration']),
+          decorationStyle:
+              TextDecorationStyle.values.from(style['decorationStyle']),
+          overflow: TextOverflow.values.from(style['overflow']),
+          letterSpacing: Utils.optionalDouble(style['letterSpacing']),
+          wordSpacing: Utils.optionalDouble(style['wordSpacing']));
+    } else if (style is String) {}
+    return null;
+  }
+
+  static TextStyle? getFontFamily(dynamic name) {
+    String? fontFamily = name?.toString().trim();
+    if (fontFamily != null && fontFamily.isNotEmpty) {
+      try {
+        return GoogleFonts.getFont(fontFamily.trim());
+      } catch (_) {
+        return TextStyle(fontFamily: fontFamily);
       }
+    }
+    return null;
+  }
 
-      if (fontSize != null || color != null) {
-        return TextStyle(
-            fontFamily: fontFamily,
-            fontSize: fontSize?.toDouble(),
-            color: color,
-            decoration: decoration,
-            fontWeight: fontWeight);
+  static TextDecoration? getDecoration(dynamic decoration) {
+    if (decoration is String) {
+      switch (decoration) {
+        case 'underline':
+          return TextDecoration.underline;
+        case 'overline':
+          return TextDecoration.overline;
+        case 'lineThrough':
+          return TextDecoration.lineThrough;
       }
     }
     return null;
@@ -627,6 +654,18 @@ class Utils {
       if (tokens.isNotEmpty) {
         return DataExpression(rawExpression: input, expressions: tokens);
       }
+    } else if (input is Map) {
+      // no recursive, just a straight map is good
+      List<String> tokens = [];
+      input.forEach((_, value) {
+        if (value is String) {
+          DataExpression? dataEntry = _parseDataExpressionFromString(value);
+          tokens.addAll(dataEntry?.expressions ?? []);
+        }
+      });
+      if (tokens.isNotEmpty) {
+        return DataExpression(rawExpression: input, expressions: tokens);
+      }
     }
     return null;
   }
@@ -660,6 +699,24 @@ class Utils {
   /// stripping any unnecessary query params (e.g. anything after the first ?)
   static String getLocalAssetFullPath(String asset) {
     return 'ensemble/assets/${stripQueryParamsFromAsset(asset)}';
+  }
+
+  static bool isMemoryPath(String path) {
+    if (kIsWeb) {
+      return path.contains('blob:');
+    } else if (Platform.isWindows) {
+      final pattern = RegExp(r'^[a-zA-Z]:[\\\/]');
+      return pattern.hasMatch(path) && p.isAbsolute(path);
+    } else if (Platform.isAndroid) {
+      return path.startsWith('/data/user/0/');
+    } else if (Platform.isIOS) {
+      return path.startsWith('/private/var/mobile/');
+    } else if (Platform.isMacOS) {
+      return path.startsWith('/Users/');
+    } else if (Platform.isLinux) {
+      return path.startsWith('/home/');
+    }
+    return false;
   }
 
   /// strip any query params (anything after the first ?) from our assets e.g. my-image?x=abc

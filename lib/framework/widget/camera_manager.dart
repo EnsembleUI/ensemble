@@ -52,11 +52,6 @@ class CameraManager {
               ScreenController()
                   .executeAction(context, cameraAction.onComplete!);
             },
-      onClose: cameraAction.onClose == null
-          ? null
-          : () {
-              ScreenController().executeAction(context, cameraAction.onClose!);
-            },
     );
 
     if (cameraAction.id != null) {
@@ -103,6 +98,12 @@ class CameraManager {
         builder: (context) => camera,
       ),
     );
+
+    if (cameraAction.onClose != null) {
+      try {
+        ScreenController().executeAction(context, cameraAction.onClose!);
+      } catch (_) {}
+    }
 
     if (cameraAction.id != null) {
       scopeManager?.dispatch(

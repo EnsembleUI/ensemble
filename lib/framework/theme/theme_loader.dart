@@ -329,12 +329,9 @@ mixin ThemeLoader {
     return getButtonStyle(
       isOutline: isOutline,
       backgroundColor: backgroundColor,
-      color: Utils.getColor(input['color']),
       border: border,
       padding: Utils.optionalInsets(input['padding']) ?? _buttonPadding,
-      fontSize: Utils.optionalInt(input['fontSize']),
-      fontWeight: Utils.getFontWeight(input['fontWeight']),
-    );
+      labelStyle: Utils.getTextStyle('labelStyle'));
   }
 
   InputBorder? getInputBorder(
@@ -363,38 +360,29 @@ mixin ThemeLoader {
   ButtonStyle getButtonStyle(
       {required bool isOutline,
       Color? backgroundColor,
-      Color? color,
       RoundedRectangleBorder? border,
       EdgeInsets? padding,
-      FontWeight? fontWeight,
-      int? fontSize,
       double? buttonWidth,
-      double? buttonHeight}) {
-    TextStyle? textStyle;
-    if (fontWeight != null || fontSize != null) {
-      textStyle =
-          TextStyle(fontWeight: fontWeight, fontSize: fontSize?.toDouble());
-    }
+      double? buttonHeight,
+      TextStyle? labelStyle}) {
 
     if (isOutline) {
       return OutlinedButton.styleFrom(
-          foregroundColor: color,
           padding: padding,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           fixedSize: Size(buttonWidth ?? Size.infinite.width,
               buttonHeight ?? Size.infinite.height),
           shape: border,
-          textStyle: textStyle);
+          textStyle: labelStyle);
     } else {
       return FilledButton.styleFrom(
-        foregroundColor: color,
         backgroundColor: backgroundColor,
         padding: padding,
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         fixedSize: Size(buttonWidth ?? Size.infinite.width,
             buttonHeight ?? Size.infinite.height),
         shape: border,
-        textStyle: textStyle,
+        textStyle: labelStyle,
       );
     }
   }

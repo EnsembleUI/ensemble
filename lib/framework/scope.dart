@@ -249,7 +249,7 @@ mixin ViewBuilder on IsScopeManager {
           for (var param in model.parameters!) {
             if (model.inputs![param] != null) {
               // set the Custom Widget's inputs from parent scope
-              setPropertyAndRegisterBinding(
+              evalPropertyAndRegisterBinding(
                   scopeManager
                       ._parent!, // widget inputs are set in the parent's scope
                   payload.widget as Invokable,
@@ -269,19 +269,22 @@ mixin ViewBuilder on IsScopeManager {
         // has not been attached, so no worries about ValueNotifier
         for (String key in model.props.keys) {
           if (InvokableController.getSettableProperties(widget).contains(key)) {
-            // actions like onTap should evaluate its expressions upon the action only
-            if (key.startsWith('on')) {
+            if (_isPassthroughProperty(key, widget)) {
               InvokableController.setProperty(widget, key, model.props[key]);
             } else {
-              setPropertyAndRegisterBinding(
+              evalPropertyAndRegisterBinding(
                   scopeManager, widget, key, model.props[key]);
             }
           }
         }
         for (String key in model.styles.keys) {
           if (InvokableController.getSettableProperties(widget).contains(key)) {
-            setPropertyAndRegisterBinding(
-                scopeManager, widget, key, model.styles[key]);
+            if (_isPassthroughProperty(key, widget)) {
+              InvokableController.setProperty(widget, key, model.styles[key]);
+            } else {
+              evalPropertyAndRegisterBinding(
+                  scopeManager, widget, key, model.styles[key]);
+            }
           }
         }
       }
@@ -299,6 +302,19 @@ mixin ViewBuilder on IsScopeManager {
       }
     });
   }
+
+  /// some properties should automatically be excluded from being evaluated
+  /// at this point, and some can be excluded manually by the widget builders:
+  /// 1. all Actions (starting with on*) should eval their variables
+  ///    at the time the action is executed (to prevent stale-ness)
+  /// 2. Widgets can mark certain properties as pass-through so the
+  ///    variable evaluation can be done inside the widget
+  /// 3. Special properties like children and item-template are excluded
+  ///    automatically and don't need to be specified here
+  bool _isPassthroughProperty(String property, dynamic widget) =>
+      property.startsWith('on') ||
+      (widget is HasController &&
+          widget.passthroughSetters().contains(property));
 
   /// iterate through and set/evaluate the widget's properties/styles/...
   /*void _updateWidgetBindings(Map<WidgetModel, Invokable> widgetMap) {
@@ -338,10 +354,9 @@ mixin ViewBuilder on IsScopeManager {
     });
   }*/
 
-  /// call widget.setProperty to update its value.
-  /// If the value is an expression of valid binding, we
-  /// will register to listen for changes
-  void setPropertyAndRegisterBinding(
+  /// evaluate the value and call widget's setProperty with this value.
+  /// If the value is a valid binding, we'll register to listen for changes.
+  void evalPropertyAndRegisterBinding(
       ScopeManager scopeManager, Invokable widget, String key, dynamic value) {
     DataExpression? expression = Utils.parseDataExpression(value);
     if (expression != null) {
