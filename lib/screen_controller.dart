@@ -162,7 +162,7 @@ class ScreenController {
           executeActionWithScope(context, scopeManager, action.onModalDismiss!);
         });
       }
-    } else if (action is ShowModalBottomSheetAction) {
+    } else if (action is ShowBottomModalAction) {
       Widget? widget;
       if (scopeManager != null && action.widget != null) {
         widget = scopeManager.buildWidgetFromDefinition(action.widget);
@@ -171,11 +171,11 @@ class ScreenController {
       if (widget != null) {
         showModalBottomSheet(
           context: context,
-          backgroundColor: action.backgroundColor,
-          barrierColor: action.barrierColor,
+          backgroundColor: action.backgroundColor(dataContext),
+          barrierColor: action.barrierColor(dataContext),
           isScrollControlled: true,
-          enableDrag: action.enableDrag!,
-          showDragHandle: action.showDragHandle,
+          enableDrag: action.enableDrag(dataContext),
+          showDragHandle: action.showDragHandle(dataContext),
           builder: (context) {
             return widget!;
           },

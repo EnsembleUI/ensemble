@@ -167,38 +167,46 @@ abstract class BaseNavigateScreenAction extends EnsembleAction {
   final Map<String, dynamic>? options;
 }
 
-class ShowModalBottomSheetAction extends EnsembleAction {
-  ShowModalBottomSheetAction({
+class ShowBottomModalAction extends EnsembleAction {
+  ShowBottomModalAction({
     super.initiator,
     super.inputs,
     this.widget,
-    this.backgroundColor,
-    this.barrierColor,
-    this.showDragHandle,
-    this.enableDrag,
-  });
+    styles,
+    options,
+  })  : _styles = styles,
+        _options = options;
 
   final dynamic widget;
-  final Color? backgroundColor;
-  final Color? barrierColor;
-  final bool? showDragHandle;
-  final bool? enableDrag;
+  final Map<String, dynamic>? _styles;
+  final Map<String, dynamic>? _options;
 
-  factory ShowModalBottomSheetAction.fromYaml(
+  bool enableDrag(dataContext) =>
+      Utils.getBool(dataContext.eval(_options?['enableDrag']), fallback: true);
+
+  bool showDragHandle(dataContext) =>
+      Utils.getBool(dataContext.eval(_options?['showDragHandle']),
+          fallback: false);
+
+  Color? backgroundColor(dataContext) =>
+      Utils.getColor(dataContext.eval(_styles?['backgroundColor']));
+
+  Color? barrierColor(dataContext) =>
+      Utils.getColor(dataContext.eval(_styles?['barrierColor']));
+
+  factory ShowBottomModalAction.fromYaml(
       {Invokable? initiator, YamlMap? payload}) {
     if (payload == null || payload['widget'] == null) {
       throw LanguageError(
-          "${ActionType.showModalBottomSheet.name} requires the widget to show as a modal bottom sheet.");
+          "${ActionType.showBottomModal.name} requires the widget to show as a modal bottom sheet.");
     }
 
-    return ShowModalBottomSheetAction(
+    return ShowBottomModalAction(
       initiator: initiator,
       inputs: Utils.getMap(payload['inputs']),
       widget: payload['widget'],
-      backgroundColor: Utils.getColor(payload['backgroundColor']),
-      barrierColor: Utils.getColor(payload['barrierColor']),
-      showDragHandle: Utils.getBool(payload['showDragHandle'], fallback: false),
-      enableDrag: Utils.getBool(payload['enableDrag'], fallback: true),
+      styles: payload['styles'],
+      options: payload['options'],
     );
   }
 }
@@ -549,7 +557,7 @@ enum ActionType {
   invokeAPI,
   navigateScreen,
   navigateModalScreen,
-  showModalBottomSheet,
+  showBottomModal,
   showDialog,
   startTimer,
   stopTimer,
@@ -610,8 +618,8 @@ abstract class EnsembleAction {
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.navigateBack) {
       return NavigateBack();
-    } else if (actionType == ActionType.showModalBottomSheet) {
-      return ShowModalBottomSheetAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.showBottomModal) {
+      return ShowBottomModalAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.invokeAPI) {
       return InvokeAPIAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.openCamera) {
