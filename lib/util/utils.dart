@@ -406,6 +406,14 @@ class Utils {
       TextStyle textStyle =
           getFontFamily(style['fontFamily']) ?? const TextStyle();
       return textStyle.copyWith(
+          shadows: [
+            Shadow(
+              blurRadius: Utils.optionalDouble(style['shadowRadius']) ?? 0.0,
+              color: Utils.getColor(style['shadowColor']) ??
+                  const Color(0xFF000000),
+              offset: Utils.getOffset(style['shadowOffset']) ?? Offset.zero,
+            )
+          ],
           fontSize: Utils.optionalInt(style['fontSize'], min: 1, max: 1000)
               ?.toDouble(),
           height: Utils.optionalDouble(style['lineHeightMultiple'],

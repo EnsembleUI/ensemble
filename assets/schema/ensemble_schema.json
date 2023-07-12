@@ -178,6 +178,10 @@
               "DELETE"
             ]
           },
+          "headers": {
+            "type": "object",
+            "description": "Pass the headers' key/value pairs to your service"
+          },
           "parameters": {
             "type": "object",
             "description": "Specify the key/value pairs to pass along with the URL",
@@ -778,6 +782,16 @@
                   "minimum": 6
                 }
               }
+            }, 
+            "textStyle": {
+              "type": "object",
+              "description": "Styling the input text. Default to theme's bodyMedium styling",
+              "$ref": "#/$defs/TextStyle"
+            },
+            "hintStyle": {
+              "type": "object",
+              "description": "Styling the hint text. Default to theme's bodyMedium styling",
+              "$ref": "#/$defs/TextStyle"
             }
           }
         }
@@ -1623,6 +1637,10 @@
               "type": "integer",
               "description": "Selecting a ListView item gives the index of selected item"
             },
+            "onSwipeToRefresh": {
+              "description": "Enable swipe to refresh. This will trigger onRefresh action if enabled",
+              "$ref": "#/$defs/Action-payload"
+            },
             "styles": {
               "allOf": [
                 {
@@ -1751,6 +1769,14 @@
                     },
                     "indicatorHeight": {
                       "type": "integer"
+                    },
+                    "autoplay": {
+                      "type": "boolean",
+                      "description": "If true, Enables autoplay, sliding one page at a time. Default (false)"
+                    },
+                    "autoplayInterval": {
+                      "type": "integer",
+                      "description": "Sets the duration in seconds for the autoplay. Default (4 second)"
                     },
                     "indicatorMargin": {
                       "oneOf": [
@@ -3407,6 +3433,10 @@
                 "activeTabColor": {
                   "$ref": "#/$defs/typeColors",
                   "description": "The color of the selected tab's text"
+                },
+                "dividerColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "The color of the tabbar divider color"
                 },
                 "inactiveTabColor": {
                   "$ref": "#/$defs/typeColors",
