@@ -139,16 +139,12 @@ mixin ThemeLoader {
   }
 
   TextTheme _buildTextTheme([YamlMap? textTheme]) {
-    final fontFamily = Utils.optionalString(textTheme?['fontFamily']);
-
-    TextStyle defaultStyle = const TextStyle(
-        fontFamily: 'Inter', fontWeight: FontWeight.w400, color: Colors.black);
-    try {
-      if (fontFamily != null) {
-        defaultStyle =
-            GoogleFonts.getFont(fontFamily.trim(), color: Colors.black);
-      }
-    } catch (_) {}
+    TextStyle defaultStyle =
+        Utils.getTextStyle(textTheme)?.copyWith(color: Colors.black) ??
+            const TextStyle(
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w400,
+                color: Colors.black);
 
     return ThemeData.light()
         .textTheme
@@ -207,10 +203,12 @@ mixin ThemeLoader {
     if (input == null) return null;
     Color? fillColor = Utils.getColor(input['fillColor']);
     InputDecorationTheme baseInputDecoration = InputDecorationTheme(
-        // dense so user can control the contentPadding effectively
-        isDense: true,
-        filled: fillColor != null,
-        fillColor: fillColor);
+      // dense so user can control the contentPadding effectively
+      isDense: true,
+      filled: fillColor != null,
+      fillColor: fillColor,
+      hintStyle: Utils.getTextStyle(input['hintStyle']),
+    );
 
     InputVariant? variant = InputVariant.values.from(input['variant']);
     EdgeInsets? contentPadding = Utils.optionalInsets(input['contentPadding']);
@@ -327,11 +325,11 @@ mixin ThemeLoader {
                     .toDouble()));
 
     return getButtonStyle(
-      isOutline: isOutline,
-      backgroundColor: backgroundColor,
-      border: border,
-      padding: Utils.optionalInsets(input['padding']) ?? _buttonPadding,
-      labelStyle: Utils.getTextStyle('labelStyle'));
+        isOutline: isOutline,
+        backgroundColor: backgroundColor,
+        border: border,
+        padding: Utils.optionalInsets(input['padding']) ?? _buttonPadding,
+        labelStyle: Utils.getTextStyle('labelStyle'));
   }
 
   InputBorder? getInputBorder(
@@ -365,7 +363,6 @@ mixin ThemeLoader {
       double? buttonWidth,
       double? buttonHeight,
       TextStyle? labelStyle}) {
-
     if (isOutline) {
       return OutlinedButton.styleFrom(
           padding: padding,

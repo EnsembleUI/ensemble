@@ -105,14 +105,31 @@ class Utils {
         List<Color> colors = [];
         for (dynamic colorEntry in value['colors']) {
           Color? color = Utils.getColor(colorEntry);
-          if (color != null) {
-            colors.add(color);
+          if (color == null) {
+            throw LanguageError("Invalid color $colorEntry");
           }
+          colors.add(color);
         }
         // only valid if have at least 2 colors
         if (colors.length >= 2) {
+          List<double>? stops;
+          if (value['stops'] is List) {
+            for (dynamic stop in value['stops']) {
+              double? stopValue = Utils.optionalDouble(stop, min: 0, max: 1.0);
+              if (stopValue == null) {
+                throw LanguageError(
+                    "Gradient's stop has to be a number from 0.0 to 1.0");
+              }
+              (stops ??= []).add(stopValue);
+            }
+          }
+          if (stops != null && stops.length != colors.length) {
+            throw LanguageError(
+                "Gradient's number of colors and stops should be the same.");
+          }
           return LinearGradient(
               colors: colors,
+              stops: stops,
               begin: getAlignment(value['start']) ?? Alignment.centerLeft,
               end: getAlignment(value['end']) ?? Alignment.centerRight);
         }
@@ -389,6 +406,14 @@ class Utils {
       TextStyle textStyle =
           getFontFamily(style['fontFamily']) ?? const TextStyle();
       return textStyle.copyWith(
+          shadows: [
+            Shadow(
+              blurRadius: Utils.optionalDouble(style['shadowRadius']) ?? 0.0,
+              color: Utils.getColor(style['shadowColor']) ??
+                  const Color(0xFF000000),
+              offset: Utils.getOffset(style['shadowOffset']) ?? Offset.zero,
+            )
+          ],
           fontSize: Utils.optionalInt(style['fontSize'], min: 1, max: 1000)
               ?.toDouble(),
           height: Utils.optionalDouble(style['lineHeightMultiple'],

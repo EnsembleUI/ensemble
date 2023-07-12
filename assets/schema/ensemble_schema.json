@@ -190,6 +190,10 @@
               "DELETE"
             ]
           },
+          "headers": {
+            "type": "object",
+            "description": "Pass the headers' key/value pairs to your service"
+          },
           "parameters": {
             "type": "object",
             "description": "Specify the key/value pairs to pass along with the URL",
@@ -805,6 +809,16 @@
                   "minimum": 6
                 }
               }
+            }, 
+            "textStyle": {
+              "type": "object",
+              "description": "Styling the input text. Default to theme's bodyMedium styling",
+              "$ref": "#/$defs/TextStyle"
+            },
+            "hintStyle": {
+              "type": "object",
+              "description": "Styling the hint text. Default to theme's bodyMedium styling",
+              "$ref": "#/$defs/TextStyle"
             }
           }
         }
@@ -1811,6 +1825,14 @@
                     },
                     "indicatorHeight": {
                       "type": "integer"
+                    },
+                    "autoplay": {
+                      "type": "boolean",
+                      "description": "If true, Enables autoplay, sliding one page at a time. Default (false)"
+                    },
+                    "autoplayInterval": {
+                      "type": "integer",
+                      "description": "Sets the duration in seconds for the autoplay. Default (4 second)"
                     },
                     "indicatorMargin": {
                       "oneOf": [
@@ -4388,6 +4410,10 @@
               "items": {
                 "$ref": "#/$defs/typeColors"
               }
+            },
+            "stops": {
+              "type": "array",
+              "description": "The list of color stops, each is a number between 0.0 (where the gradient starts) and 1.0 (where the gradient ends). The number of stops should match the number of colors."
             },
             "start": {
               "description": "The starting position of the gradient",

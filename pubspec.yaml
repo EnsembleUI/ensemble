@@ -93,6 +93,7 @@ dependencies:
   staggered_grid_view_flutter: ^0.0.4
   dart_jsonwebtoken: ^2.8.2
   flutter_dotenv: ^5.1.0
+  get_it: ^7.6.0
 
 dev_dependencies:
   flutter_test:
@@ -101,6 +102,7 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^2.0.1
   mockito: ^5.1.0
+  collection: ^1.17.1
 
 flutter:
   # The following line ensures that the Material Icons font is
