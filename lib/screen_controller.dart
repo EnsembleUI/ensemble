@@ -492,15 +492,24 @@ class ScreenController {
       notificationUtils.onRemoteNotification = action.onReceive;
       notificationUtils.onRemoteNotificationOpened = action.onTap;
     } else if (action is ShowNotificationAction) {
-      notificationUtils.showNotification(action.title, action.body);
+      notificationUtils.showNotification(
+        evaluateExtraContext(action.title),
+        evaluateExtraContext(action.body),
+      );
     }
   }
 
-  String evaluateString(String input, Map<String, String> contextMap) {
-    return input.replaceAllMapped(RegExp(r'\$(\w+)'), (match) {
-      final key = match.group(1);
-      return contextMap[key] ?? match.group(0) ?? input;
+  String evaluateExtraContext(String input) {
+    final contextMap = Ensemble.externalDataContext;
+    RegExp placeholderRegex = RegExp(r'\${(.*?)}');
+
+    String evaluatedString = input.replaceAllMapped(placeholderRegex, (match) {
+      String? placeholder = match.group(1);
+      dynamic value = contextMap[placeholder?.trim()];
+      return value != null ? value.toString() : '';
     });
+
+    return evaluatedString;
   }
 
   void updateWalletData(WalletConnectAction action, ScopeManager? scopeManager,
