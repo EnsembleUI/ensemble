@@ -2060,36 +2060,46 @@
           }
         },
         {
-          "title": "Show Modal Bottom Sheet",
+          "title": "Show Bottom Modal",
           "type": "object",
-          "required": ["showModalBottomSheet"],
+          "required": ["showBottomModal"],
           "properties": {
-            "showModalBottomSheet": {
+            "showBottomModal": {
               "type": "object",
-              "description": "Open a view as a modal bottom sheet",
+              "description": "Open a view as a bottom modal sheet",
               "required": [
                 "widget"
               ],
               "properties": {
                 "widget": {
                   "$ref": "#/$defs/Widget",
-                  "description": "The custom widget to show as the modal bottom sheet."
+                  "description": "The custom widget to show as the bottom modal sheet."
                 },
-                "backgroundColor": {
-                  "$ref": "#/$defs/typeColors",
-                  "description": "By default the background color uses the theme's 'bottomSheetTheme.backgroundColor'. You can override the modal bottom sheet's background color here."
+                "options": {
+                  "type": "object",
+                  "properties": {
+                    "enableDrag": {
+                      "type": "boolean",
+                      "description": "Whether to drag a bottom modal sheet (default is True)"
+                    },
+                    "showDragHandle": {
+                      "type": "boolean",
+                      "description": "Whether to show a drag handle on top of the bottom modal sheet for dragging (default is False)"
+                    }
+                  }
                 },
-                "barrierColor": {
-                  "$ref": "#/$defs/typeColors",
-                  "description": "By default the barrierColor color use theme's 'bottomSheetTheme.modalBarrierColor' . You can override the modal bottom sheet's barrierColor color here."
-                },
-                "enableDrag": {
-                  "type": "boolean",
-                  "description": "Whether to drag a modal bottom sheet (default is True)"
-                },
-                "showDragHandle": {
-                  "type": "boolean",
-                  "description": "Whether to show a drag handle on top of the modal bottom sheet for dragging (default is False)"
+                "styles": {
+                  "type": "object",
+                  "properties": {
+                    "backgroundColor": {
+                      "$ref": "#/$defs/typeColors",
+                      "description": "By default the background color uses the theme's 'bottomSheetTheme.backgroundColor'. You can override the bottom modal sheet's background color here."
+                    },
+                    "barrierColor": {
+                      "$ref": "#/$defs/typeColors",
+                      "description": "By default the barrierColor color use theme's 'bottomSheetTheme.modalBarrierColor' . You can override the bottom modal sheet's barrierColor color here."
+                    }
+                  }
                 }
               }
             }
