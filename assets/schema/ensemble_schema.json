@@ -1638,7 +1638,7 @@
               "description": "Selecting a ListView item gives the index of selected item"
             },
             "onSwipeToRefresh": {
-              "description": "The event will be called when the ListView is swiped from top to bottom (Pull To Refresh)",
+              "description": "Enable swipe to refresh. This will trigger onRefresh action if enabled",
               "$ref": "#/$defs/Action-payload"
             },
             "styles": {
