@@ -1637,6 +1637,10 @@
               "type": "integer",
               "description": "Selecting a ListView item gives the index of selected item"
             },
+            "onSwipeToRefresh": {
+              "description": "Enable swipe to refresh. This will trigger onRefresh action if enabled",
+              "$ref": "#/$defs/Action-payload"
+            },
             "styles": {
               "allOf": [
                 {
@@ -3475,6 +3479,10 @@
                 "activeTabColor": {
                   "$ref": "#/$defs/typeColors",
                   "description": "The color of the selected tab's text"
+                },
+                "dividerColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "The color of the tabbar divider color"
                 },
                 "inactiveTabColor": {
                   "$ref": "#/$defs/typeColors",
