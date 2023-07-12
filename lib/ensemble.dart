@@ -83,6 +83,7 @@ class Ensemble {
             mapAccessToken: yamlMap['accounts']?['maps']
                 ?['mapbox_access_token']),
         services: Services.fromYaml(yamlMap['services']),
+        signInServices: SignInServices.fromYaml(yamlMap['services']),
         envOverrides: envOverrides);
     return _config!;
   }
@@ -177,6 +178,10 @@ class Ensemble {
     return _config?.services;
   }
 
+  SignInServices? getSignInServices() {
+    return _config?.signInServices;
+  }
+
   EnsembleConfig? getConfig() {
     return _config;
   }
@@ -255,11 +260,13 @@ class EnsembleConfig {
       {required this.definitionProvider,
       this.account,
       this.services,
+      this.signInServices,
       this.envOverrides,
       this.appBundle});
   final DefinitionProvider definitionProvider;
   Account? account;
   Services? services;
+  SignInServices? signInServices;
 
   // environment variable overrides
   Map<String, dynamic>? envOverrides;
@@ -353,6 +360,43 @@ class APICredential {
   String redirectUri;
   String? redirectScheme;
 }
+
+class SignInServices {
+  SignInServices._({this.serverUri, this.signInCredentials});
+  String? serverUri;
+  Map<ServiceName, SignInCredential>? signInCredentials;
+
+  factory SignInServices.fromYaml(dynamic input) {
+    String? serverUri;
+    Map<ServiceName, SignInCredential>? credentials;
+    if (input is YamlMap && input['signIn'] is YamlMap) {
+      serverUri = input['signIn']['serverUri'];
+      if (input['signIn']['providers'] is YamlMap) {
+        (input['signIn']['providers'] as YamlMap).forEach((key, value) {
+          var provider = ServiceName.values.from(key);
+          if (provider != null && value is Map) {
+            (credentials ??= {})[provider] = SignInCredential(
+                iOSClientId: value['iOSClientId'],
+                androidClientId: value['androidClientId'],
+                webClientId: value['webClientId'],
+                serverClientId: value['serverClientId']);
+          }
+        });
+      }
+    }
+    return SignInServices._(serverUri: serverUri, signInCredentials: credentials);
+  }
+
+}
+
+class SignInCredential {
+  SignInCredential({this.iOSClientId, this.androidClientId, this.webClientId, this.serverClientId});
+  String? iOSClientId;
+  String? androidClientId;
+  String? webClientId;
+  String? serverClientId;
+}
+
 
 enum ServiceName { google, microsoft, yahoo }
 
