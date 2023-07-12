@@ -205,8 +205,8 @@ class ShowBottomModalAction extends EnsembleAction {
       initiator: initiator,
       inputs: Utils.getMap(payload['inputs']),
       widget: payload['widget'],
-      styles: payload['styles'],
-      options: payload['options'],
+      styles: Utils.getMap(payload['styles']),
+      options: Utils.getMap(payload['options']),
     );
   }
 }
