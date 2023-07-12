@@ -1,0 +1,29 @@
+View:
+  styles:
+    useSafeArea: true
+  body:
+    Column:
+      styles:
+        gap: 10
+      children:
+        # form with labels on top
+        - Form:
+            children:
+              - TextInput:
+                  label: My TextInput
+              - Dropdown:
+                  label: My Dropdown
+                  items: ['one', 'two', 'three']
+
+        - Divider:
+
+        # form with side-by-side labels
+        - Form:
+            styles:
+              labelPosition: start
+            children:
+              - TextInput:
+                  label: My TextInput 2
+              - Dropdown:
+                  label: My Dropdown 2
+                  items: ['four', 'five', 'six']
