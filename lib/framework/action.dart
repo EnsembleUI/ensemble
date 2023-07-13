@@ -167,6 +167,50 @@ abstract class BaseNavigateScreenAction extends EnsembleAction {
   final Map<String, dynamic>? options;
 }
 
+class ShowBottomModalAction extends EnsembleAction {
+  ShowBottomModalAction({
+    super.initiator,
+    super.inputs,
+    this.widget,
+    styles,
+    options,
+  })  : _styles = styles,
+        _options = options;
+
+  final dynamic widget;
+  final Map<String, dynamic>? _styles;
+  final Map<String, dynamic>? _options;
+
+  bool enableDrag(dataContext) =>
+      Utils.getBool(dataContext.eval(_options?['enableDrag']), fallback: true);
+
+  bool enableDragHandler(dataContext) =>
+      Utils.getBool(dataContext.eval(_options?['enableDragHandler']),
+          fallback: false);
+
+  Color? backgroundColor(dataContext) =>
+      Utils.getColor(dataContext.eval(_styles?['backgroundColor']));
+
+  Color? barrierColor(dataContext) =>
+      Utils.getColor(dataContext.eval(_styles?['barrierColor']));
+
+  factory ShowBottomModalAction.fromYaml(
+      {Invokable? initiator, YamlMap? payload}) {
+    if (payload == null || payload['widget'] == null) {
+      throw LanguageError(
+          "${ActionType.showBottomModal.name} requires the widget to show as a modal bottom sheet.");
+    }
+
+    return ShowBottomModalAction(
+      initiator: initiator,
+      inputs: Utils.getMap(payload['inputs']),
+      widget: payload['widget'],
+      styles: Utils.getMap(payload['styles']),
+      options: Utils.getMap(payload['options']),
+    );
+  }
+}
+
 class StartTimerAction extends EnsembleAction {
   StartTimerAction(
       {super.initiator,
@@ -513,6 +557,7 @@ enum ActionType {
   invokeAPI,
   navigateScreen,
   navigateModalScreen,
+  showBottomModal,
   showDialog,
   startTimer,
   stopTimer,
@@ -573,6 +618,8 @@ abstract class EnsembleAction {
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.navigateBack) {
       return NavigateBack();
+    } else if (actionType == ActionType.showBottomModal) {
+      return ShowBottomModalAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.invokeAPI) {
       return InvokeAPIAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.openCamera) {
