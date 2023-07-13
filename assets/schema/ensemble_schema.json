@@ -937,15 +937,18 @@
     },
     "SignInWithGoogle-payload": {
       "type": "object",
-      "required": ["displayWidget"],
+      "required": ["widget"],
       "properties": {
-        "displayWidget": {
+        "widget": {
           "$ref": "#/$defs/Widget",
-          "description": "The widget to be displayed as the placeholder. Note that any tap event (if specified) will be ignored and automatically intercepted to trigger a Google Sign-In process."
+          "description": "The widget to be rendered as the placeholder (not applicable on Web). Note that any tap event (if specified) will be ignored and automatically intercepted to trigger a Google Sign-In process."
         },
         "scopes": {
           "type": "array",
           "description": "A list of additional scopes to request permissions from the user"
+        },
+        "onAuthenticated": {
+          "$ref": "#/$defs/Action-payload"
         }
       }
     },
