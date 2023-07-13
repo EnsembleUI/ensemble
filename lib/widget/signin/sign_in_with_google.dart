@@ -50,8 +50,8 @@ class SignInWithGoogle extends StatefulWidget
         'onAuthenticated': (action) => _controller.onAuthenticated =
             EnsembleAction.fromYaml(action, initiator: this),
         'scopes': (value) =>
-        _controller.scopes =
-            Utils.getListOfStrings(value) ?? _controller.scopes,
+            _controller.scopes =
+              Utils.getListOfStrings(value) ?? _controller.scopes,
       };
 
 }
@@ -152,7 +152,11 @@ class SignInWithGoogleState extends WidgetState<SignInWithGoogle> {
 
   Future<void> _handleSignIn() async {
     try {
+      // sign out so user can switch to another account
+      // when clicking on the button multiple times
+      await _googleSignIn.signOut();
       await _googleSignIn.disconnect();
+
       await _googleSignIn.signIn();
     } catch (error) {
       log(error.toString());
