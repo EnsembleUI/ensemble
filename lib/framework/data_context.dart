@@ -5,6 +5,7 @@ import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
@@ -43,7 +44,6 @@ class DataContext {
     _contextMap['app'] = AppConfig();
     _contextMap['env'] = EnvConfig();
     _contextMap['ensemble'] = NativeInvokable(buildContext);
-    _contextMap['user'] = UserInfo();
     // device is a common name. If user already uses that, don't override it
     if (_contextMap['device'] == null) {
       _contextMap['device'] = Device();
@@ -312,6 +312,7 @@ class NativeInvokable with Invokable {
   Map<String, Function> getters() {
     return {
       'storage': () => EnsembleStorage(_buildContext),
+      'user': () => UserInfo(),
       'formatter': () => Formatter(_buildContext),
     };
   }
@@ -475,6 +476,9 @@ class UserInfo with Invokable {
   @override
   Map<String, Function> getters() {
     return {
+      'email': () => StorageManager().getUserEmail(),
+      'name': () => StorageManager().getUserName(),
+      'photo': () => StorageManager().getUserPhoto(),
       'date': () => DateInfo(),
       'datetime': () => DateTimeInfo(),
     };
