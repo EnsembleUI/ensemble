@@ -489,6 +489,23 @@ class NotificationAction extends EnsembleAction {
   }
 }
 
+class InitNotificationAction extends EnsembleAction {
+  EnsembleAction? onAccept;
+  EnsembleAction? onReject;
+  EnsembleAction? onComplete;
+
+  InitNotificationAction({this.onAccept, this.onReject, this.onComplete});
+
+  factory InitNotificationAction.fromYaml(
+      {Invokable? initiator, YamlMap? payload}) {
+    return InitNotificationAction(
+      onComplete: EnsembleAction.fromYaml(payload?['onComplete']),
+      onAccept: EnsembleAction.fromYaml(payload?['onAccept']),
+      onReject: EnsembleAction.fromYaml(payload?['onReject']),
+    );
+  }
+}
+
 class ShowNotificationAction extends EnsembleAction {
   late String title;
   late String body;
@@ -521,6 +538,7 @@ enum ActionType {
   pickFiles,
   connectWallet,
   notification,
+  initNotification,
   showNotification,
 }
 
@@ -607,6 +625,8 @@ abstract class EnsembleAction {
       return NotificationAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.showNotification) {
       return ShowNotificationAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.initNotification) {
+      return InitNotificationAction.fromYaml(payload: payload);
     }
     throw LanguageError("Invalid action.",
         recovery: "Make sure to use one of Ensemble-provided actions.");

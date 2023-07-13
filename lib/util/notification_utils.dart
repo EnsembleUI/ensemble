@@ -1,7 +1,9 @@
 import 'dart:developer';
+import 'dart:io';
 
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
@@ -15,7 +17,7 @@ class _NotificationUtils {
   final FlutterLocalNotificationsPlugin localNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
-  Future<void> initNotifications() async {
+  Future<bool?> initNotifications() async {
     const initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
     const initializationSettingsIOS = DarwinInitializationSettings();
@@ -24,6 +26,33 @@ class _NotificationUtils {
       iOS: initializationSettingsIOS,
     );
     await localNotificationsPlugin.initialize(initializationSettings);
+
+    return _requestPermissions();
+  }
+
+  Future<bool> _requestPermissions() async {
+    if (kIsWeb) {
+      return true;
+    }
+    if (Platform.isIOS) {
+      final granted = await localNotificationsPlugin
+          .resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin>()
+          ?.requestPermissions(
+            alert: true,
+            badge: true,
+            sound: true,
+          );
+      return granted ?? false;
+    } else if (Platform.isAndroid) {
+      final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
+          localNotificationsPlugin.resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+
+      bool? granted = await androidImplementation?.requestPermission();
+      return granted ?? false;
+    }
+    return false;
   }
 
   Future<void> showNotification(
