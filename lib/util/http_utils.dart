@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 
+import 'package:ensemble/OAuthController.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -16,6 +17,19 @@ class HttpUtils {
       YamlMap api, DataContext eContext) async {
     // headers
     Map<String, String> headers = {};
+
+    // include the OAuth token if applicable
+    String? oauthId = Utils.optionalString(api['authorization']?['oauthId']);
+    String? scope = Utils.optionalString(api['authorization']?['scope']);
+    bool forceNewTokens =
+        Utils.getBool(api['authorization']?['forceNewTokens'], fallback: false);
+    if (oauthId != null && scope != null) {
+      OAuthServiceToken? token = await OAuthController()
+          .authorize(oauthId, scope: scope, forceNewTokens: forceNewTokens);
+      if (token != null) {
+        headers['Authorization'] = 'Bearer ${token.accessToken}';
+      }
+    }
     if (api['headers'] is YamlMap) {
       (api['headers'] as YamlMap).forEach((key, value) {
         if (value != null) {

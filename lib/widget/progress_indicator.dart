@@ -39,7 +39,9 @@ class EnsembleProgressIndicator extends StatefulWidget
       'countdown': (seconds) =>
           _controller.countdown = Utils.optionalInt(seconds, min: 0),
       'onCountdownComplete': (action) => _controller.onCountdownComplete =
-          EnsembleAction.fromYaml(action, initiator: this)
+          EnsembleAction.fromYaml(action, initiator: this),
+      'value': (value) =>
+          _controller.value = Utils.getDouble(value, fallback: 0),
     };
   }
 
@@ -64,14 +66,13 @@ class ProgressController extends WidgetController {
   int? thickness;
   Color? color;
   Color? backgroundColor;
-
+  double? value;
   int? countdown;
   EnsembleAction? onCountdownComplete;
 }
 
 class ProgressState extends WidgetState<EnsembleProgressIndicator> {
   static const interval = 100;
-  double _value = 0;
   Timer? countdownTimer;
 
   bool hasCountdown() {
@@ -88,10 +89,10 @@ class ProgressState extends WidgetState<EnsembleProgressIndicator> {
       countdownTimer =
           Timer.periodic(const Duration(milliseconds: interval), (timer) {
         setState(() {
-          _value = min(1,
+          widget._controller.value = min(1,
               timer.tick * interval / (widget._controller.countdown! * 1000));
         });
-        if (_value == 1) {
+        if (widget._controller.value == 1) {
           timer.cancel();
         }
       });
@@ -100,7 +101,7 @@ class ProgressState extends WidgetState<EnsembleProgressIndicator> {
       Timer(Duration(seconds: widget._controller.countdown!), () {
         countdownTimer?.cancel();
         setState(() {
-          _value = 1;
+          widget._controller.value = 1;
         });
         if (widget._controller.onCountdownComplete != null) {
           ScreenController().executeAction(
@@ -133,7 +134,9 @@ class ProgressState extends WidgetState<EnsembleProgressIndicator> {
         child: LinearProgressIndicator(
           color: widget._controller.color,
           backgroundColor: widget._controller.backgroundColor,
-          value: hasCountdown() ? _value : null,
+          value: hasCountdown() || widget._controller.value != null
+              ? widget._controller.value
+              : null,
         ));
 
     /// linear progress indicator takes width from its parent,
@@ -152,7 +155,9 @@ class ProgressState extends WidgetState<EnsembleProgressIndicator> {
               ProgressController.defaultThicknessCircular,
           color: widget._controller.color,
           backgroundColor: widget._controller.backgroundColor,
-          value: hasCountdown() ? _value : null,
+          value: hasCountdown() || widget._controller.value != null
+              ? widget._controller.value
+              : null,
         ));
   }
 }

@@ -88,6 +88,7 @@ class BoxLayoutController extends BaseBoxLayoutController {
 abstract class BaseBoxLayoutController extends BoxController {
   List<Widget>? children;
   EnsembleAction? onTap;
+  EnsembleAction? onItemTap;
 
   MainAxisAlignment mainAxis = MainAxisAlignment.start;
   CrossAxisAlignment crossAxis = CrossAxisAlignment.start;

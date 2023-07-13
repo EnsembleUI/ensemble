@@ -1,13 +1,18 @@
+import 'dart:io';
 import 'dart:math';
+import 'dart:ui';
+import 'package:path/path.dart' as p;
 
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:yaml/yaml.dart';
 
@@ -100,14 +105,31 @@ class Utils {
         List<Color> colors = [];
         for (dynamic colorEntry in value['colors']) {
           Color? color = Utils.getColor(colorEntry);
-          if (color != null) {
-            colors.add(color);
+          if (color == null) {
+            throw LanguageError("Invalid color $colorEntry");
           }
+          colors.add(color);
         }
         // only valid if have at least 2 colors
         if (colors.length >= 2) {
+          List<double>? stops;
+          if (value['stops'] is List) {
+            for (dynamic stop in value['stops']) {
+              double? stopValue = Utils.optionalDouble(stop, min: 0, max: 1.0);
+              if (stopValue == null) {
+                throw LanguageError(
+                    "Gradient's stop has to be a number from 0.0 to 1.0");
+              }
+              (stops ??= []).add(stopValue);
+            }
+          }
+          if (stops != null && stops.length != colors.length) {
+            throw LanguageError(
+                "Gradient's number of colors and stops should be the same.");
+          }
           return LinearGradient(
               colors: colors,
+              stops: stops,
               begin: getAlignment(value['start']) ?? Alignment.centerLeft,
               end: getAlignment(value['end']) ?? Alignment.centerRight);
         }
@@ -271,6 +293,11 @@ class Utils {
     return null;
   }
 
+  static YamlMap? getYamlMap(dynamic value) {
+    Map? map = getMap(value);
+    return map != null ? YamlMap.wrap(map) : null;
+  }
+
   static Color? getColor(dynamic value) {
     if (value is String) {
       switch (value) {
@@ -367,37 +394,67 @@ class Utils {
     return null;
   }
 
-  static TextStyle? getTextStyle(dynamic textStyle) {
-    if (textStyle is YamlMap) {
-      String? fontFamily = Utils.optionalString(textStyle['fontFamily']);
-      int? fontSize =
-          Utils.optionalInt(textStyle['fontSize'], min: 1, max: 100);
-      Color? color = Utils.getColor(textStyle['color']);
-      FontWeight? fontWeight = getFontWeight(textStyle['fontWeight']);
+  static TextStyleComposite getTextStyleAsComposite(
+      WidgetController widgetController,
+      {dynamic style}) {
+    return TextStyleComposite(widgetController,
+        styleWithFontFamily: getTextStyle(style));
+  }
 
-      TextDecoration? decoration;
-      switch (textStyle['decoration']) {
-        case 'underline':
-          decoration = TextDecoration.underline;
-          break;
-        case 'overline':
-          decoration = TextDecoration.overline;
-          break;
-        case 'lineThrough':
-          decoration = TextDecoration.lineThrough;
-          break;
-        case 'none':
-          decoration = TextDecoration.none;
-          break;
+  static TextStyle? getTextStyle(dynamic style) {
+    if (style is Map) {
+      TextStyle textStyle =
+          getFontFamily(style['fontFamily']) ?? const TextStyle();
+      return textStyle.copyWith(
+          shadows: [
+            Shadow(
+              blurRadius: Utils.optionalDouble(style['shadowRadius']) ?? 0.0,
+              color: Utils.getColor(style['shadowColor']) ??
+                  const Color(0xFF000000),
+              offset: Utils.getOffset(style['shadowOffset']) ?? Offset.zero,
+            )
+          ],
+          fontSize: Utils.optionalInt(style['fontSize'], min: 1, max: 1000)
+              ?.toDouble(),
+          height: Utils.optionalDouble(style['lineHeightMultiple'],
+              min: 0.1, max: 10),
+          fontWeight: getFontWeight(style['fontWeight']),
+          fontStyle: Utils.optionalBool(style['isItalic']) == true
+              ? FontStyle.italic
+              : FontStyle.normal,
+          color: Utils.getColor(style['color']),
+          backgroundColor: Utils.getColor(style['backgroundColor']),
+          decoration: getDecoration(style['decoration']),
+          decorationStyle:
+              TextDecorationStyle.values.from(style['decorationStyle']),
+          overflow: TextOverflow.values.from(style['overflow']),
+          letterSpacing: Utils.optionalDouble(style['letterSpacing']),
+          wordSpacing: Utils.optionalDouble(style['wordSpacing']));
+    } else if (style is String) {}
+    return null;
+  }
+
+  static TextStyle? getFontFamily(dynamic name) {
+    String? fontFamily = name?.toString().trim();
+    if (fontFamily != null && fontFamily.isNotEmpty) {
+      try {
+        return GoogleFonts.getFont(fontFamily.trim());
+      } catch (_) {
+        return TextStyle(fontFamily: fontFamily);
       }
+    }
+    return null;
+  }
 
-      if (fontSize != null || color != null) {
-        return TextStyle(
-            fontFamily: fontFamily,
-            fontSize: fontSize?.toDouble(),
-            color: color,
-            decoration: decoration,
-            fontWeight: fontWeight);
+  static TextDecoration? getDecoration(dynamic decoration) {
+    if (decoration is String) {
+      switch (decoration) {
+        case 'underline':
+          return TextDecoration.underline;
+        case 'overline':
+          return TextDecoration.overline;
+        case 'lineThrough':
+          return TextDecoration.lineThrough;
       }
     }
     return null;
@@ -523,7 +580,7 @@ class Utils {
 
   // match an expression and AST e.g //@code <expression>\n<AST> in group1 and group2
   static final expressionAndAst =
-      RegExp(r'^//@code\s+([^\n]+)\s*\n+((.|\n)+)', caseSensitive: false);
+      RegExp(r'^//@code\s+([^\n]+)\s*', caseSensitive: false);
 
   //expect r@mystring or r@myapp.myscreen.mystring as long as r@ is there. If r@ is not there, returns the string as-is
   static String translate(String val, BuildContext? ctx) {
@@ -607,15 +664,44 @@ class Utils {
   /// There are two variations:
   /// 1. <expression>
   /// 2. //@code <expression>\n<AST>
-  static DataExpression? parseDataExpression(String input) {
+  static DataExpression? parseDataExpression(dynamic input) {
+    if (input is String) {
+      return _parseDataExpressionFromString(input);
+    } else if (input is List) {
+      List<String> tokens = [];
+      for (final inputEntry in input) {
+        if (inputEntry is String) {
+          DataExpression? dataEntry =
+              _parseDataExpressionFromString(inputEntry);
+          tokens.addAll(dataEntry?.expressions ?? []);
+        }
+      }
+      if (tokens.isNotEmpty) {
+        return DataExpression(rawExpression: input, expressions: tokens);
+      }
+    } else if (input is Map) {
+      // no recursive, just a straight map is good
+      List<String> tokens = [];
+      input.forEach((_, value) {
+        if (value is String) {
+          DataExpression? dataEntry = _parseDataExpressionFromString(value);
+          tokens.addAll(dataEntry?.expressions ?? []);
+        }
+      });
+      if (tokens.isNotEmpty) {
+        return DataExpression(rawExpression: input, expressions: tokens);
+      }
+    }
+    return null;
+  }
+
+  static DataExpression? _parseDataExpressionFromString(String input) {
     // first match //@code <expression>\n<AST> as it is what we have
     RegExpMatch? match = expressionAndAst.firstMatch(input);
     if (match != null) {
       return DataExpression(
-        rawExpression: match.group(1)!,
-        expressions: getExpressionTokens(match.group(1)!),
-        astExpression: match.group(2)!,
-      );
+          rawExpression: match.group(1)!,
+          expressions: getExpressionTokens(match.group(1)!));
     }
     // fallback to match <expression> only. This is if we don't turn on AST
     List<String> tokens = getExpressionTokens(input);
@@ -638,6 +724,24 @@ class Utils {
   /// stripping any unnecessary query params (e.g. anything after the first ?)
   static String getLocalAssetFullPath(String asset) {
     return 'ensemble/assets/${stripQueryParamsFromAsset(asset)}';
+  }
+
+  static bool isMemoryPath(String path) {
+    if (kIsWeb) {
+      return path.contains('blob:');
+    } else if (Platform.isWindows) {
+      final pattern = RegExp(r'^[a-zA-Z]:[\\\/]');
+      return pattern.hasMatch(path) && p.isAbsolute(path);
+    } else if (Platform.isAndroid) {
+      return path.startsWith('/data/user/0/');
+    } else if (Platform.isIOS) {
+      return path.startsWith('/private/var/mobile/');
+    } else if (Platform.isMacOS) {
+      return path.startsWith('/Users/');
+    } else if (Platform.isLinux) {
+      return path.startsWith('/home/');
+    }
+    return false;
   }
 
   /// strip any query params (anything after the first ?) from our assets e.g. my-image?x=abc

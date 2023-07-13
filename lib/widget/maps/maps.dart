@@ -29,6 +29,9 @@ class Maps extends StatefulWidget
   MyController get controller => _controller;
 
   @override
+  List<String> passthroughSetters() => ['markers'];
+
+  @override
   Map<String, Function> setters() {
     return {
       'width': (value) => _controller.width = Utils.optionalInt(value),
@@ -100,8 +103,8 @@ class Maps extends StatefulWidget
   }
 
   void setMarkers(dynamic markerData) {
-    if (markerData is YamlMap) {
-      String? data = markerData['data'];
+    if (markerData is Map) {
+      dynamic data = markerData['data'];
       String? name = markerData['name'];
       String? latLng = markerData['location'];
 
@@ -222,7 +225,7 @@ class MyController extends WidgetController with LocationCapability {
 
 class MarkerItemTemplate extends ItemTemplate {
   MarkerItemTemplate(
-      {required String data,
+      {required dynamic data,
       required String name,
       required dynamic
           template, // this is the marker image/widget, just piggyback on the name

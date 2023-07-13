@@ -50,7 +50,6 @@ dependencies:
   high_chart:
     git: https://github.com/EnsembleUI/high_chart.git
   event_bus: ^2.0.0
-  mockito: ^5.1.0
   flutter_layout_grid: ^2.0.3
   email_validator: ^2.0.1
   form_validator: ^2.1.1
@@ -89,6 +88,12 @@ dependencies:
   flutter_local_notifications: ^14.0.0+2
   flutter_i18n: ^0.33.0
   pointer_interceptor: ^0.9.3+4
+  flutter_web_auth_2: ^2.1.4
+  flutter_secure_storage: ^8.0.0
+  staggered_grid_view_flutter: ^0.0.4
+  dart_jsonwebtoken: ^2.8.2
+  flutter_dotenv: ^5.1.0
+  get_it: ^7.6.0
 
 dev_dependencies:
   flutter_test:
@@ -96,6 +101,8 @@ dev_dependencies:
   integration_test:
     sdk: flutter
   flutter_lints: ^2.0.1
+  mockito: ^5.1.0
+  collection: ^1.17.1
 
 flutter:
   # The following line ensures that the Material Icons font is
