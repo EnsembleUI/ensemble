@@ -94,6 +94,8 @@ dependencies:
   dart_jsonwebtoken: ^2.8.2
   flutter_dotenv: ^5.1.0
   get_it: ^7.6.0
+  google_sign_in: ^6.1.4
+  sign_in_with_apple: ^5.0.0
 
 dev_dependencies:
   flutter_test:
