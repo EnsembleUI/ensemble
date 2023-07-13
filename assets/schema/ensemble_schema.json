@@ -1827,7 +1827,10 @@
                       "type": "integer"
                     },
                     "autoplay": {
-                      "type": "boolean",
+                      "oneOf": [
+                        { "type": "boolean", "title": "Boolean" },
+                        { "type": "string", "title": "Expression" } 
+                      ],
                       "description": "If true, Enables autoplay, sliding one page at a time. Default (false)"
                     },
                     "autoplayInterval": {
@@ -4413,7 +4416,8 @@
             },
             "stops": {
               "type": "array",
-              "description": "The list of color stops, each is a number between 0.0 (where the gradient starts) and 1.0 (where the gradient ends). The number of stops should match the number of colors."
+              "description": "The list of color stops, each is a number between 0.0 (where the gradient starts) and 1.0 (where the gradient ends). The number of stops should match the number of colors.",
+              "$ref": "#/$defs/alignment"
             },
             "start": {
               "description": "The starting position of the gradient",
