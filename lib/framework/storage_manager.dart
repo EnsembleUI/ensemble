@@ -7,6 +7,7 @@ import 'package:get_storage/get_storage.dart';
 /// TODO: consolidate secure storage
 class StorageManager {
   static const systemStorageId = 'system';
+  static const userIdKey = 'user.id';
   static const userNameKey = 'user.name';
   static const userEmailKey = 'user.email';
   static const userPhotoKey = 'user.photo';
@@ -32,9 +33,10 @@ class StorageManager {
 
   /// User object is from system storage
   /// TODO: BuildContext is used for dispatching changes. Should be refactored.
-  void updateUser(BuildContext context, String? name, String? email, String? photo) {
+  void updateUser(BuildContext context, String id, {String? name, String? email, String? photo}) {
     var systemStorage = GetStorage(systemStorageId);
 
+    systemStorage.write(userIdKey, id);
 
     if (name != null) {
       systemStorage.write(userNameKey, name);

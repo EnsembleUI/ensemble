@@ -98,6 +98,9 @@ class SignInWithGoogleState extends WidgetState<SignInWithGoogle> {
   }
 
   void _onAuthenticated(GoogleSignInAccount account, GoogleSignInAuthentication googleAuthentication) {
+    log("idToken: ${googleAuthentication.idToken}");
+    log("serverAuthcode: ${account.serverAuthCode}");
+
     // save the access token to storage. This will become
     // the bearer token to any API with serviceId = google
     if (googleAuthentication.accessToken != null) {
@@ -108,7 +111,8 @@ class SignInWithGoogleState extends WidgetState<SignInWithGoogle> {
     }
 
     // update the user information in storage
-    StorageManager().updateUser(context, account.displayName, account.email, account.photoUrl);
+    StorageManager().updateUser(context, account.id, name: account.displayName,
+        email: account.email, photo: account.photoUrl);
 
     // trigger the callback
     if (widget._controller.onAuthenticated != null) {
@@ -116,6 +120,7 @@ class SignInWithGoogleState extends WidgetState<SignInWithGoogle> {
           context,
           widget._controller.onAuthenticated!,
           event: EnsembleEvent(widget, data: {
+            'id': account.id,
             'name': account.displayName,
             'email': account.email,
             'photo': account.photoUrl,
