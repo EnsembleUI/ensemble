@@ -774,6 +774,12 @@ class ScreenController {
     }
   }
 
+  void dispatchSystemStorageChanges(BuildContext context, String key, dynamic value, {required String storagePrefix}) {
+    _getScopeManager(context)?.dispatch(ModelChangeEvent(
+        SystemStorageBindingSource(key, storagePrefix: storagePrefix),
+        value));
+  }
+
   /// Navigate to another screen
   /// [screenName] - navigate to the screen if specified, otherwise to appHome
   /// [asModal] - shows the App in a regular or modal screen

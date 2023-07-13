@@ -935,6 +935,23 @@
         }
       ]
     },
+    "SignInWithGoogle-payload": {
+      "type": "object",
+      "required": ["widget"],
+      "properties": {
+        "widget": {
+          "$ref": "#/$defs/Widget",
+          "description": "The widget to be rendered as the placeholder (not applicable on Web). Note that any tap event (if specified) will be ignored and automatically intercepted to trigger a Google Sign-In process."
+        },
+        "scopes": {
+          "type": "array",
+          "description": "A list of additional scopes to request permissions from the user"
+        },
+        "onAuthenticated": {
+          "$ref": "#/$defs/Action-payload"
+        }
+      }
+    },
     "Button-payload": {
       "type": "object",
       "properties": {
@@ -3144,6 +3161,15 @@
             "Time": {
               "$ref": "#/$defs/Time-payload",
               "description": "Kitchen Sink Example: ...coming ..."
+            }
+          }
+        },
+        {
+          "title": "SignInWithGoogle",
+          "required": ["SignInWithGoogle"],
+          "properties": {
+            "SignInWithGoogle": {
+              "$ref": "#/$defs/SignInWithGoogle-payload"
             }
           }
         },
