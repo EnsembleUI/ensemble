@@ -297,7 +297,7 @@ class ViewBehavior {
 }
 
 class ItemTemplate {
-  final String data;
+  final dynamic data;
   final String name;
   final dynamic template;
   List<dynamic>? initialValue;

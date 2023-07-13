@@ -1,8 +1,101 @@
 /// This class contains helper controllers for our widgets.
+import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble_ts_interpreter/errors.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
+
+/// Widget property that have nested properties should be extending this,
+/// as this allows any setters on the nested properties to trigger changes
+abstract class WidgetCompositeProperty with Invokable {
+  WidgetCompositeProperty(this.widgetController);
+  WidgetController widgetController;
+
+  @override
+  void setProperty(prop, val) {
+    Function? func = setters()[prop];
+    if (func != null) {
+      func(val);
+      widgetController.notifyListeners();
+    } else {
+      throw InvalidPropertyException("Settable property '$prop' not found.");
+    }
+  }
+}
+
+class TextStyleComposite extends WidgetCompositeProperty {
+  TextStyleComposite(super.widgetController, {TextStyle? styleWithFontFamily})
+      : fontFamily = styleWithFontFamily,
+        fontSize = styleWithFontFamily?.fontSize?.toInt(),
+        lineHeightMultiple = styleWithFontFamily?.height,
+        fontWeight = styleWithFontFamily?.fontWeight,
+        isItalic = styleWithFontFamily?.fontStyle == FontStyle.italic,
+        color = styleWithFontFamily?.color,
+        backgroundColor = styleWithFontFamily?.backgroundColor,
+        decoration = styleWithFontFamily?.decoration,
+        decorationStyle = styleWithFontFamily?.decorationStyle,
+        overflow = styleWithFontFamily?.overflow,
+        letterSpacing = styleWithFontFamily?.letterSpacing,
+        wordSpacing = styleWithFontFamily?.wordSpacing;
+
+  TextStyle? fontFamily;
+  int? fontSize;
+  double? lineHeightMultiple;
+  FontWeight? fontWeight;
+  bool? isItalic;
+  Color? color;
+  Color? backgroundColor;
+  TextDecoration? decoration;
+  TextDecorationStyle? decorationStyle;
+  TextOverflow? overflow;
+  double? letterSpacing;
+  double? wordSpacing;
+
+  TextStyle getTextStyle() => (fontFamily ?? const TextStyle()).copyWith(
+      fontSize: fontSize?.toDouble(),
+      height: lineHeightMultiple,
+      fontWeight: fontWeight,
+      fontStyle: isItalic == true ? FontStyle.italic : FontStyle.normal,
+      color: color,
+      backgroundColor: backgroundColor,
+      decoration: decoration,
+      decorationStyle: decorationStyle,
+      overflow: overflow,
+      letterSpacing: letterSpacing,
+      wordSpacing: wordSpacing);
+
+  @override
+  Map<String, Function> setters() {
+    return {
+      'fontFamily': (value) => fontFamily = Utils.getFontFamily(value),
+      'fontSize': (value) =>
+          fontSize = Utils.optionalInt(value, min: 1, max: 1000),
+      'lineHeightMultiple': (value) =>
+          lineHeightMultiple = Utils.optionalDouble(value),
+      'fontWeight': (value) => fontWeight = Utils.getFontWeight(value),
+      'isItalic': (value) => isItalic = Utils.optionalBool(value),
+      'color': (value) => color = Utils.getColor(value),
+      'backgroundColor': (value) => backgroundColor = Utils.getColor(value),
+      'decoration': (value) => decoration = Utils.getDecoration(value),
+      'decorationStyle': (value) =>
+          decorationStyle = TextDecorationStyle.values.from(value),
+      'overflow': (value) => overflow = TextOverflow.values.from(value),
+      'letterSpacing': (value) => letterSpacing = Utils.optionalDouble(value),
+      'wordSpacing': (value) => wordSpacing = Utils.optionalDouble(value),
+    };
+  }
+
+  @override
+  Map<String, Function> getters() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {};
+  }
+}
 
 /// base Controller class for your Ensemble widget
 abstract class WidgetController extends Controller {

@@ -178,6 +178,10 @@
               "DELETE"
             ]
           },
+          "headers": {
+            "type": "object",
+            "description": "Pass the headers' key/value pairs to your service"
+          },
           "parameters": {
             "type": "object",
             "description": "Specify the key/value pairs to pass along with the URL",
@@ -245,34 +249,8 @@
             {
               "type": "object",
               "properties": {
-                "font": {
-                  "type": "string",
-                  "description": "Default built-in style for this text",
-                  "enum": [
-                    "heading",
-                    "title",
-                    "subtitle"
-                  ]
-                },
-                "fontSize": {
-                  "type": "integer",
-                  "minimum": 6
-                },
-                "fontWeight": {
-                  "$ref": "#/$defs/type-fontWeight"
-                },
-                "color": {
-                  "$ref": "#/$defs/typeColors"
-                },
-                "overflow": {
-                  "type": "string",
-                  "description": "Set treatment of text longer than available space",
-                  "enum": [
-                    "wrap",
-                    "visible",
-                    "clip",
-                    "ellipsis"
-                  ]
+                "textStyle": {
+                  "$ref": "#/$defs/TextStyle"
                 },
                 "maxLines": {
                   "type": "integer",
@@ -285,41 +263,6 @@
                     "end",
                     "center",
                     "justify"
-                  ]
-                },
-                "textStyle": {
-                  "type": "string",
-                  "enum": [
-                    "normal",
-                    "italic",
-                    "underline",
-                    "strikethrough",
-                    "italic_underline",
-                    "italic_strikethrough"
-                  ]
-                },
-                "lineHeight": {
-                  "oneOf": [
-                    {
-                      "title": "string",
-                      "type": "string"
-                    },
-                    {
-                      "title": "number",
-                      "type": "number"
-                    },
-                    {
-                      "title": "enum",
-                      "enum": [
-                        "default",
-                        "1.0",
-                        "1.15",
-                        "1.25",
-                        "1.5",
-                        "2.0",
-                        "2.5"
-                      ]
-                    }
                   ]
                 }
               }
@@ -343,12 +286,12 @@
                 "textStyle": {
                   "type": "object",
                   "description": "Styling for regular text. Default to theme's bodyMedium styling",
-                  "$ref": "#/$defs/TextStyle"
+                  "$ref": "#/$defs/OldTextStyle"
                 },
                 "linkStyle": {
                   "type": "object",
                   "description": "Styling for URL",
-                  "$ref": "#/$defs/TextStyle"
+                  "$ref": "#/$defs/OldTextStyle"
                 }
               }
             },
@@ -839,6 +782,16 @@
                   "minimum": 6
                 }
               }
+            }, 
+            "textStyle": {
+              "type": "object",
+              "description": "Styling the input text. Default to theme's bodyMedium styling",
+              "$ref": "#/$defs/TextStyle"
+            },
+            "hintStyle": {
+              "type": "object",
+              "description": "Styling the hint text. Default to theme's bodyMedium styling",
+              "$ref": "#/$defs/TextStyle"
             }
           }
         }
@@ -997,6 +950,10 @@
           "$ref": "#/$defs/HasIcon",
           "description": "Icon placed behind the label, according to device text alignment"
         },
+        "gap": {
+          "type": "integer",
+          "description": "The gap between the starting icon and ending icon"
+        },
         "enabled": {
           "type": "boolean"
         },
@@ -1019,29 +976,12 @@
             {
               "type": "object",
               "properties": {
+                "labelStyle": {
+                  "$ref": "#/$defs/TextStyle"
+                },
                 "outline": {
                   "type": "boolean",
                   "description": "Whether the button should have an outline border instead of filled background"
-                },
-                "color": {
-                  "oneOf": [
-                    {
-                      "title": "string",
-                      "type": "string"
-                    },
-                    {
-                      "title": "number",
-                      "type": "number"
-                    }
-                  ],
-                  "description": "Set the color for the button label starting with '0xFF' for full opacity"
-                },
-                "fontSize": {
-                  "type": "integer",
-                  "minimum": 6
-                },
-                "fontWeight": {
-                  "$ref": "#/$defs/type-fontWeight"
                 }
               }
             }
@@ -1095,6 +1035,52 @@
           "description": "Dispatch when a suggestion entry is selected"
         }
       }
+    },
+    "StaggeredGrid-payload": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/Templated-payload"
+        },
+        {
+          "properties": {
+            "onItemTap": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Call Ensemble's built-in functions or execute code when tapping on an item in the list."
+            },
+            "children": {
+              "$ref": "#/$defs/Widgets"
+            },
+            "styles": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/baseStyles"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "crossAxisCount": {
+                      "type": "integer",
+                      "description": "Creates a list of staggered grid tile in the cross axis",
+                      "minimum": 0
+                    },
+                    "verticalGap": {
+                      "type": "integer",
+                      "description": "Vertical gap between the staggered grid tiles",
+                      "minimum": 0
+                    },
+                    "horizontalGap": {
+                      "type": "integer",
+                      "description": "Horizontal gap between the staggered grid tiles",
+                      "minimum": 0
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     "ToggleButton-payload": {
       "type": "object",
@@ -1253,6 +1239,9 @@
           "$ref": "#/$defs/Templated-payload"
         },
         {
+          "$ref": "#/$defs/IsTapEnabled"
+        },
+        {
           "properties": {
             "children": {
               "$ref": "#/$defs/Widgets"
@@ -1269,6 +1258,9 @@
       "allOf": [
         {
           "$ref": "#/$defs/Templated-payload"
+        },
+        {
+          "$ref": "#/$defs/IsTapEnabled"
         },
         {
           "properties": {
@@ -1351,6 +1343,12 @@
       "type": "object",
       "allOf": [
         {
+          "$ref": "#/$defs/Templated-payload"
+        },
+        {
+          "$ref": "#/$defs/IsTapEnabled"
+        },
+        {
           "properties": {
             "children": {
               "$ref": "#/$defs/Widgets"
@@ -1359,9 +1357,6 @@
               "$ref": "#/$defs/flexStyles"
             }
           }
-        },
-        {
-          "$ref": "#/$defs/Templated-payload"
         }
       ]
     },
@@ -1374,7 +1369,11 @@
         {
           "properties": {
             "children": {
-                "$ref": "#/$defs/DataRow"
+              "type": "array",
+              "description": "List of data row widgets",
+              "items": {
+                "$ref": "#/$defs/DataRows-payload"
+              }
             },
             "styles": {
               "allOf": [
@@ -1385,18 +1384,132 @@
                   "$ref": "#/$defs/boxLayoutStyles"
                 },
                 {
-                  "headingTextStyle": {
-                    "type": "object",
-                    "description": "Set the text style for the heading text",
-                    "$ref": "#/$defs/TextStyle"
-                  },
-                  "dataTextStyle": {
-                    "type": "object",
-                    "description": "Set the text style for the data item text",
-                    "$ref": "#/$defs/TextStyle"
+                  "type": "object",
+                  "properties": {
+                    "headingText": {
+                      "type": "object",
+                      "description": "Set the text style for the heading text",
+                      "allOf": [
+                        {
+                          "$ref": "#/$defs/OldTextStyle"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                              "font": {
+                                "type": "string",
+                                "description": "Default built-in style for this text",
+                                "enum": [
+                                  "heading",
+                                  "title",
+                                  "subtitle"
+                                ]
+                              },
+                              "fontSize": {
+                                "type": "integer",
+                                "minimum": 6
+                              },
+                              "fontWeight": {
+                                "$ref": "#/$defs/type-fontWeight"
+                              },
+                              "color": {
+                                "$ref": "#/$defs/typeColors"
+                              },
+                              "lineHeight": {
+                                "oneOf": [
+                                  {
+                                    "title": "string",
+                                    "type": "string"
+                                  },
+                                  {
+                                    "title": "number",
+                                    "type": "number"
+                                  },
+                                  {
+                                    "title": "enum",
+                                    "enum": [
+                                      "default",
+                                      "1.0",
+                                      "1.15",
+                                      "1.25",
+                                      "1.5",
+                                      "2.0",
+                                      "2.5"
+                                    ]
+                                  }
+                                ]
+                              }
+                          }
+                        }
+                      ]
+                    },
+                    "dataText": {
+                      "type": "object",
+                      "description": "Set the text style for the data item text",
+                       "allOf": [
+                        {
+                          "$ref": "#/$defs/OldTextStyle"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                              "font": {
+                                "type": "string",
+                                "description": "Default built-in style for this text",
+                                "enum": [
+                                  "heading",
+                                  "title",
+                                  "subtitle"
+                                ]
+                              },
+                              "fontSize": {
+                                "type": "integer",
+                                "minimum": 6
+                              },
+                              "fontWeight": {
+                                "$ref": "#/$defs/type-fontWeight"
+                              },
+                              "color": {
+                                "$ref": "#/$defs/typeColors"
+                              },
+                              "lineHeight": {
+                                "oneOf": [
+                                  {
+                                    "title": "string",
+                                    "type": "string"
+                                  },
+                                  {
+                                    "title": "number",
+                                    "type": "number"
+                                  },
+                                  {
+                                    "title": "enum",
+                                    "enum": [
+                                      "default",
+                                      "1.0",
+                                      "1.15",
+                                      "1.25",
+                                      "1.5",
+                                      "2.0",
+                                      "2.5"
+                                    ]
+                                  }
+                                ]
+                              }
+                          }
+                        }
+                      ]
+                    }
                   }
                 }
               ]
+            },
+            "DataColumns": {
+              "type": "array",
+              "description": "List of data columns",
+              "items": {
+                "$ref": "#/$defs/DataColumn-Item"
+              }
             },
             "horizontalMargin": {
               "type": "integer",
@@ -1417,6 +1530,10 @@
               "type": "number",
               "description": "Set the padding for the column.",
               "minimum": 0
+            },
+            "dividerThickness": {
+              "type": "integer",
+              "description": "The thickness of the divider"
             }
           }
         }
@@ -1437,18 +1554,49 @@
               "description": "Set the name to reference as you iterate through the array of data"
             },
             "template": {
-              "$ref": "#/$defs/DataRow",
+              "$ref": "#/$defs/DataRows-payload",
               "description": "The data row widget to render for each item"
             }
           }
         }
       }
     },
+    "DataRows-payload": {
+      "title": "DataRow",
+      "required": ["DataRow"],
+      "properties": {
+        "DataRow": {
+          "$ref": "#/$defs/DataRow",
+          "description": "Example from Kitchen Sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/c87f8b09-58e2-4c2f-99a1-cbbe9e25e9a5"
+        }
+      }
+    },
     "DataRow": {
-      "type": "array",
+      "type": "object",
       "description": "List of widgets",
-      "items": {
-        "$ref": "#/$defs/Widget"
+      "required": ["children"],
+      "properties": {
+        "children": {
+          "$ref": "#/$defs/Widgets"
+        }
+      }
+    },
+    "DataColumn-Item": {
+      "type": "object",
+      "description": "A DataColumn item for the data grid",
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "Set the label of the data column"
+        },
+        "type": {
+          "type": "string",
+          "description": "Set the type of the data column"
+        },
+        "tooltip": {
+          "type": "string",
+          "description": "Set the tooltip for the data column"
+        }
       }
     },
     "Stack-payload": {
@@ -1617,6 +1765,14 @@
                     },
                     "indicatorHeight": {
                       "type": "integer"
+                    },
+                    "autoplay": {
+                      "type": "boolean",
+                      "description": "If true, Enables autoplay, sliding one page at a time. Default (false)"
+                    },
+                    "autoplayInterval": {
+                      "type": "integer",
+                      "description": "Sets the duration in seconds for the autoplay. Default (4 second)"
                     },
                     "indicatorMargin": {
                       "oneOf": [
@@ -1990,102 +2146,104 @@
                 },
                 "options": {
                   "type": "object",
-                  "mode": {
-                    "type": "string",
-                    "description": "Modes of camera. It can be photo only i.e allows to capture just photo. Similarly video or can be both.",
-                    "enum": [
-                      "photo",
-                      "video",
-                      "both"
-                    ]
-                  },
-                  "initialCamera": {
-                    "type": "string",
-                    "description": "Initialize either camera, back or front",
-                    "enum": [
-                      "back",
-                      "front"
-                    ]
-                  },
-                  "allowGalleryPicker": {
-                    "type": "boolean",
-                    "description": "Allow users to pick media from gallery. Default (true)."
-                  },
-                  "allowCameraRotate": {
-                    "type": "boolean",
-                    "description": "Allow users rotate camera i.e back and front. Default (true)."
-                  },
-                  "allowFlashControl": {
-                    "type": "boolean",
-                    "description": "Allow users to control flash options. Default (true)."
-                  },
-                  "preview": {
-                    "type": "boolean",
-                    "description": "If set true, users can view captured/selected media."
-                  },
-                  "maxCount": {
-                    "type": "number",
-                    "description": "It used to control number of media that can be captured/selected"
-                  },
-                  "maxCountMessage": {
-                    "type": "string",
-                    "description": "Custom message to show when captured/selected media is greater than maxCount"
-                  },
-                  "permissionDeniedMessage": {
-                    "type": "string",
-                    "description": "Set custom message when access to camera is denied"
-                  },
-                  "nextButtonLabel": {
-                    "type": "string",
-                    "description": "Set custom label on next button."
-                  },
-                  "cameraRotateIcon": {
-                    "$ref": "#/$defs/Icon-payload",
-                    "description": "Set custom icon for camera rotate button"
-                  },
-                  "galleryPickerIcon": {
-                    "$ref": "#/$defs/Icon-payload",
-                    "description": "Set custom icon for gallery picker button"
-                  },
-                  "focusIcon": {
-                    "$ref": "#/$defs/Icon-payload",
-                    "description": "Set custom icon for focus node."
-                  },
-                  "assistAngle": {
-                    "type": "object",
-                    "description": "Show assist message whenever angle goes below minAngle or above minAngle",
-                    "properties": {
-                      "minAngle": {
-                        "type": "number",
-                        "description": "Minimum angle "
-                      },
-                      "maxAngle": {
-                        "type": "number",
-                        "description": "Maximum angle "
-                      },
-                      "maxAngleassistAngleMessage": {
-                        "type": "number",
-                        "description": "Custom message to show when condition is hit."
+                  "properties": {
+                    "mode": {
+                      "type": "string",
+                      "description": "Modes of camera. It can be photo only i.e allows to capture just photo. Similarly video or can be both.",
+                      "enum": [
+                        "photo",
+                        "video",
+                        "both"
+                      ]
+                    },
+                    "initialCamera": {
+                      "type": "string",
+                      "description": "Initialize either camera, back or front",
+                      "enum": [
+                        "back",
+                        "front"
+                      ]
+                    },
+                    "allowGalleryPicker": {
+                      "type": "boolean",
+                      "description": "Allow users to pick media from gallery. Default (true)."
+                    },
+                    "allowCameraRotate": {
+                      "type": "boolean",
+                      "description": "Allow users rotate camera i.e back and front. Default (true)."
+                    },
+                    "allowFlashControl": {
+                      "type": "boolean",
+                      "description": "Allow users to control flash options. Default (true)."
+                    },
+                    "preview": {
+                      "type": "boolean",
+                      "description": "If set true, users can view captured/selected media."
+                    },
+                    "maxCount": {
+                      "type": "number",
+                      "description": "It used to control number of media that can be captured/selected"
+                    },
+                    "maxCountMessage": {
+                      "type": "string",
+                      "description": "Custom message to show when captured/selected media is greater than maxCount"
+                    },
+                    "permissionDeniedMessage": {
+                      "type": "string",
+                      "description": "Set custom message when access to camera is denied"
+                    },
+                    "nextButtonLabel": {
+                      "type": "string",
+                      "description": "Set custom label on next button."
+                    },
+                    "cameraRotateIcon": {
+                      "$ref": "#/$defs/Icon-payload",
+                      "description": "Set custom icon for camera rotate button"
+                    },
+                    "galleryPickerIcon": {
+                      "$ref": "#/$defs/Icon-payload",
+                      "description": "Set custom icon for gallery picker button"
+                    },
+                    "focusIcon": {
+                      "$ref": "#/$defs/Icon-payload",
+                      "description": "Set custom icon for focus node."
+                    },
+                    "assistAngle": {
+                      "type": "object",
+                      "description": "Show assist message whenever angle goes below minAngle or above minAngle",
+                      "properties": {
+                        "minAngle": {
+                          "type": "number",
+                          "description": "Minimum angle "
+                        },
+                        "maxAngle": {
+                          "type": "number",
+                          "description": "Maximum angle "
+                        },
+                        "maxAngleassistAngleMessage": {
+                          "type": "number",
+                          "description": "Custom message to show when condition is hit."
+                        }
                       }
-                    }
-                  },
-                  "assistSpeed": {
-                    "type": "object",
-                    "description": "Show assist message whenever camera is moving faster than maxSpeed",
-                    "properties": {
-                      "maxSpeed": {
-                        "type": "number",
-                        "description": "Maxium speed in km/hr."
-                      },
-                      "assistSpeedMessage": {
-                        "type": "number",
-                        "description": "Custom message to show when condition is hit."
+                    },
+                    "assistSpeed": {
+                      "type": "object",
+                      "description": "Show assist message whenever camera is moving faster than maxSpeed",
+                      "properties": {
+                        "maxSpeed": {
+                          "type": "number",
+                          "description": "Maxium speed in km/hr."
+                        },
+                        "assistSpeedMessage": {
+                          "type": "number",
+                          "description": "Custom message to show when condition is hit."
+                        }
                       }
+                    },
+                    "autoCaptureInterval": {
+                      "type": "integer",
+                      "description": "If set any number n, on each n interval camera will capture"
                     }
-                  },
-                  "autoCaptureInterval": {
-                    "type": "integer",
-                    "description": "If set any number n, on each n interval camera will capture"
                   }
                 }
               }
@@ -2288,19 +2446,8 @@
                       "type": "boolean",
                       "description": "Whether to show a dismiss button (default is True)"
                     },
-                    "position": {
-                      "type": "string",
-                      "enum": [
-                        "top",
-                        "topLeft",
-                        "topRight",
-                        "center",
-                        "centerLeft",
-                        "centerRight",
-                        "bottom",
-                        "bottomLeft",
-                        "bottomRight"
-                      ]
+                    "alignment": {
+                      "$ref": "#/$defs/alignment"
                     },
                     "duration": {
                       "type": "integer",
@@ -3208,6 +3355,26 @@
           }
         },
         {
+          "title": "ToggleButton",
+          "required": ["ToggleButton"],
+          "properties": {
+            "ToggleButton": {
+              "$ref": "#/$defs/ToggleButton-payload",
+              "description": "Example from Kitchen Sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/ZbquuD29B4D2PiQow1P5"
+            }
+          }
+        },
+        {
+          "title": "StaggeredGrid",
+          "required": ["StaggeredGrid"],
+          "properties": {
+            "StaggeredGrid": {
+              "$ref": "#/$defs/StaggeredGrid-payload",
+              "description": "Example from Kitchen Sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/a9iIs4wvgqDOhU4rN6GR"
+            }
+          }
+        },
+        {
           "title": "Conditional",
           "required": ["Conditional"],
           "properties": {
@@ -3832,6 +3999,10 @@
         "children": {
           "$ref": "#/$defs/Widgets"
         },
+        "onTap": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Call Ensemble's built-in functions"
+        },
         "styles": {
           "allOf": [
             {
@@ -4125,6 +4296,10 @@
                 "$ref": "#/$defs/typeColors"
               }
             },
+            "stops": {
+              "type": "array",
+              "description": "The list of color stops, each is a number between 0.0 (where the gradient starts) and 1.0 (where the gradient ends). The number of stops should match the number of colors."
+            },
             "start": {
               "description": "The starting position of the gradient",
               "$ref": "#/$defs/alignment"
@@ -4231,6 +4406,67 @@
       }
     },
     "TextStyle": {
+      "type": "object",
+      "properties": {
+        "fontFamily": {
+          "type": "string"
+        },
+        "fontSize": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "lineHeightMultiple": {
+          "type": "number",
+          "description": "A multiple of the fontSize to determine the line height. (e.g. 2.0 means the line height is double the height the font size occupies). Default null. (note that 1.0 is not the default depending on the font)"
+        },
+        "fontWeight": {
+          "$ref": "#/$defs/type-fontWeight"
+        },
+        "isItalic": {
+          "type": "boolean"
+        },
+        "color": {
+          "$ref": "#/$defs/typeColors"
+        },
+        "backgroundColor": {
+          "$ref": "#/$defs/typeColors"
+        },
+        "decoration": {
+          "type": "string",
+          "enum": [
+            "none",
+            "lineThrough",
+            "underline",
+            "overline"
+          ]
+        },
+        "decorationStyle": {
+          "type": "string",
+          "enum": [
+            "solid", "double", "dotted", "dashed", "wavy"
+          ],
+          "description": "The style of the decoration (ignored if decoration=none)"
+        },
+        "overflow": {
+          "type": "string",
+          "description": "Set treatment of text longer than available space",
+          "enum": [
+            "clip",
+            "fade",
+            "ellipsis",
+            "visible"
+          ]
+        },
+        "letterSpacing": {
+          "type": "integer"
+        },
+        "wordSpacing": {
+          "type": "integer"
+        }
+      }
+    },
+    "OldTextStyle": {
       "type": "object",
       "properties": {
         "fontSize": {
@@ -4378,6 +4614,15 @@
         "size": {
           "type": "integer",
           "minimum": 0
+        }
+      }
+    },
+    "IsTapEnabled": {
+      "type": "object",
+      "properties": {
+        "onTap": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Call Ensemble's built-in functions"
         }
       }
     }

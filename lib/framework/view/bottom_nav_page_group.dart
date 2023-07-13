@@ -132,8 +132,12 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
 
   @override
   Widget build(BuildContext context) {
+    final notchColor = Utils.getColor(widget.menu.styles?['notchColor']) ??
+        Theme.of(context).scaffoldBackgroundColor;
+
     return Scaffold(
       resizeToAvoidBottomInset: false,
+      backgroundColor: notchColor,
       bottomNavigationBar: _buildBottomNavBar(),
       floatingActionButtonLocation: floatingAlignment == FloatingAlignment.none
           ? null
@@ -189,6 +193,8 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
     return EnsembleBottomAppBar(
       backgroundColor: Utils.getColor(widget.menu.styles?['backgroundColor']) ??
           Colors.white,
+      height: Utils.optionalDouble(widget.menu.styles?['height'] ?? 60),
+      padding: widget.menu.styles?['padding'],
       color: unselectedColor,
       selectedColor: selectedColor,
       notchedShape: const CircularNotchedRectangle(),
@@ -218,7 +224,8 @@ class EnsembleBottomAppBar extends StatefulWidget {
   EnsembleBottomAppBar({
     super.key,
     required this.items,
-    this.height = 70.0,
+    this.height,
+    this.padding,
     this.iconSize = 24.0,
     required this.backgroundColor,
     required this.color,
@@ -233,7 +240,8 @@ class EnsembleBottomAppBar extends StatefulWidget {
     // assert(items.length == 2 || items.length == 4);
   }
   final List<FABBottomAppBarItem> items;
-  final double height;
+  final double? height;
+  final dynamic padding;
   final double iconSize;
   final int? floatingMargin;
   final Color backgroundColor;
@@ -309,10 +317,13 @@ class EnsembleBottomAppBarState extends State<EnsembleBottomAppBar> {
         shape: widget.notchedShape,
         color: widget.backgroundColor,
         notchMargin: _defaultFloatingNotch,
-        child: Row(
-          mainAxisSize: MainAxisSize.max,
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: items,
+        child: Padding(
+          padding: Utils.optionalInsets(widget.padding) ?? EdgeInsets.zero,
+          child: Row(
+            mainAxisSize: MainAxisSize.max,
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: items,
+          ),
         ),
       ),
     );
