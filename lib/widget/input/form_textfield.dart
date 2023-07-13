@@ -81,6 +81,7 @@ abstract class BaseTextInput extends StatefulWidget
   // textController manages 'value', while _controller manages the rest
   final TextEditingController textController = TextEditingController();
   final TextInputController _controller = TextInputController();
+
   @override
   TextInputController get controller => _controller;
 
@@ -117,7 +118,10 @@ abstract class BaseTextInput extends StatefulWidget
 
   @override
   Map<String, Function> methods() {
-    return {};
+    return {
+      'focus': () => _controller.inputFieldAction?.focusInputField(),
+      'unfocus': () => _controller.inputFieldAction?.unfocusInputField(),
+    };
   }
 
   TextInputAction? _getKeyboardAction(dynamic value) {
@@ -145,8 +149,14 @@ abstract class BaseTextInput extends StatefulWidget
   TextInputType? get keyboardType;
 }
 
+mixin TextInputFieldAction on FormFieldWidgetState<BaseTextInput> {
+  void focusInputField();
+  void unfocusInputField();
+}
+
 /// controller for both TextField and Password
 class TextInputController extends FormFieldController {
+  TextInputFieldAction? inputFieldAction;
   EnsembleAction? onChange;
   EnsembleAction? onKeyPress;
   TextInputAction? keyboardAction;
@@ -167,7 +177,8 @@ class TextInputController extends FormFieldController {
   TextStyle? hintStyle;
 }
 
-class TextInputState extends FormFieldWidgetState<BaseTextInput> {
+class TextInputState extends FormFieldWidgetState<BaseTextInput>
+    with TextInputFieldAction {
   final focusNode = FocusNode();
 
   // for this widget we will implement onChange if the text changes AND:
@@ -221,6 +232,18 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
       }
     });
     super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    widget.controller.inputFieldAction = this;
+  }
+
+  @override
+  void didUpdateWidget(covariant BaseTextInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    widget.controller.inputFieldAction = this;
   }
 
   @override
@@ -357,6 +380,20 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
                 ),
           decoration: decoration,
         ));
+  }
+
+  @override
+  void focusInputField() {
+    if (!focusNode.hasFocus) {
+      focusNode.requestFocus();
+    }
+  }
+
+  @override
+  void unfocusInputField() {
+    if (focusNode.hasFocus) {
+      focusNode.unfocus();
+    }
   }
 }
 
