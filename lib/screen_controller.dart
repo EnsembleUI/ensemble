@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
@@ -496,6 +498,18 @@ class ScreenController {
         evaluateExtraContext(action.title),
         evaluateExtraContext(action.body),
       );
+    } else if (action is InitNotificationAction) {
+      final isEnabled = await notificationUtils.initNotifications() ?? false;
+
+      if (isEnabled && action.onAccept != null) {
+        executeAction(context, action.onAccept!);
+      }
+
+      if (!isEnabled && action.onReject != null) {
+        executeAction(context, action.onReject!);
+      }
+
+      if (action.onComplete != null) executeAction(context, action.onComplete!);
     }
   }
 

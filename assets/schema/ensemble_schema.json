@@ -2610,6 +2610,74 @@
               }
             }
           }
+        }, 
+        {
+          "title": "Initialize notification",
+          "type": "object",
+          "required": ["initNotification"],
+          "properties": {
+            "initNotification": {
+              "type": "object",
+              "description": "Initialize notification, includes taking permission and allocating resources",
+              "properties": {
+                "onComplete": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action after completing capturing media"
+                },
+                "onAccept": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action when notification was granted"
+                },
+                "onReject": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action when notification was rejected"
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Show Notification",
+          "type": "object",
+          "required": ["showNotification"],
+          "properties": {
+            "showNotification": {
+              "type": "object",
+              "description": "Show notification this is local notification.",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "description": "Title of notification"
+                },
+                "body": {
+                  "type": "string",
+                  "description": "Body of notification"
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Notification",
+          "type": "object",
+          "required": ["notification"],
+          "properties": {
+            "notification": {
+              "type": "object",
+              "description": "Handling notifications.",
+              "required" : ["onTap", "onReceive"],
+              "properties": {
+                "onTap": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action on notification is tap."
+                },
+                "onReceive": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action on notification is receive."
+                }
+              }
+            }
+          }
         }
       ]
     },

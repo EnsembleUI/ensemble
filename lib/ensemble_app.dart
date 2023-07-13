@@ -120,8 +120,6 @@ class EnsembleAppState extends State<EnsembleApp> {
     if (!kIsWeb) {
       Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
     }
-
-    notificationUtils.initNotifications();
   }
 
   @override
