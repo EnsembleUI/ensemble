@@ -2086,9 +2086,9 @@
                       "type": "boolean",
                       "description": "Whether to drag a bottom modal sheet (default is True)"
                     },
-                    "showDragHandle": {
+                    "enableDragHandler": {
                       "type": "boolean",
-                      "description": "Whether to show a drag handle on top of the bottom modal sheet for dragging (default is False)"
+                      "description": "Whether to show a drag handle divider on top of the bottom modal sheet for dragging (default is False)"
                     }
                   }
                 },

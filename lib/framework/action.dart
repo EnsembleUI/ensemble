@@ -184,8 +184,8 @@ class ShowBottomModalAction extends EnsembleAction {
   bool enableDrag(dataContext) =>
       Utils.getBool(dataContext.eval(_options?['enableDrag']), fallback: true);
 
-  bool showDragHandle(dataContext) =>
-      Utils.getBool(dataContext.eval(_options?['showDragHandle']),
+  bool enableDragHandler(dataContext) =>
+      Utils.getBool(dataContext.eval(_options?['enableDragHandler']),
           fallback: false);
 
   Color? backgroundColor(dataContext) =>

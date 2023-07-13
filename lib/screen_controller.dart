@@ -175,7 +175,7 @@ class ScreenController {
           barrierColor: action.barrierColor(dataContext),
           isScrollControlled: true,
           enableDrag: action.enableDrag(dataContext),
-          showDragHandle: action.showDragHandle(dataContext),
+          showDragHandle: action.enableDragHandler(dataContext),
           builder: (context) {
             return widget!;
           },
