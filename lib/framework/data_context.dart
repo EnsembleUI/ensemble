@@ -1,6 +1,7 @@
 import 'dart:developer';
 import 'dart:io' as io;
 import 'dart:ui';
+import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -335,7 +336,9 @@ class NativeInvokable with Invokable {
       ActionType.uploadFiles.name: uploadFiles,
       'debug': (value) => debugPrint('Debug: $value'),
       'copyToClipboard': (value) =>
-          Clipboard.setData(ClipboardData(text: value))
+          Clipboard.setData(ClipboardData(text: value)),
+
+      'updateSystemAuthorizationToken': (token) => StorageManager().updateServiceTokens(ServiceName.system, token),
     };
   }
 
