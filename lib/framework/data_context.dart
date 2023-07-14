@@ -5,12 +5,10 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
-import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:get_storage/get_storage.dart';
 
@@ -337,8 +335,8 @@ class NativeInvokable with Invokable {
       'debug': (value) => debugPrint('Debug: $value'),
       'copyToClipboard': (value) =>
           Clipboard.setData(ClipboardData(text: value)),
-
-      'updateSystemAuthorizationToken': (token) => StorageManager().updateServiceTokens(ServiceName.system, token),
+      'updateSystemAuthorizationToken': (token) =>
+          StorageManager().updateServiceTokens(ServiceName.system, token),
     };
   }
 
@@ -829,13 +827,6 @@ class FileData with Invokable {
 
 class File {
   File(this.name, this.ext, this.size, this.path, this.bytes);
-
-  File.fromPlatformFile(PlatformFile file)
-      : name = file.name,
-        ext = file.extension,
-        size = file.size,
-        path = kIsWeb ? null : file.path,
-        bytes = file.bytes;
 
   File.fromJson(Map<String, dynamic> file)
       : name = file['name'],
