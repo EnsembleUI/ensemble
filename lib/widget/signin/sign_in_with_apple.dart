@@ -1,5 +1,6 @@
 import 'dart:developer';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -10,8 +11,9 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
-import 'package:http/http.dart' as http;
 
 class EnsembleSignInWithApple extends StatefulWidget
     with
@@ -64,7 +66,8 @@ class SignInWithAppleState extends WidgetState<EnsembleSignInWithApple> {
 
   @override
   Widget buildWidget(BuildContext context) {
-    return SignInWithAppleButton(
+    var button = SignInWithAppleButton(
+
       onPressed: () async {
         try {
           final credential =
@@ -82,6 +85,18 @@ class SignInWithAppleState extends WidgetState<EnsembleSignInWithApple> {
         }
       },
     );
+
+    // TODO: add support for Android / Web
+    if (kIsWeb || Platform.isAndroid) {
+      return IgnorePointer(
+        child: Stack(
+          children: [
+            button,
+            Positioned.fill(child: Container(
+                color: Colors.grey.withOpacity(0.7)))
+          ]));
+    }
+    return button;
   }
 
   void _onAuthenticated(AuthorizationCredentialAppleID credential) {
