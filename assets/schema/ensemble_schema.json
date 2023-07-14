@@ -2811,23 +2811,19 @@
         {
           "title": "Initialize notification",
           "type": "object",
-          "required": ["initNotification"],
+          "required": ["requestNotificationAccess"],
           "properties": {
-            "initNotification": {
+            "requestNotificationAccess": {
               "type": "object",
-              "description": "Initialize notification, includes taking permission and allocating resources",
+              "description": "Request user permission to send notifications to the device",
               "properties": {
-                "onComplete": {
-                  "$ref": "#/$defs/Action-payload",
-                  "description": "Execute an Action after completing capturing media"
-                },
                 "onAccept": {
                   "$ref": "#/$defs/Action-payload",
-                  "description": "Execute an Action when notification was granted"
+                  "description": "Execute an Action when notification permission has been granted"
                 },
                 "onReject": {
                   "$ref": "#/$defs/Action-payload",
-                  "description": "Execute an Action when notification was rejected"
+                  "description": "Execute an Action when notification permission has been rejected"
                 }
               }
             }
