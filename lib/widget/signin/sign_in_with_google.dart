@@ -143,7 +143,6 @@ class SignInWithGoogleState extends WidgetState<SignInWithGoogle> {
       // sign out so user can switch to another account
       // when clicking on the button multiple times
       await _googleSignIn.signOut();
-      await _googleSignIn.disconnect();
 
       await _googleSignIn.signIn();
     } catch (error) {
