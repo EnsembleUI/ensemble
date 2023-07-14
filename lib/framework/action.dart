@@ -228,8 +228,9 @@ class CropImageAction extends EnsembleAction {
   String? title(dataContext) =>
       Utils.optionalString(dataContext.eval(_options?['title']));
 
-  double? compressQuality(dataContext) =>
-      Utils.optionalDouble(dataContext.eval(_options?['compressQuality']));
+  int compressQuality(dataContext) =>
+      Utils.getInt(dataContext.eval(_options?['compressQuality']),
+          fallback: 100);
 
   factory CropImageAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
     if (payload == null || payload['source'] == null) {
