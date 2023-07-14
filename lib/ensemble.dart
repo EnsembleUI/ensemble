@@ -11,6 +11,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/provider.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_i18n/flutter_i18n_delegate.dart';
@@ -63,7 +64,11 @@ class Ensemble {
       // These are not secrets so OK to include here.
       // https://firebase.google.com/docs/projects/api-keys#api-keys-for-firebase-are-different
       ensembleFirebaseApp = await Firebase.initializeApp(
-          name: Firebase.apps.isNotEmpty ? 'ensemble' : null,
+          name: kIsWeb
+              ? null
+              : Firebase.apps.isNotEmpty
+                  ? 'ensemble'
+                  : null,
           options: const FirebaseOptions(
               apiKey: 'AIzaSyBAZ7wf436RSbcXvhhfg7e4TUh6A2SKve8',
               appId: '1:326748243798:ios:30f2a4f824dc58ea94b8f7',

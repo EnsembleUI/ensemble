@@ -483,11 +483,12 @@ class ScreenController {
       notificationUtils.onRemoteNotification = action.onReceive;
       notificationUtils.onRemoteNotificationOpened = action.onTap;
     } else if (action is ShowNotificationAction) {
+      dataContext.addDataContext(Ensemble.externalDataContext);
       notificationUtils.showNotification(
-        evaluateExtraContext(action.title),
-        evaluateExtraContext(action.body),
+        dataContext.eval(action.title),
+        dataContext.eval(action.body),
       );
-    } else if (action is InitNotificationAction) {
+    } else if (action is RequestNotificationAction) {
       final isEnabled = await notificationUtils.initNotifications() ?? false;
 
       if (isEnabled && action.onAccept != null) {
@@ -497,24 +498,9 @@ class ScreenController {
       if (!isEnabled && action.onReject != null) {
         executeAction(context, action.onReject!);
       }
-
-      if (action.onComplete != null) executeAction(context, action.onComplete!);
     } else if (action is AuthorizeOAuthAction) {
       // TODO
     }
-  }
-
-  String evaluateExtraContext(String input) {
-    final contextMap = Ensemble.externalDataContext;
-    RegExp placeholderRegex = RegExp(r'\${(.*?)}');
-
-    String evaluatedString = input.replaceAllMapped(placeholderRegex, (match) {
-      String? placeholder = match.group(1);
-      dynamic value = contextMap[placeholder?.trim()];
-      return value != null ? value.toString() : '';
-    });
-
-    return evaluatedString;
   }
 
   void updateWalletData(WalletConnectAction action, ScopeManager? scopeManager,

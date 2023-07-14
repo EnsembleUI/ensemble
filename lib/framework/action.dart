@@ -568,17 +568,15 @@ class NotificationAction extends EnsembleAction {
   }
 }
 
-class InitNotificationAction extends EnsembleAction {
+class RequestNotificationAction extends EnsembleAction {
   EnsembleAction? onAccept;
   EnsembleAction? onReject;
-  EnsembleAction? onComplete;
 
-  InitNotificationAction({this.onAccept, this.onReject, this.onComplete});
+  RequestNotificationAction({this.onAccept, this.onReject});
 
-  factory InitNotificationAction.fromYaml(
+  factory RequestNotificationAction.fromYaml(
       {Invokable? initiator, YamlMap? payload}) {
-    return InitNotificationAction(
-      onComplete: EnsembleAction.fromYaml(payload?['onComplete']),
+    return RequestNotificationAction(
       onAccept: EnsembleAction.fromYaml(payload?['onAccept']),
       onReject: EnsembleAction.fromYaml(payload?['onReject']),
     );
@@ -619,7 +617,7 @@ enum ActionType {
   connectWallet,
   authorizeOAuthService,
   notification,
-  initNotification,
+  requestNotificationAccess,
   showNotification,
 }
 
@@ -710,8 +708,8 @@ abstract class EnsembleAction {
       return NotificationAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.showNotification) {
       return ShowNotificationAction.fromYaml(payload: payload);
-    } else if (actionType == ActionType.initNotification) {
-      return InitNotificationAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.requestNotificationAccess) {
+      return RequestNotificationAction.fromYaml(payload: payload);
     }
     throw LanguageError("Invalid action.",
         recovery: "Make sure to use one of Ensemble-provided actions.");
