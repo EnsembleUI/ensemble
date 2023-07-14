@@ -49,6 +49,8 @@ class SignInWithGoogle extends StatefulWidget
         'widget': (widgetDef) => _controller.widgetDef = widgetDef,
         'onAuthenticated': (action) => _controller.onAuthenticated =
             EnsembleAction.fromYaml(action, initiator: this),
+        'onError': (action) => _controller.onError =
+            EnsembleAction.fromYaml(action, initiator: this),
         'scopes': (value) =>
             _controller.scopes =
               Utils.getListOfStrings(value) ?? _controller.scopes,
@@ -61,6 +63,7 @@ class SignInWithGoogleController extends WidgetController {
   List<String> scopes = [];
 
   EnsembleAction? onAuthenticated;
+  EnsembleAction? onError;
 }
 
 class SignInWithGoogleState extends WidgetState<SignInWithGoogle> {
@@ -98,8 +101,8 @@ class SignInWithGoogleState extends WidgetState<SignInWithGoogle> {
   }
 
   void _onAuthenticated(GoogleSignInAccount account, GoogleSignInAuthentication googleAuthentication) {
-    log("idToken: ${googleAuthentication.idToken}");
-    log("serverAuthcode: ${account.serverAuthCode}");
+    // log("idToken: ${googleAuthentication.idToken}");
+    // log("serverAuthcode: ${account.serverAuthCode}");
 
     // save the access token to storage. This will become
     // the bearer token to any API with serviceId = google
@@ -133,21 +136,6 @@ class SignInWithGoogleState extends WidgetState<SignInWithGoogle> {
           }));
     }
 
-  }
-
-  void _sendTokens(String idToken, String? serverAuthCode) async {
-    var data = json.encode({
-      'service': 'google',
-      'idToken': idToken,
-      'serverAuthCode': serverAuthCode
-    });
-    var response = await http.post(Uri.parse(
-        'http://127.0.0.1:5001/ensemble-web-studio/us-central1/oauth-sociallogin'),
-        body: data, headers: {'Content-Type': 'application/json'});
-    if (response.statusCode == 200) {
-      var jsonResponse = json.decode(response.body);
-      log(jsonResponse.toString());
-    }
   }
 
   Future<void> _handleSignIn() async {
