@@ -35,6 +35,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:walletconnect_dart/walletconnect_dart.dart';
@@ -179,6 +180,31 @@ class ScreenController {
           builder: (context) {
             return widget!;
           },
+        );
+      }
+    } else if (action is CropImageAction) {
+      if (scopeManager != null && action.source != null) {
+        final format = action.compressFormat(dataContext);
+        final compressFormat = format != null && format == 'jpg'
+            ? ImageCompressFormat.jpg
+            : ImageCompressFormat.png;
+
+        ImageCropper().cropImage(
+          sourcePath: action.source!,
+          compressFormat: compressFormat,
+          compressQuality: action.compressQuality(dataContext),
+          uiSettings: [
+            AndroidUiSettings(
+              toolbarTitle: action.title(dataContext),
+              toolbarColor: Colors.deepOrange,
+              toolbarWidgetColor: Colors.white,
+              initAspectRatio: CropAspectRatioPreset.original,
+              lockAspectRatio: false,
+            ),
+            IOSUiSettings(
+              title: action.title(dataContext),
+            ),
+          ],
         );
       }
     } else if (action is ShowCameraAction) {
@@ -774,10 +800,11 @@ class ScreenController {
     }
   }
 
-  void dispatchSystemStorageChanges(BuildContext context, String key, dynamic value, {required String storagePrefix}) {
+  void dispatchSystemStorageChanges(
+      BuildContext context, String key, dynamic value,
+      {required String storagePrefix}) {
     _getScopeManager(context)?.dispatch(ModelChangeEvent(
-        SystemStorageBindingSource(key, storagePrefix: storagePrefix),
-        value));
+        SystemStorageBindingSource(key, storagePrefix: storagePrefix), value));
   }
 
   /// Navigate to another screen
