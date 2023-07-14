@@ -222,15 +222,14 @@ class CropImageAction extends EnsembleAction {
   final String? source;
   final dynamic _options;
 
-  String? compressFormat(dataContext) =>
-      Utils.optionalString(dataContext.eval(_options?['compressFormat']));
+  String? format(dataContext) =>
+      Utils.optionalString(dataContext.eval(_options?['format']));
 
   String? title(dataContext) =>
       Utils.optionalString(dataContext.eval(_options?['title']));
 
-  int compressQuality(dataContext) =>
-      Utils.getInt(dataContext.eval(_options?['compressQuality']),
-          fallback: 100);
+  int quality(dataContext) =>
+      Utils.getInt(dataContext.eval(_options?['quality']), fallback: 100);
 
   factory CropImageAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
     if (payload == null || payload['source'] == null) {

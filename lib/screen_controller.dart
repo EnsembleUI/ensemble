@@ -184,7 +184,7 @@ class ScreenController {
       }
     } else if (action is CropImageAction) {
       if (scopeManager != null && action.source != null) {
-        final format = action.compressFormat(dataContext);
+        final format = action.format(dataContext);
         final compressFormat = format != null && format == 'jpg'
             ? ImageCompressFormat.jpg
             : ImageCompressFormat.png;
@@ -192,7 +192,7 @@ class ScreenController {
         ImageCropper().cropImage(
           sourcePath: action.source!,
           compressFormat: compressFormat,
-          compressQuality: action.compressQuality(dataContext),
+          compressQuality: action.quality(dataContext),
           uiSettings: [
             AndroidUiSettings(
               toolbarTitle: action.title(dataContext),
