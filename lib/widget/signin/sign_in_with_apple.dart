@@ -67,7 +67,6 @@ class SignInWithAppleState extends WidgetState<EnsembleSignInWithApple> {
   @override
   Widget buildWidget(BuildContext context) {
     var button = SignInWithAppleButton(
-
       onPressed: () async {
         try {
           final credential =
@@ -89,12 +88,10 @@ class SignInWithAppleState extends WidgetState<EnsembleSignInWithApple> {
     // TODO: add support for Android / Web
     if (kIsWeb || Platform.isAndroid) {
       return IgnorePointer(
-        child: Stack(
-          children: [
-            button,
-            Positioned.fill(child: Container(
-                color: Colors.grey.withOpacity(0.7)))
-          ]));
+          child: Stack(children: [
+        button,
+        Positioned.fill(child: Container(color: Colors.grey.withOpacity(0.7)))
+      ]));
     }
     return button;
   }
@@ -128,20 +125,17 @@ class SignInWithAppleState extends WidgetState<EnsembleSignInWithApple> {
 
     // trigger the callback
     if (widget._controller.onAuthenticated != null) {
-      ScreenController().executeAction(
-          context,
-          widget._controller.onAuthenticated!,
-          event: EnsembleEvent(widget, data: {
-            'id': userId,
-            'name': name,
-            'email': credential.email,
+      ScreenController()
+          .executeAction(context, widget._controller.onAuthenticated!,
+              event: EnsembleEvent(widget, data: {
+                'id': userId,
+                'name': name,
+                'email': credential.email,
 
-            // server can verify and decode to get user info, useful for Sign In
-            'idToken': credential.identityToken
-          }));
+                // server can verify and decode to get user info, useful for Sign In
+                'idToken': credential.identityToken
+              }));
     }
-
-
   }
 
   /// simply decode the idToken and get the sub to use as userId.
@@ -159,5 +153,4 @@ class SignInWithAppleState extends WidgetState<EnsembleSignInWithApple> {
     }
     return null;
   }
-
 }

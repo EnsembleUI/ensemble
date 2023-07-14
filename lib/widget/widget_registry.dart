@@ -125,6 +125,5 @@ class WidgetRegistry {
 
         //domain specific or custom widgets
         FinicityConnect.type: () => FinicityConnect(),
-
       };
 }

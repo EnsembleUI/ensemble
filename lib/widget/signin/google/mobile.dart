@@ -10,15 +10,12 @@ import 'stub.dart';
 Widget buildGoogleSignInButton(
     {Widget? mobileWidget, required HandleSignInFn? onPressed}) {
   if (mobileWidget != null) {
-    return Stack(
-      children: <Widget>[
-        mobileWidget,
-        Positioned.fill(
+    return Stack(children: <Widget>[
+      mobileWidget,
+      Positioned.fill(
           child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: onPressed)))
-      ]);
+              color: Colors.transparent, child: InkWell(onTap: onPressed)))
+    ]);
   }
   return ElevatedButton(
     onPressed: onPressed,
