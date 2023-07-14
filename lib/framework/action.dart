@@ -211,6 +211,41 @@ class ShowBottomModalAction extends EnsembleAction {
   }
 }
 
+class CropImageAction extends EnsembleAction {
+  CropImageAction({
+    super.initiator,
+    super.inputs,
+    this.source,
+    options,
+  }) : _options = options;
+
+  final String? source;
+  final dynamic _options;
+
+  String? compressFormat(dataContext) =>
+      Utils.optionalString(dataContext.eval(_options?['compressFormat']));
+
+  String? title(dataContext) =>
+      Utils.optionalString(dataContext.eval(_options?['title']));
+
+  double? compressQuality(dataContext) =>
+      Utils.optionalDouble(dataContext.eval(_options?['compressQuality']));
+
+  factory CropImageAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
+    if (payload == null || payload['source'] == null) {
+      throw LanguageError(
+          "${ActionType.cropImage.name} requires the source to crop the image.");
+    }
+
+    return CropImageAction(
+      initiator: initiator,
+      inputs: Utils.getMap(payload['inputs']),
+      source: Utils.getString(payload['source'], fallback: ''),
+      options: Utils.getMap(payload['options']),
+    );
+  }
+}
+
 class StartTimerAction extends EnsembleAction {
   StartTimerAction(
       {super.initiator,
@@ -569,6 +604,7 @@ enum ActionType {
   openCamera,
   uploadFiles,
   navigateBack,
+  cropImage,
   pickFiles,
   connectWallet,
   authorizeOAuthService,
