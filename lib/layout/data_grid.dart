@@ -1,5 +1,6 @@
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
@@ -14,6 +15,8 @@ import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble/framework/view/page.dart';
 
+enum DataColumnSortType { ascending, descending }
+
 //8e26249e-c08c-4b3e-8584-cc83a5c9bc29
 class DataGrid extends StatefulWidget
     with
@@ -24,7 +27,7 @@ class DataGrid extends StatefulWidget
   DataGrid({Key? key}) : super(key: key);
   late final ItemTemplate? itemTemplate;
   late List cols;
-  //late List<EnsembleDataColumn> cols;
+  late List sortingItems;
 
   final DataGridController _controller = DataGridController();
   @override
@@ -67,6 +70,9 @@ class DataGrid extends StatefulWidget
       'DataColumns': (List cols) {
         this.cols = cols;
       },
+      'sortingOrder': (List sortingItems) {
+        this.sortingItems = sortingItems;
+      },
       'horizontalMargin': (val) =>
           controller.horizontalMargin = Utils.optionalDouble(val),
       'dataRowHeight': (val) =>
@@ -81,27 +87,55 @@ class DataGrid extends StatefulWidget
   }
 }
 
+class DataColumnSort {
+  int? columnIndex;
+  String? order;
+
+  DataColumnSort({
+    required this.columnIndex,
+    required this.order,
+  });
+
+  static DataColumnSort fromYaml(
+      {required Map<String, dynamic>? map, required DataContext context}) {
+    return DataColumnSort(
+      columnIndex: Utils.optionalInt(context.eval(map?['columnIndex'])),
+      order:
+          Utils.getString(context.eval(map?['order']), fallback: 'ascending'),
+    );
+  }
+}
+
 class EnsembleDataColumn extends DataColumn {
   final String type;
-  EnsembleDataColumn(
-      {required String label,
-      required this.type,
-      String? tooltip,
-      Function? onSort})
-      : super(label: Text(label), tooltip: tooltip, numeric: type == 'numeric');
+  EnsembleDataColumn({
+    required String label,
+    required this.type,
+    String? tooltip,
+    dynamic onSort,
+  }) : super(
+          label: Text(label),
+          tooltip: tooltip,
+          numeric: type == 'numeric',
+          onSort: onSort,
+        );
 
-  static EnsembleDataColumn fromYaml(
-      {required Map map, Function? onSort, required DataContext context}) {
+  static EnsembleDataColumn fromYaml({
+    required Map map,
+    required DataContext context,
+    Function(int, bool)? onSort,
+  }) {
     String type = Utils.getString(map['type'], fallback: '');
     if (type == '') {
       throw Exception('DataGrid column must have a type.');
     }
 
     return EnsembleDataColumn(
-        label: Utils.getString(context.eval(map['label']), fallback: ''),
-        type: type,
-        tooltip: Utils.optionalString(context.eval(map['tooltip'])),
-        onSort: onSort);
+      label: Utils.getString(context.eval(map['label']), fallback: ''),
+      type: type,
+      tooltip: Utils.optionalString(context.eval(map['tooltip'])),
+      onSort: onSort,
+    );
   }
 }
 
@@ -179,6 +213,9 @@ class DataGridController extends BoxController {
 
 class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
   List<Widget>? templatedChildren;
+  late DataColumnSort dataColumnSort;
+  bool _isFirstTime = true;
+
   @override
   void initState() {
     widget._controller.addListener(refreshState);
@@ -224,10 +261,36 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
       throw Exception(
           'scopeManager is null in the DataGrid.buildWidget method. This is unexpected. DataGrid.id=${widget.id}');
     }
+    List<DataColumnSort> dataColSortItems = buildDataColumnSort();
+
     List<EnsembleDataColumn> columns = List<EnsembleDataColumn>.generate(
-        widget.cols.length,
-        (index) => EnsembleDataColumn.fromYaml(
-            map: widget.cols[index] as Map, context: scopeManager.dataContext));
+      widget.cols.length,
+      (index) {
+        // DataColumnSort? dataColSort;
+
+        // dataColSortItems.asMap().forEach((index, value) {
+        //   if (value.columnIndex == index) dataColSort = value;
+        // });
+        final mapData = widget.cols[index] as Map;
+        final sortAction =
+            EnsembleAction.fromYaml(mapData['onSort'], initiator: widget);
+        final itemExists =
+            dataColSortItems.any((element) => element.columnIndex == index);
+
+        final validSort = sortAction != null && itemExists;
+
+        return EnsembleDataColumn.fromYaml(
+          map: widget.cols[index] as Map,
+          context: scopeManager.dataContext,
+          onSort: validSort
+              ? (index, _) {
+                  _sortColumn(index, sortAction);
+                }
+              : null,
+        );
+      },
+    );
+
     List<Widget> children = [];
     if (widget._controller.children != null) {
       children.addAll(widget._controller.children!);
@@ -310,6 +373,8 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
     }
 
     DataTable grid = DataTable(
+      sortColumnIndex: dataColumnSort.columnIndex,
+      sortAscending: dataColumnSort.order == DataColumnSortType.ascending.name,
       columns: columns,
       rows: rows,
       horizontalMargin: widget.controller.horizontalMargin,
@@ -327,14 +392,50 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
       ),
     );
     return SingleChildScrollView(
-        scrollDirection: Axis.vertical,
-        child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
+      scrollDirection: Axis.vertical,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
 
-            // DataTable requires all children to report their intrinsic height.
-            // Some widgets don't like that so we expose this so the widgets
-            // can react accordingly
-            child: RequiresChildWithIntrinsicDimension(child: grid)));
+        // DataTable requires all children to report their intrinsic height.
+        // Some widgets don't like that so we expose this so the widgets
+        // can react accordingly
+        child: RequiresChildWithIntrinsicDimension(child: grid),
+      ),
+    );
+  }
+
+  List<DataColumnSort> buildDataColumnSort() {
+    final items = List<DataColumnSort>.generate(
+      widget.sortingItems.length,
+      (index) => DataColumnSort.fromYaml(
+        map: Utils.getMap(widget.sortingItems[index]),
+        context: scopeManager!.dataContext,
+      ),
+    );
+    items.sort((a, b) => a.columnIndex!.compareTo(b.columnIndex!));
+    if (items.isNotEmpty && _isFirstTime) {
+      _isFirstTime = false;
+      dataColumnSort = DataColumnSort(
+        columnIndex: items.first.columnIndex,
+        order: items.first.order,
+      );
+    }
+    return items;
+  }
+
+  void _sortColumn(int index, EnsembleAction? sortAction) {
+    final oldItem = dataColumnSort;
+    dataColumnSort = DataColumnSort(
+      columnIndex: index,
+      order: oldItem.order == DataColumnSortType.ascending.name
+          ? DataColumnSortType.descending.name
+          : DataColumnSortType.ascending.name,
+    );
+    if (sortAction != null) {
+      setState(() {});
+      ScreenController()
+          .executeAction(context, sortAction, event: EnsembleEvent(widget));
+    }
   }
 
   void _onItemTap(int index) {
