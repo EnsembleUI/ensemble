@@ -213,14 +213,23 @@ class ShowBottomModalAction extends EnsembleAction {
 
 class CropImageAction extends EnsembleAction {
   CropImageAction({
+    required this.id,
     super.initiator,
     super.inputs,
     this.source,
+    this.onComplete,
+    this.onError,
     options,
   }) : _options = options;
 
+  final String id;
   final String? source;
   final dynamic _options;
+  EnsembleAction? onComplete;
+  EnsembleAction? onError;
+
+  String? imageSrc(dataContext) =>
+      Utils.optionalString(dataContext.eval(source));
 
   String? format(dataContext) =>
       Utils.optionalString(dataContext.eval(_options?['format']));
@@ -232,16 +241,21 @@ class CropImageAction extends EnsembleAction {
       Utils.getInt(dataContext.eval(_options?['quality']), fallback: 100);
 
   factory CropImageAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
-    if (payload == null || payload['source'] == null) {
+    if (payload == null || payload['id'] == null) {
+      throw LanguageError("${ActionType.cropImage.name} requires id.");
+    } else if (payload['source'] == null) {
       throw LanguageError(
           "${ActionType.cropImage.name} requires the source to crop the image.");
     }
 
     return CropImageAction(
       initiator: initiator,
+      id: Utils.getString(payload['id'], fallback: ''),
       inputs: Utils.getMap(payload['inputs']),
-      source: Utils.getString(payload['source'], fallback: ''),
+      source: payload['source'],
       options: Utils.getMap(payload['options']),
+      onComplete: EnsembleAction.fromYaml(payload['onComplete']),
+      onError: EnsembleAction.fromYaml(payload['onError']),
     );
   }
 }
