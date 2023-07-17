@@ -55,7 +55,8 @@ abstract class BindingSource {
       RegExpMatch? match =
           variableNameRegex.firstMatch(binding.substring(userExpr.length));
       if (match != null) {
-        return SystemStorageBindingSource(match.group(0)!, storagePrefix: 'user');
+        return SystemStorageBindingSource(match.group(0)!,
+            storagePrefix: 'user');
       }
     } else {
       // store the suspected model id as we find it
@@ -132,7 +133,8 @@ abstract class BindingSource {
         RegExpMatch? match =
             variableNameRegex.firstMatch(variable.substring(userExpr.length));
         if (match != null) {
-          return SystemStorageBindingSource(match.group(0)!, storagePrefix: 'user');
+          return SystemStorageBindingSource(match.group(0)!,
+              storagePrefix: 'user');
         }
       } else {
         // if syntax is ${model.property}
