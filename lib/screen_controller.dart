@@ -162,6 +162,25 @@ class ScreenController {
           executeActionWithScope(context, scopeManager, action.onModalDismiss!);
         });
       }
+    } else if (action is ShowBottomModalAction) {
+      Widget? widget;
+      if (scopeManager != null && action.widget != null) {
+        widget = scopeManager.buildWidgetFromDefinition(action.widget);
+      }
+
+      if (widget != null) {
+        showModalBottomSheet(
+          context: context,
+          backgroundColor: action.backgroundColor(dataContext),
+          barrierColor: action.barrierColor(dataContext),
+          isScrollControlled: true,
+          enableDrag: action.enableDrag(dataContext),
+          showDragHandle: action.enableDragHandler(dataContext),
+          builder: (context) {
+            return widget!;
+          },
+        );
+      }
     } else if (action is ShowCameraAction) {
       GetIt.I<CameraManager>().openCamera(context, action, scopeManager);
     } else if (action is ShowDialogAction) {
@@ -753,6 +772,12 @@ class ScreenController {
     if (scopeManager != null) {
       scopeManager.dispatch(ModelChangeEvent(StorageBindingSource(key), value));
     }
+  }
+
+  void dispatchSystemStorageChanges(BuildContext context, String key, dynamic value, {required String storagePrefix}) {
+    _getScopeManager(context)?.dispatch(ModelChangeEvent(
+        SystemStorageBindingSource(key, storagePrefix: storagePrefix),
+        value));
   }
 
   /// Navigate to another screen

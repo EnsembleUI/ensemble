@@ -44,11 +44,18 @@ abstract class BindingSource {
 
     // bindable storage
     String storageExpr = 'ensemble.storage.';
+    String userExpr = 'ensemble.user.';
     if (binding.startsWith(storageExpr)) {
       RegExpMatch? match =
           variableNameRegex.firstMatch(binding.substring(storageExpr.length));
       if (match != null) {
         return StorageBindingSource(match.group(0)!);
+      }
+    } else if (binding.startsWith(userExpr)) {
+      RegExpMatch? match =
+          variableNameRegex.firstMatch(binding.substring(userExpr.length));
+      if (match != null) {
+        return SystemStorageBindingSource(match.group(0)!, storagePrefix: 'user');
       }
     } else {
       // store the suspected model id as we find it
@@ -113,12 +120,19 @@ abstract class BindingSource {
 
       // storage bindable
       String storageExpr = 'ensemble.storage.';
+      String userExpr = 'ensemble.user.';
       if (variable.startsWith(storageExpr)) {
         RegExpMatch? match = variableNameRegex
             .firstMatch(variable.substring(storageExpr.length));
         if (match != null) {
           String storageKey = match.group(0)!;
           return StorageBindingSource(storageKey);
+        }
+      } else if (variable.startsWith(userExpr)) {
+        RegExpMatch? match =
+            variableNameRegex.firstMatch(variable.substring(userExpr.length));
+        if (match != null) {
+          return SystemStorageBindingSource(match.group(0)!, storagePrefix: 'user');
         }
       } else {
         // if syntax is ${model.property}
@@ -182,6 +196,12 @@ abstract class BindingSource {
 /// a bindable source backed by Storage
 class StorageBindingSource extends BindingSource {
   StorageBindingSource(super.modelId);
+}
+
+/// TODO: consolidate this with StorageBindingSource
+class SystemStorageBindingSource extends BindingSource {
+  SystemStorageBindingSource(super.modelId, {required this.storagePrefix});
+  String storagePrefix;
 }
 
 /// bindable source backed by API
