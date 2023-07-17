@@ -39,23 +39,19 @@ class SignInWithGoogle extends StatefulWidget
   @override
   Map<String, Function> getters() => {};
 
-
   @override
   Map<String, Function> methods() => {};
 
   @override
-  Map<String, Function> setters() =>
-      {
+  Map<String, Function> setters() => {
         'widget': (widgetDef) => _controller.widgetDef = widgetDef,
         'onAuthenticated': (action) => _controller.onAuthenticated =
             EnsembleAction.fromYaml(action, initiator: this),
         'onError': (action) => _controller.onError =
             EnsembleAction.fromYaml(action, initiator: this),
-        'scopes': (value) =>
-            _controller.scopes =
-              Utils.getListOfStrings(value) ?? _controller.scopes,
+        'scopes': (value) => _controller.scopes =
+            Utils.getListOfStrings(value) ?? _controller.scopes,
       };
-
 }
 
 class SignInWithGoogleController extends WidgetController {
@@ -77,8 +73,7 @@ class SignInWithGoogleState extends WidgetState<SignInWithGoogle> {
     _googleSignIn = GoogleSignIn(
         clientId: getClientId(),
         serverClientId: getServerClientId(),
-        scopes: widget._controller.scopes
-    );
+        scopes: widget._controller.scopes);
     _googleSignIn.onCurrentUserChanged.listen((account) async {
       if (account != null) {
         var googleAuthentication = await account.authentication;
@@ -100,7 +95,8 @@ class SignInWithGoogleState extends WidgetState<SignInWithGoogle> {
     });
   }
 
-  void _onAuthenticated(GoogleSignInAccount account, GoogleSignInAuthentication googleAuthentication) {
+  void _onAuthenticated(GoogleSignInAccount account,
+      GoogleSignInAuthentication googleAuthentication) {
     // log("idToken: ${googleAuthentication.idToken}");
     // log("serverAuthcode: ${account.serverAuthCode}");
 
@@ -109,33 +105,32 @@ class SignInWithGoogleState extends WidgetState<SignInWithGoogle> {
     if (googleAuthentication.accessToken != null) {
       var key = ServiceName.google.name;
       const FlutterSecureStorage().write(
-          key: "${key}_accessToken",
-          value: googleAuthentication.accessToken);
+          key: "${key}_accessToken", value: googleAuthentication.accessToken);
     }
 
     // update the user information in storage
-    StorageManager().updateUser(context, account.id, name: account.displayName,
-        email: account.email, photo: account.photoUrl);
+    StorageManager().updateUser(context, account.id,
+        name: account.displayName,
+        email: account.email,
+        photo: account.photoUrl);
 
     // trigger the callback
     if (widget._controller.onAuthenticated != null) {
-      ScreenController().executeAction(
-          context,
-          widget._controller.onAuthenticated!,
-          event: EnsembleEvent(widget, data: {
-            'id': account.id,
-            'name': account.displayName,
-            'email': account.email,
-            'photo': account.photoUrl,
+      ScreenController()
+          .executeAction(context, widget._controller.onAuthenticated!,
+              event: EnsembleEvent(widget, data: {
+                'id': account.id,
+                'name': account.displayName,
+                'email': account.email,
+                'photo': account.photoUrl,
 
-            // server can verify and decode to get user info, useful for Sign In
-            'idToken': googleAuthentication.idToken,
+                // server can verify and decode to get user info, useful for Sign In
+                'idToken': googleAuthentication.idToken,
 
-            // server can exchange this for accessToken/refreshToken
-            'serverAuthCode': account.serverAuthCode
-          }));
+                // server can exchange this for accessToken/refreshToken
+                'serverAuthCode': account.serverAuthCode
+              }));
     }
-
   }
 
   Future<void> _handleSignIn() async {
@@ -158,19 +153,15 @@ class SignInWithGoogleState extends WidgetState<SignInWithGoogle> {
         ?.buildWidgetFromDefinition(widget._controller.widgetDef);
   }
 
-
   @override
   Widget buildWidget(BuildContext context) {
     return buildGoogleSignInButton(
-        mobileWidget: displayWidget,
-        onPressed: _handleSignIn);
+        mobileWidget: displayWidget, onPressed: _handleSignIn);
   }
 
   String getClientId() {
     SignInCredential? credential =
-    Ensemble()
-        .getSignInServices()
-        ?.signInCredentials?[ServiceName.google];
+        Ensemble().getSignInServices()?.signInCredentials?[ServiceName.google];
     String? clientId;
     if (kIsWeb) {
       clientId = credential?.webClientId;
@@ -186,12 +177,11 @@ class SignInWithGoogleState extends WidgetState<SignInWithGoogle> {
         recovery: "Please check your configuration.");
   }
 
-
   // serverClientId is not supported on Web
-  String? getServerClientId() => kIsWeb ? null : Ensemble()
-      .getSignInServices()
-      ?.signInCredentials?[ServiceName.google]?.serverClientId;
-
-
-
+  String? getServerClientId() => kIsWeb
+      ? null
+      : Ensemble()
+          .getSignInServices()
+          ?.signInCredentials?[ServiceName.google]
+          ?.serverClientId;
 }
