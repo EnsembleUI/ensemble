@@ -1,6 +1,9 @@
 
+import 'package:ensemble/OAuthController.dart';
+import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_storage/get_storage.dart';
 
 /// managing non-secure storage
@@ -63,11 +66,33 @@ class StorageManager {
     }
   }
 
+  String? getUserId() => GetStorage(systemStorageId).read(userIdKey);
   String? getUserName() => GetStorage(systemStorageId).read(userNameKey);
   String? getUserEmail() => GetStorage(systemStorageId).read(userEmailKey);
   String? getUserPhoto() => GetStorage(systemStorageId).read(userPhotoKey);
 
   bool? isPreview() => GetStorage(systemStorageId).read<bool?>(systemPreviewKey);
   void setIsPreview(bool value) => GetStorage(systemStorageId).write(systemPreviewKey, value);
+
+
+  /// Secure Storage section
+
+  Future<void> updateServiceTokens(ServiceName serviceName, String accessToken, {String? refreshToken}) async {
+    const secureStorage = FlutterSecureStorage();
+    await secureStorage.write(key: '${serviceName.name}_accessToken', value: accessToken);
+    if (refreshToken != null) {
+      await secureStorage.write(key: '${serviceName.name}_refreshToken', value: refreshToken);
+    }
+  }
+  Future<OAuthServiceToken?> getServiceTokens(ServiceName serviceName) async {
+    const secureStorage = FlutterSecureStorage();
+    String? accessToken = await secureStorage.read(key: '${serviceName.name}_accessToken');
+    if (accessToken != null) {
+      return OAuthServiceToken(
+          accessToken: accessToken,
+          refreshToken: await secureStorage.read(key: '${serviceName.name}_refreshToken'));
+    }
+  }
+
 
 }
