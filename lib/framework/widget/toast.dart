@@ -57,7 +57,8 @@ class ToastController {
         child: getToastWidget(context, toastAction, customToastBody));
   }
 
-  Widget getToastWidget(BuildContext context, ShowToastAction toastAction, Widget? customToastBody) {
+  Widget getToastWidget(BuildContext context, ShowToastAction toastAction,
+      Widget? customToastBody) {
     EdgeInsets padding = Utils.getInsets(toastAction.styles?['padding'],
         fallback: const EdgeInsets.symmetric(vertical: 20, horizontal: 22));
     Color? bgColor = Utils.getColor(toastAction.styles?['backgroundColor']);
@@ -93,7 +94,9 @@ class ToastController {
 
       const double closeButtonRadius = 10;
 
-      String? message = DataScopeWidget.getScope(context)?.dataContext.eval(toastAction.message);
+      String? message = DataScopeWidget.getScope(context)
+          ?.dataContext
+          .eval(toastAction.message);
 
       content = Row(
         mainAxisSize: MainAxisSize.min,
