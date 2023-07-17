@@ -53,7 +53,10 @@
                   "description": "If elevation is non-zero, this will override the drop shadow color of the header's bottom edge."
                 },
                 "centerTitle": {
-                  "type": "boolean",
+                  "oneOf": [
+                    { "type": "boolean", "title": "Boolean" },
+                    { "type": "string", "title": "Expression" } 
+                  ],
                   "description": "Whether to align the title in the title bar's center horizontally (default: true)"
                 },
                 "titleBarHeight": {
@@ -105,15 +108,24 @@
             {
               "properties": {
                 "useSafeArea": {
-                  "type": "boolean",
+                  "oneOf": [
+                    { "type": "boolean", "title": "Boolean" },
+                    { "type": "string", "title": "Expression" } 
+                  ],
                   "description": "Applicable only when we don't have a header. If true, insert paddings around the body content to account for the the devices' Safe Area (e.g. iPhone notch). Default is false."
                 },
                 "scrollableView": {
-                  "type": "boolean",
+                  "oneOf": [
+                    { "type": "boolean", "title": "Boolean" },
+                    { "type": "string", "title": "Expression" } 
+                  ],
                   "description": "Specify if the content of this screen is scrollable with a global scrollbar. Using this also allow you to customize the scrolling experience of the header."
                 },
                 "showNavigationIcon": {
-                  "type": "boolean",
+                  "oneOf": [
+                    { "type": "boolean", "title": "Boolean" },
+                    { "type": "string", "title": "Expression" } 
+                  ],
                   "description": "For a screen with header, the App will automatically show the Menu, Back, or Close icon (for modal screen) before the title. On modal screen without the header, the Close icon will be shown. Set this flag to false if you wish to hide the icons and handle the navigation yourself."
                 },
                 "navigationIconPosition": {
@@ -469,7 +481,10 @@
                   "type": "integer"
                 },
                 "repeat": {
-                  "type": "boolean",
+                  "oneOf": [
+                    { "type": "boolean", "title": "Boolean" },
+                    { "type": "string", "title": "Expression" } 
+                  ],
                   "description": "Whether we should repeat the animation (default true)"
                 },
                 "fit": {
@@ -665,7 +680,10 @@
       "type": "object",
       "properties": {
         "value": {
-          "type": "boolean",
+          "oneOf": [
+            { "type": "boolean", "title": "Boolean" },
+            { "type": "string", "title": "Expression" } 
+          ],
           "description": "Whether the toggle is On or Off (true or false)"
         },
         "inactiveWidget": {
@@ -702,7 +720,10 @@
       "type": "object",
       "properties": {
         "isFirst": {
-          "type": "boolean",
+          "oneOf": [
+            { "type": "boolean", "title": "Boolean" },
+            { "type": "string", "title": "Expression" } 
+          ],
           "description": "Whether to display the firstWidget or secondWidget"
         },
         "firstWidget": {
@@ -767,11 +788,17 @@
               "$ref": "#/$defs/keyboardAction"
             },
             "obscureText": {
-              "type": "boolean",
+              "oneOf": [
+                { "type": "boolean", "title": "Boolean" },
+                { "type": "string", "title": "Expression" } 
+              ],
               "description": "whether we should obscure the typed-in text (e.g Social Security)"
             },
             "obscureToggle": {
-              "type": "boolean",
+              "oneOf": [
+                { "type": "boolean", "title": "Boolean" },
+                { "type": "string", "title": "Expression" } 
+              ],
               "description": "enable the toggling between plain and obscure text."
             },
             "styles": {
@@ -815,7 +842,10 @@
               "$ref": "#/$defs/keyboardAction"
             },
             "obscureToggle": {
-              "type": "boolean",
+              "oneOf": [
+                { "type": "boolean", "title": "Boolean" },
+                { "type": "string", "title": "Expression" } 
+              ],
               "description": "enable the toggling between plain and obscure text."
             },
             "styles": {
@@ -840,7 +870,10 @@
           "type": "object",
           "properties": {
             "value": {
-              "type": "boolean"
+              "oneOf": [
+                { "type": "boolean", "title": "Boolean" },
+                { "type": "string", "title": "Expression" } 
+              ]
             },
             "leadingText": {
               "type": "string"
@@ -884,7 +917,10 @@
               "description": "List of values, or Objects with value/label pairs"
             },
             "autoComplete": {
-              "type": "boolean",
+              "oneOf": [
+                { "type": "boolean", "title": "Boolean" },
+                { "type": "string", "title": "Expression" } 
+              ],
               "description": "Enable the Input search suggestion option"
             }
           }
@@ -912,7 +948,10 @@
               "description": "The last selectable date in the calendar. Use format YYYY-MM-DD"
             },
             "showCalendarIcon": {
-              "type": "boolean",
+              "oneOf": [
+                { "type": "boolean", "title": "Boolean" },
+                { "type": "string", "title": "Expression" } 
+              ],
               "description": "Whether we should show (default) or hide the calendar icon. Selecting the text will still open the calendar picker"
             }
           }
@@ -972,10 +1011,16 @@
           "description": "The gap between the starting icon and ending icon"
         },
         "enabled": {
-          "type": "boolean"
+          "oneOf": [
+            { "type": "boolean", "title": "Boolean" },
+            { "type": "string", "title": "Expression" } 
+          ]
         },
         "submitForm": {
-          "type": "boolean",
+          "oneOf": [
+            { "type": "boolean", "title": "Boolean" },
+            { "type": "string", "title": "Expression" } 
+          ],
           "description": "If the button is inside a Form and upon on tap, it will execute the form's onSubmit action if this property is TRUE"
         },
         "onTap": {
@@ -997,7 +1042,10 @@
                   "$ref": "#/$defs/TextStyle"
                 },
                 "outline": {
-                  "type": "boolean",
+                  "oneOf": [
+                    { "type": "boolean", "title": "Boolean" },
+                    { "type": "string", "title": "Expression" } 
+                  ],
                   "description": "Whether the button should have an outline border instead of filled background"
                 }
               }
@@ -1024,7 +1072,10 @@
       "type": "object",
       "properties": {
         "showRecent": {
-          "type": "boolean",
+          "oneOf": [
+            { "type": "boolean", "title": "Boolean" },
+            { "type": "string", "title": "Expression" } 
+          ],
           "description": "Whether to show the recent searches (default True)"
         },
         "countryFilter": {
@@ -1036,7 +1087,10 @@
           }
         },
         "proximitySearchEnabled": {
-          "type": "boolean",
+          "oneOf": [
+            { "type": "boolean", "title": "Boolean" },
+            { "type": "string", "title": "Expression" } 
+          ],
           "description": "Use the user's current location to prioritize localized results within the proximityRadius. Note that this will prompt for user's permission to access their location. (default: true)"
         },
         "proximitySearchCenter": {
@@ -1170,7 +1224,10 @@
       "required": ["children"],
       "properties": {
         "enabled": {
-          "type": "boolean"
+          "oneOf": [
+            { "type": "boolean", "title": "Boolean" },
+            { "type": "string", "title": "Expression" } 
+          ]
         },
         "onSubmit": {
           "$ref": "#/$defs/Action-payload",
@@ -1670,7 +1727,10 @@
                   "type": "object",
                   "properties": {
                     "showSeparator": {
-                      "type": "boolean",
+                      "oneOf": [
+                        { "type": "boolean", "title": "Boolean" },
+                        { "type": "string", "title": "Expression" } 
+                      ],
                       "description": "Show a separator between the items (default is true)."
                     },
                     "separatorColor": {
@@ -1788,7 +1848,10 @@
                       "type": "integer"
                     },
                     "autoplay": {
-                      "type": "boolean",
+                      "oneOf": [
+                        { "type": "boolean", "title": "Boolean" },
+                        { "type": "string", "title": "Expression" } 
+                      ],
                       "description": "If true, Enables autoplay, sliding one page at a time. Default (false)"
                     },
                     "autoplayInterval": {
@@ -1884,10 +1947,16 @@
           "description": "Hint text explaining your widget"
         },
         "required": {
-          "type": "boolean"
+          "oneOf": [
+            { "type": "boolean", "title": "Boolean" },
+            { "type": "string", "title": "Expression" } 
+          ]
         },
         "enabled": {
-          "type": "boolean"
+          "oneOf": [
+            { "type": "boolean", "title": "Boolean" },
+            { "type": "string", "title": "Expression" } 
+          ]
         },
         "icon": {
           "$ref": "#/$defs/HasIcon",
@@ -2039,11 +2108,17 @@
                   "type": "object",
                   "properties": {
                     "replaceCurrentScreen": {
-                      "type": "boolean",
+                      "oneOf": [
+                        { "type": "boolean", "title": "Boolean" },
+                        { "type": "string", "title": "Expression" } 
+                      ],
                       "description": "If true, the new screen will replace the current screen on the navigation history. Navigating back from the new screen will skip the current screen."
                     },
                     "clearAllScreens": {
-                      "type": "boolean",
+                      "oneOf": [
+                        { "type": "boolean", "title": "Boolean" },
+                        { "type": "string", "title": "Expression" } 
+                      ],
                       "description": "If true, clear out all existing screens in the navigation history. This is useful when navigating to a Logout or similar page where users should not be able to go back to the prior screens."
                     }
                   }
@@ -2140,7 +2215,10 @@
                   "description": "The URL to open"
                 },
                 "openInExternalApp": {
-                  "type": "boolean",
+                  "oneOf": [
+                    { "type": "boolean", "title": "Boolean" },
+                    { "type": "string", "title": "Expression" } 
+                  ],
                   "description": "Open URL in an external app"
                 }
               }
@@ -2232,19 +2310,31 @@
                       ]
                     },
                     "allowGalleryPicker": {
-                      "type": "boolean",
+                      "oneOf": [
+                        { "type": "boolean", "title": "Boolean" },
+                        { "type": "string", "title": "Expression" } 
+                      ],
                       "description": "Allow users to pick media from gallery. Default (true)."
                     },
                     "allowCameraRotate": {
-                      "type": "boolean",
+                      "oneOf": [
+                        { "type": "boolean", "title": "Boolean" },
+                        { "type": "string", "title": "Expression" } 
+                      ],
                       "description": "Allow users rotate camera i.e back and front. Default (true)."
                     },
                     "allowFlashControl": {
-                      "type": "boolean",
+                      "oneOf": [
+                        { "type": "boolean", "title": "Boolean" },
+                        { "type": "string", "title": "Expression" } 
+                      ],
                       "description": "Allow users to control flash options. Default (true)."
                     },
                     "preview": {
-                      "type": "boolean",
+                      "oneOf": [
+                        { "type": "boolean", "title": "Boolean" },
+                        { "type": "string", "title": "Expression" } 
+                      ],
                       "description": "If set true, users can view captured/selected media."
                     },
                     "maxCount": {
@@ -2419,7 +2509,10 @@
                   "type": "object",
                   "properties": {
                     "isGlobal": {
-                      "type": "boolean",
+                      "oneOf": [
+                        { "type": "boolean", "title": "Boolean" },
+                        { "type": "string", "title": "Expression" } 
+                      ],
                       "description": "Marking this timer as global will ensure the timer, if repeating indefinitely, will continue to run even if the user navigates away from the screen, until explicitly stopped by the stopTimer action. Note that there can only ever be one global timer. Creating a new global timer will automatically cancel the previous global timer."
                     },
                     "startAfter": {
@@ -2428,7 +2521,10 @@
                       "description": "Delay the timer's start by this number of seconds. If not specified and repeat is true, repeatInterval will be used. If none is specified, there will be no initial delay"
                     },
                     "repeat": {
-                      "type": "boolean",
+                      "oneOf": [
+                        { "type": "boolean", "title": "Boolean" },
+                        { "type": "string", "title": "Expression" } 
+                      ],
                       "description": "Whether the time should repeat and trigger at every repeatInterval seconds. This Timer will run continuously unless a maxNumberOfTimes is specified"
                     },
                     "repeatInterval": {
@@ -2510,7 +2606,10 @@
                       ]
                     },
                     "dismissible": {
-                      "type": "boolean",
+                      "oneOf": [
+                        { "type": "boolean", "title": "Boolean" },
+                        { "type": "string", "title": "Expression" } 
+                      ],
                       "description": "Whether to show a dismiss button (default is True)"
                     },
                     "alignment": {
@@ -2613,7 +2712,10 @@
                   "type": "object",
                   "properties": {
                     "recurring": {
-                      "type": "boolean",
+                      "oneOf": [
+                        { "type": "boolean", "title": "Boolean" },
+                        { "type": "string", "title": "Expression" } 
+                      ],
                       "description": "Whether to continuously get the device location on this screen. Note that a screen can only have one recurring location listener. Adding multiple recurring location listeners will cancel the previous one."
                     },
                     "recurringDistanceFilter": {
@@ -2687,11 +2789,17 @@
                     "description": "Error message to show when selected files size is above maxFileSize."
                   },
                   "backgroundTask": {
-                    "type": "boolean",
+                    "oneOf": [
+                      { "type": "boolean", "title": "Boolean" },
+                      { "type": "string", "title": "Expression" } 
+                    ],
                     "description": "If set true, uploading will be done in background."
                   },
                   "showNotification": {
-                    "type": "boolean",
+                    "oneOf": [
+                      { "type": "boolean", "title": "Boolean" },
+                      { "type": "string", "title": "Expression" } 
+                    ],
                     "description": "If set true, progress will be show in notification bar."
                   },
                   "networkType": {
@@ -2733,11 +2841,17 @@
                   "description": "Give the picker an ID allows you to bind to its result, which can be access anywhere e.g. ${filePicker.files...}"
                 },
                 "allowMultiple": {
-                  "type": "boolean",
+                  "oneOf": [
+                    { "type": "boolean", "title": "Boolean" },
+                    { "type": "string", "title": "Expression" } 
+                  ],
                   "description": "Allow users to pick multiple files (default False)"
                 },
                 "allowCompression": {
-                  "type": "boolean",
+                  "oneOf": [
+                    { "type": "boolean", "title": "Boolean" },
+                    { "type": "string", "title": "Expression" } 
+                  ],
                   "description": "It will allow media to apply the default OS compression (default True)"
                 },
                 "allowedExtensions": {
@@ -2889,7 +3003,10 @@
                 "description": "The new page to navigate to on click"
               },
               "selected": {
-                "type": "boolean",
+                "oneOf": [
+                  { "type": "boolean", "title": "Boolean" },
+                  { "type": "string", "title": "Expression" } 
+                ],
                 "description": "Mark this item as selected. There should only be one selected item per page."
               }
             }
@@ -3578,45 +3695,78 @@
                   "type": "integer"
                 },
                 "autoZoom": {
-                  "type": "boolean",
+                  "oneOf": [
+                    { "type": "boolean", "title": "Boolean" },
+                    { "type": "string", "title": "Expression" } 
+                  ],
                   "description": "Automatically zoom the maps to show all the markers (and optionally the current location). Default True."
                 },
                 "autoZoomPadding": {
                   "type": "integer"
                 },
                 "locationEnabled": {
-                  "type": "boolean"
+                  "oneOf": [
+                    { "type": "boolean", "title": "Boolean" },
+                    { "type": "string", "title": "Expression" } 
+                  ]
                 },
                 "includeCurrentLocationInAutoZoom": {
-                  "type": "boolean"
+                  "oneOf": [
+                    { "type": "boolean", "title": "Boolean" },
+                    { "type": "string", "title": "Expression" } 
+                  ]
                 },
                 "showToolbar": {
-                  "type": "boolean",
+                  "oneOf": [
+                    { "type": "boolean", "title": "Boolean" },
+                    { "type": "string", "title": "Expression" } 
+                  ],
                   "description": "Show the Map toolbar that contains some convenience controls. You can also turn each individual controls on or off."
                 },
                 "showMapTypesButton": {
-                  "type": "boolean",
+                  "oneOf": [
+                    { "type": "boolean", "title": "Boolean" },
+                    { "type": "string", "title": "Expression" } 
+                  ],
                   "description": "Toggle between the different map types. (default true)"
                 },
                 "showLocationButton": {
-                  "type": "boolean",
+                  "oneOf": [
+                    { "type": "boolean", "title": "Boolean" },
+                    { "type": "string", "title": "Expression" } 
+                  ],
                   "description": "Show the button that animates to the user's location. (default true)"
                 },
                 "showZoomButtons": {
-                  "type": "boolean",
+                  "oneOf": [
+                    { "type": "boolean", "title": "Boolean" },
+                    { "type": "string", "title": "Expression" } 
+                  ],
                   "description": "Applicable on Web only. Show the zoom in/out controls on the map. (default true on Web)"
                 },
                 "rotateEnabled": {
-                  "type": "boolean"
+                  "oneOf": [
+                    { "type": "boolean", "title": "Boolean" },
+                    { "type": "string", "title": "Expression" } 
+                  ]
                 },
                 "scrollEnabled": {
-                  "type": "boolean"
+                  "oneOf": [
+                    { "type": "boolean", "title": "Boolean" },
+                    { "type": "string", "title": "Expression" } 
+                  ]
                 },
                 "tiltEnabled": {
-                  "type": "boolean"
+                  "oneOf": [
+                    { "type": "boolean", "title": "Boolean" },
+                    { "type": "string", "title": "Expression" } 
+                  ]
                 },
                 "zoomEnabled": {
-                  "type": "boolean"
+                  "oneOf": [
+                    { "type": "boolean", "title": "Boolean" },
+                    { "type": "string", "title": "Expression" } 
+                  ]
                 },
                 "toolbarMargin": {
                   "$ref": "#/$defs/Margin-payload",
@@ -3669,15 +3819,24 @@
                   "description": "Set the max height of the marker overlay. (default: 50% of the screen height)"
                 },
                 "scrollableMarkerOverlay": {
-                  "type": "boolean",
+                  "oneOf": [
+                    { "type": "boolean", "title": "Boolean" },
+                    { "type": "string", "title": "Expression" } 
+                  ],
                   "description": "If using overlay and there are more than one marker, swiping left/right within the overlay will navigate to next/previous marker"
                 },
                 "dismissibleMarkerOverlay": {
-                  "type": "boolean",
+                  "oneOf": [
+                    { "type": "boolean", "title": "Boolean" },
+                    { "type": "string", "title": "Expression" } 
+                  ],
                   "description": "Enabling swiping down to close the overlay."
                 },
                 "autoSelect": {
-                  "type": "boolean",
+                  "oneOf": [
+                    { "type": "boolean", "title": "Boolean" },
+                    { "type": "string", "title": "Expression" } 
+                  ],
                   "description": "Automatically select a marker (if not already) when the markers are updated."
                 }
 
@@ -3813,11 +3972,17 @@
       "type": "object",
       "properties": {
         "expanded": {
-          "type": "boolean",
+          "oneOf": [
+            { "type": "boolean", "title": "Boolean" },
+            { "type": "string", "title": "Expression" } 
+          ],
           "description": "If the parent is a Row or Column, this flag will stretch this widget in the appropriate direction. (e.g stretch horizontally for parent of type Row)"
         },
         "visible": {
-          "type": "boolean",
+          "oneOf": [
+            { "type": "boolean", "title": "Boolean" },
+            { "type": "string", "title": "Expression" }
+          ],
           "description": "Toggle a widget visibility on/off. Note that an invisible widget will not occupy UI space, unless the visibilityTransitionDuration is specified."
         },
         "visibilityTransitionDuration": {
@@ -3859,7 +4024,10 @@
           "description": "The distance that the child's right edge from the right of the stack. This is applicable only for Stack's children."
         },
         "captureWebPointer": {
-          "type": "boolean",
+          "oneOf": [
+            { "type": "boolean", "title": "Boolean" },
+            { "type": "string", "title": "Expression" } 
+          ],
           "description": "Applicable for Web only. When overlaying widgets on top of certain HTML container (e.g. Maps), the mouse click is captured by the HTML container, causing issue interacting with the widget. Use this to capture and maintain the mouse pointer on your widget."
         }
       }
@@ -4156,11 +4324,17 @@
               ]
             },
             "scrollable": {
-              "type": "boolean",
+              "oneOf": [
+                { "type": "boolean", "title": "Boolean" },
+                { "type": "string", "title": "Expression" } 
+              ],
               "description": "Set to true so content can scroll vertically as needed"
             },
             "autoFit": {
-              "type": "boolean",
+              "oneOf": [
+                { "type": "boolean", "title": "Boolean" },
+                { "type": "string", "title": "Expression" } 
+              ],
               "description": "Explicitly make the column's width as wide as the largest child, but only if our column's parent does not already assign a width. This attribute is useful for sizing children who don't have a width (e.g Divider)"
             }
           }
@@ -4210,11 +4384,17 @@
               ]
             },
             "scrollable": {
-              "type": "boolean",
+              "oneOf": [
+                { "type": "boolean", "title": "Boolean" },
+                { "type": "string", "title": "Expression" } 
+              ],
               "description": "Set to true so content can scroll horizontally as needed"
             },
             "autoFit": {
-              "type": "boolean",
+              "oneOf": [
+                { "type": "boolean", "title": "Boolean" },
+                { "type": "string", "title": "Expression" } 
+              ],
               "description": "Explicitly make the row's height as tall as the largest child, but only if the row's parent does not already assign us a height. This attribute is useful for sizing children who don't have a width (e.g vertical Divider)"
             }
           }
@@ -4275,11 +4455,17 @@
               ]
             },
             "scrollable": {
-              "type": "boolean",
+              "oneOf": [
+                { "type": "boolean", "title": "Boolean" },
+                { "type": "string", "title": "Expression" } 
+              ],
               "description": "Set to true so content can scroll vertically or horizontally as needed"
             },
             "autoFit": {
-              "type": "boolean",
+              "oneOf": [
+                { "type": "boolean", "title": "Boolean" },
+                { "type": "string", "title": "Expression" } 
+              ],
               "description": "Explicitly match the width or height to the largest child's size, but only if the parent does not already assign a width or height. This attribute is useful for sizing children who don't have a width or height (e.g Divider)"
             }
           }
@@ -4310,7 +4496,8 @@
             },
             "stops": {
               "type": "array",
-              "description": "The list of color stops, each is a number between 0.0 (where the gradient starts) and 1.0 (where the gradient ends). The number of stops should match the number of colors."
+              "description": "The list of color stops, each is a number between 0.0 (where the gradient starts) and 1.0 (where the gradient ends). The number of stops should match the number of colors.",
+              "$ref": "#/$defs/alignment"
             },
             "start": {
               "description": "The starting position of the gradient",
@@ -4436,7 +4623,10 @@
           "$ref": "#/$defs/type-fontWeight"
         },
         "isItalic": {
-          "type": "boolean"
+          "oneOf": [
+            { "type": "boolean", "title": "Boolean" },
+            { "type": "string", "title": "Expression" } 
+          ]
         },
         "color": {
           "$ref": "#/$defs/typeColors"
