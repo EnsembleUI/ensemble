@@ -35,9 +35,11 @@ class HttpUtils {
     }
 
     // this is the Bearer token. TODO: consolidate with the above
-    ServiceName? serviceName = ServiceName.values.from(api['authorization']?['serviceId']);
+    ServiceName? serviceName =
+        ServiceName.values.from(api['authorization']?['serviceId']);
     if (serviceName != null) {
-      OAuthServiceToken? token = await StorageManager().getServiceTokens(serviceName);
+      OAuthServiceToken? token =
+          await StorageManager().getServiceTokens(serviceName);
       if (token != null) {
         headers['Authorization'] = 'Bearer ${token.accessToken}';
       }
