@@ -183,14 +183,15 @@ class ScreenController {
         );
       }
     } else if (action is CropImageAction) {
-      if (scopeManager != null && action.source != null) {
+      final imageSrc = action.imageSrc(dataContext);
+      if (scopeManager != null && imageSrc != null) {
         final format = action.format(dataContext);
         final compressFormat = format != null && format == 'jpg'
             ? ImageCompressFormat.jpg
             : ImageCompressFormat.png;
 
         ImageCropper().cropImage(
-          sourcePath: action.source!,
+          sourcePath: imageSrc,
           compressFormat: compressFormat,
           compressQuality: action.quality(dataContext),
           uiSettings: [
@@ -205,7 +206,31 @@ class ScreenController {
               title: action.title(dataContext),
             ),
           ],
-        );
+        ).then((croppedFile) async {
+          if (croppedFile == null) {
+            if (action.onError != null) executeAction(context, action.onError!);
+            return;
+          }
+          final fileName = croppedFile.path.split('/').last;
+          final fileExtension = ".${fileName.split('.').last}";
+          final bytes = await croppedFile.readAsBytes();
+          final file = File.fromCropImage({
+            'name': fileName,
+            'path': croppedFile.path,
+            'extension': fileExtension,
+            'size': 0,
+            'bytes': bytes
+          });
+
+          final croppedFileData = CroppedFileData(file: file);
+          scopeManager.dataContext
+              .addDataContextById(action.id, croppedFileData);
+          scopeManager.dispatch(ModelChangeEvent(
+              SimpleBindingSource(action.id), croppedFileData));
+          if (action.onComplete != null) {
+            executeAction(context, action.onComplete!);
+          }
+        });
       }
     } else if (action is ShowCameraAction) {
       GetIt.I<CameraManager>().openCamera(context, action, scopeManager);
