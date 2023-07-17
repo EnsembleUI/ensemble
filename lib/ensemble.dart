@@ -398,7 +398,7 @@ class SignInCredential {
 }
 
 
-enum ServiceName { google, microsoft, yahoo }
+enum ServiceName { system, google, apple, microsoft, yahoo }
 
 /// user configuration for the App
 class UserAppConfig {
