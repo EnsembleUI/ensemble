@@ -672,6 +672,8 @@ abstract class EnsembleAction {
       return ShowBottomModalAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.invokeAPI) {
       return InvokeAPIAction.fromYaml(initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.cropImage) {
+      return CropImageAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.openCamera) {
       return ShowCameraAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.showDialog) {
