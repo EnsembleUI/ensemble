@@ -774,10 +774,11 @@ class ScreenController {
     }
   }
 
-  void dispatchSystemStorageChanges(BuildContext context, String key, dynamic value, {required String storagePrefix}) {
+  void dispatchSystemStorageChanges(
+      BuildContext context, String key, dynamic value,
+      {required String storagePrefix}) {
     _getScopeManager(context)?.dispatch(ModelChangeEvent(
-        SystemStorageBindingSource(key, storagePrefix: storagePrefix),
-        value));
+        SystemStorageBindingSource(key, storagePrefix: storagePrefix), value));
   }
 
   /// Navigate to another screen

@@ -337,8 +337,8 @@ class NativeInvokable with Invokable {
       'debug': (value) => debugPrint('Debug: $value'),
       'copyToClipboard': (value) =>
           Clipboard.setData(ClipboardData(text: value)),
-
-      'updateSystemAuthorizationToken': (token) => StorageManager().updateServiceTokens(ServiceName.system, token),
+      'updateSystemAuthorizationToken': (token) =>
+          StorageManager().updateServiceTokens(ServiceName.system, token),
     };
   }
 
