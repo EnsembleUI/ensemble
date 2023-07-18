@@ -4609,6 +4609,9 @@
         "backgroundColor": {
           "$ref": "#/$defs/typeColors"
         },
+        "gradient": {
+          "$ref": "#/$defs/backgroundGradient"
+        },
         "decoration": {
           "type": "string",
           "enum": [
