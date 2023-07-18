@@ -133,7 +133,7 @@ class _AppScrollerState extends WidgetState<AppScroller> {
     if (header != null) {
       slivers.add(header);
     }
-    Widget? body = buildBody(scopeManager!);
+    Widget? body = buildBody(scopeManager);
     if (body != null) {
       slivers.add(body);
     }
