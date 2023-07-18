@@ -19,7 +19,10 @@ class EnsembleText extends StatefulWidget
 
   @override
   Map<String, Function> getters() {
-    return {'text': () => _controller.text};
+    return {
+      'text': () => _controller.text,
+      'textStyle': () => _controller.textStyle
+    };
   }
 
   @override
@@ -30,19 +33,8 @@ class EnsembleText extends StatefulWidget
           _controller.textAlign = TextAlign.values.from(value),
       'maxLines': (value) =>
           _controller.maxLines = Utils.optionalInt(value, min: 1),
-      'textStyle': (style) => _controller.textStyle = Utils.getTextStyle(style),
-
-      // legacy
-      'fontFamily': (value) =>
-          _controller.fontFamily = Utils.optionalString(value),
-      'fontSize': (value) => _controller.fontSize = Utils.optionalInt(value),
-      'fontWeight': (value) =>
-          _controller.fontWeight = Utils.getFontWeight(value),
-      'color': (value) => _controller.color = Utils.getColor(value),
-      'gradient': (value) =>
-          _controller.gradient = Utils.getBackgroundGradient(value),
-      'overflow': (value) =>
-          _controller.overflow = TextOverflow.values.from(value),
+      'textStyle': (style) => _controller.textStyle =
+          Utils.getTextStyleAsComposite(_controller, style: style),
     };
   }
 
@@ -59,15 +51,10 @@ class TextController extends BoxController {
   String? text;
   TextAlign? textAlign;
   int? maxLines;
-  TextStyle? textStyle;
 
-  // legacy, for backward compatible
-  String? fontFamily;
-  int? fontSize;
-  FontWeight? fontWeight;
-  Color? color;
-  LinearGradient? gradient;
-  TextOverflow? overflow;
+  TextStyleComposite? _textStyle;
+  TextStyleComposite get textStyle => _textStyle ??= TextStyleComposite(this);
+  set textStyle(TextStyleComposite style) => _textStyle = style;
 }
 
 class EnsembleTextState extends framework.WidgetState<EnsembleText> {
@@ -77,67 +64,10 @@ class EnsembleTextState extends framework.WidgetState<EnsembleText> {
         widget: buildText(widget.controller), boxController: widget.controller);
   }
 
-  Widget buildText(TextController controller) {
-    var textStyle = const TextStyle();
-
-    // also fallback to legacy
-    var fontFamily = controller.textStyle?.fontFamily ?? controller.fontFamily;
-    var fontSize =
-        (controller.textStyle?.fontSize ?? controller.fontSize)?.toDouble();
-    var fontWeight = controller.textStyle?.fontWeight ?? controller.fontWeight;
-    var color = controller.textStyle?.color ?? controller.color;
-    var overflow = controller.textStyle?.overflow ?? controller.overflow;
-
-    if (fontFamily != null) {
-      try {
-        textStyle = GoogleFonts.getFont(fontFamily.trim(), color: Colors.black);
-      } catch (_) {
-        textStyle.copyWith(fontFamily: fontFamily.trim());
-      }
-    }
-
-    Widget rtn = Text(controller.text ?? '',
+  Text buildText(TextController controller) {
+    return Text(controller.text ?? '',
         textAlign: controller.textAlign,
         maxLines: controller.maxLines,
-        style: textStyle.copyWith(
-            fontSize: fontSize,
-            height: controller.textStyle?.height,
-            fontWeight: fontWeight,
-            fontStyle: controller.textStyle?.fontStyle,
-            color: controller.gradient == null ? color : null,
-            backgroundColor: controller.textStyle?.backgroundColor,
-            decoration: controller.textStyle?.decoration,
-            decorationStyle: controller.textStyle?.decorationStyle,
-            overflow: overflow,
-            letterSpacing: controller.textStyle?.letterSpacing,
-            wordSpacing: controller.textStyle?.wordSpacing));
-
-    if (controller.gradient != null) {
-      return _GradientText(
-        gradient: controller.gradient!,
-        child: rtn,
-      );
-    }
-
-    return rtn;
-  }
-}
-
-class _GradientText extends StatelessWidget {
-  const _GradientText({
-    required this.gradient,
-    required this.child,
-  });
-
-  final Gradient gradient;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return ShaderMask(
-      blendMode: BlendMode.srcIn,
-      shaderCallback: (bounds) => gradient.createShader(bounds),
-      child: child,
-    );
+        style: controller.textStyle.getTextStyle());
   }
 }

@@ -35,6 +35,8 @@ class ListView extends StatefulWidget
   @override
   Map<String, Function> setters() {
     return {
+      'onSwipeToRefresh': (funcDefinition) => _controller.onSwipeToRefresh =
+          EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'onItemTap': (funcDefinition) => _controller.onItemTap =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'showSeparator': (value) =>
@@ -65,6 +67,7 @@ class ListView extends StatefulWidget
 
 class ListViewController extends BoxLayoutController {
   EnsembleAction? onItemTap;
+  EnsembleAction? onSwipeToRefresh;
   int selectedItemIndex = -1;
 
   bool? showSeparator;
@@ -145,6 +148,14 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
                         thickness:
                             widget._controller.separatorWidth?.toDouble())));
 
+    if (widget._controller.onSwipeToRefresh != null) {
+      final tempList = listView;
+      listView = flutter.RefreshIndicator(
+        onRefresh: _swipeToRefresh,
+        child: tempList,
+      );
+    }
+
     return BoxWrapper(
         boxController: widget._controller,
         widget: DefaultTextStyle.merge(
@@ -154,7 +165,14 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
             child: listView));
   }
 
-  _onItemTapped(int index) {
+  Future<void> _swipeToRefresh() async {
+    if (widget._controller.onSwipeToRefresh != null) {
+      ScreenController()
+          .executeAction(context, widget._controller.onSwipeToRefresh!);
+    }
+  }
+
+  void _onItemTapped(int index) {
     if (index != widget._controller.selectedItemIndex &&
         widget._controller.onItemTap != null) {
       widget._controller.selectedItemIndex = index;
