@@ -1,14 +1,18 @@
+import 'dart:io';
 import 'dart:math';
 import 'dart:ui';
+import 'package:path/path.dart' as p;
 
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:yaml/yaml.dart';
 
@@ -101,14 +105,31 @@ class Utils {
         List<Color> colors = [];
         for (dynamic colorEntry in value['colors']) {
           Color? color = Utils.getColor(colorEntry);
-          if (color != null) {
-            colors.add(color);
+          if (color == null) {
+            throw LanguageError("Invalid color $colorEntry");
           }
+          colors.add(color);
         }
         // only valid if have at least 2 colors
         if (colors.length >= 2) {
+          List<double>? stops;
+          if (value['stops'] is List) {
+            for (dynamic stop in value['stops']) {
+              double? stopValue = Utils.optionalDouble(stop, min: 0, max: 1.0);
+              if (stopValue == null) {
+                throw LanguageError(
+                    "Gradient's stop has to be a number from 0.0 to 1.0");
+              }
+              (stops ??= []).add(stopValue);
+            }
+          }
+          if (stops != null && stops.length != colors.length) {
+            throw LanguageError(
+                "Gradient's number of colors and stops should be the same.");
+          }
           return LinearGradient(
               colors: colors,
+              stops: stops,
               begin: getAlignment(value['start']) ?? Alignment.centerLeft,
               end: getAlignment(value['end']) ?? Alignment.centerRight);
         }
@@ -373,13 +394,29 @@ class Utils {
     return null;
   }
 
+  static TextStyleComposite getTextStyleAsComposite(
+      WidgetController widgetController,
+      {dynamic style}) {
+    return TextStyleComposite(widgetController,
+        styleWithFontFamily: getTextStyle(style));
+  }
+
   static TextStyle? getTextStyle(dynamic style) {
     if (style is Map) {
-      return TextStyle(
-          fontFamily: Utils.optionalString(style['fontFamily']),
+      TextStyle textStyle =
+          getFontFamily(style['fontFamily']) ?? const TextStyle();
+      return textStyle.copyWith(
+          shadows: [
+            Shadow(
+              blurRadius: Utils.optionalDouble(style['shadowRadius']) ?? 0.0,
+              color: Utils.getColor(style['shadowColor']) ??
+                  const Color(0xFF000000),
+              offset: Utils.getOffset(style['shadowOffset']) ?? Offset.zero,
+            )
+          ],
           fontSize: Utils.optionalInt(style['fontSize'], min: 1, max: 1000)
               ?.toDouble(),
-          height: Utils.optionalDouble(style['lineHeightFactor'],
+          height: Utils.optionalDouble(style['lineHeightMultiple'],
               min: 0.1, max: 10),
           fontWeight: getFontWeight(style['fontWeight']),
           fontStyle: Utils.optionalBool(style['isItalic']) == true
@@ -387,7 +424,7 @@ class Utils {
               : FontStyle.normal,
           color: Utils.getColor(style['color']),
           backgroundColor: Utils.getColor(style['backgroundColor']),
-          decoration: _getDecoration(style['decoration']),
+          decoration: getDecoration(style['decoration']),
           decorationStyle:
               TextDecorationStyle.values.from(style['decorationStyle']),
           overflow: TextOverflow.values.from(style['overflow']),
@@ -397,7 +434,19 @@ class Utils {
     return null;
   }
 
-  static TextDecoration? _getDecoration(dynamic decoration) {
+  static TextStyle? getFontFamily(dynamic name) {
+    String? fontFamily = name?.toString().trim();
+    if (fontFamily != null && fontFamily.isNotEmpty) {
+      try {
+        return GoogleFonts.getFont(fontFamily.trim());
+      } catch (_) {
+        return TextStyle(fontFamily: fontFamily);
+      }
+    }
+    return null;
+  }
+
+  static TextDecoration? getDecoration(dynamic decoration) {
     if (decoration is String) {
       switch (decoration) {
         case 'underline':
@@ -675,6 +724,24 @@ class Utils {
   /// stripping any unnecessary query params (e.g. anything after the first ?)
   static String getLocalAssetFullPath(String asset) {
     return 'ensemble/assets/${stripQueryParamsFromAsset(asset)}';
+  }
+
+  static bool isMemoryPath(String path) {
+    if (kIsWeb) {
+      return path.contains('blob:');
+    } else if (Platform.isWindows) {
+      final pattern = RegExp(r'^[a-zA-Z]:[\\\/]');
+      return pattern.hasMatch(path) && p.isAbsolute(path);
+    } else if (Platform.isAndroid) {
+      return path.startsWith('/data/user/0/');
+    } else if (Platform.isIOS) {
+      return path.startsWith('/private/var/mobile/');
+    } else if (Platform.isMacOS) {
+      return path.startsWith('/Users/');
+    } else if (Platform.isLinux) {
+      return path.startsWith('/home/');
+    }
+    return false;
   }
 
   /// strip any query params (anything after the first ?) from our assets e.g. my-image?x=abc
