@@ -96,6 +96,7 @@ dependencies:
   get_it: ^7.6.0
   google_sign_in: ^6.1.4
   sign_in_with_apple: ^5.0.0
+  crop_your_image: ^0.7.5
 
 dev_dependencies:
   flutter_test:
