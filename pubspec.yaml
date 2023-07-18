@@ -94,7 +94,10 @@ dependencies:
   dart_jsonwebtoken: ^2.8.2
   flutter_dotenv: ^5.1.0
   get_it: ^7.6.0
-
+  flutter_chat_ui: ^1.6.9
+  flutter_chat_types: ^3.6.2
+  web_socket_channel: ^2.4.0
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter
