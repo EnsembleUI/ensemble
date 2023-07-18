@@ -47,6 +47,8 @@ import 'package:ensemble/widget/visualization/chart_js.dart';
 import 'package:ensemble/widget/visualization/line_area_chart.dart';
 import 'package:ensemble/widget/webview/webview.dart';
 
+import 'chat.dart';
+
 class WidgetRegistry {
   WidgetRegistry({this.debugLabel});
   final String? debugLabel;
@@ -123,5 +125,6 @@ class WidgetRegistry {
 
         //Conditional UI
         Conditional.type: () => Conditional(),
+        EnsembleChat.type: () => EnsembleChat(),
       };
 }
