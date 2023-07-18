@@ -384,21 +384,24 @@ class SignInServices {
         });
       }
     }
-    return SignInServices._(serverUri: serverUri, signInCredentials: credentials);
+    return SignInServices._(
+        serverUri: serverUri, signInCredentials: credentials);
   }
-
 }
 
 class SignInCredential {
-  SignInCredential({this.iOSClientId, this.androidClientId, this.webClientId, this.serverClientId});
+  SignInCredential(
+      {this.iOSClientId,
+      this.androidClientId,
+      this.webClientId,
+      this.serverClientId});
   String? iOSClientId;
   String? androidClientId;
   String? webClientId;
   String? serverClientId;
 }
 
-
-enum ServiceName { google, microsoft, yahoo }
+enum ServiceName { system, google, apple, microsoft, yahoo }
 
 /// user configuration for the App
 class UserAppConfig {
