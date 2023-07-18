@@ -386,11 +386,15 @@ class ScreenController {
       }
     } else if (action is CopyToClipboardAction) {
       if (action.value != null) {
-        String? clipboardValue = dataContext.eval(action.value);
+        String? clipboardValue = action.getValue(dataContext);
         if (clipboardValue != null) {
           Clipboard.setData(ClipboardData(text: clipboardValue)).then((value) {
             if (action.onSuccess != null) {
               executeAction(context, action.onSuccess!);
+            }
+          }).catchError((_) {
+            if (action.onFailure != null) {
+              executeAction(context, action.onFailure!);
             }
           });
         }

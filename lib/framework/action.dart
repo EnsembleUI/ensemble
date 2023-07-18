@@ -442,9 +442,12 @@ class CopyToClipboardAction extends EnsembleAction {
     this.onSuccess,
     this.onFailure,
   });
-  String? value;
+  dynamic value;
   EnsembleAction? onSuccess;
   EnsembleAction? onFailure;
+
+  String? getValue(DataContext dataContext) =>
+      Utils.optionalString(dataContext.eval(value));
 
   factory CopyToClipboardAction.fromYaml({YamlMap? payload}) {
     if (payload == null || payload['value'] == null) {
@@ -452,7 +455,7 @@ class CopyToClipboardAction extends EnsembleAction {
           '${ActionType.copyToClipboard.name} requires the value.');
     }
     return CopyToClipboardAction(
-      value: Utils.optionalString(payload['value']),
+      value: payload['value'],
       onSuccess: EnsembleAction.fromYaml(payload['onSuccess']),
       onFailure: EnsembleAction.fromYaml(payload['onFailure']),
     );
