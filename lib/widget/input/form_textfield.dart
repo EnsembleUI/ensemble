@@ -27,8 +27,7 @@ class TextInput extends BaseTextInput {
   Map<String, Function> setters() {
     Map<String, Function> setters = super.setters();
     setters.addAll({
-      'value': (newValue) =>
-          textController.text = Utils.getString(newValue, fallback: ''),
+      'value': (newValue) => textController.text = newValue,
       'obscureText': (obscure) =>
           _controller.obscureText = Utils.optionalBool(obscure),
       'inputType': (type) => _controller.inputType = Utils.optionalString(type),
@@ -69,10 +68,7 @@ class PasswordInput extends BaseTextInput {
   @override
   Map<String, Function> setters() {
     Map<String, Function> setters = super.setters();
-    setters.addAll({
-      'value': (newValue) =>
-          textController.text = Utils.getString(newValue, fallback: '')
-    });
+    setters.addAll({'value': (newValue) => textController.text = newValue});
     return setters;
   }
 }
@@ -85,6 +81,7 @@ abstract class BaseTextInput extends StatefulWidget
   // textController manages 'value', while _controller manages the rest
   final TextEditingController textController = TextEditingController();
   final TextInputController _controller = TextInputController();
+
   @override
   TextInputController get controller => _controller;
 
@@ -114,12 +111,17 @@ abstract class BaseTextInput extends StatefulWidget
           _controller.keyboardAction = _getKeyboardAction(value),
       'maxLines': (value) => _controller.maxLines =
           Utils.getInt(value, min: 1, fallback: _controller.maxLines),
+      'textStyle': (style) => _controller.textStyle = Utils.getTextStyle(style),
+      'hintStyle': (style) => _controller.hintStyle = Utils.getTextStyle(style),
     };
   }
 
   @override
   Map<String, Function> methods() {
-    return {};
+    return {
+      'focus': () => _controller.inputFieldAction?.focusInputField(),
+      'unfocus': () => _controller.inputFieldAction?.unfocusInputField(),
+    };
   }
 
   TextInputAction? _getKeyboardAction(dynamic value) {
@@ -147,8 +149,14 @@ abstract class BaseTextInput extends StatefulWidget
   TextInputType? get keyboardType;
 }
 
+mixin TextInputFieldAction on FormFieldWidgetState<BaseTextInput> {
+  void focusInputField();
+  void unfocusInputField();
+}
+
 /// controller for both TextField and Password
 class TextInputController extends FormFieldController {
+  TextInputFieldAction? inputFieldAction;
   EnsembleAction? onChange;
   EnsembleAction? onKeyPress;
   TextInputAction? keyboardAction;
@@ -165,9 +173,12 @@ class TextInputController extends FormFieldController {
   model.InputValidator? validator;
   String? inputType;
   int maxLines = 1;
+  TextStyle? textStyle;
+  TextStyle? hintStyle;
 }
 
-class TextInputState extends FormFieldWidgetState<BaseTextInput> {
+class TextInputState extends FormFieldWidgetState<BaseTextInput>
+    with TextInputFieldAction {
   final focusNode = FocusNode();
 
   // for this widget we will implement onChange if the text changes AND:
@@ -224,6 +235,18 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    widget.controller.inputFieldAction = this;
+  }
+
+  @override
+  void didUpdateWidget(covariant BaseTextInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    widget.controller.inputFieldAction = this;
+  }
+
+  @override
   void dispose() {
     focusNode.dispose();
     super.dispose();
@@ -240,19 +263,11 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
 
   @override
   Widget buildWidget(BuildContext context) {
-    // TextField doesn't take the global disabled color for some reason,
-    // so we have to account for it here
-    TextStyle textStyle;
-    if (isEnabled()) {
-      textStyle = TextStyle(fontSize: widget.controller.fontSize?.toDouble());
-    } else {
-      textStyle = TextStyle(
-          color: Theme.of(context).disabledColor,
-          fontSize: widget.controller.fontSize?.toDouble());
-    }
-
     // for password, show the toggle plain text/obscure text
-    InputDecoration decoration = inputDecoration;
+    InputDecoration decoration = inputDecoration.copyWith(
+      hintStyle: widget._controller.hintStyle,
+    );
+
     if ((widget.isPassword() || widget._controller.obscureText == true) &&
         widget._controller.obscureToggle == true) {
       decoration = decoration.copyWith(
@@ -358,9 +373,27 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
               }
             }
           },
-          style: textStyle,
+          style: isEnabled()
+              ? widget._controller.textStyle
+              : widget._controller.textStyle?.copyWith(
+                  color: Theme.of(context).disabledColor,
+                ),
           decoration: decoration,
         ));
+  }
+
+  @override
+  void focusInputField() {
+    if (!focusNode.hasFocus) {
+      focusNode.requestFocus();
+    }
+  }
+
+  @override
+  void unfocusInputField() {
+    if (focusNode.hasFocus) {
+      focusNode.unfocus();
+    }
   }
 }
 

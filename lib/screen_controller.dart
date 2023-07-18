@@ -15,11 +15,12 @@ import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/placeholder/camera_manager.dart';
+import 'package:ensemble/framework/placeholder/file_manager.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/view/page_group.dart';
-import 'package:ensemble/framework/widget/camera_manager.dart';
 import 'package:ensemble/framework/widget/modal_screen.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/framework/widget/toast.dart';
@@ -30,8 +31,6 @@ import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_registry.dart';
-import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -41,6 +40,7 @@ import 'package:url_launcher/url_launcher_string.dart';
 import 'package:walletconnect_dart/walletconnect_dart.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:yaml/yaml.dart';
+import 'package:get_it/get_it.dart';
 
 import 'framework/widget/wallet_connect_modal.dart';
 
@@ -162,8 +162,27 @@ class ScreenController {
           executeActionWithScope(context, scopeManager, action.onModalDismiss!);
         });
       }
+    } else if (action is ShowBottomModalAction) {
+      Widget? widget;
+      if (scopeManager != null && action.widget != null) {
+        widget = scopeManager.buildWidgetFromDefinition(action.widget);
+      }
+
+      if (widget != null) {
+        showModalBottomSheet(
+          context: context,
+          backgroundColor: action.backgroundColor(dataContext),
+          barrierColor: action.barrierColor(dataContext),
+          isScrollControlled: true,
+          enableDrag: action.enableDrag(dataContext),
+          showDragHandle: action.enableDragHandler(dataContext),
+          builder: (context) {
+            return widget!;
+          },
+        );
+      }
     } else if (action is ShowCameraAction) {
-      CameraManager().openCamera(context, action, scopeManager);
+      GetIt.I<CameraManager>().openCamera(context, action, scopeManager);
     } else if (action is ShowDialogAction) {
       if (scopeManager != null) {
         Widget widget = scopeManager.buildWidgetFromDefinition(action.widget);
@@ -356,30 +375,7 @@ class ScreenController {
           apiMap: apiMap,
           scopeManager: scopeManager);
     } else if (action is FilePickerAction) {
-      FilePicker.platform
-          .pickFiles(
-        type: action.allowedExtensions == null ? FileType.any : FileType.custom,
-        allowedExtensions: action.allowedExtensions,
-        allowCompression: action.allowCompression ?? true,
-        allowMultiple: action.allowMultiple ?? false,
-      )
-          .then((result) {
-        if (result == null || result.files.isEmpty) {
-          if (action.onError != null) executeAction(context, action.onError!);
-          return;
-        }
-
-        final selectedFiles =
-            result.files.map((file) => File.fromPlatformFile(file)).toList();
-        final fileData = FileData(files: selectedFiles);
-        if (scopeManager == null) return;
-        scopeManager.dataContext.addDataContextById(action.id, fileData);
-        scopeManager.dispatch(
-            ModelChangeEvent(SimpleBindingSource(action.id), fileData));
-        if (action.onComplete != null) {
-          executeAction(context, action.onComplete!);
-        }
-      });
+      GetIt.I<FileManager>().pickFiles(context, action, scopeManager);
     } else if (action is NavigateBack) {
       if (scopeManager != null) {
         Navigator.of(context).maybePop();
@@ -510,7 +506,13 @@ class ScreenController {
     }
 
     if (action.id != null && scopeManager != null) {
-      scopeManager.dataContext.addInvokableContext(action.id!, APIResponse());
+      final uploadFilesResponse =
+          scopeManager.dataContext.getContextById(action.id!);
+      scopeManager.dataContext.addInvokableContext(
+          action.id!,
+          (uploadFilesResponse is UploadFilesResponse)
+              ? uploadFilesResponse
+              : UploadFilesResponse());
     }
 
     final apiDefinition = apiMap?[action.uploadApi];
@@ -551,7 +553,8 @@ class ScreenController {
     String method = apiDefinition['method']?.toString().toUpperCase() ?? 'POST';
     final fileResponse = action.id == null
         ? null
-        : scopeManager?.dataContext.getContextById(action.id!) as APIResponse;
+        : scopeManager?.dataContext.getContextById(action.id!)
+            as UploadFilesResponse;
 
     if (action.isBackgroundTask) {
       if (kIsWeb) {
@@ -571,6 +574,8 @@ class ScreenController {
 
       return;
     }
+    final taskId = generateRandomId(8);
+    fileResponse?.addTask(UploadTask(id: taskId));
 
     final response = await UploadUtils.uploadFiles(
       headers: headers,
@@ -584,14 +589,20 @@ class ScreenController {
           ? null
           : (error) => executeAction(context, action.onError!),
       progressCallback: (progress) {
-        fileResponse?.setProgress(progress);
+        fileResponse?.setProgress(taskId, progress);
         scopeManager?.dispatch(
             ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
       },
+      taskId: taskId,
     );
 
-    if (response == null) return;
-    fileResponse?.setAPIResponse(response);
+    if (response == null) {
+      fileResponse?.setStatus(taskId, UploadStatus.failed);
+      return;
+    }
+    fileResponse?.setHeaders(taskId, response.headers);
+    fileResponse?.setBody(taskId, response.body);
+    fileResponse?.setStatus(taskId, UploadStatus.completed);
     scopeManager?.dispatch(
         ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
 
@@ -658,14 +669,16 @@ class ScreenController {
     required Map<String, String> fields,
     required String method,
     required String url,
-    APIResponse? fileResponse,
+    UploadFilesResponse? fileResponse,
     ScopeManager? scopeManager,
   }) async {
     final taskId = generateRandomId(8);
+    fileResponse?.addTask(UploadTask(id: taskId, isBackground: true));
 
     await Workmanager().registerOneOffTask(
       'uploadTask',
       backgroundUploadTask,
+      tag: taskId,
       inputData: {
         'fieldName': action.fieldName,
         'files': selectedFiles.map((e) => json.encode(e.toJson())).toList(),
@@ -688,17 +701,43 @@ class ScreenController {
     subscription = port.listen((dynamic data) async {
       if (data is! Map) return;
       if (data.containsKey('progress')) {
-        fileResponse?.setProgress(data['progress']);
+        final taskId = data['taskId'];
+        fileResponse?.setStatus(taskId, UploadStatus.running);
+        fileResponse?.setProgress(taskId, data['progress']);
         if (action.id != null) {
           scopeManager?.dispatch(
               ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
         }
       }
+
+      if (data.containsKey('cancel')) {
+        if (action.id != null) {
+          scopeManager?.dispatch(
+              ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
+        }
+        subscription?.cancel();
+      }
+
       if (data.containsKey('error')) {
-        executeAction(context, action.onError!);
+        final taskId = data['taskId'];
+        fileResponse?.setStatus(taskId, UploadStatus.failed);
+        if (action.id != null) {
+          scopeManager?.dispatch(
+              ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
+        }
+        if (action.onError != null) {
+          executeAction(context, action.onError!);
+        }
+        subscription?.cancel();
       }
       if (data.containsKey('responseBody')) {
-        fileResponse?.setAPIResponse(Response.fromBody(data['responseBody']));
+        final taskId = data['taskId'];
+        final response =
+            Response.fromBody(data['responseBody'], data['responseHeaders']);
+        fileResponse?.setBody(taskId, response.body);
+        fileResponse?.setHeaders(taskId, response.headers);
+        fileResponse?.setStatus(taskId, UploadStatus.completed);
+
         if (action.id != null) {
           scopeManager?.dispatch(
               ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
@@ -717,6 +756,13 @@ class ScreenController {
     if (scopeManager != null) {
       scopeManager.dispatch(ModelChangeEvent(StorageBindingSource(key), value));
     }
+  }
+
+  void dispatchSystemStorageChanges(
+      BuildContext context, String key, dynamic value,
+      {required String storagePrefix}) {
+    _getScopeManager(context)?.dispatch(ModelChangeEvent(
+        SystemStorageBindingSource(key, storagePrefix: storagePrefix), value));
   }
 
   /// Navigate to another screen

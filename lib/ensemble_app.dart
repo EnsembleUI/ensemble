@@ -1,11 +1,12 @@
 import 'dart:convert';
 import 'dart:ui';
 
+import 'package:device_preview/device_preview.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
-import 'package:device_preview/device_preview.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/widget/error_screen.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/page_model.dart';
@@ -16,12 +17,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:get_storage/get_storage.dart';
-import 'package:provider/provider.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-const String previewConfig = 'preview-config';
 const String backgroundUploadTask = 'backgroundUploadTask';
 
 @pragma('vm:entry-point')
@@ -44,21 +42,30 @@ void callbackDispatcher() {
                 Map<String, String>.from(json.decode(inputData['headers'])),
             method: inputData['method'],
             url: inputData['url'],
-            fields: inputData['fields'],
+            fields: Map<String, String>.from(json.decode(inputData['fields'])),
             showNotification: inputData['showNotification'],
             progressCallback: (progress) {
               if (sendPort == null) return;
-              sendPort.send({'progress': progress});
+              sendPort.send({
+                'progress': progress,
+                'taskId': inputData['taskId'],
+              });
             },
             onError: (error) {
               if (sendPort == null) return;
-              sendPort.send({'error': error});
+              sendPort.send(
+                  {'error': error.toString(), 'taskId': inputData['taskId']});
             },
+            taskId: inputData['taskId'],
           );
 
           if (sendPort == null || response == null) return response == null;
 
-          sendPort.send({'responseBody': response.body});
+          sendPort.send({
+            'responseBody': response.body,
+            'taskId': inputData['taskId'],
+            'responseHeaders': response.headers,
+          });
         } catch (e) {
           throw LanguageError('Failed to process backgroud upload task');
         }
@@ -91,10 +98,13 @@ class EnsembleAppState extends State<EnsembleApp> {
   /// initialize our App with the the passed in config or
   /// read from our ensemble-config file.
   Future<EnsembleConfig> initApp() async {
-    await dotenv.load();
+    try {
+      await dotenv.load();
+    } catch (_) {}
     Device().initDeviceInfo();
-    await GetStorage.init();
-    GetStorage().write(previewConfig, widget.isPreview);
+
+    await StorageManager().init();
+    StorageManager().setIsPreview(widget.isPreview);
 
     // use the config if passed in
     if (widget.ensembleConfig != null) {
@@ -150,7 +160,7 @@ class EnsembleAppState extends State<EnsembleApp> {
 
   Widget renderApp(EnsembleConfig config) {
     //log("EnsembleApp build() - $hashCode");
-    GetStorage().write(previewConfig, widget.isPreview);
+    StorageManager().setIsPreview(widget.isPreview);
 
     return MaterialApp(
       navigatorKey: Utils.globalAppKey,
