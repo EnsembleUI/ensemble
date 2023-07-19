@@ -339,7 +339,6 @@ class NativeInvokable with Invokable {
       'initNotification': () => notificationUtils.initNotifications(),
       'updateSystemAuthorizationToken': (token) =>
           StorageManager().updateServiceTokens(ServiceName.system, token),
-
     };
   }
 
