@@ -16,6 +16,7 @@ import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/placeholder/camera_manager.dart';
+import 'package:ensemble/framework/placeholder/file_manager.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/framework/theme/theme_loader.dart';
@@ -30,7 +31,6 @@ import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_registry.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -375,41 +375,25 @@ class ScreenController {
           apiMap: apiMap,
           scopeManager: scopeManager);
     } else if (action is FilePickerAction) {
-      FilePicker.platform
-          .pickFiles(
-        type: action.allowedExtensions == null ? FileType.any : FileType.custom,
-        allowedExtensions: action.allowedExtensions,
-        allowCompression: action.allowCompression ?? true,
-        allowMultiple: action.allowMultiple ?? false,
-      )
-          .then((result) {
-        if (result == null || result.files.isEmpty) {
-          if (action.onError != null) executeAction(context, action.onError!);
-          return;
-        }
-
-        final selectedFiles =
-            result.files.map((file) => File.fromPlatformFile(file)).toList();
-        final fileData = FileData(files: selectedFiles);
-        if (scopeManager == null) return;
-        scopeManager.dataContext.addDataContextById(action.id, fileData);
-        scopeManager.dispatch(
-            ModelChangeEvent(SimpleBindingSource(action.id), fileData));
-        if (action.onComplete != null) {
-          executeAction(context, action.onComplete!);
-        }
-      });
+      GetIt.I<FileManager>().pickFiles(context, action, scopeManager);
     } else if (action is NavigateBack) {
       if (scopeManager != null) {
         Navigator.of(context).maybePop();
       }
     } else if (action is CopyToClipboardAction) {
       if (action.value != null) {
-        Clipboard.setData(ClipboardData(text: action.value!)).then((value) {
-          if (action.onSuccess != null) {
-            executeAction(context, action.onSuccess!);
-          }
-        });
+        String? clipboardValue = action.getValue(dataContext);
+        if (clipboardValue != null) {
+          Clipboard.setData(ClipboardData(text: clipboardValue)).then((value) {
+            if (action.onSuccess != null) {
+              executeAction(context, action.onSuccess!);
+            }
+          }).catchError((_) {
+            if (action.onFailure != null) {
+              executeAction(context, action.onFailure!);
+            }
+          });
+        }
       } else {
         if (action.onFailure != null) executeAction(context, action.onFailure!);
       }
@@ -774,10 +758,11 @@ class ScreenController {
     }
   }
 
-  void dispatchSystemStorageChanges(BuildContext context, String key, dynamic value, {required String storagePrefix}) {
+  void dispatchSystemStorageChanges(
+      BuildContext context, String key, dynamic value,
+      {required String storagePrefix}) {
     _getScopeManager(context)?.dispatch(ModelChangeEvent(
-        SystemStorageBindingSource(key, storagePrefix: storagePrefix),
-        value));
+        SystemStorageBindingSource(key, storagePrefix: storagePrefix), value));
   }
 
   /// Navigate to another screen

@@ -21,11 +21,14 @@
           "description": "Configure the application header",
           "properties": {
             "title": {
-              "oneOf": [{
-                "type": "string"
-              }, {
-                "$ref": "#/$defs/Widget"
-              }],
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/$defs/Widget"
+                }
+              ],
               "description": "A simple text or a custom widget for the App's title"
             },
             "flexibleBackground": {
@@ -190,7 +193,10 @@
             }
           },
           "body": {
-            "type": "string",
+            "type": [
+              "string",
+              "object"
+            ],
             "description": "The request body to pass along with the URL"
           },
           "onResponse": {
@@ -782,7 +788,7 @@
                   "minimum": 6
                 }
               }
-            }, 
+            },
             "textStyle": {
               "type": "object",
               "description": "Styling the input text. Default to theme's bodyMedium styling",
@@ -867,19 +873,22 @@
             "items": {
               "type": "array",
               "items": {
-                "oneOf": [{
-                  "type": "object",
-                  "properties": {
-                    "value": {
-                      "type": "string"
-                    },
-                    "label": {
-                      "type": "string"
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "string"
+                      },
+                      "label": {
+                        "type": "string"
+                      }
                     }
+                  },
+                  {
+                    "type": "string"
                   }
-                }, {
-                  "type": "string"
-                }]
+                ]
               },
               "description": "List of values, or Objects with value/label pairs"
             },
@@ -937,7 +946,9 @@
     },
     "SignInWithGoogle-payload": {
       "type": "object",
-      "required": ["widget"],
+      "required": [
+        "widget"
+      ],
       "properties": {
         "widget": {
           "$ref": "#/$defs/Widget",
@@ -1167,7 +1178,9 @@
     },
     "Form-payload": {
       "type": "object",
-      "required": ["children"],
+      "required": [
+        "children"
+      ],
       "properties": {
         "enabled": {
           "type": "boolean"
@@ -1229,7 +1242,9 @@
           "$ref": "#/$defs/Templated-payload"
         },
         {
-          "required": ["children"],
+          "required": [
+            "children"
+          ],
           "properties": {
             "children": {
               "$ref": "#/$defs/Widgets"
@@ -1413,49 +1428,49 @@
                         {
                           "type": "object",
                           "properties": {
-                              "font": {
-                                "type": "string",
-                                "description": "Default built-in style for this text",
-                                "enum": [
-                                  "heading",
-                                  "title",
-                                  "subtitle"
-                                ]
-                              },
-                              "fontSize": {
-                                "type": "integer",
-                                "minimum": 6
-                              },
-                              "fontWeight": {
-                                "$ref": "#/$defs/type-fontWeight"
-                              },
-                              "color": {
-                                "$ref": "#/$defs/typeColors"
-                              },
-                              "lineHeight": {
-                                "oneOf": [
-                                  {
-                                    "title": "string",
-                                    "type": "string"
-                                  },
-                                  {
-                                    "title": "number",
-                                    "type": "number"
-                                  },
-                                  {
-                                    "title": "enum",
-                                    "enum": [
-                                      "default",
-                                      "1.0",
-                                      "1.15",
-                                      "1.25",
-                                      "1.5",
-                                      "2.0",
-                                      "2.5"
-                                    ]
-                                  }
-                                ]
-                              }
+                            "font": {
+                              "type": "string",
+                              "description": "Default built-in style for this text",
+                              "enum": [
+                                "heading",
+                                "title",
+                                "subtitle"
+                              ]
+                            },
+                            "fontSize": {
+                              "type": "integer",
+                              "minimum": 6
+                            },
+                            "fontWeight": {
+                              "$ref": "#/$defs/type-fontWeight"
+                            },
+                            "color": {
+                              "$ref": "#/$defs/typeColors"
+                            },
+                            "lineHeight": {
+                              "oneOf": [
+                                {
+                                  "title": "string",
+                                  "type": "string"
+                                },
+                                {
+                                  "title": "number",
+                                  "type": "number"
+                                },
+                                {
+                                  "title": "enum",
+                                  "enum": [
+                                    "default",
+                                    "1.0",
+                                    "1.15",
+                                    "1.25",
+                                    "1.5",
+                                    "2.0",
+                                    "2.5"
+                                  ]
+                                }
+                              ]
+                            }
                           }
                         }
                       ]
@@ -1463,56 +1478,56 @@
                     "dataText": {
                       "type": "object",
                       "description": "Set the text style for the data item text",
-                       "allOf": [
+                      "allOf": [
                         {
                           "$ref": "#/$defs/OldTextStyle"
                         },
                         {
                           "type": "object",
                           "properties": {
-                              "font": {
-                                "type": "string",
-                                "description": "Default built-in style for this text",
-                                "enum": [
-                                  "heading",
-                                  "title",
-                                  "subtitle"
-                                ]
-                              },
-                              "fontSize": {
-                                "type": "integer",
-                                "minimum": 6
-                              },
-                              "fontWeight": {
-                                "$ref": "#/$defs/type-fontWeight"
-                              },
-                              "color": {
-                                "$ref": "#/$defs/typeColors"
-                              },
-                              "lineHeight": {
-                                "oneOf": [
-                                  {
-                                    "title": "string",
-                                    "type": "string"
-                                  },
-                                  {
-                                    "title": "number",
-                                    "type": "number"
-                                  },
-                                  {
-                                    "title": "enum",
-                                    "enum": [
-                                      "default",
-                                      "1.0",
-                                      "1.15",
-                                      "1.25",
-                                      "1.5",
-                                      "2.0",
-                                      "2.5"
-                                    ]
-                                  }
-                                ]
-                              }
+                            "font": {
+                              "type": "string",
+                              "description": "Default built-in style for this text",
+                              "enum": [
+                                "heading",
+                                "title",
+                                "subtitle"
+                              ]
+                            },
+                            "fontSize": {
+                              "type": "integer",
+                              "minimum": 6
+                            },
+                            "fontWeight": {
+                              "$ref": "#/$defs/type-fontWeight"
+                            },
+                            "color": {
+                              "$ref": "#/$defs/typeColors"
+                            },
+                            "lineHeight": {
+                              "oneOf": [
+                                {
+                                  "title": "string",
+                                  "type": "string"
+                                },
+                                {
+                                  "title": "number",
+                                  "type": "number"
+                                },
+                                {
+                                  "title": "enum",
+                                  "enum": [
+                                    "default",
+                                    "1.0",
+                                    "1.15",
+                                    "1.25",
+                                    "1.5",
+                                    "2.0",
+                                    "2.5"
+                                  ]
+                                }
+                              ]
+                            }
                           }
                         }
                       ]
@@ -1580,7 +1595,9 @@
     },
     "DataRows-payload": {
       "title": "DataRow",
-      "required": ["DataRow"],
+      "required": [
+        "DataRow"
+      ],
       "properties": {
         "DataRow": {
           "$ref": "#/$defs/DataRow",
@@ -1591,7 +1608,9 @@
     "DataRow": {
       "type": "object",
       "description": "List of widgets",
-      "required": ["children"],
+      "required": [
+        "children"
+      ],
       "properties": {
         "children": {
           "$ref": "#/$defs/Widgets"
@@ -1618,7 +1637,9 @@
     },
     "Stack-payload": {
       "type": "object",
-      "required": ["children"],
+      "required": [
+        "children"
+      ],
       "properties": {
         "children": {
           "$ref": "#/$defs/Widgets"
@@ -1641,7 +1662,9 @@
           "$ref": "#/$defs/Templated-payload"
         },
         {
-          "required": ["children"],
+          "required": [
+            "children"
+          ],
           "properties": {
             "children": {
               "$ref": "#/$defs/Widgets"
@@ -1706,7 +1729,9 @@
       "type": "object",
       "allOf": [
         {
-          "required": ["children"],
+          "required": [
+            "children"
+          ],
           "properties": {
             "children": {
               "$ref": "#/$defs/Widgets"
@@ -2007,18 +2032,23 @@
         {
           "title": "Navigate Back",
           "type": "object",
-          "required": ["navigateBack"],
+          "required": [
+            "navigateBack"
+          ],
           "properties": {
             "navigateBack": {
               "type": "object",
-              "description": "Navigating back to the previous screen if possible. The current screen will be removed from the navigation history. This also works for a modal screen."
+              "description": "Navigating back to the previous screen if possible. The current screen will be removed from the navigation history. This also works for a modal screen.",
+              "properties": {}
             }
           }
         },
         {
           "title": "Navigate Screen",
           "type": "object",
-          "required": ["navigateScreen"],
+          "required": [
+            "navigateScreen"
+          ],
           "properties": {
             "navigateScreen": {
               "type": "object",
@@ -2033,7 +2063,11 @@
                 },
                 "inputs": {
                   "type": "object",
-                  "description": "Specify the key/value pairs to pass into the next Screen"
+                  "description": "Specify the key/value pairs to pass into the next Screen",
+                  "properties": {},
+                  "additionalProperties": {
+                    "type": "string"
+                  }
                 },
                 "options": {
                   "type": "object",
@@ -2055,7 +2089,9 @@
         {
           "title": "Navigate Modal Screen",
           "type": "object",
-          "required": ["navigateModalScreen"],
+          "required": [
+            "navigateModalScreen"
+          ],
           "properties": {
             "navigateModalScreen": {
               "type": "object",
@@ -2070,7 +2106,11 @@
                 },
                 "inputs": {
                   "type": "object",
-                  "description": "Specify the key/value pairs to pass into the next Screen"
+                  "description": "Specify the key/value pairs to pass into the next Screen",
+                  "properties": {},
+                  "additionalProperties": {
+                    "type": "string"
+                  }
                 },
                 "onModalDismiss": {
                   "$ref": "#/$defs/Action-payload",
@@ -2083,7 +2123,9 @@
         {
           "title": "Show Bottom Modal",
           "type": "object",
-          "required": ["showBottomModal"],
+          "required": [
+            "showBottomModal"
+          ],
           "properties": {
             "showBottomModal": {
               "type": "object",
@@ -2129,13 +2171,15 @@
         {
           "title": "Open URL",
           "type": "object",
-          "required": ["openUrl"],
+          "required": [
+            "openUrl"
+          ],
           "properties": {
             "openUrl": {
               "type": "object",
               "description": "Open URL in ensemble or a separate app",
               "properties": {
-                "url" : {
+                "url": {
                   "type": "string",
                   "description": "The URL to open"
                 },
@@ -2150,7 +2194,9 @@
         {
           "title": "Invoke API",
           "type": "object",
-          "required": ["invokeAPI"],
+          "required": [
+            "invokeAPI"
+          ],
           "properties": {
             "invokeAPI": {
               "type": "object",
@@ -2170,6 +2216,7 @@
                 "inputs": {
                   "type": "object",
                   "description": "Specify the key/value pairs to pass to the API",
+                  "properties": {},
                   "additionalProperties": {
                     "type": "string"
                   }
@@ -2189,7 +2236,9 @@
         {
           "title": "Open Camera",
           "type": "object",
-          "required": ["openCamera"],
+          "required": [
+            "openCamera"
+          ],
           "properties": {
             "openCamera": {
               "type": "object",
@@ -2320,7 +2369,9 @@
         {
           "title": "Show Dialog",
           "type": "object",
-          "required": ["showDialog"],
+          "required": [
+            "showDialog"
+          ],
           "properties": {
             "showDialog": {
               "type": "object",
@@ -2383,18 +2434,23 @@
         {
           "title": "Close All Dialogs",
           "type": "object",
-          "required": ["closeAllDialogs"],
+          "required": [
+            "closeAllDialogs"
+          ],
           "properties": {
             "closeAllDialogs": {
               "type": "object",
-              "description": "Closing all opened dialogs"
+              "description": "Closing all opened dialogs",
+              "properties": {}
             }
           }
         },
         {
           "title": "Start Timer",
           "type": "object",
-          "required": ["startTimer"],
+          "required": [
+            "startTimer"
+          ],
           "properties": {
             "startTimer": {
               "type": "object",
@@ -2450,7 +2506,9 @@
         {
           "title": "Stop Timer",
           "type": "object",
-          "required": ["stopTimer"],
+          "required": [
+            "stopTimer"
+          ],
           "properties": {
             "stopTimer": {
               "type": "object",
@@ -2470,7 +2528,9 @@
         {
           "title": "Show Toast",
           "type": "object",
-          "required": ["showToast"],
+          "required": [
+            "showToast"
+          ],
           "properties": {
             "showToast": {
               "type": "object",
@@ -2524,13 +2584,13 @@
                   }
                 },
                 "styles": {
-                  "type": "object",
                   "allOf": [
                     {
                       "$ref": "#/$defs/backgroundColor",
                       "description": "Toast's background color"
                     },
                     {
+                      "type": "object",
                       "properties": {
                         "shadowColor": {
                           "oneOf": [
@@ -2570,40 +2630,41 @@
           }
         },
         {
-          "title": "Execute Code",
-          "oneOf": [
-            {
+          "title": "Execute Code V1 (Deprecated)",
+          "type": "string"
+        },
+        {
+          "title": "Execute Code V2",
+          "type": "object",
+          "required": [
+            "executeCode"
+          ],
+          "properties": {
+            "executeCode": {
+              "description": "Execute a block of code.",
               "type": "object",
-              "required": ["executeCode"],
+              "required": [
+                "body"
+              ],
               "properties": {
-                "executeCode": {
-                  "description": "Execute a block of code.",
-                  "type": "object",
-                  "required": [
-                    "body"
-                  ],
-                  "properties": {
-                    "body": {
-                      "type": "string",
-                      "description": "Define your code block here, starting with //@code"
-                    },
-                    "onComplete": {
-                      "$ref": "#/$defs/Action-payload",
-                      "description": "Execute another Action when the code body finishes executing"
-                    }
-                  }
+                "body": {
+                  "type": "string",
+                  "description": "Define your code block here, starting with //@code"
+                },
+                "onComplete": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute another Action when the code body finishes executing"
                 }
               }
-            },
-            {
-              "type": "string"
             }
-          ]
+          }
         },
         {
           "title": "Get Location",
           "type": "object",
-          "required": ["getLocation"],
+          "required": [
+            "getLocation"
+          ],
           "properties": {
             "getLocation": {
               "type": "object",
@@ -2638,7 +2699,9 @@
         {
           "title": "Upload Files",
           "type": "object",
-          "required": ["uploadFiles"],
+          "required": [
+            "uploadFiles"
+          ],
           "properties": {
             "uploadFiles": {
               "type": "object",
@@ -2678,36 +2741,38 @@
                 },
                 "options": {
                   "type": "object",
-                  "maxFileSize": {
-                    "type": "integer",
-                    "description": "File size that is allowed (default 100 mb), If multiple is allow then sum of all files"
-                  },
-                  "overMaxFileSizeMessage": {
-                    "type": "string",
-                    "description": "Error message to show when selected files size is above maxFileSize."
-                  },
-                  "backgroundTask": {
-                    "type": "boolean",
-                    "description": "If set true, uploading will be done in background."
-                  },
-                  "showNotification": {
-                    "type": "boolean",
-                    "description": "If set true, progress will be show in notification bar."
-                  },
-                  "networkType": {
-                    "type": "object",
-                    "description": "An enumeration of network types.",
-                    "properties": {
-                      "type": {
-                        "type": "string",
-                        "enum": [
-                          "connected",
-                          "metered",
-                          "not_required",
-                          "not_roaming",
-                          "unmetered",
-                          "temporarily_unmetered"
-                        ]
+                  "properties": {
+                    "maxFileSize": {
+                      "type": "integer",
+                      "description": "File size that is allowed (default 100 mb), If multiple is allow then sum of all files"
+                    },
+                    "overMaxFileSizeMessage": {
+                      "type": "string",
+                      "description": "Error message to show when selected files size is above maxFileSize."
+                    },
+                    "backgroundTask": {
+                      "type": "boolean",
+                      "description": "If set true, uploading will be done in background."
+                    },
+                    "showNotification": {
+                      "type": "boolean",
+                      "description": "If set true, progress will be show in notification bar."
+                    },
+                    "networkType": {
+                      "type": "object",
+                      "description": "An enumeration of network types.",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "connected",
+                            "metered",
+                            "not_required",
+                            "not_roaming",
+                            "unmetered",
+                            "temporarily_unmetered"
+                          ]
+                        }
                       }
                     }
                   }
@@ -2719,7 +2784,9 @@
         {
           "title": "Pick Files",
           "type": "object",
-          "required": ["pickFiles"],
+          "required": [
+            "pickFiles"
+          ],
           "properties": {
             "pickFiles": {
               "type": "object",
@@ -2751,7 +2818,9 @@
         {
           "title": "Copy to Clipboard",
           "type": "object",
-          "required": ["copyToClipboard"],
+          "required": [
+            "copyToClipboard"
+          ],
           "properties": {
             "copyToClipboard": {
               "type": "object",
@@ -2776,12 +2845,17 @@
         {
           "title": "Connect Wallet",
           "type": "object",
-          "required": ["connectWallet"],
+          "required": [
+            "connectWallet"
+          ],
           "properties": {
             "connectWallet": {
               "type": "object",
               "description": "Allow users connect to crypto wallet",
-              "required": ["wcProjectId", "appMetaData"],
+              "required": [
+                "wcProjectId",
+                "appMetaData"
+              ],
               "properties": {
                 "id": {
                   "type": "string",
@@ -2801,21 +2875,23 @@
                 },
                 "appMetaData": {
                   "type": "object",
-                  "required": ["name"],
+                  "required": [
+                    "name"
+                  ],
                   "properties": {
                     "name": {
                       "type": "string",
-                      "description" : "Your app name, that will be shared to crypto wallet"
+                      "description": "Your app name, that will be shared to crypto wallet"
                     },
                     "description": {
                       "type": "string",
-                      "description" : "Your app's description, that will be shared to crypto wallet"
+                      "description": "Your app's description, that will be shared to crypto wallet"
                     },
                     "url": {
                       "type": "string",
                       "description": "You app's / company's url"
                     },
-                    "iconUrl" : {
+                    "iconUrl": {
                       "type": "string",
                       "description": "Url path of your app's icon"
                     }
@@ -2980,7 +3056,9 @@
       "oneOf": [
         {
           "title": "Text",
-          "required": ["Text"],
+          "required": [
+            "Text"
+          ],
           "properties": {
             "Text": {
               "$ref": "#/$defs/Text-payload",
@@ -2990,7 +3068,9 @@
         },
         {
           "title": "Markdown",
-          "required": ["Markdown"],
+          "required": [
+            "Markdown"
+          ],
           "properties": {
             "Markdown": {
               "$ref": "#/$defs/Markdown-payload",
@@ -3000,7 +3080,9 @@
         },
         {
           "title": "Html",
-          "required": ["Html"],
+          "required": [
+            "Html"
+          ],
           "properties": {
             "Html": {
               "$ref": "#/$defs/Html-payload",
@@ -3010,7 +3092,9 @@
         },
         {
           "title": "Icon",
-          "required": ["Icon"],
+          "required": [
+            "Icon"
+          ],
           "properties": {
             "Icon": {
               "$ref": "#/$defs/Icon-payload",
@@ -3020,7 +3104,9 @@
         },
         {
           "title": "Image",
-          "required": ["Image"],
+          "required": [
+            "Image"
+          ],
           "properties": {
             "Image": {
               "$ref": "#/$defs/Image-payload",
@@ -3030,7 +3116,9 @@
         },
         {
           "title": "Lottie",
-          "required": ["Lottie"],
+          "required": [
+            "Lottie"
+          ],
           "properties": {
             "Lottie": {
               "$ref": "#/$defs/Lottie-payload"
@@ -3039,7 +3127,9 @@
         },
         {
           "title": "QRCode",
-          "required": ["QRCode"],
+          "required": [
+            "QRCode"
+          ],
           "properties": {
             "QRCode": {
               "$ref": "#/$defs/QRCode-payload"
@@ -3048,7 +3138,9 @@
         },
         {
           "title": "Progress",
-          "required": ["Progress"],
+          "required": [
+            "Progress"
+          ],
           "properties": {
             "Progress": {
               "$ref": "#/$defs/Progress-payload",
@@ -3058,7 +3150,9 @@
         },
         {
           "title": "Divider",
-          "required": ["Divider"],
+          "required": [
+            "Divider"
+          ],
           "properties": {
             "Divider": {
               "$ref": "#/$defs/Divider-payload",
@@ -3068,7 +3162,9 @@
         },
         {
           "title": "Spacer",
-          "required": ["Spacer"],
+          "required": [
+            "Spacer"
+          ],
           "properties": {
             "Spacer": {
               "$ref": "#/$defs/Spacer-payload",
@@ -3078,7 +3174,9 @@
         },
         {
           "title": "Toggle",
-          "required": ["Toggle"],
+          "required": [
+            "Toggle"
+          ],
           "properties": {
             "Toggle": {
               "$ref": "#/$defs/Toggle-payload"
@@ -3087,7 +3185,9 @@
         },
         {
           "title": "ToggleContainer",
-          "required": ["ToggleContainer"],
+          "required": [
+            "ToggleContainer"
+          ],
           "properties": {
             "ToggleContainer": {
               "$ref": "#/$defs/ToggleContainer-payload"
@@ -3096,7 +3196,9 @@
         },
         {
           "title": "TextInput",
-          "required": ["TextInput"],
+          "required": [
+            "TextInput"
+          ],
           "properties": {
             "TextInput": {
               "$ref": "#/$defs/TextInput-payload",
@@ -3106,7 +3208,9 @@
         },
         {
           "title": "PasswordInput",
-          "required": ["PasswordInput"],
+          "required": [
+            "PasswordInput"
+          ],
           "properties": {
             "PasswordInput": {
               "$ref": "#/$defs/PasswordInput-payload",
@@ -3116,7 +3220,9 @@
         },
         {
           "title": "Checkbox",
-          "required": ["Checkbox"],
+          "required": [
+            "Checkbox"
+          ],
           "properties": {
             "Checkbox": {
               "$ref": "#/$defs/OnOff-payload",
@@ -3126,7 +3232,9 @@
         },
         {
           "title": "Switch",
-          "required": ["Switch"],
+          "required": [
+            "Switch"
+          ],
           "properties": {
             "Switch": {
               "$ref": "#/$defs/OnOff-payload",
@@ -3136,7 +3244,9 @@
         },
         {
           "title": "Dropdown",
-          "required": ["Dropdown"],
+          "required": [
+            "Dropdown"
+          ],
           "properties": {
             "Dropdown": {
               "$ref": "#/$defs/SelectOne-payload",
@@ -3146,7 +3256,9 @@
         },
         {
           "title": "Date",
-          "required": ["Date"],
+          "required": [
+            "Date"
+          ],
           "properties": {
             "Date": {
               "$ref": "#/$defs/Date-payload",
@@ -3156,7 +3268,9 @@
         },
         {
           "title": "Time",
-          "required": ["Time"],
+          "required": [
+            "Time"
+          ],
           "properties": {
             "Time": {
               "$ref": "#/$defs/Time-payload",
@@ -3166,7 +3280,9 @@
         },
         {
           "title": "SignInWithGoogle",
-          "required": ["SignInWithGoogle"],
+          "required": [
+            "SignInWithGoogle"
+          ],
           "properties": {
             "SignInWithGoogle": {
               "$ref": "#/$defs/SignInWithGoogle-payload"
@@ -3175,7 +3291,9 @@
         },
         {
           "title": "Button",
-          "required": ["Button"],
+          "required": [
+            "Button"
+          ],
           "properties": {
             "Button": {
               "$ref": "#/$defs/Button-payload",
@@ -3185,7 +3303,9 @@
         },
         {
           "title": "IconButton",
-          "required": ["IconButton"],
+          "required": [
+            "IconButton"
+          ],
           "properties": {
             "IconButton": {
               "$ref": "#/$defs/IconButton-payload"
@@ -3194,7 +3314,9 @@
         },
         {
           "title": "Address",
-          "required": ["Address"],
+          "required": [
+            "Address"
+          ],
           "properties": {
             "Address": {
               "$ref": "#/$defs/Address-payload"
@@ -3203,7 +3325,9 @@
         },
         {
           "title": "Form",
-          "required": ["Form"],
+          "required": [
+            "Form"
+          ],
           "properties": {
             "Form": {
               "$ref": "#/$defs/Form-payload",
@@ -3213,7 +3337,9 @@
         },
         {
           "title": "Flow",
-          "required": ["Flow"],
+          "required": [
+            "Flow"
+          ],
           "properties": {
             "Flow": {
               "$ref": "#/$defs/Flow-payload",
@@ -3223,7 +3349,9 @@
         },
         {
           "title": "Column",
-          "required": ["Column"],
+          "required": [
+            "Column"
+          ],
           "properties": {
             "Column": {
               "$ref": "#/$defs/Column-payload",
@@ -3233,7 +3361,9 @@
         },
         {
           "title": "ListView",
-          "required": ["ListView"],
+          "required": [
+            "ListView"
+          ],
           "properties": {
             "ListView": {
               "$ref": "#/$defs/ListView-payload",
@@ -3243,7 +3373,9 @@
         },
         {
           "title": "Row",
-          "required": ["Row"],
+          "required": [
+            "Row"
+          ],
           "properties": {
             "Row": {
               "$ref": "#/$defs/Row-payload",
@@ -3253,7 +3385,9 @@
         },
         {
           "title": "FittedColumn",
-          "required": ["FittedColumn"],
+          "required": [
+            "FittedColumn"
+          ],
           "properties": {
             "FittedColumn": {
               "type": "object",
@@ -3264,7 +3398,9 @@
         },
         {
           "title": "FittedRow",
-          "required": ["FittedRow"],
+          "required": [
+            "FittedRow"
+          ],
           "properties": {
             "FittedRow": {
               "type": "object",
@@ -3275,7 +3411,9 @@
         },
         {
           "title": "GridView",
-          "required": ["GridView"],
+          "required": [
+            "GridView"
+          ],
           "properties": {
             "GridView": {
               "$ref": "#/$defs/GridView-payload",
@@ -3285,7 +3423,9 @@
         },
         {
           "title": "Flex",
-          "required": ["Flex"],
+          "required": [
+            "Flex"
+          ],
           "properties": {
             "Flex": {
               "$ref": "#/$defs/Flex-payload",
@@ -3295,7 +3435,9 @@
         },
         {
           "title": "Stack",
-          "required": ["Stack"],
+          "required": [
+            "Stack"
+          ],
           "properties": {
             "Stack": {
               "$ref": "#/$defs/Stack-payload",
@@ -3305,7 +3447,9 @@
         },
         {
           "title": "Carousel",
-          "required": ["Carousel"],
+          "required": [
+            "Carousel"
+          ],
           "properties": {
             "Carousel": {
               "$ref": "#/$defs/Carousel-payload",
@@ -3315,7 +3459,9 @@
         },
         {
           "title": "TabBar",
-          "required": ["TabBar"],
+          "required": [
+            "TabBar"
+          ],
           "properties": {
             "TabBar": {
               "$ref": "#/$defs/TabBar-payload",
@@ -3325,7 +3471,9 @@
         },
         {
           "title": "Maps",
-          "required": ["Maps"],
+          "required": [
+            "Maps"
+          ],
           "properties": {
             "Maps": {
               "$ref": "#/$defs/Maps-payload"
@@ -3334,7 +3482,9 @@
         },
         {
           "title": "Video",
-          "required": ["Video"],
+          "required": [
+            "Video"
+          ],
           "properties": {
             "Video": {
               "$ref": "#/$defs/Video-payload",
@@ -3344,7 +3494,9 @@
         },
         {
           "title": "WebView",
-          "required": ["WebView"],
+          "required": [
+            "WebView"
+          ],
           "properties": {
             "WebView": {
               "$ref": "#/$defs/WebView-payload",
@@ -3354,7 +3506,9 @@
         },
         {
           "title": "ChartJs",
-          "required": ["ChartJs"],
+          "required": [
+            "ChartJs"
+          ],
           "properties": {
             "ChartJs": {
               "$ref": "#/$defs/ChartJs-payload",
@@ -3364,7 +3518,9 @@
         },
         {
           "title": "ToggleButton",
-          "required": ["ToggleButton"],
+          "required": [
+            "ToggleButton"
+          ],
           "properties": {
             "ToggleButton": {
               "$ref": "#/$defs/ToggleButton-payload",
@@ -3374,7 +3530,9 @@
         },
         {
           "title": "StaggeredGrid",
-          "required": ["StaggeredGrid"],
+          "required": [
+            "StaggeredGrid"
+          ],
           "properties": {
             "StaggeredGrid": {
               "$ref": "#/$defs/StaggeredGrid-payload",
@@ -3384,12 +3542,16 @@
         },
         {
           "title": "Conditional",
-          "required": ["Conditional"],
+          "required": [
+            "Conditional"
+          ],
           "properties": {
             "Conditional": {
               "type": "object",
               "description": "Render widget based on condition.",
-              "required": [ "conditions" ],
+              "required": [
+                "conditions"
+              ],
               "properties": {
                 "conditions": {
                   "type": "array",
@@ -3400,7 +3562,9 @@
                         "type": "string"
                       }
                     },
-                    "required": [ "if" ]
+                    "required": [
+                      "if"
+                    ]
                   }
                 }
               }
@@ -3624,7 +3788,7 @@
                 },
                 "toolbarAlignment": {
                   "$ref": "#/$defs/alignment",
-                  "description":"How to align the toolbar within the map. (default bottom right). If both positioning (top/bottom/left/right) and alignment are used, positions will be applied first, then alignment within the available constraint."
+                  "description": "How to align the toolbar within the map. (default bottom right). If both positioning (top/bottom/left/right) and alignment are used, positions will be applied first, then alignment within the available constraint."
                 },
                 "toolbarTop": {
                   "type": "integer",
@@ -3680,7 +3844,6 @@
                   "type": "boolean",
                   "description": "Automatically select a marker (if not already) when the markers are updated."
                 }
-
               }
             }
           ]
@@ -3840,7 +4003,7 @@
         },
         "alignment": {
           "$ref": "#/$defs/alignment",
-          "description":"Align this widget relative to its parent"
+          "description": "Align this widget relative to its parent"
         },
         "stackPositionTop": {
           "type": "integer",
@@ -4006,7 +4169,9 @@
       ]
     },
     "fittedBoxLayout": {
-      "required": ["children"],
+      "required": [
+        "children"
+      ],
       "properties": {
         "children": {
           "$ref": "#/$defs/Widgets"
@@ -4444,6 +4609,30 @@
         "backgroundColor": {
           "$ref": "#/$defs/typeColors"
         },
+        "gradient": {
+          "type": "object",
+          "properties": {
+            "colors": {
+              "type": "array",
+              "description": "The list of colors used for the gradient",
+              "items": {
+                "$ref": "#/$defs/typeColors"
+              }
+            },
+            "stops": {
+              "type": "array",
+              "description": "The list of color stops, each is a number between 0.0 (where the gradient starts) and 1.0 (where the gradient ends). The number of stops should match the number of colors."
+            },
+            "start": {
+              "description": "The starting position of the gradient",
+              "$ref": "#/$defs/alignment"
+            },
+            "end": {
+              "description": "The ending position of the gradient",
+              "$ref": "#/$defs/alignment"
+            }
+          }
+        },
         "decoration": {
           "type": "string",
           "enum": [
@@ -4456,7 +4645,11 @@
         "decorationStyle": {
           "type": "string",
           "enum": [
-            "solid", "double", "dotted", "dashed", "wavy"
+            "solid",
+            "double",
+            "dotted",
+            "dashed",
+            "wavy"
           ],
           "description": "The style of the decoration (ignored if decoration=none)"
         },
