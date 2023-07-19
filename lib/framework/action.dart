@@ -486,9 +486,24 @@ class CopyToClipboardAction extends EnsembleAction {
     this.onSuccess,
     this.onFailure,
   });
-  String? value;
+  dynamic value;
   EnsembleAction? onSuccess;
   EnsembleAction? onFailure;
+
+  String? getValue(DataContext dataContext) =>
+      Utils.optionalString(dataContext.eval(value));
+
+  factory CopyToClipboardAction.fromYaml({YamlMap? payload}) {
+    if (payload == null || payload['value'] == null) {
+      throw LanguageError(
+          '${ActionType.copyToClipboard.name} requires the value.');
+    }
+    return CopyToClipboardAction(
+      value: payload['value'],
+      onSuccess: EnsembleAction.fromYaml(payload['onSuccess']),
+      onFailure: EnsembleAction.fromYaml(payload['onFailure']),
+    );
+  }
 }
 
 class WalletConnectAction extends EnsembleAction {
@@ -619,6 +634,7 @@ enum ActionType {
   notification,
   requestNotificationAccess,
   showNotification,
+  copyToClipboard,
 }
 
 enum ToastType { success, error, warning, info }
@@ -710,6 +726,8 @@ abstract class EnsembleAction {
       return ShowNotificationAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.requestNotificationAccess) {
       return RequestNotificationAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.copyToClipboard) {
+      return CopyToClipboardAction.fromYaml(payload: payload);
     }
     throw LanguageError("Invalid action.",
         recovery: "Make sure to use one of Ensemble-provided actions.");

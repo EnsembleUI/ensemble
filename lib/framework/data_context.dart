@@ -1,15 +1,15 @@
 import 'dart:developer';
 import 'dart:io' as io;
 import 'dart:ui';
+import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
-import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:get_storage/get_storage.dart';
 
@@ -44,7 +44,6 @@ class DataContext {
     _contextMap['app'] = AppConfig();
     _contextMap['env'] = EnvConfig();
     _contextMap['ensemble'] = NativeInvokable(buildContext);
-    _contextMap['user'] = UserInfo();
     // device is a common name. If user already uses that, don't override it
     if (_contextMap['device'] == null) {
       _contextMap['device'] = Device();
@@ -313,6 +312,7 @@ class NativeInvokable with Invokable {
   Map<String, Function> getters() {
     return {
       'storage': () => EnsembleStorage(_buildContext),
+      'user': () => UserInfo(),
       'formatter': () => Formatter(_buildContext),
     };
   }
@@ -337,6 +337,9 @@ class NativeInvokable with Invokable {
       'copyToClipboard': (value) =>
           Clipboard.setData(ClipboardData(text: value)),
       'initNotification': () => notificationUtils.initNotifications(),
+      'updateSystemAuthorizationToken': (token) =>
+          StorageManager().updateServiceTokens(ServiceName.system, token),
+
     };
   }
 
@@ -477,6 +480,9 @@ class UserInfo with Invokable {
   @override
   Map<String, Function> getters() {
     return {
+      'email': () => StorageManager().getUserEmail(),
+      'name': () => StorageManager().getUserName(),
+      'photo': () => StorageManager().getUserPhoto(),
       'date': () => DateInfo(),
       'datetime': () => DateTimeInfo(),
     };
@@ -824,13 +830,6 @@ class FileData with Invokable {
 
 class File {
   File(this.name, this.ext, this.size, this.path, this.bytes);
-
-  File.fromPlatformFile(PlatformFile file)
-      : name = file.name,
-        ext = file.extension,
-        size = file.size,
-        path = kIsWeb ? null : file.path,
-        bytes = file.bytes;
 
   File.fromJson(Map<String, dynamic> file)
       : name = file['name'],
