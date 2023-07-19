@@ -397,8 +397,11 @@ class Utils {
   static TextStyleComposite getTextStyleAsComposite(
       WidgetController widgetController,
       {dynamic style}) {
-    return TextStyleComposite(widgetController,
-        styleWithFontFamily: getTextStyle(style));
+    return TextStyleComposite(
+      widgetController,
+      textGradient: Utils.getBackgroundGradient(style['gradient']),
+      styleWithFontFamily: getTextStyle(style),
+    );
   }
 
   static TextStyle? getTextStyle(dynamic style) {

@@ -1,7 +1,9 @@
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/model.dart';
+import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/theme/default_theme.dart';
+import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/ensemble_icon.dart';
 import 'package:flutter/cupertino.dart';
@@ -52,10 +54,11 @@ class ToastController {
         toastDuration: toastAction.duration != null
             ? Duration(seconds: toastAction.duration!)
             : const Duration(days: 99),
-        child: getToastWidget(toastAction, customToastBody));
+        child: getToastWidget(context, toastAction, customToastBody));
   }
 
-  Widget getToastWidget(ShowToastAction toastAction, Widget? customToastBody) {
+  Widget getToastWidget(BuildContext context, ShowToastAction toastAction,
+      Widget? customToastBody) {
     EdgeInsets padding = Utils.getInsets(toastAction.styles?['padding'],
         fallback: const EdgeInsets.symmetric(vertical: 20, horizontal: 22));
     Color? bgColor = Utils.getColor(toastAction.styles?['backgroundColor']);
@@ -91,6 +94,10 @@ class ToastController {
 
       const double closeButtonRadius = 10;
 
+      String? message = DataScopeWidget.getScope(context)
+          ?.dataContext
+          .eval(toastAction.message);
+
       content = Row(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,10 +105,10 @@ class ToastController {
         children: [
           Icon(icon),
           const SizedBox(width: 18),
-          if (toastAction.message != null && toastAction.message!.isNotEmpty)
+          if (message != null && message.isNotEmpty)
             Flexible(
               child: Text(
-                toastAction.message!,
+                message!,
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
