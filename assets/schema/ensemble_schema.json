@@ -1632,6 +1632,28 @@
         "tooltip": {
           "type": "string",
           "description": "Set the tooltip for the data column"
+        },
+        "sortable": {
+          "type": "boolean",
+          "description": "Set the data column sorting"
+        },
+        "sortKey": {
+          "type": "string",
+          "description": "Sort key is required if you enable the data column sorting"
+        },
+        "sortOrder": {
+          "type": "string",
+          "description": "Set the data column sorting either in ascending or descending order",
+          "oneOf": [
+            {
+              "const": "ascending",
+              "description": "Sort the data column in ascending order"
+            },
+            {
+              "const": "descending",
+              "description": "Sort the data column in descending order"
+            }
+          ]
         }
       }
     },
