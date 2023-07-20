@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/auth_manager.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/storage_manager.dart';
@@ -119,8 +120,10 @@ class SignInWithAppleState extends WidgetState<EnsembleSignInWithApple> {
         name = names.join(' ');
       }
 
-      StorageManager()
-          .updateUser(context, userId, name: name, email: credential.email);
+      StorageManager().updateAuthenticatedUser(context,
+          user: AuthenticatedUser(
+              provider: AuthProvider.apple, id: userId, name: name,
+              email: credential.email));
     }
 
     // trigger the callback

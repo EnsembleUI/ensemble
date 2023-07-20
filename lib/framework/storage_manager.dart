@@ -1,5 +1,9 @@
+import 'dart:developer';
+
 import 'package:ensemble/OAuthController.dart';
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/auth_manager.dart';
+import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -9,6 +13,7 @@ import 'package:get_storage/get_storage.dart';
 /// TODO: consolidate secure storage
 class StorageManager {
   static const systemStorageId = 'system';
+  static const userProviderKey = 'user.provider';
   static const userIdKey = 'user.id';
   static const userNameKey = 'user.name';
   static const userEmailKey = 'user.email';
@@ -37,41 +42,75 @@ class StorageManager {
 
   /// User object is from system storage
   /// TODO: BuildContext is used for dispatching changes. Should be refactored.
-  void updateUser(BuildContext context, String id,
-      {String? name, String? email, String? photo}) {
+  Future<void> updateAuthenticatedUser(BuildContext context, {required AuthenticatedUser user}) async {
     var systemStorage = GetStorage(systemStorageId);
 
-    systemStorage.write(userIdKey, id);
+    await systemStorage.write(userIdKey, user.id);
+    await systemStorage.write(userProviderKey, user.provider);
 
-    if (name != null) {
-      systemStorage.write(userNameKey, name);
-      ScreenController().dispatchSystemStorageChanges(context, 'name', name,
+    if (user.name != null) {
+      await systemStorage.write(userNameKey, user.name);
+      ScreenController().dispatchSystemStorageChanges(context, 'name', user.name,
           storagePrefix: 'user');
     } else if (systemStorage.hasData(userNameKey)) {
-      systemStorage.remove(userNameKey);
+      await systemStorage.remove(userNameKey);
       ScreenController().dispatchSystemStorageChanges(context, 'name', null,
           storagePrefix: 'user');
     }
 
-    if (email != null) {
-      systemStorage.write(userEmailKey, email);
-      ScreenController().dispatchSystemStorageChanges(context, 'email', email,
+    if (user.email != null) {
+      await systemStorage.write(userEmailKey, user.email);
+      ScreenController().dispatchSystemStorageChanges(context, 'email', user.email,
           storagePrefix: 'user');
     } else if (systemStorage.hasData(userEmailKey)) {
-      systemStorage.remove(userEmailKey);
+      await systemStorage.remove(userEmailKey);
       ScreenController().dispatchSystemStorageChanges(context, 'email', null,
           storagePrefix: 'user');
     }
 
-    if (photo != null) {
-      systemStorage.write(userPhotoKey, photo);
-      ScreenController().dispatchSystemStorageChanges(context, 'photo', photo,
+    if (user.photo != null) {
+      await systemStorage.write(userPhotoKey, user.photo);
+      ScreenController().dispatchSystemStorageChanges(context, 'photo', user.photo,
           storagePrefix: 'user');
     } else if (systemStorage.hasData(userPhotoKey)) {
-      systemStorage.remove(userPhotoKey);
+      await systemStorage.remove(userPhotoKey);
       ScreenController().dispatchSystemStorageChanges(context, 'photo', null,
           storagePrefix: 'user');
     }
+  }
+
+  Future<void> clearAuthenticatedUser(BuildContext context) async {
+    var systemStorage = GetStorage(systemStorageId);
+    await systemStorage.remove(userIdKey);
+
+    await systemStorage.remove(userNameKey);
+    ScreenController().dispatchSystemStorageChanges(context, 'name', null,
+        storagePrefix: 'user');
+
+    await systemStorage.remove(userEmailKey);
+    ScreenController().dispatchSystemStorageChanges(context, 'email', null,
+        storagePrefix: 'user');
+
+    await systemStorage.remove(userPhotoKey);
+    ScreenController().dispatchSystemStorageChanges(context, 'photo', null,
+        storagePrefix: 'user');
+  }
+
+  bool hasAuthenticatedUser() {
+    return GetStorage(systemStorageId).hasData(userIdKey);
+  }
+
+  AuthenticatedUser? getAuthenticatedUser() {
+    if (hasAuthenticatedUser()) {
+      var systemStorage = GetStorage(systemStorageId);
+      return AuthenticatedUser(
+          provider: AuthProvider.values.from(systemStorage.read(userProviderKey)),
+          id: systemStorage.read(userIdKey),
+          name: systemStorage.read(userNameKey),
+          email: systemStorage.read(userEmailKey),
+          photo: systemStorage.read(userPhotoKey));
+    }
+    return null;
   }
 
   String? getUserId() => GetStorage(systemStorageId).read(userIdKey);

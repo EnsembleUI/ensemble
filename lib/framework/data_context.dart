@@ -2,6 +2,7 @@ import 'dart:developer';
 import 'dart:io' as io;
 import 'dart:ui';
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/auth_manager.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -43,6 +44,7 @@ class DataContext {
     _contextMap['app'] = AppConfig();
     _contextMap['env'] = EnvConfig();
     _contextMap['ensemble'] = NativeInvokable(buildContext);
+    _contextMap['auth'] = AuthContextManager(buildContext);
     // device is a common name. If user already uses that, don't override it
     if (_contextMap['device'] == null) {
       _contextMap['device'] = Device();

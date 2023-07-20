@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/auth_manager.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/storage_manager.dart';
@@ -45,7 +46,10 @@ class SignInWithGoogle extends StatefulWidget
   @override
   Map<String, Function> setters() => {
         'widget': (widgetDef) => _controller.widgetDef = widgetDef,
+        'authenticateOnly': (value) => _controller.authenticateOnly = Utils.getBool(value, fallback: _controller.authenticateOnly),
         'onAuthenticated': (action) => _controller.onAuthenticated =
+            EnsembleAction.fromYaml(action, initiator: this),
+        'onSignedIn': (action) => _controller.onSignedIn =
             EnsembleAction.fromYaml(action, initiator: this),
         'onError': (action) => _controller.onError =
             EnsembleAction.fromYaml(action, initiator: this),
@@ -58,7 +62,9 @@ class SignInWithGoogleController extends WidgetController {
   dynamic widgetDef;
   List<String> scopes = [];
 
+  bool authenticateOnly = false;
   EnsembleAction? onAuthenticated;
+  EnsembleAction? onSignedIn;
   EnsembleAction? onError;
 }
 
@@ -88,49 +94,59 @@ class SignInWithGoogleState extends WidgetState<SignInWithGoogle> {
           isAuthorized =
               await _googleSignIn.canAccessScopes(widget._controller.scopes);
         }
-        _onAuthenticated(account, googleAuthentication);
+        await _onAuthenticated(account, googleAuthentication);
       } else {
         //log("TO BE IMPLEMENTED: log out");
       }
     });
   }
 
-  void _onAuthenticated(GoogleSignInAccount account,
-      GoogleSignInAuthentication googleAuthentication) {
-    // log("idToken: ${googleAuthentication.idToken}");
-    // log("serverAuthcode: ${account.serverAuthCode}");
+  Future<void> _onAuthenticated(GoogleSignInAccount account,
+      GoogleSignInAuthentication googleAuthentication) async {
 
-    // save the access token to storage. This will become
-    // the bearer token to any API with serviceId = google
-    if (googleAuthentication.accessToken != null) {
-      var key = ServiceName.google.name;
-      const FlutterSecureStorage().write(
-          key: "${key}_accessToken", value: googleAuthentication.accessToken);
-    }
-
-    // update the user information in storage
-    StorageManager().updateUser(context, account.id,
+    AuthenticatedUser user = AuthenticatedUser(
+        provider: AuthProvider.google,
+        id: account.id,
         name: account.displayName,
         email: account.email,
         photo: account.photoUrl);
 
-    // trigger the callback
+    // trigger the callback. This can be used to sign in on the server
     if (widget._controller.onAuthenticated != null) {
       ScreenController()
           .executeAction(context, widget._controller.onAuthenticated!,
-              event: EnsembleEvent(widget, data: {
-                'id': account.id,
-                'name': account.displayName,
-                'email': account.email,
-                'photo': account.photoUrl,
+          event: EnsembleEvent(widget, data: {
+            'user': user,
 
-                // server can verify and decode to get user info, useful for Sign In
-                'idToken': googleAuthentication.idToken,
+            // server can verify and decode to get user info, useful for Sign In
+            'idToken': googleAuthentication.idToken,
 
-                // server can exchange this for accessToken/refreshToken
-                'serverAuthCode': account.serverAuthCode
-              }));
+            // server can exchange this for accessToken/refreshToken
+            'serverAuthCode': account.serverAuthCode
+          }));
     }
+
+    // we implicitly sign in unless user said to only authenticate
+    if (!widget._controller.authenticateOnly) {
+      AuthToken? token;
+      if (googleAuthentication.accessToken != null) {
+        token = AuthToken(
+            tokenType: TokenType.bearerToken,
+            token: googleAuthentication.accessToken!);
+      }
+      await AuthManager().signIn(context, user: user, token: token);
+
+      // trigger onSignIn callback
+      if (widget._controller.onSignedIn != null) {
+        ScreenController()
+            .executeAction(context, widget._controller.onSignedIn!,
+            event: EnsembleEvent(widget, data: {
+              'user': user
+            }));
+      }
+
+    }
+
   }
 
   Future<void> _handleSignIn() async {
