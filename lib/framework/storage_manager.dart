@@ -1,10 +1,10 @@
-import 'dart:developer';
+
 
 import 'package:ensemble/OAuthController.dart';
 import 'package:ensemble/ensemble.dart';
-import 'package:ensemble/framework/auth_manager.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_storage/get_storage.dart';
@@ -148,3 +148,43 @@ class StorageManager {
     }
   }
 }
+
+/// when a User is authenticated by one of the providers
+class AuthenticatedUser with Invokable {
+  AuthenticatedUser(
+      {required provider, required this.id, this.name, this.email, this.photo})
+      : _provider = provider;
+
+  final AuthProvider _provider;
+
+  String get provider => _provider.name;
+
+  String? id;
+  String? name;
+  String? email;
+  String? photo;
+
+  @override
+  Map<String, Function> getters() {
+    return {
+      'provider': () => provider,
+      'id': () => id,
+      'name': () => name,
+      'email': () => email,
+      'photo': () => photo
+    };
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
+  }
+}
+
+
+enum AuthProvider { google, apple, microsoft, custom }

@@ -24,6 +24,7 @@ dependencies:
   flutter:
     sdk: flutter
 
+
   device_preview:
     git:
       url: https://github.com/vinothvino42/flutter_device_preview.git
@@ -80,7 +81,6 @@ dependencies:
   http_parser: ^4.0.2
   shared_preferences: ^2.1.1
   google_maps_flutter: ^2.2.6
-  google_maps_flutter_web: ^0.4.0+8
   workmanager: ^0.5.1
   flutter_local_notifications: ^14.0.0+2
   flutter_i18n: ^0.33.0
@@ -91,8 +91,6 @@ dependencies:
   dart_jsonwebtoken: ^2.8.2
   flutter_dotenv: ^5.1.0
   get_it: ^7.6.0
-  google_sign_in: ^6.1.4
-  sign_in_with_apple: ^5.0.0
 
 dev_dependencies:
   flutter_test:
