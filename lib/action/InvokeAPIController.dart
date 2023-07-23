@@ -1,6 +1,5 @@
 import 'dart:developer';
 
-import 'package:ensemble/OAuthController.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
