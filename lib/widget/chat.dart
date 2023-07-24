@@ -1,13 +1,22 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/framework/widget/widget.dart' as framework;
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/chat/bubble_container.dart';
+import 'package:ensemble/widget/chat/models.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:ensemble/widget/input/slider.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:yaml/yaml.dart';
+
+import 'chat/typing_indicator.dart';
+import 'chat/utils.dart';
 
 class EnsembleChatController extends WidgetController {
   String? url;
@@ -48,8 +57,11 @@ class EnsembleChat extends StatefulWidget
 class EnsembleChatState extends framework.WidgetState<EnsembleChat> {
   List<Message> _messages = [];
   User? _user;
+  User? _assistant;
 
   WebSocketChannel? channel;
+
+  bool showIndicator = false;
 
   @override
   void initState() {
@@ -58,26 +70,33 @@ class EnsembleChatState extends framework.WidgetState<EnsembleChat> {
     _user = const User(
       id: 'abc123',
     );
-    final uri = Uri.tryParse('ws://127.0.0.1:8000/ws');
+
+    _assistant = const User(id: '123');
+
+    final uri = Uri.tryParse('ws://35.202.36.118:8000/ws');
     if (uri == null) return;
     channel = WebSocketChannel.connect(uri);
 
     channel?.stream.listen((event) {
-      try {
-        final data = jsonDecode(event);
-
-        final textMessage = Message(
-          author: _user!,
-          createdAt: DateTime.now().millisecondsSinceEpoch,
-          id: generateRandomString(),
-          text: data['content'],
-          widgetDefinition: data['widget'],
-        );
-        _addMessage(textMessage);
-      } catch (e) {
-        //todo
-      }
+      handleIncomingMessage(event);
     });
+  }
+
+  void handleIncomingMessage(dynamic event) {
+    try {
+      final data = jsonDecode(event);
+
+      final textMessage = Message(
+        author: _assistant!,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        id: generateRandomString(),
+        text: data['content'],
+        widgetDefinition: data['widgetDefinition'],
+      );
+      _addMessage(textMessage);
+    } catch (e) {
+      debugPrint(e.toString());
+    }
   }
 
   @override
@@ -88,11 +107,12 @@ class EnsembleChatState extends framework.WidgetState<EnsembleChat> {
 
   void _addMessage(Message message) {
     setState(() {
+      showIndicator = !showIndicator;
       _messages.insert(0, message);
     });
   }
 
-  void _handleSendPressed(String message) {
+  Future<void> _handleSendPressed(String message) async {
     channel?.sink.add(message);
 
     final textMessage = Message(
@@ -109,14 +129,21 @@ class EnsembleChatState extends framework.WidgetState<EnsembleChat> {
     return ChatPage(
       items: _messages,
       onSendPressed: _handleSendPressed,
+      showIndicator: showIndicator,
     );
   }
 }
 
 class ChatPage extends StatefulWidget {
-  const ChatPage({super.key, required this.items, required this.onSendPressed});
+  const ChatPage({
+    super.key,
+    required this.items,
+    required this.onSendPressed,
+    required this.showIndicator,
+  });
   final List<Object> items;
   final Function(String value) onSendPressed;
+  final bool showIndicator;
 
   @override
   State<ChatPage> createState() => _ChatPageState();
@@ -167,13 +194,52 @@ class _ChatPageState extends State<ChatPage> {
         children: [
           Flexible(
             child: ListView.separated(
-              itemCount: widget.items.length,
+              itemCount: widget.items.length + 1,
               reverse: true,
               itemBuilder: (context, index) {
-                final message = widget.items.elementAt(index) as Message;
-                return BubbleNormal(
-                  text: message.text,
-                  color: Colors.white,
+                if (index == 0) {
+                  return TypingIndicator(showIndicator: widget.showIndicator);
+                }
+
+                Widget? dynamicWidget;
+                final message = widget.items.elementAt(index - 1) as Message;
+                if (message.widgetDefinition != null) {
+                  dynamicWidget = buildWidgetsFromTemplate(
+                      context, message.widgetDefinition);
+                }
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    BubbleContainer(
+                      text: message.text,
+                      color: message.author.id != '123'
+                          ? const Color(0xFFEAEAEA)
+                          : Colors.white,
+                    ),
+                    if (dynamicWidget != null)
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 12.0),
+                            child: dynamicWidget,
+                          ),
+                          if (dynamicWidget is EnsembleSlider)
+                            ElevatedButton(
+                              onPressed: () {
+                                widget.onSendPressed.call(
+                                  (dynamicWidget as EnsembleSlider)
+                                      .controller
+                                      .value
+                                      .toString(),
+                                );
+                              },
+                              child: const Text('Submit'),
+                            )
+                        ],
+                      ),
+                  ],
                 );
               },
               separatorBuilder: (BuildContext context, int index) {
@@ -181,33 +247,57 @@ class _ChatPageState extends State<ChatPage> {
               },
             ),
           ),
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: _textController,
-                  maxLines: 5,
-                  minLines: 1,
+          const SizedBox(height: 8),
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              MediaQuery.of(context).padding.left + 16,
+              0,
+              MediaQuery.of(context).padding.right + 16,
+              MediaQuery.of(context).viewInsets.bottom +
+                  MediaQuery.of(context).padding.bottom +
+                  8,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _textController,
+                    maxLines: 5,
+                    minLines: 1,
+                    decoration: InputDecoration(
+                      fillColor: Colors.grey[200],
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(25.0),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(25.0),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(25.0),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-              IconButton(
-                constraints: const BoxConstraints(
-                  minHeight: 24,
-                  minWidth: 24,
-                ),
-                icon: Image.asset(
-                  'assets/icon-send.png',
-                  package: 'flutter_chat_ui',
-                  color: Colors.black,
-                ),
-                onPressed: () {
-                  widget.onSendPressed.call(_textController.text);
-                  _textController.clear();
-                },
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                splashRadius: 24,
-              )
-            ],
+                IconButton(
+                  constraints: const BoxConstraints(
+                    minHeight: 24,
+                    minWidth: 24,
+                  ),
+                  icon: Image.asset(
+                    'assets/icon-send.png',
+                    package: 'flutter_chat_ui',
+                    color: Colors.black,
+                  ),
+                  onPressed: () {
+                    if (_textController.text.trim().isEmpty) return;
+                    widget.onSendPressed.call(_textController.text);
+                    _textController.clear();
+                  },
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  splashRadius: 24,
+                )
+              ],
+            ),
           ),
         ],
       ),
@@ -215,140 +305,14 @@ class _ChatPageState extends State<ChatPage> {
   }
 }
 
-class BubbleNormal extends StatelessWidget {
-  final double bubbleRadius;
-  final Color color;
-  final String text;
-  final TextStyle textStyle;
-
-  const BubbleNormal({
-    Key? key,
-    required this.text,
-    this.bubbleRadius = 16,
-    this.color = Colors.white70,
-    this.textStyle = const TextStyle(
-      color: Colors.black87,
-      fontSize: 16,
-    ),
-  }) : super(key: key);
-
-  ///chat bubble builder method
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        Container(
-          color: Colors.transparent,
-          constraints:
-              BoxConstraints(maxWidth: MediaQuery.of(context).size.width * .8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-            child: Container(
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(0),
-                  topRight: Radius.circular(bubbleRadius),
-                  bottomLeft: Radius.circular(bubbleRadius),
-                  bottomRight: Radius.circular(bubbleRadius),
-                ),
-              ),
-              child: Stack(
-                children: <Widget>[
-                  Padding(
-                    padding: EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-                    child: Text(
-                      text,
-                      style: textStyle,
-                      textAlign: TextAlign.left,
-                    ),
-                  ),
-                  SizedBox(width: 1),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class Message {
-  const Message({
-    required this.id,
-    required this.author,
-    required this.text,
-    this.createdAt,
-    this.updatedAt,
-    this.metadata,
-    this.widgetDefinition,
+Widget? buildWidgetsFromTemplate(
+    BuildContext context, dynamic widgetDefinition) {
+  if (widgetDefinition is! Map) return null;
+  final definition = YamlMap.wrap({
+    widgetDefinition.keys.last: widgetDefinition.values.last,
   });
 
-  final String id;
-  final User author;
-  final int? createdAt;
-  final Map<String, dynamic>? metadata;
-  final int? updatedAt;
-  final String text;
-  final String? widgetDefinition;
-
-  factory Message.fromJson(Map<String, dynamic> json) {
-    return Message(
-      id: json['id'],
-      author: User.fromJson(json['author']),
-      text: json['text'],
-      createdAt: json['createdAt'],
-      updatedAt: json['updatedAt'],
-      metadata: json['metadata'],
-      widgetDefinition: json['widgetDefinition'],
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'author': author.toJson(),
-      'text': text,
-      'createdAt': createdAt,
-      'updatedAt': updatedAt,
-      'metadata': metadata,
-      'widgetDefinition': widgetDefinition,
-    };
-  }
-}
-
-class User {
-  const User({required this.id, this.name});
-
-  final String id;
-  final String? name;
-
-  factory User.fromJson(Map<String, dynamic> json) {
-    return User(
-      id: json['id'],
-      name: json['name'],
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-    };
-  }
-}
-
-String generateRandomString({int length = 8}) {
-  const randomChars =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  const charsLength = randomChars.length;
-
-  final rand = Random();
-  final codeUnits = List.generate(
-    length,
-    (index) => randomChars[rand.nextInt(charsLength)].codeUnitAt(0),
-  );
-
-  return String.fromCharCodes(codeUnits);
+  ScopeManager? parentScope = DataScopeWidget.getScope(context);
+  final widget = parentScope?.buildWidgetFromDefinition(definition);
+  return widget;
 }
