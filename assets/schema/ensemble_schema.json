@@ -143,13 +143,15 @@
     },
     "Global": {
       "type": "string",
+      "label": "Enter code snippet",
       "defaultSnippets": [
         {
           "label": "Define variables and functions in Javascript",
           "body": "|-\n\t//@code\n\t"
         }
       ],
-      "markdownDescription": "Declare Javascript variables and functions that are visible globally within this screen.  \n//@code  \n var myGlobalVar = 'hello';  \nfunction myGlobalFunc() {  \n  }"
+      "markdownDescription": "Declare Javascript variables and functions that are visible globally within this screen.  \n//@code  \n var myGlobalVar = 'hello';  \nfunction myGlobalFunc() {  \n  }",
+      "description": "Declare Javascript variables and functions that are visible globally within this screen.  \n//@code  \n var myGlobalVar = 'hello';  \nfunction myGlobalFunc() {  \n  }"
     },
     "API": {
       "additionalProperties": {
@@ -193,10 +195,12 @@
             }
           },
           "body": {
-            "type": [
-              "string",
-              "object"
-            ],
+            "type": {
+              "oneOf": [
+                { "type": "string" },
+                { "type": "object" }
+              ]
+            },
             "description": "The request body to pass along with the URL"
           },
           "onResponse": {
