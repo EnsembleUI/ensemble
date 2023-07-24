@@ -2,14 +2,15 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 
-import 'package:ensemble/OAuthController.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
-import 'package:ensemble/framework/storage_manager.dart';
+import 'package:ensemble/framework/placeholder/oauth_controller.dart';
+import 'package:ensemble/framework/placeholder/token_manager.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/foundation.dart';
+import 'package:get_it/get_it.dart';
 import 'package:yaml/yaml.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' as foundation;
@@ -27,7 +28,7 @@ class HttpUtils {
     bool forceNewTokens =
         Utils.getBool(api['authorization']?['forceNewTokens'], fallback: false);
     if (oauthId != null && scope != null) {
-      OAuthServiceToken? token = await OAuthController()
+      OAuthServiceToken? token = await GetIt.instance<OAuthControllerBase>()
           .authorize(oauthId, scope: scope, forceNewTokens: forceNewTokens);
       if (token != null) {
         headers['Authorization'] = 'Bearer ${token.accessToken}';
@@ -39,7 +40,7 @@ class HttpUtils {
         ServiceName.values.from(api['authorization']?['serviceId']);
     if (serviceName != null) {
       OAuthServiceToken? token =
-          await StorageManager().getServiceTokens(serviceName);
+          await GetIt.instance<TokenManagerBase>().getServiceTokens(serviceName);
       if (token != null) {
         headers['Authorization'] = 'Bearer ${token.accessToken}';
       }
