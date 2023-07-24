@@ -345,7 +345,8 @@ class NativeInvokable with Invokable {
       'copyToClipboard': (value) =>
           Clipboard.setData(ClipboardData(text: value)),
       'updateSystemAuthorizationToken': (token) =>
-          GetIt.instance<TokenManagerBase>().updateServiceTokens(ServiceName.system, token),
+          GetIt.instance<TokenManagerBase>()
+              .updateServiceTokens(ServiceName.system, token),
     };
   }
 
