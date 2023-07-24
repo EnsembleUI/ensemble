@@ -14,6 +14,7 @@ import 'package:ensemble/widget/address.dart';
 import 'package:ensemble/widget/conditional.dart';
 import 'package:ensemble/widget/fintech/finicityconnect/finicityconnect.dart';
 import 'package:ensemble/widget/icon_button.dart';
+import 'package:ensemble/widget/image_cropper.dart';
 import 'package:ensemble/widget/maps/maps.dart';
 import 'package:ensemble/widget/staggered_grid.dart';
 import 'package:ensemble/widget/stub_widgets.dart';
@@ -63,6 +64,7 @@ class WidgetRegistry {
         EnsembleHtml.type: () => EnsembleHtml(),
         EnsembleIcon.type: () => EnsembleIcon(),
         EnsembleImage.type: () => EnsembleImage(),
+        EnsembleImageCropper.type: () => EnsembleImageCropper(),
         EnsembleDivider.type: () => EnsembleDivider(),
         EnsembleSpacer.type: () => EnsembleSpacer(),
         Toggle.type: () => Toggle(),

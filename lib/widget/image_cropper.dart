@@ -60,8 +60,8 @@ class EnsembleImageCropper extends StatefulWidget
       'maskColor': (value) => _controller.maskColor = Utils.getColor(value),
       'cornerRadius': (value) =>
           _controller.cornerRadius = Utils.getDouble(value, fallback: 20),
-      'onStatusChanged': (funcDefinition) => _controller.onStatusChanged =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onCropTap': (value) =>
+          _controller.onCropTap = Utils.getBool(value, fallback: true),
       'onCropped': (funcDefinition) => _controller.onCropped =
           EnsembleAction.fromYaml(funcDefinition, initiator: this)
     };
@@ -74,6 +74,7 @@ class EnsembleImageCropperController extends BoxController {
   Color? placeholderColor;
   Color? maskColor;
   double? cornerRadius;
+  bool? onCropTap;
   EnsembleAction? onCropped;
   EnsembleAction? onStatusChanged;
   CropController cropController = CropController();
@@ -81,7 +82,7 @@ class EnsembleImageCropperController extends BoxController {
 
 class EnsembleImageCropperState extends WidgetState<EnsembleImageCropper> {
   late Widget placeholder;
-  // final CropController _controller = CropController();
+  Uint8List? _croppedImage;
 
   @override
   void initState() {
@@ -97,46 +98,59 @@ class EnsembleImageCropperState extends WidgetState<EnsembleImageCropper> {
       return placeholder;
     }
 
-    Widget rtn = FutureBuilder(
-      future: getImage(widget._controller.source),
-      builder: (BuildContext context, AsyncSnapshot<Uint8List> snapshot) {
-        if (snapshot.hasData) {
-          return SizedBox(
-            height: 350,
-            width: 350,
-            child: Crop(
-              image: snapshot.data!,
-              controller: widget._controller.cropController,
-              initialAreaBuilder: (rect) => Rect.fromLTRB(
-                rect.left + 24,
-                rect.top + 32,
-                rect.right - 24,
-                rect.bottom - 32,
-              ),
-              maskColor:
-                  widget._controller.maskColor ?? Colors.white.withOpacity(0.2),
-              cornerDotBuilder: (size, edgeAlignment) => DotControl(
-                color: widget._controller.cornerDotColor ?? Colors.white,
-              ),
-              radius: widget._controller.cornerRadius ?? 20,
-              aspectRatio: 1,
-              interactive: true,
-              onMoved: (newRect) {},
-              onStatusChanged: onStatusChanged,
-              onCropped: onImageCropped,
-            ),
-          );
-        } else if (snapshot.hasError) {
-          return const CircularProgressIndicator();
-        }
-        return getPlaceholder();
-      },
-    );
+    Widget rtn;
+
+    if (_croppedImage == null) {
+      rtn = FutureBuilder(
+        future: getImage(widget._controller.source),
+        builder: (BuildContext context, AsyncSnapshot<Uint8List> snapshot) {
+          if (snapshot.hasData) {
+            return _buildCropImage(image: snapshot.data!);
+          } else if (snapshot.hasError) {
+            return const CircularProgressIndicator();
+          }
+          return getPlaceholder();
+        },
+      );
+    } else {
+      rtn = _buildCropImage();
+    }
 
     if (widget._controller.margin != null) {
       rtn = Padding(padding: widget._controller.margin!, child: rtn);
     }
     return rtn;
+  }
+
+  Widget _buildCropImage({Uint8List? image}) {
+    final imageData = image ?? _croppedImage;
+    if (imageData == null) return const SizedBox();
+
+    return SizedBox(
+      height: 350,
+      width: 350,
+      child: Crop(
+        image: imageData,
+        controller: widget._controller.cropController,
+        initialAreaBuilder: (rect) => Rect.fromLTRB(
+          rect.left + 24,
+          rect.top + 32,
+          rect.right - 24,
+          rect.bottom - 32,
+        ),
+        maskColor:
+            widget._controller.maskColor ?? Colors.white.withOpacity(0.2),
+        cornerDotBuilder: (size, edgeAlignment) => DotControl(
+          color: widget._controller.cornerDotColor ?? Colors.white,
+        ),
+        radius: widget._controller.cornerRadius ?? 20,
+        aspectRatio: 1,
+        interactive: true,
+        onMoved: (newRect) {},
+        onStatusChanged: onStatusChanged,
+        onCropped: onImageCropped,
+      ),
+    );
   }
 
   void onStatusChanged(CropStatus status) {
@@ -150,29 +164,30 @@ class EnsembleImageCropperState extends WidgetState<EnsembleImageCropper> {
   }
 
   void onImageCropped(Uint8List image) async {
-    final widgetId = widget._controller.id;
-    if (widget._controller.onCropped != null && widgetId != null) {
-      // final file = io.File('croppedImage');
-      Directory tempDir = await getTemporaryDirectory();
-      String tempPath = tempDir.path;
-      final filePath = '$tempPath/cropped-image.png';
-      final file = io.File(filePath);
-      file.createSync();
-      file.writeAsBytes(image);
+    _croppedImage = image;
+    setState(() {});
+    // final widgetId = widget._controller.id;
+    // if (widget._controller.onCropped != null && widgetId != null) {
+    //   // final file = io.File('croppedImage');
+    //   Directory tempDir = await getTemporaryDirectory();
+    //   String tempPath = tempDir.path;
+    //   final filePath = '$tempPath/cropped-image.png';
+    //   final file = io.File(filePath);
+    //   file.createSync();
+    //   file.writeAsBytes(image);
 
-      final myPath = file.path;
-      print('File Path: $myPath');
-      // final sdf =
+    //   final myPath = file.path;
+    //   print('File Path: $myPath');
 
-      ScreenController().executeAction(
-        context,
-        widget._controller.onCropped!,
-        event: EnsembleEvent(
-          widget,
-          data: {'file': file.path},
-        ),
-      );
-    }
+    //   ScreenController().executeAction(
+    //     context,
+    //     widget._controller.onCropped!,
+    //     event: EnsembleEvent(
+    //       widget,
+    //       data: {'file': file.path},
+    //     ),
+    //   );
+    // }
   }
 
   Future<Uint8List> getImage(String path) async {
