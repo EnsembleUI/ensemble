@@ -8,8 +8,8 @@ abstract class OAuthControllerBase {
 
 class OAuthControllerStub implements OAuthControllerBase {
   @override
-  Future<OAuthServiceToken?> authorize(String serviceId, {required String scope, bool forceNewTokens = false}) {
+  Future<OAuthServiceToken?> authorize(String serviceId,
+      {required String scope, bool forceNewTokens = false}) {
     throw ConfigError("Auth module is not enabled.");
   }
-
 }
