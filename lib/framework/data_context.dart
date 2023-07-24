@@ -5,12 +5,15 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/placeholder/auth_context_manager.dart';
+import 'package:ensemble/framework/placeholder/token_manager.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:flutter/services.dart';
+import 'package:get_it/get_it.dart';
 import 'package:get_storage/get_storage.dart';
 
 import 'package:ensemble/framework/action.dart';
@@ -44,6 +47,12 @@ class DataContext {
     _contextMap['app'] = AppConfig();
     _contextMap['env'] = EnvConfig();
     _contextMap['ensemble'] = NativeInvokable(buildContext);
+
+    // auth can be selectively turned on
+    if (GetIt.instance.isRegistered<AuthContextManagerBase>()) {
+      _contextMap['auth'] = GetIt.instance<AuthContextManagerBase>();
+    }
+
     // device is a common name. If user already uses that, don't override it
     if (_contextMap['device'] == null) {
       _contextMap['device'] = Device();
@@ -338,7 +347,7 @@ class NativeInvokable with Invokable {
           Clipboard.setData(ClipboardData(text: value)),
       'initNotification': () => notificationUtils.initNotifications(),
       'updateSystemAuthorizationToken': (token) =>
-          StorageManager().updateServiceTokens(ServiceName.system, token),
+          GetIt.instance<TokenManagerBase>().updateServiceTokens(ServiceName.system, token),
     };
   }
 
