@@ -1,52 +1,32 @@
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:ensemble/framework/action.dart';
+import 'package:flutter/material.dart';
 
-final notificationUtils = _NotificationUtils();
+import 'notification/notification_base.dart'
+    if (dart.library.io) 'notification/notification_mobile.dart'
+    if (dart.library.js) 'notification/notification_web.dart';
 
-class _NotificationUtils {
-  final FlutterLocalNotificationsPlugin localNotificationsPlugin =
-      FlutterLocalNotificationsPlugin();
+final notificationUtils = NotificationUtilsBase();
 
-  Future<void> initNotifications() async {
-    const initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-    const initializationSettingsIOS = DarwinInitializationSettings();
-    const initializationSettings = InitializationSettings(
-      android: initializationSettingsAndroid,
-      iOS: initializationSettingsIOS,
-    );
-    await localNotificationsPlugin.initialize(initializationSettings);
+abstract class NotificationUtilsBase {
+  BuildContext? context;
+  EnsembleAction? onRemoteNotification;
+  EnsembleAction? onRemoteNotificationOpened;
+
+  factory NotificationUtilsBase() {
+    return getObject();
   }
 
-  Future<void> showProgressNotification(
-    int progress, {
-    int? notificationId,
-  }) async {
-    final androidPlatformChannelSpecifics = AndroidNotificationDetails(
-      'upload_channel_id',
-      'File Upload',
-      channelDescription: 'Notification channel for file uploads',
-      importance: Importance.low,
-      priority: Priority.low,
-      onlyAlertOnce: true,
-      showProgress: true,
-      maxProgress: 100,
-      progress: progress,
-    );
+  Future<bool?> initNotifications();
 
-    const iosPlatformChannelSpecifics = DarwinNotificationDetails(
-      subtitle: 'Uploading...',
-    );
+  Future<void> showNotification(
+    String? title,
+    String? body, {
+    String? imageUrl,
+  });
 
-    final platformChannelSpecifics = NotificationDetails(
-      android: androidPlatformChannelSpecifics,
-      iOS: iosPlatformChannelSpecifics,
-    );
+  void handleRemoteNotification();
 
-    await localNotificationsPlugin.show(
-      notificationId ?? 0,
-      'File Upload',
-      progress == 100 ? 'Uploaded' : 'Progress $progress %',
-      platformChannelSpecifics,
-    );
-  }
+  void handleRemoteNotificationOpened();
+
+  Future<void> showProgressNotification(int progress, {int? notificationId});
 }

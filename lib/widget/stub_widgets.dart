@@ -1,7 +1,5 @@
-
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:flutter/cupertino.dart';
-
 
 class StubWidget extends StatelessWidget {
   const StubWidget({super.key});
@@ -15,6 +13,7 @@ class StubWidget extends StatelessWidget {
 abstract class SignInWithGoogleBase {
   static const type = 'SignInWithGoogle';
 }
+
 class SignInWithGoogleStub extends StubWidget implements SignInWithGoogleBase {
   const SignInWithGoogleStub({super.key});
 }
@@ -22,6 +21,7 @@ class SignInWithGoogleStub extends StubWidget implements SignInWithGoogleBase {
 abstract class SignInWithAppleBase {
   static const type = 'SignInWithApple';
 }
+
 class SignInWithAppleStub extends StubWidget implements SignInWithAppleBase {
   const SignInWithAppleStub({super.key});
 }
