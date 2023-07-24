@@ -7,7 +7,6 @@ import 'dart:isolate';
 import 'dart:math' show Random;
 import 'dart:ui';
 
-import 'package:ensemble/OAuthController.dart';
 import 'package:ensemble/action/InvokeAPIController.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_app.dart';

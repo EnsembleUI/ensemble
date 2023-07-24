@@ -15,9 +15,8 @@ import 'package:ensemble/widget/conditional.dart';
 import 'package:ensemble/widget/fintech/finicityconnect/finicityconnect.dart';
 import 'package:ensemble/widget/icon_button.dart';
 import 'package:ensemble/widget/maps/maps.dart';
-import 'package:ensemble/widget/signin/sign_in_with_apple.dart';
-import 'package:ensemble/widget/signin/sign_in_with_google.dart';
 import 'package:ensemble/widget/staggered_grid.dart';
+import 'package:ensemble/widget/stub_widgets.dart';
 import 'package:ensemble/widget/text.dart';
 import 'package:ensemble/widget/toggle_button.dart';
 import 'package:ensemble/widget/visualization/topology_chart.dart';
@@ -48,6 +47,7 @@ import 'package:ensemble/widget/visualization/barchart.dart';
 import 'package:ensemble/widget/visualization/chart_js.dart';
 import 'package:ensemble/widget/visualization/line_area_chart.dart';
 import 'package:ensemble/widget/webview/webview.dart';
+import 'package:get_it/get_it.dart';
 
 class WidgetRegistry {
   WidgetRegistry({this.debugLabel});
@@ -81,8 +81,8 @@ class WidgetRegistry {
         EnsembleSignature.type: () => EnsembleSignature(),
         WeeklyScheduler.type: () => WeeklyScheduler(),
         Conditional.type: () => Conditional(),
-        SignInWithGoogle.type: () => SignInWithGoogle(),
-        EnsembleSignInWithApple.type: () => EnsembleSignInWithApple(),
+        SignInWithGoogleBase.type: () => GetIt.instance<SignInWithGoogleBase>(),
+        SignInWithAppleBase.type: () => GetIt.instance<SignInWithAppleBase>(),
 
         // form fields
         EnsembleForm.type: () => EnsembleForm(),
