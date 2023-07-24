@@ -34,7 +34,6 @@ class StorageManager {
       secureStorage.write(key: key, value: value);
   Future<String?> readSecurely(String key) => secureStorage.read(key: key);
 
-
   Future<void> init() async {
     // system storage - only platform can write, readonly for app developers.
     await GetStorage.init(systemStorageId);
