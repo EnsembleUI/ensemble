@@ -201,7 +201,10 @@
                 { "type": "object" }
               ]
             },
-            "description": "The request body to pass along with the URL"
+            "description": "The request body to pass along with the URL",
+            "additionalProperties": {
+              "type": "string"
+            }
           },
           "onResponse": {
             "$ref": "#/$defs/Action-payload",
