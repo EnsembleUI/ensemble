@@ -4475,7 +4475,12 @@
             },
             "stops": {
               "type": "array",
-              "description": "The list of color stops, each is a number between 0.0 (where the gradient starts) and 1.0 (where the gradient ends). The number of stops should match the number of colors."
+              "description": "The list of color stops, each is a number between 0.0 (where the gradient starts) and 1.0 (where the gradient ends). The number of stops should match the number of colors.",
+              "items": {
+                "type": "number",
+                "minimum": 0.0,
+                "maximum": 1.0
+              }
             },
             "start": {
               "description": "The starting position of the gradient",
@@ -4621,7 +4626,12 @@
             },
             "stops": {
               "type": "array",
-              "description": "The list of color stops, each is a number between 0.0 (where the gradient starts) and 1.0 (where the gradient ends). The number of stops should match the number of colors."
+              "description": "The list of color stops, each is a number between 0.0 (where the gradient starts) and 1.0 (where the gradient ends). The number of stops should match the number of colors.",
+              "items": {
+                "type": "number",
+                "minimum": 0.0,
+                "maximum": 1.0
+              }
             },
             "start": {
               "description": "The starting position of the gradient",
