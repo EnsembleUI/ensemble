@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:math';
 
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/page.dart';
@@ -11,7 +10,6 @@ import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/input/slider.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
-
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:yaml/yaml.dart';
 
@@ -73,7 +71,7 @@ class EnsembleChatState extends framework.WidgetState<EnsembleChat> {
 
     _assistant = const User(id: '123');
 
-    final uri = Uri.tryParse('ws://35.202.36.118:8000/ws');
+    final uri = Uri.tryParse('wss://sparksavings.ddns.net/python/ws');
     if (uri == null) return;
     channel = WebSocketChannel.connect(uri);
 
@@ -91,7 +89,7 @@ class EnsembleChatState extends framework.WidgetState<EnsembleChat> {
         createdAt: DateTime.now().millisecondsSinceEpoch,
         id: generateRandomString(),
         text: data['content'],
-        widgetDefinition: data['widgetDefinition'],
+        widget: data['widget'],
       );
       _addMessage(textMessage);
     } catch (e) {
@@ -203,9 +201,9 @@ class _ChatPageState extends State<ChatPage> {
 
                 Widget? dynamicWidget;
                 final message = widget.items.elementAt(index - 1) as Message;
-                if (message.widgetDefinition != null) {
-                  dynamicWidget = buildWidgetsFromTemplate(
-                      context, message.widgetDefinition);
+                if (message.widget != null) {
+                  dynamicWidget =
+                      buildWidgetsFromTemplate(context, message.widget);
                 }
                 return Column(
                   mainAxisSize: MainAxisSize.min,
@@ -232,6 +230,7 @@ class _ChatPageState extends State<ChatPage> {
                                   (dynamicWidget as EnsembleSlider)
                                       .controller
                                       .value
+                                      .round()
                                       .toString(),
                                 );
                               },
@@ -283,11 +282,7 @@ class _ChatPageState extends State<ChatPage> {
                     minHeight: 24,
                     minWidth: 24,
                   ),
-                  icon: Image.asset(
-                    'assets/icon-send.png',
-                    package: 'flutter_chat_ui',
-                    color: Colors.black,
-                  ),
+                  icon: Icon(Icons.send),
                   onPressed: () {
                     if (_textController.text.trim().isEmpty) return;
                     widget.onSendPressed.call(_textController.text);
