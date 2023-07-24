@@ -81,8 +81,8 @@ class WidgetRegistry {
         EnsembleSignature.type: () => EnsembleSignature(),
         WeeklyScheduler.type: () => WeeklyScheduler(),
         Conditional.type: () => Conditional(),
-        SignInWithGoogleBase.type: () => GetIt.instance<SignInWithGoogleBase>(),
-        SignInWithAppleBase.type: () => GetIt.instance<SignInWithAppleBase>(),
+        SignInWithGoogle.type: () => GetIt.instance<SignInWithGoogle>(),
+        SignInWithApple.type: () => GetIt.instance<SignInWithApple>(),
 
         // form fields
         EnsembleForm.type: () => EnsembleForm(),

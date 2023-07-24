@@ -5,8 +5,8 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
-import 'package:ensemble/framework/placeholder/auth_context_manager.dart';
-import 'package:ensemble/framework/placeholder/token_manager.dart';
+import 'package:ensemble/framework/stub/auth_context_manager.dart';
+import 'package:ensemble/framework/stub/token_manager.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/util/extensions.dart';
@@ -49,8 +49,8 @@ class DataContext {
     _contextMap['ensemble'] = NativeInvokable(buildContext);
 
     // auth can be selectively turned on
-    if (GetIt.instance.isRegistered<AuthContextManagerBase>()) {
-      _contextMap['auth'] = GetIt.instance<AuthContextManagerBase>();
+    if (GetIt.instance.isRegistered<AuthContextManager>()) {
+      _contextMap['auth'] = GetIt.instance<AuthContextManager>();
     }
 
     // device is a common name. If user already uses that, don't override it
@@ -347,7 +347,7 @@ class NativeInvokable with Invokable {
           Clipboard.setData(ClipboardData(text: value)),
       'initNotification': () => notificationUtils.initNotifications(),
       'updateSystemAuthorizationToken': (token) =>
-          GetIt.instance<TokenManagerBase>()
+          GetIt.instance<TokenManager>()
               .updateServiceTokens(ServiceName.system, token),
     };
   }
