@@ -1,5 +1,6 @@
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
@@ -65,6 +66,7 @@ class DataGrid extends StatefulWidget
   @override
   Map<String, Function> setters() {
     return {
+      'sorting': (val) => controller.sorting = Utils.getMap(val),
       'DataColumns': (List cols) {
         this.cols = cols;
       },
@@ -169,6 +171,7 @@ class EnsembleDataRowState extends State<EnsembleDataRow> {
 
 class DataGridController extends BoxController {
   List<Widget>? children;
+  Map<String, dynamic>? sorting;
   double? horizontalMargin;
   GenericTextController? headingTextController;
   double? dataRowHeight;
@@ -200,20 +203,15 @@ class DataGridController extends BoxController {
 class DataColumnSort {
   int? columnIndex;
   String? order;
+  // String? sortKey;
+  // bool? sortable;
 
   DataColumnSort({
-    required this.columnIndex,
-    required this.order,
+    this.columnIndex,
+    this.order,
+    // this.sortKey,
+    // this.sortable,
   });
-
-  static DataColumnSort fromYaml(
-      {required Map<String, dynamic>? map, required DataContext context}) {
-    return DataColumnSort(
-      columnIndex: Utils.optionalInt(context.eval(map?['columnIndex'])),
-      order: Utils.getString(context.eval(map?['sortOrder']),
-          fallback: 'ascending'),
-    );
-  }
 }
 
 class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
@@ -228,6 +226,7 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
   @override
   void initState() {
     widget._controller.addListener(refreshState);
+    _setInitialDataColumn();
     super.initState();
   }
 
@@ -251,9 +250,7 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
           onDataChanged: (List dataList) {
         this.dataList = dataList;
         print('RegisterItemTemplate called');
-        _arrangeItems();
-        templatedChildren =
-            buildWidgetsFromTemplate(context, dataList, widget.itemTemplate!);
+        _sortItems();
       });
     }
   }
@@ -272,15 +269,25 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
       throw Exception(
           'scopeManager is null in the DataGrid.buildWidget method. This is unexpected. DataGrid.id=${widget.id}');
     }
-    print('Build method');
+
     _buildDataColumn(scopeManager);
     _buildChildren();
     _buildDataRow();
 
+    // Setting sort column index and order
     final sortOrder =
         dataColumnSort?.order ?? DataColumnSortType.ascending.name;
+    int? sortColIndex;
+    if (dataColumnSort?.columnIndex != null) {
+      if (dataColumnSort!.columnIndex! >= _columns.length) {
+        throw LanguageError('Provide a valid data column index');
+      }
+      final sortable = _columns[dataColumnSort!.columnIndex!].sortable ?? false;
+      sortColIndex = sortable ? dataColumnSort?.columnIndex : null;
+    }
+
     DataTable grid = DataTable(
-      sortColumnIndex: dataColumnSort?.columnIndex,
+      sortColumnIndex: sortColIndex,
       sortAscending: sortOrder == DataColumnSortType.ascending.name,
       columns: _columns,
       rows: _rows,
@@ -411,6 +418,16 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
     }
   }
 
+  void _setInitialDataColumn() {
+    final sorting = widget._controller.sorting;
+    if (sorting != null) {
+      dataColumnSort = DataColumnSort(
+        columnIndex: Utils.optionalInt(sorting['columnIndex']),
+        order: Utils.getString(sorting['order'], fallback: 'ascending'),
+      );
+    }
+  }
+
   void _buildChildren() {
     _children.clear();
     if (widget._controller.children != null) {
@@ -421,80 +438,47 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
     }
   }
 
-  // Splitting the sortable values from dataList array with key as an datas array
-  void _arrangeItems() {
-    print('ArrangeItems Called');
-    List<List<Map<dynamic, dynamic>>> datas = [];
-    _columns.asMap().forEach((index, col) {
-      List<Map<String, dynamic>> dataToSaveMap = [];
-      final isSortable = col.sortable != null && col.sortable!;
-      if (isSortable && col.sortKey != null) {
-        // Setting sorting indicator for the first sortable item
-        if (dataColumnSort == null) {
-          // _sortColumn(index, col.sortOrder);
-          dataColumnSort = DataColumnSort(
-            columnIndex: index,
-            order: col.sortOrder,
-          );
-        }
+  // Sorting the datas array (ascending or descending)
+  void _sortItems() {
+    if (dataColumnSort != null && dataColumnSort?.columnIndex != null) {
+      final sortOrder =
+          dataColumnSort?.order ?? DataColumnSortType.ascending.name;
+      final EnsembleDataColumn sortItem =
+          _columns[dataColumnSort!.columnIndex!];
+      final bool? sortable = sortItem.sortable;
+      final String? sortKey = sortItem.sortKey;
 
-        for (final map in dataList) {
-          if (map.containsKey(col.sortKey)) {
-            dataToSaveMap.add({col.sortKey!: map[col.sortKey]});
-          }
-        }
-      }
-      datas.add(dataToSaveMap);
-    });
-    _sortItems(dataList, datas);
-  }
-
-  // Sorting the datas array (ascending or descending) and then replacing the (dataList) with sorted arrays (datas)
-  void _sortItems(List dataList, List<List<Map<dynamic, dynamic>>> datas) {
-    _columns.asMap().forEach((index, col) {
-      final bool isSortable = col.sortable ?? false;
-      if (isSortable && col.sortKey != null) {
-        final String sortKey = col.sortKey!;
-        final String sortOrder =
-            col.sortOrder ?? DataColumnSortType.ascending.name;
-
+      if (sortable != null && sortable) {
         bool isAscendingOrder = sortOrder == DataColumnSortType.ascending.name;
 
         if (isAscendingOrder) {
-          datas[index].sort((a, b) => (a[sortKey]).compareTo(b[sortKey]));
+          dataList.sort((a, b) => (a[sortKey]).compareTo(b[sortKey]));
         } else {
-          datas[index].sort((a, b) => (b[sortKey]).compareTo(a[sortKey]));
+          dataList.sort((a, b) => (b[sortKey]).compareTo(a[sortKey]));
         }
       }
-    });
+    }
 
-    datas.asMap().forEach((dataIndex, value) {
-      value.asMap().forEach((valueIndex, element) {
-        final sortKey = _columns[dataIndex].sortKey;
-        if (sortKey != null) {
-          dataList[valueIndex][sortKey] = element[sortKey];
-        }
-      });
-    });
-    // print('Sort Items Final DataList: $dataList');
+    templatedChildren =
+        buildWidgetsFromTemplate(context, dataList, widget.itemTemplate!);
     setState(() {});
   }
 
-  // Change ascending to descending and vice versa
+  // Change ascending to descending and vice versa in dataColumnSort object
   void _toggleSortColumn(int index) {
     final sortOrder =
         _columns[index].sortOrder ?? DataColumnSortType.ascending.name;
-    final sortable = _columns[index].sortable ?? false;
-    if (sortable) {
+    final sortable = _columns[index].sortable;
+    if (sortable != null && sortable) {
       _columns[index].sortOrder = sortOrder == DataColumnSortType.ascending.name
           ? DataColumnSortType.descending.name
           : DataColumnSortType.ascending.name;
       dataColumnSort = DataColumnSort(
-        columnIndex: index,
+        columnIndex: sortable ? index : null,
         order: _columns[index].sortOrder,
       );
 
-      _arrangeItems();
+      _sortItems();
       templatedChildren =
           buildWidgetsFromTemplate(context, dataList, widget.itemTemplate!);
       print('Current Data Column Sort : ${dataColumnSort?.order}');
