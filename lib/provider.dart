@@ -12,7 +12,6 @@ import 'package:yaml/yaml.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' as foundation;
-import 'package:firebase_core/firebase_core.dart';
 
 enum ArtifactType {
   screen,
