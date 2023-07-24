@@ -6,7 +6,7 @@ class Message {
     this.createdAt,
     this.updatedAt,
     this.metadata,
-    this.widgetDefinition,
+    this.widget,
   });
 
   final String id;
@@ -15,7 +15,7 @@ class Message {
   final Map<String, dynamic>? metadata;
   final int? updatedAt;
   final String text;
-  final dynamic widgetDefinition;
+  final dynamic widget;
 
   factory Message.fromJson(Map<String, dynamic> json) {
     return Message(
@@ -25,7 +25,7 @@ class Message {
       createdAt: json['createdAt'],
       updatedAt: json['updatedAt'],
       metadata: json['metadata'],
-      widgetDefinition: json['widgetDefinition'],
+      widget: json['widget'],
     );
   }
 
@@ -37,7 +37,7 @@ class Message {
       'createdAt': createdAt,
       'updatedAt': updatedAt,
       'metadata': metadata,
-      'widgetDefinition': widgetDefinition,
+      'widget': widget,
     };
   }
 }
@@ -61,18 +61,4 @@ class User {
       'name': name,
     };
   }
-}
-
-String generateRandomString({int length = 8}) {
-  const randomChars =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  const charsLength = randomChars.length;
-
-  final rand = Random();
-  final codeUnits = List.generate(
-    length,
-    (index) => randomChars[rand.nextInt(charsLength)].codeUnitAt(0),
-  );
-
-  return String.fromCharCodes(codeUnits);
 }
