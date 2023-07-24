@@ -39,8 +39,8 @@ class HttpUtils {
     ServiceName? serviceName =
         ServiceName.values.from(api['authorization']?['serviceId']);
     if (serviceName != null) {
-      OAuthServiceToken? token =
-          await GetIt.instance<TokenManagerBase>().getServiceTokens(serviceName);
+      OAuthServiceToken? token = await GetIt.instance<TokenManagerBase>()
+          .getServiceTokens(serviceName);
       if (token != null) {
         headers['Authorization'] = 'Bearer ${token.accessToken}';
       }

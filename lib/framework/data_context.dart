@@ -347,7 +347,8 @@ class NativeInvokable with Invokable {
           Clipboard.setData(ClipboardData(text: value)),
       'initNotification': () => notificationUtils.initNotifications(),
       'updateSystemAuthorizationToken': (token) =>
-          GetIt.instance<TokenManagerBase>().updateServiceTokens(ServiceName.system, token),
+          GetIt.instance<TokenManagerBase>()
+              .updateServiceTokens(ServiceName.system, token),
     };
   }
 
