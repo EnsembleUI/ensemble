@@ -7,7 +7,8 @@ class StubWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    throw RuntimeError('This widget requires the $moduleName module to be enabled.');
+    throw RuntimeError(
+        'This widget requires the $moduleName module to be enabled.');
   }
 }
 
