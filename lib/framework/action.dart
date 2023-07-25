@@ -568,6 +568,50 @@ class AuthorizeOAuthAction extends EnsembleAction {
   }
 }
 
+class NotificationAction extends EnsembleAction {
+  NotificationAction({this.onTap, this.onReceive});
+
+  EnsembleAction? onTap;
+  EnsembleAction? onReceive;
+
+  factory NotificationAction.fromYaml(
+      {Invokable? initiator, YamlMap? payload}) {
+    return NotificationAction(
+      onTap: EnsembleAction.fromYaml(payload?['onTap']),
+      onReceive: EnsembleAction.fromYaml(payload?['onReceive']),
+    );
+  }
+}
+
+class RequestNotificationAction extends EnsembleAction {
+  EnsembleAction? onAccept;
+  EnsembleAction? onReject;
+
+  RequestNotificationAction({this.onAccept, this.onReject});
+
+  factory RequestNotificationAction.fromYaml(
+      {Invokable? initiator, YamlMap? payload}) {
+    return RequestNotificationAction(
+      onAccept: EnsembleAction.fromYaml(payload?['onAccept']),
+      onReject: EnsembleAction.fromYaml(payload?['onReject']),
+    );
+  }
+}
+
+class ShowNotificationAction extends EnsembleAction {
+  late String title;
+  late String body;
+
+  ShowNotificationAction({this.title = '', this.body = ''});
+
+  factory ShowNotificationAction.fromYaml({YamlMap? payload}) {
+    return ShowNotificationAction(
+      title: Utils.getString(payload?['title'], fallback: ''),
+      body: Utils.getString(payload?['body'], fallback: ''),
+    );
+  }
+}
+
 enum ActionType {
   invokeAPI,
   navigateScreen,
@@ -587,6 +631,9 @@ enum ActionType {
   pickFiles,
   connectWallet,
   authorizeOAuthService,
+  notification,
+  requestNotificationAccess,
+  showNotification,
   copyToClipboard,
 }
 
@@ -673,6 +720,12 @@ abstract class EnsembleAction {
       return WalletConnectAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.authorizeOAuthService) {
       return AuthorizeOAuthAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.notification) {
+      return NotificationAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.showNotification) {
+      return ShowNotificationAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.requestNotificationAccess) {
+      return RequestNotificationAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.copyToClipboard) {
       return CopyToClipboardAction.fromYaml(payload: payload);
     }

@@ -1,8 +1,8 @@
 import 'package:ensemble/framework/error_handling.dart';
 
-abstract class AuthContextManagerBase {}
+abstract class AuthContextManager {}
 
-class AuthContextManagerStub implements AuthContextManagerBase {
+class AuthContextManagerStub implements AuthContextManager {
   AuthContextManagerStub() {
     throw RuntimeError('Auth is not enabled.');
   }
