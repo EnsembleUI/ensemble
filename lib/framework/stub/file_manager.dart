@@ -8,7 +8,7 @@ abstract class FileManager {
       ScopeManager? scopeManager);
 }
 
-class FileManagerPlaceholder extends FileManager {
+class FileManagerStub extends FileManager {
   @override
   Future<void> pickFiles(BuildContext context, FilePickerAction action,
       ScopeManager? scopeManager) {
