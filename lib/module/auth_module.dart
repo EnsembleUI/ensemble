@@ -9,7 +9,8 @@ abstract class AuthModule {}
 class AuthModuleStub implements AuthModule {
   @override
   void init() {
-    GetIt.I.registerFactory<SignInWithGoogle>(() => const SignInWithGoogleStub());
+    GetIt.I
+        .registerFactory<SignInWithGoogle>(() => const SignInWithGoogleStub());
     GetIt.I.registerFactory<SignInWithApple>(() => const SignInWithAppleStub());
     GetIt.I.registerSingleton<TokenManager>(TokenManagerStub());
     GetIt.I.registerFactory<OAuthController>(() => OAuthControllerStub());
@@ -17,5 +18,4 @@ class AuthModuleStub implements AuthModule {
     // note that we don't inject AuthContextManagerStub(), since its presence
     // will prevent data_context to load
   }
-
 }
