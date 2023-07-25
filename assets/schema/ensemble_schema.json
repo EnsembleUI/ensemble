@@ -1573,6 +1573,29 @@
             "dividerThickness": {
               "type": "integer",
               "description": "The thickness of the divider"
+            },
+            "sorting": {
+              "type": "object",
+              "properties": {
+                "columnIndex": {
+                  "type": "integer",
+                  "description": "The index of the data column to be sorted"
+                },
+                "order": {
+                  "type": "string",
+                  "description": "Set the data column sorting either in ascending or descending order",
+                  "oneOf": [
+                    {
+                      "const": "ascending",
+                      "description": "Sort the data column in ascending order"
+                    },
+                    {
+                      "const": "descending",
+                      "description": "Sort the data column in descending order"
+                    }
+                  ]
+                }
+              }
             }
           }
         }
@@ -1639,6 +1662,14 @@
         "tooltip": {
           "type": "string",
           "description": "Set the tooltip for the data column"
+        },
+        "sortable": {
+          "type": "boolean",
+          "description": "Set the data column sorting"
+        },
+        "sortKey": {
+          "type": "string",
+          "description": "Sort key is required if you enable the data column sorting"
         }
       }
     },
@@ -4546,7 +4577,12 @@
             },
             "stops": {
               "type": "array",
-              "description": "The list of color stops, each is a number between 0.0 (where the gradient starts) and 1.0 (where the gradient ends). The number of stops should match the number of colors."
+              "description": "The list of color stops, each is a number between 0.0 (where the gradient starts) and 1.0 (where the gradient ends). The number of stops should match the number of colors.",
+              "items": {
+                "type": "number",
+                "minimum": 0.0,
+                "maximum": 1.0
+              }
             },
             "start": {
               "description": "The starting position of the gradient",
@@ -4692,7 +4728,12 @@
             },
             "stops": {
               "type": "array",
-              "description": "The list of color stops, each is a number between 0.0 (where the gradient starts) and 1.0 (where the gradient ends). The number of stops should match the number of colors."
+              "description": "The list of color stops, each is a number between 0.0 (where the gradient starts) and 1.0 (where the gradient ends). The number of stops should match the number of colors.",
+              "items": {
+                "type": "number",
+                "minimum": 0.0,
+                "maximum": 1.0
+              }
             },
             "start": {
               "description": "The starting position of the gradient",

@@ -1,13 +1,13 @@
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/error_handling.dart';
 
-abstract class TokenManagerBase {
+abstract class TokenManager {
   Future<OAuthServiceToken?> getServiceTokens(ServiceName serviceName);
   Future<void> updateServiceTokens(ServiceName serviceName, String accessToken,
       {String? refreshToken});
 }
 
-class TokenManagerStub implements TokenManagerBase {
+class TokenManagerStub implements TokenManager {
   @override
   Future<OAuthServiceToken?> getServiceTokens(ServiceName serviceName) {
     throw ConfigError('Auth module is not enabled.');
