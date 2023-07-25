@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
@@ -14,8 +16,8 @@ import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
-import 'package:ensemble/framework/placeholder/camera_manager.dart';
-import 'package:ensemble/framework/placeholder/file_manager.dart';
+import 'package:ensemble/framework/stub/camera_manager.dart';
+import 'package:ensemble/framework/stub/file_manager.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/framework/theme/theme_loader.dart';
@@ -27,6 +29,7 @@ import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble/util/http_utils.dart';
+import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_registry.dart';
@@ -82,6 +85,8 @@ class ScreenController {
     ScopeManager? scopeManager = _getScopeManager(context);
     if (scopeManager != null) {
       executeActionWithScope(context, scopeManager, action, event: event);
+    } else {
+      throw Exception('Cannot find ScopeManager to execute action');
     }
   }
 
@@ -455,6 +460,26 @@ class ScreenController {
       } on Exception catch (_) {
         if (action.onError != null) executeAction(context, action.onError!);
         throw LanguageError('Unable to create wallet connect session');
+      }
+    } else if (action is NotificationAction) {
+      notificationUtils.context = context;
+      notificationUtils.onRemoteNotification = action.onReceive;
+      notificationUtils.onRemoteNotificationOpened = action.onTap;
+    } else if (action is ShowNotificationAction) {
+      dataContext.addDataContext(Ensemble.externalDataContext);
+      notificationUtils.showNotification(
+        dataContext.eval(action.title),
+        dataContext.eval(action.body),
+      );
+    } else if (action is RequestNotificationAction) {
+      final isEnabled = await notificationUtils.initNotifications() ?? false;
+
+      if (isEnabled && action.onAccept != null) {
+        executeAction(context, action.onAccept!);
+      }
+
+      if (!isEnabled && action.onReject != null) {
+        executeAction(context, action.onReject!);
       }
     } else if (action is AuthorizeOAuthAction) {
       // TODO
