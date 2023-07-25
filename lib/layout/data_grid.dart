@@ -121,7 +121,8 @@ class EnsembleDataColumn extends DataColumn {
       tooltip: Utils.optionalString(context.eval(map['tooltip'])),
       sortable: Utils.optionalBool(context.eval(map['sortable'])),
       sortKey: Utils.optionalString(context.eval(map['sortKey'])),
-      sortOrder: Utils.optionalString(context.eval(map['sortOrder'])),
+      sortOrder: Utils.getString(context.eval(map['sortOrder']),
+          fallback: 'ascending'),
       onSort: onSort,
     );
   }
@@ -201,16 +202,12 @@ class DataGridController extends BoxController {
 }
 
 class DataColumnSort {
-  int? columnIndex;
+  int columnIndex;
   String? order;
-  // String? sortKey;
-  // bool? sortable;
 
   DataColumnSort({
-    this.columnIndex,
+    required this.columnIndex,
     this.order,
-    // this.sortKey,
-    // this.sortable,
   });
 }
 
@@ -241,7 +238,6 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
     if (widget.itemTemplate != null) {
       // initial value
       if (widget.itemTemplate!.initialValue != null) {
-        print('Initial Value called');
         templatedChildren = buildWidgetsFromTemplate(
             context, widget.itemTemplate!.initialValue!, widget.itemTemplate!);
       }
@@ -249,7 +245,6 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
       registerItemTemplate(context, widget.itemTemplate!,
           onDataChanged: (List dataList) {
         this.dataList = dataList;
-        print('RegisterItemTemplate called');
         _sortItems();
       });
     }
@@ -279,10 +274,11 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
         dataColumnSort?.order ?? DataColumnSortType.ascending.name;
     int? sortColIndex;
     if (dataColumnSort?.columnIndex != null) {
-      if (dataColumnSort!.columnIndex! >= _columns.length) {
-        throw LanguageError('Provide a valid data column index');
+      if (dataColumnSort!.columnIndex >= _columns.length) {
+        throw LanguageError(
+            'Provide a valid data columnIndex. columnIndex is should be less than the data columns length');
       }
-      final sortable = _columns[dataColumnSort!.columnIndex!].sortable ?? false;
+      final sortable = _columns[dataColumnSort!.columnIndex].sortable ?? false;
       sortColIndex = sortable ? dataColumnSort?.columnIndex : null;
     }
 
@@ -420,11 +416,18 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
 
   void _setInitialDataColumn() {
     final sorting = widget._controller.sorting;
+
     if (sorting != null) {
-      dataColumnSort = DataColumnSort(
-        columnIndex: Utils.optionalInt(sorting['columnIndex']),
-        order: Utils.getString(sorting['order'], fallback: 'ascending'),
-      );
+      final colIndex = Utils.optionalInt(sorting['columnIndex']);
+      if (colIndex == null) {
+        throw LanguageError(
+            'Add a columnIndex to the sorting. It is a mandatory property for sorting a data grid');
+      } else {
+        dataColumnSort = DataColumnSort(
+          columnIndex: colIndex,
+          order: Utils.getString(sorting['order'], fallback: 'ascending'),
+        );
+      }
     }
   }
 
@@ -443,8 +446,8 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
     if (dataColumnSort != null && dataColumnSort?.columnIndex != null) {
       final sortOrder =
           dataColumnSort?.order ?? DataColumnSortType.ascending.name;
-      final EnsembleDataColumn sortItem =
-          _columns[dataColumnSort!.columnIndex!];
+      _columns[dataColumnSort!.columnIndex].sortOrder = sortOrder;
+      final EnsembleDataColumn sortItem = _columns[dataColumnSort!.columnIndex];
       final bool? sortable = sortItem.sortable;
       final String? sortKey = sortItem.sortKey;
 
@@ -474,14 +477,13 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
           ? DataColumnSortType.descending.name
           : DataColumnSortType.ascending.name;
       dataColumnSort = DataColumnSort(
-        columnIndex: sortable ? index : null,
+        columnIndex: index,
         order: _columns[index].sortOrder,
       );
 
       _sortItems();
       templatedChildren =
           buildWidgetsFromTemplate(context, dataList, widget.itemTemplate!);
-      print('Current Data Column Sort : ${dataColumnSort?.order}');
     }
   }
 
