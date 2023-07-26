@@ -333,9 +333,11 @@ class Account {
 
     if (input != null && input is Map) {
       firebaseConfig = FirebaseConfig.fromYaml(input['firebase']);
-      mapAccessToken = Utils.optionalString(input['maps']?['mapbox_access_token']);
+      mapAccessToken =
+          Utils.optionalString(input['maps']?['mapbox_access_token']);
     }
-    return Account._(firebaseConfig: firebaseConfig, mapAccessToken: mapAccessToken);
+    return Account._(
+        firebaseConfig: firebaseConfig, mapAccessToken: mapAccessToken);
   }
 }
 
@@ -367,7 +369,8 @@ class FirebaseConfig {
           androidConfig: androidConfig,
           webConfig: webConfig);
     } catch (error) {
-      throw ConfigError('Invalid Firebase configuration. Please double check your ensemble-config.yaml');
+      throw ConfigError(
+          'Invalid Firebase configuration. Please double check your ensemble-config.yaml');
     }
   }
 
