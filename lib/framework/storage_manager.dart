@@ -22,7 +22,6 @@ class StorageManager with SystemStorage, PublicStorage, SecureStorage {
     await initSystemStorage();
     await initPublicStorage();
   }
-
 }
 
 /// These are non-secure system-level storage e.g. Authenticated User Info
@@ -44,14 +43,14 @@ mixin SystemStorage {
   Future<void> writeToSystemStorage(String key, dynamic value) =>
       _systemStorage.write(key, value);
 
-  Future<void> removeFromSystemStorage(String key) => _systemStorage.remove(key);
+  Future<void> removeFromSystemStorage(String key) =>
+      _systemStorage.remove(key);
 
   // for Preview mode or regular
   static const systemPreviewKey = 'system.preview';
   bool? isPreview() => _systemStorage.read<bool?>(systemPreviewKey);
-  void setIsPreview(bool value) => _systemStorage.write(systemPreviewKey, value);
-
-
+  void setIsPreview(bool value) =>
+      _systemStorage.write(systemPreviewKey, value);
 }
 
 /// non-secure storage available to AppDevs
