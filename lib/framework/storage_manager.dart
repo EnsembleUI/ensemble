@@ -16,11 +16,15 @@ class StorageManager with SystemStorage, PublicStorage, SecureStorage {
   factory StorageManager() {
     return _instance;
   }
+  bool initialized = false;
 
   /// initialize storage
   Future<void> init() async {
-    await initSystemStorage();
-    await initPublicStorage();
+    if (!initialized) {
+      await initSystemStorage();
+      await initPublicStorage();
+      initialized = true;
+    }
   }
 }
 
