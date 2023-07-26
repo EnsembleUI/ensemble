@@ -3651,30 +3651,36 @@
                     "type": "object",
                     "oneOf": [
                       {
-                        "required": ["if", "widget"],
+                        "required": ["if"],
                         "properties": {
                           "if": {
-                            "type": "string"
-                          },
-                          "$ref": "#/$defs/Widget"
+                            "type": "string",
+                            "items": {
+                              "$ref": "#/$defs/Widget"
+                            }
+                          }
                         }
                       },
                       {
-                        "required": ["elseif", "widget"],
+                        "required": ["elseif"],
                         "properties": {
                           "elseif": {
-                            "type": "string"
-                          },
-                          "$ref": "#/$defs/Widget"
+                            "type": "string",
+                            "items": {
+                              "$ref": "#/$defs/Widget"
+                            }
+                          }
                         }
                       },
                       {
-                        "required": ["else", "widget"],
+                        "required": ["else"],
                         "properties": {
                           "else": {
-                            "type": "string"
-                          },
-                          "$ref": "#/$defs/Widget"
+                            "type": "string",
+                            "items": {
+                              "$ref": "#/$defs/Widget"
+                            }
+                          }
                         }
                       }
                     ]
