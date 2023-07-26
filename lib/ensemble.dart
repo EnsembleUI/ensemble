@@ -322,8 +322,7 @@ class AppBundle {
 
 /// store the App's account info (e.g. access token for maps)
 class Account {
-  Account({this.firebaseConfig});
-  Account._({this.firebaseConfig, this.mapAccessToken});
+  Account({this.firebaseConfig, this.mapAccessToken});
   FirebaseConfig? firebaseConfig;
 
   // legacy Mapbox key
@@ -338,7 +337,7 @@ class Account {
       mapAccessToken =
           Utils.optionalString(input['maps']?['mapbox_access_token']);
     }
-    return Account._(
+    return Account(
         firebaseConfig: firebaseConfig, mapAccessToken: mapAccessToken);
   }
 }
