@@ -3656,9 +3656,7 @@
                           "if": {
                             "type": "string"
                           },
-                          "widget": {
-                            "$ref": "#/$defs/Widget"
-                          }
+                          "$ref": "#/$defs/Widget"
                         }
                       },
                       {
@@ -3667,9 +3665,7 @@
                           "elseif": {
                             "type": "string"
                           },
-                          "widget": {
-                            "$ref": "#/$defs/Widget"
-                          }
+                          "$ref": "#/$defs/Widget"
                         }
                       },
                       {
@@ -3678,9 +3674,7 @@
                           "else": {
                             "type": "string"
                           },
-                          "widget": {
-                            "$ref": "#/$defs/Widget"
-                          }
+                          "$ref": "#/$defs/Widget"
                         }
                       }
                     ]
