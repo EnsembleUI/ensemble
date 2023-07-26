@@ -322,6 +322,7 @@ class AppBundle {
 
 /// store the App's account info (e.g. access token for maps)
 class Account {
+  Account({this.firebaseConfig});
   Account._({this.firebaseConfig, this.mapAccessToken});
   FirebaseConfig? firebaseConfig;
 
