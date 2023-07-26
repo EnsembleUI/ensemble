@@ -489,9 +489,6 @@ class UserInfo with Invokable {
   @override
   Map<String, Function> getters() {
     return {
-      'email': () => StorageManager().getUserEmail(),
-      'name': () => StorageManager().getUserName(),
-      'photo': () => StorageManager().getUserPhoto(),
       'date': () => DateInfo(),
       'datetime': () => DateTimeInfo(),
     };
