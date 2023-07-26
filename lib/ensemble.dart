@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/ensemble_provider.dart';
-import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
@@ -341,24 +340,32 @@ class Account {
 }
 
 class FirebaseConfig {
-  FirebaseConfig._({this.iOSConfig, this.androidConfig});
+  FirebaseConfig._({this.iOSConfig, this.androidConfig, this.webConfig});
   FirebaseOptions? iOSConfig;
   FirebaseOptions? androidConfig;
+  FirebaseOptions? webConfig;
 
   factory FirebaseConfig.fromYaml(dynamic input) {
     FirebaseOptions? iOSConfig;
     FirebaseOptions? androidConfig;
+    FirebaseOptions? webConfig;
 
     try {
       if (input is Map) {
         if (input['iOS'] != null) {
           iOSConfig = _getPlatformConfig(input['iOS']);
         }
-        if (input['Android'] != null) {
-          androidConfig = _getPlatformConfig(input['Android']);
+        if (input['android'] != null) {
+          androidConfig = _getPlatformConfig(input['android']);
+        }
+        if (input['web'] != null) {
+          webConfig = _getPlatformConfig(input['web']);
         }
       }
-      return FirebaseConfig._(iOSConfig: iOSConfig, androidConfig: androidConfig);
+      return FirebaseConfig._(
+          iOSConfig: iOSConfig,
+          androidConfig: androidConfig,
+          webConfig: webConfig);
     } catch (error) {
       throw ConfigError('Invalid Firebase configuration. Please double check your ensemble-config.yaml');
     }
