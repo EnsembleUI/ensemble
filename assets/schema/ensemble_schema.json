@@ -3637,35 +3637,59 @@
         },
         {
           "title": "Conditional",
-          "required": [
-            "Conditional"
-          ],
+          "type": "object",
+          "required": ["Conditional"],
           "properties": {
             "Conditional": {
               "type": "object",
               "description": "Render widget based on condition.",
-              "required": [
-                "conditions"
-              ],
+              "required": ["conditions"],
               "properties": {
                 "conditions": {
                   "type": "array",
                   "items": {
                     "type": "object",
-                    "properties": {
-                      "if": {
-                        "type": "string"
+                    "oneOf": [
+                      {
+                        "required": ["if", "widget"],
+                        "properties": {
+                          "if": {
+                            "type": "string"
+                          },
+                          "widget": {
+                            "$ref": "#/$defs/Widget"
+                          }
+                        }
+                      },
+                      {
+                        "required": ["elseif", "widget"],
+                        "properties": {
+                          "elseif": {
+                            "type": "string"
+                          },
+                          "widget": {
+                            "$ref": "#/$defs/Widget"
+                          }
+                        }
+                      },
+                      {
+                        "required": ["else", "widget"],
+                        "properties": {
+                          "else": {
+                            "type": "string"
+                          },
+                          "widget": {
+                            "$ref": "#/$defs/Widget"
+                          }
+                        }
                       }
-                    },
-                    "required": [
-                      "if"
                     ]
                   }
                 }
               }
             }
           }
-        }
+        }     
       ]
     },
     "Menu": {
