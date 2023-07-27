@@ -69,6 +69,8 @@ mixin PublicStorage {
   /// write to public storage
   Future<void> write(String key, dynamic value) =>
       GetStorage().write(key, value);
+
+  Future<void> remove(String key) => GetStorage().remove(key);
 }
 
 /// secure storage. These are async so really only use-able
