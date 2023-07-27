@@ -3,6 +3,7 @@ import 'dart:async';
 
 import 'dart:ui';
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
@@ -11,7 +12,6 @@ import 'package:yaml/yaml.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' as foundation;
-import 'package:firebase_core/firebase_core.dart';
 
 enum ArtifactType {
   screen,
@@ -68,6 +68,12 @@ class LocalDefinitionProvider extends DefinitionProvider {
     var pageStr = await rootBundle.loadString(
         '$path${screenId ?? screenName ?? appHome}.yaml',
         cache: foundation.kReleaseMode);
+    final pageYaml = loadYaml(pageStr);
+    if (pageYaml is YamlMap) {
+      if (pageYaml.keys.length == 1 && pageYaml['Widget'] != null) {
+        return ViewUtil.getWidgetAsScreen(pageYaml['Widget']);
+      }
+    }
     return loadYaml(pageStr);
   }
 

@@ -1,27 +1,24 @@
 import 'dart:convert';
 import 'dart:ui';
 
+import 'package:device_preview/device_preview.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
-import 'package:device_preview/device_preview.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/widget/error_screen.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/page_model.dart';
-import 'package:ensemble/util/notification_utils.dart';
-import 'package:ensemble/util/unfocus.dart';
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:get_storage/get_storage.dart';
-import 'package:provider/provider.dart';
 import 'package:workmanager/workmanager.dart';
 
-const String previewConfig = 'preview-config';
 const String backgroundUploadTask = 'backgroundUploadTask';
 
 @pragma('vm:entry-point')
@@ -44,21 +41,30 @@ void callbackDispatcher() {
                 Map<String, String>.from(json.decode(inputData['headers'])),
             method: inputData['method'],
             url: inputData['url'],
-            fields: inputData['fields'],
+            fields: Map<String, String>.from(json.decode(inputData['fields'])),
             showNotification: inputData['showNotification'],
             progressCallback: (progress) {
               if (sendPort == null) return;
-              sendPort.send({'progress': progress});
+              sendPort.send({
+                'progress': progress,
+                'taskId': inputData['taskId'],
+              });
             },
             onError: (error) {
               if (sendPort == null) return;
-              sendPort.send({'error': error});
+              sendPort.send(
+                  {'error': error.toString(), 'taskId': inputData['taskId']});
             },
+            taskId: inputData['taskId'],
           );
 
           if (sendPort == null || response == null) return response == null;
 
-          sendPort.send({'responseBody': response.body});
+          sendPort.send({
+            'responseBody': response.body,
+            'taskId': inputData['taskId'],
+            'responseHeaders': response.headers,
+          });
         } catch (e) {
           throw LanguageError('Failed to process backgroud upload task');
         }
@@ -91,9 +97,13 @@ class EnsembleAppState extends State<EnsembleApp> {
   /// initialize our App with the the passed in config or
   /// read from our ensemble-config file.
   Future<EnsembleConfig> initApp() async {
+    try {
+      await dotenv.load();
+    } catch (_) {}
     Device().initDeviceInfo();
-    await GetStorage.init();
-    GetStorage().write(previewConfig, widget.isPreview);
+
+    await StorageManager().init();
+    StorageManager().setIsPreview(widget.isPreview);
 
     // use the config if passed in
     if (widget.ensembleConfig != null) {
@@ -120,8 +130,6 @@ class EnsembleAppState extends State<EnsembleApp> {
     if (!kIsWeb) {
       Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
     }
-
-    notificationUtils.initNotifications();
   }
 
   @override
@@ -149,37 +157,35 @@ class EnsembleAppState extends State<EnsembleApp> {
 
   Widget renderApp(EnsembleConfig config) {
     //log("EnsembleApp build() - $hashCode");
-    GetStorage().write(previewConfig, widget.isPreview);
+    StorageManager().setIsPreview(widget.isPreview);
 
-    return Unfocus(
-      child: MaterialApp(
-        navigatorKey: Utils.globalAppKey,
-        theme: config.getAppTheme(),
-        localizationsDelegates: [
-          config.getI18NDelegate(),
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate
-        ],
-        home: Scaffold(
-          // this outer scaffold is where the background image would be (if
-          // specified). We do not want it to resize on keyboard popping up.
-          // The Page's Scaffold can handle the resizing.
-          resizeToAvoidBottomInset: false,
+    return MaterialApp(
+      navigatorKey: Utils.globalAppKey,
+      theme: config.getAppTheme(),
+      localizationsDelegates: [
+        config.getI18NDelegate(),
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate
+      ],
+      home: Scaffold(
+        // this outer scaffold is where the background image would be (if
+        // specified). We do not want it to resize on keyboard popping up.
+        // The Page's Scaffold can handle the resizing.
+        resizeToAvoidBottomInset: false,
 
-          body: Screen(
-            appProvider:
-                AppProvider(definitionProvider: config.definitionProvider),
-            screenPayload: widget.screenPayload,
-          ),
+        body: Screen(
+          appProvider:
+              AppProvider(definitionProvider: config.definitionProvider),
+          screenPayload: widget.screenPayload,
         ),
-        useInheritedMediaQuery: widget.isPreview,
-        locale: widget.isPreview ? DevicePreview.locale(context) : null,
-        builder: widget.isPreview
-            ? DevicePreview.appBuilder
-            : FlutterI18n.rootAppBuilder(),
-        // TODO: this case translation issue on hot loading. Address this for RTL support
-        //builder: (context, widget) => FlutterI18n.rootAppBuilder().call(context, widget)
       ),
+      useInheritedMediaQuery: widget.isPreview,
+      locale: widget.isPreview ? DevicePreview.locale(context) : null,
+      builder: widget.isPreview
+          ? DevicePreview.appBuilder
+          : FlutterI18n.rootAppBuilder(),
+      // TODO: this case translation issue on hot loading. Address this for RTL support
+      //builder: (context, widget) => FlutterI18n.rootAppBuilder().call(context, widget)
     );
   }
 

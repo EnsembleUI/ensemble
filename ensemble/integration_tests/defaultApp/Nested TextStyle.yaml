@@ -1,0 +1,27 @@
+View:
+  styles:
+    useSafeArea: true
+  body:
+    Column:
+      children:
+        - Text:
+            id: myText
+            text: This textStyle can change
+        - Flow:
+            children:
+              - Button:
+                  label: Change text color to red
+                  onTap: |
+                    //@code
+                    myText.textStyle.color = 'red';
+              - Button:
+                  label: Change font size to 40
+                  onTap: |
+                    //@code
+                    myText.textStyle.fontSize = 40;
+        - TextInput:
+            label: Font Name
+            id: fontInput
+            onChange: |
+              //@code
+              myText.textStyle.fontFamily = fontInput.value;

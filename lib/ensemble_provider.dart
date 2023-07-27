@@ -1,11 +1,12 @@
 import 'dart:async';
 import 'dart:developer';
-import 'dart:math' as math;
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/i18n_loader.dart';
+import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:yaml/yaml.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ensemble/provider.dart';
@@ -32,7 +33,8 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
 
   static void getAppDefinition(
       String appId, Function callback, Function onError) {
-    FirebaseFirestore db = FirebaseFirestore.instance;
+    final app = Ensemble().ensembleFirebaseApp!;
+    FirebaseFirestore db = FirebaseFirestore.instanceFor(app: app);
     db.collection('apps').doc(appId).get().then(
         (doc) => callback(doc.id, doc.data()),
         onError: (error) => onError(error));
@@ -103,7 +105,8 @@ class AppModel {
   /// Plus listen for changes and update the cache
   String? listenerError;
   void initListeners() {
-    FirebaseFirestore db = FirebaseFirestore.instance;
+    final app = Ensemble().ensembleFirebaseApp!;
+    FirebaseFirestore db = FirebaseFirestore.instanceFor(app: app);
     db
         .collection('apps')
         .doc(appId)
@@ -130,7 +133,9 @@ class AppModel {
 
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>
       initWidgetArtifactListeners(String appId) {
-    return FirebaseFirestore.instance
+    final app = Ensemble().ensembleFirebaseApp!;
+
+    return FirebaseFirestore.instanceFor(app: app)
         .collection('apps')
         .doc(appId)
         .collection('artifacts')
@@ -227,25 +232,11 @@ class AppModel {
       // a bit hacky but OK for now. If widget is found, wrap it inside
       // a proper screen syntax so we can preview it
       if (content.keys.length == 1 && content['Widget'] != null) {
-        return _getWidgetAsScreen(content['Widget']);
+        return ViewUtil.getWidgetAsScreen(content['Widget']);
       }
       return content;
     }
     return null;
-  }
-
-  /// wrap a widget inside a screen so it can be displayed
-  YamlMap _getWidgetAsScreen(YamlMap widgetContent) {
-    // use random name so we don't accidentally collide with other names
-    String randomWidgetName = "Widget${math.Random().nextInt(100)}";
-
-    return YamlMap.wrap({
-      'View': {
-        'styles': {'useSafeArea': true},
-        'body': {randomWidgetName: null}
-      },
-      randomWidgetName: widgetContent
-    });
   }
 
   Future<YamlMap?> getScreenByName(String screenName) async {
@@ -288,7 +279,8 @@ class AppModel {
   }
 
   CollectionReference<Map<String, dynamic>> _getArtifacts() {
-    FirebaseFirestore db = FirebaseFirestore.instance;
+    final app = Ensemble().ensembleFirebaseApp!;
+    FirebaseFirestore db = FirebaseFirestore.instanceFor(app: app);
     return db.collection('apps').doc(appId).collection('artifacts');
   }
 
