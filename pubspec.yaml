@@ -24,6 +24,7 @@ dependencies:
   flutter:
     sdk: flutter
 
+
   device_preview:
     git:
       url: https://github.com/vinothvino42/flutter_device_preview.git
@@ -50,7 +51,6 @@ dependencies:
   high_chart:
     git: https://github.com/EnsembleUI/high_chart.git
   event_bus: ^2.0.0
-  mockito: ^5.1.0
   flutter_layout_grid: ^2.0.3
   email_validator: ^2.0.1
   form_validator: ^2.1.1
@@ -67,14 +67,11 @@ dependencies:
   flutter_markdown: ^0.6.10+5
   url_launcher: ^6.1.11
   provider: ^6.0.3
-  cloud_firestore: ^4.7.0
+  cloud_firestore: 4.8.2
   geolocator: ^9.0.2
   get_storage: ^2.0.3
   flutter_html: ^3.0.0-beta.1 # flutter_html ^2.0.0 requires flutter_svg <1.0.0, conflicts with ours
-  camera: ^0.10.5
-  image_picker: ^0.8.7+5
   webview_flutter: ^4.2.0
-  file_picker: ^5.3.0
   cached_network_image: ^3.2.3
   sensors_plus: ^3.0.0
   mime: ^1.0.4
@@ -84,11 +81,15 @@ dependencies:
   http_parser: ^4.0.2
   shared_preferences: ^2.1.1
   google_maps_flutter: ^2.2.6
-  google_maps_flutter_web: ^0.4.0+8
   workmanager: ^0.5.1
   flutter_local_notifications: ^14.0.0+2
   flutter_i18n: ^0.33.0
   pointer_interceptor: ^0.9.3+4
+  flutter_secure_storage: ^8.0.0
+  staggered_grid_view_flutter: ^0.0.4
+  dart_jsonwebtoken: ^2.8.2
+  flutter_dotenv: ^5.1.0
+  get_it: ^7.6.0
 
 dev_dependencies:
   flutter_test:
@@ -96,6 +97,8 @@ dev_dependencies:
   integration_test:
     sdk: flutter
   flutter_lints: ^2.0.1
+  mockito: ^5.1.0
+  collection: ^1.17.1
 
 flutter:
   # The following line ensures that the Material Icons font is

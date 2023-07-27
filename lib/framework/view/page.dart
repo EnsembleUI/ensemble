@@ -54,6 +54,13 @@ class PageState extends State<Page> {
   int selectedPage = 0;
 
   @override
+  void didUpdateWidget(covariant Page oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // widget can be re-created at any time, we need to keep the Scope intact.
+    widget.rootScopeManager = _scopeManager;
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     // if our widget changes, we need to save the scopeManager to it.
@@ -325,7 +332,11 @@ class PageState extends State<Page> {
           bottomNavigationBar: _bottomNavBar,
           drawer: _drawer,
           endDrawer: _endDrawer,
-          bottomSheet: _buildFooter(_scopeManager, widget._pageModel),
+          bottomSheet: Padding(
+            padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom),
+            child: _buildFooter(_scopeManager, widget._pageModel),
+          ),
           floatingActionButton: closeModalButton,
           floatingActionButtonLocation:
               widget._pageModel.pageStyles?['navigationIconPosition'] == 'start'

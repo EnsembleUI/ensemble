@@ -15,9 +15,10 @@ import 'package:ensemble/widget/conditional.dart';
 import 'package:ensemble/widget/fintech/finicityconnect/finicityconnect.dart';
 import 'package:ensemble/widget/icon_button.dart';
 import 'package:ensemble/widget/maps/maps.dart';
+import 'package:ensemble/widget/staggered_grid.dart';
+import 'package:ensemble/widget/stub_widgets.dart';
 import 'package:ensemble/widget/text.dart';
 import 'package:ensemble/widget/toggle_button.dart';
-// import 'package:ensemble/widget/camera_widget.dart';
 import 'package:ensemble/widget/visualization/topology_chart.dart';
 import 'package:ensemble/widget/weeklyscheduler.dart';
 import 'package:ensemble/widget/button.dart';
@@ -46,6 +47,7 @@ import 'package:ensemble/widget/visualization/barchart.dart';
 import 'package:ensemble/widget/visualization/chart_js.dart';
 import 'package:ensemble/widget/visualization/line_area_chart.dart';
 import 'package:ensemble/widget/webview/webview.dart';
+import 'package:get_it/get_it.dart';
 
 class WidgetRegistry {
   WidgetRegistry({this.debugLabel});
@@ -78,7 +80,9 @@ class WidgetRegistry {
         EnsembleLottie.type: () => EnsembleLottie(),
         EnsembleSignature.type: () => EnsembleSignature(),
         WeeklyScheduler.type: () => WeeklyScheduler(),
-        // Camera.type: () => Camera(),
+        Conditional.type: () => Conditional(),
+        SignInWithGoogle.type: () => GetIt.instance<SignInWithGoogle>(),
+        SignInWithApple.type: () => GetIt.instance<SignInWithApple>(),
 
         // form fields
         EnsembleForm.type: () => EnsembleForm(),
@@ -102,6 +106,7 @@ class WidgetRegistry {
         Row.type: () => Row(),
         ListView.type: () => ListView(),
         GridView.type: () => GridView(),
+        EnsembleStaggeredGrid.type: () => EnsembleStaggeredGrid(),
         Flex.type: () => Flex(),
         EnsembleStack.type: () => EnsembleStack(),
         Flow.type: () => Flow(),
@@ -120,8 +125,5 @@ class WidgetRegistry {
 
         //domain specific or custom widgets
         FinicityConnect.type: () => FinicityConnect(),
-
-        //Conditional UI
-        Conditional.type: () => Conditional(),
       };
 }
