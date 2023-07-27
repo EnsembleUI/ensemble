@@ -766,7 +766,11 @@
                 "default",
                 "email",
                 "phone",
-                "ipAddress"
+                "ipAddress",
+                "number",
+                "text",
+                "url",
+                "datetime"
               ]
             },
             "keyboardAction": {
