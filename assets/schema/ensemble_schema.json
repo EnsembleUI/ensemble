@@ -956,16 +956,55 @@
       "required": [
         "widget"
       ],
-      "properties": {
-        "widget": {
-          "$ref": "#/$defs/Widget",
-          "description": "The widget to be rendered as the placeholder (not applicable on Web). Note that any tap event (if specified) will be ignored and automatically intercepted to trigger a Google Sign-In process."
+      "allOf": [
+        {
+          "$ref": "#/$defs/SignIn-payload"
         },
-        "scopes": {
-          "type": "array",
-          "description": "A list of additional scopes to request permissions from the user"
+        {
+          "properties": {
+            "widget": {
+              "$ref": "#/$defs/Widget",
+              "description": "The widget to be rendered as the placeholder (not applicable on Web). Note that any tap event (if specified) will be ignored and automatically intercepted to trigger a Google Sign-In process."
+            },
+            "scopes": {
+              "type": "array",
+              "description": "A list of additional scopes to request permissions from the user"
+            }
+          }
+        }
+      ]
+    },
+    "SignInWithApple-payload": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/SignIn-payload"
+        }
+      ]
+    },
+    "SignIn-payload": {
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "Select a Sign In provider to use. By default 'local' provider is used",
+          "oneOf": [
+            {
+              "const": "local",
+              "description": "Sign the user on the client side. This is useful when your app doesn't need a server. (this is the default)."
+            },
+            {
+              "const": "firebase",
+              "description": "Use your custom Firebase to manage your users. Please see Ensemble documentation on how to integrate Firebase."
+            }
+          ]
         },
         "onAuthenticated": {
+          "$ref": "#/$defs/Action-payload"
+        },
+        "onSignedIn": {
+          "$ref": "#/$defs/Action-payload"
+        },
+        "onError": {
           "$ref": "#/$defs/Action-payload"
         }
       }

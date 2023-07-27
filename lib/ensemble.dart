@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/ensemble_provider.dart';
-import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
@@ -65,7 +64,8 @@ class Ensemble {
       // These are not secrets so OK to include here.
       // https://firebase.google.com/docs/projects/api-keys#api-keys-for-firebase-are-different
       ensembleFirebaseApp = await Firebase.initializeApp(
-          name: Firebase.apps.isNotEmpty ? 'ensemble' : null,
+          // Firebase.apps will throw exception on Web if initializeApp has not been called before
+          // name: Firebase.apps.isNotEmpty ? 'ensemble' : null,
           options: const FirebaseOptions(
               apiKey: 'AIzaSyBAZ7wf436RSbcXvhhfg7e4TUh6A2SKve8',
               appId: '1:326748243798:ios:30f2a4f824dc58ea94b8f7',
@@ -322,7 +322,7 @@ class AppBundle {
 
 /// store the App's account info (e.g. access token for maps)
 class Account {
-  Account._({this.firebaseConfig, this.mapAccessToken});
+  Account({this.firebaseConfig, this.mapAccessToken});
   FirebaseConfig? firebaseConfig;
 
   // legacy Mapbox key
@@ -334,33 +334,44 @@ class Account {
 
     if (input != null && input is Map) {
       firebaseConfig = FirebaseConfig.fromYaml(input['firebase']);
-      mapAccessToken = Utils.optionalString(input['maps']?['mapbox_access_token']);
+      mapAccessToken =
+          Utils.optionalString(input['maps']?['mapbox_access_token']);
     }
-    return Account._(firebaseConfig: firebaseConfig, mapAccessToken: mapAccessToken);
+    return Account(
+        firebaseConfig: firebaseConfig, mapAccessToken: mapAccessToken);
   }
 }
 
 class FirebaseConfig {
-  FirebaseConfig._({this.iOSConfig, this.androidConfig});
+  FirebaseConfig._({this.iOSConfig, this.androidConfig, this.webConfig});
   FirebaseOptions? iOSConfig;
   FirebaseOptions? androidConfig;
+  FirebaseOptions? webConfig;
 
   factory FirebaseConfig.fromYaml(dynamic input) {
     FirebaseOptions? iOSConfig;
     FirebaseOptions? androidConfig;
+    FirebaseOptions? webConfig;
 
     try {
       if (input is Map) {
         if (input['iOS'] != null) {
           iOSConfig = _getPlatformConfig(input['iOS']);
         }
-        if (input['Android'] != null) {
-          androidConfig = _getPlatformConfig(input['Android']);
+        if (input['android'] != null) {
+          androidConfig = _getPlatformConfig(input['android']);
+        }
+        if (input['web'] != null) {
+          webConfig = _getPlatformConfig(input['web']);
         }
       }
-      return FirebaseConfig._(iOSConfig: iOSConfig, androidConfig: androidConfig);
+      return FirebaseConfig._(
+          iOSConfig: iOSConfig,
+          androidConfig: androidConfig,
+          webConfig: webConfig);
     } catch (error) {
-      throw ConfigError('Invalid Firebase configuration. Please double check your ensemble-config.yaml');
+      throw ConfigError(
+          'Invalid Firebase configuration. Please double check your ensemble-config.yaml');
     }
   }
 

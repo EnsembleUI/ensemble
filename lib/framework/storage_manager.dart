@@ -16,13 +16,16 @@ class StorageManager with SystemStorage, PublicStorage, SecureStorage {
   factory StorageManager() {
     return _instance;
   }
+  bool initialized = false;
 
   /// initialize storage
   Future<void> init() async {
-    await initSystemStorage();
-    await initPublicStorage();
+    if (!initialized) {
+      await initSystemStorage();
+      await initPublicStorage();
+      initialized = true;
+    }
   }
-
 }
 
 /// These are non-secure system-level storage e.g. Authenticated User Info
@@ -44,14 +47,14 @@ mixin SystemStorage {
   Future<void> writeToSystemStorage(String key, dynamic value) =>
       _systemStorage.write(key, value);
 
-  Future<void> removeFromSystemStorage(String key) => _systemStorage.remove(key);
+  Future<void> removeFromSystemStorage(String key) =>
+      _systemStorage.remove(key);
 
   // for Preview mode or regular
   static const systemPreviewKey = 'system.preview';
   bool? isPreview() => _systemStorage.read<bool?>(systemPreviewKey);
-  void setIsPreview(bool value) => _systemStorage.write(systemPreviewKey, value);
-
-
+  void setIsPreview(bool value) =>
+      _systemStorage.write(systemPreviewKey, value);
 }
 
 /// non-secure storage available to AppDevs
@@ -66,6 +69,8 @@ mixin PublicStorage {
   /// write to public storage
   Future<void> write(String key, dynamic value) =>
       GetStorage().write(key, value);
+
+  Future<void> remove(String key) => GetStorage().remove(key);
 }
 
 /// secure storage. These are async so really only use-able
