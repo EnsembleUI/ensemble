@@ -32,11 +32,14 @@ import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/plaid_link/plaid_link_controller.dart';
 import 'package:ensemble/widget/widget_registry.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:plaid_flutter/plaid_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:walletconnect_dart/walletconnect_dart.dart';
@@ -184,6 +187,51 @@ class ScreenController {
             return widget!;
           },
         );
+      }
+    } else if (action is PlaidLinkAction) {
+      if (scopeManager != null) {}
+      final linkToken = action.linkToken(dataContext);
+      if (linkToken != null) {
+        PlaidLinkController().openPlaidLink(
+          context,
+          linkToken,
+          (linkSuccess) {
+            if (action.onSuccess != null) {
+              executeActionWithScope(
+                context,
+                scopeManager!,
+                action.onSuccess!,
+                event: EnsembleEvent(action.initiator!,
+                    data: {'successData': linkSuccess.toJson()}),
+              );
+            }
+          },
+          (linkEvent) {
+            if (action.onEvent != null) {
+              executeActionWithScope(
+                context,
+                scopeManager!,
+                action.onEvent!,
+                event: EnsembleEvent(action.initiator!,
+                    data: {'eventData': linkEvent.toJson()}),
+              );
+            }
+          },
+          (linkExit) {
+            if (action.onExit != null) {
+              executeActionWithScope(
+                context,
+                scopeManager!,
+                action.onExit!,
+                event: EnsembleEvent(action.initiator!,
+                    data: {'exitData': linkExit.toString()}),
+              );
+            }
+          },
+        );
+      } else {
+        throw LanguageError(
+            'Add linkToken in the options of openPlaidLink action.');
       }
     } else if (action is ShowCameraAction) {
       GetIt.I<CameraManager>().openCamera(context, action, scopeManager);

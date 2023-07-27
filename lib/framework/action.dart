@@ -211,6 +211,39 @@ class ShowBottomModalAction extends EnsembleAction {
   }
 }
 
+class PlaidLinkAction extends EnsembleAction {
+  PlaidLinkAction({
+    super.initiator,
+    this.onSuccess,
+    this.onEvent,
+    this.onExit,
+    options,
+  }) : _options = options;
+
+  final Map<String, dynamic>? _options;
+  final EnsembleAction? onSuccess;
+  final EnsembleAction? onEvent;
+  final EnsembleAction? onExit;
+
+  String? linkToken(dataContext) =>
+      Utils.optionalString(dataContext.eval(_options?['linkToken']));
+
+  factory PlaidLinkAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
+    if (payload == null || payload['options']['linkToken'] == null) {
+      throw LanguageError(
+          "${ActionType.openPlaidLink.name} requires the plaid's link_token");
+    }
+
+    return PlaidLinkAction(
+      initiator: initiator,
+      options: Utils.getMap(payload['options']),
+      onSuccess: EnsembleAction.fromYaml(payload['onSuccess']),
+      onEvent: EnsembleAction.fromYaml(payload['onEvent']),
+      onExit: EnsembleAction.fromYaml(payload['onExit']),
+    );
+  }
+}
+
 class StartTimerAction extends EnsembleAction {
   StartTimerAction(
       {super.initiator,
@@ -635,6 +668,7 @@ enum ActionType {
   requestNotificationAccess,
   showNotification,
   copyToClipboard,
+  openPlaidLink,
 }
 
 enum ToastType { success, error, warning, info }
@@ -728,6 +762,8 @@ abstract class EnsembleAction {
       return RequestNotificationAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.copyToClipboard) {
       return CopyToClipboardAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.openPlaidLink) {
+      return PlaidLinkAction.fromYaml(initiator: initiator, payload: payload);
     }
     throw LanguageError("Invalid action.",
         recovery: "Make sure to use one of Ensemble-provided actions.");

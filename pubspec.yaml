@@ -24,7 +24,6 @@ dependencies:
   flutter:
     sdk: flutter
 
-
   device_preview:
     git:
       url: https://github.com/vinothvino42/flutter_device_preview.git
@@ -90,6 +89,7 @@ dependencies:
   dart_jsonwebtoken: ^2.8.2
   flutter_dotenv: ^5.1.0
   get_it: ^7.6.0
+  plaid_flutter: ^3.1.2
 
 dev_dependencies:
   flutter_test:
