@@ -569,12 +569,10 @@ class PageState extends State<Page> {
     if (pageModel.footer != null && pageModel.footer!.children.isNotEmpty) {
       final footerStyles = pageModel.footer?.styles;
       final boxController = BoxController()
-        ..padding = Utils.getInsets(footerStyles?['padding'],
-            fallback:
-                const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 32))
+        ..padding = Utils.getInsets(footerStyles?['padding'])
         ..margin = Utils.optionalInsets(footerStyles?['margin'])
         ..width = Utils.optionalInt(footerStyles?['width'])
-        ..height = Utils.getInt(footerStyles?['height'], fallback: 110)
+        ..height = Utils.optionalInt(footerStyles?['height'])
         ..backgroundColor = Utils.getColor(footerStyles?['backgroundColor'])
         ..backgroundGradient =
             Utils.getBackgroundGradient(footerStyles?['backgroundGradient'])
