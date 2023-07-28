@@ -19,6 +19,7 @@ import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/stub/camera_manager.dart';
 import 'package:ensemble/framework/stub/file_manager.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/stub/plaid_link_manager.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/view/page_group.dart';
@@ -32,14 +33,11 @@ import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/plaid_link/plaid_link_controller.dart';
 import 'package:ensemble/widget/widget_registry.dart';
-import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:plaid_flutter/plaid_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:walletconnect_dart/walletconnect_dart.dart';
@@ -191,8 +189,7 @@ class ScreenController {
     } else if (action is PlaidLinkAction) {
       final linkToken = action.getLinkToken(dataContext).trim();
       if (linkToken.isNotEmpty) {
-        PlaidLinkController().openPlaidLink(
-          context,
+        PlaidLinkManagerStub().openPlaidLink(
           linkToken,
           (linkSuccess) {
             if (action.onSuccess != null) {
@@ -202,7 +199,7 @@ class ScreenController {
                 action.onSuccess!,
                 event: EnsembleEvent(
                   action.initiator!,
-                  data: linkSuccess.toJson(),
+                  data: linkSuccess,
                 ),
               );
             }
@@ -215,7 +212,7 @@ class ScreenController {
                 action.onEvent!,
                 event: EnsembleEvent(
                   action.initiator!,
-                  data: linkEvent.toJson(),
+                  data: linkEvent,
                 ),
               );
             }
@@ -228,7 +225,7 @@ class ScreenController {
                 action.onExit!,
                 event: EnsembleEvent(
                   action.initiator!,
-                  data: linkExit.toJson(),
+                  data: linkExit,
                 ),
               );
             }
