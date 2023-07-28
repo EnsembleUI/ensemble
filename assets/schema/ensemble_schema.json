@@ -237,50 +237,49 @@
   },
   "$defs": {
     "Text-payload": {
+      "type": "object",
       "required": [],
-      "allOf": [
-        { "#ref": "#defs/BaseWidget"},
-        {
-          "type": "object",
-          "properties": {
-            "text": {
-              "type": "string",
-              "description": "Your text content"
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget."
+        },
+        "text": {
+          "type": "string",
+          "description": "Your text content"
+        },
+        "styles": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
             },
-            "styles": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/baseStyles"
+            {
+              "$ref": "#/$defs/boxStyles"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "textStyle": {
+                  "$ref": "#/$defs/TextStyle"
                 },
-                {
-                  "$ref": "#/$defs/boxStyles"
+                "maxLines": {
+                  "type": "integer",
+                  "minimum": 1
                 },
-                {
-                  "type": "object",
-                  "properties": {
-                    "textStyle": {
-                      "$ref": "#/$defs/TextStyle"
-                    },
-                    "maxLines": {
-                      "type": "integer",
-                      "minimum": 1
-                    },
-                    "textAlign": {
-                      "type": "string",
-                      "enum": [
-                        "start",
-                        "end",
-                        "center",
-                        "justify"
-                      ]
-                    }
-                  }
+                "textAlign": {
+                  "type": "string",
+                  "enum": [
+                    "start",
+                    "end",
+                    "center",
+                    "justify"
+                  ]
                 }
-              ]
+              }
             }
-          }
+          ]
         }
-      ]
+      }
     },
     "Markdown-payload": {
       "type": "object",
@@ -4202,15 +4201,6 @@
           ],
           "minimum": 0,
           "description": "Border Radius with CSS-like notation (1 to 4 integers)"
-        }
-      }
-    },
-    "BaseWidget": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "The unique identifier for the widget."
         }
       }
     },
