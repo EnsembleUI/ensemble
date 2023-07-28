@@ -155,8 +155,11 @@ class SinglePageModel extends PageModel {
     }
 
     if (viewMap['footer'] != null && viewMap['footer']['children'] != null) {
-      footer = Footer(ViewUtil.buildModels(
-          viewMap['footer']['children'], customViewDefinitions));
+      footer = Footer(
+        ViewUtil.buildModels(
+            viewMap['footer']['children'], customViewDefinitions),
+        Utils.getMap(viewMap['footer']['styles']),
+      );
     }
 
     rootWidgetModel = buildRootModel(viewMap, customViewDefinitions);
@@ -319,7 +322,8 @@ class HeaderModel {
 
 class Footer {
   final List<WidgetModel> children;
-  Footer(this.children);
+  final Map<String, dynamic>? styles;
+  Footer(this.children, this.styles);
 }
 
 enum PageType { regular, modal }
