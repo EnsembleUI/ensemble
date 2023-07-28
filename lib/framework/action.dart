@@ -214,29 +214,29 @@ class ShowBottomModalAction extends EnsembleAction {
 class PlaidLinkAction extends EnsembleAction {
   PlaidLinkAction({
     super.initiator,
+    required this.linkToken,
     this.onSuccess,
     this.onEvent,
     this.onExit,
-    options,
-  }) : _options = options;
+  });
 
-  final Map<String, dynamic>? _options;
+  final String linkToken;
   final EnsembleAction? onSuccess;
   final EnsembleAction? onEvent;
   final EnsembleAction? onExit;
 
-  String? linkToken(dataContext) =>
-      Utils.optionalString(dataContext.eval(_options?['linkToken']));
+  String getLinkToken(dataContext) =>
+      Utils.getString(dataContext.eval(linkToken), fallback: '');
 
   factory PlaidLinkAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
-    if (payload == null || payload['options']['linkToken'] == null) {
+    if (payload == null || payload['linkToken'] == null) {
       throw LanguageError(
-          "${ActionType.openPlaidLink.name} requires the plaid's link_token");
+          "${ActionType.openPlaidLink.name} action requires the plaid's link_token");
     }
 
     return PlaidLinkAction(
       initiator: initiator,
-      options: Utils.getMap(payload['options']),
+      linkToken: payload['linkToken'],
       onSuccess: EnsembleAction.fromYaml(payload['onSuccess']),
       onEvent: EnsembleAction.fromYaml(payload['onEvent']),
       onExit: EnsembleAction.fromYaml(payload['onExit']),
