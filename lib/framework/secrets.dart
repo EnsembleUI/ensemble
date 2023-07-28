@@ -1,11 +1,14 @@
-// Environment Configuration
+// Secrets Configuration
+
+import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import '../ensemble.dart';
 
 class SecretsStore with Invokable {
-  // ignore since we override getProperty
+  final Map<String, dynamic> secretCache = {};
+
   @override
   Map<String, Function> getters() {
     throw UnimplementedError();
@@ -13,18 +16,33 @@ class SecretsStore with Invokable {
 
   @override
   getProperty(prop) {
-    if (prop is String) {
+    if (prop is! String) {
+      return null;
+    }
+
+    // Check cached value
+    var secret = secretCache[prop];
+
+    // Resolve from dotenv
+    if (secret == null) {
       var secretOverride = dotenv.env[prop];
       if (secretOverride != null && secretOverride.isNotEmpty) {
-        return secretOverride;
+        secret = secretOverride;
       }
+    }
+
+    // Resolve from remote value
+    if (secret == null) {
       var remoteSecrets =
           Ensemble().getConfig()?.definitionProvider.getSecrets();
       if (remoteSecrets != null) {
-        return remoteSecrets[prop];
+        secret = remoteSecrets[prop];
       }
     }
-    return null;
+    if (secret != null) {
+      _cacheSecret(prop, secret);
+    }
+    return secret;
   }
 
   @override
@@ -35,5 +53,10 @@ class SecretsStore with Invokable {
   @override
   Map<String, Function> setters() {
     return {};
+  }
+
+  _cacheSecret(String key, dynamic value) {
+    secretCache[key] = value;
+    StorageManager().writeSecurely(key: key, value: value.toString());
   }
 }
