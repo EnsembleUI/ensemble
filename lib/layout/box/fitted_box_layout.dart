@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -52,7 +53,10 @@ abstract class FittedBoxLayout extends StatefulWidget
 
   @override
   Map<String, Function> setters() {
-    return {};
+    return {
+      'onTap': (funcDefinition) => _controller.onTap =
+          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+    };
   }
 
   @override

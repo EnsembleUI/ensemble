@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:developer';
 
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
@@ -57,6 +58,9 @@ mixin MediaQueryCapability {
   static MediaQueryData? data;
 
   MediaQueryData _getData() {
+    if (StorageManager().isPreview() == true) {
+      return MediaQuery.of(Utils.globalAppKey.currentContext!);
+    }
     return data ??= MediaQuery.of(Utils.globalAppKey.currentContext!);
   }
 

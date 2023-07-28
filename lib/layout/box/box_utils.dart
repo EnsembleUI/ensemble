@@ -42,9 +42,15 @@ class BoxUtils {
 
   static bool _checkVisibleChild(Widget child) {
     Widget view = child;
-    if (view is DataScopeWidget && view.child is CustomView) {
-      final CustomView customView = view.child as CustomView;
-      view = customView.childWidget;
+    if (view is DataScopeWidget) {
+      if (view.child is CustomView) {
+        // Custom Widgets
+        final CustomView customView = view.child as CustomView;
+        view = customView.childWidget;
+      } else {
+        // Native Widgets like Button, Text
+        view = view.child;
+      }
     }
 
     final isWidgetController =
@@ -58,14 +64,14 @@ class BoxUtils {
 
   /// get the flex value for each child of FittedRow or FittedColumn
   static List<BoxFlex> getChildrenFits(dynamic input) {
-    if (input is! YamlList) {
+    if (input is! List) {
       throw LanguageError(
           "BoxLayout's childrenFlex requires a list of non-zero integers or 'auto'.");
     }
     List<BoxFlex> flexItems = [];
     for (dynamic item in input) {
       BoxFlex? flexItem;
-      if (item == 'auto') {
+      if (item == 'auto' || item == '') {
         flexItem = BoxFlex.asAuto();
       } else if (item != null) {
         int? flex = item is int ? item : int.tryParse(item.toString());

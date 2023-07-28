@@ -15,6 +15,7 @@ import 'package:ensemble/page_model.dart' as model;
 import 'package:ensemble/framework/extensions.dart';
 
 import '../widget/custom_view.dart';
+import 'bottom_nav_page_group.dart';
 
 /// a collection of pages grouped under a navigation menu
 class PageGroup extends StatefulWidget {
@@ -127,15 +128,16 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
             scopeManager: _scopeManager,
             child: buildSidebarNavigation(context, widget.menu as SidebarMenu));
       } else if (widget.menu is BottomNavBarMenu) {
-        return Scaffold(
-            // image background shouldn't resized when keyboard is up. The inner
-            // scaffold will have the keyboard, this one is outside.
-            resizeToAvoidBottomInset: false,
-            bottomNavigationBar: _buildBottomNavBar(context, widget.menu),
-            body: PageGroupWidget(
-              scopeManager: _scopeManager,
-              child: pageWidgets[selectedPage],
-            ));
+        return BottomNavPageGroup(
+          scopeManager: _scopeManager,
+          menu: widget.menu,
+          child: pageWidgets[selectedPage],
+          onTabSelected: (index) {
+            setState(() {
+              selectedPage = index;
+            });
+          },
+        );
       }
     }
     throw LanguageError('ViewGroup requires a menu and at least one page.');
@@ -254,42 +256,43 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     return null;
   }
 
-  /// Build a Bottom Navigation Bar (default if display is not specified)
-  BottomNavigationBar? _buildBottomNavBar(BuildContext context, Menu menu) {
-    List<BottomNavigationBarItem> navItems = [];
+  // /// Build a Bottom Navigation Bar (default if display is not specified)
+  // BottomNavigationBar? _buildBottomNavBar(BuildContext context, Menu menu) {
+  //   List<BottomNavigationBarItem> navItems = [];
 
-    for (int i = 0; i < menu.menuItems.length; i++) {
-      MenuItem item = menu.menuItems[i];
-      // final customItem = menuWidget?.childWidget;
-      final dynamic customIcon = _buildCustomIcon(item);
-      final dynamic customActiveIcon = _buildCustomIcon(item, isActive: true);
+  //   for (int i = 0; i < menu.menuItems.length; i++) {
+  //     MenuItem item = menu.menuItems[i];
+  //     // final customItem = menuWidget?.childWidget;
+  //     final dynamic customIcon = _buildCustomIcon(item);
+  //     final dynamic customActiveIcon = _buildCustomIcon(item, isActive: true);
 
-      final isCustom = customIcon != null || customActiveIcon != null;
-      final label = isCustom ? '' : Utils.translate(item.label ?? '', context);
+  //     final isCustom = customIcon != null || customActiveIcon != null;
+  //     final label = isCustom ? '' : Utils.translate(item.label ?? '', context);
 
-      navItems.add(
-        BottomNavigationBarItem(
-          activeIcon: customActiveIcon ??
-              ensemble.Icon(item.activeIcon ?? item.icon,
-                  library: item.iconLibrary),
-          icon: customIcon ??
-              ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
-          label: label,
-        ),
-      );
-    }
+  //     navItems.add(
+  //       BottomNavigationBarItem(
+  //         activeIcon: customActiveIcon ??
+  //             ensemble.Icon(item.activeIcon ?? item.icon,
+  //                 library: item.iconLibrary),
+  //         icon: customIcon ??
+  //             ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
+  //         label: label,
+  //       ),
+  //     );
+  //   }
 
-    return BottomNavigationBar(
-        items: navItems,
-        backgroundColor: Utils.getColor(menu.styles?['backgroundColor']),
-        type: BottomNavigationBarType.fixed,
-        onTap: (index) {
-          setState(() {
-            selectedPage = index;
-          });
-        },
-        currentIndex: selectedPage);
-  }
+  //   return BottomNavigationBar(
+  //     items: navItems,
+  //     backgroundColor: Utils.getColor(menu.styles?['backgroundColor']),
+  //     type: BottomNavigationBarType.fixed,
+  //     onTap: (index) {
+  //       setState(() {
+  //         selectedPage = index;
+  //       });
+  //     },
+  //     currentIndex: selectedPage,
+  //   );
+  // }
 
   Widget? _buildCustomIcon(MenuItem item, {bool isActive = false}) {
     Widget? iconWidget;

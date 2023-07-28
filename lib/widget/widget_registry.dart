@@ -8,10 +8,17 @@ import 'package:ensemble/layout/list_view.dart';
 import 'package:ensemble/layout/stack.dart';
 import 'package:ensemble/layout/tab_bar.dart';
 import 'package:ensemble/layout/grid_view.dart';
+import 'package:ensemble/layout/toggle_container.dart';
+import 'package:ensemble/widget/Toggle.dart';
+import 'package:ensemble/widget/address.dart';
+import 'package:ensemble/widget/conditional.dart';
 import 'package:ensemble/widget/fintech/finicityconnect/finicityconnect.dart';
+import 'package:ensemble/widget/icon_button.dart';
+import 'package:ensemble/widget/maps/maps.dart';
+import 'package:ensemble/widget/staggered_grid.dart';
+import 'package:ensemble/widget/stub_widgets.dart';
 import 'package:ensemble/widget/text.dart';
 import 'package:ensemble/widget/toggle_button.dart';
-// import 'package:ensemble/widget/camera_widget.dart';
 import 'package:ensemble/widget/visualization/topology_chart.dart';
 import 'package:ensemble/widget/weeklyscheduler.dart';
 import 'package:ensemble/widget/button.dart';
@@ -40,6 +47,7 @@ import 'package:ensemble/widget/visualization/barchart.dart';
 import 'package:ensemble/widget/visualization/chart_js.dart';
 import 'package:ensemble/widget/visualization/line_area_chart.dart';
 import 'package:ensemble/widget/webview/webview.dart';
+import 'package:get_it/get_it.dart';
 
 class WidgetRegistry {
   WidgetRegistry({this.debugLabel});
@@ -57,19 +65,24 @@ class WidgetRegistry {
         EnsembleImage.type: () => EnsembleImage(),
         EnsembleDivider.type: () => EnsembleDivider(),
         EnsembleSpacer.type: () => EnsembleSpacer(),
+        Toggle.type: () => Toggle(),
 
         // misc widgets
+        Address.type: () => Address(),
         Rating.type: () => Rating(),
         EnsembleWebView.type: () => EnsembleWebView(),
         QRCode.type: () => QRCode(),
         EnsembleProgressIndicator.type: () => EnsembleProgressIndicator(),
-        EnsembleMap.type: () => EnsembleMap(),
+        Maps.type: () => Maps(),
+        EnsembleMap.type: () => EnsembleMap(), // legacy maps
         Carousel.type: () => Carousel(),
         Video.type: () => Video(),
         EnsembleLottie.type: () => EnsembleLottie(),
         EnsembleSignature.type: () => EnsembleSignature(),
         WeeklyScheduler.type: () => WeeklyScheduler(),
-        // Camera.type: () => Camera(),
+        Conditional.type: () => Conditional(),
+        SignInWithGoogle.type: () => GetIt.instance<SignInWithGoogle>(),
+        SignInWithApple.type: () => GetIt.instance<SignInWithApple>(),
 
         // form fields
         EnsembleForm.type: () => EnsembleForm(),
@@ -82,15 +95,18 @@ class WidgetRegistry {
         EnsembleSwitch.type: () => EnsembleSwitch(),
         Dropdown.type: () => Dropdown(),
         Button.type: () => Button(),
+        EnsembleIconButton.type: () => EnsembleIconButton(),
         EnsembleToggleButton.type: () => EnsembleToggleButton(),
 
         // containers
+        ToggleContainer.type: () => ToggleContainer(),
         FittedRow.type: () => FittedRow(),
         FittedColumn.type: () => FittedColumn(),
         Column.type: () => Column(),
         Row.type: () => Row(),
         ListView.type: () => ListView(),
         GridView.type: () => GridView(),
+        EnsembleStaggeredGrid.type: () => EnsembleStaggeredGrid(),
         Flex.type: () => Flex(),
         EnsembleStack.type: () => EnsembleStack(),
         Flow.type: () => Flow(),
@@ -108,6 +124,6 @@ class WidgetRegistry {
         TopologyChart.type: () => TopologyChart(),
 
         //domain specific or custom widgets
-        FinicityConnect.type: () => FinicityConnect()
+        FinicityConnect.type: () => FinicityConnect(),
       };
 }

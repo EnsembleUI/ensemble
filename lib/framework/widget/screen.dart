@@ -1,7 +1,5 @@
-import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
-import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/error_screen.dart';
@@ -9,7 +7,6 @@ import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/page_model.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
-import 'package:provider/provider.dart';
 
 class Screen extends StatefulWidget {
   const Screen({super.key, required this.appProvider, this.screenPayload});
@@ -49,16 +46,14 @@ class _ScreenState extends State<Screen> {
                 backgroundColor: Theme.of(context)
                     .extension<EnsembleThemeExtension>()
                     ?.loadingScreenBackgroundColor,
+                resizeToAvoidBottomInset: false,
                 body: Center(
                     child: CircularProgressIndicator(
                         color: Theme.of(context)
                             .extension<EnsembleThemeExtension>()
                             ?.loadingScreenIndicatorColor)));
           }
-
-          return SelectionArea(
-              child:
-                  renderScreen(PageModel.fromYaml(snapshot.data as YamlMap)));
+          return renderScreen(PageModel.fromYaml(snapshot.data as YamlMap));
         });
   }
 

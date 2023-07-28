@@ -1,50 +1,60 @@
 import 'dart:async';
+
 import 'package:ensemble/framework/data_context.dart' hide MediaType;
 import 'package:ensemble/util/http_utils.dart';
+import 'package:ensemble/util/notification_utils.dart';
 import 'package:http/http.dart' as http;
-import 'package:mime/mime.dart';
-import 'package:yaml/yaml.dart';
 import 'package:http_parser/http_parser.dart';
+import 'package:mime/mime.dart';
 
 typedef ProgressCallback = void Function(double progress);
-typedef OnDoneCallback = void Function();
 typedef OnErrorCallback = void Function(dynamic error);
+
+int getInt(String id) {
+  return id.codeUnits.reduce((a, b) => a + b);
+}
 
 class UploadUtils {
   static Future<Response?> uploadFiles({
-    required YamlMap api,
-    required DataContext eContext,
+    required String taskId,
+    required String method,
+    required String url,
+    required Map<String, String> headers,
+    required Map<String, String> fields,
     required List<File> files,
     required String fieldName,
+    bool showNotification = false,
     ProgressCallback? progressCallback,
-    OnDoneCallback? onDone,
     OnErrorCallback? onError,
   }) async {
-    Map<String, String> headers = {};
-    if (api['headers'] is YamlMap) {
-      (api['headers'] as YamlMap).forEach((key, value) {
-        if (value != null) {
-          headers[key.toString()] = eContext.eval(value).toString();
-        }
-      });
-    }
+    double previousPercentage = 0.0;
 
-    String url = HttpUtils.resolveUrl(eContext, api['uri'].toString().trim());
-    String method = api['method']?.toString().toUpperCase() ?? 'POST';
+    final request = MultipartRequest(
+      method,
+      Uri.parse(url),
+      onProgress: progressCallback == null
+          ? null
+          : (int bytes, int total) {
+              final progress = bytes / total;
+              final percentage = (progress * 100).toInt();
 
-    final request = MultipartRequest(method, Uri.parse(url),
-        onProgress: progressCallback == null
-            ? null
-            : (int bytes, int total) {
-                final progress = bytes / total;
+              if (percentage > previousPercentage) {
+                previousPercentage = percentage.toDouble();
                 progressCallback.call(progress);
-              });
+
+                if (showNotification) {
+                  notificationUtils.showProgressNotification(percentage,
+                      notificationId: getInt(taskId));
+                }
+              }
+            },
+    );
     request.headers.addAll(headers);
     final multipartFiles = <http.MultipartFile>[];
 
     for (var file in files) {
       http.MultipartFile? multipartFile;
-      final String mimeType =
+      final mimeType =
           lookupMimeType(file.path ?? '', headerBytes: file.bytes) ??
               'application/octet-stream';
       if (file.path != null) {
@@ -61,6 +71,7 @@ class UploadUtils {
     }
 
     request.files.addAll(multipartFiles);
+    request.fields.addAll(fields);
 
     try {
       final response = await request.send();

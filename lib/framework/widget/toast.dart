@@ -1,6 +1,9 @@
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/model.dart';
+import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/theme/default_theme.dart';
+import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/ensemble_icon.dart';
 import 'package:flutter/cupertino.dart';
@@ -26,50 +29,38 @@ class ToastController {
     _toast.removeQueuedCustomToasts();
 
     ToastGravity toastGravity;
-    switch (toastAction.position) {
-      case 'top':
-        toastGravity = ToastGravity.TOP;
-        break;
-      case 'topLeft':
-        toastGravity = ToastGravity.TOP_LEFT;
-        break;
-      case 'topRight':
-        toastGravity = ToastGravity.TOP_RIGHT;
-        break;
-      case 'center':
-        toastGravity = ToastGravity.CENTER;
-        break;
-      case 'centerLeft':
-        toastGravity = ToastGravity.CENTER_LEFT;
-        break;
-      case 'centerRight':
-        toastGravity = ToastGravity.CENTER_RIGHT;
-        break;
-      case 'bottom':
-        toastGravity = ToastGravity.BOTTOM;
-        break;
-      case 'bottomLeft':
-        toastGravity = ToastGravity.BOTTOM_LEFT;
-        break;
-      case 'bottomRight':
-        toastGravity = ToastGravity.BOTTOM_RIGHT;
-        break;
-      default:
-        toastGravity = ToastGravity.TOP_RIGHT;
-        break;
+    if (toastAction.alignment == Alignment.topCenter) {
+      toastGravity = ToastGravity.TOP;
+    } else if (toastAction.alignment == Alignment.topLeft) {
+      toastGravity = ToastGravity.TOP_LEFT;
+    } else if (toastAction.alignment == Alignment.center) {
+      toastGravity = ToastGravity.CENTER;
+    } else if (toastAction.alignment == Alignment.centerLeft) {
+      toastGravity = ToastGravity.CENTER_LEFT;
+    } else if (toastAction.alignment == Alignment.centerRight) {
+      toastGravity = ToastGravity.CENTER_RIGHT;
+    } else if (toastAction.alignment == Alignment.bottomCenter) {
+      toastGravity = ToastGravity.BOTTOM;
+    } else if (toastAction.alignment == Alignment.bottomLeft) {
+      toastGravity = ToastGravity.BOTTOM_LEFT;
+    } else if (toastAction.alignment == Alignment.bottomRight) {
+      toastGravity = ToastGravity.BOTTOM_RIGHT;
+    } else {
+      // default
+      toastGravity = ToastGravity.TOP_RIGHT;
     }
-
     _toast.showToast(
         gravity: toastGravity,
         toastDuration: toastAction.duration != null
             ? Duration(seconds: toastAction.duration!)
             : const Duration(days: 99),
-        child: getToastWidget(toastAction, customToastBody));
+        child: getToastWidget(context, toastAction, customToastBody));
   }
 
-  Widget getToastWidget(ShowToastAction toastAction, Widget? customToastBody) {
+  Widget getToastWidget(BuildContext context, ShowToastAction toastAction,
+      Widget? customToastBody) {
     EdgeInsets padding = Utils.getInsets(toastAction.styles?['padding'],
-        fallback: const EdgeInsets.symmetric(vertical: 5, horizontal: 10));
+        fallback: const EdgeInsets.symmetric(vertical: 20, horizontal: 22));
     Color? bgColor = Utils.getColor(toastAction.styles?['backgroundColor']);
     EBorderRadius? borderRadius =
         Utils.getBorderRadius(toastAction.styles?['borderRadius']);
@@ -80,31 +71,59 @@ class ToastController {
 
     Widget? content = customToastBody;
     if (content == null) {
-      if (toastAction.message == null) {
+      if (toastAction.title == null && toastAction.message == null) {
         throw LanguageError(
-            "${ActionType.showToast.name} requires either a message or a valid widget to render.");
+            "${ActionType.showToast.name} requires either a title/message or a valid widget to render.");
       }
       // render the message as the body
       IconData icon;
       if (toastAction.type == ToastType.success) {
         icon = Icons.check_circle_outline;
-        bgColor ??= Colors.green.withOpacity(.5);
+        bgColor ??= DesignSystem.successBackgroundColor;
       } else if (toastAction.type == ToastType.error) {
         icon = Icons.error_outline;
-        bgColor ??= Colors.red.withOpacity(.5);
+        bgColor ??= DesignSystem.errorBackgroundColor;
       } else if (toastAction.type == ToastType.warning) {
         icon = Icons.warning;
-        bgColor ??= Colors.yellow.withOpacity(.5);
+        bgColor ??= DesignSystem.warningBackgroundColor;
       } else {
         // info by default
-        icon = Icons.info_outline;
+        icon = Icons.info;
         bgColor ??= Colors.white.withOpacity(.9);
       }
-      content = Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon),
-        const SizedBox(width: 7),
-        Text(toastAction.message!)
-      ]);
+
+      const double closeButtonRadius = 10;
+
+      String? message = DataScopeWidget.getScope(context)
+          ?.dataContext
+          .eval(toastAction.message);
+
+      content = Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Icon(icon),
+          const SizedBox(width: 18),
+          if (message != null && message.isNotEmpty)
+            Flexible(
+              child: Text(
+                message!,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          if (toastAction.dismissible != false)
+            InkWell(
+              child: const CircleAvatar(
+                backgroundColor: Colors.transparent,
+                radius: closeButtonRadius,
+                child: Icon(Icons.close, size: closeButtonRadius * 2 - 2),
+              ),
+              onTap: () => _toast.removeQueuedCustomToasts(),
+            )
+        ],
+      );
     }
 
     // wrapper container for background/border...
@@ -113,7 +132,7 @@ class ToastController {
         decoration: BoxDecoration(
             color: bgColor,
             borderRadius: borderRadius?.getValue() ??
-                const BorderRadius.all(Radius.circular(5)),
+                const BorderRadius.all(Radius.circular(8)),
             boxShadow: <BoxShadow>[
               BoxShadow(
                 blurStyle: BlurStyle.outer,
@@ -124,27 +143,6 @@ class ToastController {
             ]),
         child: content);
 
-    // wraps in dismiss icon
-    if (toastAction.dismissible != false) {
-      double closeButtonRadius = 10;
-      container = Stack(children: [
-        Padding(
-            padding: EdgeInsets.only(
-                top: closeButtonRadius, right: closeButtonRadius),
-            child: container),
-        Positioned(
-            right: 0,
-            top: 0,
-            child: InkWell(
-              child: CircleAvatar(
-                backgroundColor: Colors.white,
-                radius: closeButtonRadius,
-                child: Icon(Icons.close, size: closeButtonRadius * 2 - 2),
-              ),
-              onTap: () => _toast.removeQueuedCustomToasts(),
-            )),
-      ]);
-    }
     return container;
   }
 }
