@@ -4,9 +4,14 @@
   "title": "Theme",
   "type": "object",
   "properties": {
+    "material3": {
+      "type": "boolean",
+      "description": "If set true, material3 will be applied else material2"
+    },
     "Text": {
       "type": "object",
       "properties": {
+        "fontFamily": { "type": "string" },
         "displayLarge": { "$ref":  "#/$defs/TextStyle" },
         "displayMedium": { "$ref":  "#/$defs/TextStyle" },
         "displaySmall": { "$ref":  "#/$defs/TextStyle" },
@@ -27,6 +32,10 @@
     "Colors": {
       "type": "object",
       "properties": {
+        "seed": {
+          "$ref": "#/$defs/Color",
+          "description": "Generate color schema based on seed color."
+        },
         "primary": {
           "$ref": "#/$defs/Color",
           "description": "Primary color of your App (e.g button color, focus color, ...)"
@@ -62,6 +71,39 @@
       "properties": {
         "Input": { "$ref": "#/$defs/Input-theme" },
         "Button": { "$ref": "#/$defs/Button-theme" }
+      }
+    },
+    "Transitions": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "$ref": "#/$defs/PageTransitionType"
+            },
+            "alignment": {
+              "$ref": "#/$defs/alignment"
+            },
+            "duration": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "required": ["type"]
+        },
+        "modal": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "$ref": "#/$defs/PageTransitionType"
+            },
+            "duration": {
+              "type": "number"
+            }
+          },
+          "required": ["type"]
+        }
       }
     }
   },
@@ -142,6 +184,9 @@
         "focusedErrorBorderColor": {
           "$ref": "#/$defs/Color",
           "description": "The border color of the input field when it is receiving focus in its error state."
+        },
+        "hintStyle": {
+          "$ref": "#/$defs/TextStyle"
         }
       }
     },
@@ -174,9 +219,15 @@
 
         }
       }
+    },
+    "alignment": {
+      "type": "string",
+      "enum": ["topLeft", "topCenter", "topRight", "centerLeft", "center", "centerRight", "bottomLeft", "bottomCenter", "bottomRight"]
+    },
+    "PageTransitionType": {
+      "type": "string",
+      "enum": [ "fade","rightToLeft","leftToRight","topToBottom","bottomToTop","scale","rotate","size","rightToLeftWithFade","leftToRightWithFade","leftToRightPop","rightToLeftPop","topToBottomPop","bottomToTopPop"]
     }
-
-
 
   }
 }

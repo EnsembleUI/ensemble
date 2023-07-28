@@ -54,6 +54,11 @@ class ThemeManager with ThemeLoader {
   int getInputIconSize(BuildContext context) {
     return 24;
   }
+
+  /// e.g. sizes for calendar icon for Date widget / visibility icon for Password widget, ...
+  Color? getInputIconColor(BuildContext context) {
+    return Theme.of(context).inputDecorationTheme.iconColor;
+  }
 }
 
 enum ResponsiveBreakpoint { xSmall, small, medium, large, xLarge }

@@ -3,6 +3,7 @@ import 'dart:async';
 
 import 'dart:ui';
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
@@ -11,7 +12,16 @@ import 'package:yaml/yaml.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' as foundation;
-import 'package:firebase_core/firebase_core.dart';
+
+enum ArtifactType {
+  screen,
+  theme,
+  resources, // global widgets/codes/APIs/
+  config // app config
+}
+
+// the root entries of the Resource artifact
+enum ResourceArtifactEntry { Widgets, Code, API }
 
 abstract class DefinitionProvider {
   static Map<String, dynamic> cache = {};
@@ -22,7 +32,7 @@ abstract class DefinitionProvider {
   FlutterI18nDelegate getI18NDelegate();
 
   // get the home screen + the App Bundle (theme, translation, custom assets, ...)
-  Future<AppBundle> getAppBundle();
+  Future<AppBundle> getAppBundle({bool? bypassCache = false});
 
   // this should be update live if the config changes at runtime
   // Call this only AFTER getAppBundle()
@@ -58,32 +68,36 @@ class LocalDefinitionProvider extends DefinitionProvider {
     var pageStr = await rootBundle.loadString(
         '$path${screenId ?? screenName ?? appHome}.yaml',
         cache: foundation.kReleaseMode);
+    final pageYaml = loadYaml(pageStr);
+    if (pageYaml is YamlMap) {
+      if (pageYaml.keys.length == 1 && pageYaml['Widget'] != null) {
+        return ViewUtil.getWidgetAsScreen(pageYaml['Widget']);
+      }
+    }
     return loadYaml(pageStr);
   }
 
   @override
-  Future<AppBundle> getAppBundle() async {
-    YamlMap? theme;
-    try {
-      var value = await rootBundle.loadString('${path}theme.ensemble');
-      theme = await loadYaml(value);
-    } catch (error) {
-      // ignore error
+  Future<AppBundle> getAppBundle({bool? bypassCache = false}) async {
+    YamlMap? config = await _readFile('config.ensemble');
+    if (config != null) {
+      appConfig = UserAppConfig(
+          baseUrl: config['app']?['baseUrl'],
+          useBrowserUrl: Utils.optionalBool(config['app']?['useBrowserUrl']));
     }
+    return AppBundle(
+        theme: await _readFile('theme.ensemble'),
+        resources: await _readFile('resources.ensemble'));
+  }
 
-    YamlMap? config;
+  Future<YamlMap?> _readFile(String file) async {
     try {
-      var value = await rootBundle.loadString('${path}config.ensemble');
-      config = await loadYaml(value);
-      if (config != null) {
-        appConfig = UserAppConfig(
-            baseUrl: config['app']?['baseUrl'],
-            useBrowserUrl: Utils.optionalBool(config['app']?['useBrowserUrl']));
-      }
+      var value = await rootBundle.loadString(path + file);
+      return loadYaml(value);
     } catch (error) {
       // ignore error
     }
-    return AppBundle(theme: theme);
+    return null;
   }
 
   @override
@@ -136,17 +150,22 @@ class RemoteDefinitionProvider extends DefinitionProvider {
   }
 
   @override
-  Future<AppBundle> getAppBundle() async {
-    // theme config is optional
-    Completer<AppBundle> completer = Completer();
-    http.Response response = await http.get(Uri.parse('${path}theme.config'));
-    if (response.statusCode == 200) {
-      AppBundle appBundle = AppBundle(theme: await loadYaml(response.body));
-      completer.complete(appBundle);
-    } else {
-      completer.complete(AppBundle());
+  Future<AppBundle> getAppBundle({bool? bypassCache = false}) async {
+    return AppBundle(
+        theme: await _readFile('theme.ensemble'),
+        resources: await _readFile('resources.ensemble'));
+  }
+
+  Future<YamlMap?> _readFile(String file) async {
+    try {
+      http.Response response = await http.get(Uri.parse(path + file));
+      if (response.statusCode == 200) {
+        return loadYaml(response.body);
+      }
+    } catch (error) {
+      // ignore
     }
-    return completer.future;
+    return null;
   }
 
   // TODO: to be implemented
@@ -241,7 +260,7 @@ class LegacyDefinitionProvider extends DefinitionProvider {
   }*/
 
   @override
-  Future<AppBundle> getAppBundle() async {
+  Future<AppBundle> getAppBundle({bool? bypassCache = false}) async {
     Completer<AppBundle> completer = Completer();
     http.Response response =
         await http.get(Uri.parse('$url/app/def?id=$appId'));

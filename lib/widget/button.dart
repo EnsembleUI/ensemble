@@ -15,19 +15,22 @@ import '../framework/event.dart';
 import '../framework/model.dart';
 import '../framework/scope.dart';
 import '../framework/view/page.dart';
+import 'helpers/widgets.dart';
 
 class Button extends StatefulWidget
     with Invokable, HasController<ButtonController, ButtonState> {
   static const type = 'Button';
+
   Button({Key? key}) : super(key: key);
 
   final ButtonController _controller = ButtonController();
+
   @override
   ButtonController get controller => _controller;
 
   @override
   Map<String, Function> getters() {
-    return {};
+    return {'labelStyle': () => _controller.labelStyle};
   }
 
   @override
@@ -35,9 +38,12 @@ class Button extends StatefulWidget
     return {
       'label': (value) =>
           _controller.label = Utils.getString(value, fallback: ''),
+      'labelStyle': (style) => _controller.labelStyle =
+          Utils.getTextStyleAsComposite(_controller, style: style),
       'startingIcon': (value) =>
           _controller.startingIcon = Utils.getIcon(value),
       'endingIcon': (value) => _controller.endingIcon = Utils.getIcon(value),
+      'gap': (value) => _controller.gap = Utils.optionalInt(value),
       'onTap': (funcDefinition) => _controller.onTap =
           ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'submitForm': (value) =>
@@ -48,10 +54,6 @@ class Button extends StatefulWidget
           _controller.validateFields = Utils.getList(items),
       'enabled': (value) => _controller.enabled = Utils.optionalBool(value),
       'outline': (value) => _controller.outline = Utils.optionalBool(value),
-      'color': (value) => _controller.color = Utils.getColor(value),
-      'fontSize': (value) => _controller.fontSize = Utils.optionalInt(value),
-      'fontWeight': (value) =>
-          _controller.fontWeight = Utils.getFontWeight(value),
       'width': (value) => _controller.buttonWidth = Utils.optionalInt(value),
       'height': (value) => _controller.buttonHeight = Utils.optionalInt(value),
     };
@@ -69,6 +71,10 @@ class Button extends StatefulWidget
 class ButtonController extends BoxController {
   ensemble.EnsembleAction? onTap;
 
+  TextStyleComposite? _labelStyle;
+  TextStyleComposite get labelStyle => _labelStyle ??= TextStyleComposite(this);
+  set labelStyle(TextStyleComposite style) => _labelStyle = style;
+
   /// whether to trigger a form submission.
   /// This has no effect if the button is not inside a form
   bool? submitForm;
@@ -79,14 +85,11 @@ class ButtonController extends BoxController {
 
   // a list of field IDs to validate. TODO: implement this
   List<dynamic>? validateFields;
-
   bool? enabled;
   bool? outline;
-  Color? color;
-  int? fontSize;
-  FontWeight? fontWeight;
   int? buttonWidth;
   int? buttonHeight;
+  int? gap;
 
   IconModel? startingIcon;
   IconModel? endingIcon;
@@ -107,30 +110,45 @@ class ButtonState extends WidgetState<Button> {
     if (widget._controller.endingIcon != null) {
       endingIcon = ensembleIcon.Icon.fromModel(widget._controller.endingIcon!);
     }
+
     List<Widget> labelParts = [
-      Text(Utils.translate(widget._controller.label ?? '', context))
+      Text(Utils.translate(widget._controller.label ?? '', context),
+          style: widget._controller.labelStyle.getTextStyle())
     ];
+
+    final gap = widget._controller.gap?.toDouble() ?? 0;
+
     if (startingIcon != null) {
       // TODO: follow up on icon layout options https://github.com/EnsembleUI/ensemble/pull/358#discussion_r1139023000
-      labelParts.insertAll(0, [startingIcon, const SizedBox(width: 0)]);
+      labelParts.insertAll(0, [startingIcon, SizedBox(width: gap)]);
     }
     if (endingIcon != null) {
-      labelParts.addAll([const SizedBox(width: 0), endingIcon]);
+      labelParts.addAll([SizedBox(width: gap), endingIcon]);
     }
     Widget labelLayout =
         Row(mainAxisSize: MainAxisSize.min, children: labelParts);
 
     Widget? rtn;
     if (isOutlineButton) {
-      rtn = TextButton(
-          onPressed: isEnabled() ? () => onPressed(context) : null,
-          style: getButtonStyle(context, isOutlineButton),
-          child: labelLayout);
+      rtn = BoxWrapper(
+        boxController: widget.controller,
+        ignoresPadding: true,
+        ignoresMargin: true,
+        widget: TextButton(
+            onPressed: isEnabled() ? () => onPressed(context) : null,
+            style: getButtonStyle(context, isOutlineButton),
+            child: labelLayout),
+      );
     } else {
-      rtn = ElevatedButton(
-          onPressed: isEnabled() ? () => onPressed(context) : null,
-          style: getButtonStyle(context, isOutlineButton),
-          child: labelLayout);
+      rtn = BoxWrapper(
+        boxController: widget.controller,
+        ignoresPadding: true,
+        ignoresMargin: true,
+        widget: FilledButton(
+            onPressed: isEnabled() ? () => onPressed(context) : null,
+            style: getButtonStyle(context, isOutlineButton),
+            child: labelLayout),
+      );
     }
 
     // add margin if specified
@@ -163,7 +181,17 @@ class ButtonState extends WidgetState<Button> {
           borderRadius: widget._controller.borderRadius == null
               ? defaultShape.borderRadius
               : widget._controller.borderRadius!.getValue(),
-          side: borderSide);
+          // when we give [borderGradient] and [borderColor] it will draw that color also around borderSide
+          // So when the borderGradient is there the side will be none
+          side: widget._controller.borderGradient != null
+              ? BorderSide.none
+              : borderSide);
+    } else {
+      if (isOutlineButton) {
+        border = const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.zero),
+        );
+      }
     }
 
     // we need to get the button shape from borderRadius, borderColor & borderThickness
@@ -172,14 +200,13 @@ class ButtonState extends WidgetState<Button> {
 
     return ThemeManager().getButtonStyle(
         isOutline: isOutlineButton,
-        color: widget._controller.color,
-        backgroundColor: widget._controller.backgroundColor,
+        backgroundColor: widget._controller.backgroundGradient == null
+            ? widget._controller.backgroundColor
+            : Colors.transparent,
         border: border,
         buttonHeight: widget._controller.buttonHeight?.toDouble(),
         buttonWidth: widget._controller.buttonWidth?.toDouble(),
-        padding: widget._controller.padding,
-        fontSize: widget._controller.fontSize,
-        fontWeight: widget._controller.fontWeight);
+        padding: widget._controller.padding);
   }
 
   void onPressed(BuildContext context) {

@@ -15,6 +15,8 @@ import 'package:ensemble/page_model.dart' as model;
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/button.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:flutter/material.dart';
 
 import '../widget/custom_view.dart';
@@ -50,6 +52,13 @@ class PageState extends State<Page> {
 
   // a menu can include other pages, keep track of what is selected
   int selectedPage = 0;
+
+  @override
+  void didUpdateWidget(covariant Page oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // widget can be re-created at any time, we need to keep the Scope intact.
+    widget.rootScopeManager = _scopeManager;
+  }
 
   @override
   void didChangeDependencies() {
@@ -92,9 +101,22 @@ class PageState extends State<Page> {
       });
     }
 
-    buildRootWidget();
+    // build the root widget
+    rootWidget = _scopeManager.buildRootWidget(
+        widget._pageModel.rootWidgetModel, executeGlobalCode);
 
     super.initState();
+  }
+
+  /// This is a callback because we need the widget to be first instantiate
+  /// since the global code block may reference them. Once the global code
+  /// block runs, only then we can continue the next steps for the widget
+  /// creation process (propagate data scopes and execute bindings)
+  void executeGlobalCode() {
+    if (widget._pageModel.globalCode != null) {
+      _scopeManager.dataContext.evalCode(
+          widget._pageModel.globalCode!, widget._pageModel.globalCodeSpan!);
+    }
   }
 
   /// create AppBar that is part of a CustomScrollView
@@ -140,7 +162,8 @@ class PageState extends State<Page> {
       titleWidget = _scopeManager.buildWidget(headerModel.titleWidget!);
     }
     if (titleWidget == null && headerModel.titleText != null) {
-      titleWidget = Text(Utils.translate(headerModel.titleText!, context));
+      final title = _scopeManager.dataContext.eval(headerModel.titleText);
+      titleWidget = Text(Utils.translate(title.toString(), context));
     }
 
     Widget? backgroundWidget;
@@ -296,6 +319,7 @@ class PageState extends State<Page> {
     Widget rtn = DataScopeWidget(
       scopeManager: _scopeManager,
       child: Scaffold(
+          resizeToAvoidBottomInset: false,
           // slight optimization, if body background is set, let's paint
           // the entire screen including the Safe Area
           backgroundColor: backgroundColor,
@@ -308,7 +332,11 @@ class PageState extends State<Page> {
           bottomNavigationBar: _bottomNavBar,
           drawer: _drawer,
           endDrawer: _endDrawer,
-          bottomSheet: _buildFooter(_scopeManager, widget._pageModel),
+          bottomSheet: Padding(
+            padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom),
+            child: _buildFooter(_scopeManager, widget._pageModel),
+          ),
           floatingActionButton: closeModalButton,
           floatingActionButtonLocation:
               widget._pageModel.pageStyles?['navigationIconPosition'] == 'start'
@@ -454,18 +482,13 @@ class PageState extends State<Page> {
       // add the bodyWidget
       content.add(Expanded(
           child: SafeArea(
-              top:
-                  _useSafeArea, //widget._pageModel.pageType == PageType.modal ? false : true,
-              child: rootWidget)));
+              top: _useSafeArea, bottom: _useSafeArea, child: rootWidget)));
 
       return Row(
           crossAxisAlignment: CrossAxisAlignment.start, children: content);
     }
 
-    return SafeArea(
-        top:
-            _useSafeArea, //widget._pageModel.pageType == PageType.modal ? false : true,
-        child: rootWidget);
+    return SafeArea(top: _useSafeArea, bottom: _useSafeArea, child: rootWidget);
   }
 
   Drawer? _buildDrawer(BuildContext context, DrawerMenu menu) {
@@ -544,18 +567,28 @@ class PageState extends State<Page> {
   Widget? _buildFooter(ScopeManager scopeManager, SinglePageModel pageModel) {
     // Footer can only take 1 child by our design. Ignore the rest
     if (pageModel.footer != null && pageModel.footer!.children.isNotEmpty) {
+      final footerStyles = pageModel.footer?.styles;
+      final boxController = BoxController()
+        ..padding = Utils.getInsets(footerStyles?['padding'])
+        ..margin = Utils.optionalInsets(footerStyles?['margin'])
+        ..width = Utils.optionalInt(footerStyles?['width'])
+        ..height = Utils.optionalInt(footerStyles?['height'])
+        ..backgroundColor = Utils.getColor(footerStyles?['backgroundColor'])
+        ..backgroundGradient =
+            Utils.getBackgroundGradient(footerStyles?['backgroundGradient'])
+        ..shadowColor = Utils.getColor(footerStyles?['shadowColor'])
+        ..borderRadius = Utils.getBorderRadius(footerStyles?['borderRadius'])
+        ..borderColor = Utils.getColor(footerStyles?['borderColor'])
+        ..borderWidth = Utils.optionalInt(footerStyles?['borderWidth']);
+
       return AnimatedOpacity(
-          opacity: 1.0,
-          duration: const Duration(milliseconds: 500),
-          child: SizedBox(
-              width: double.infinity,
-              height: 110,
-              child: Padding(
-                padding: const EdgeInsets.only(
-                    left: 16, right: 16, top: 16, bottom: 32),
-                child:
-                    scopeManager.buildWidget(pageModel.footer!.children.first),
-              )));
+        opacity: 1.0,
+        duration: const Duration(milliseconds: 500),
+        child: BoxWrapper(
+          boxController: boxController,
+          widget: scopeManager.buildWidget(pageModel.footer!.children.first),
+        ),
+      );
     }
     return null;
   }
@@ -566,16 +599,6 @@ class PageState extends State<Page> {
     _scopeManager.dispose();
     //_scopeManager.debugListenerMap();
     super.dispose();
-  }
-
-  void buildRootWidget() {
-    rootWidget = _scopeManager.buildWidget(widget._pageModel.rootWidgetModel);
-
-    // execute Global Code
-    if (widget._pageModel.globalCode != null) {
-      _scopeManager.dataContext.evalCode(
-          widget._pageModel.globalCode!, widget._pageModel.globalCodeSpan!);
-    }
   }
 }
 

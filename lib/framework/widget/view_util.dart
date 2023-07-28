@@ -1,9 +1,11 @@
+import 'dart:math' as math;
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/custom_view.dart';
 import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/util/gesture_detector.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
@@ -34,7 +36,7 @@ class ViewUtil {
     if (node == null) {
       return SourceSpanBase(SourceLocationBase(0), SourceLocationBase(0), '');
     }
-    return getDefinition(node!);
+    return getDefinition(node);
   }
 
   static SourceSpan getDefinition(YamlNode node) {
@@ -49,6 +51,20 @@ class ViewUtil {
             line: node.span.end.line,
             column: node.span.end.column),
         node.span.text);
+  }
+
+  /// wrap a widget inside a screen so it can be displayed
+  static YamlMap getWidgetAsScreen(YamlMap widgetContent) {
+    // use random name so we don't accidentally collide with other names
+    String randomWidgetName = "Widget${math.Random().nextInt(100)}";
+
+    return YamlMap.wrap({
+      'View': {
+        'styles': {'useSafeArea': true},
+        'body': {randomWidgetName: null}
+      },
+      randomWidgetName: widgetContent
+    });
   }
 
   ///convert a YAML representing a widget to a WidgetModel
@@ -265,6 +281,29 @@ class ViewUtil {
         _traverseScopes(child, child.children);
       }
     }
+  }
+
+  static void checkValidWidget(
+      List<Widget>? children, ItemTemplate? itemTemplate) {
+    final isInvalid =
+        children != null && children.isNotEmpty && itemTemplate != null;
+
+    if (isInvalid) {
+      throw LanguageError("You can't have both children and item-template");
+    }
+  }
+
+  static List<Widget> addGesture(
+      List<Widget> children, Function(int) onItemTap) {
+    List<Widget> clickableWidgets = [];
+    children.asMap().forEach((index, value) {
+      final child = EnsembleGestureDetector(
+        child: value,
+        onTap: () => onItemTap(index),
+      );
+      clickableWidgets.add(child);
+    });
+    return clickableWidgets;
   }
 }
 

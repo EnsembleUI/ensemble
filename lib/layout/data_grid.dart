@@ -1,15 +1,21 @@
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/util/gesture_detector.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/widget_util.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble/framework/view/page.dart';
+
+enum DataColumnSortType { ascending, descending }
 
 //8e26249e-c08c-4b3e-8584-cc83a5c9bc29
 class DataGrid extends StatefulWidget
@@ -21,7 +27,6 @@ class DataGrid extends StatefulWidget
   DataGrid({Key? key}) : super(key: key);
   late final ItemTemplate? itemTemplate;
   late List cols;
-  //late List<EnsembleDataColumn> cols;
 
   final DataGridController _controller = DataGridController();
   @override
@@ -31,7 +36,9 @@ class DataGrid extends StatefulWidget
 
   @override
   Map<String, Function> getters() {
-    return {};
+    return {
+      'selectedItemIndex': () => _controller.selectedItemIndex,
+    };
   }
 
   @override
@@ -59,16 +66,9 @@ class DataGrid extends StatefulWidget
   @override
   Map<String, Function> setters() {
     return {
+      'sorting': (val) => controller.sorting = Utils.getMap(val),
       'DataColumns': (List cols) {
         this.cols = cols;
-      },
-      'headingTextStyle': (Map styles) {
-        controller.headingTextController = TextController();
-        TextUtils.setStyles(styles, controller.headingTextController!);
-      },
-      'dataTextStyle': (Map styles) {
-        controller.dataTextController = TextController();
-        TextUtils.setStyles(styles, controller.dataTextController!);
       },
       'horizontalMargin': (val) =>
           controller.horizontalMargin = Utils.optionalDouble(val),
@@ -80,54 +80,51 @@ class DataGrid extends StatefulWidget
           controller.columnSpacing = Utils.optionalDouble(val),
       'dividerThickness': (val) =>
           controller.dividerThickness = Utils.optionalDouble(val),
-      'border': (Map val) {
-        Map<String, dynamic> map = {};
-        val.forEach((key, value) {
-          if (value is Map) {
-            Color color = Utils.getColor(value['color']) ?? Colors.black;
-            double width = Utils.getDouble(value['width'], fallback: 1.0);
-            map[key] = BorderSide(color: color, width: width);
-          } else if (key == 'borderRadius') {
-            double? radius = Utils.optionalDouble(value);
-            map[key] = (radius == null)
-                ? BorderRadius.zero
-                : BorderRadius.circular(radius);
-          }
-        });
-        controller.border = TableBorder(
-            top: map['top'] ?? BorderSide.none,
-            right: map['right'] ?? BorderSide.none,
-            bottom: map['bottom'] ?? BorderSide.none,
-            left: map['left'] ?? BorderSide.none,
-            horizontalInside: map['horizontalInside'] ?? BorderSide.none,
-            verticalInside: map['verticalInside'] ?? BorderSide.none,
-            borderRadius: map['borderRadius'] ?? BorderRadius.zero);
-      },
     };
   }
 }
 
 class EnsembleDataColumn extends DataColumn {
   final String type;
-  EnsembleDataColumn(
-      {required String label,
-      required this.type,
-      String? tooltip,
-      Function? onSort})
-      : super(label: Text(label), tooltip: tooltip, numeric: type == 'numeric');
+  EnsembleDataColumn({
+    required String label,
+    required this.type,
+    this.sortable,
+    this.sortKey,
+    this.sortOrder,
+    String? tooltip,
+    dynamic onSort,
+  }) : super(
+          label: Text(label),
+          tooltip: tooltip,
+          numeric: type == 'numeric',
+          onSort: onSort,
+        );
 
-  static EnsembleDataColumn fromYaml(
-      {required Map map, Function? onSort, required DataContext context}) {
+  bool? sortable;
+  String? sortKey;
+  String? sortOrder;
+
+  static EnsembleDataColumn fromYaml({
+    required Map map,
+    required DataContext context,
+    Function(int, bool)? onSort,
+  }) {
     String type = Utils.getString(map['type'], fallback: '');
     if (type == '') {
       throw Exception('DataGrid column must have a type.');
     }
 
     return EnsembleDataColumn(
-        label: Utils.getString(context.eval(map['label']), fallback: ''),
-        type: type,
-        tooltip: Utils.optionalString(context.eval(map['tooltip'])),
-        onSort: onSort);
+      label: Utils.getString(context.eval(map['label']), fallback: ''),
+      type: type,
+      tooltip: Utils.optionalString(context.eval(map['tooltip'])),
+      sortable: Utils.optionalBool(context.eval(map['sortable'])),
+      sortKey: Utils.optionalString(context.eval(map['sortKey'])),
+      sortOrder: Utils.getString(context.eval(map['sortOrder']),
+          fallback: 'ascending'),
+      onSort: onSort,
+    );
   }
 }
 
@@ -173,23 +170,60 @@ class EnsembleDataRowState extends State<EnsembleDataRow> {
   }
 }
 
-class DataGridController extends WidgetController {
+class DataGridController extends BoxController {
   List<Widget>? children;
+  Map<String, dynamic>? sorting;
   double? horizontalMargin;
-  TextController? headingTextController;
+  GenericTextController? headingTextController;
   double? dataRowHeight;
   double? headingRowHeight;
   double? columnSpacing;
-  TextController? dataTextController;
+  GenericTextController? dataTextController;
   double? dividerThickness;
   TableBorder border = const TableBorder();
+  EnsembleAction? onItemTap;
+  int selectedItemIndex = -1;
+
+  @override
+  Map<String, Function> getBaseSetters() {
+    Map<String, Function> setters = super.getBaseSetters();
+    setters.addAll({
+      'headingText': (Map styles) {
+        headingTextController = GenericTextController();
+        TextUtils.setStyles(styles, headingTextController!);
+      },
+      'dataText': (Map styles) {
+        dataTextController = GenericTextController();
+        TextUtils.setStyles(styles, dataTextController!);
+      },
+    });
+    return setters;
+  }
+}
+
+class DataColumnSort {
+  int columnIndex;
+  String? order;
+
+  DataColumnSort({
+    required this.columnIndex,
+    this.order,
+  });
 }
 
 class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
   List<Widget>? templatedChildren;
+  List<EnsembleDataColumn> _columns = [];
+  List<dynamic> dataList = [];
+  DataColumnSort? dataColumnSort;
+
+  final List<DataRow> _rows = [];
+  final List<Widget> _children = [];
+
   @override
   void initState() {
     widget._controller.addListener(refreshState);
+    _setInitialDataColumn();
     super.initState();
   }
 
@@ -210,10 +244,8 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
       // listen for changes
       registerItemTemplate(context, widget.itemTemplate!,
           onDataChanged: (List dataList) {
-        setState(() {
-          templatedChildren =
-              buildWidgetsFromTemplate(context, dataList, widget.itemTemplate!);
-        });
+        this.dataList = dataList;
+        _sortItems();
       });
     }
   }
@@ -232,20 +264,96 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
       throw Exception(
           'scopeManager is null in the DataGrid.buildWidget method. This is unexpected. DataGrid.id=${widget.id}');
     }
-    List<EnsembleDataColumn> columns = List<EnsembleDataColumn>.generate(
+
+    _buildDataColumn(scopeManager);
+    _buildChildren();
+    _buildDataRow();
+
+    // Setting sort column index and order
+    final sortOrder =
+        dataColumnSort?.order ?? DataColumnSortType.ascending.name;
+    int? sortColIndex;
+    if (dataColumnSort?.columnIndex != null) {
+      if (dataColumnSort!.columnIndex >= _columns.length) {
+        throw LanguageError(
+            'Provide a valid data columnIndex. columnIndex is should be less than the data columns length');
+      }
+      final sortable = _columns[dataColumnSort!.columnIndex].sortable ?? false;
+      sortColIndex = sortable ? dataColumnSort?.columnIndex : null;
+    }
+
+    DataTable grid = DataTable(
+      sortColumnIndex: sortColIndex,
+      sortAscending: sortOrder == DataColumnSortType.ascending.name,
+      columns: _columns,
+      rows: _rows,
+      horizontalMargin: widget.controller.horizontalMargin,
+      headingTextStyle: _buildHeadingStyle(),
+      dataRowHeight: widget.controller.dataRowHeight,
+      headingRowHeight: widget.controller.headingRowHeight,
+      dataTextStyle: _buildDataStyle(),
+      columnSpacing: widget.controller.columnSpacing,
+      dividerThickness: widget.controller.dividerThickness,
+      border: TableBorder.all(
+        color: widget.controller.borderColor ?? Colors.black,
+        width: widget.controller.borderWidth?.toDouble() ?? 1.0,
+        borderRadius:
+            widget.controller.borderRadius?.getValue() ?? BorderRadius.zero,
+      ),
+    );
+    return SingleChildScrollView(
+      scrollDirection: Axis.vertical,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+
+        // DataTable requires all children to report their intrinsic height.
+        // Some widgets don't like that so we expose this so the widgets
+        // can react accordingly
+        child: RequiresChildWithIntrinsicDimension(child: grid),
+      ),
+    );
+  }
+
+  TextStyle? _buildHeadingStyle() {
+    TextStyle? headingTextStyle;
+    if (widget.controller.headingTextController != null) {
+      Text headingText =
+          TextUtils.buildText(widget.controller.headingTextController!);
+      headingTextStyle = headingText.style;
+    }
+    return headingTextStyle;
+  }
+
+  TextStyle? _buildDataStyle() {
+    TextStyle? dataTextStyle;
+    if (widget.controller.dataTextController != null) {
+      Text dataText =
+          TextUtils.buildText(widget.controller.dataTextController!);
+      dataTextStyle = dataText.style;
+    }
+    return dataTextStyle;
+  }
+
+  void _buildDataColumn(ScopeManager scopeManager) {
+    if (_columns.isEmpty) {
+      _columns = List<EnsembleDataColumn>.generate(
         widget.cols.length,
-        (index) => EnsembleDataColumn.fromYaml(
+        (index) {
+          return EnsembleDataColumn.fromYaml(
             map: widget.cols[index] as Map,
-            context: scopeManager!.dataContext));
-    List<Widget> children = [];
-    if (widget._controller.children != null) {
-      children.addAll(widget._controller.children!);
+            context: scopeManager.dataContext,
+            onSort: (index, _) {
+              _toggleSortColumn(index);
+            },
+          );
+        },
+      );
     }
-    if (templatedChildren != null) {
-      children.addAll(templatedChildren!);
-    }
-    List<DataRow> rows = [];
-    for (Widget w in children) {
+  }
+
+  void _buildDataRow() {
+    _rows.clear();
+    for (Widget w in _children) {
       DataScopeWidget? rowScope;
 
       if (w is DataScopeWidget) {
@@ -261,72 +369,128 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
       }
       List<DataCell> cells = [];
       if (child.children != null) {
-        for (Widget c in child.children!) {
+        child.children!.asMap().forEach((index, Widget c) {
           // for templated row only, wrap each cell widget in a DataScopeWidget, and simply use the row's datascope
           if (rowScope != null) {
             Widget scopeWidget =
                 DataScopeWidget(scopeManager: rowScope.scopeManager, child: c);
 
-            cells.add(DataCell(scopeWidget));
+            cells.add(
+              DataCell(EnsembleGestureDetector(
+                child: scopeWidget,
+                onTap: () => _onItemTap(index),
+              )),
+            );
           } else {
-            cells.add(DataCell(c));
+            cells.add(
+              DataCell(EnsembleGestureDetector(
+                child: c,
+                onTap: () => _onItemTap(index),
+              )),
+            );
           }
-        }
+        });
       }
-      if (columns.length != cells.length) {
+      if (_columns.length != cells.length) {
         if (kDebugMode) {
           print(
-              'Number of DataGrid columns must be equal to the number of cells in each row. Number of DataGrid columns is ${columns.length} '
+              'Number of DataGrid columns must be equal to the number of cells in each row. Number of DataGrid columns is ${_columns.length} '
               'while number of cells in the row is ${cells.length}. We will try to match them to be the same');
         }
-        if (columns.length > cells.length) {
-          int diff = columns.length - cells.length;
+        if (_columns.length > cells.length) {
+          int diff = _columns.length - cells.length;
           //more cols than cells, need to fill up cells with empty text
           for (int i = 0; i < diff; i++) {
             cells.add(const DataCell(Text('')));
           }
         } else {
-          int diff = cells.length - columns.length;
+          int diff = cells.length - _columns.length;
           for (int i = 0; i < diff; i++) {
             cells.removeLast();
           }
         }
       }
-      rows.add(DataRow(cells: cells));
+      _rows.add(DataRow(cells: cells));
     }
-    TextStyle? headingTextStyle;
-    if (widget.controller.headingTextController != null) {
-      Text headingText =
-          TextUtils.buildText(widget.controller.headingTextController!);
-      headingTextStyle = headingText.style;
+  }
+
+  void _setInitialDataColumn() {
+    final sorting = widget._controller.sorting;
+
+    if (sorting != null) {
+      final colIndex = Utils.optionalInt(sorting['columnIndex']);
+      if (colIndex == null) {
+        throw LanguageError(
+            'Add a columnIndex to the sorting. It is a mandatory property for sorting a data grid');
+      } else {
+        dataColumnSort = DataColumnSort(
+          columnIndex: colIndex,
+          order: Utils.getString(sorting['order'], fallback: 'ascending'),
+        );
+      }
     }
-    TextStyle? dataTextStyle;
-    if (widget.controller.dataTextController != null) {
-      Text dataText =
-          TextUtils.buildText(widget.controller.dataTextController!);
-      dataTextStyle = dataText.style;
+  }
+
+  void _buildChildren() {
+    _children.clear();
+    if (widget._controller.children != null) {
+      _children.addAll(widget._controller.children!);
+    }
+    if (templatedChildren != null) {
+      _children.addAll(templatedChildren!);
+    }
+  }
+
+  // Sorting the datas array (ascending or descending)
+  void _sortItems() {
+    if (dataColumnSort != null && dataColumnSort?.columnIndex != null) {
+      final sortOrder =
+          dataColumnSort?.order ?? DataColumnSortType.ascending.name;
+      _columns[dataColumnSort!.columnIndex].sortOrder = sortOrder;
+      final EnsembleDataColumn sortItem = _columns[dataColumnSort!.columnIndex];
+      final bool? sortable = sortItem.sortable;
+      final String? sortKey = sortItem.sortKey;
+
+      if (sortable != null && sortable) {
+        bool isAscendingOrder = sortOrder == DataColumnSortType.ascending.name;
+
+        if (isAscendingOrder) {
+          dataList.sort((a, b) => (a[sortKey]).compareTo(b[sortKey]));
+        } else {
+          dataList.sort((a, b) => (b[sortKey]).compareTo(a[sortKey]));
+        }
+      }
     }
 
-    DataTable grid = DataTable(
-      columns: columns,
-      rows: rows,
-      horizontalMargin: widget.controller.horizontalMargin,
-      headingTextStyle: headingTextStyle,
-      dataRowHeight: widget.controller.dataRowHeight,
-      headingRowHeight: widget.controller.headingRowHeight,
-      dataTextStyle: dataTextStyle,
-      columnSpacing: widget.controller.columnSpacing,
-      dividerThickness: widget.controller.dividerThickness,
-      border: widget.controller.border,
-    );
-    return SingleChildScrollView(
-        scrollDirection: Axis.vertical,
-        child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
+    templatedChildren =
+        buildWidgetsFromTemplate(context, dataList, widget.itemTemplate!);
+    setState(() {});
+  }
 
-            // DataTable requires all children to report their intrinsic height.
-            // Some widgets don't like that so we expose this so the widgets
-            // can react accordingly
-            child: RequiresChildWithIntrinsicDimension(child: grid)));
+  // Change ascending to descending and vice versa in dataColumnSort object
+  void _toggleSortColumn(int index) {
+    final sortOrder =
+        _columns[index].sortOrder ?? DataColumnSortType.ascending.name;
+    final sortable = _columns[index].sortable;
+    if (sortable != null && sortable) {
+      _columns[index].sortOrder = sortOrder == DataColumnSortType.ascending.name
+          ? DataColumnSortType.descending.name
+          : DataColumnSortType.ascending.name;
+      dataColumnSort = DataColumnSort(
+        columnIndex: index,
+        order: _columns[index].sortOrder,
+      );
+
+      _sortItems();
+      templatedChildren =
+          buildWidgetsFromTemplate(context, dataList, widget.itemTemplate!);
+    }
+  }
+
+  void _onItemTap(int index) {
+    if (widget.controller.onItemTap != null) {
+      widget._controller.selectedItemIndex = index;
+      ScreenController().executeAction(context, widget._controller.onItemTap!);
+    }
   }
 }

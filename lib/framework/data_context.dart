@@ -1,14 +1,19 @@
 import 'dart:developer';
 import 'dart:io' as io;
+import 'dart:ui';
+import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/stub/auth_context_manager.dart';
+import 'package:ensemble/framework/stub/token_manager.dart';
+import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/util/extensions.dart';
+import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
-import 'package:get_storage/get_storage.dart';
+import 'package:get_it/get_it.dart';
 
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -24,7 +29,9 @@ import 'package:intl/intl.dart';
 import 'package:mime/mime.dart';
 import 'package:source_span/source_span.dart';
 import 'package:walletconnect_dart/walletconnect_dart.dart';
+import 'package:workmanager/workmanager.dart';
 import 'package:yaml/yaml.dart';
+import 'package:collection/collection.dart';
 
 /// manages Data and Invokables within the current data scope.
 /// This class can evaluate expressions based on the data scope
@@ -39,7 +46,12 @@ class DataContext {
     _contextMap['app'] = AppConfig();
     _contextMap['env'] = EnvConfig();
     _contextMap['ensemble'] = NativeInvokable(buildContext);
-    _contextMap['user'] = UserInfo();
+
+    // auth can be selectively turned on
+    if (GetIt.instance.isRegistered<AuthContextManager>()) {
+      _contextMap['auth'] = GetIt.instance<AuthContextManager>();
+    }
+
     // device is a common name. If user already uses that, don't override it
     if (_contextMap['device'] == null) {
       _contextMap['device'] = Device();
@@ -100,7 +112,7 @@ class DataContext {
   /// evaluate single inline binding expression (getters only) e.g Hello ${myVar.name}.
   /// Note that this expects the variable (if any) to be inside ${...}
   dynamic eval(dynamic expression) {
-    if (expression is YamlMap) {
+    if (expression is Map) {
       return _evalMap(expression);
     }
     if (expression is List) {
@@ -144,7 +156,7 @@ class DataContext {
     return value;
   }
 
-  Map<String, dynamic> _evalMap(YamlMap yamlMap) {
+  Map<String, dynamic> _evalMap(Map yamlMap) {
     Map<String, dynamic> map = {};
     yamlMap.forEach((k, v) {
       dynamic value;
@@ -217,6 +229,10 @@ class DataContext {
       _contextMap['getStringValue'] = Utils.optionalString;
       return JSInterpreter.fromCode(codeBlock, _contextMap).evaluate();
     } on JSException catch (e) {
+      if (e.detailedError is EnsembleError) {
+        throw e.detailedError.toString();
+      }
+
       /// not all JS errors are actual errors. API binding resolving to null
       /// may be considered a normal condition as binding may not resolved
       /// until later e.g myAPI.value.prettyDateTime()
@@ -304,6 +320,7 @@ class NativeInvokable with Invokable {
   Map<String, Function> getters() {
     return {
       'storage': () => EnsembleStorage(_buildContext),
+      'user': () => UserInfo(),
       'formatter': () => Formatter(_buildContext),
     };
   }
@@ -311,16 +328,26 @@ class NativeInvokable with Invokable {
   @override
   Map<String, Function> methods() {
     return {
-      ActionType.navigateScreen.name: navigateToScreen,
+      ActionType.navigateScreen.name: (inputs) => ScreenController()
+          .executeAction(_buildContext, NavigateScreenAction.fromMap(inputs)),
       ActionType.navigateModalScreen.name: navigateToModalScreen,
       ActionType.showDialog.name: showDialog,
       ActionType.invokeAPI.name: invokeAPI,
       ActionType.stopTimer.name: stopTimer,
       ActionType.openCamera.name: showCamera,
       ActionType.navigateBack.name: navigateBack,
-      'debug': (value) => log('Debug: $value'),
+      ActionType.showToast.name: (inputs) => ScreenController()
+          .executeAction(_buildContext, ShowToastAction.fromMap(inputs)),
+      ActionType.startTimer.name: (inputs) => ScreenController()
+          .executeAction(_buildContext, StartTimerAction.fromMap(inputs)),
+      ActionType.uploadFiles.name: uploadFiles,
+      'debug': (value) => debugPrint('Debug: $value'),
       'copyToClipboard': (value) =>
-          Clipboard.setData(ClipboardData(text: value))
+          Clipboard.setData(ClipboardData(text: value)),
+      'initNotification': () => notificationUtils.initNotifications(),
+      'updateSystemAuthorizationToken': (token) =>
+          GetIt.instance<TokenManager>()
+              .updateServiceTokens(ServiceName.system, token),
     };
   }
 
@@ -329,10 +356,13 @@ class NativeInvokable with Invokable {
     return {};
   }
 
-  void navigateToScreen(String screenName, [dynamic inputs]) {
+  void uploadFiles(dynamic inputs) {
     Map<String, dynamic>? inputMap = Utils.getMap(inputs);
-    ScreenController().navigateToScreen(_buildContext,
-        screenName: screenName, pageArgs: inputMap, asModal: false);
+    if (inputMap == null) throw LanguageError('UploadFiles need inputs');
+    ScreenController().executeAction(
+      _buildContext,
+      FileUploadAction.fromYaml(payload: YamlMap.wrap(inputMap)),
+    );
   }
 
   void navigateToModalScreen(String screenName, [dynamic inputs]) {
@@ -375,15 +405,14 @@ class EnsembleStorage with Invokable {
     return _instance;
   }
   static late BuildContext context;
-  final storage = GetStorage();
 
   @override
   void setProperty(prop, val) {
     if (prop is String) {
       if (val == null) {
-        storage.remove(prop);
+        StorageManager().remove(prop);
       } else {
-        storage.write(prop, val);
+        StorageManager().write(prop, val);
       }
       // dispatch changes
       ScreenController().dispatchStorageChanges(context, prop, val);
@@ -392,7 +421,7 @@ class EnsembleStorage with Invokable {
 
   @override
   getProperty(prop) {
-    return prop is String ? storage.read(prop) : null;
+    return prop is String ? StorageManager().read(prop) : null;
   }
 
   @override
@@ -403,10 +432,11 @@ class EnsembleStorage with Invokable {
   @override
   Map<String, Function> methods() {
     return {
-      'get': (String key) => storage.read(key),
-      'set': (String key, dynamic value) =>
-          value == null ? storage.remove(key) : storage.write(key, value),
-      'delete': (key) => storage.remove(key)
+      'get': (String key) => StorageManager().read(key),
+      'set': (String key, dynamic value) => value == null
+          ? StorageManager().remove(key)
+          : StorageManager().write(key, value),
+      'delete': (key) => StorageManager().remove(key)
     };
   }
 
@@ -431,16 +461,26 @@ class Formatter with Invokable {
     return {
       'now': () => UserDateTime(),
       'prettyDate': (input) => InvokablePrimitive.prettyDate(input),
+      'prettyTime': (input) => InvokablePrimitive.prettyTime(input),
       'prettyDateTime': (input) => InvokablePrimitive.prettyDateTime(input),
       'prettyCurrency': (input) => InvokablePrimitive.prettyCurrency(input),
       'prettyDuration': (input) =>
-          InvokablePrimitive.prettyDuration(input, locale: locale)
+          InvokablePrimitive.prettyDuration(input, locale: locale),
+      'pluralize': pluralize
     };
   }
 
   @override
   Map<String, Function> setters() {
     return {};
+  }
+
+  String pluralize(String singularText, int? count, [pluralText]) {
+    count ??= 1;
+    if (count <= 1) {
+      return singularText;
+    }
+    return pluralText ?? '${singularText}s';
   }
 }
 
@@ -608,8 +648,109 @@ class UserDateTime with Invokable {
   }
 }
 
+enum UploadStatus { pending, running, completed, cancelled, failed }
+
+class UploadTask {
+  final String id;
+  late UploadStatus status;
+  final bool isBackground;
+  late double progress;
+  late dynamic body;
+  late Map<String, dynamic>? headers;
+
+  UploadTask(
+      {required this.id,
+      this.status = UploadStatus.pending,
+      this.isBackground = false,
+      this.progress = 0.0,
+      this.body,
+      this.headers});
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'status': status.name.toString(),
+      'isBackground': isBackground,
+      'progress': progress,
+      'body': body,
+      'headers': headers,
+    };
+  }
+}
+
+class UploadFilesResponse with Invokable {
+  List<UploadTask> tasks = [];
+
+  void addTask(UploadTask task) {
+    tasks.add(task);
+  }
+
+  UploadTask? getTask(String id) {
+    return tasks.firstWhereOrNull((task) => task.id == id);
+  }
+
+  void setProgress(String id, double progress) {
+    getTask(id)?.progress = progress;
+  }
+
+  void setBody(String id, dynamic body) {
+    getTask(id)?.body = body;
+  }
+
+  void setHeaders(String id, Map<String, dynamic>? headers) {
+    getTask(id)?.headers = headers;
+  }
+
+  void setStatus(String id, UploadStatus status) {
+    final task = getTask(id);
+    if (task?.status == status) return;
+    task?.status = status;
+  }
+
+  @override
+  Map<String, Function> getters() {
+    return {
+      // For single task
+      'id': () => tasks.lastOrNull?.id,
+      'progress': () => tasks.lastOrNull?.progress,
+      'status': () => tasks.lastOrNull?.status.name.toString(),
+      'body': () => tasks.lastOrNull?.body,
+      'headers': () => tasks.lastOrNull?.headers,
+
+      // For multiple task
+      'allTasks': () => tasks.map((task) => task.toJson()).toList(),
+    };
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {
+      'cancelTask': (String taskId) async {
+        setStatus(taskId, UploadStatus.cancelled);
+        await Workmanager().cancelByTag(taskId);
+        final sendPort = IsolateNameServer.lookupPortByName(taskId);
+        sendPort?.send({'cancel': true, 'taskId': taskId});
+      },
+      'cancelAll': () async {
+        for (var task in tasks) {
+          if (task.status == UploadStatus.completed) return;
+          task.status = UploadStatus.cancelled;
+        }
+        await Workmanager().cancelAll();
+      },
+      'clear': () => tasks.clear(),
+    };
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
+  }
+}
+
 class APIResponse with Invokable {
   Response? _response;
+
   APIResponse({Response? response}) {
     if (response != null) {
       setAPIResponse(response);
@@ -626,7 +767,10 @@ class APIResponse with Invokable {
 
   @override
   Map<String, Function> getters() {
-    return {'body': () => _response?.body, 'headers': () => _response?.headers};
+    return {
+      'body': () => _response?.body,
+      'headers': () => _response?.headers,
+    };
   }
 
   @override
@@ -692,13 +836,6 @@ class FileData with Invokable {
 class File {
   File(this.name, this.ext, this.size, this.path, this.bytes);
 
-  File.fromPlatformFile(PlatformFile file)
-      : name = file.name,
-        ext = file.extension,
-        size = file.size,
-        path = kIsWeb ? null : file.path,
-        bytes = file.bytes;
-
   File.fromJson(Map<String, dynamic> file)
       : name = file['name'],
         ext = file['extension'],
@@ -732,8 +869,7 @@ class File {
   }
 
   MediaType getMediaType() {
-    if (path == null) return MediaType.unknown;
-    String? mimeType = lookupMimeType(path!);
+    String? mimeType = lookupMimeType(path ?? '', headerBytes: bytes);
     if (mimeType == null) {
       return MediaType.unknown;
     }

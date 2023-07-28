@@ -10,7 +10,6 @@ import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/camera.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
@@ -79,10 +78,10 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
 
   // add repeating timer so we can manage it later.
   void addTimer(StartTimerAction timerAction, Timer timer) {
-    EnsembleTimer newTimer = EnsembleTimer(timer, id: timerAction.payload?.id);
+    EnsembleTimer newTimer = EnsembleTimer(timer, id: timerAction.id);
 
     // if timer is global, add it to the root scope. There can only be one global Timer
-    if (timerAction.payload != null && timerAction.payload!.isGlobal == true) {
+    if (timerAction.isGlobal(dataContext) == true) {
       rootScope.rootTimer?.cancel();
       rootScope.rootTimer = newTimer;
     }
@@ -96,9 +95,9 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
     // save standalone timers to a simple list
     else {
       // if ID is specified, prevents duplicates by removing previous one
-      if (timerAction.payload?.id != null) {
+      if (timerAction.id != null) {
         pageData._timers.removeWhere((item) {
-          if (item.id == timerAction.payload!.id) {
+          if (item.id == timerAction.id) {
             item.timer.cancel();
             return true;
           }
@@ -165,6 +164,8 @@ abstract class IsScopeManager {
   ScopeManager get me;
 }
 
+typedef AfterWidgetCreationCallback = Function();
+
 /// View Helper to build our widgets from within a ScopeManager
 mixin ViewBuilder on IsScopeManager {
   /// build a widget from the item YAML
@@ -184,8 +185,18 @@ mixin ViewBuilder on IsScopeManager {
     return DataScopeWidget(scopeManager: createChildScope(), child: widget);
   }
 
+  Widget buildRootWidget(
+      WidgetModel rootModel, AfterWidgetCreationCallback? callback) {
+    return _buildWidget(rootModel, callback: callback);
+  }
+
   /// build a widget from a given model
   Widget buildWidget(WidgetModel model) {
+    return _buildWidget(model);
+  }
+
+  Widget _buildWidget(WidgetModel model,
+      {AfterWidgetCreationCallback? callback}) {
     // 1. Create a bare widget tree
     //  - Add Widget ID as needed to our DataContext
     //  - update the mapping of WidgetModel -> (Invokable, ScopeManager, children)
@@ -193,10 +204,20 @@ mixin ViewBuilder on IsScopeManager {
     ScopeNode rootNode = ScopeNode(me);
     Widget rootWidget = ViewUtil.buildBareWidget(rootNode, model, modelMap);
 
-    // 2. from our rootScope, propagate all data to the child scopes
+    // 2. In special cases after the widgets are created (but before
+    // the scope data is propagate and before binding), we want to
+    // update the scope data.
+    // An example is RootScope requires the widgets to be instantiate, then
+    // run the Global block (since this block may want to reference the widgets).
+    // Only then we proceed to propagate the scopes and trigger bindings.
+    if (callback != null) {
+      callback();
+    }
+
+    // 3. from our rootScope, propagate all data to the child scopes
     ViewUtil.propagateScopes(rootNode);
 
-    // 3. execute bindings
+    // 4. execute bindings
     //  - TODO: detect circular dependencies so we don't have infinite loop
     _updateWidgetBindings(modelMap);
 
@@ -227,7 +248,7 @@ mixin ViewBuilder on IsScopeManager {
           for (var param in model.parameters!) {
             if (model.inputs![param] != null) {
               // set the Custom Widget's inputs from parent scope
-              setPropertyAndRegisterBinding(
+              evalPropertyAndRegisterBinding(
                   scopeManager
                       ._parent!, // widget inputs are set in the parent's scope
                   payload.widget as Invokable,
@@ -247,19 +268,22 @@ mixin ViewBuilder on IsScopeManager {
         // has not been attached, so no worries about ValueNotifier
         for (String key in model.props.keys) {
           if (InvokableController.getSettableProperties(widget).contains(key)) {
-            // actions like onTap should evaluate its expressions upon the action only
-            if (key.startsWith('on')) {
+            if (_isPassthroughProperty(key, widget)) {
               InvokableController.setProperty(widget, key, model.props[key]);
             } else {
-              setPropertyAndRegisterBinding(
+              evalPropertyAndRegisterBinding(
                   scopeManager, widget, key, model.props[key]);
             }
           }
         }
         for (String key in model.styles.keys) {
           if (InvokableController.getSettableProperties(widget).contains(key)) {
-            setPropertyAndRegisterBinding(
-                scopeManager, widget, key, model.styles[key]);
+            if (_isPassthroughProperty(key, widget)) {
+              InvokableController.setProperty(widget, key, model.styles[key]);
+            } else {
+              evalPropertyAndRegisterBinding(
+                  scopeManager, widget, key, model.styles[key]);
+            }
           }
         }
       }
@@ -277,6 +301,19 @@ mixin ViewBuilder on IsScopeManager {
       }
     });
   }
+
+  /// some properties should automatically be excluded from being evaluated
+  /// at this point, and some can be excluded manually by the widget builders:
+  /// 1. all Actions (starting with on*) should eval their variables
+  ///    at the time the action is executed (to prevent stale-ness)
+  /// 2. Widgets can mark certain properties as pass-through so the
+  ///    variable evaluation can be done inside the widget
+  /// 3. Special properties like children and item-template are excluded
+  ///    automatically and don't need to be specified here
+  bool _isPassthroughProperty(String property, dynamic widget) =>
+      property.startsWith('on') ||
+      (widget is HasController &&
+          widget.passthroughSetters().contains(property));
 
   /// iterate through and set/evaluate the widget's properties/styles/...
   /*void _updateWidgetBindings(Map<WidgetModel, Invokable> widgetMap) {
@@ -316,20 +353,17 @@ mixin ViewBuilder on IsScopeManager {
     });
   }*/
 
-  /// call widget.setProperty to update its value.
-  /// If the value is an expression of valid binding, we
-  /// will register to listen for changes
-  void setPropertyAndRegisterBinding(
+  /// evaluate the value and call widget's setProperty with this value.
+  /// If the value is a valid binding, we'll register to listen for changes.
+  void evalPropertyAndRegisterBinding(
       ScopeManager scopeManager, Invokable widget, String key, dynamic value) {
-    if (value is String) {
-      DataExpression? expression = Utils.parseDataExpression(value);
-      if (expression != null) {
-        // listen for binding changes
-        (this as PageBindingManager).registerBindingListener(
-            scopeManager, BindingDestination(widget, key), expression);
-        // evaluate the binding as the initial value
-        value = scopeManager.dataContext.eval(value);
-      }
+    DataExpression? expression = Utils.parseDataExpression(value);
+    if (expression != null) {
+      // listen for binding changes
+      (this as PageBindingManager).registerBindingListener(
+          scopeManager, BindingDestination(widget, key), expression);
+      // evaluate the binding as the initial value
+      value = scopeManager.dataContext.eval(value);
     }
     InvokableController.setProperty(widget, key, value);
   }
@@ -360,8 +394,7 @@ mixin PageBindingManager on IsScopeManager {
         */
         // payload only have changes to a variable, but we have to evaluate the entire expression
         // e.g Hello $(firstName.value) $(lastName.value)
-        dynamic updatedValue =
-            dataContext.eval(dataExpression.stringifyRawAndAst());
+        dynamic updatedValue = dataContext.eval(dataExpression.rawExpression);
         InvokableController.setProperty(bindingDestination.widget,
             bindingDestination.setterProperty, updatedValue);
       });
@@ -389,57 +422,71 @@ mixin PageBindingManager on IsScopeManager {
   /// [bindingScope] if specified, we'll only listen to binding changes within this Scope (e.g. custom widget inputs)
   /// all listeners when the widget is disposed.
   /// @return true if we are able to bind and listen to the expression.
-  bool listen(ScopeManager scopeManager, String bindingExpression,
+  void listen(ScopeManager scopeManager, String bindingExpression,
       {required BindingDestination destination,
       required Function onDataChange}) {
     DataContext dataContext = scopeManager.dataContext;
 
-    BindingSource? bindingSource =
-        BindingSource.from(bindingExpression, dataContext);
-    if (bindingSource != null) {
-      // create a unique key to reference our listener. We used this to save
-      // the listeners for clean up
-      // Note that simple binding (i.e. custom widget's input variable) needs
-      // scopeManager to uniquely identify them (since multiple custom widgets
-      // can be created.
-      int hash = getHash(
-          destinationSetter: destination.setterProperty,
-          source: bindingSource,
-          scopeManager: (bindingSource is SimpleBindingSource ||
-                  bindingSource is DeferredBindingSource)
-              ? scopeManager
-              : null);
-
-      // clean up existing listener with the same signature
-      if (listenerMap[destination.widget]?[hash] != null) {
-        //log("Binding(remove duplicate): ${me.id}-${bindingSource.modelId}-${bindingSource.property}");
-        listenerMap[destination.widget]![hash]!.cancel();
+    List<BindingSource> bindingSources =
+        BindingSource.getBindingSources(bindingExpression, dataContext);
+    // fallback to find the binding source the legacy way
+    if (bindingSources.isEmpty) {
+      BindingSource? bindingSource =
+          BindingSource.from(bindingExpression, dataContext);
+      if (bindingSource != null) {
+        bindingSources.add(bindingSource);
       }
-      StreamSubscription subscription =
-          eventBus.on<ModelChangeEvent>().listen((event) {
-        //log("EventBus ${eventBus.hashCode} listening: $event");
-        if ((bindingSource is DeferredBindingSource ||
-                event.source.runtimeType == bindingSource.runtimeType) &&
-            event.source.modelId == bindingSource.modelId &&
-            (event.source.property == null ||
-                event.source.property == bindingSource.property) &&
-            (event.bindingScope == null ||
-                event.bindingScope == scopeManager)) {
-          onDataChange(event);
-        }
-      });
-
-      // save to the listener map so we can remove later
-      if (listenerMap[destination.widget] == null) {
-        listenerMap[destination.widget] = {};
-      }
-      //log("Binding: Adding ${me.id}-${bindingSource.modelId}-${bindingSource.property}");
-      listenerMap[destination.widget]![hash] = subscription;
-      //log("All Bindings:${listenerMap.toString()} ");
-
-      return true;
     }
-    return false;
+
+    // iterate and listen to each binding source
+    for (BindingSource bindingSource in bindingSources) {
+      _listenToBindingSource(scopeManager, bindingSource,
+          destination: destination, onDataChange: onDataChange);
+    }
+  }
+
+  void _listenToBindingSource(
+      ScopeManager scopeManager, BindingSource bindingSource,
+      {required BindingDestination destination,
+      required Function onDataChange}) {
+    // create a unique key to reference our listener. We used this to save
+    // the listeners for clean up
+    // Note that simple binding (i.e. custom widget's input variable) needs
+    // scopeManager to uniquely identify them (since multiple custom widgets
+    // can be created.
+    int hash = getHash(
+        destinationSetter: destination.setterProperty,
+        source: bindingSource,
+        scopeManager: (bindingSource is SimpleBindingSource ||
+                bindingSource is DeferredBindingSource)
+            ? scopeManager
+            : null);
+
+    // clean up existing listener with the same signature
+    if (listenerMap[destination.widget]?[hash] != null) {
+      //log("Binding(remove duplicate): ${me.id}-${bindingSource.modelId}-${bindingSource.property}");
+      listenerMap[destination.widget]![hash]!.cancel();
+    }
+    StreamSubscription subscription =
+        eventBus.on<ModelChangeEvent>().listen((event) {
+      //log("EventBus ${eventBus.hashCode} listening: $event");
+      if ((bindingSource is DeferredBindingSource ||
+              event.source.runtimeType == bindingSource.runtimeType) &&
+          event.source.modelId == bindingSource.modelId &&
+          (event.source.property == null ||
+              event.source.property == bindingSource.property) &&
+          (event.bindingScope == null || event.bindingScope == scopeManager)) {
+        onDataChange(event);
+      }
+    });
+
+    // save to the listener map so we can remove later
+    if (listenerMap[destination.widget] == null) {
+      listenerMap[destination.widget] = {};
+    }
+    //log("Binding: Adding ${me.id}-${bindingSource.modelId}-${bindingSource.property}");
+    listenerMap[destination.widget]![hash] = subscription;
+    //log("All Bindings:${listenerMap.toString()} ");
   }
 
   void dispatch(ModelChangeEvent event) {
@@ -513,25 +560,14 @@ class PageData {
 /// This may also contain an equivalent AST definition, which we'll use to
 /// execute by default, otherwise fallback to execute the expression directly.
 class DataExpression {
-  DataExpression(
-      {required this.rawExpression,
-      required this.expressions,
-      this.astExpression});
+  DataExpression({required this.rawExpression, required this.expressions});
 
   // the original raw expression e.g my name is ${person.first_name} ${person.last_name}
-  String rawExpression;
+  // or it can be a List [${first} ${last}, 4, ${anotherVar}]
+  // or it can be 1-level Map
+  dynamic rawExpression;
   // each expression in a list e.g [person.first_name, person.last_name]
   List<String> expressions;
-  // the AST which we'll execute by default, and fallback to executing rawExpression
-  String? astExpression;
-
-  // combine both the raw and AST as if they are coming from the server
-  String stringifyRawAndAst() {
-    if (astExpression != null) {
-      return '//@code $rawExpression\n$astExpression';
-    }
-    return rawExpression;
-  }
 }
 
 /// a wrapper around a repeating timer with optional ID.

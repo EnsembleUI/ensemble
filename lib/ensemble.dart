@@ -1,17 +1,15 @@
 import 'dart:async';
-import 'dart:developer';
-import 'dart:io';
 
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/ensemble_provider.dart';
-import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/provider.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -19,12 +17,24 @@ import 'package:flutter_i18n/flutter_i18n_delegate.dart';
 import 'package:yaml/yaml.dart';
 import 'package:firebase_core/firebase_core.dart';
 
+import 'framework/theme/theme_loader.dart';
+import 'layout/ensemble_page_route.dart';
+
 /// Singleton Controller
 class Ensemble {
   static final Ensemble _instance = Ensemble._internal();
+
+  late FirebaseApp ensembleFirebaseApp;
+  static final Map<String, dynamic> externalDataContext = {};
+
   Ensemble._internal();
+
   factory Ensemble() {
     return _instance;
+  }
+
+  void notifyAppBundleChanges() {
+    _config?.updateAppBundle();
   }
 
   /// the configuration required to run an App
@@ -53,7 +63,9 @@ class Ensemble {
     if (yamlMap['definitions']?['from'] == 'ensemble') {
       // These are not secrets so OK to include here.
       // https://firebase.google.com/docs/projects/api-keys#api-keys-for-firebase-are-different
-      await Firebase.initializeApp(
+      ensembleFirebaseApp = await Firebase.initializeApp(
+          // Firebase.apps will throw exception on Web if initializeApp has not been called before
+          // name: Firebase.apps.isNotEmpty ? 'ensemble' : null,
           options: const FirebaseOptions(
               apiKey: 'AIzaSyBAZ7wf436RSbcXvhhfg7e4TUh6A2SKve8',
               appId: '1:326748243798:ios:30f2a4f824dc58ea94b8f7',
@@ -73,9 +85,9 @@ class Ensemble {
     _config = EnsembleConfig(
         definitionProvider: definitionProvider,
         appBundle: await definitionProvider.getAppBundle(),
-        account: Account(
-            mapAccessToken: yamlMap['accounts']?['maps']
-                ?['mapbox_access_token']),
+        account: Account.fromYaml(yamlMap['accounts']),
+        services: Services.fromYaml(yamlMap['services']),
+        signInServices: SignInServices.fromYaml(yamlMap['services']),
         envOverrides: envOverrides);
     return _config!;
   }
@@ -166,6 +178,14 @@ class Ensemble {
     return _config?.account;
   }
 
+  Services? getServices() {
+    return _config?.services;
+  }
+
+  SignInServices? getSignInServices() {
+    return _config?.signInServices;
+  }
+
   EnsembleConfig? getConfig() {
     return _config;
   }
@@ -189,8 +209,28 @@ class Ensemble {
             screenName: screenName,
             pageType: pageType,
             arguments: pageArgs));
-    Navigator.push(context,
-        ScreenController().getScreenBuilder(screenWidget, pageType: pageType));
+
+    Map<String, dynamic>? transition =
+        Theme.of(context).extension<EnsembleThemeExtension>()?.transitions;
+
+    final _pageType = pageType == PageType.modal ? 'modal' : 'page';
+
+    final transitionType =
+        PageTransitionTypeX.fromString(transition?[_pageType]?['type']);
+    final alignment = Utils.getAlignment(transition?[_pageType]?['alignment']);
+    final duration =
+        Utils.getInt(transition?[_pageType]?['duration'], fallback: 250);
+
+    Navigator.push(
+      context,
+      ScreenController().getScreenBuilder(
+        screenWidget,
+        pageType: pageType,
+        transitionType: transitionType,
+        alignment: alignment,
+        duration: duration,
+      ),
+    );
   }
 
   /// concat into the format root/folder/
@@ -207,6 +247,7 @@ class Ensemble {
 
   // TODO: rework the concept of root scope
   RootScope? _rootScope;
+
   RootScope rootScope() {
     _rootScope ??= RootScope();
     return _rootScope!;
@@ -223,10 +264,15 @@ class EnsembleConfig {
   EnsembleConfig(
       {required this.definitionProvider,
       this.account,
+      this.services,
+      this.signInServices,
       this.envOverrides,
       this.appBundle});
+
   final DefinitionProvider definitionProvider;
   Account? account;
+  Services? services;
+  SignInServices? signInServices;
 
   // environment variable overrides
   Map<String, dynamic>? envOverrides;
@@ -238,14 +284,19 @@ class EnsembleConfig {
 
   /// Update the appBundle using our definitionProvider
   /// return the same EnsembleConfig once completed for convenience
-  Future<EnsembleConfig> updateAppBundle() async {
-    appBundle = await definitionProvider.getAppBundle();
+  Future<EnsembleConfig> updateAppBundle({bool bypassCache = false}) async {
+    appBundle = await definitionProvider.getAppBundle(bypassCache: bypassCache);
     return this;
   }
 
   /// pass our custom theme from the appBundle and build the App Theme
   ThemeData getAppTheme() {
     return ThemeManager().getAppTheme(appBundle?.theme);
+  }
+
+  /// retrieve the global widgets/codes/APIs
+  YamlMap? getResources() {
+    return appBundle?.resources;
   }
 
   FlutterI18nDelegate getI18NDelegate() {
@@ -258,20 +309,168 @@ class I18nProps {
   String fallbackLocale;
   bool useCountryCode;
   late String path;
+
   I18nProps(this.defaultLocale, this.fallbackLocale, this.useCountryCode);
 }
 
 class AppBundle {
-  AppBundle({this.theme});
+  AppBundle({this.theme, this.resources});
 
-  YamlMap? theme;
+  YamlMap? theme; // theme
+  YamlMap? resources; // globally available widgets/codes/APIs
 }
 
 /// store the App's account info (e.g. access token for maps)
 class Account {
-  Account({this.mapAccessToken});
+  Account({this.firebaseConfig, this.mapAccessToken});
+  FirebaseConfig? firebaseConfig;
+
+  // legacy Mapbox key
   String? mapAccessToken;
+
+  factory Account.fromYaml(dynamic input) {
+    FirebaseConfig? firebaseConfig;
+    String? mapAccessToken;
+
+    if (input != null && input is Map) {
+      firebaseConfig = FirebaseConfig.fromYaml(input['firebase']);
+      mapAccessToken =
+          Utils.optionalString(input['maps']?['mapbox_access_token']);
+    }
+    return Account(
+        firebaseConfig: firebaseConfig, mapAccessToken: mapAccessToken);
+  }
 }
+
+class FirebaseConfig {
+  FirebaseConfig._({this.iOSConfig, this.androidConfig, this.webConfig});
+  FirebaseOptions? iOSConfig;
+  FirebaseOptions? androidConfig;
+  FirebaseOptions? webConfig;
+
+  factory FirebaseConfig.fromYaml(dynamic input) {
+    FirebaseOptions? iOSConfig;
+    FirebaseOptions? androidConfig;
+    FirebaseOptions? webConfig;
+
+    try {
+      if (input is Map) {
+        if (input['iOS'] != null) {
+          iOSConfig = _getPlatformConfig(input['iOS']);
+        }
+        if (input['android'] != null) {
+          androidConfig = _getPlatformConfig(input['android']);
+        }
+        if (input['web'] != null) {
+          webConfig = _getPlatformConfig(input['web']);
+        }
+      }
+      return FirebaseConfig._(
+          iOSConfig: iOSConfig,
+          androidConfig: androidConfig,
+          webConfig: webConfig);
+    } catch (error) {
+      throw ConfigError(
+          'Invalid Firebase configuration. Please double check your ensemble-config.yaml');
+    }
+  }
+
+  static FirebaseOptions _getPlatformConfig(dynamic entry) {
+    return FirebaseOptions(
+        apiKey: entry['apiKey'],
+        appId: entry['appId'],
+        messagingSenderId: entry['messagingSenderId'].toString(),
+        projectId: entry['projectId']);
+  }
+}
+
+/// for social sign-in and API authorization via OAuth2
+class Services {
+  Services._({this.tokenExchangeServer, this.apiCredentials});
+
+  String? tokenExchangeServer;
+  Map<ServiceName, APICredential>? apiCredentials;
+
+  factory Services.fromYaml(dynamic input) {
+    String? tokenExchangeServer;
+    Map<ServiceName, APICredential>? credentials;
+    if (input is YamlMap && input['apiAuthorization'] is YamlMap) {
+      tokenExchangeServer = input['apiAuthorization']['tokenExchangeServer'];
+      if (input['apiAuthorization']['providers'] is YamlMap) {
+        (input['apiAuthorization']['providers'] as YamlMap)
+            .forEach((key, value) {
+          var redirectKey = ServiceName.values.from(key);
+          if (redirectKey != null &&
+              value is YamlMap &&
+              value['clientId'] is String &&
+              value['redirectUri'] is String) {
+            var redirectValue = APICredential(
+                clientId: value['clientId'],
+                redirectUri: value['redirectUri'],
+                redirectScheme: value['redirectScheme']);
+            (credentials ??= <ServiceName, APICredential>{})[redirectKey] =
+                redirectValue;
+          }
+        });
+      }
+    }
+    return Services._(
+        tokenExchangeServer: tokenExchangeServer, apiCredentials: credentials);
+  }
+}
+
+class APICredential {
+  APICredential(
+      {required this.clientId, required this.redirectUri, this.redirectScheme});
+
+  String clientId;
+  String redirectUri;
+  String? redirectScheme;
+}
+
+class SignInServices {
+  SignInServices._({this.serverUri, this.signInCredentials});
+
+  String? serverUri;
+  Map<ServiceName, SignInCredential>? signInCredentials;
+
+  factory SignInServices.fromYaml(dynamic input) {
+    String? serverUri;
+    Map<ServiceName, SignInCredential>? credentials;
+    if (input is YamlMap && input['signIn'] is YamlMap) {
+      serverUri = input['signIn']['serverUri'];
+      if (input['signIn']['providers'] is YamlMap) {
+        (input['signIn']['providers'] as YamlMap).forEach((key, value) {
+          var provider = ServiceName.values.from(key);
+          if (provider != null && value is Map) {
+            (credentials ??= {})[provider] = SignInCredential(
+                iOSClientId: value['iOSClientId'],
+                androidClientId: value['androidClientId'],
+                webClientId: value['webClientId'],
+                serverClientId: value['serverClientId']);
+          }
+        });
+      }
+    }
+    return SignInServices._(
+        serverUri: serverUri, signInCredentials: credentials);
+  }
+}
+
+class SignInCredential {
+  SignInCredential(
+      {this.iOSClientId,
+      this.androidClientId,
+      this.webClientId,
+      this.serverClientId});
+
+  String? iOSClientId;
+  String? androidClientId;
+  String? webClientId;
+  String? serverClientId;
+}
+
+enum ServiceName { system, google, apple, microsoft, yahoo }
 
 /// user configuration for the App
 class UserAppConfig {

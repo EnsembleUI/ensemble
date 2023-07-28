@@ -1,11 +1,12 @@
 import 'dart:async';
 import 'dart:developer';
-import 'dart:ui';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/i18n_loader.dart';
+import 'package:ensemble/framework/widget/view_util.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:flutter_i18n/loaders/decoders/yaml_decode_strategy.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:yaml/yaml.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ensemble/provider.dart';
@@ -22,14 +23,18 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
   /// prefix for i18n in Firebase
   static const i18nPrefix = 'i18n_';
 
+  // hardcoded Ensemble widget library app ID
+  static const ensembleLibraryId = '8PghcmhtGkWiWffmhDDl';
+
   @override
-  Future<AppBundle> getAppBundle() async {
+  Future<AppBundle> getAppBundle({bool? bypassCache = false}) async {
     return appModel.getAppBundle();
   }
 
   static void getAppDefinition(
       String appId, Function callback, Function onError) {
-    FirebaseFirestore db = FirebaseFirestore.instance;
+    final app = Ensemble().ensembleFirebaseApp!;
+    FirebaseFirestore db = FirebaseFirestore.instanceFor(app: app);
     db.collection('apps').doc(appId).get().then(
         (doc) => callback(doc.id, doc.data()),
         onError: (error) => onError(error));
@@ -64,9 +69,9 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
     _i18nDelegate ??= FlutterI18nDelegate(
         translationLoader: DataTranslationLoader(
             defaultLocaleMap:
-                appModel.contentCache[i18nPrefix + i18nProps.defaultLocale],
+                appModel.artifactCache[i18nPrefix + i18nProps.defaultLocale],
             fallbackLocaleMap:
-                appModel.contentCache[i18nPrefix + i18nProps.fallbackLocale]));
+                appModel.artifactCache[i18nPrefix + i18nProps.fallbackLocale]));
     return _i18nDelegate!;
   }
 
@@ -86,18 +91,22 @@ class AppModel {
   final String appId;
 
   // the cache for ID -> screen content
-  Map<String, dynamic> contentCache = {};
+  Map<String, dynamic> artifactCache = {};
   // these are mappings from home/screen name to IDs
   Map<String, String> screenNameMappings = {};
   String? homeMapping;
   String? themeMapping;
   UserAppConfig? appConfig;
 
+  // storing the resource cache from imported apps
+  Map<String, dynamic> importCache = {};
+
   /// fetch async and cache our entire App's artifacts.
   /// Plus listen for changes and update the cache
   String? listenerError;
   void initListeners() {
-    FirebaseFirestore db = FirebaseFirestore.instance;
+    final app = Ensemble().ensembleFirebaseApp!;
+    FirebaseFirestore db = FirebaseFirestore.instanceFor(app: app);
     db
         .collection('apps')
         .doc(appId)
@@ -109,24 +118,48 @@ class AppModel {
         if (change.type == DocumentChangeType.removed) {
           removeArtifact(change.doc);
         } else {
-          updateArtifact(change.doc);
+          updateArtifact(
+              change.doc, change.type == DocumentChangeType.modified);
         }
       }
     }, onError: (error) {
       log("Provider listener error");
       listenerError = error.toString();
     });
+
+    // hardcoded to Ensemble public widget library
+    initWidgetArtifactListeners(EnsembleDefinitionProvider.ensembleLibraryId);
+  }
+
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>
+      initWidgetArtifactListeners(String appId) {
+    final app = Ensemble().ensembleFirebaseApp!;
+
+    return FirebaseFirestore.instanceFor(app: app)
+        .collection('apps')
+        .doc(appId)
+        .collection('artifacts')
+        .doc('resources')
+        .snapshots()
+        .listen((event) {
+      dynamic content = event.data()?['content'];
+      if (content != null) {
+        importCache[appId] = content;
+      } else {
+        importCache.remove(appId);
+      }
+    });
   }
 
   Future<bool> updateArtifact(
-      DocumentSnapshot<Map<String, dynamic>> doc) async {
+      DocumentSnapshot<Map<String, dynamic>> doc, bool isModified) async {
     // adjust the theme and home screen
     if (doc.data()?['isRoot'] == true) {
-      if (doc.data()?['type'] == 'screen') {
+      if (doc.data()?['type'] == ArtifactType.screen.name) {
         homeMapping = doc.id;
-      } else if (doc.data()?['type'] == 'theme') {
+      } else if (doc.data()?['type'] == ArtifactType.theme.name) {
         themeMapping = doc.id;
-      } else if (doc.data()?['type'] == 'config') {
+      } else if (doc.data()?['type'] == ArtifactType.config.name) {
         // environment variable
         Map<String, dynamic>? envVariables;
         dynamic env = doc.data()!['envVariables'];
@@ -134,11 +167,21 @@ class AppModel {
           envVariables = {};
           env.forEach((key, value) => envVariables![key] = value);
         }
-
         appConfig = UserAppConfig(
             baseUrl: doc.data()?['appBaseUrl'],
             useBrowserUrl: Utils.optionalBool(doc.data()?['appUseBrowserUrl']),
             envVariables: envVariables);
+      }
+
+      // mark the app bundle as dirty
+      if (isModified &&
+          [
+            ArtifactType.theme.name,
+            ArtifactType.config.name,
+            ArtifactType.resources.name
+          ].contains(doc.data()!['type'])) {
+        log("Changed Artifact: " + doc.data()!['type']);
+        Ensemble().notifyAppBundleChanges();
       }
     }
 
@@ -162,30 +205,35 @@ class AppModel {
     if (yamlContent == null && doc.data()?['type'] == 'screen') {
       yamlContent = InvalidDefinition();
     }
-    contentCache[doc.id] = yamlContent;
+    artifactCache[doc.id] = yamlContent;
 
-    log("Cached: ${contentCache.keys}. Home: $homeMapping. Theme: $themeMapping. Names: ${screenNameMappings.keys}");
+    log("Cached: ${artifactCache.keys}. Home: $homeMapping. Theme: $themeMapping. Names: ${screenNameMappings.keys}");
     return Future<bool>.value(true);
   }
 
   void removeArtifact(DocumentSnapshot<Map<String, dynamic>> doc) {
     log("Removed ${doc.id}");
     screenNameMappings.removeWhere((key, value) => (value == doc.id));
-    contentCache.remove(doc.id);
+    artifactCache.remove(doc.id);
   }
 
   Future<YamlMap?> getScreenById(String screenId) async {
-    dynamic content = contentCache[screenId];
+    dynamic content = artifactCache[screenId];
     // fetch if not in cache. Should only be the first time when
     // our listeners are not done initialized yet.
     if (content == null) {
       DocumentSnapshot<Map<String, dynamic>> snapshot =
           await _getArtifacts().doc(screenId).get();
-      await updateArtifact(snapshot);
-      content = contentCache[screenId];
+      await updateArtifact(snapshot, false);
+      content = artifactCache[screenId];
       log("Cache missed for $screenId");
     }
     if (content is YamlMap) {
+      // a bit hacky but OK for now. If widget is found, wrap it inside
+      // a proper screen syntax so we can preview it
+      if (content.keys.length == 1 && content['Widget'] != null) {
+        return ViewUtil.getWidgetAsScreen(content['Widget']);
+      }
       return content;
     }
     return null;
@@ -195,7 +243,7 @@ class AppModel {
     dynamic content;
     String? screenId = screenNameMappings[screenName];
     if (screenId != null) {
-      content = contentCache[screenId];
+      content = artifactCache[screenId];
     }
     // not in cache. Fetch it. Should be the first time only
     // until our cache is populated by the listeners
@@ -208,8 +256,8 @@ class AppModel {
           .limit(1)
           .get();
       if (searchByName.docs.isNotEmpty) {
-        await updateArtifact(searchByName.docs[0]);
-        content = contentCache[screenName];
+        await updateArtifact(searchByName.docs[0], false);
+        content = artifactCache[screenName];
         log("Cache missed for $screenName");
       }
     }
@@ -222,7 +270,7 @@ class AppModel {
   Future<YamlMap?> getHomeScreen() {
     dynamic content;
     if (homeMapping != null) {
-      content = contentCache[homeMapping];
+      content = artifactCache[homeMapping];
     }
     if (content is YamlMap) {
       return Future.value(content);
@@ -231,7 +279,8 @@ class AppModel {
   }
 
   CollectionReference<Map<String, dynamic>> _getArtifacts() {
-    FirebaseFirestore db = FirebaseFirestore.instance;
+    final app = Ensemble().ensembleFirebaseApp!;
+    FirebaseFirestore db = FirebaseFirestore.instanceFor(app: app);
     return db.collection('apps').doc(appId).collection('artifacts');
   }
 
@@ -243,14 +292,66 @@ class AppModel {
         .where('isRoot', isEqualTo: true)
         .get();
     for (var doc in snapshot.docs) {
-      await updateArtifact(doc);
-      if (doc.data()['type'] == 'theme') {
+      await updateArtifact(doc, false);
+      if (doc.data()['type'] == ArtifactType.theme.name) {
         themeMapping = doc.id;
       } else if (doc.data()['type'] == 'screen' && homeMapping == null) {
         homeMapping = doc.id;
       }
     }
     return AppBundle(
-        theme: themeMapping != null ? contentCache[themeMapping] : null);
+        theme: themeMapping != null ? artifactCache[themeMapping] : null,
+        resources: await getCombinedResources());
+  }
+
+  /// combine our App's resources with imported Apps' widgets (no code/APIs fornow)
+  Future<YamlMap?> getCombinedResources() async {
+    Map output = {};
+    Map widgets = {};
+
+    YamlMap? resources = artifactCache[ArtifactType.resources.name];
+    resources?.forEach((key, value) {
+      if (key == ResourceArtifactEntry.Widgets.name) {
+        if (value is YamlMap) {
+          widgets.addAll(value.value);
+        }
+      } else {
+        // copy over non-Widgets
+        output[key] = value;
+      }
+    });
+
+    // go through each imported App to include their widgets with proper namespace
+    for (String appId in importCache.keys) {
+      // prefix the imported App with its ID, or use 'ensemble' if belong to us
+      String namespace = appId == EnsembleDefinitionProvider.ensembleLibraryId
+          ? 'ensemble'
+          : appId;
+      try {
+        YamlMap appResources = await loadYaml(importCache[appId]);
+        if (appResources[ResourceArtifactEntry.Widgets.name] is YamlMap) {
+          // iterate through each widgets in this app to add the namespace prefix
+          (appResources[ResourceArtifactEntry.Widgets.name] as YamlMap)
+              .forEach((key, value) {
+            widgets['$namespace.$key'] = value;
+          });
+        }
+      } on Exception catch (e) {
+        // silently ignore default ensemble import. Not ideal but we are not
+        // sure if the user actually uses it since it's automatically imported.
+        if (namespace == 'ensemble') {
+          log("Imported app 'ensemble' has errors. Ignoring...");
+          continue;
+        } else {
+          throw LanguageError("Imported app '$namespace' has errors.",
+              recovery: "Please check the imported library or remove it.");
+        }
+      }
+    }
+
+    // finally add the widgets to the output
+    output[ResourceArtifactEntry.Widgets.name] = widgets;
+    //log(">>" + output.toString());
+    return YamlMap.wrap(output);
   }
 }
