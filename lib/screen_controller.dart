@@ -189,7 +189,7 @@ class ScreenController {
     } else if (action is PlaidLinkAction) {
       final linkToken = action.getLinkToken(dataContext).trim();
       if (linkToken.isNotEmpty) {
-        PlaidLinkManagerStub().openPlaidLink(
+        GetIt.I<PlaidLinkManager>().openPlaidLink(
           linkToken,
           (linkSuccess) {
             if (action.onSuccess != null) {
