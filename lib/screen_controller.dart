@@ -189,9 +189,8 @@ class ScreenController {
         );
       }
     } else if (action is PlaidLinkAction) {
-      if (scopeManager != null) {}
-      final linkToken = action.linkToken(dataContext);
-      if (linkToken != null) {
+      final linkToken = action.getLinkToken(dataContext).trim();
+      if (linkToken.isNotEmpty) {
         PlaidLinkController().openPlaidLink(
           context,
           linkToken,
@@ -201,8 +200,10 @@ class ScreenController {
                 context,
                 scopeManager!,
                 action.onSuccess!,
-                event: EnsembleEvent(action.initiator!,
-                    data: {'successData': linkSuccess.toJson()}),
+                event: EnsembleEvent(
+                  action.initiator!,
+                  data: linkSuccess.toJson(),
+                ),
               );
             }
           },
@@ -212,8 +213,10 @@ class ScreenController {
                 context,
                 scopeManager!,
                 action.onEvent!,
-                event: EnsembleEvent(action.initiator!,
-                    data: {'eventData': linkEvent.toJson()}),
+                event: EnsembleEvent(
+                  action.initiator!,
+                  data: linkEvent.toJson(),
+                ),
               );
             }
           },
@@ -223,15 +226,17 @@ class ScreenController {
                 context,
                 scopeManager!,
                 action.onExit!,
-                event: EnsembleEvent(action.initiator!,
-                    data: {'exitData': linkExit.toString()}),
+                event: EnsembleEvent(
+                  action.initiator!,
+                  data: linkExit.toJson(),
+                ),
               );
             }
           },
         );
       } else {
-        throw LanguageError(
-            'Add linkToken in the options of openPlaidLink action.');
+        throw RuntimeError(
+            "openPlaidLink action requires the plaid's link_token.");
       }
     } else if (action is ShowCameraAction) {
       GetIt.I<CameraManager>().openCamera(context, action, scopeManager);

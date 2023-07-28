@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:plaid_flutter/plaid_flutter.dart';
 
-typedef PaidLinkSuccessCallback = void Function(LinkSuccess);
-typedef PaidLinkEventCallback = void Function(LinkEvent);
-typedef PaidLinkErrorCallback = void Function(LinkExit);
+typedef PlaidLinkSuccessCallback = void Function(LinkSuccess);
+typedef PlaidLinkEventCallback = void Function(LinkEvent);
+typedef PlaidLinkErrorCallback = void Function(LinkExit);
 
 class PlaidLinkController {
   static final PlaidLinkController _instance = PlaidLinkController._internal();
@@ -16,9 +16,9 @@ class PlaidLinkController {
   void openPlaidLink(
       BuildContext context,
       String plaidLink,
-      PaidLinkSuccessCallback onSuccess,
-      PaidLinkEventCallback onEvent,
-      PaidLinkErrorCallback onExit) {
+      PlaidLinkSuccessCallback onSuccess,
+      PlaidLinkEventCallback onEvent,
+      PlaidLinkErrorCallback onExit) {
     // Subscribe to all events
 
     PlaidLink.onSuccess.listen((successData) {
