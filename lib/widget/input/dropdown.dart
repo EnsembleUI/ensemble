@@ -454,6 +454,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
   @override
   void clear() {
     onSelectionChanged(null);
+    textEditingController.clear();
   }
 
   @override
