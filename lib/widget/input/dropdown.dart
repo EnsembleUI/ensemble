@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/action.dart' as framework;
 import 'package:ensemble/framework/event.dart';
@@ -61,7 +59,7 @@ abstract class SelectOne extends StatefulWidget
   @override
   Map<String, Function> setters() {
     return {
-      'value': (value) => _setValue(value),
+      'value': (value) => _controller.maybeValue = value,
       'items': (values) => updateItems(values),
       'onChange': (definition) => _controller.onChange =
           framework.EnsembleAction.fromYaml(definition, initiator: this),
@@ -75,6 +73,7 @@ abstract class SelectOne extends StatefulWidget
   @override
   Map<String, Function> methods() {
     return {
+      'clear': () => _controller.inputFieldAction?.clear(),
       'focus': () => _controller.inputFieldAction?.focusInputField(),
       'unfocus': () => _controller.inputFieldAction?.unfocusInputField(),
       'itemsFromString': (dynamic strValues, [dynamic delimiter = ',']) {
@@ -99,14 +98,6 @@ abstract class SelectOne extends StatefulWidget
       return _controller.maybeValue;
     }
     return null;
-  }
-
-  void _setValue(dynamic value) {
-    _controller.maybeValue = value;
-    final isEmptyStr = value is String && value == '';
-    if (value == null || isEmptyStr) {
-      controller.fieldController.add(value);
-    }
   }
 
   void updateItems(dynamic values) {
@@ -181,6 +172,7 @@ abstract class SelectOne extends StatefulWidget
 enum SelectOneType { dropdown }
 
 mixin SelectOneInputFieldAction on FormFieldWidgetState<SelectOne> {
+  void clear();
   void focusInputField();
   void unfocusInputField();
 }
@@ -195,8 +187,8 @@ class SelectOneController extends FormFieldController {
   dynamic maybeValue;
   int gap = 0;
   bool autoComplete = false;
-  final StreamController<dynamic> fieldController = StreamController<dynamic>();
 
+  framework.EnsembleAction? clear;
   framework.EnsembleAction? onChange;
 }
 
@@ -207,15 +199,6 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
 
   @override
   void initState() {
-    rawTextEditingController = TextEditingController();
-    streamSubscription =
-        widget.controller.fieldController.stream.listen((value) {
-      final isEmptyStr = value is String && value.isEmpty;
-      if (value == null || isEmptyStr) {
-        clear();
-      }
-    });
-
     // validate on blur
     /*focusNode.addListener(() {
       if (!focusNode.hasFocus && validatorKey.currentState != null) {
@@ -240,9 +223,6 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
   @override
   void dispose() {
     focusNode.dispose();
-    rawTextEditingController.dispose();
-    streamSubscription.cancel();
-    widget.controller.fieldController.close();
     super.dispose();
   }
 
@@ -252,11 +232,6 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
       ScreenController().executeAction(context, widget._controller.onChange!,
           event: EnsembleEvent(widget));
     }
-  }
-
-  void clear() {
-    rawTextEditingController.clear();
-    focusNode.unfocus();
   }
 
   @override
@@ -474,6 +449,11 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
     } else {
       return (i + 10).toDouble();
     }
+  }
+
+  @override
+  void clear() {
+    onSelectionChanged(null);
   }
 
   @override
