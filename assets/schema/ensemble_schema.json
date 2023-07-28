@@ -236,50 +236,56 @@
     }
   },
   "$defs": {
-    "Text-payload": {
+    "baseWidget": {
       "type": "object",
-      "required": [],
       "properties": {
         "id": {
           "type": "string",
           "description": "A unique identifier for this widget."
-        },
-        "text": {
-          "type": "string",
-          "description": "Your text content"
-        },
-        "styles": {
-          "allOf": [
-            {
-              "$ref": "#/$defs/baseStyles"
-            },
-            {
-              "$ref": "#/$defs/boxStyles"
-            },
-            {
-              "type": "object",
-              "properties": {
-                "textStyle": {
-                  "$ref": "#/$defs/TextStyle"
-                },
-                "maxLines": {
-                  "type": "integer",
-                  "minimum": 1
-                },
-                "textAlign": {
-                  "type": "string",
-                  "enum": [
-                    "start",
-                    "end",
-                    "center",
-                    "justify"
-                  ]
-                }
-              }
-            }
-          ]
         }
       }
+    },
+    "Text-payload": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseWidget"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string",
+              "description": "Your text content"
+            },
+            "styles": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/baseStyles"
+                },
+                {
+                  "$ref": "#/$defs/boxStyles"
+                },
+                {
+                  "$ref": "#/$defs/TextStyle"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "maxLines": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "textAlign": {
+                      "type": "string",
+                      "enum": ["start", "end", "center", "justify"]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     "Markdown-payload": {
       "type": "object",
