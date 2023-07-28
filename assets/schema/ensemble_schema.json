@@ -246,13 +246,14 @@
       }
     },
     "Text-payload": {
-      "allOf": [
-        {
-          "$ref": "#/$defs/baseWidget"
-        },
-        {
-          "type": "object",
-          "properties": {
+      "type": "object",
+      "required": [],
+      "properties": {
+        "allOf": [
+          {
+            "$ref": "#/$defs/baseWidget"
+          },
+          {
             "text": {
               "type": "string",
               "description": "Your text content"
@@ -266,11 +267,11 @@
                   "$ref": "#/$defs/boxStyles"
                 },
                 {
-                  "$ref": "#/$defs/TextStyle"
-                },
-                {
                   "type": "object",
                   "properties": {
+                    "textStyle": {
+                      "$ref": "#/$defs/TextStyle"
+                    },
                     "maxLines": {
                       "type": "integer",
                       "minimum": 1
@@ -284,8 +285,8 @@
               ]
             }
           }
-        }
-      ]
+        ]
+      }
     },
     "Markdown-payload": {
       "type": "object",
