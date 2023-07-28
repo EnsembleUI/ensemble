@@ -14,7 +14,6 @@ import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
-import 'package:get_storage/get_storage.dart';
 
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -406,15 +405,14 @@ class EnsembleStorage with Invokable {
     return _instance;
   }
   static late BuildContext context;
-  final storage = GetStorage();
 
   @override
   void setProperty(prop, val) {
     if (prop is String) {
       if (val == null) {
-        storage.remove(prop);
+        StorageManager().remove(prop);
       } else {
-        storage.write(prop, val);
+        StorageManager().write(prop, val);
       }
       // dispatch changes
       ScreenController().dispatchStorageChanges(context, prop, val);
@@ -423,7 +421,7 @@ class EnsembleStorage with Invokable {
 
   @override
   getProperty(prop) {
-    return prop is String ? storage.read(prop) : null;
+    return prop is String ? StorageManager().read(prop) : null;
   }
 
   @override
@@ -434,10 +432,11 @@ class EnsembleStorage with Invokable {
   @override
   Map<String, Function> methods() {
     return {
-      'get': (String key) => storage.read(key),
-      'set': (String key, dynamic value) =>
-          value == null ? storage.remove(key) : storage.write(key, value),
-      'delete': (key) => storage.remove(key)
+      'get': (String key) => StorageManager().read(key),
+      'set': (String key, dynamic value) => value == null
+          ? StorageManager().remove(key)
+          : StorageManager().write(key, value),
+      'delete': (key) => StorageManager().remove(key)
     };
   }
 
@@ -489,9 +488,6 @@ class UserInfo with Invokable {
   @override
   Map<String, Function> getters() {
     return {
-      'email': () => StorageManager().getUserEmail(),
-      'name': () => StorageManager().getUserName(),
-      'photo': () => StorageManager().getUserPhoto(),
       'date': () => DateInfo(),
       'datetime': () => DateTimeInfo(),
     };

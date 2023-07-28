@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/ensemble_provider.dart';
-import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
@@ -29,6 +28,7 @@ class Ensemble {
   static final Map<String, dynamic> externalDataContext = {};
 
   Ensemble._internal();
+
   factory Ensemble() {
     return _instance;
   }
@@ -64,7 +64,8 @@ class Ensemble {
       // These are not secrets so OK to include here.
       // https://firebase.google.com/docs/projects/api-keys#api-keys-for-firebase-are-different
       ensembleFirebaseApp = await Firebase.initializeApp(
-          name: Firebase.apps.isNotEmpty ? 'ensemble' : null,
+          // Firebase.apps will throw exception on Web if initializeApp has not been called before
+          // name: Firebase.apps.isNotEmpty ? 'ensemble' : null,
           options: const FirebaseOptions(
               apiKey: 'AIzaSyBAZ7wf436RSbcXvhhfg7e4TUh6A2SKve8',
               appId: '1:326748243798:ios:30f2a4f824dc58ea94b8f7',
@@ -84,9 +85,7 @@ class Ensemble {
     _config = EnsembleConfig(
         definitionProvider: definitionProvider,
         appBundle: await definitionProvider.getAppBundle(),
-        account: Account(
-            mapAccessToken: yamlMap['accounts']?['maps']
-                ?['mapbox_access_token']),
+        account: Account.fromYaml(yamlMap['accounts']),
         services: Services.fromYaml(yamlMap['services']),
         signInServices: SignInServices.fromYaml(yamlMap['services']),
         envOverrides: envOverrides);
@@ -248,6 +247,7 @@ class Ensemble {
 
   // TODO: rework the concept of root scope
   RootScope? _rootScope;
+
   RootScope rootScope() {
     _rootScope ??= RootScope();
     return _rootScope!;
@@ -268,6 +268,7 @@ class EnsembleConfig {
       this.signInServices,
       this.envOverrides,
       this.appBundle});
+
   final DefinitionProvider definitionProvider;
   Account? account;
   Services? services;
@@ -308,6 +309,7 @@ class I18nProps {
   String fallbackLocale;
   bool useCountryCode;
   late String path;
+
   I18nProps(this.defaultLocale, this.fallbackLocale, this.useCountryCode);
 }
 
@@ -320,13 +322,72 @@ class AppBundle {
 
 /// store the App's account info (e.g. access token for maps)
 class Account {
-  Account({this.mapAccessToken});
+  Account({this.firebaseConfig, this.mapAccessToken});
+  FirebaseConfig? firebaseConfig;
+
+  // legacy Mapbox key
   String? mapAccessToken;
+
+  factory Account.fromYaml(dynamic input) {
+    FirebaseConfig? firebaseConfig;
+    String? mapAccessToken;
+
+    if (input != null && input is Map) {
+      firebaseConfig = FirebaseConfig.fromYaml(input['firebase']);
+      mapAccessToken =
+          Utils.optionalString(input['maps']?['mapbox_access_token']);
+    }
+    return Account(
+        firebaseConfig: firebaseConfig, mapAccessToken: mapAccessToken);
+  }
+}
+
+class FirebaseConfig {
+  FirebaseConfig._({this.iOSConfig, this.androidConfig, this.webConfig});
+  FirebaseOptions? iOSConfig;
+  FirebaseOptions? androidConfig;
+  FirebaseOptions? webConfig;
+
+  factory FirebaseConfig.fromYaml(dynamic input) {
+    FirebaseOptions? iOSConfig;
+    FirebaseOptions? androidConfig;
+    FirebaseOptions? webConfig;
+
+    try {
+      if (input is Map) {
+        if (input['iOS'] != null) {
+          iOSConfig = _getPlatformConfig(input['iOS']);
+        }
+        if (input['android'] != null) {
+          androidConfig = _getPlatformConfig(input['android']);
+        }
+        if (input['web'] != null) {
+          webConfig = _getPlatformConfig(input['web']);
+        }
+      }
+      return FirebaseConfig._(
+          iOSConfig: iOSConfig,
+          androidConfig: androidConfig,
+          webConfig: webConfig);
+    } catch (error) {
+      throw ConfigError(
+          'Invalid Firebase configuration. Please double check your ensemble-config.yaml');
+    }
+  }
+
+  static FirebaseOptions _getPlatformConfig(dynamic entry) {
+    return FirebaseOptions(
+        apiKey: entry['apiKey'],
+        appId: entry['appId'],
+        messagingSenderId: entry['messagingSenderId'].toString(),
+        projectId: entry['projectId']);
+  }
 }
 
 /// for social sign-in and API authorization via OAuth2
 class Services {
   Services._({this.tokenExchangeServer, this.apiCredentials});
+
   String? tokenExchangeServer;
   Map<ServiceName, APICredential>? apiCredentials;
 
@@ -361,6 +422,7 @@ class Services {
 class APICredential {
   APICredential(
       {required this.clientId, required this.redirectUri, this.redirectScheme});
+
   String clientId;
   String redirectUri;
   String? redirectScheme;
@@ -368,6 +430,7 @@ class APICredential {
 
 class SignInServices {
   SignInServices._({this.serverUri, this.signInCredentials});
+
   String? serverUri;
   Map<ServiceName, SignInCredential>? signInCredentials;
 
@@ -400,6 +463,7 @@ class SignInCredential {
       this.androidClientId,
       this.webClientId,
       this.serverClientId});
+
   String? iOSClientId;
   String? androidClientId;
   String? webClientId;
