@@ -842,6 +842,7 @@
       ]
     },
     "OnOff-payload": {
+      "type": "object",
       "allOf": [
         {
           "$ref": "#/$defs/FormInput-payload"
@@ -863,6 +864,7 @@
       ]
     },
     "SelectOne-payload": {
+      "type": "object",
       "allOf": [
         {
           "$ref": "#/$defs/FormInput-payload"
@@ -905,6 +907,7 @@
       ]
     },
     "Date-payload": {
+      "type": "object",
       "allOf": [
         {
           "$ref": "#/$defs/FormInput-payload"
