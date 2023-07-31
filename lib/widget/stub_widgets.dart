@@ -27,3 +27,11 @@ abstract class SignInWithApple {
 class SignInWithAppleStub extends StubWidget implements SignInWithApple {
   const SignInWithAppleStub({super.key}) : super(moduleName: 'Auth');
 }
+
+abstract class SignInWithAuth0 {
+  static const type = 'SignInWithAuth0';
+}
+
+class SignInWithAuth0Stub extends StubWidget implements SignInWithAuth0 {
+  const SignInWithAuth0Stub({super.key}) : super(moduleName: 'Auth');
+}

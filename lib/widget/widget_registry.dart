@@ -83,6 +83,7 @@ class WidgetRegistry {
         Conditional.type: () => Conditional(),
         SignInWithGoogle.type: () => GetIt.instance<SignInWithGoogle>(),
         SignInWithApple.type: () => GetIt.instance<SignInWithApple>(),
+        SignInWithAuth0.type: () => GetIt.instance<SignInWithAuth0>(),
 
         // form fields
         EnsembleForm.type: () => EnsembleForm(),
