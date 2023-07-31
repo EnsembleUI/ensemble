@@ -79,6 +79,11 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
   UserAppConfig? getAppConfig() {
     return appModel.appConfig;
   }
+
+  @override
+  Map<String, String> getSecrets() {
+    return appModel.secrets ?? {};
+  }
 }
 
 class InvalidDefinition {}
@@ -97,6 +102,7 @@ class AppModel {
   String? homeMapping;
   String? themeMapping;
   UserAppConfig? appConfig;
+  Map<String, String>? secrets;
 
   // storing the resource cache from imported apps
   Map<String, dynamic> importCache = {};
@@ -171,6 +177,12 @@ class AppModel {
             baseUrl: doc.data()?['appBaseUrl'],
             useBrowserUrl: Utils.optionalBool(doc.data()?['appUseBrowserUrl']),
             envVariables: envVariables);
+      } else if (doc.data()?['type'] == ArtifactType.secrets.name) {
+        dynamic rawSecrets = doc.data()!['secrets'];
+        if (rawSecrets is Map) {
+          secrets = {};
+          rawSecrets.forEach((key, value) => secrets![key] = value);
+        }
       }
 
       // mark the app bundle as dirty
