@@ -976,6 +976,20 @@
       "allOf": [
         {
           "$ref": "#/$defs/SignIn-payload"
+        },
+        {
+          "properties": {
+            "styles": {
+              "type": "object",
+              "properties": {
+                "buttonStyle": {
+                  "type": "string",
+                  "description": "Select an Apple's pre-defined button style (default whiteOutlined)",
+                  "enum": [ "black", "white", "whiteOutlined" ]
+                }
+              }
+            }
+          }
         }
       ]
     },
@@ -1003,6 +1017,26 @@
         },
         "onError": {
           "$ref": "#/$defs/Action-payload"
+        },
+        "styles": {
+          "properties": {
+            "overrideLabel": {
+              "type": "string",
+              "description": "Override the Sign In label. Note that changing the default Apple guideline may get your app rejected when submitting to Apple's App Store."
+            },
+            "iconAlignment": {
+              "type": "string",
+              "description": "Align the Apple icon to the left or center of the button (Note that the text will always be centered). Default: center",
+              "enum": [ "center", "left" ]
+            },
+            "borderRadius": {
+              "$ref": "#/$defs/borderRadius"
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
         }
       }
     },
@@ -3433,6 +3467,17 @@
           "properties": {
             "SignInWithGoogle": {
               "$ref": "#/$defs/SignInWithGoogle-payload"
+            }
+          }
+        },
+        {
+          "title": "SignInWithApple",
+          "required": [
+            "SignInWithApple"
+          ],
+          "properties": {
+            "SignInWithApple": {
+              "$ref": "#/$defs/SignInWithApple-payload"
             }
           }
         },
