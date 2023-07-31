@@ -433,8 +433,9 @@ class EnsembleStorage with Invokable {
   Map<String, Function> methods() {
     return {
       'get': (String key) => StorageManager().read(key),
-      'set': (String key, dynamic value) =>
-          value == null ? StorageManager().remove(key) : StorageManager().write(key, value),
+      'set': (String key, dynamic value) => value == null
+          ? StorageManager().remove(key)
+          : StorageManager().write(key, value),
       'delete': (key) => StorageManager().remove(key)
     };
   }
