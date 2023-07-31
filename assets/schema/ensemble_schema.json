@@ -842,6 +842,7 @@
       ]
     },
     "OnOff-payload": {
+      "type": "object",
       "allOf": [
         {
           "$ref": "#/$defs/FormInput-payload"
@@ -863,6 +864,7 @@
       ]
     },
     "SelectOne-payload": {
+      "type": "object",
       "allOf": [
         {
           "$ref": "#/$defs/FormInput-payload"
@@ -905,6 +907,7 @@
       ]
     },
     "Date-payload": {
+      "type": "object",
       "allOf": [
         {
           "$ref": "#/$defs/FormInput-payload"
@@ -976,6 +979,20 @@
       "allOf": [
         {
           "$ref": "#/$defs/SignIn-payload"
+        },
+        {
+          "properties": {
+            "styles": {
+              "type": "object",
+              "properties": {
+                "buttonStyle": {
+                  "type": "string",
+                  "description": "Select an Apple's pre-defined button style (default whiteOutlined)",
+                  "enum": [ "black", "white", "whiteOutlined" ]
+                }
+              }
+            }
+          }
         }
       ]
     },
@@ -1003,6 +1020,26 @@
         },
         "onError": {
           "$ref": "#/$defs/Action-payload"
+        },
+        "styles": {
+          "properties": {
+            "overrideLabel": {
+              "type": "string",
+              "description": "Override the Sign In label. Note that changing the default Apple guideline may get your app rejected when submitting to Apple's App Store."
+            },
+            "iconAlignment": {
+              "type": "string",
+              "description": "Align the Apple icon to the left or center of the button (Note that the text will always be centered). Default: center",
+              "enum": [ "center", "left" ]
+            },
+            "borderRadius": {
+              "$ref": "#/$defs/borderRadius"
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
         }
       }
     },
@@ -2974,11 +3011,13 @@
               }
             }
           }
-        }, 
+        },
         {
           "title": "Initialize notification",
           "type": "object",
-          "required": ["requestNotificationAccess"],
+          "required": [
+            "requestNotificationAccess"
+          ],
           "properties": {
             "requestNotificationAccess": {
               "type": "object",
@@ -2999,7 +3038,9 @@
         {
           "title": "Show Notification",
           "type": "object",
-          "required": ["showNotification"],
+          "required": [
+            "showNotification"
+          ],
           "properties": {
             "showNotification": {
               "type": "object",
@@ -3020,12 +3061,17 @@
         {
           "title": "Notification",
           "type": "object",
-          "required": ["notification"],
+          "required": [
+            "notification"
+          ],
           "properties": {
             "notification": {
               "type": "object",
               "description": "Handling notifications.",
-              "required" : ["onTap", "onReceive"],
+              "required": [
+                "onTap",
+                "onReceive"
+              ],
               "properties": {
                 "onTap": {
                   "$ref": "#/$defs/Action-payload",
@@ -3428,6 +3474,17 @@
           }
         },
         {
+          "title": "SignInWithApple",
+          "required": [
+            "SignInWithApple"
+          ],
+          "properties": {
+            "SignInWithApple": {
+              "$ref": "#/$defs/SignInWithApple-payload"
+            }
+          }
+        },
+        {
           "title": "Button",
           "required": [
             "Button"
@@ -3694,14 +3751,46 @@
                 "conditions": {
                   "type": "array",
                   "items": {
-                    "type": "object",
-                    "properties": {
-                      "if": {
-                        "type": "string"
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "if": {
+                            "type": "string"
+                          },
+                          "allOf": [
+                            {
+                              "$ref": "#/$defs/Widget"
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "elseif": {
+                            "type": "string"
+                          },
+                          "allOf": [
+                            {
+                              "$ref": "#/$defs/Widget"
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "else": {
+                            "type": "string"
+                          },
+                          "allOf": [
+                            {
+                              "$ref": "#/$defs/Widget"
+                            }
+                          ]
+                        }
                       }
-                    },
-                    "required": [
-                      "if"
                     ]
                   }
                 }
