@@ -842,6 +842,7 @@
       ]
     },
     "OnOff-payload": {
+      "type": "object",
       "allOf": [
         {
           "$ref": "#/$defs/FormInput-payload"
@@ -863,6 +864,7 @@
       ]
     },
     "SelectOne-payload": {
+      "type": "object",
       "allOf": [
         {
           "$ref": "#/$defs/FormInput-payload"
@@ -905,6 +907,7 @@
       ]
     },
     "Date-payload": {
+      "type": "object",
       "allOf": [
         {
           "$ref": "#/$defs/FormInput-payload"
@@ -1039,6 +1042,28 @@
           }
         }
       }
+    },
+    "ConnectWithGoogle-payload": {
+      "type": "object",
+      "allOf": [
+        {
+          "properties": {
+            "initialScopes": {
+              "type": "array",
+              "description": "A list of initial scopes to request permissions from the user"
+            },
+            "onAuthorized": {
+              "$ref": "#/$defs/Action-payload"
+            },
+            "onError": {
+              "$ref": "#/$defs/Action-payload"
+            },
+            "tokenExchangeAPI": {
+              "$ref": "#/$defs/InvokeAPI-payload"
+            }
+          }
+        }
+      ]
     },
     "Button-payload": {
       "type": "object",
@@ -2307,37 +2332,7 @@
           ],
           "properties": {
             "invokeAPI": {
-              "type": "object",
-              "description": "Calling an API",
-              "required": [
-                "name"
-              ],
-              "properties": {
-                "id": {
-                  "type": "string",
-                  "description": "Give the API an ID allows you to bind to its result. e.g. ${apiId.body...}"
-                },
-                "name": {
-                  "type": "string",
-                  "description": "Enter the name of your defined API"
-                },
-                "inputs": {
-                  "type": "object",
-                  "description": "Specify the key/value pairs to pass to the API",
-                  "properties": {},
-                  "additionalProperties": {
-                    "type": "string"
-                  }
-                },
-                "onResponse": {
-                  "$ref": "#/$defs/Action-payload",
-                  "description": "Execute another Action upon API's successful response"
-                },
-                "onError": {
-                  "$ref": "#/$defs/Action-payload",
-                  "description": "Execute an Action when the API completes with error(s)"
-                }
-              }
+              "$ref": "#/$defs/InvokeAPI-payload"
             }
           }
         },
@@ -3008,11 +3003,13 @@
               }
             }
           }
-        }, 
+        },
         {
           "title": "Initialize notification",
           "type": "object",
-          "required": ["requestNotificationAccess"],
+          "required": [
+            "requestNotificationAccess"
+          ],
           "properties": {
             "requestNotificationAccess": {
               "type": "object",
@@ -3033,7 +3030,9 @@
         {
           "title": "Show Notification",
           "type": "object",
-          "required": ["showNotification"],
+          "required": [
+            "showNotification"
+          ],
           "properties": {
             "showNotification": {
               "type": "object",
@@ -3054,12 +3053,17 @@
         {
           "title": "Notification",
           "type": "object",
-          "required": ["notification"],
+          "required": [
+            "notification"
+          ],
           "properties": {
             "notification": {
               "type": "object",
               "description": "Handling notifications.",
-              "required" : ["onTap", "onReceive"],
+              "required": [
+                "onTap",
+                "onReceive"
+              ],
               "properties": {
                 "onTap": {
                   "$ref": "#/$defs/Action-payload",
@@ -3473,6 +3477,17 @@
           }
         },
         {
+          "title": "ConnectWithGoogle",
+          "required": [
+            "ConnectWithGoogle"
+          ],
+          "properties": {
+            "ConnectWithGoogle": {
+              "$ref": "#/$defs/ConnectWithGoogle-payload"
+            }
+          }
+        },
+        {
           "title": "Button",
           "required": [
             "Button"
@@ -3739,14 +3754,46 @@
                 "conditions": {
                   "type": "array",
                   "items": {
-                    "type": "object",
-                    "properties": {
-                      "if": {
-                        "type": "string"
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "if": {
+                            "type": "string"
+                          },
+                          "allOf": [
+                            {
+                              "$ref": "#/$defs/Widget"
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "elseif": {
+                            "type": "string"
+                          },
+                          "allOf": [
+                            {
+                              "$ref": "#/$defs/Widget"
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "else": {
+                            "type": "string"
+                          },
+                          "allOf": [
+                            {
+                              "$ref": "#/$defs/Widget"
+                            }
+                          ]
+                        }
                       }
-                    },
-                    "required": [
-                      "if"
                     ]
                   }
                 }
@@ -4152,6 +4199,39 @@
         "config": {
           "type": "string",
           "description": "Chartjs config. \nSee this for an example - https://www.chartjs.org/docs/latest/configuration/"
+        }
+      }
+    },
+    "InvokeAPI-payload": {
+      "type": "object",
+      "description": "Calling an API",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Give the API an ID allows you to bind to its result. e.g. ${apiId.body...}"
+        },
+        "name": {
+          "type": "string",
+          "description": "Enter the name of your defined API"
+        },
+        "inputs": {
+          "type": "object",
+          "description": "Specify the key/value pairs to pass to the API",
+          "properties": {},
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "onResponse": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Execute another Action upon API's successful response"
+        },
+        "onError": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Execute an Action when the API completes with error(s)"
         }
       }
     },
