@@ -742,6 +742,7 @@
       }
     },
     "TextInput-payload": {
+      "type": "object",
       "allOf": [
         {
           "$ref": "#/$defs/BaseTextInput-payload"
@@ -808,6 +809,7 @@
       ]
     },
     "PasswordInput-payload": {
+      "type": "object",
       "allOf": [
         {
           "$ref": "#/$defs/BaseTextInput-payload"
@@ -936,6 +938,7 @@
       ]
     },
     "Time-payload": {
+      "type": "object",
       "allOf": [
         {
           "$ref": "#/$defs/FormInput-payload"
@@ -968,7 +971,10 @@
             },
             "scopes": {
               "type": "array",
-              "description": "A list of additional scopes to request permissions from the user"
+              "description": "A list of additional scopes to request permissions from the user",
+              "items": {
+                "type": "string"
+              }
             }
           }
         }
@@ -1220,7 +1226,13 @@
         },
         "items": {
           "type": "array",
-          "description": "List of values, or Objects with value/label pairs"
+          "description": "List of values, or Objects with value/label pairs",
+          "items": {
+            "type": "string",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
         },
         "onChange": {
           "$ref": "#/$defs/Action-payload",
