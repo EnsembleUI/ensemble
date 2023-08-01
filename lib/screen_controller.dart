@@ -416,8 +416,9 @@ class ScreenController {
       }
     } else if (action is ShowToastAction) {
       Widget? customToastBody;
-      if (scopeManager != null && action.widget != null) {
-        customToastBody = scopeManager.buildWidgetFromDefinition(action.widget);
+      if (scopeManager != null && action.getWidget(dataContext) != null) {
+        customToastBody = scopeManager
+            .buildWidgetFromDefinition(action.getWidget(dataContext));
       }
       ToastController()
           .showToast(context, dataContext, action, customToastBody);
@@ -525,8 +526,9 @@ class ScreenController {
       }
     } else if (action is NotificationAction) {
       notificationUtils.context = context;
-      notificationUtils.onRemoteNotification = action.onReceive;
-      notificationUtils.onRemoteNotificationOpened = action.onTap;
+      notificationUtils.onRemoteNotification = action.getOnReceive(dataContext);
+      notificationUtils.onRemoteNotificationOpened =
+          action.getOnTap(dataContext);
     } else if (action is ShowNotificationAction) {
       dataContext.addDataContext(Ensemble.externalDataContext);
       notificationUtils.showNotification(
@@ -536,12 +538,12 @@ class ScreenController {
     } else if (action is RequestNotificationAction) {
       final isEnabled = await notificationUtils.initNotifications() ?? false;
 
-      if (isEnabled && action.onAccept != null) {
-        executeAction(context, action.onAccept!);
+      if (isEnabled && action.getOnAccept(dataContext) != null) {
+        executeAction(context, action.getOnAccept(dataContext)!);
       }
 
-      if (!isEnabled && action.onReject != null) {
-        executeAction(context, action.onReject!);
+      if (!isEnabled && action.getOnReject(dataContext) != null) {
+        executeAction(context, action.getOnReject(dataContext)!);
       }
     } else if (action is AuthorizeOAuthAction) {
       // TODO
