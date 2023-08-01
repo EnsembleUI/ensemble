@@ -14,8 +14,9 @@ import 'package:yaml/yaml.dart';
 import 'package:http/http.dart' as http;
 
 class InvokeAPIController {
-  Future<Response> executeWithContext(BuildContext context,
-      InvokeAPIAction action, {Map<String, dynamic>? additionalInputs}) {
+  Future<Response> executeWithContext(
+      BuildContext context, InvokeAPIAction action,
+      {Map<String, dynamic>? additionalInputs}) {
     ScopeManager? scopeManager = ScreenController().getScopeManager(context);
     if (scopeManager != null) {
       // add additional data if specified
