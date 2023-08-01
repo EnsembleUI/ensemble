@@ -60,7 +60,7 @@ class ScreenController {
   }
 
   /// get the ScopeManager given the context
-  ScopeManager? _getScopeManager(BuildContext context) {
+  ScopeManager? getScopeManager(BuildContext context) {
     // get the current scope of the widget that invoked this. It gives us
     // the data context to evaluate expression
     ScopeManager? scopeManager = ensemble.DataScopeWidget.getScope(context);
@@ -83,7 +83,7 @@ class ScreenController {
   /// handle Action e.g invokeAPI
   void executeAction(BuildContext context, EnsembleAction action,
       {EnsembleEvent? event}) {
-    ScopeManager? scopeManager = _getScopeManager(context);
+    ScopeManager? scopeManager = getScopeManager(context);
     if (scopeManager != null) {
       executeActionWithScope(context, scopeManager, action, event: event);
     } else {
@@ -826,7 +826,7 @@ class ScreenController {
   }
 
   void dispatchStorageChanges(BuildContext context, String key, dynamic value) {
-    ScopeManager? scopeManager = _getScopeManager(context);
+    ScopeManager? scopeManager = getScopeManager(context);
     if (scopeManager != null) {
       scopeManager.dispatch(ModelChangeEvent(StorageBindingSource(key), value));
     }
@@ -835,7 +835,7 @@ class ScreenController {
   void dispatchSystemStorageChanges(
       BuildContext context, String key, dynamic value,
       {required String storagePrefix}) {
-    _getScopeManager(context)?.dispatch(ModelChangeEvent(
+    getScopeManager(context)?.dispatch(ModelChangeEvent(
         SystemStorageBindingSource(key, storagePrefix: storagePrefix), value));
   }
 
