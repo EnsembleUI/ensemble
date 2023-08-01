@@ -84,6 +84,7 @@ class WidgetRegistry {
         SignInWithGoogle.type: () => GetIt.instance<SignInWithGoogle>(),
         SignInWithApple.type: () => GetIt.instance<SignInWithApple>(),
         ConnectWithGoogle.type: () => GetIt.instance<ConnectWithGoogle>(),
+        SignInWithAuth0.type: () => GetIt.instance<SignInWithAuth0>(),
 
         // form fields
         EnsembleForm.type: () => EnsembleForm(),

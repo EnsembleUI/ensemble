@@ -12,12 +12,14 @@ import 'package:yaml/yaml.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' as foundation;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 enum ArtifactType {
   screen,
   theme,
   resources, // global widgets/codes/APIs/
-  config // app config
+  config, // app config
+  secrets
 }
 
 // the root entries of the Resource artifact
@@ -38,6 +40,8 @@ abstract class DefinitionProvider {
   // Call this only AFTER getAppBundle()
   // TODO: rethink this
   UserAppConfig? getAppConfig();
+
+  Map<String, String> getSecrets();
 }
 
 class LocalDefinitionProvider extends DefinitionProvider {
@@ -103,6 +107,11 @@ class LocalDefinitionProvider extends DefinitionProvider {
   @override
   UserAppConfig? getAppConfig() {
     return appConfig;
+  }
+
+  @override
+  Map<String, String> getSecrets() {
+    return dotenv.env;
   }
 }
 
@@ -172,6 +181,12 @@ class RemoteDefinitionProvider extends DefinitionProvider {
   @override
   UserAppConfig? getAppConfig() {
     return null;
+  }
+
+  // TODO: to be implemented
+  @override
+  Map<String, String> getSecrets() {
+    return <String, String>{};
   }
 }
 
@@ -293,5 +308,11 @@ class LegacyDefinitionProvider extends DefinitionProvider {
   @override
   UserAppConfig? getAppConfig() {
     return null;
+  }
+
+  // TODO: to be implemented
+  @override
+  Map<String, String> getSecrets() {
+    return <String, String>{};
   }
 }
