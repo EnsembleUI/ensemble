@@ -2,7 +2,9 @@ import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/model.dart';
+import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/theme/default_theme.dart';
+import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/ensemble_icon.dart';
 import 'package:flutter/cupertino.dart';
@@ -60,21 +62,20 @@ class ToastController {
         toastDuration: duration != null
             ? Duration(seconds: duration)
             : const Duration(days: 99),
-        child: getToastWidget(toastAction, customToastBody));
+        child: getToastWidget(context, toastAction, customToastBody));
   }
 
-  Widget getToastWidget(ShowToastAction toastAction, Widget? customToastBody) {
-    Map<String, dynamic>? toastStyles = toastAction.getStyles(_dataContext);
-
-    EdgeInsets padding = Utils.getInsets(toastStyles?['padding'],
+  Widget getToastWidget(BuildContext context, ShowToastAction toastAction,
+      Widget? customToastBody) {
+    EdgeInsets padding = Utils.getInsets(toastAction.styles?['padding'],
         fallback: const EdgeInsets.symmetric(vertical: 20, horizontal: 22));
-    Color? bgColor = Utils.getColor(toastStyles?['backgroundColor']);
+    Color? bgColor = Utils.getColor(toastAction.styles?['backgroundColor']);
     EBorderRadius? borderRadius =
-        Utils.getBorderRadius(toastStyles?['borderRadius']);
-    Color? shadowColor = Utils.getColor(toastStyles?['shadowColor']);
+        Utils.getBorderRadius(toastAction.styles?['borderRadius']);
+    Color? shadowColor = Utils.getColor(toastAction.styles?['shadowColor']);
     double? shadowRadius =
-        Utils.optionalDouble(toastStyles?['shadowRadius'], min: 0);
-    Offset? shadowOffset = Utils.getOffset(toastStyles?['shadowOffset']);
+        Utils.optionalDouble(toastAction.styles?['shadowRadius'], min: 0);
+    Offset? shadowOffset = Utils.getOffset(toastAction.styles?['shadowOffset']);
 
     Widget? content = customToastBody;
     if (content == null) {
@@ -102,6 +103,10 @@ class ToastController {
 
       const double closeButtonRadius = 10;
 
+      String? message = DataScopeWidget.getScope(context)
+          ?.dataContext
+          .eval(toastAction.message);
+
       content = Row(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -109,10 +114,10 @@ class ToastController {
         children: [
           Icon(icon),
           const SizedBox(width: 18),
-          if (toastAction.message != null && toastAction.message!.isNotEmpty)
+          if (message != null && message.isNotEmpty)
             Flexible(
               child: Text(
-                toastAction.getMessage(_dataContext),
+                message!,
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),

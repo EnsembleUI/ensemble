@@ -397,8 +397,11 @@ class Utils {
   static TextStyleComposite getTextStyleAsComposite(
       WidgetController widgetController,
       {dynamic style}) {
-    return TextStyleComposite(widgetController,
-        styleWithFontFamily: getTextStyle(style));
+    return TextStyleComposite(
+      widgetController,
+      textGradient: Utils.getBackgroundGradient(style['gradient']),
+      styleWithFontFamily: getTextStyle(style),
+    );
   }
 
   static TextStyle? getTextStyle(dynamic style) {
@@ -735,7 +738,7 @@ class Utils {
     } else if (Platform.isAndroid) {
       return path.startsWith('/data/user/0/');
     } else if (Platform.isIOS) {
-      return path.startsWith('/private/var/mobile/');
+      return path.startsWith('/var/mobile/');
     } else if (Platform.isMacOS) {
       return path.startsWith('/Users/');
     } else if (Platform.isLinux) {
@@ -749,5 +752,12 @@ class Utils {
     // match everything (that is not a question mark) until the optional question mark
     RegExpMatch? match = RegExp('^([^?]*)\\??').firstMatch(asset);
     return match?.group(1) ?? asset;
+  }
+
+  static String evaluate(String data, Map<String, dynamic> dataContext) {
+    return data.replaceAllMapped(RegExp(r'\${(\w+)}'), (match) {
+      String key = match.group(1)!;
+      return dataContext.containsKey(key) ? dataContext[key]! : match.group(0)!;
+    });
   }
 }

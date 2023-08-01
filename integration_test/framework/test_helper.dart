@@ -62,14 +62,18 @@ class TestHelper {
     await tester.pump();
   }
 
-  static Finder? findFormWidgetByLabel<W extends Widget>(WidgetTester tester, String label) {
+  static Finder? findFormWidgetByLabel<W extends Widget>(
+      WidgetTester tester, String label) {
     // first try to find the form widget with label on top
     Finder formWidgetFinder = find.byWidgetPredicate((widget) {
       if (widget is W) {
-        return find.descendant(
-          of: find.byWidget(widget),
-          matching: find.text(label),
-        ).evaluate().isNotEmpty;
+        return find
+            .descendant(
+              of: find.byWidget(widget),
+              matching: find.text(label),
+            )
+            .evaluate()
+            .isNotEmpty;
       }
       return false;
     });
@@ -92,14 +96,18 @@ class TestHelper {
   ///       Expanded:
   ///         <FormWidget>
   /// TODO: add support for labelPosition=top
-  static Finder? _findFormWidgetBySideBySideLabel<W extends Widget>(WidgetTester tester, String formLabel) {
+  static Finder? _findFormWidgetBySideBySideLabel<W extends Widget>(
+      WidgetTester tester, String formLabel) {
     Finder rowFinder = find.byWidgetPredicate((widget) {
       if (widget is Row) {
-        final Expanded? labelExpanded = widget.children.firstWhereOrNull((child) =>
-        child is Expanded && child.child is Text &&
-            (child.child as Text).data == formLabel) as Expanded?;
-        final Expanded? widgetExpanded = widget.children.firstWhereOrNull((child) =>
-        child is Expanded && (child.child.runtimeType == W)) as Expanded?;
+        final Expanded? labelExpanded = widget.children.firstWhereOrNull(
+            (child) =>
+                child is Expanded &&
+                child.child is Text &&
+                (child.child as Text).data == formLabel) as Expanded?;
+        final Expanded? widgetExpanded = widget.children.firstWhereOrNull(
+                (child) => child is Expanded && (child.child.runtimeType == W))
+            as Expanded?;
 
         if (labelExpanded != null && widgetExpanded != null) {
           Element rowElement = find.byWidget(widget).evaluate().first;

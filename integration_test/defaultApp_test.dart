@@ -148,7 +148,6 @@ void main() {
       expect(textWidget.style?.fontSize, 40);
     });
 
-
     /// We have 2 dropdowns inside 2 Forms, one with label on top and another
     /// with side-by-side labels. The structure for both is different hence
     /// the demonstration on how to do for each
@@ -162,14 +161,16 @@ void main() {
       expect(textInputFinders, findsNWidgets(2));
 
       /// test TextInput with label on top
-      Finder? textInput1 = TestHelper.findFormWidgetByLabel<TextInput>(tester, 'My TextInput');
+      Finder? textInput1 =
+          TestHelper.findFormWidgetByLabel<TextInput>(tester, 'My TextInput');
       expect(textInput1, findsOneWidget);
       await tester.enterText(textInput1!, 'hello');
       await tester.pumpAndSettle();
       expect(find.text('hello'), findsOneWidget);
 
       // test TextInput with side-by-side label
-      Finder? textInput2 = TestHelper.findFormWidgetByLabel<TextInput>(tester, 'My TextInput 2');
+      Finder? textInput2 =
+          TestHelper.findFormWidgetByLabel<TextInput>(tester, 'My TextInput 2');
       expect(textInput2, findsOneWidget);
       await tester.enterText(textInput2!, 'world');
       await tester.pumpAndSettle();
@@ -180,7 +181,8 @@ void main() {
       expect(dropdownFinders, findsNWidgets(2));
 
       /// Dropdown inside Form with label on top
-      Finder? dropdown1 = TestHelper.findFormWidgetByLabel<Dropdown>(tester, 'My Dropdown');
+      Finder? dropdown1 =
+          TestHelper.findFormWidgetByLabel<Dropdown>(tester, 'My Dropdown');
       expect(dropdown1, findsOneWidget);
       // open the dropdown
       await tester.tap(dropdown1!);
@@ -191,10 +193,9 @@ void main() {
       // verified value 'six' is selected
       expect(find.text('one'), findsOneWidget);
 
-
-
       /// Dropdown inside Form with side-by-side label
-      Finder? dropdown2 = TestHelper.findFormWidgetByLabel<Dropdown>(tester, "My Dropdown 2");
+      Finder? dropdown2 =
+          TestHelper.findFormWidgetByLabel<Dropdown>(tester, "My Dropdown 2");
       expect(dropdown2, findsOneWidget);
       // open the dropdown
       await tester.tap(dropdown2!);
@@ -204,12 +205,6 @@ void main() {
       await tester.pumpAndSettle();
       // verified value 'six' is selected
       expect(find.text('six'), findsOneWidget);
-
-
-      
-
     });
-
-
   });
 }
