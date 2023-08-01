@@ -150,27 +150,30 @@ class ScreenController {
       }
 
       PageRouteBuilder routeBuilder = navigateToScreen(
-          providedDataContext.buildContext,
-          screenName: dataContext.eval(action.screenName),
-          asModal: action.asModal,
-          routeOption: routeOption,
-          pageArgs: nextArgs,
-          transition: action.transition);
+        providedDataContext.buildContext,
+        screenName: action.getScreenName(dataContext),
+        asModal: action.isAsModal(dataContext),
+        routeOption: routeOption,
+        pageArgs: nextArgs,
+        transition: action.getTransition(dataContext),
+      );
 
       // process onModalDismiss
       if (action is NavigateModalScreenAction &&
-          action.onModalDismiss != null &&
+          action.getOnModalDismiss(dataContext) != null &&
           routeBuilder.fullscreenDialog &&
           scopeManager != null) {
         // callback on modal pop
         routeBuilder.popped.whenComplete(() {
-          executeActionWithScope(context, scopeManager, action.onModalDismiss!);
+          executeActionWithScope(
+              context, scopeManager, action.getOnModalDismiss(dataContext)!);
         });
       }
     } else if (action is ShowBottomModalAction) {
       Widget? widget;
-      if (scopeManager != null && action.widget != null) {
-        widget = scopeManager.buildWidgetFromDefinition(action.widget);
+      if (scopeManager != null && action.getWidget(dataContext) != null) {
+        widget = scopeManager
+            .buildWidgetFromDefinition(action.getWidget(dataContext));
       }
 
       if (widget != null) {
@@ -239,11 +242,12 @@ class ScreenController {
       GetIt.I<CameraManager>().openCamera(context, action, scopeManager);
     } else if (action is ShowDialogAction) {
       if (scopeManager != null) {
-        Widget widget = scopeManager.buildWidgetFromDefinition(action.widget);
+        Widget widget = scopeManager
+            .buildWidgetFromDefinition(action.getWidget(dataContext));
 
         // get styles. TODO: make bindable
         Map<String, dynamic> dialogStyles = {};
-        action.options?.forEach((key, value) {
+        action.getOptions(dataContext)?.forEach((key, value) {
           dialogStyles[key] = dataContext.eval(value);
         });
 
@@ -314,9 +318,9 @@ class ScreenController {
           scopeManager.openedDialogs.remove(dialogContext);
 
           // callback when dialog is dismissed
-          if (action.onDialogDismiss != null) {
+          if (action.getOnDialogDismiss(dataContext) != null) {
             executeActionWithScope(
-                context, scopeManager, action.onDialogDismiss!);
+                context, scopeManager, action.getOnDialogDismiss(dataContext)!);
           }
         });
       }
@@ -403,10 +407,12 @@ class ScreenController {
           dataContext.addDataContextById(key, val);
         }
       });
-      dataContext.evalCode(action.codeBlock, action.codeBlockSpan);
+      dataContext.evalCode(
+          action.getCodeBlock(dataContext), action.codeBlockSpan);
 
-      if (action.onComplete != null && scopeManager != null) {
-        executeActionWithScope(context, scopeManager, action.onComplete!);
+      if (action.getOnComplete(dataContext) != null && scopeManager != null) {
+        executeActionWithScope(
+            context, scopeManager, action.getOnComplete(dataContext)!);
       }
     } else if (action is ShowToastAction) {
       Widget? customToastBody;
@@ -570,10 +576,12 @@ class ScreenController {
   }) async {
     List<File>? selectedFiles;
 
-    final rawFiles = _getRawFiles(action.files, dataContext);
+    final rawFiles = _getRawFiles(action.getFiles(dataContext), dataContext);
 
     if (rawFiles is! List<dynamic>) {
-      if (action.onError != null) executeAction(context, action.onError!);
+      if (action.getOnError(dataContext) != null) {
+        executeAction(context, action.getOnError(dataContext)!);
+      }
       return;
     }
 
@@ -581,7 +589,9 @@ class ScreenController {
         rawFiles.map((data) => File.fromJson(data)).toList().cast<File>();
 
     if (isFileSizeOverLimit(context, dataContext, selectedFiles, action)) {
-      if (action.onError != null) executeAction(context, action.onError!);
+      if (action.onError != null) {
+        executeAction(context, action.getOnComplete(dataContext)!);
+      }
       return;
     }
 
@@ -663,11 +673,11 @@ class ScreenController {
       method: method,
       url: url,
       files: selectedFiles,
-      fieldName: action.fieldName,
-      showNotification: action.showNotification,
-      onError: action.onError == null
+      fieldName: action.getFieldName(dataContext),
+      showNotification: action.getShowNotification(dataContext),
+      onError: action.getOnError(dataContext) == null
           ? null
-          : (error) => executeAction(context, action.onError!),
+          : (error) => executeAction(context, action.getOnError(dataContext)!),
       progressCallback: (progress) {
         fileResponse?.setProgress(taskId, progress);
         scopeManager?.dispatch(
@@ -686,7 +696,9 @@ class ScreenController {
     scopeManager?.dispatch(
         ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
 
-    if (action.onComplete != null) executeAction(context, action.onComplete!);
+    if (action.getOnComplete(dataContext) != null) {
+      executeAction(context, action.getOnComplete(dataContext)!);
+    }
   }
 
   List<dynamic>? _getRawFiles(dynamic files, DataContext dataContext) {
@@ -719,11 +731,13 @@ class ScreenController {
 
     final totalSize = selectedFiles.fold<double>(
         0, (previousValue, element) => previousValue + element.size);
-    final maxFileSize = action.maxFileSize?.kb ?? defaultMaxFileSize;
+    final maxFileSize =
+        action.getMaxFileSize(dataContext)?.kb ?? defaultMaxFileSize;
 
     final message = Utils.translateWithFallback(
       'ensemble.input.overMaxFileSizeMessage',
-      action.overMaxFileSizeMessage ?? defaultOverMaxFileSizeMessage,
+      action.getOverMaxFileSizeMessage(dataContext) ??
+          defaultOverMaxFileSizeMessage,
     );
 
     if (totalSize > maxFileSize) {
