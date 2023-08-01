@@ -102,10 +102,7 @@ class ToastController {
       }
 
       const double closeButtonRadius = 10;
-
-      String? message = DataScopeWidget.getScope(context)
-          ?.dataContext
-          .eval(toastAction.message);
+      String? message = toastAction.getMessage(_dataContext);
 
       content = Row(
         mainAxisSize: MainAxisSize.min,
@@ -117,7 +114,7 @@ class ToastController {
           if (message != null && message.isNotEmpty)
             Flexible(
               child: Text(
-                message!,
+                message,
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),

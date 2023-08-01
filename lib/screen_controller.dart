@@ -442,17 +442,19 @@ class ScreenController {
         String? clipboardValue = action.getValue(dataContext);
         if (clipboardValue != null) {
           Clipboard.setData(ClipboardData(text: clipboardValue)).then((value) {
-            if (action.onSuccess != null) {
-              executeAction(context, action.onSuccess!);
+            if (action.getOnSuccess(dataContext) != null) {
+              executeAction(context, action.getOnSuccess(dataContext)!);
             }
           }).catchError((_) {
-            if (action.onFailure != null) {
-              executeAction(context, action.onFailure!);
+            if (action.getOnFailure(dataContext) != null) {
+              executeAction(context, action.getOnFailure(dataContext)!);
             }
           });
         }
       } else {
-        if (action.onFailure != null) executeAction(context, action.onFailure!);
+        if (action.getOnFailure(dataContext) != null) {
+          executeAction(context, action.getOnFailure(dataContext)!);
+        }
       }
     } else if (action is WalletConnectAction) {
       //  TODO store session:  WalletConnectSession? session = await sessionStorage.getSession();
@@ -462,11 +464,12 @@ class ScreenController {
       final WalletConnect walletConnect = WalletConnect(
         bridge: 'https://bridge.walletconnect.org',
         clientMeta: PeerMeta(
-          name: action.appName,
-          description: action.appDescription,
-          url: action.appUrl,
-          icons:
-              action.appIconUrl != null ? <String>[action.appIconUrl!] : null,
+          name: action.getappName(dataContext),
+          description: action.getAppDescription(dataContext),
+          url: action.getAppUrl(dataContext),
+          icons: action.getAppIconUrl(dataContext) != null
+              ? <String>[action.getAppIconUrl(dataContext)!]
+              : null,
         ),
       );
 
@@ -521,8 +524,8 @@ class ScreenController {
     } else if (action is ShowNotificationAction) {
       dataContext.addDataContext(Ensemble.externalDataContext);
       notificationUtils.showNotification(
-        dataContext.eval(action.title),
-        dataContext.eval(action.body),
+        action.getTitle(dataContext),
+        action.getBody(dataContext),
       );
     } else if (action is RequestNotificationAction) {
       final isEnabled = await notificationUtils.initNotifications() ?? false;
