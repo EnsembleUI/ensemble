@@ -722,6 +722,12 @@ class AuthorizeOAuthAction extends EnsembleAction {
   EnsembleAction? onResponse;
   EnsembleAction? onError;
 
+  EnsembleAction? getOnResponse(DataContext dataContext) =>
+      dataContext.eval(onResponse);
+
+  EnsembleAction? getOnError(DataContext dataContext) =>
+      dataContext.eval(onError);
+
   factory AuthorizeOAuthAction.fromYaml({YamlMap? payload}) {
     if (payload == null || payload['id'] == null) {
       throw LanguageError(
@@ -741,6 +747,11 @@ class NotificationAction extends EnsembleAction {
   EnsembleAction? onTap;
   EnsembleAction? onReceive;
 
+  EnsembleAction? getOnTap(DataContext dataContext) => dataContext.eval(onTap);
+
+  EnsembleAction? getOnReceive(DataContext dataContext) =>
+      dataContext.eval(onReceive);
+
   factory NotificationAction.fromYaml(
       {Invokable? initiator, YamlMap? payload}) {
     return NotificationAction(
@@ -753,6 +764,12 @@ class NotificationAction extends EnsembleAction {
 class RequestNotificationAction extends EnsembleAction {
   EnsembleAction? onAccept;
   EnsembleAction? onReject;
+
+  EnsembleAction? getOnAccept(DataContext dataContext) =>
+      dataContext.eval(onAccept);
+
+  EnsembleAction? getOnReject(DataContext dataContext) =>
+      dataContext.eval(onReject);
 
   RequestNotificationAction({this.onAccept, this.onReject});
 
