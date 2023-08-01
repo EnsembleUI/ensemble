@@ -470,7 +470,7 @@ class SignInCredential {
   String? serverClientId;
 }
 
-enum ServiceName { system, google, apple, microsoft, yahoo }
+enum ServiceName { system, google, apple, microsoft, yahoo, auth0 }
 
 /// user configuration for the App
 class UserAppConfig {

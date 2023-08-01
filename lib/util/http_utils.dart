@@ -9,6 +9,7 @@ import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/stub/oauth_controller.dart';
 import 'package:ensemble/framework/stub/token_manager.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:yaml/yaml.dart';
@@ -17,19 +18,21 @@ import 'package:flutter/foundation.dart' as foundation;
 
 class HttpUtils {
   static Future<http.Response> invokeApi(
-      YamlMap api, DataContext eContext) async {
+      BuildContext context, YamlMap api, DataContext eContext) async {
     // headers
     Map<String, String> headers = {};
 
     // this is the OAuth flow, where the authorization triggers before
     // calling the API. Leave it alone for now
-    String? oauthId = Utils.optionalString(api['authorization']?['oauthId']);
+    OAuthService? oAuthService = OAuthService.values
+        .from(Utils.optionalString(api['authorization']?['oauthId']));
     String? scope = Utils.optionalString(api['authorization']?['scope']);
     bool forceNewTokens =
         Utils.getBool(api['authorization']?['forceNewTokens'], fallback: false);
-    if (oauthId != null && scope != null) {
+    if (oAuthService != null && scope != null) {
       OAuthServiceToken? token = await GetIt.instance<OAuthController>()
-          .authorize(oauthId, scope: scope, forceNewTokens: forceNewTokens);
+          .authorize(context, oAuthService,
+              scope: scope, forceNewTokens: forceNewTokens);
       if (token != null) {
         headers['Authorization'] = 'Bearer ${token.accessToken}';
       }
