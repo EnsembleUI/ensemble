@@ -1,6 +1,5 @@
 import 'dart:developer';
 
-import 'package:ensemble/OAuthController.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
@@ -12,9 +11,27 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:yaml/yaml.dart';
+import 'package:http/http.dart' as http;
 
 class InvokeAPIController {
-  void execute(
+  Future<Response> executeWithContext(
+      BuildContext context, InvokeAPIAction action,
+      {Map<String, dynamic>? additionalInputs}) {
+    ScopeManager? scopeManager = ScreenController().getScopeManager(context);
+    if (scopeManager != null) {
+      // add additional data if specified
+      DataContext dataContext = scopeManager.dataContext;
+      if (additionalInputs != null) {
+        dataContext.addDataContext(additionalInputs);
+      }
+
+      return execute(action, context, dataContext, scopeManager,
+          scopeManager.pageData.apiMap);
+    }
+    throw Exception('Unable to execute API from context');
+  }
+
+  Future<Response> execute(
       InvokeAPIAction action,
       BuildContext context,
       DataContext dataContext,
@@ -39,11 +56,17 @@ class InvokeAPIController {
             .addInvokableContext(action.id!, APIResponse());
       }
 
-      HttpUtils.invokeApi(apiDefinition, dataContext)
-          .then((response) => _onAPIComplete(context, dataContext, action,
-              apiDefinition, Response(response), apiMap, scopeManager))
-          .onError((error, stackTrace) => processAPIError(context, dataContext,
-              action, apiDefinition, error, apiMap, scopeManager));
+      try {
+        http.Response response =
+            await HttpUtils.invokeApi(context, apiDefinition, dataContext);
+        _onAPIComplete(context, dataContext, action, apiDefinition,
+            Response(response), apiMap, scopeManager);
+        return Response(response);
+      } catch (error) {
+        processAPIError(context, dataContext, action, apiDefinition, error,
+            apiMap, scopeManager);
+        rethrow;
+      }
     } else {
       throw RuntimeError("Unable to find api definition for ${action.apiName}");
     }

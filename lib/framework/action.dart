@@ -177,6 +177,83 @@ abstract class BaseNavigateScreenAction extends EnsembleAction {
           fallback: false);
 }
 
+class ShowBottomModalAction extends EnsembleAction {
+  ShowBottomModalAction({
+    super.initiator,
+    super.inputs,
+    this.widget,
+    styles,
+    options,
+  })  : _styles = styles,
+        _options = options;
+
+  final dynamic widget;
+  final Map<String, dynamic>? _styles;
+  final Map<String, dynamic>? _options;
+
+  bool enableDrag(dataContext) =>
+      Utils.getBool(dataContext.eval(_options?['enableDrag']), fallback: true);
+
+  bool enableDragHandler(dataContext) =>
+      Utils.getBool(dataContext.eval(_options?['enableDragHandler']),
+          fallback: false);
+
+  Color? backgroundColor(dataContext) =>
+      Utils.getColor(dataContext.eval(_styles?['backgroundColor']));
+
+  Color? barrierColor(dataContext) =>
+      Utils.getColor(dataContext.eval(_styles?['barrierColor']));
+
+  factory ShowBottomModalAction.fromYaml(
+      {Invokable? initiator, YamlMap? payload}) {
+    if (payload == null || payload['widget'] == null) {
+      throw LanguageError(
+          "${ActionType.showBottomModal.name} requires the widget to show as a modal bottom sheet.");
+    }
+
+    return ShowBottomModalAction(
+      initiator: initiator,
+      inputs: Utils.getMap(payload['inputs']),
+      widget: payload['widget'],
+      styles: Utils.getMap(payload['styles']),
+      options: Utils.getMap(payload['options']),
+    );
+  }
+}
+
+class PlaidLinkAction extends EnsembleAction {
+  PlaidLinkAction({
+    super.initiator,
+    required this.linkToken,
+    this.onSuccess,
+    this.onEvent,
+    this.onExit,
+  });
+
+  final String linkToken;
+  final EnsembleAction? onSuccess;
+  final EnsembleAction? onEvent;
+  final EnsembleAction? onExit;
+
+  String getLinkToken(dataContext) =>
+      Utils.getString(dataContext.eval(linkToken), fallback: '');
+
+  factory PlaidLinkAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
+    if (payload == null || payload['linkToken'] == null) {
+      throw LanguageError(
+          "${ActionType.openPlaidLink.name} action requires the plaid's link_token");
+    }
+
+    return PlaidLinkAction(
+      initiator: initiator,
+      linkToken: payload['linkToken'],
+      onSuccess: EnsembleAction.fromYaml(payload['onSuccess']),
+      onEvent: EnsembleAction.fromYaml(payload['onEvent']),
+      onExit: EnsembleAction.fromYaml(payload['onExit']),
+    );
+  }
+}
+
 class StartTimerAction extends EnsembleAction {
   StartTimerAction(
       {super.initiator,
@@ -496,8 +573,7 @@ class CopyToClipboardAction extends EnsembleAction {
   EnsembleAction? onSuccess;
   EnsembleAction? onFailure;
 
-  // The clipboard value
-  dynamic getValue(DataContext dataContext) =>
+  String? getValue(DataContext dataContext) =>
       Utils.optionalString(dataContext.eval(value));
 
   factory CopyToClipboardAction.fromYaml({YamlMap? payload}) {
@@ -575,10 +651,55 @@ class AuthorizeOAuthAction extends EnsembleAction {
   }
 }
 
+class NotificationAction extends EnsembleAction {
+  NotificationAction({this.onTap, this.onReceive});
+
+  EnsembleAction? onTap;
+  EnsembleAction? onReceive;
+
+  factory NotificationAction.fromYaml(
+      {Invokable? initiator, YamlMap? payload}) {
+    return NotificationAction(
+      onTap: EnsembleAction.fromYaml(payload?['onTap']),
+      onReceive: EnsembleAction.fromYaml(payload?['onReceive']),
+    );
+  }
+}
+
+class RequestNotificationAction extends EnsembleAction {
+  EnsembleAction? onAccept;
+  EnsembleAction? onReject;
+
+  RequestNotificationAction({this.onAccept, this.onReject});
+
+  factory RequestNotificationAction.fromYaml(
+      {Invokable? initiator, YamlMap? payload}) {
+    return RequestNotificationAction(
+      onAccept: EnsembleAction.fromYaml(payload?['onAccept']),
+      onReject: EnsembleAction.fromYaml(payload?['onReject']),
+    );
+  }
+}
+
+class ShowNotificationAction extends EnsembleAction {
+  late String title;
+  late String body;
+
+  ShowNotificationAction({this.title = '', this.body = ''});
+
+  factory ShowNotificationAction.fromYaml({YamlMap? payload}) {
+    return ShowNotificationAction(
+      title: Utils.getString(payload?['title'], fallback: ''),
+      body: Utils.getString(payload?['body'], fallback: ''),
+    );
+  }
+}
+
 enum ActionType {
   invokeAPI,
   navigateScreen,
   navigateModalScreen,
+  showBottomModal,
   showDialog,
   startTimer,
   stopTimer,
@@ -593,7 +714,11 @@ enum ActionType {
   pickFiles,
   connectWallet,
   authorizeOAuthService,
+  notification,
+  requestNotificationAccess,
+  showNotification,
   copyToClipboard,
+  openPlaidLink,
 }
 
 enum ToastType { success, error, warning, info }
@@ -640,6 +765,8 @@ abstract class EnsembleAction {
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.navigateBack) {
       return NavigateBack();
+    } else if (actionType == ActionType.showBottomModal) {
+      return ShowBottomModalAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.invokeAPI) {
       return InvokeAPIAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.openCamera) {
@@ -677,8 +804,16 @@ abstract class EnsembleAction {
       return WalletConnectAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.authorizeOAuthService) {
       return AuthorizeOAuthAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.notification) {
+      return NotificationAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.showNotification) {
+      return ShowNotificationAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.requestNotificationAccess) {
+      return RequestNotificationAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.copyToClipboard) {
       return CopyToClipboardAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.openPlaidLink) {
+      return PlaidLinkAction.fromYaml(initiator: initiator, payload: payload);
     }
     throw LanguageError("Invalid action.",
         recovery: "Make sure to use one of Ensemble-provided actions.");

@@ -6,21 +6,19 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/widget/error_screen.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/page_model.dart';
-import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:get_storage/get_storage.dart';
 import 'package:workmanager/workmanager.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-const String previewConfig = 'preview-config';
 const String backgroundUploadTask = 'backgroundUploadTask';
 
 @pragma('vm:entry-point')
@@ -103,8 +101,9 @@ class EnsembleAppState extends State<EnsembleApp> {
       await dotenv.load();
     } catch (_) {}
     Device().initDeviceInfo();
-    await GetStorage.init();
-    GetStorage().write(previewConfig, widget.isPreview);
+
+    await StorageManager().init();
+    StorageManager().setIsPreview(widget.isPreview);
 
     // use the config if passed in
     if (widget.ensembleConfig != null) {
@@ -131,8 +130,6 @@ class EnsembleAppState extends State<EnsembleApp> {
     if (!kIsWeb) {
       Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
     }
-
-    notificationUtils.initNotifications();
   }
 
   @override
@@ -160,7 +157,7 @@ class EnsembleAppState extends State<EnsembleApp> {
 
   Widget renderApp(EnsembleConfig config) {
     //log("EnsembleApp build() - $hashCode");
-    GetStorage().write(previewConfig, widget.isPreview);
+    StorageManager().setIsPreview(widget.isPreview);
 
     return MaterialApp(
       navigatorKey: Utils.globalAppKey,

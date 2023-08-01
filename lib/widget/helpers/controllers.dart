@@ -25,13 +25,15 @@ abstract class WidgetCompositeProperty with Invokable {
 }
 
 class TextStyleComposite extends WidgetCompositeProperty {
-  TextStyleComposite(super.widgetController, {TextStyle? styleWithFontFamily})
+  TextStyleComposite(super.widgetController,
+      {LinearGradient? textGradient, TextStyle? styleWithFontFamily})
       : fontFamily = styleWithFontFamily,
         fontSize = styleWithFontFamily?.fontSize?.toInt(),
         lineHeightMultiple = styleWithFontFamily?.height,
         fontWeight = styleWithFontFamily?.fontWeight,
         isItalic = styleWithFontFamily?.fontStyle == FontStyle.italic,
-        color = styleWithFontFamily?.color,
+        color = textGradient == null ? styleWithFontFamily?.color : null,
+        gradient = textGradient,
         backgroundColor = styleWithFontFamily?.backgroundColor,
         decoration = styleWithFontFamily?.decoration,
         decorationStyle = styleWithFontFamily?.decorationStyle,
@@ -46,6 +48,7 @@ class TextStyleComposite extends WidgetCompositeProperty {
   bool? isItalic;
   Color? color;
   Color? backgroundColor;
+  LinearGradient? gradient;
   TextDecoration? decoration;
   TextDecorationStyle? decorationStyle;
   TextOverflow? overflow;
@@ -57,7 +60,7 @@ class TextStyleComposite extends WidgetCompositeProperty {
       height: lineHeightMultiple,
       fontWeight: fontWeight,
       fontStyle: isItalic == true ? FontStyle.italic : FontStyle.normal,
-      color: color,
+      color: gradient == null ? color : null,
       backgroundColor: backgroundColor,
       decoration: decoration,
       decorationStyle: decorationStyle,
@@ -75,7 +78,9 @@ class TextStyleComposite extends WidgetCompositeProperty {
           lineHeightMultiple = Utils.optionalDouble(value),
       'fontWeight': (value) => fontWeight = Utils.getFontWeight(value),
       'isItalic': (value) => isItalic = Utils.optionalBool(value),
-      'color': (value) => color = Utils.getColor(value),
+      'gradient': (value) => gradient = Utils.getBackgroundGradient(value),
+      'color': (value) =>
+          color = gradient == null ? Utils.getColor(value) : null,
       'backgroundColor': (value) => backgroundColor = Utils.getColor(value),
       'decoration': (value) => decoration = Utils.getDecoration(value),
       'decorationStyle': (value) =>

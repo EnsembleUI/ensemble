@@ -61,13 +61,41 @@ class EnsembleTextState extends framework.WidgetState<EnsembleText> {
   @override
   Widget buildWidget(BuildContext context) {
     return BoxWrapper(
-        widget: buildText(widget.controller), boxController: widget.controller);
+      widget: buildText(widget.controller),
+      boxController: widget.controller,
+    );
   }
 
-  Text buildText(TextController controller) {
-    return Text(controller.text ?? '',
-        textAlign: controller.textAlign,
-        maxLines: controller.maxLines,
-        style: controller.textStyle.getTextStyle());
+  Widget buildText(TextController controller) {
+    final gradientStyle = controller.textStyle.gradient;
+    Text textWidget = Text(
+      controller.text ?? '',
+      textAlign: controller.textAlign,
+      maxLines: controller.maxLines,
+      style: controller.textStyle.getTextStyle(),
+    );
+
+    return gradientStyle != null
+        ? _GradientText(gradient: gradientStyle, child: textWidget)
+        : textWidget;
+  }
+}
+
+class _GradientText extends StatelessWidget {
+  const _GradientText({
+    required this.gradient,
+    required this.child,
+  });
+
+  final Gradient gradient;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ShaderMask(
+      blendMode: BlendMode.srcIn,
+      shaderCallback: (bounds) => gradient.createShader(bounds),
+      child: child,
+    );
   }
 }
