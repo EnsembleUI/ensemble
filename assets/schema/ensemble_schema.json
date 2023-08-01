@@ -773,6 +773,10 @@
                 "datetime"
               ]
             },
+            "mask": {
+              "type": "string",
+              "description": "It formats the input by a given mask. Ex: +# (###) ###-##-##"
+            },
             "keyboardAction": {
               "$ref": "#/$defs/keyboardAction"
             },
