@@ -842,6 +842,7 @@
       ]
     },
     "OnOff-payload": {
+      "type": "object",
       "allOf": [
         {
           "$ref": "#/$defs/FormInput-payload"
@@ -863,6 +864,7 @@
       ]
     },
     "SelectOne-payload": {
+      "type": "object",
       "allOf": [
         {
           "$ref": "#/$defs/FormInput-payload"
@@ -905,6 +907,7 @@
       ]
     },
     "Date-payload": {
+      "type": "object",
       "allOf": [
         {
           "$ref": "#/$defs/FormInput-payload"
@@ -3000,11 +3003,13 @@
               }
             }
           }
-        }, 
+        },
         {
           "title": "Initialize notification",
           "type": "object",
-          "required": ["requestNotificationAccess"],
+          "required": [
+            "requestNotificationAccess"
+          ],
           "properties": {
             "requestNotificationAccess": {
               "type": "object",
@@ -3025,7 +3030,9 @@
         {
           "title": "Show Notification",
           "type": "object",
-          "required": ["showNotification"],
+          "required": [
+            "showNotification"
+          ],
           "properties": {
             "showNotification": {
               "type": "object",
@@ -3046,12 +3053,17 @@
         {
           "title": "Notification",
           "type": "object",
-          "required": ["notification"],
+          "required": [
+            "notification"
+          ],
           "properties": {
             "notification": {
               "type": "object",
               "description": "Handling notifications.",
-              "required" : ["onTap", "onReceive"],
+              "required": [
+                "onTap",
+                "onReceive"
+              ],
               "properties": {
                 "onTap": {
                   "$ref": "#/$defs/Action-payload",
@@ -3742,14 +3754,46 @@
                 "conditions": {
                   "type": "array",
                   "items": {
-                    "type": "object",
-                    "properties": {
-                      "if": {
-                        "type": "string"
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "if": {
+                            "type": "string"
+                          },
+                          "allOf": [
+                            {
+                              "$ref": "#/$defs/Widget"
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "elseif": {
+                            "type": "string"
+                          },
+                          "allOf": [
+                            {
+                              "$ref": "#/$defs/Widget"
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "else": {
+                            "type": "string"
+                          },
+                          "allOf": [
+                            {
+                              "$ref": "#/$defs/Widget"
+                            }
+                          ]
+                        }
                       }
-                    },
-                    "required": [
-                      "if"
                     ]
                   }
                 }
