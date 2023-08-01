@@ -132,7 +132,7 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
           if (itemWidget != null) {
             return widget._controller.onItemTap == null
                 ? itemWidget
-                : GestureDetector(
+                : flutter.InkWell(
                     onTap: () => _onItemTapped(index), child: itemWidget);
           }
           return const SizedBox.shrink();
