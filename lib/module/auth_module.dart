@@ -12,6 +12,8 @@ class AuthModuleStub implements AuthModule {
     GetIt.I
         .registerFactory<SignInWithGoogle>(() => const SignInWithGoogleStub());
     GetIt.I.registerFactory<SignInWithApple>(() => const SignInWithAppleStub());
+    GetIt.I
+        .registerFactory<ConnectWithGoogle>(() => const ConnectWithGoogleStub());
     GetIt.I.registerSingleton<TokenManager>(TokenManagerStub());
     GetIt.I.registerFactory<OAuthController>(() => OAuthControllerStub());
 
