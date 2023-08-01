@@ -28,7 +28,6 @@ class SignInWithAppleStub extends StubWidget implements SignInWithApple {
   const SignInWithAppleStub({super.key}) : super(moduleName: 'Auth');
 }
 
-
 abstract class ConnectWithGoogle {
   static const type = 'ConnectWithGoogle';
 }
