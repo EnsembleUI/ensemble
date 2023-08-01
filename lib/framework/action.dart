@@ -403,24 +403,22 @@ class ShowToastAction extends EnsembleAction {
 
   dynamic getType(DataContext dataContext) => dataContext.eval(type);
 
-  dynamic getTitle(DataContext dataContext) =>
-      Utils.optionalString(dataContext.eval(title));
+  String? getTitle(DataContext dataContext) => dataContext.eval(title);
 
-  dynamic getMessage(DataContext dataContext) =>
-      Utils.optionalString(dataContext.eval(message));
+  String? getMessage(DataContext dataContext) => dataContext.eval(message);
 
   dynamic getWidget(DataContext dataContext) => dataContext.eval(widget);
 
-  dynamic getDismissible(DataContext dataContext) =>
-      Utils.optionalBool(dataContext.eval(dismissible));
+  bool? getDismissible(DataContext dataContext) =>
+      dataContext.eval(dismissible);
 
-  dynamic getAlignment(DataContext dataContext) =>
-      Utils.getAlignment(dataContext.eval(alignment));
+  Alignment? getAlignment(DataContext dataContext) =>
+      dataContext.eval(alignment);
 
-  dynamic getDuration(DataContext dataContext) =>
-      Utils.optionalInt(dataContext.eval(duration));
+  int? getDuration(DataContext dataContext) => dataContext.eval(duration);
 
-  dynamic getStyles(DataContext dataContext) => dataContext.eval(alignment);
+  Map<String, dynamic>? getStyles(DataContext dataContext) =>
+      dataContext.eval(alignment);
 
   factory ShowToastAction.fromYaml({YamlMap? payload}) {
     if (payload == null ||
@@ -431,7 +429,7 @@ class ShowToastAction extends EnsembleAction {
     return ShowToastAction(
         type: ToastType.values.from(payload['options']?['type']),
         title: Utils.optionalString(payload['title']),
-        message: payload['message']?.toString(),
+        message: Utils.optionalString(payload['message']),
         widget: payload['widget'],
         dismissible: Utils.optionalBool(payload['options']?['dismissible']),
         alignment: Utils.getAlignment(payload['options']?['alignment']),
@@ -476,16 +474,17 @@ class FilePickerAction extends EnsembleAction {
   dynamic getAllowedExtension(DataContext dataContext) =>
       dataContext.eval(allowedExtensions);
 
-  dynamic getAllowMultiple(DataContext dataContext) =>
+  bool? getAllowMultiple(DataContext dataContext) =>
       dataContext.eval(allowMultiple);
 
-  dynamic getAllowCompression(DataContext dataContext) =>
+  bool? getAllowCompression(DataContext dataContext) =>
       dataContext.eval(allowCompression);
 
-  dynamic getOnComplete(DataContext dataContext) =>
+  EnsembleAction? getOnComplete(DataContext dataContext) =>
       dataContext.eval(onComplete);
 
-  dynamic getOnError(DataContext dataContext) => dataContext.eval(onError);
+  EnsembleAction? getOnError(DataContext dataContext) =>
+      dataContext.eval(onError);
 
   factory FilePickerAction.fromYaml({YamlMap? payload}) {
     if (payload == null || payload['id'] == null) {
@@ -573,8 +572,13 @@ class CopyToClipboardAction extends EnsembleAction {
   EnsembleAction? onSuccess;
   EnsembleAction? onFailure;
 
-  String? getValue(DataContext dataContext) =>
-      Utils.optionalString(dataContext.eval(value));
+  String? getValue(DataContext dataContext) => dataContext.eval(value);
+
+  EnsembleAction? getOnSuccess(DataContext dataContext) =>
+      dataContext.eval(onSuccess);
+
+  EnsembleAction? getOnFailure(DataContext dataContext) =>
+      dataContext.eval(onFailure);
 
   factory CopyToClipboardAction.fromYaml({YamlMap? payload}) {
     if (payload == null || payload['value'] == null) {
@@ -582,7 +586,7 @@ class CopyToClipboardAction extends EnsembleAction {
           '${ActionType.copyToClipboard.name} requires the value.');
     }
     return CopyToClipboardAction(
-      value: payload['value'],
+      value: Utils.optionalString(payload['value']),
       onSuccess: EnsembleAction.fromYaml(payload['onSuccess']),
       onFailure: EnsembleAction.fromYaml(payload['onFailure']),
     );
@@ -609,6 +613,15 @@ class WalletConnectAction extends EnsembleAction {
   String? appIconUrl;
   EnsembleAction? onComplete;
   EnsembleAction? onError;
+
+  String getWcProjectId(DataContext dataContext) =>
+      dataContext.eval(wcProjectId);
+  String getappName(DataContext dataContext) => dataContext.eval(appName);
+  String? getAppDescription(DataContext dataContext) =>
+      dataContext.eval(appDescription);
+  String? getAppUrl(DataContext dataContext) => dataContext.eval(appUrl);
+  String? getAppIconUrl(DataContext dataContext) =>
+      dataContext.eval(appIconUrl);
 
   factory WalletConnectAction.fromYaml({YamlMap? payload}) {
     if (payload == null ||
@@ -686,6 +699,9 @@ class ShowNotificationAction extends EnsembleAction {
   late String body;
 
   ShowNotificationAction({this.title = '', this.body = ''});
+
+  String getTitle(DataContext dataContext) => dataContext.eval(title);
+  String getBody(DataContext dataContext) => dataContext.eval(body);
 
   factory ShowNotificationAction.fromYaml({YamlMap? payload}) {
     return ShowNotificationAction(
