@@ -28,6 +28,7 @@ enum OAuthService {
   apple,
   microsoft,
   yahoo,
+  auth0,
   system    // to be deprecated
 }
 

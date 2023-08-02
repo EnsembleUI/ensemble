@@ -19,6 +19,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_i18n/flutter_i18n_delegate.dart';
 import 'package:yaml/yaml.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'html_shim.dart' if (dart.library.html) 'dart:html' show window;
 
 import 'framework/theme/theme_loader.dart';
 import 'layout/ensemble_page_route.dart';
@@ -26,15 +27,13 @@ import 'layout/ensemble_page_route.dart';
 /// Singleton Controller
 class Ensemble {
   static final Ensemble _instance = Ensemble._internal();
-
-  late FirebaseApp ensembleFirebaseApp;
-  static final Map<String, dynamic> externalDataContext = {};
-
   Ensemble._internal();
-
   factory Ensemble() {
     return _instance;
   }
+
+  late FirebaseApp ensembleFirebaseApp;
+  static final Map<String, dynamic> externalDataContext = {};
 
   void notifyAppBundleChanges() {
     _config?.updateAppBundle();
@@ -53,6 +52,12 @@ class Ensemble {
   /// For integrating with existing Flutter apps, this function can
   /// be called to pre-initialize for faster loading of Ensemble app later.
   Future<EnsembleConfig> initialize() async {
+    if (kIsWeb) {
+      log("Server: ${window.location.protocol}//${window.location.host}${window
+          .location.pathname}");
+    }
+
+
     // only initialize once
     if (_config != null) {
       return Future<EnsembleConfig>.value(_config);
@@ -424,11 +429,16 @@ class ServiceCredential {
           (config ??= {}).addAll({...value});
         }
       }
+      // intercept Web type to automatically inject the redirectURI in
       else if (key == 'web') {
         if (kIsWeb && value is YamlMap && value['clientId'] is String) {
+          var browserUri = '${window.location.protocol}//${window.location.host}${window.location.pathname}';
+          if (!browserUri.endsWith('/')) {
+            browserUri += '/';
+          }
           (credentialMap ??= {})[DevicePlatform.web] = OAuthCredential(
-              clientId: value['clientId'], 
-              redirectUri: 'http://localhost:5000/oauth.html');
+              clientId: value['clientId'],
+              redirectUri: '${browserUri}oauth.html');
         }
       }
       // get credential map
