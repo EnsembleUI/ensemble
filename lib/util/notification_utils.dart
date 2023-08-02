@@ -1,136 +1,32 @@
-import 'dart:developer';
-import 'dart:io';
-
 import 'package:ensemble/framework/action.dart';
-import 'package:ensemble/screen_controller.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-final notificationUtils = _NotificationUtils();
+import 'notification/notification_base.dart'
+    if (dart.library.io) 'notification/notification_mobile.dart'
+    if (dart.library.js) 'notification/notification_web.dart';
 
-class _NotificationUtils {
+final notificationUtils = NotificationUtilsBase();
+
+abstract class NotificationUtilsBase {
   BuildContext? context;
   EnsembleAction? onRemoteNotification;
   EnsembleAction? onRemoteNotificationOpened;
 
-  final FlutterLocalNotificationsPlugin localNotificationsPlugin =
-      FlutterLocalNotificationsPlugin();
-
-  Future<bool?> initNotifications() async {
-    const initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-    const initializationSettingsIOS = DarwinInitializationSettings();
-    const initializationSettings = InitializationSettings(
-      android: initializationSettingsAndroid,
-      iOS: initializationSettingsIOS,
-    );
-    await localNotificationsPlugin.initialize(initializationSettings);
-
-    return _requestPermissions();
+  factory NotificationUtilsBase() {
+    return getObject();
   }
 
-  Future<bool> _requestPermissions() async {
-    if (kIsWeb) {
-      return true;
-    }
-    if (Platform.isIOS) {
-      final granted = await localNotificationsPlugin
-          .resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin>()
-          ?.requestPermissions(
-            alert: true,
-            badge: true,
-            sound: true,
-          );
-      return granted ?? false;
-    } else if (Platform.isAndroid) {
-      final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
-          localNotificationsPlugin.resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
-
-      bool? granted = await androidImplementation?.requestPermission();
-      return granted ?? false;
-    }
-    return false;
-  }
+  Future<bool?> initNotifications();
 
   Future<void> showNotification(
     String? title,
     String? body, {
     String? imageUrl,
-  }) async {
-    const AndroidNotificationDetails androidPlatformChannelSpecifics =
-        AndroidNotificationDetails(
-      'channel_id',
-      'channel_name',
-      importance: Importance.max,
-      priority: Priority.high,
-      enableVibration: true,
-      playSound: true,
-    );
-    const DarwinNotificationDetails iOSPlatformChannelSpecifics =
-        DarwinNotificationDetails();
-    const NotificationDetails platformChannelSpecifics = NotificationDetails(
-      android: androidPlatformChannelSpecifics,
-      iOS: iOSPlatformChannelSpecifics,
-    );
+  });
 
-    await localNotificationsPlugin.show(
-      0,
-      title ?? 'Notification Title',
-      body ?? 'Notification Body',
-      platformChannelSpecifics,
-      payload: 'notification_payload',
-    );
-  }
+  void handleRemoteNotification();
 
-  Future<void> showProgressNotification(
-    int progress, {
-    int? notificationId,
-  }) async {
-    final androidPlatformChannelSpecifics = AndroidNotificationDetails(
-      'upload_channel_id',
-      'File Upload',
-      channelDescription: 'Notification channel for file uploads',
-      importance: Importance.low,
-      priority: Priority.low,
-      onlyAlertOnce: true,
-      showProgress: true,
-      maxProgress: 100,
-      progress: progress,
-    );
+  void handleRemoteNotificationOpened();
 
-    const iosPlatformChannelSpecifics = DarwinNotificationDetails(
-      subtitle: 'Uploading...',
-    );
-
-    final platformChannelSpecifics = NotificationDetails(
-      android: androidPlatformChannelSpecifics,
-      iOS: iosPlatformChannelSpecifics,
-    );
-
-    await localNotificationsPlugin.show(
-      notificationId ?? 0,
-      'File Upload',
-      progress == 100 ? 'Uploaded' : 'Progress $progress %',
-      platformChannelSpecifics,
-    );
-  }
-
-  void handleRemoteNotification() {
-    if (context != null && onRemoteNotification != null) {
-      ScreenController().executeAction(context!, onRemoteNotification!);
-    } else {
-      log('No context or action to handle remote notification');
-    }
-  }
-
-  void handleRemoteNotificationOpened() {
-    if (context != null && onRemoteNotificationOpened != null) {
-      ScreenController().executeAction(context!, onRemoteNotificationOpened!);
-    } else {
-      log('No context or action to handle remote notification');
-    }
-  }
+  Future<void> showProgressNotification(int progress, {int? notificationId});
 }
