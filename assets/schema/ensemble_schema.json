@@ -2359,6 +2359,29 @@
           }
         },
         {
+          "title": "Get Phone Contacts",
+          "type": "object",
+          "required": [
+            "getPhoneContacts"
+          ],
+          "properties": {
+            "getPhoneContacts": {
+              "type": "object",
+              "description": "It allows to get the device contacts",
+              "properties": {
+                "onSuccess": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when it's fetched the device contacts successfully"
+                },
+                "onError": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when the action failed to get the device contacts"
+                }
+              }
+            }
+          }
+        },
+        {
           "title": "Open URL",
           "type": "object",
           "required": [
