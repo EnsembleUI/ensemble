@@ -21,6 +21,16 @@ class OAuthControllerStub implements OAuthController {
 // pre-defined list of OAuth services we support natively
 enum OAuthService {
   google,
+  apple,
   microsoft,
-  yahoo
+  yahoo,
+  system    // to be deprecated
+}
+
+class OAuthCredential {
+  OAuthCredential({required this.clientId, required this.redirectUri});
+
+  String clientId;
+  String redirectUri;
+  String get redirectScheme => redirectUri.substring(0, redirectUri.indexOf(':/'));
 }

@@ -28,13 +28,20 @@ class SignInWithAppleStub extends StubWidget implements SignInWithApple {
   const SignInWithAppleStub({super.key}) : super(moduleName: 'Auth');
 }
 
-
 abstract class ConnectWithGoogle {
   static const type = 'ConnectWithGoogle';
 }
 
 class ConnectWithGoogleStub extends StubWidget implements ConnectWithGoogle {
   const ConnectWithGoogleStub({super.key}) : super(moduleName: 'Auth');
+}
+
+abstract class ConnectWithMicrosoft {
+  static const type = 'ConnectWithMicrosoft';
+}
+
+class ConnectWithMicrosoftStub extends StubWidget implements ConnectWithMicrosoft {
+  const ConnectWithMicrosoftStub({super.key}) : super(moduleName: 'Auth');
 }
 
 abstract class SignInWithAuth0 {

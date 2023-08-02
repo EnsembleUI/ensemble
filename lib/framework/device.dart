@@ -38,7 +38,7 @@ class Device
       "safeAreaBottom": () => safeAreaBottom,
 
       // Misc Info
-      "platform": () => DeviceInfoCapability.platform,
+      "platform": () => platform?.name,
       DevicePlatform.web.name: () => DeviceWebInfo()
     };
   }
@@ -132,26 +132,26 @@ mixin LocationCapability {
 /// retrieve basic device info
 mixin DeviceInfoCapability {
   static final DeviceInfoPlugin _deviceInfoPlugin = DeviceInfoPlugin();
-  static DevicePlatform? platform;
+  static DevicePlatform? _platform;
   static WebBrowserInfo? browserInfo;
+
+  DevicePlatform? get platform => _platform;
 
   /// initialize device info
   void initDeviceInfo() async {
-    DevicePlatform? platform;
-    WebBrowserInfo? browserInfo;
     try {
       if (kIsWeb) {
-        platform = DevicePlatform.web;
+        _platform = DevicePlatform.web;
         browserInfo = await _deviceInfoPlugin.webBrowserInfo;
       } else {
         if (Platform.isAndroid) {
-          platform = DevicePlatform.android;
+          _platform = DevicePlatform.android;
         } else if (Platform.isIOS) {
-          platform = DevicePlatform.ios;
+          _platform = DevicePlatform.ios;
         } else if (Platform.isMacOS) {
-          platform = DevicePlatform.macos;
+          _platform = DevicePlatform.macos;
         } else if (Platform.isWindows) {
-          platform = DevicePlatform.windows;
+          _platform = DevicePlatform.windows;
         }
       }
     } on PlatformException {

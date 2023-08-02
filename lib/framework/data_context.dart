@@ -7,6 +7,7 @@ import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble/framework/stub/auth_context_manager.dart';
+import 'package:ensemble/framework/stub/oauth_controller.dart';
 import 'package:ensemble/framework/stub/token_manager.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
@@ -349,7 +350,7 @@ class NativeInvokable with Invokable {
       'initNotification': () => notificationUtils.initNotifications(),
       'updateSystemAuthorizationToken': (token) =>
           GetIt.instance<TokenManager>()
-              .updateServiceTokens(ServiceName.system, token),
+              .updateServiceTokens(OAuthService.system, token),
     };
   }
 
