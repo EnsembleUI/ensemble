@@ -3209,6 +3209,7 @@
           "allOf": [
             { "#ref":  "#/$defs/baseWidget"},
             {
+              "type": "object",
               "properties": {
                 "Text": {
                   "$ref": "#/$defs/Text-payload",
