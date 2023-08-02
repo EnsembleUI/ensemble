@@ -6,6 +6,7 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/widget/error_screen.dart';
 import 'package:ensemble/framework/widget/screen.dart';
@@ -97,9 +98,7 @@ class EnsembleAppState extends State<EnsembleApp> {
   /// initialize our App with the the passed in config or
   /// read from our ensemble-config file.
   Future<EnsembleConfig> initApp() async {
-    try {
-      await dotenv.load();
-    } catch (_) {}
+    await SecretsStore().initialize();
     Device().initDeviceInfo();
 
     await StorageManager().init();
