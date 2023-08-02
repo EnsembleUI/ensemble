@@ -249,43 +249,41 @@
       "type": "object",
       "required": [],
       "properties": {
-        "allOf": [
-          {
-            "$ref": "#/$defs/baseWidget"
-          },
-          {
-            "text": {
-              "type": "string",
-              "description": "Your text content"
+        "text": {
+          "type": "string",
+          "description": "Your text content"
+        },
+        "styles": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
             },
-            "styles": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/baseStyles"
+            {
+              "$ref": "#/$defs/boxStyles"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "textStyle": {
+                  "$ref": "#/$defs/TextStyle"
                 },
-                {
-                  "$ref": "#/$defs/boxStyles"
+                "maxLines": {
+                  "type": "integer",
+                  "minimum": 1
                 },
-                {
-                  "type": "object",
-                  "properties": {
-                    "textStyle": {
-                      "$ref": "#/$defs/TextStyle"
-                    },
-                    "maxLines": {
-                      "type": "integer",
-                      "minimum": 1
-                    },
-                    "textAlign": {
-                      "type": "string",
-                      "enum": ["start", "end", "center", "justify"]
-                    }
-                  }
+                "textAlign": {
+                  "type": "string",
+                  "enum": [
+                    "start",
+                    "end",
+                    "center",
+                    "justify"
+                  ]
                 }
-              ]
+              }
             }
-          }
-        ]
+          ]
+        }
       }
     },
     "Markdown-payload": {
@@ -3208,12 +3206,17 @@
           "required": [
             "Text"
           ],
-          "properties": {
-            "Text": {
-              "$ref": "#/$defs/Text-payload",
-              "description": "Example from Kitchen Sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/c87f8b09-58e2-4c2f-99a1-cbbe9e25e9a5"
+          "allOf": [
+            { "#ref":  "#/$defs/baseWidget"},
+            {
+              "properties": {
+                "Text": {
+                  "$ref": "#/$defs/Text-payload",
+                  "description": "Example from Kitchen Sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/c87f8b09-58e2-4c2f-99a1-cbbe9e25e9a5"
+                }
+              }
             }
-          }
+          ]
         },
         {
           "title": "Markdown",
