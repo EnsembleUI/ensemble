@@ -23,14 +23,14 @@ class EnsembleSlider extends StatefulWidget
   @override
   Map<String, Function> getters() {
     return {
-      'value': () => _controller.value.round(),
+      'value': () => _controller.value,
     };
   }
 
   @override
   Map<String, Function> methods() {
     return {
-      'getValue': () => _controller.value,
+      'getValue': () => _controller.value.round(),
     };
   }
 

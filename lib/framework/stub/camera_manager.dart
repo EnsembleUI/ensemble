@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
@@ -10,7 +8,7 @@ abstract class CameraManager {
       ScopeManager? scopeManager);
 }
 
-class CameraManagerPlaceholder extends CameraManager {
+class CameraManagerStub extends CameraManager {
   @override
   Future<void> openCamera(BuildContext context, ShowCameraAction cameraAction,
       ScopeManager? scopeManager) {

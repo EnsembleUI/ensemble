@@ -397,8 +397,11 @@ class Utils {
   static TextStyleComposite getTextStyleAsComposite(
       WidgetController widgetController,
       {dynamic style}) {
-    return TextStyleComposite(widgetController,
-        styleWithFontFamily: getTextStyle(style));
+    return TextStyleComposite(
+      widgetController,
+      textGradient: Utils.getBackgroundGradient(style['gradient']),
+      styleWithFontFamily: getTextStyle(style),
+    );
   }
 
   static TextStyle? getTextStyle(dynamic style) {
@@ -735,7 +738,7 @@ class Utils {
     } else if (Platform.isAndroid) {
       return path.startsWith('/data/user/0/');
     } else if (Platform.isIOS) {
-      return path.startsWith('/private/var/mobile/');
+      return path.startsWith('/var/mobile/');
     } else if (Platform.isMacOS) {
       return path.startsWith('/Users/');
     } else if (Platform.isLinux) {
