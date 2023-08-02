@@ -4,16 +4,20 @@ import 'package:ensemble/framework/stub/token_manager.dart';
 import 'package:flutter/cupertino.dart';
 
 abstract class OAuthController {
-  Future<OAuthServiceToken?> authorize(BuildContext context, OAuthService service,
-      {required String scope, bool forceNewTokens = false,
-        InvokeAPIAction? tokenExchangeAPI});
+  Future<OAuthServiceToken?> authorize(
+      BuildContext context, OAuthService service,
+      {required String scope,
+      bool forceNewTokens = false,
+      InvokeAPIAction? tokenExchangeAPI});
 }
 
 class OAuthControllerStub implements OAuthController {
   @override
-  Future<OAuthServiceToken?> authorize(BuildContext context, OAuthService service,
-      {required String scope, bool forceNewTokens = false,
-        InvokeAPIAction? tokenExchangeAPI}) {
+  Future<OAuthServiceToken?> authorize(
+      BuildContext context, OAuthService service,
+      {required String scope,
+      bool forceNewTokens = false,
+      InvokeAPIAction? tokenExchangeAPI}) {
     throw ConfigError("Auth module is not enabled.");
   }
 }

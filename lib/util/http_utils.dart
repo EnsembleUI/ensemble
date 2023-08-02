@@ -17,20 +17,22 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' as foundation;
 
 class HttpUtils {
-  static Future<http.Response> invokeApi(BuildContext context, YamlMap api,
-      DataContext eContext) async {
+  static Future<http.Response> invokeApi(
+      BuildContext context, YamlMap api, DataContext eContext) async {
     // headers
     Map<String, String> headers = {};
 
     // this is the OAuth flow, where the authorization triggers before
     // calling the API. Leave it alone for now
-    OAuthService? oAuthService = OAuthService.values.from(Utils.optionalString(api['authorization']?['oauthId']));
+    OAuthService? oAuthService = OAuthService.values
+        .from(Utils.optionalString(api['authorization']?['oauthId']));
     String? scope = Utils.optionalString(api['authorization']?['scope']);
     bool forceNewTokens =
         Utils.getBool(api['authorization']?['forceNewTokens'], fallback: false);
     if (oAuthService != null && scope != null) {
       OAuthServiceToken? token = await GetIt.instance<OAuthController>()
-          .authorize(context, oAuthService, scope: scope, forceNewTokens: forceNewTokens);
+          .authorize(context, oAuthService,
+              scope: scope, forceNewTokens: forceNewTokens);
       if (token != null) {
         headers['Authorization'] = 'Bearer ${token.accessToken}';
       }
