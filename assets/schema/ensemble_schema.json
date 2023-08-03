@@ -195,12 +195,10 @@
             }
           },
           "body": {
-            "type": {
-              "oneOf": [
-                { "type": "string" },
-                { "type": "object" }
-              ]
-            },
+            "oneOf": [
+              { "type": "string" },
+              { "type": "object" }
+            ],
             "description": "The request body to pass along with the URL",
             "additionalProperties": {
               "type": "string"
