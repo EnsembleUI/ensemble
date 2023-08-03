@@ -19,8 +19,9 @@ class SecretsStore with Invokable {
   Future<void> initialize() async {
     if (!_initialized) {
       // add from remote
-      var secrets = Ensemble().getConfig()?.definitionProvider.getSecrets() ?? {};
-      
+      var secrets =
+          Ensemble().getConfig()?.definitionProvider.getSecrets() ?? {};
+
       // add local overrides
       try {
         await dotenv.load();
