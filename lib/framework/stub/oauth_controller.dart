@@ -29,7 +29,7 @@ enum OAuthService {
   microsoft,
   yahoo,
   auth0,
-  system    // to be deprecated
+  system // to be deprecated
 }
 
 class OAuthCredential {
@@ -37,5 +37,6 @@ class OAuthCredential {
 
   String clientId;
   String redirectUri;
-  String get redirectScheme => redirectUri.substring(0, redirectUri.indexOf(':/'));
+  String get redirectScheme =>
+      redirectUri.substring(0, redirectUri.indexOf(':/'));
 }

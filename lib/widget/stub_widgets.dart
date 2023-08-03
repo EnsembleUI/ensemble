@@ -40,7 +40,8 @@ abstract class ConnectWithMicrosoft {
   static const type = 'ConnectWithMicrosoft';
 }
 
-class ConnectWithMicrosoftStub extends StubWidget implements ConnectWithMicrosoft {
+class ConnectWithMicrosoftStub extends StubWidget
+    implements ConnectWithMicrosoft {
   const ConnectWithMicrosoftStub({super.key}) : super(moduleName: 'Auth');
 }
 
