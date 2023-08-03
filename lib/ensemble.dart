@@ -53,10 +53,8 @@ class Ensemble {
   /// be called to pre-initialize for faster loading of Ensemble app later.
   Future<EnsembleConfig> initialize() async {
     if (kIsWeb) {
-      log("Server: ${window.location.protocol}//${window.location.host}${window
-          .location.pathname}");
+      log("Server: ${window.location.protocol}//${window.location.host}${window.location.pathname}");
     }
-
 
     // only initialize once
     if (_config != null) {
@@ -424,7 +422,7 @@ class ServiceCredential {
     Map<DevicePlatform, OAuthCredential>? credentialMap;
     input.forEach((key, value) {
       // get the config
-      if (key == 'config') {  
+      if (key == 'config') {
         if (value is YamlMap) {
           (config ??= {}).addAll({...value});
         }
@@ -432,7 +430,8 @@ class ServiceCredential {
       // intercept Web type to automatically inject the redirectURI in
       else if (key == 'web') {
         if (kIsWeb && value is YamlMap && value['clientId'] is String) {
-          var browserUri = '${window.location.protocol}//${window.location.host}${window.location.pathname}';
+          var browserUri =
+              '${window.location.protocol}//${window.location.host}${window.location.pathname}';
           if (!browserUri.endsWith('/')) {
             browserUri += '/';
           }
@@ -442,13 +441,14 @@ class ServiceCredential {
         }
       }
       // get credential map
-      else {  
+      else {
         var platform = DevicePlatform.values.from(key);
-        if (platform != null && value is YamlMap &&
-            value['clientId'] is String && value['redirectUri'] is String) {
+        if (platform != null &&
+            value is YamlMap &&
+            value['clientId'] is String &&
+            value['redirectUri'] is String) {
           (credentialMap ??= {})[platform] = OAuthCredential(
-              clientId: value['clientId'],
-              redirectUri: value['redirectUri']);
+              clientId: value['clientId'], redirectUri: value['redirectUri']);
         }
       }
     });
@@ -461,8 +461,6 @@ class ServiceCredential {
     return platform != null ? (credentialMap?[platform]) : null;
   }
 }
-
-
 
 class SignInServices {
   SignInServices._({this.serverUri, this.signInCredentials});
@@ -505,7 +503,6 @@ class SignInCredential {
   String? webClientId;
   String? serverClientId;
 }
-
 
 /// user configuration for the App
 class UserAppConfig {
