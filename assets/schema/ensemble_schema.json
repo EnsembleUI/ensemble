@@ -243,6 +243,15 @@
     }
   },
   "$defs": {
+    "BaseWidget": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget."
+        }
+      }
+    },
     "Text-payload": {
       "type": "object",
       "required": [],
@@ -3294,8 +3303,15 @@
           ],
           "properties": {
             "Text": {
-              "$ref": "#/$defs/Text-payload",
-              "description": "Example from Kitchen Sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/c87f8b09-58e2-4c2f-99a1-cbbe9e25e9a5"
+              "allOf": [
+                {
+                  "$ref": "#/$defs/Text-payload",
+                  "description": "Example from Kitchen Sink: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/c87f8b09-58e2-4c2f-99a1-cbbe9e25e9a5"
+                },
+                {
+                  "$ref": "#/$defs/BaseWidget"
+                }
+              ]
             }
           }
         },
