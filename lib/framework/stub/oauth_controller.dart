@@ -33,7 +33,11 @@ enum OAuthService {
 }
 
 class OAuthCredential {
-  OAuthCredential({required this.clientId, required this.redirectUri});
+  OAuthCredential({required this.clientId, required this.redirectUri}) {
+    if (!redirectUri.contains(':/')) {
+      throw ConfigError("Invalid redirect URI. Valid syntax should be 'scheme:/*' e.g. https://* or my.custom.scheme:/*");
+    }
+  }
 
   String clientId;
   String redirectUri;
