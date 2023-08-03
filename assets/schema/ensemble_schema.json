@@ -854,6 +854,82 @@
         }
       ]
     },
+    "Confirmation-payload": {
+      "type": "object",
+      "properties": {
+        "length": {
+          "type": "integer",
+          "description": "The number of the text fields"
+        },
+        "onChange": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "It is called when a change is detected to the text field"
+        },
+        "onSubmit": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "It is called when the text field is completed"
+        },
+        "styles": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
+            },
+            {
+              "$ref": "#/$defs/boxStyles"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "textStyle": {
+                  "$ref": "#/$defs/TextStyle"
+                }
+              },
+              "fieldType": {
+                "type": "string",
+                "description": "How the input field should be displayed",
+                "enum": [
+                  "default",
+                  "underline",
+                  "rounded"
+                ]
+              },
+              "enableCursor": {
+                "type": "boolean",
+                "description": "If the button is inside a Form and upon on tap, it will execute the form's onSubmit action if this property is TRUE"
+              },
+              "defaultFieldBorderColor": {
+                "$ref": "#/$defs/typeColors",
+                "description": "Set the border color for inactive/unfocused state of text field"
+              },
+              "activeFieldBorderColor": {
+                "$ref": "#/$defs/typeColors",
+                "description": "Set the border color for active/focused state of text field"
+              },
+              "filledFieldBorderColor": {
+                "$ref": "#/$defs/typeColors",
+                "description": "Set the border color for filled state of text field"
+              },
+              "defaultFieldBackgroundColor": {
+                "$ref": "#/$defs/typeColors",
+                "description": "Set the background Color for inactive/unfocused state of text field"
+              },
+              "activeFieldBackgroundColor": {
+                "$ref": "#/$defs/typeColors",
+                "description": "Set the ackground Color for active/focused state of text field"
+              },
+              "filledFieldBackgroundColor": {
+                "$ref": "#/$defs/typeColors",
+                "description": "Set the ackground Color for filled field state of text field"
+              },
+              "cursorColor": {
+                "$ref": "#/$defs/typeColors",
+                "description": "Set the color for the cursor"
+              }
+            }
+          ]
+        }
+      }
+    },
     "OnOff-payload": {
       "type": "object",
       "allOf": [
