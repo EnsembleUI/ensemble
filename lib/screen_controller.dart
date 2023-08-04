@@ -19,6 +19,7 @@ import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/stub/camera_manager.dart';
 import 'package:ensemble/framework/stub/file_manager.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/stub/plaid_link_manager.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/view/page_group.dart';
@@ -59,7 +60,7 @@ class ScreenController {
   }
 
   /// get the ScopeManager given the context
-  ScopeManager? _getScopeManager(BuildContext context) {
+  ScopeManager? getScopeManager(BuildContext context) {
     // get the current scope of the widget that invoked this. It gives us
     // the data context to evaluate expression
     ScopeManager? scopeManager = ensemble.DataScopeWidget.getScope(context);
@@ -82,7 +83,7 @@ class ScreenController {
   /// handle Action e.g invokeAPI
   void executeAction(BuildContext context, EnsembleAction action,
       {EnsembleEvent? event}) {
-    ScopeManager? scopeManager = _getScopeManager(context);
+    ScopeManager? scopeManager = getScopeManager(context);
     if (scopeManager != null) {
       executeActionWithScope(context, scopeManager, action, event: event);
     } else {
@@ -184,6 +185,55 @@ class ScreenController {
             return widget!;
           },
         );
+      }
+    } else if (action is PlaidLinkAction) {
+      final linkToken = action.getLinkToken(dataContext).trim();
+      if (linkToken.isNotEmpty) {
+        GetIt.I<PlaidLinkManager>().openPlaidLink(
+          linkToken,
+          (linkSuccess) {
+            if (action.onSuccess != null) {
+              executeActionWithScope(
+                context,
+                scopeManager!,
+                action.onSuccess!,
+                event: EnsembleEvent(
+                  action.initiator!,
+                  data: linkSuccess,
+                ),
+              );
+            }
+          },
+          (linkEvent) {
+            if (action.onEvent != null) {
+              executeActionWithScope(
+                context,
+                scopeManager!,
+                action.onEvent!,
+                event: EnsembleEvent(
+                  action.initiator!,
+                  data: linkEvent,
+                ),
+              );
+            }
+          },
+          (linkExit) {
+            if (action.onExit != null) {
+              executeActionWithScope(
+                context,
+                scopeManager!,
+                action.onExit!,
+                event: EnsembleEvent(
+                  action.initiator!,
+                  data: linkExit,
+                ),
+              );
+            }
+          },
+        );
+      } else {
+        throw RuntimeError(
+            "openPlaidLink action requires the plaid's link_token.");
       }
     } else if (action is ShowCameraAction) {
       GetIt.I<CameraManager>().openCamera(context, action, scopeManager);
@@ -776,7 +826,7 @@ class ScreenController {
   }
 
   void dispatchStorageChanges(BuildContext context, String key, dynamic value) {
-    ScopeManager? scopeManager = _getScopeManager(context);
+    ScopeManager? scopeManager = getScopeManager(context);
     if (scopeManager != null) {
       scopeManager.dispatch(ModelChangeEvent(StorageBindingSource(key), value));
     }
@@ -785,7 +835,7 @@ class ScreenController {
   void dispatchSystemStorageChanges(
       BuildContext context, String key, dynamic value,
       {required String storagePrefix}) {
-    _getScopeManager(context)?.dispatch(ModelChangeEvent(
+    getScopeManager(context)?.dispatch(ModelChangeEvent(
         SystemStorageBindingSource(key, storagePrefix: storagePrefix), value));
   }
 

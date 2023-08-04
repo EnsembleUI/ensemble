@@ -74,6 +74,7 @@ abstract class SelectOne extends StatefulWidget
   Map<String, Function> methods() {
     return {
       'getValue': () => getValue(),
+      'clear': () => _controller.inputFieldAction?.clear(),
       'focus': () => _controller.inputFieldAction?.focusInputField(),
       'unfocus': () => _controller.inputFieldAction?.unfocusInputField(),
       'itemsFromString': (dynamic strValues, [dynamic delimiter = ',']) {
@@ -172,6 +173,7 @@ abstract class SelectOne extends StatefulWidget
 enum SelectOneType { dropdown }
 
 mixin SelectOneInputFieldAction on FormFieldWidgetState<SelectOne> {
+  void clear();
   void focusInputField();
   void unfocusInputField();
 }
@@ -187,6 +189,7 @@ class SelectOneController extends FormFieldController {
   int gap = 0;
   bool autoComplete = false;
 
+  framework.EnsembleAction? clear;
   framework.EnsembleAction? onChange;
 }
 
@@ -447,6 +450,12 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
     } else {
       return (i + 10).toDouble();
     }
+  }
+
+  @override
+  void clear() {
+    onSelectionChanged(null);
+    textEditingController.clear();
   }
 
   @override
