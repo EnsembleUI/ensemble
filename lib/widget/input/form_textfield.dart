@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:collection/collection.dart';
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
@@ -16,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:email_validator/email_validator.dart';
 import 'package:ensemble/framework/model.dart' as model;
+import 'package:flutter/services.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:form_validator/form_validator.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
@@ -36,6 +38,14 @@ class TextInput extends BaseTextInput {
       'mask': (type) => _controller.mask = Utils.optionalString(type),
     });
     return setters;
+  }
+
+  @override
+  Map<String, Function> getters() {
+    return {
+      'maskedValue': () => _controller.inputFieldAction?.getMaskedValue(),
+      'unmaskedValue': () => _controller.inputFieldAction?.getUnmaskedValue(),
+    };
   }
 
   @override
@@ -163,6 +173,8 @@ abstract class BaseTextInput extends StatefulWidget
 mixin TextInputFieldAction on FormFieldWidgetState<BaseTextInput> {
   void focusInputField();
   void unfocusInputField();
+  void getMaskedValue();
+  void getUnmaskedValue();
 }
 
 /// controller for both TextField and Password
@@ -191,6 +203,7 @@ class TextInputController extends FormFieldController {
 
 class TextInputState extends FormFieldWidgetState<BaseTextInput>
     with TextInputFieldAction {
+  List<TextInputFormatter> inputFormatters = [];
   final focusNode = FocusNode();
 
   // for this widget we will implement onChange if the text changes AND:
@@ -203,7 +216,6 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
     if (didItChange) {
       // trigger binding
       widget.setProperty('value', widget.textController.text);
-
       // call onChange
       if (widget._controller.onChange != null) {
         ScreenController().executeAction(context, widget._controller.onChange!,
@@ -243,6 +255,9 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
         }
       }
     });
+
+    inputFormatters = InputFormatter.getFormatter(
+        widget._controller.inputType, widget._controller.mask);
     super.initState();
   }
 
@@ -366,8 +381,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
           },
           textInputAction: widget._controller.keyboardAction,
           keyboardType: widget.keyboardType,
-          inputFormatters: InputFormatter.getFormatter(
-              widget._controller.inputType, widget._controller.mask),
+          inputFormatters: inputFormatters,
           maxLines: widget._controller.maxLines,
           obscureText: isObscureOrPlainText(),
           enableSuggestions: !widget.isPassword(),
@@ -412,6 +426,30 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
     if (focusNode.hasFocus) {
       focusNode.unfocus();
     }
+  }
+
+  @override
+  String getUnmaskedValue() {
+    final maskInputFormatter = inputFormatters
+        .whereType<MaskTextInputFormatter>()
+        .toList()
+        .firstOrNull;
+    if (maskInputFormatter != null) {
+      return maskInputFormatter.getUnmaskedText();
+    }
+    return widget.textController.text;
+  }
+
+  @override
+  String getMaskedValue() {
+    final maskInputFormatter = inputFormatters
+        .whereType<MaskTextInputFormatter>()
+        .toList()
+        .firstOrNull;
+    if (maskInputFormatter != null) {
+      return maskInputFormatter.getMaskedText();
+    }
+    return widget.textController.text;
   }
 }
 
