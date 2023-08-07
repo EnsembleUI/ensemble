@@ -3,7 +3,7 @@ import 'dart:async';
 
 import 'dart:ui';
 import 'package:ensemble/ensemble.dart';
-import 'package:ensemble/framework/widget/view_util.dart';
+import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
@@ -30,7 +30,7 @@ abstract class DefinitionProvider {
   final I18nProps i18nProps;
   bool cacheEnabled = false;
   DefinitionProvider(this.i18nProps, {this.cacheEnabled = false});
-  Future<YamlMap> getDefinition({String? screenId, String? screenName});
+  Future<ScreenDefinition> getDefinition({String? screenId, String? screenName});
   FlutterI18nDelegate getI18NDelegate();
 
   // get the home screen + the App Bundle (theme, translation, custom assets, ...)
@@ -66,19 +66,13 @@ class LocalDefinitionProvider extends DefinitionProvider {
   }
 
   @override
-  Future<YamlMap> getDefinition({String? screenId, String? screenName}) async {
+  Future<ScreenDefinition> getDefinition({String? screenId, String? screenName}) async {
     // Note: Web with local definition caches even if we disable browser cache
     // so you may need to re-run the app on definition changes
     var pageStr = await rootBundle.loadString(
         '$path${screenId ?? screenName ?? appHome}.yaml',
         cache: foundation.kReleaseMode);
-    final pageYaml = loadYaml(pageStr);
-    if (pageYaml is YamlMap) {
-      if (pageYaml.keys.length == 1 && pageYaml['Widget'] != null) {
-        return ViewUtil.getWidgetAsScreen(pageYaml['Widget']);
-      }
-    }
-    return loadYaml(pageStr);
+    return ScreenDefinition(loadYaml(pageStr));
   }
 
   @override
@@ -136,10 +130,10 @@ class RemoteDefinitionProvider extends DefinitionProvider {
   }
 
   @override
-  Future<YamlMap> getDefinition({String? screenId, String? screenName}) async {
+  Future<ScreenDefinition> getDefinition({String? screenId, String? screenName}) async {
     String screen = screenId ?? screenName ?? appHome;
 
-    Completer<YamlMap> completer = Completer();
+    Completer<ScreenDefinition> completer = Completer();
     dynamic res = DefinitionProvider.cache[screen];
     if (res != null) {
       completer.complete(res);
@@ -147,7 +141,7 @@ class RemoteDefinitionProvider extends DefinitionProvider {
     }
     http.Response response = await http.get(Uri.parse('$path$screen.yaml'));
     if (response.statusCode == 200) {
-      dynamic res = loadYaml(response.body);
+      dynamic res = ScreenDefinition(loadYaml(response.body));
       if (cacheEnabled) {
         DefinitionProvider.cache[screen] = res;
       }
@@ -212,7 +206,7 @@ class LegacyDefinitionProvider extends DefinitionProvider {
   }
 
   @override
-  Future<YamlMap> getDefinition({String? screenId, String? screenName}) async {
+  Future<ScreenDefinition> getDefinition({String? screenId, String? screenName}) async {
     String params = 'ast=false&expression_to_ast=false';
     if (screenId != null) {
       params += '&id=$screenId';
@@ -223,7 +217,7 @@ class LegacyDefinitionProvider extends DefinitionProvider {
         params += '&name=$screenName';
       }
     }
-    Completer<YamlMap> completer = Completer();
+    Completer<ScreenDefinition> completer = Completer();
     dynamic res = DefinitionProvider.cache[params];
     if (res != null) {
       completer.complete(res);
@@ -232,7 +226,7 @@ class LegacyDefinitionProvider extends DefinitionProvider {
     http.Response response =
         await http.get(Uri.parse('$url/screen/content?$params'));
     if (response.statusCode == 200) {
-      dynamic res = loadYaml(response.body);
+      dynamic res = ScreenDefinition(loadYaml(response.body));
       if (cacheEnabled) {
         DefinitionProvider.cache[params] = res;
       }
