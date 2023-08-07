@@ -176,6 +176,8 @@ class PageState extends State<Page> {
         Utils.getBool(headerModel.styles?['centerTitle'], fallback: true);
     Color? backgroundColor =
         Utils.getColor(headerModel.styles?['backgroundColor']);
+    Color? onScrollBackgroundColor =
+        Utils.getColor(headerModel.styles?['onScrollBackgroundColor']);
     Color? color = Utils.getColor(headerModel.styles?['color']);
     Color? shadowColor = Utils.getColor(headerModel.styles?['shadowColor']);
     double? elevation =
@@ -202,6 +204,7 @@ class PageState extends State<Page> {
         title: titleWidget,
         centerTitle: centerTitle,
         backgroundColor: backgroundColor,
+        surfaceTintColor: onScrollBackgroundColor,
         foregroundColor: color,
 
         // control the drop shadow on the header's bottom edge
