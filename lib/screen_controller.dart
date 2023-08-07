@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
@@ -14,9 +16,10 @@ import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
-import 'package:ensemble/framework/placeholder/camera_manager.dart';
-import 'package:ensemble/framework/placeholder/file_manager.dart';
+import 'package:ensemble/framework/stub/camera_manager.dart';
+import 'package:ensemble/framework/stub/file_manager.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/stub/plaid_link_manager.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/view/page_group.dart';
@@ -27,6 +30,7 @@ import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble/util/http_utils.dart';
+import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_registry.dart';
@@ -56,7 +60,7 @@ class ScreenController {
   }
 
   /// get the ScopeManager given the context
-  ScopeManager? _getScopeManager(BuildContext context) {
+  ScopeManager? getScopeManager(BuildContext context) {
     // get the current scope of the widget that invoked this. It gives us
     // the data context to evaluate expression
     ScopeManager? scopeManager = ensemble.DataScopeWidget.getScope(context);
@@ -79,9 +83,11 @@ class ScreenController {
   /// handle Action e.g invokeAPI
   void executeAction(BuildContext context, EnsembleAction action,
       {EnsembleEvent? event}) {
-    ScopeManager? scopeManager = _getScopeManager(context);
+    ScopeManager? scopeManager = getScopeManager(context);
     if (scopeManager != null) {
       executeActionWithScope(context, scopeManager, action, event: event);
+    } else {
+      throw Exception('Cannot find ScopeManager to execute action');
     }
   }
 
@@ -180,56 +186,55 @@ class ScreenController {
           },
         );
       }
-    } else if (action is CropImageAction) {
-      // final imageSrc = action.imageSrc(dataContext);
-      // if (scopeManager != null && imageSrc != null) {
-      //   final format = action.format(dataContext);
-      //   final compressFormat = format != null && format == 'jpg'
-      //       ? ImageCompressFormat.jpg
-      //       : ImageCompressFormat.png;
-
-      //   ImageCropper().cropImage(
-      //     sourcePath: imageSrc,
-      //     compressFormat: compressFormat,
-      //     compressQuality: action.quality(dataContext),
-      //     uiSettings: [
-      //       AndroidUiSettings(
-      //         toolbarTitle: action.title(dataContext),
-      //         toolbarColor: Colors.deepOrange,
-      //         toolbarWidgetColor: Colors.white,
-      //         initAspectRatio: CropAspectRatioPreset.original,
-      //         lockAspectRatio: false,
-      //       ),
-      //       IOSUiSettings(
-      //         title: action.title(dataContext),
-      //       ),
-      //     ],
-      //   ).then((croppedFile) async {
-      //     if (croppedFile == null) {
-      //       if (action.onError != null) executeAction(context, action.onError!);
-      //       return;
-      //     }
-      //     final fileName = croppedFile.path.split('/').last;
-      //     final fileExtension = ".${fileName.split('.').last}";
-      //     final bytes = await croppedFile.readAsBytes();
-      //     final file = File.fromCropImage({
-      //       'name': fileName,
-      //       'path': croppedFile.path,
-      //       'extension': fileExtension,
-      //       'size': 0,
-      //       'bytes': bytes
-      //     });
-
-      //     final croppedFileData = CroppedFileData(file: file);
-      //     scopeManager.dataContext
-      //         .addDataContextById(action.id, croppedFileData);
-      //     scopeManager.dispatch(ModelChangeEvent(
-      //         SimpleBindingSource(action.id), croppedFileData));
-      //     if (action.onComplete != null) {
-      //       executeAction(context, action.onComplete!);
-      //     }
-      //   });
-      // }
+    } else if (action is PlaidLinkAction) {
+      final linkToken = action.getLinkToken(dataContext).trim();
+      if (linkToken.isNotEmpty) {
+        GetIt.I<PlaidLinkManager>().openPlaidLink(
+          linkToken,
+          (linkSuccess) {
+            if (action.onSuccess != null) {
+              executeActionWithScope(
+                context,
+                scopeManager!,
+                action.onSuccess!,
+                event: EnsembleEvent(
+                  action.initiator!,
+                  data: linkSuccess,
+                ),
+              );
+            }
+          },
+          (linkEvent) {
+            if (action.onEvent != null) {
+              executeActionWithScope(
+                context,
+                scopeManager!,
+                action.onEvent!,
+                event: EnsembleEvent(
+                  action.initiator!,
+                  data: linkEvent,
+                ),
+              );
+            }
+          },
+          (linkExit) {
+            if (action.onExit != null) {
+              executeActionWithScope(
+                context,
+                scopeManager!,
+                action.onExit!,
+                event: EnsembleEvent(
+                  action.initiator!,
+                  data: linkExit,
+                ),
+              );
+            }
+          },
+        );
+      } else {
+        throw RuntimeError(
+            "openPlaidLink action requires the plaid's link_token.");
+      }
     } else if (action is ShowCameraAction) {
       GetIt.I<CameraManager>().openCamera(context, action, scopeManager);
     } else if (action is ShowDialogAction) {
@@ -505,6 +510,26 @@ class ScreenController {
       } on Exception catch (_) {
         if (action.onError != null) executeAction(context, action.onError!);
         throw LanguageError('Unable to create wallet connect session');
+      }
+    } else if (action is NotificationAction) {
+      notificationUtils.context = context;
+      notificationUtils.onRemoteNotification = action.onReceive;
+      notificationUtils.onRemoteNotificationOpened = action.onTap;
+    } else if (action is ShowNotificationAction) {
+      dataContext.addDataContext(Ensemble.externalDataContext);
+      notificationUtils.showNotification(
+        dataContext.eval(action.title),
+        dataContext.eval(action.body),
+      );
+    } else if (action is RequestNotificationAction) {
+      final isEnabled = await notificationUtils.initNotifications() ?? false;
+
+      if (isEnabled && action.onAccept != null) {
+        executeAction(context, action.onAccept!);
+      }
+
+      if (!isEnabled && action.onReject != null) {
+        executeAction(context, action.onReject!);
       }
     } else if (action is AuthorizeOAuthAction) {
       // TODO
@@ -801,7 +826,7 @@ class ScreenController {
   }
 
   void dispatchStorageChanges(BuildContext context, String key, dynamic value) {
-    ScopeManager? scopeManager = _getScopeManager(context);
+    ScopeManager? scopeManager = getScopeManager(context);
     if (scopeManager != null) {
       scopeManager.dispatch(ModelChangeEvent(StorageBindingSource(key), value));
     }
@@ -810,7 +835,7 @@ class ScreenController {
   void dispatchSystemStorageChanges(
       BuildContext context, String key, dynamic value,
       {required String storagePrefix}) {
-    _getScopeManager(context)?.dispatch(ModelChangeEvent(
+    getScopeManager(context)?.dispatch(ModelChangeEvent(
         SystemStorageBindingSource(key, storagePrefix: storagePrefix), value));
   }
 
