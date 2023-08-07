@@ -22,7 +22,7 @@ class TokenManagerStub implements TokenManager {
 }
 
 class OAuthServiceToken {
-  OAuthServiceToken({required this.accessToken, this.refreshToken});
-  String accessToken;
+  OAuthServiceToken({this.accessToken, this.refreshToken});
+  String? accessToken;
   String? refreshToken;
 }

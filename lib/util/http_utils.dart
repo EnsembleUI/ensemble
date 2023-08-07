@@ -40,7 +40,7 @@ class HttpUtils {
 
     // this is the Bearer token. TODO: consolidate with the above
     OAuthService? serviceName =
-    OAuthService.values.from(api['authorization']?['serviceId']);
+        OAuthService.values.from(api['authorization']?['serviceId']);
     if (serviceName != null) {
       OAuthServiceToken? token =
           await GetIt.instance<TokenManager>().getServiceTokens(serviceName);
