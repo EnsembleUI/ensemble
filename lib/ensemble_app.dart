@@ -6,19 +6,19 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/widget/error_screen.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/page_model.dart';
-import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:workmanager/workmanager.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 const String backgroundUploadTask = 'backgroundUploadTask';
 
@@ -98,9 +98,7 @@ class EnsembleAppState extends State<EnsembleApp> {
   /// initialize our App with the the passed in config or
   /// read from our ensemble-config file.
   Future<EnsembleConfig> initApp() async {
-    try {
-      await dotenv.load();
-    } catch (_) {}
+    await SecretsStore().initialize();
     Device().initDeviceInfo();
 
     await StorageManager().init();
@@ -131,8 +129,6 @@ class EnsembleAppState extends State<EnsembleApp> {
     if (!kIsWeb) {
       Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
     }
-
-    notificationUtils.initNotifications();
   }
 
   @override

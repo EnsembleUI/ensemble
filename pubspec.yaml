@@ -18,7 +18,8 @@ description: Ensemble Runtime
 version: 1.0.0+5
 
 environment:
-  sdk: ">=2.17.0 <=3.10.0"
+  sdk: ">=3.0.6 <4.0.0"
+  flutter: ">=1.17.0"
 
 dependencies:
   flutter:
@@ -52,8 +53,9 @@ dependencies:
   event_bus: ^2.0.0
   flutter_layout_grid: ^2.0.3
   email_validator: ^2.0.1
+  mask_text_input_formatter: ^2.5.0
   form_validator: ^2.1.1
-  flutter_svg: ^2.0.5
+  flutter_svg: ^2.0.7
   qr_flutter: ^4.1.0
   device_info_plus: ^9.0.0
   flutter_map: ^2.2.0

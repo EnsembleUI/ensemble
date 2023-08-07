@@ -1,11 +1,13 @@
 import 'dart:async';
+import 'dart:developer';
 
 import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/ensemble_provider.dart';
-import 'package:ensemble/ensemble_theme.dart';
+import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/stub/oauth_controller.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/provider.dart';
@@ -17,6 +19,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_i18n/flutter_i18n_delegate.dart';
 import 'package:yaml/yaml.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'html_shim.dart' if (dart.library.html) 'dart:html' show window;
 
 import 'framework/theme/theme_loader.dart';
 import 'layout/ensemble_page_route.dart';
@@ -28,6 +31,9 @@ class Ensemble {
   factory Ensemble() {
     return _instance;
   }
+
+  late FirebaseApp ensembleFirebaseApp;
+  static final Map<String, dynamic> externalDataContext = {};
 
   void notifyAppBundleChanges() {
     _config?.updateAppBundle();
@@ -46,6 +52,10 @@ class Ensemble {
   /// For integrating with existing Flutter apps, this function can
   /// be called to pre-initialize for faster loading of Ensemble app later.
   Future<EnsembleConfig> initialize() async {
+    if (kIsWeb) {
+      log("Server: ${window.location.protocol}//${window.location.host}${window.location.pathname}");
+    }
+
     // only initialize once
     if (_config != null) {
       return Future<EnsembleConfig>.value(_config);
@@ -59,7 +69,9 @@ class Ensemble {
     if (yamlMap['definitions']?['from'] == 'ensemble') {
       // These are not secrets so OK to include here.
       // https://firebase.google.com/docs/projects/api-keys#api-keys-for-firebase-are-different
-      await Firebase.initializeApp(
+      ensembleFirebaseApp = await Firebase.initializeApp(
+          // Firebase.apps will throw exception on Web if initializeApp has not been called before
+          // name: Firebase.apps.isNotEmpty ? 'ensemble' : null,
           options: const FirebaseOptions(
               apiKey: 'AIzaSyBAZ7wf436RSbcXvhhfg7e4TUh6A2SKve8',
               appId: '1:326748243798:ios:30f2a4f824dc58ea94b8f7',
@@ -79,9 +91,7 @@ class Ensemble {
     _config = EnsembleConfig(
         definitionProvider: definitionProvider,
         appBundle: await definitionProvider.getAppBundle(),
-        account: Account(
-            mapAccessToken: yamlMap['accounts']?['maps']
-                ?['mapbox_access_token']),
+        account: Account.fromYaml(yamlMap['accounts']),
         services: Services.fromYaml(yamlMap['services']),
         signInServices: SignInServices.fromYaml(yamlMap['services']),
         envOverrides: envOverrides);
@@ -243,6 +253,7 @@ class Ensemble {
 
   // TODO: rework the concept of root scope
   RootScope? _rootScope;
+
   RootScope rootScope() {
     _rootScope ??= RootScope();
     return _rootScope!;
@@ -263,6 +274,7 @@ class EnsembleConfig {
       this.signInServices,
       this.envOverrides,
       this.appBundle});
+
   final DefinitionProvider definitionProvider;
   Account? account;
   Services? services;
@@ -303,6 +315,7 @@ class I18nProps {
   String fallbackLocale;
   bool useCountryCode;
   late String path;
+
   I18nProps(this.defaultLocale, this.fallbackLocale, this.useCountryCode);
 }
 
@@ -315,65 +328,154 @@ class AppBundle {
 
 /// store the App's account info (e.g. access token for maps)
 class Account {
-  Account({this.mapAccessToken});
+  Account({this.firebaseConfig, this.mapAccessToken});
+  FirebaseConfig? firebaseConfig;
+
+  // legacy Mapbox key
   String? mapAccessToken;
+
+  factory Account.fromYaml(dynamic input) {
+    FirebaseConfig? firebaseConfig;
+    String? mapAccessToken;
+
+    if (input != null && input is Map) {
+      firebaseConfig = FirebaseConfig.fromYaml(input['firebase']);
+      mapAccessToken =
+          Utils.optionalString(input['maps']?['mapbox_access_token']);
+    }
+    return Account(
+        firebaseConfig: firebaseConfig, mapAccessToken: mapAccessToken);
+  }
+}
+
+class FirebaseConfig {
+  FirebaseConfig._({this.iOSConfig, this.androidConfig, this.webConfig});
+  FirebaseOptions? iOSConfig;
+  FirebaseOptions? androidConfig;
+  FirebaseOptions? webConfig;
+
+  factory FirebaseConfig.fromYaml(dynamic input) {
+    FirebaseOptions? iOSConfig;
+    FirebaseOptions? androidConfig;
+    FirebaseOptions? webConfig;
+
+    try {
+      if (input is Map) {
+        if (input['iOS'] != null) {
+          iOSConfig = _getPlatformConfig(input['iOS']);
+        }
+        if (input['android'] != null) {
+          androidConfig = _getPlatformConfig(input['android']);
+        }
+        if (input['web'] != null) {
+          webConfig = _getPlatformConfig(input['web']);
+        }
+      }
+      return FirebaseConfig._(
+          iOSConfig: iOSConfig,
+          androidConfig: androidConfig,
+          webConfig: webConfig);
+    } catch (error) {
+      throw ConfigError(
+          'Invalid Firebase configuration. Please double check your ensemble-config.yaml');
+    }
+  }
+
+  static FirebaseOptions _getPlatformConfig(dynamic entry) {
+    return FirebaseOptions(
+        apiKey: entry['apiKey'],
+        appId: entry['appId'],
+        messagingSenderId: entry['messagingSenderId'].toString(),
+        projectId: entry['projectId']);
+  }
 }
 
 /// for social sign-in and API authorization via OAuth2
 class Services {
-  Services._({this.tokenExchangeServer, this.apiCredentials});
-  String? tokenExchangeServer;
-  Map<ServiceName, APICredential>? apiCredentials;
+  Services._({this.oauthCredentials});
+  Map<OAuthService, ServiceCredential>? oauthCredentials;
 
   factory Services.fromYaml(dynamic input) {
-    String? tokenExchangeServer;
-    Map<ServiceName, APICredential>? credentials;
-    if (input is YamlMap && input['apiAuthorization'] is YamlMap) {
-      tokenExchangeServer = input['apiAuthorization']['tokenExchangeServer'];
-      if (input['apiAuthorization']['providers'] is YamlMap) {
-        (input['apiAuthorization']['providers'] as YamlMap)
-            .forEach((key, value) {
-          var redirectKey = ServiceName.values.from(key);
-          if (redirectKey != null &&
-              value is YamlMap &&
-              value['clientId'] is String &&
-              value['redirectUri'] is String) {
-            var redirectValue = APICredential(
-                clientId: value['clientId'],
-                redirectUri: value['redirectUri'],
-                redirectScheme: value['redirectScheme']);
-            (credentials ??= <ServiceName, APICredential>{})[redirectKey] =
-                redirectValue;
-          }
-        });
-      }
+    Map<OAuthService, ServiceCredential>? credentials;
+    if (input is YamlMap && input['oauth'] is YamlMap) {
+      (input['oauth'] as YamlMap).forEach((key, value) {
+        var serviceName = OAuthService.values.from(key);
+        if (serviceName != null && value is YamlMap) {
+          (credentials ??= {})[serviceName] = ServiceCredential.fromYaml(value);
+        }
+      });
     }
-    return Services._(
-        tokenExchangeServer: tokenExchangeServer, apiCredentials: credentials);
+    return Services._(oauthCredentials: credentials);
   }
+
+  ServiceCredential? getServiceCredential(OAuthService service) =>
+      oauthCredentials?[service];
 }
 
-class APICredential {
-  APICredential(
-      {required this.clientId, required this.redirectUri, this.redirectScheme});
-  String clientId;
-  String redirectUri;
-  String? redirectScheme;
+class ServiceCredential {
+  ServiceCredential._({this.config, this.credentialMap});
+  Map<String, dynamic>? config;
+  Map<DevicePlatform, OAuthCredential>? credentialMap;
+
+  factory ServiceCredential.fromYaml(YamlMap input) {
+    Map<String, dynamic>? config;
+    Map<DevicePlatform, OAuthCredential>? credentialMap;
+    input.forEach((key, value) {
+      // get the config
+      if (key == 'config') {
+        if (value is YamlMap) {
+          (config ??= {}).addAll({...value});
+        }
+      }
+      // intercept Web type to automatically inject the redirectURI in
+      else if (key == 'web') {
+        if (kIsWeb && value is YamlMap && value['clientId'] is String) {
+          var browserUri =
+              '${window.location.protocol}//${window.location.host}${window.location.pathname}';
+          if (!browserUri.endsWith('/')) {
+            browserUri += '/';
+          }
+          (credentialMap ??= {})[DevicePlatform.web] = OAuthCredential(
+              clientId: value['clientId'],
+              redirectUri: '${browserUri}oauth.html');
+        }
+      }
+      // get credential map
+      else {
+        var platform = DevicePlatform.values.from(key);
+        if (platform != null &&
+            value is YamlMap &&
+            value['clientId'] is String &&
+            value['redirectUri'] is String) {
+          (credentialMap ??= {})[platform] = OAuthCredential(
+              clientId: value['clientId'], redirectUri: value['redirectUri']);
+        }
+      }
+    });
+    return ServiceCredential._(config: config, credentialMap: credentialMap);
+  }
+
+  /// return the credential for the current platform
+  OAuthCredential? get platformCredential {
+    DevicePlatform? platform = Device().platform;
+    return platform != null ? (credentialMap?[platform]) : null;
+  }
 }
 
 class SignInServices {
   SignInServices._({this.serverUri, this.signInCredentials});
+
   String? serverUri;
-  Map<ServiceName, SignInCredential>? signInCredentials;
+  Map<OAuthService, SignInCredential>? signInCredentials;
 
   factory SignInServices.fromYaml(dynamic input) {
     String? serverUri;
-    Map<ServiceName, SignInCredential>? credentials;
+    Map<OAuthService, SignInCredential>? credentials;
     if (input is YamlMap && input['signIn'] is YamlMap) {
       serverUri = input['signIn']['serverUri'];
       if (input['signIn']['providers'] is YamlMap) {
         (input['signIn']['providers'] as YamlMap).forEach((key, value) {
-          var provider = ServiceName.values.from(key);
+          var provider = OAuthService.values.from(key);
           if (provider != null && value is Map) {
             (credentials ??= {})[provider] = SignInCredential(
                 iOSClientId: value['iOSClientId'],
@@ -395,13 +497,12 @@ class SignInCredential {
       this.androidClientId,
       this.webClientId,
       this.serverClientId});
+
   String? iOSClientId;
   String? androidClientId;
   String? webClientId;
   String? serverClientId;
 }
-
-enum ServiceName { system, google, apple, microsoft, yahoo }
 
 /// user configuration for the App
 class UserAppConfig {

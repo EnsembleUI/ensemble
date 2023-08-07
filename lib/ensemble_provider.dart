@@ -6,6 +6,7 @@ import 'package:ensemble/framework/i18n_loader.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:yaml/yaml.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ensemble/provider.dart';
@@ -32,7 +33,8 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
 
   static void getAppDefinition(
       String appId, Function callback, Function onError) {
-    FirebaseFirestore db = FirebaseFirestore.instance;
+    final app = Ensemble().ensembleFirebaseApp!;
+    FirebaseFirestore db = FirebaseFirestore.instanceFor(app: app);
     db.collection('apps').doc(appId).get().then(
         (doc) => callback(doc.id, doc.data()),
         onError: (error) => onError(error));
@@ -77,6 +79,11 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
   UserAppConfig? getAppConfig() {
     return appModel.appConfig;
   }
+
+  @override
+  Map<String, String> getSecrets() {
+    return appModel.secrets ?? {};
+  }
 }
 
 class InvalidDefinition {}
@@ -95,6 +102,7 @@ class AppModel {
   String? homeMapping;
   String? themeMapping;
   UserAppConfig? appConfig;
+  Map<String, String>? secrets;
 
   // storing the resource cache from imported apps
   Map<String, dynamic> importCache = {};
@@ -103,7 +111,8 @@ class AppModel {
   /// Plus listen for changes and update the cache
   String? listenerError;
   void initListeners() {
-    FirebaseFirestore db = FirebaseFirestore.instance;
+    final app = Ensemble().ensembleFirebaseApp!;
+    FirebaseFirestore db = FirebaseFirestore.instanceFor(app: app);
     db
         .collection('apps')
         .doc(appId)
@@ -130,7 +139,9 @@ class AppModel {
 
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>
       initWidgetArtifactListeners(String appId) {
-    return FirebaseFirestore.instance
+    final app = Ensemble().ensembleFirebaseApp!;
+
+    return FirebaseFirestore.instanceFor(app: app)
         .collection('apps')
         .doc(appId)
         .collection('artifacts')
@@ -166,6 +177,12 @@ class AppModel {
             baseUrl: doc.data()?['appBaseUrl'],
             useBrowserUrl: Utils.optionalBool(doc.data()?['appUseBrowserUrl']),
             envVariables: envVariables);
+      } else if (doc.data()?['type'] == ArtifactType.secrets.name) {
+        dynamic rawSecrets = doc.data()!['secrets'];
+        if (rawSecrets is Map) {
+          secrets = {};
+          rawSecrets.forEach((key, value) => secrets![key] = value);
+        }
       }
 
       // mark the app bundle as dirty
@@ -274,7 +291,8 @@ class AppModel {
   }
 
   CollectionReference<Map<String, dynamic>> _getArtifacts() {
-    FirebaseFirestore db = FirebaseFirestore.instance;
+    final app = Ensemble().ensembleFirebaseApp!;
+    FirebaseFirestore db = FirebaseFirestore.instanceFor(app: app);
     return db.collection('apps').doc(appId).collection('artifacts');
   }
 

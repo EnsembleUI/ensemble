@@ -211,51 +211,35 @@ class ShowBottomModalAction extends EnsembleAction {
   }
 }
 
-class CropImageAction extends EnsembleAction {
-  CropImageAction({
-    required this.id,
+class PlaidLinkAction extends EnsembleAction {
+  PlaidLinkAction({
     super.initiator,
-    super.inputs,
-    this.source,
-    this.onComplete,
-    this.onError,
-    options,
-  }) : _options = options;
+    required this.linkToken,
+    this.onSuccess,
+    this.onEvent,
+    this.onExit,
+  });
 
-  final String id;
-  final String? source;
-  final dynamic _options;
-  EnsembleAction? onComplete;
-  EnsembleAction? onError;
+  final String linkToken;
+  final EnsembleAction? onSuccess;
+  final EnsembleAction? onEvent;
+  final EnsembleAction? onExit;
 
-  String? imageSrc(dataContext) =>
-      Utils.optionalString(dataContext.eval(source));
+  String getLinkToken(dataContext) =>
+      Utils.getString(dataContext.eval(linkToken), fallback: '');
 
-  String? format(dataContext) =>
-      Utils.optionalString(dataContext.eval(_options?['format']));
-
-  String? title(dataContext) =>
-      Utils.optionalString(dataContext.eval(_options?['title']));
-
-  int quality(dataContext) =>
-      Utils.getInt(dataContext.eval(_options?['quality']), fallback: 100);
-
-  factory CropImageAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
-    if (payload == null || payload['id'] == null) {
-      throw LanguageError("${ActionType.cropImage.name} requires id.");
-    } else if (payload['source'] == null) {
+  factory PlaidLinkAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
+    if (payload == null || payload['linkToken'] == null) {
       throw LanguageError(
-          "${ActionType.cropImage.name} requires the source to crop the image.");
+          "${ActionType.openPlaidLink.name} action requires the plaid's link_token");
     }
 
-    return CropImageAction(
+    return PlaidLinkAction(
       initiator: initiator,
-      id: Utils.getString(payload['id'], fallback: ''),
-      inputs: Utils.getMap(payload['inputs']),
-      source: payload['source'],
-      options: Utils.getMap(payload['options']),
-      onComplete: EnsembleAction.fromYaml(payload['onComplete']),
-      onError: EnsembleAction.fromYaml(payload['onError']),
+      linkToken: payload['linkToken'],
+      onSuccess: EnsembleAction.fromYaml(payload['onSuccess']),
+      onEvent: EnsembleAction.fromYaml(payload['onEvent']),
+      onExit: EnsembleAction.fromYaml(payload['onExit']),
     );
   }
 }
@@ -617,6 +601,50 @@ class AuthorizeOAuthAction extends EnsembleAction {
   }
 }
 
+class NotificationAction extends EnsembleAction {
+  NotificationAction({this.onTap, this.onReceive});
+
+  EnsembleAction? onTap;
+  EnsembleAction? onReceive;
+
+  factory NotificationAction.fromYaml(
+      {Invokable? initiator, YamlMap? payload}) {
+    return NotificationAction(
+      onTap: EnsembleAction.fromYaml(payload?['onTap']),
+      onReceive: EnsembleAction.fromYaml(payload?['onReceive']),
+    );
+  }
+}
+
+class RequestNotificationAction extends EnsembleAction {
+  EnsembleAction? onAccept;
+  EnsembleAction? onReject;
+
+  RequestNotificationAction({this.onAccept, this.onReject});
+
+  factory RequestNotificationAction.fromYaml(
+      {Invokable? initiator, YamlMap? payload}) {
+    return RequestNotificationAction(
+      onAccept: EnsembleAction.fromYaml(payload?['onAccept']),
+      onReject: EnsembleAction.fromYaml(payload?['onReject']),
+    );
+  }
+}
+
+class ShowNotificationAction extends EnsembleAction {
+  late String title;
+  late String body;
+
+  ShowNotificationAction({this.title = '', this.body = ''});
+
+  factory ShowNotificationAction.fromYaml({YamlMap? payload}) {
+    return ShowNotificationAction(
+      title: Utils.getString(payload?['title'], fallback: ''),
+      body: Utils.getString(payload?['body'], fallback: ''),
+    );
+  }
+}
+
 enum ActionType {
   invokeAPI,
   navigateScreen,
@@ -633,11 +661,14 @@ enum ActionType {
   openCamera,
   uploadFiles,
   navigateBack,
-  cropImage,
   pickFiles,
   connectWallet,
   authorizeOAuthService,
+  notification,
+  requestNotificationAccess,
+  showNotification,
   copyToClipboard,
+  openPlaidLink,
 }
 
 enum ToastType { success, error, warning, info }
@@ -688,8 +719,6 @@ abstract class EnsembleAction {
       return ShowBottomModalAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.invokeAPI) {
       return InvokeAPIAction.fromYaml(initiator: initiator, payload: payload);
-    } else if (actionType == ActionType.cropImage) {
-      return CropImageAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.openCamera) {
       return ShowCameraAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.showDialog) {
@@ -725,8 +754,16 @@ abstract class EnsembleAction {
       return WalletConnectAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.authorizeOAuthService) {
       return AuthorizeOAuthAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.notification) {
+      return NotificationAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.showNotification) {
+      return ShowNotificationAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.requestNotificationAccess) {
+      return RequestNotificationAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.copyToClipboard) {
       return CopyToClipboardAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.openPlaidLink) {
+      return PlaidLinkAction.fromYaml(initiator: initiator, payload: payload);
     }
     throw LanguageError("Invalid action.",
         recovery: "Make sure to use one of Ensemble-provided actions.");
