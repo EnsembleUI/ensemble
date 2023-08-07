@@ -34,7 +34,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:image_cropper/image_cropper.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:walletconnect_dart/walletconnect_dart.dart';
@@ -182,55 +181,55 @@ class ScreenController {
         );
       }
     } else if (action is CropImageAction) {
-      final imageSrc = action.imageSrc(dataContext);
-      if (scopeManager != null && imageSrc != null) {
-        final format = action.format(dataContext);
-        final compressFormat = format != null && format == 'jpg'
-            ? ImageCompressFormat.jpg
-            : ImageCompressFormat.png;
+      // final imageSrc = action.imageSrc(dataContext);
+      // if (scopeManager != null && imageSrc != null) {
+      //   final format = action.format(dataContext);
+      //   final compressFormat = format != null && format == 'jpg'
+      //       ? ImageCompressFormat.jpg
+      //       : ImageCompressFormat.png;
 
-        ImageCropper().cropImage(
-          sourcePath: imageSrc,
-          compressFormat: compressFormat,
-          compressQuality: action.quality(dataContext),
-          uiSettings: [
-            AndroidUiSettings(
-              toolbarTitle: action.title(dataContext),
-              toolbarColor: Colors.deepOrange,
-              toolbarWidgetColor: Colors.white,
-              initAspectRatio: CropAspectRatioPreset.original,
-              lockAspectRatio: false,
-            ),
-            IOSUiSettings(
-              title: action.title(dataContext),
-            ),
-          ],
-        ).then((croppedFile) async {
-          if (croppedFile == null) {
-            if (action.onError != null) executeAction(context, action.onError!);
-            return;
-          }
-          final fileName = croppedFile.path.split('/').last;
-          final fileExtension = ".${fileName.split('.').last}";
-          final bytes = await croppedFile.readAsBytes();
-          final file = File.fromCropImage({
-            'name': fileName,
-            'path': croppedFile.path,
-            'extension': fileExtension,
-            'size': 0,
-            'bytes': bytes
-          });
+      //   ImageCropper().cropImage(
+      //     sourcePath: imageSrc,
+      //     compressFormat: compressFormat,
+      //     compressQuality: action.quality(dataContext),
+      //     uiSettings: [
+      //       AndroidUiSettings(
+      //         toolbarTitle: action.title(dataContext),
+      //         toolbarColor: Colors.deepOrange,
+      //         toolbarWidgetColor: Colors.white,
+      //         initAspectRatio: CropAspectRatioPreset.original,
+      //         lockAspectRatio: false,
+      //       ),
+      //       IOSUiSettings(
+      //         title: action.title(dataContext),
+      //       ),
+      //     ],
+      //   ).then((croppedFile) async {
+      //     if (croppedFile == null) {
+      //       if (action.onError != null) executeAction(context, action.onError!);
+      //       return;
+      //     }
+      //     final fileName = croppedFile.path.split('/').last;
+      //     final fileExtension = ".${fileName.split('.').last}";
+      //     final bytes = await croppedFile.readAsBytes();
+      //     final file = File.fromCropImage({
+      //       'name': fileName,
+      //       'path': croppedFile.path,
+      //       'extension': fileExtension,
+      //       'size': 0,
+      //       'bytes': bytes
+      //     });
 
-          final croppedFileData = CroppedFileData(file: file);
-          scopeManager.dataContext
-              .addDataContextById(action.id, croppedFileData);
-          scopeManager.dispatch(ModelChangeEvent(
-              SimpleBindingSource(action.id), croppedFileData));
-          if (action.onComplete != null) {
-            executeAction(context, action.onComplete!);
-          }
-        });
-      }
+      //     final croppedFileData = CroppedFileData(file: file);
+      //     scopeManager.dataContext
+      //         .addDataContextById(action.id, croppedFileData);
+      //     scopeManager.dispatch(ModelChangeEvent(
+      //         SimpleBindingSource(action.id), croppedFileData));
+      //     if (action.onComplete != null) {
+      //       executeAction(context, action.onComplete!);
+      //     }
+      //   });
+      // }
     } else if (action is ShowCameraAction) {
       GetIt.I<CameraManager>().openCamera(context, action, scopeManager);
     } else if (action is ShowDialogAction) {

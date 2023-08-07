@@ -60,8 +60,8 @@ class EnsembleImageCropper extends StatefulWidget
       'maskColor': (value) => _controller.maskColor = Utils.getColor(value),
       'cornerRadius': (value) =>
           _controller.cornerRadius = Utils.getDouble(value, fallback: 20),
-      'onCropTap': (value) =>
-          _controller.onCropTap = Utils.getBool(value, fallback: true),
+      'cropOnTap': (value) =>
+          _controller.cropOnTap = Utils.getBool(value, fallback: true),
       'onCropped': (funcDefinition) => _controller.onCropped =
           EnsembleAction.fromYaml(funcDefinition, initiator: this)
     };
@@ -74,7 +74,7 @@ class EnsembleImageCropperController extends BoxController {
   Color? placeholderColor;
   Color? maskColor;
   double? cornerRadius;
-  bool? onCropTap;
+  bool? cropOnTap;
   EnsembleAction? onCropped;
   EnsembleAction? onStatusChanged;
   CropController cropController = CropController();
