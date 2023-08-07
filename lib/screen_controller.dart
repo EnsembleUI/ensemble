@@ -239,13 +239,16 @@ class ScreenController {
     } else if (action is PhoneContactAction) {
       GetIt.I<ContactManager>().getPhoneContacts((contacts) {
         if (action.getOnSuccess(dataContext) != null) {
+          final contactsData =
+              contacts.map((contact) => contact.toJson()).toList();
+
           executeActionWithScope(
             context,
             scopeManager!,
             action.getOnSuccess(dataContext)!,
             event: EnsembleEvent(
               action.initiator!,
-              data: {'contacts': contacts},
+              data: {'contacts': contactsData},
             ),
           );
         }
@@ -255,9 +258,7 @@ class ScreenController {
             context,
             scopeManager!,
             action.getOnError(dataContext)!,
-            event: EnsembleEvent(
-              action.initiator!,
-            ),
+            event: EnsembleEvent(action.initiator!, data: {'error': error}),
           );
         }
       });
