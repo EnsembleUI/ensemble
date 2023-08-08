@@ -891,6 +891,24 @@
                   "rounded"
                 ]
               },
+              "inputType": {
+                "type": "string",
+                "description": "Pick a predefined input type",
+                "enum": [
+                  "default",
+                  "email",
+                  "phone",
+                  "ipAddress",
+                  "number",
+                  "text",
+                  "url",
+                  "datetime"
+                ]
+              },
+              "autoComplete": {
+                "type": "boolean",
+                "description": "If it is True, then it will trigger onComplete when the user specified length and has typed the full length, False will trigger onComplete when the user hit Enter. Defaults (True)"
+              },
               "enableCursor": {
                 "type": "boolean",
                 "description": "If the button is inside a Form and upon on tap, it will execute the form's onSubmit action if this property is TRUE"
