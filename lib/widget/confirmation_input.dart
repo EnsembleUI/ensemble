@@ -4,6 +4,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart' as framework;
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
+import 'package:ensemble/widget/input/form_textfield.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:otp_pin_field/otp_pin_field.dart';
@@ -31,9 +32,13 @@ class ConfirmationInput extends StatefulWidget
     return {
       'fieldType': (input) =>
           _controller.fieldType = Utils.optionalString(input),
+      'inputType': (type) => _controller.inputType = Utils.optionalString(type),
+      'autoComplete': (newValue) =>
+          _controller.autoComplete = Utils.getBool(newValue, fallback: true),
       'enableCursor': (newValue) =>
           _controller.enableCursor = Utils.getBool(newValue, fallback: true),
-      'length': (newValue) => _controller.length = Utils.optionalInt(newValue),
+      'length': (newValue) =>
+          _controller.length = Utils.getInt(newValue, fallback: 4),
       'textStyle': (style) => _controller.textStyle =
           Utils.getTextStyleAsComposite(_controller, style: style),
       'defaultFieldBorderColor': (newValue) =>
@@ -52,7 +57,7 @@ class ConfirmationInput extends StatefulWidget
           _controller.cursorColor = Utils.getColor(newValue),
       'onChange': (funcDefinition) => _controller.onChange =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
-      'onSubmit': (funcDefinition) => _controller.onSubmit =
+      'onComplete': (funcDefinition) => _controller.onComplete =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
     };
   }
@@ -64,13 +69,33 @@ class ConfirmationInput extends StatefulWidget
 
   @override
   ConfirmationInputState createState() => ConfirmationInputState();
+
+  TextInputType get keyboardType {
+    // set the best keyboard type based on the input type
+    if (_controller.inputType == InputType.email.name) {
+      return TextInputType.emailAddress;
+    } else if (_controller.inputType == InputType.phone.name) {
+      return TextInputType.phone;
+    } else if (_controller.inputType == InputType.number.name) {
+      return TextInputType.number;
+    } else if (_controller.inputType == InputType.text.name) {
+      return TextInputType.text;
+    } else if (_controller.inputType == InputType.url.name) {
+      return TextInputType.url;
+    } else if (_controller.inputType == InputType.datetime.name) {
+      return TextInputType.datetime;
+    }
+    return TextInputType.number;
+  }
 }
 
 class ConfirmationInputController extends BoxController {
   String? text;
-  int? length;
+  late int length;
+  bool? autoComplete;
   bool? enableCursor;
   String? fieldType;
+  String? inputType;
   Color? defaultFieldBorderColor;
   Color? activeFieldBorderColor;
   Color? defaultFieldBackgroundColor;
@@ -79,7 +104,7 @@ class ConfirmationInputController extends BoxController {
   Color? filledFieldBorderColor;
   Color? cursorColor;
   EnsembleAction? onChange;
-  EnsembleAction? onSubmit;
+  EnsembleAction? onComplete;
 
   TextStyleComposite? _textStyle;
   TextStyleComposite get textStyle => _textStyle ??= TextStyleComposite(this);
@@ -112,12 +137,14 @@ class ConfirmationInputState extends framework.WidgetState<ConfirmationInput> {
         filledFieldBorderColor:
             controller.filledFieldBorderColor ?? Colors.transparent,
       ),
-      maxLength: controller.length ?? 4,
+      maxLength: controller.length,
+      keyboardType: widget.keyboardType,
       otpPinFieldDecoration: controller.fieldType?.otpPinField ??
           OtpPinFieldDecoration.defaultPinBoxDecoration,
       cursorColor: controller.cursorColor,
+      autoComplete: controller.autoComplete ?? true,
       onChange: _onChange,
-      onSubmit: _onSubmit,
+      onSubmit: _onComplete,
     );
   }
 
@@ -128,10 +155,10 @@ class ConfirmationInputState extends framework.WidgetState<ConfirmationInput> {
     }
   }
 
-  void _onSubmit(String text) {
+  void _onComplete(String text) {
     widget._controller.text = text;
-    if (widget._controller.onSubmit != null) {
-      ScreenController().executeAction(context, widget._controller.onSubmit!);
+    if (widget._controller.onComplete != null) {
+      ScreenController().executeAction(context, widget._controller.onComplete!);
     }
   }
 }
