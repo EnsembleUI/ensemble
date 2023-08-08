@@ -30,7 +30,8 @@ abstract class DefinitionProvider {
   final I18nProps i18nProps;
   bool cacheEnabled = false;
   DefinitionProvider(this.i18nProps, {this.cacheEnabled = false});
-  Future<ScreenDefinition> getDefinition({String? screenId, String? screenName});
+  Future<ScreenDefinition> getDefinition(
+      {String? screenId, String? screenName});
   FlutterI18nDelegate getI18NDelegate();
 
   // get the home screen + the App Bundle (theme, translation, custom assets, ...)
@@ -66,7 +67,8 @@ class LocalDefinitionProvider extends DefinitionProvider {
   }
 
   @override
-  Future<ScreenDefinition> getDefinition({String? screenId, String? screenName}) async {
+  Future<ScreenDefinition> getDefinition(
+      {String? screenId, String? screenName}) async {
     // Note: Web with local definition caches even if we disable browser cache
     // so you may need to re-run the app on definition changes
     var pageStr = await rootBundle.loadString(
@@ -130,7 +132,8 @@ class RemoteDefinitionProvider extends DefinitionProvider {
   }
 
   @override
-  Future<ScreenDefinition> getDefinition({String? screenId, String? screenName}) async {
+  Future<ScreenDefinition> getDefinition(
+      {String? screenId, String? screenName}) async {
     String screen = screenId ?? screenName ?? appHome;
 
     Completer<ScreenDefinition> completer = Completer();
@@ -206,7 +209,8 @@ class LegacyDefinitionProvider extends DefinitionProvider {
   }
 
   @override
-  Future<ScreenDefinition> getDefinition({String? screenId, String? screenName}) async {
+  Future<ScreenDefinition> getDefinition(
+      {String? screenId, String? screenName}) async {
     String params = 'ast=false&expression_to_ast=false';
     if (screenId != null) {
       params += '&id=$screenId';

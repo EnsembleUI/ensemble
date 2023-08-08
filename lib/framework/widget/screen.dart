@@ -60,8 +60,9 @@ class _ScreenState extends State<Screen> {
   }
 
   Widget renderScreen(ScreenDefinition screenDefinition) {
-    PageModel pageModel = screenDefinition.getModel(widget.screenPayload?.arguments);
-    
+    PageModel pageModel =
+        screenDefinition.getModel(widget.screenPayload?.arguments);
+
     // build the data context
     DataContext dataContext = DataContext(
         buildContext: context, initialMap: widget.screenPayload?.arguments);
@@ -99,7 +100,6 @@ class _ScreenState extends State<Screen> {
   }
 }
 
-
 class ScreenDefinition {
   ScreenDefinition(this._content);
   final YamlMap _content;
@@ -115,26 +115,26 @@ class ScreenDefinition {
   }
 
   /// wrap a widget so it can be displayed as if it's an actual Screen
-  YamlMap _getWidgetAsScreen(YamlMap widgetContent, Map<String, dynamic>? inputParams) {
+  YamlMap _getWidgetAsScreen(
+      YamlMap widgetContent, Map<String, dynamic>? inputParams) {
     /// build the input map if specified
     Map<String, dynamic>? inputMap;
     if (widgetContent['inputs'] is List) {
-      for (var key in (widgetContent['inputs'] as List)) { 
+      for (var key in (widgetContent['inputs'] as List)) {
         if (inputParams != null && inputParams.containsKey(key)) {
           (inputMap ??= {})[key] = '\${$key}';
         }
-      }}
+      }
+    }
 
     // use random name so we don't accidentally collide with other names
     String randomWidgetName = "Widget${Random().nextInt(100)}";
 
     return YamlMap.wrap({
       'View': {
-        'styles': {
-          'useSafeArea': true
-        },
+        'styles': {'useSafeArea': true},
         'body': {
-          randomWidgetName: inputMap == null ? null : { 'inputs': inputMap }
+          randomWidgetName: inputMap == null ? null : {'inputs': inputMap}
         }
       },
       randomWidgetName: widgetContent
