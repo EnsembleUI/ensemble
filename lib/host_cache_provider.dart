@@ -48,7 +48,8 @@ class HostCachedEnsembleProvider extends EnsembleDefinitionProvider {
   }
 
   @override
-  Future<ScreenDefinition> getDefinition({String? screenId, String? screenName}) async {
+  Future<ScreenDefinition> getDefinition(
+      {String? screenId, String? screenName}) async {
     String? content;
 
     if (screenId != null) {
@@ -66,7 +67,7 @@ class HostCachedEnsembleProvider extends EnsembleDefinitionProvider {
       throw LanguageError(
           "Invalid screen content: ${screenId ?? screenName ?? 'Home'}");
     }
-    return  ScreenDefinition(loadYaml(content));
+    return ScreenDefinition(loadYaml(content));
   }
 
   _syncArtifactsToHostCache() {
