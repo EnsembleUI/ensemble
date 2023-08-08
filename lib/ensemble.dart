@@ -37,7 +37,6 @@ class Ensemble {
   late FirebaseApp ensembleFirebaseApp;
   static final Map<String, dynamic> externalDataContext = {};
 
-
   /// initialize all the singleton/managers. Note that this function can be
   /// called multiple times since it's being called inside a widget.
   /// The actual code block to initialize the managers is guaranteed to run
@@ -60,8 +59,6 @@ class Ensemble {
       _completer!.completeError(error);
     }
   }
-
-
 
   void notifyAppBundleChanges() {
     _config?.updateAppBundle();
