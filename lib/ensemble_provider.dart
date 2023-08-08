@@ -41,7 +41,8 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
   }
 
   @override
-  Future<ScreenDefinition> getDefinition({String? screenId, String? screenName}) async {
+  Future<ScreenDefinition> getDefinition(
+      {String? screenId, String? screenName}) async {
     YamlMap? content;
 
     // search by ID
