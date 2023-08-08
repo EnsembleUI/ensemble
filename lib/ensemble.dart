@@ -7,6 +7,8 @@ import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/secrets.dart';
+import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/stub/oauth_controller.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/page_model.dart';
@@ -35,6 +37,29 @@ class Ensemble {
   late FirebaseApp ensembleFirebaseApp;
   static final Map<String, dynamic> externalDataContext = {};
 
+  /// initialize all the singleton/managers. Note that this function can be
+  /// called multiple times since it's being called inside a widget.
+  /// The actual code block to initialize the managers is guaranteed to run
+  /// at most once.
+  Completer<void>? _completer;
+  Future<void> initManagers() async {
+    // if currently pending or completed, wait till it finishes and do nothing.
+    if (_completer != null) {
+      return _completer!.future;
+    }
+
+    _completer = Completer<void>();
+    try {
+      // this code block is guaranteed to run at most once
+      await StorageManager().init();
+      await SecretsStore().initialize();
+      Device().initDeviceInfo();
+      _completer!.complete();
+    } catch (error) {
+      _completer!.completeError(error);
+    }
+  }
+
   void notifyAppBundleChanges() {
     _config?.updateAppBundle();
   }
@@ -53,10 +78,8 @@ class Ensemble {
   /// be called to pre-initialize for faster loading of Ensemble app later.
   Future<EnsembleConfig> initialize() async {
     if (kIsWeb) {
-      log("Server: ${window.location.protocol}//${window.location.host}${window
-          .location.pathname}");
+      log("Server: ${window.location.protocol}//${window.location.host}${window.location.pathname}");
     }
-
 
     // only initialize once
     if (_config != null) {
@@ -424,7 +447,7 @@ class ServiceCredential {
     Map<DevicePlatform, OAuthCredential>? credentialMap;
     input.forEach((key, value) {
       // get the config
-      if (key == 'config') {  
+      if (key == 'config') {
         if (value is YamlMap) {
           (config ??= {}).addAll({...value});
         }
@@ -432,7 +455,8 @@ class ServiceCredential {
       // intercept Web type to automatically inject the redirectURI in
       else if (key == 'web') {
         if (kIsWeb && value is YamlMap && value['clientId'] is String) {
-          var browserUri = '${window.location.protocol}//${window.location.host}${window.location.pathname}';
+          var browserUri =
+              '${window.location.protocol}//${window.location.host}${window.location.pathname}';
           if (!browserUri.endsWith('/')) {
             browserUri += '/';
           }
@@ -442,13 +466,14 @@ class ServiceCredential {
         }
       }
       // get credential map
-      else {  
+      else {
         var platform = DevicePlatform.values.from(key);
-        if (platform != null && value is YamlMap &&
-            value['clientId'] is String && value['redirectUri'] is String) {
+        if (platform != null &&
+            value is YamlMap &&
+            value['clientId'] is String &&
+            value['redirectUri'] is String) {
           (credentialMap ??= {})[platform] = OAuthCredential(
-              clientId: value['clientId'],
-              redirectUri: value['redirectUri']);
+              clientId: value['clientId'], redirectUri: value['redirectUri']);
         }
       }
     });
@@ -461,8 +486,6 @@ class ServiceCredential {
     return platform != null ? (credentialMap?[platform]) : null;
   }
 }
-
-
 
 class SignInServices {
   SignInServices._({this.serverUri, this.signInCredentials});
@@ -505,7 +528,6 @@ class SignInCredential {
   String? webClientId;
   String? serverClientId;
 }
-
 
 /// user configuration for the App
 class UserAppConfig {

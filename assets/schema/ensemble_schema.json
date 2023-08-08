@@ -195,12 +195,10 @@
             }
           },
           "body": {
-            "type": {
-              "oneOf": [
-                { "type": "string" },
-                { "type": "object" }
-              ]
-            },
+            "oneOf": [
+              { "type": "string" },
+              { "type": "object" }
+            ],
             "description": "The request body to pass along with the URL",
             "additionalProperties": {
               "type": "string"
@@ -1043,9 +1041,6 @@
     },
     "SignInWithGoogle-payload": {
       "type": "object",
-      "required": [
-        "widget"
-      ],
       "allOf": [
         {
           "$ref": "#/$defs/SignIn-payload"
@@ -1140,23 +1135,40 @@
       "type": "object",
       "allOf": [
         {
-          "properties": {
-            "initialScopes": {
-              "type": "array",
-              "description": "A list of initial scopes to request permissions from the user"
-            },
-            "onAuthorized": {
-              "$ref": "#/$defs/Action-payload"
-            },
-            "onError": {
-              "$ref": "#/$defs/Action-payload"
-            },
-            "tokenExchangeAPI": {
-              "$ref": "#/$defs/InvokeAPI-payload"
-            }
-          }
+          "$ref": "#/$defs/Connect-payload"
         }
       ]
+    },
+    "ConnectWithMicrosoft-payload": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/Connect-payload"
+        }
+      ]
+    },
+    "Connect-payload": {
+      "type": "object",
+      "properties": {
+        "initialScopes": {
+          "type": "array",
+          "description": "A list of initial scopes to request user's permission."
+        },
+        "widget": {
+          "$ref": "#/$defs/Widget",
+          "description": "The widget to be rendered in place of the default button. Note that any tap event on this widget (if specified) will be ignored and automatically intercepted to trigger an OAuth Connect flow."
+        },
+        "tokenExchangeAPI": {
+          "$ref": "#/$defs/InvokeAPI-payload",
+          "description": "If the server needs access to the access/refresh token, the OAuth token exchange API can be specified. Please see Ensemble's documentation regarding the expected request/response format."
+        },
+        "onAuthorized": {
+          "$ref": "#/$defs/Action-payload"
+        },
+        "onError": {
+          "$ref": "#/$defs/Action-payload"
+        }
+      }
     },
     "Button-payload": {
       "type": "object",
@@ -3617,6 +3629,17 @@
           "properties": {
             "ConnectWithGoogle": {
               "$ref": "#/$defs/ConnectWithGoogle-payload"
+            }
+          }
+        },
+        {
+          "title": "ConnectWithMicrosoft",
+          "required": [
+            "ConnectWithMicrosoft"
+          ],
+          "properties": {
+            "ConnectWithMicrosoft": {
+              "$ref": "#/$defs/ConnectWithMicrosoft-payload"
             }
           }
         },
