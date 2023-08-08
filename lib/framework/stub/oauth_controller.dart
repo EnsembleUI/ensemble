@@ -29,13 +29,19 @@ enum OAuthService {
   microsoft,
   yahoo,
   auth0,
-  system    // to be deprecated
+  system // to be deprecated
 }
 
 class OAuthCredential {
-  OAuthCredential({required this.clientId, required this.redirectUri});
+  OAuthCredential({required this.clientId, required this.redirectUri}) {
+    if (!redirectUri.contains(':/')) {
+      throw ConfigError(
+          "Invalid redirect URI. Valid syntax should be 'scheme:/*' e.g. https://* or my.custom.scheme:/*");
+    }
+  }
 
   String clientId;
   String redirectUri;
-  String get redirectScheme => redirectUri.substring(0, redirectUri.indexOf(':/'));
+  String get redirectScheme =>
+      redirectUri.substring(0, redirectUri.indexOf(':/'));
 }
