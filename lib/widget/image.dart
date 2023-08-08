@@ -4,8 +4,6 @@ import 'dart:math';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/event.dart';
-import 'package:ensemble/framework/scope.dart';
-import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -94,15 +92,12 @@ class ImageState extends WidgetState<EnsembleImage> {
       return placeholder;
     }
 
-    ScopeManager? scopeManager = DataScopeWidget.getScope(context);
-    final imgSource = scopeManager?.dataContext.eval(source) ?? source;
-
     BoxFit? fit = WidgetUtils.getBoxFit(widget._controller.fit);
     Widget image;
     if (isSvg()) {
-      image = buildSvgImage(imgSource, fit);
+      image = buildSvgImage(source, fit);
     } else {
-      image = buildNonSvgImage(imgSource, fit);
+      image = buildNonSvgImage(source, fit);
     }
 
     Widget rtn = BoxWrapper(
@@ -149,14 +144,14 @@ class ImageState extends WidgetState<EnsembleImage> {
           cacheManager: EnsembleImageCacheManager.instance,
           errorWidget: (context, error, stacktrace) => errorFallback(),
           placeholder: (context, url) => placeholder);
-    } else if (Utils.isMemoryPath(source)) {
+    } else if (Utils.isMemoryPath(widget._controller.source)) {
       return kIsWeb
-          ? Image.network(source,
+          ? Image.network(widget._controller.source,
               width: widget._controller.width?.toDouble(),
               height: widget._controller.height?.toDouble(),
               fit: fit,
               errorBuilder: (context, error, stacktrace) => errorFallback())
-          : Image.file(File(source),
+          : Image.file(File(widget._controller.source),
               width: widget._controller.width?.toDouble(),
               height: widget._controller.height?.toDouble(),
               fit: fit,
@@ -165,7 +160,7 @@ class ImageState extends WidgetState<EnsembleImage> {
       // user might use env variables to switch between remote and local images.
       // Assets might have additional token e.g. my-image.png?x=2343
       // so we need to strip them out
-      return Image.asset(Utils.getLocalAssetFullPath(source),
+      return Image.asset(Utils.getLocalAssetFullPath(widget._controller.source),
           width: widget._controller.width?.toDouble(),
           height: widget._controller.height?.toDouble(),
           fit: fit,
@@ -176,26 +171,22 @@ class ImageState extends WidgetState<EnsembleImage> {
   Widget buildSvgImage(String source, BoxFit? fit) {
     // if is URL
     if (source.startsWith('https://') || source.startsWith('http://')) {
-      return SvgPicture.network(source,
+      return SvgPicture.network(widget._controller.source,
           width: widget._controller.width?.toDouble(),
           height: widget._controller.height?.toDouble(),
           fit: fit ?? BoxFit.contain,
           placeholderBuilder: (_) => placeholder);
     }
     // attempt local assets
-    return SvgPicture.asset(Utils.getLocalAssetFullPath(source),
+    return SvgPicture.asset(
+        Utils.getLocalAssetFullPath(widget._controller.source),
         width: widget._controller.width?.toDouble(),
         height: widget._controller.height?.toDouble(),
         fit: fit ?? BoxFit.contain);
   }
 
   bool isSvg() {
-    ScopeManager? scopeManager = DataScopeWidget.getScope(context);
-    final imgSource =
-        scopeManager?.dataContext.eval(widget._controller.source) ??
-            widget._controller.source;
-
-    return imgSource.endsWith('svg');
+    return widget._controller.source.endsWith('svg');
   }
 
   /// display if the image cannot be loaded
