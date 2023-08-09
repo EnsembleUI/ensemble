@@ -2,7 +2,9 @@ import 'dart:core';
 import 'dart:io';
 import 'dart:developer';
 
+import 'package:app_settings/app_settings.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -18,7 +20,8 @@ class Device
         Invokable,
         MediaQueryCapability,
         LocationCapability,
-        DeviceInfoCapability {
+        DeviceInfoCapability,
+        AppSetting {
   static final Device _instance = Device._internal();
   Device._internal();
   factory Device() {
@@ -238,6 +241,31 @@ class Location with Invokable {
           (distance > 1 ? ' miles' : ' mile');
     }
     return '';
+  }
+}
+
+class AppSetting with Invokable {
+  @override
+  Map<String, Function> getters() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {
+      'openAppSettings': openAppSettings,
+    };
+  }
+
+  void openAppSettings(String type) {
+    final settingType =
+        AppSettingsType.values.from(type) ?? AppSettingsType.settings;
+    AppSettings.openAppSettings(type: settingType);
   }
 }
 
