@@ -7,6 +7,7 @@ import 'dart:isolate';
 import 'dart:math' show Random;
 import 'dart:ui';
 
+import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/action/InvokeAPIController.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_app.dart';
@@ -17,7 +18,6 @@ import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/stub/camera_manager.dart';
-import 'package:ensemble/framework/stub/contacts_manager.dart';
 import 'package:ensemble/framework/stub/file_manager.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/stub/plaid_link_manager.dart';
@@ -236,6 +236,9 @@ class ScreenController {
         throw RuntimeError(
             "openPlaidLink action requires the plaid's link_token.");
       }
+    } else if (action is AppSettingAction) {
+      final settingType = action.getTarget(dataContext);
+      AppSettings.openAppSettings(type: settingType);
     } else if (action is PhoneContactAction) {
       GetIt.I<ContactManager>().getPhoneContacts((contacts) {
         if (action.getOnSuccess(dataContext) != null) {
