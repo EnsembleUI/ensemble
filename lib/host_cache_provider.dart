@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_provider.dart';
 import 'package:ensemble/framework/error_handling.dart';
-import 'package:ensemble/framework/widget/view_util.dart';
+import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yaml/yaml.dart';
@@ -48,7 +48,8 @@ class HostCachedEnsembleProvider extends EnsembleDefinitionProvider {
   }
 
   @override
-  Future<YamlMap> getDefinition({String? screenId, String? screenName}) async {
+  Future<ScreenDefinition> getDefinition(
+      {String? screenId, String? screenName}) async {
     String? content;
 
     if (screenId != null) {
@@ -66,16 +67,7 @@ class HostCachedEnsembleProvider extends EnsembleDefinitionProvider {
       throw LanguageError(
           "Invalid screen content: ${screenId ?? screenName ?? 'Home'}");
     }
-    final yamlContent = loadYaml(content);
-    if (yamlContent is YamlMap) {
-      // a bit hacky but OK for now. If widget is found, wrap it inside
-      // a proper screen syntax so we can preview it
-      if (yamlContent.keys.length == 1 && yamlContent['Widget'] != null) {
-        return ViewUtil.getWidgetAsScreen(yamlContent['Widget']);
-      }
-      return yamlContent;
-    }
-    return yamlContent;
+    return ScreenDefinition(loadYaml(content));
   }
 
   _syncArtifactsToHostCache() {
