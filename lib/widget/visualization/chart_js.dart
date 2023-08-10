@@ -137,7 +137,7 @@ class ChartJsState extends WidgetState<ChartJs> {
 
   @override
   Widget buildWidget(BuildContext context) {
-    if (Platform.isWindows) {
+    if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
       return const SizedBox.shrink();
     }
 
