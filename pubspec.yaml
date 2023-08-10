@@ -56,7 +56,7 @@ dependencies:
   mask_text_input_formatter: ^2.5.0
   otp_pin_field:
     git:
-      url: https://github.com/vinothvino42/otp_pin_field.git
+      url: https://github.com/EnsembleUI/otp_pin_field.git
       ref: develop
   form_validator: ^2.1.1
   flutter_svg: ^2.0.7
