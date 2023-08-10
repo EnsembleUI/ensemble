@@ -244,6 +244,40 @@ class PlaidLinkAction extends EnsembleAction {
   }
 }
 
+class PhoneContactAction extends EnsembleAction {
+  PhoneContactAction({
+    super.initiator,
+    this.id,
+    this.onSuccess,
+    this.onError,
+  });
+
+  final String? id;
+  final EnsembleAction? onSuccess;
+  final EnsembleAction? onError;
+
+  EnsembleAction? getOnSuccess(DataContext dataContext) =>
+      dataContext.eval(onSuccess);
+
+  EnsembleAction? getOnError(DataContext dataContext) =>
+      dataContext.eval(onError);
+
+  factory PhoneContactAction.fromYaml(
+      {Invokable? initiator, YamlMap? payload}) {
+    if (payload == null) {
+      throw LanguageError(
+          "${ActionType.getPhoneContacts.name} action requires payload");
+    }
+
+    return PhoneContactAction(
+      initiator: initiator,
+      id: Utils.optionalString(payload['id']),
+      onSuccess: EnsembleAction.fromYaml(payload['onSuccess']),
+      onError: EnsembleAction.fromYaml(payload['onError']),
+    );
+  }
+}
+
 class StartTimerAction extends EnsembleAction {
   StartTimerAction(
       {super.initiator,
@@ -669,6 +703,7 @@ enum ActionType {
   showNotification,
   copyToClipboard,
   openPlaidLink,
+  getPhoneContacts,
 }
 
 enum ToastType { success, error, warning, info }
@@ -764,6 +799,9 @@ abstract class EnsembleAction {
       return CopyToClipboardAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.openPlaidLink) {
       return PlaidLinkAction.fromYaml(initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.getPhoneContacts) {
+      return PhoneContactAction.fromYaml(
+          initiator: initiator, payload: payload);
     }
     throw LanguageError("Invalid action.",
         recovery: "Make sure to use one of Ensemble-provided actions.");
