@@ -852,6 +852,39 @@
         }
       ]
     },
+    "Slider-payload": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/FormInput-payload"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "initialValue": {
+              "type": "integer",
+              "description": "Initial value where the slider thumb will start"
+            },
+            "min": {
+              "type": "integer", 
+              "description": "Minimum value the user can pick"
+            },
+            "max": {
+              "type": "integer",
+              "description": "Maximum value the user can pick"
+            },
+            "divisions": {
+              "type": "integer",
+              "description": "If set slider will be divided into number passed to divisions else it will be continuous"
+            },
+            "onChange": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Dispatch an action whenever slider is updated"
+            }
+          }
+        }
+      ]
+    },
     "OnOff-payload": {
       "type": "object",
       "allOf": [
@@ -3483,6 +3516,18 @@
           "properties": {
             "Switch": {
               "$ref": "#/$defs/OnOff-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/3f4ba37a-0e6a-46a1-9b78-e4e04c84937d#"
+            }
+          }
+        },
+        {
+          "title": "Slider",
+          "required": [
+            "Slider"
+          ],
+          "properties": {
+            "Slider": {
+              "$ref": "#/$defs/Slider-payload",
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/3f4ba37a-0e6a-46a1-9b78-e4e04c84937d#"
             }
           }
