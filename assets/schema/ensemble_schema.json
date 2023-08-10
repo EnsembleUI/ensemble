@@ -245,6 +245,10 @@
       "type": "object",
       "required": [],
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "text": {
           "type": "string",
           "description": "Your text content"
@@ -285,6 +289,10 @@
     "Markdown-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "text": {
           "type": "string",
           "description": "Your text in markdown format"
@@ -316,6 +324,10 @@
     "Html-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "text": {
           "type": "string",
           "description": "Enter the HTML text"
@@ -328,6 +340,10 @@
         "name"
       ],
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "name": {
           "type": "string",
           "description": "Icon name from Material Icons or Font Awesome"
@@ -377,6 +393,10 @@
         "source"
       ],
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "source": {
           "type": "string",
           "description": "URL to or asset name of the image. If the URL is used, it is highly recommended that the dimensions is set (either with width/height or other means) to prevent the UI jerkiness while loading."
@@ -458,6 +478,10 @@
         "source"
       ],
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "source": {
           "type": "string",
           "description": "URL or asset name of the Lottie json file"
@@ -529,6 +553,10 @@
         "value"
       ],
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "value": {
           "type": "string",
           "description": "The data to generate the QR code"
@@ -561,6 +589,10 @@
     "Progress-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "display": {
           "type": "string",
           "enum": [
@@ -610,6 +642,10 @@
     "Divider-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "styles": {
           "allOf": [
             {
@@ -662,6 +698,10 @@
     "Spacer-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "styles": {
           "type": "object",
           "properties": {
@@ -675,6 +715,10 @@
     "Toggle-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "value": {
           "type": "boolean",
           "description": "Whether the toggle is On or Off (true or false)"
@@ -712,6 +756,10 @@
     "ToggleContainer-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "isFirst": {
           "type": "boolean",
           "description": "Whether to display the firstWidget or secondWidget"
@@ -761,6 +809,10 @@
         {
           "type": "object",
           "properties": {
+            "id": {
+              "type": "string",
+              "description": "A unique identifier for this widget"
+            },
             "value": {
               "type": "string",
               "description": "Specifying the value of your Text Input"
@@ -832,6 +884,10 @@
         {
           "type": "object",
           "properties": {
+            "id": {
+              "type": "string",
+              "description": "A unique identifier for this widget"
+            },
             "keyboardAction": {
               "$ref": "#/$defs/keyboardAction"
             },
@@ -1020,6 +1076,10 @@
         {
           "type": "object",
           "properties": {
+            "id": {
+              "type": "string",
+              "description": "A unique identifier for this widget"
+            },
             "initialValue": {
               "type": "string",
               "description": "The highlighted initial date in the calendar picker (default is Today). Use format YYYY-MM-DD."
@@ -1049,6 +1109,10 @@
         {
           "type": "object",
           "properties": {
+            "id": {
+              "type": "string",
+              "description": "A unique identifier for this widget"
+            },
             "initialValue": {
               "type": "string",
               "description": "The highlighted initial time in the time picker. Use format HH:MM"
@@ -1065,6 +1129,10 @@
         },
         {
           "properties": {
+            "id": {
+              "type": "string",
+              "description": "A unique identifier for this widget"
+            },
             "widget": {
               "$ref": "#/$defs/Widget",
               "description": "The widget to be rendered as the placeholder (not applicable on Web). Note that any tap event (if specified) will be ignored and automatically intercepted to trigger a Google Sign-In process."
@@ -1088,6 +1156,10 @@
         },
         {
           "properties": {
+            "id": {
+              "type": "string",
+              "description": "A unique identifier for this widget"
+            },
             "styles": {
               "type": "object",
               "properties": {
@@ -1191,6 +1263,10 @@
     "Button-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "label": {
           "type": "string",
           "description": "The button label"
@@ -1245,6 +1321,10 @@
     "IconButton-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "icon": {
           "$ref": "#/$defs/HasIcon"
         },
@@ -1259,6 +1339,10 @@
     "Address-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "showRecent": {
           "type": "boolean",
           "description": "Whether to show the recent searches (default True)"
@@ -1297,6 +1381,10 @@
         },
         {
           "properties": {
+            "id": {
+              "type": "string",
+              "description": "A unique identifier for this widget"
+            },
             "onItemTap": {
               "$ref": "#/$defs/Action-payload",
               "description": "Call Ensemble's built-in functions or execute code when tapping on an item in the list."
@@ -1338,6 +1426,10 @@
     "ToggleButton-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "value": {
           "description": "Set a default value that matches one of the items. If Items are Objects, it should match the value key"
         },
@@ -1413,6 +1505,10 @@
         "children"
       ],
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "enabled": {
           "type": "boolean"
         },
@@ -1477,6 +1573,10 @@
             "children"
           ],
           "properties": {
+            "id": {
+              "type": "string",
+              "description": "A unique identifier for this widget"
+            },
             "children": {
               "$ref": "#/$defs/Widgets"
             },
@@ -1506,6 +1606,10 @@
         },
         {
           "properties": {
+            "id": {
+              "type": "string",
+              "description": "A unique identifier for this widget"
+            },
             "children": {
               "$ref": "#/$defs/Widgets"
             },
@@ -1527,6 +1631,10 @@
         },
         {
           "properties": {
+            "id": {
+              "type": "string",
+              "description": "A unique identifier for this widget"
+            },
             "children": {
               "$ref": "#/$defs/Widgets"
             },
@@ -1545,6 +1653,10 @@
         },
         {
           "properties": {
+            "id": {
+              "type": "string",
+              "description": "A unique identifier for this widget"
+            },
             "onItemTap": {
               "$ref": "#/$defs/Action-payload",
               "description": "Call Ensemble's built-in functions or execute code when tapping on an item in the list."
@@ -1613,6 +1725,10 @@
         },
         {
           "properties": {
+            "id": {
+              "type": "string",
+              "description": "A unique identifier for this widget"
+            },
             "children": {
               "$ref": "#/$defs/Widgets"
             },
@@ -1928,6 +2044,10 @@
             "children"
           ],
           "properties": {
+            "id": {
+              "type": "string",
+              "description": "A unique identifier for this widget"
+            },
             "children": {
               "$ref": "#/$defs/Widgets"
             },
@@ -1995,6 +2115,10 @@
             "children"
           ],
           "properties": {
+            "id": {
+              "type": "string",
+              "description": "A unique identifier for this widget"
+            },
             "children": {
               "$ref": "#/$defs/Widgets"
             },
@@ -2459,6 +2583,29 @@
                 "onExit": {
                   "$ref": "#/$defs/Action-payload",
                   "description": "It is called when a user exits Link without successfully linking an Item, or when an error occurs during Link initialization"
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Get Phone Contacts",
+          "type": "object",
+          "required": [
+            "getPhoneContacts"
+          ],
+          "properties": {
+            "getPhoneContacts": {
+              "type": "object",
+              "description": "It allows to get the contacts from the device",
+              "properties": {
+                "onSuccess": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when it's fetched the device contacts successfully"
+                },
+                "onError": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when the action failed to get the device contacts"
                 }
               }
             }
@@ -4026,6 +4173,10 @@
     "TabBar-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for this widget"
+        },
         "styles": {
           "allOf": [
             {
@@ -4131,6 +4282,10 @@
     "Maps-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for this widget"
+        },
         "styles": {
           "allOf": [
             {
@@ -4317,6 +4472,10 @@
     "Video-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for this widget"
+        },
         "source": {
           "type": "string",
           "description": "The URL source to the media file"
@@ -4326,6 +4485,10 @@
     "WebView-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for this widget"
+        },
         "url": {
           "type": "string"
         },
