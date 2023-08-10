@@ -919,7 +919,7 @@
           "$ref": "#/$defs/Action-payload",
           "description": "It is called when a change is detected to the text field"
         },
-        "onSubmit": {
+        "onComplete": {
           "$ref": "#/$defs/Action-payload",
           "description": "It is called when the text field is completed"
         },
