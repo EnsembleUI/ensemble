@@ -53,20 +53,6 @@ class ViewUtil {
         node.span.text);
   }
 
-  /// wrap a widget inside a screen so it can be displayed
-  static YamlMap getWidgetAsScreen(YamlMap widgetContent) {
-    // use random name so we don't accidentally collide with other names
-    String randomWidgetName = "Widget${math.Random().nextInt(100)}";
-
-    return YamlMap.wrap({
-      'View': {
-        'styles': {'useSafeArea': true},
-        'body': {randomWidgetName: null}
-      },
-      randomWidgetName: widgetContent
-    });
-  }
-
   ///convert a YAML representing a widget to a WidgetModel
   static WidgetModel buildModel(
       dynamic item, Map<String, dynamic>? customWidgetMap) {
