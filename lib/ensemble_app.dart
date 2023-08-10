@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:ui';
+import 'dart:async';
 
 import 'package:device_preview/device_preview.dart';
 import 'package:ensemble/ensemble.dart';
@@ -95,13 +96,20 @@ class EnsembleApp extends StatefulWidget {
 }
 
 class EnsembleAppState extends State<EnsembleApp> {
+  late Future<EnsembleConfig> config;
+  @override
+  void initState() {
+    super.initState();
+    config = initApp();
+    if (!kIsWeb) {
+      Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
+    }
+  }
+
   /// initialize our App with the the passed in config or
   /// read from our ensemble-config file.
   Future<EnsembleConfig> initApp() async {
-    await SecretsStore().initialize();
-    Device().initDeviceInfo();
-
-    await StorageManager().init();
+    await Ensemble().initManagers();
     StorageManager().setIsPreview(widget.isPreview);
 
     // use the config if passed in
@@ -118,16 +126,6 @@ class EnsembleAppState extends State<EnsembleApp> {
     // else init from config file
     else {
       return Ensemble().initialize();
-    }
-  }
-
-  late Future<EnsembleConfig> config;
-  @override
-  void initState() {
-    super.initState();
-    config = initApp();
-    if (!kIsWeb) {
-      Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
     }
   }
 
