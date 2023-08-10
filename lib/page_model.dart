@@ -1,11 +1,11 @@
 import 'dart:developer';
 import 'dart:ui';
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/menu.dart';
+import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/layout/app_scroller.dart';
 import 'package:ensemble/layout/box/box_layout.dart';
@@ -333,7 +333,7 @@ class AppProvider {
   AppProvider({required this.definitionProvider});
   DefinitionProvider definitionProvider;
 
-  Future<YamlMap> getDefinition({ScreenPayload? payload}) {
+  Future<ScreenDefinition> getDefinition({ScreenPayload? payload}) {
     return definitionProvider.getDefinition(
         screenId: payload?.screenId, screenName: payload?.screenName);
   }

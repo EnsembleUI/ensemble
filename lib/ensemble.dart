@@ -7,6 +7,8 @@ import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/secrets.dart';
+import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/stub/oauth_controller.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/page_model.dart';
@@ -34,6 +36,29 @@ class Ensemble {
 
   late FirebaseApp ensembleFirebaseApp;
   static final Map<String, dynamic> externalDataContext = {};
+
+  /// initialize all the singleton/managers. Note that this function can be
+  /// called multiple times since it's being called inside a widget.
+  /// The actual code block to initialize the managers is guaranteed to run
+  /// at most once.
+  Completer<void>? _completer;
+  Future<void> initManagers() async {
+    // if currently pending or completed, wait till it finishes and do nothing.
+    if (_completer != null) {
+      return _completer!.future;
+    }
+
+    _completer = Completer<void>();
+    try {
+      // this code block is guaranteed to run at most once
+      await StorageManager().init();
+      await SecretsStore().initialize();
+      Device().initDeviceInfo();
+      _completer!.complete();
+    } catch (error) {
+      _completer!.completeError(error);
+    }
+  }
 
   void notifyAppBundleChanges() {
     _config?.updateAppBundle();
