@@ -42,7 +42,7 @@
                   "$ref": "#/$defs/typeColors",
                   "description": "By default the background color uses the theme's 'primary' color. You can override the header's background color here."
                 },
-                "onScrollBackgroundColor": {
+                "surfaceTintColor": {
                   "$ref": "#/$defs/typeColors",
                   "description": "By default the background color will be generate based on 'primary' color. You can override the header's background color when scrolled over here."
                 },
