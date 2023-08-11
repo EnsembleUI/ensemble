@@ -3423,6 +3423,40 @@
               }
             }
           }
+        },
+        {
+          "title": "CheckPermission",
+          "type": "object",
+          "required": [
+            "checkPermission"
+          ],
+          "properties": {
+            "checkPermission": {
+              "type": "object",
+              "description": "Check for user permissions for certain device capabilities",
+              "required": [
+                "type"
+              ],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["notification"]
+                },
+                "onAuthorized": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action if this permission was authorized by the user."
+                },
+                "onDenied": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action if this permission was denied by the user."
+                },
+                "onNotDetermined": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action if we can't determine the permission's status. Note that this state is not applicable on Android."
+                }
+              }
+            }
+          }
         }
       ]
     },
