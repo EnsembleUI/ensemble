@@ -12,6 +12,7 @@ import 'package:ensemble/layout/toggle_container.dart';
 import 'package:ensemble/widget/Toggle.dart';
 import 'package:ensemble/widget/address.dart';
 import 'package:ensemble/widget/conditional.dart';
+import 'package:ensemble/widget/confirmation_input.dart';
 import 'package:ensemble/widget/fintech/finicityconnect/finicityconnect.dart';
 import 'package:ensemble/widget/icon_button.dart';
 import 'package:ensemble/widget/maps/maps.dart';
@@ -90,6 +91,7 @@ class WidgetRegistry {
         // form fields
         EnsembleForm.type: () => EnsembleForm(),
         TextInput.type: () => TextInput(),
+        ConfirmationInput.type: () => ConfirmationInput(),
         Date.type: () => Date(),
         Time.type: () => Time(),
         DateRange.type: () => DateRange(),
