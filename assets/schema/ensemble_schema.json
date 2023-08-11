@@ -42,6 +42,10 @@
                   "$ref": "#/$defs/typeColors",
                   "description": "By default the background color uses the theme's 'primary' color. You can override the header's background color here."
                 },
+                "surfaceTintColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "By default the background color will be generate based on 'primary' color. You can override the header's background color when scrolled over here."
+                },
                 "color": {
                   "$ref": "#/$defs/typeColors",
                   "description": "By default the navigation icon, title, and action icons uses the theme's 'onPrimary' color. You can override their colors here."
@@ -907,6 +911,100 @@
           }
         }
       ]
+    },
+    "Confirmation-payload": {
+      "type": "object",
+      "properties": {
+        "length": {
+          "type": "integer",
+          "description": "The number of the text fields"
+        },
+        "onChange": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "It is called when a change is detected to the text field"
+        },
+        "onComplete": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "It is called when the text field is completed"
+        },
+        "styles": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
+            },
+            {
+              "$ref": "#/$defs/boxStyles"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "textStyle": {
+                  "$ref": "#/$defs/TextStyle"
+                }
+              },
+              "fieldType": {
+                "type": "string",
+                "description": "How the input field should be displayed",
+                "enum": [
+                  "default",
+                  "underline",
+                  "rounded"
+                ]
+              },
+              "inputType": {
+                "type": "string",
+                "description": "Pick a predefined input type",
+                "enum": [
+                  "default",
+                  "email",
+                  "phone",
+                  "ipAddress",
+                  "number",
+                  "text",
+                  "url",
+                  "datetime"
+                ]
+              },
+              "autoComplete": {
+                "type": "boolean",
+                "description": "If it is True, then it will trigger onComplete when the user specified length and has typed the full length, False will trigger onComplete when the user hit Enter. Defaults (True)"
+              },
+              "enableCursor": {
+                "type": "boolean",
+                "description": "If the button is inside a Form and upon on tap, it will execute the form's onSubmit action if this property is TRUE"
+              },
+              "defaultFieldBorderColor": {
+                "$ref": "#/$defs/typeColors",
+                "description": "Set the border color for inactive/unfocused state of text field"
+              },
+              "activeFieldBorderColor": {
+                "$ref": "#/$defs/typeColors",
+                "description": "Set the border color for active/focused state of text field"
+              },
+              "filledFieldBorderColor": {
+                "$ref": "#/$defs/typeColors",
+                "description": "Set the border color for filled state of text field"
+              },
+              "defaultFieldBackgroundColor": {
+                "$ref": "#/$defs/typeColors",
+                "description": "Set the background Color for inactive/unfocused state of text field"
+              },
+              "activeFieldBackgroundColor": {
+                "$ref": "#/$defs/typeColors",
+                "description": "Set the ackground Color for active/focused state of text field"
+              },
+              "filledFieldBackgroundColor": {
+                "$ref": "#/$defs/typeColors",
+                "description": "Set the ackground Color for filled field state of text field"
+              },
+              "cursorColor": {
+                "$ref": "#/$defs/typeColors",
+                "description": "Set the color for the cursor"
+              }
+            }
+          ]
+        }
+      }
     },
     "OnOff-payload": {
       "type": "object",
