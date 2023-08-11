@@ -29,4 +29,6 @@ abstract class NotificationUtilsBase {
   void handleRemoteNotificationOpened();
 
   Future<void> showProgressNotification(int progress, {int? notificationId});
+
+  Future<bool?> hasPermission();
 }
