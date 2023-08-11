@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 
 import 'package:ensemble/framework/widget/widget.dart';
@@ -136,6 +137,10 @@ class ChartJsState extends WidgetState<ChartJs> {
 
   @override
   Widget buildWidget(BuildContext context) {
+    if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+      return const SizedBox.shrink();
+    }
+
     if (widget.controller.config == '') {
       return const Text("");
     }
