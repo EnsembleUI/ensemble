@@ -681,14 +681,20 @@ class ShowNotificationAction extends EnsembleAction {
 }
 
 class CheckPermission extends EnsembleAction {
-  CheckPermission({required dynamic type, this.onAuthorized, this.onDenied, this.onNotDetermined}) : _type = type;
+  CheckPermission(
+      {required dynamic type,
+      this.onAuthorized,
+      this.onDenied,
+      this.onNotDetermined})
+      : _type = type;
   final dynamic _type;
   final EnsembleAction? onAuthorized;
   final EnsembleAction? onDenied;
   final EnsembleAction? onNotDetermined;
-  
-  Permission? getType(DataContext dataContext) => Permission.values.from(dataContext.eval(_type));
-  
+
+  Permission? getType(DataContext dataContext) =>
+      Permission.values.from(dataContext.eval(_type));
+
   factory CheckPermission.fromYaml({YamlMap? payload}) {
     if (payload == null || payload['type'] == null) {
       throw ConfigError('checkPermission requires a type.');
