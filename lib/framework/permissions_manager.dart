@@ -17,8 +17,8 @@ class PermissionsManager {
         status = await notificationUtils.hasPermission();
       } else {
         // use Firebase for status check all other platforms
-        var settings = await FirebaseMessaging.instance
-            .getNotificationSettings();
+        var settings =
+            await FirebaseMessaging.instance.getNotificationSettings();
         switch (settings.authorizationStatus) {
           case AuthorizationStatus.authorized:
           case AuthorizationStatus.provisional:
@@ -36,9 +36,6 @@ class PermissionsManager {
     }
     return Future.value(status);
   }
-
-
-
 }
 
 enum Permission {
