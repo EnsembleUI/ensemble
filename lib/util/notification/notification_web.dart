@@ -59,4 +59,21 @@ class NotificationUtils implements NotificationUtilsBase {
   Future<void> showProgressNotification(int progress, {int? notificationId}) {
     throw UnimplementedError();
   }
+
+  @override
+  Future<bool?> hasPermission() {
+    bool? status;
+    switch (Notification.permission) {
+      case 'granted':
+        status = true;
+        break;
+      case 'denied':
+        status = false;
+        break;
+      case 'default':
+      default:
+        break;
+    }
+    return Future.value(status);
+  }
 }

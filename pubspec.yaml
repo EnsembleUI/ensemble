@@ -54,6 +54,10 @@ dependencies:
   flutter_layout_grid: ^2.0.3
   email_validator: ^2.0.1
   mask_text_input_formatter: ^2.5.0
+  otp_pin_field:
+    git:
+      url: https://github.com/EnsembleUI/otp_pin_field.git
+      ref: develop
   form_validator: ^2.1.1
   flutter_svg: ^2.0.7
   qr_flutter: ^4.1.0
@@ -91,6 +95,7 @@ dependencies:
   dart_jsonwebtoken: ^2.8.2
   flutter_dotenv: ^5.1.0
   get_it: ^7.6.0
+  firebase_messaging: ^14.6.5
 
 dev_dependencies:
   flutter_test:
