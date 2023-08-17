@@ -285,7 +285,7 @@ class PageState extends State<Page> {
     BackgroundImage? backgroundImage = Utils.getBackgroundImage(
         widget._pageModel.pageStyles?['backgroundImage']);
     if (backgroundImage != null && backgroundColor == null) {
-      backgroundColor = Colors.transparent;
+      backgroundColor = Colors.white;
     }
 
     // whether to usse CustomScrollView for the entire page
