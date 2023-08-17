@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:math';
 import 'dart:ui';
-import 'package:ensemble/ensemble.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:ensemble/framework/error_handling.dart';
@@ -88,15 +87,7 @@ class Utils {
   static BackgroundImage? getBackgroundImage(dynamic value) {
     if (value is Map) {
       if (value['source'] != null) {
-        Map<String, dynamic>? envOverrides =
-            Ensemble().getConfig()?.envOverrides;
-
-        // get environment variables from overrides first (emsemble-config.yaml),
-        // then fallback to custom defined ones
-        final imgSrc = resolveEnvVariable(envOverrides, value['source']) ??
-            value['source'];
-
-        return BackgroundImage(imgSrc.toString(),
+        return BackgroundImage(value['source'].toString(),
             fit: BoxFit.values.from(value['fit']),
             alignment: getAlignment(value['alignment']));
       }
@@ -104,13 +95,6 @@ class Utils {
     // legacy, just a simply URL string
     else if (value is String) {
       return BackgroundImage(value);
-    }
-    return null;
-  }
-
-  static dynamic resolveEnvVariable(Map<String, dynamic>? map, String key) {
-    if (map != null) {
-      return map[key] ?? (map.containsKey(key) ? '' : null);
     }
     return null;
   }
