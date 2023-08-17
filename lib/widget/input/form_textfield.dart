@@ -44,7 +44,7 @@ class TextInput extends BaseTextInput {
   Map<String, Function> getters() {
     return {
       'maskedValue': () => _controller.inputFieldAction?.getMaskedValue(),
-      'unmaskedValue': () => _controller.inputFieldAction?.getUnmaskedValue(),
+      'value': () => _controller.inputFieldAction?.getUnmaskedValue(),
     };
   }
 
