@@ -282,8 +282,10 @@ class PageState extends State<Page> {
         Utils.getColor(widget._pageModel.pageStyles?['backgroundColor']);
     // if we have a background image, set the background color to transparent
     // since our image is outside the Scaffold
-    BackgroundImage? backgroundImage = Utils.getBackgroundImage(
-        widget._pageModel.pageStyles?['backgroundImage']);
+    dynamic evaluatedBackgroundImg = _scopeManager.dataContext
+        .eval(widget._pageModel.pageStyles?['backgroundImage']);
+    BackgroundImage? backgroundImage =
+        Utils.getBackgroundImage(evaluatedBackgroundImg);
     if (backgroundImage != null && backgroundColor == null) {
       backgroundColor = Colors.transparent;
     }
