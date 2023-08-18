@@ -39,19 +39,19 @@ abstract class PageModel {
   String? globalCode;
   SourceSpan? globalCodeSpan;
 
-  factory PageModel.fromYaml(YamlMap data, DataContext dataContext) {
+  factory PageModel.fromYaml(YamlMap data) {
     try {
       if (data['ViewGroup'] != null) {
-        return PageGroupModel._init(data, dataContext);
+        return PageGroupModel._init(data);
       }
-      return SinglePageModel._init(data, dataContext);
+      return SinglePageModel._init(data);
     } on Error catch (e) {
       throw LanguageError("Invalid page definition.",
           recovery: "Please double check your page syntax.",
           detailError: e.toString() + "\n" + (e.stackTrace?.toString() ?? ''));
     }
   }
-  void _processModel(YamlMap docMap, DataContext dataContext) {
+  void _processModel(YamlMap docMap) {
     _processAPI(docMap['API']);
     YamlNode? globalCodeNode = docMap.nodes['Global'];
     if (globalCodeNode != null) {
@@ -99,13 +99,13 @@ abstract class PageModel {
 
 /// a screen list grouped together by a menu
 class PageGroupModel extends PageModel {
-  PageGroupModel._init(YamlMap docMap, dataContext) {
-    _processModel(docMap, dataContext);
+  PageGroupModel._init(YamlMap docMap) {
+    _processModel(docMap);
   }
 
   @override
-  void _processModel(YamlMap docMap, DataContext dataContext) {
-    super._processModel(docMap, dataContext);
+  void _processModel(YamlMap docMap) {
+    super._processModel(docMap);
 
     menu = Menu.fromYaml(docMap['ViewGroup'], customViewDefinitions);
   }
@@ -113,8 +113,8 @@ class PageGroupModel extends PageModel {
 
 /// represents an individual screen translated from the YAML definition
 class SinglePageModel extends PageModel {
-  SinglePageModel._init(YamlMap docMap, DataContext dataContext) {
-    _processModel(docMap, dataContext);
+  SinglePageModel._init(YamlMap docMap) {
+    _processModel(docMap);
   }
 
   ViewBehavior viewBehavior = ViewBehavior();
@@ -126,8 +126,8 @@ class SinglePageModel extends PageModel {
   Footer? footer;
 
   @override
-  _processModel(YamlMap docMap, dataContext) {
-    super._processModel(docMap, dataContext);
+  _processModel(YamlMap docMap) {
+    super._processModel(docMap);
 
     YamlMap viewMap = docMap['View'];
 
@@ -150,18 +150,7 @@ class SinglePageModel extends PageModel {
     if (viewMap['styles'] is YamlMap) {
       pageStyles = {};
       (viewMap['styles'] as YamlMap).forEach((key, value) {
-        dynamic pageStyleVal = value;
-        pageStyles![key] = pageStyleVal;
-        if (pageStyleVal is YamlMap) {
-          dynamic nestedPageStyles = {};
-          pageStyleVal.forEach((nestedKey, nestedValue) {
-            final evaluatedVal = dataContext.eval(nestedValue);
-            nestedPageStyles![nestedKey] = evaluatedVal;
-          });
-          pageStyles![key] = nestedPageStyles;
-        } else {
-          pageStyles![key] = pageStyleVal;
-        }
+        pageStyles![key] = value;
       });
     }
 
