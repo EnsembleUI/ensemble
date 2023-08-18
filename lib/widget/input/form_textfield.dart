@@ -1,6 +1,5 @@
 import 'dart:developer';
 
-import 'package:collection/collection.dart';
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
@@ -31,21 +30,13 @@ class TextInput extends BaseTextInput {
   Map<String, Function> setters() {
     Map<String, Function> setters = super.setters();
     setters.addAll({
-      'value': (newValue) => textController.text = newValue,
+      'value': (newValue) => controller.value = newValue,
       'obscureText': (obscure) =>
           _controller.obscureText = Utils.optionalBool(obscure),
       'inputType': (type) => _controller.inputType = Utils.optionalString(type),
       'mask': (type) => _controller.mask = Utils.optionalString(type),
     });
     return setters;
-  }
-
-  @override
-  Map<String, Function> getters() {
-    return {
-      'maskedValue': () => _controller.inputFieldAction?.getMaskedValue(),
-      'value': () => _controller.inputFieldAction?.getUnmaskedValue(),
-    };
   }
 
   @override
@@ -100,7 +91,7 @@ abstract class BaseTextInput extends StatefulWidget
   BaseTextInput({Key? key}) : super(key: key);
 
   // textController manages 'value', while _controller manages the rest
-  final TextEditingController textController = TextEditingController();
+  TextEditingController textController = TextEditingController();
   final TextInputController _controller = TextInputController();
 
   @override
@@ -109,7 +100,8 @@ abstract class BaseTextInput extends StatefulWidget
   @override
   Map<String, Function> getters() {
     return {
-      'value': () => textController.text,
+      'value': () => _controller.value,
+      'maskedValue': () => _controller.maskedValueText,
     };
   }
 
@@ -173,13 +165,13 @@ abstract class BaseTextInput extends StatefulWidget
 mixin TextInputFieldAction on FormFieldWidgetState<BaseTextInput> {
   void focusInputField();
   void unfocusInputField();
-  void getMaskedValue();
-  void getUnmaskedValue();
 }
 
 /// controller for both TextField and Password
 class TextInputController extends FormFieldController {
   TextInputFieldAction? inputFieldAction;
+  String? maskedValueText = '';
+  String? value = '';
   EnsembleAction? onChange;
   EnsembleAction? onKeyPress;
   TextInputAction? keyboardAction;
@@ -215,7 +207,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
   void evaluateChanges() {
     if (didItChange) {
       // trigger binding
-      widget.setProperty('value', widget.textController.text);
+      widget.setProperty('value', widget.controller.value);
       // call onChange
       if (widget._controller.onChange != null) {
         ScreenController().executeAction(context, widget._controller.onChange!,
@@ -230,6 +222,8 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
 
   @override
   void initState() {
+    widget.textController =
+        TextEditingController(text: widget.controller.value);
     currentlyObscured =
         widget.isPassword() || widget._controller.obscureText == true;
 
@@ -389,8 +383,13 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
           controller: widget.textController,
           focusNode: focusNode,
           enabled: isEnabled(),
-          onFieldSubmitted: (value) => widget.controller.submitForm(context),
+          onFieldSubmitted: (value) {
+            widget.controller.submitForm(context);
+            _updateTextInputController();
+          },
           onChanged: (String txt) {
+            _updateTextInputController();
+
             if (txt != previousText) {
               // for performance reason, we dispatch onChange (as well as binding to value)
               // upon EditingComplete (select Done on virtual keyboard) or Focus Out
@@ -414,6 +413,24 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
         ));
   }
 
+  void _updateTextInputController() {
+    widget.controller.maskedValueText = getTextInputValue(isMasked: true);
+    widget.controller.value = getTextInputValue(isMasked: false);
+  }
+
+  String getTextInputValue({required bool isMasked}) {
+    final maskInputFormatter = inputFormatters
+        .whereType<MaskTextInputFormatter>()
+        .toList()
+        .firstOrNull;
+    if (maskInputFormatter != null) {
+      return isMasked
+          ? maskInputFormatter.getMaskedText()
+          : maskInputFormatter.getUnmaskedText();
+    }
+    return widget.textController.text;
+  }
+
   @override
   void focusInputField() {
     if (!focusNode.hasFocus) {
@@ -426,30 +443,6 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
     if (focusNode.hasFocus) {
       focusNode.unfocus();
     }
-  }
-
-  @override
-  String getUnmaskedValue() {
-    final maskInputFormatter = inputFormatters
-        .whereType<MaskTextInputFormatter>()
-        .toList()
-        .firstOrNull;
-    if (maskInputFormatter != null) {
-      return maskInputFormatter.getUnmaskedText();
-    }
-    return widget.textController.text;
-  }
-
-  @override
-  String getMaskedValue() {
-    final maskInputFormatter = inputFormatters
-        .whereType<MaskTextInputFormatter>()
-        .toList()
-        .firstOrNull;
-    if (maskInputFormatter != null) {
-      return maskInputFormatter.getMaskedText();
-    }
-    return widget.textController.text;
   }
 }
 
