@@ -60,12 +60,12 @@ class _ScreenState extends State<Screen> {
   }
 
   Widget renderScreen(ScreenDefinition screenDefinition) {
+    PageModel pageModel =
+        screenDefinition.getModel(widget.screenPayload?.arguments);
+
     // build the data context
     DataContext dataContext = DataContext(
         buildContext: context, initialMap: widget.screenPayload?.arguments);
-
-    PageModel pageModel =
-        screenDefinition.getModel(widget.screenPayload?.arguments, dataContext);
 
     // add all the API names to our context as Invokable, even though their result
     // will be null. This is so we can always reference it API responses come back
@@ -104,15 +104,14 @@ class ScreenDefinition {
   ScreenDefinition(this._content);
   final YamlMap _content;
 
-  PageModel getModel(
-      Map<String, dynamic>? inputParams, DataContext dataContext) {
+  PageModel getModel(Map<String, dynamic>? inputParams) {
     YamlMap output = _content;
 
     /// manipulate the screen definition to account for custom widget
     if (_content.keys.length == 1 && _content['Widget'] != null) {
       output = _getWidgetAsScreen(_content['Widget'], inputParams);
     }
-    return PageModel.fromYaml(output, dataContext);
+    return PageModel.fromYaml(output);
   }
 
   /// wrap a widget so it can be displayed as if it's an actual Screen
