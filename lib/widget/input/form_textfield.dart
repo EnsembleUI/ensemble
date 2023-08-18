@@ -18,6 +18,7 @@ import 'package:email_validator/email_validator.dart';
 import 'package:ensemble/framework/model.dart' as model;
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:form_validator/form_validator.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 /// TextInput
 class TextInput extends BaseTextInput {
@@ -32,6 +33,7 @@ class TextInput extends BaseTextInput {
       'obscureText': (obscure) =>
           _controller.obscureText = Utils.optionalBool(obscure),
       'inputType': (type) => _controller.inputType = Utils.optionalString(type),
+      'mask': (type) => _controller.mask = Utils.optionalString(type),
     });
     return setters;
   }
@@ -181,6 +183,7 @@ class TextInputController extends FormFieldController {
 
   model.InputValidator? validator;
   String? inputType;
+  String? mask;
   int maxLines = 1;
   TextStyle? textStyle;
   TextStyle? hintStyle;
@@ -363,8 +366,8 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
           },
           textInputAction: widget._controller.keyboardAction,
           keyboardType: widget.keyboardType,
-          inputFormatters:
-              InputFormatter.getFormatter(widget._controller.inputType),
+          inputFormatters: InputFormatter.getFormatter(
+              widget._controller.inputType, widget._controller.mask),
           maxLines: widget._controller.maxLines,
           obscureText: isObscureOrPlainText(),
           enableSuggestions: !widget.isPassword(),

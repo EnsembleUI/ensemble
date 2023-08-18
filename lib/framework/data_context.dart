@@ -5,7 +5,9 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble/framework/stub/auth_context_manager.dart';
+import 'package:ensemble/framework/stub/oauth_controller.dart';
 import 'package:ensemble/framework/stub/token_manager.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
@@ -45,6 +47,7 @@ class DataContext {
     }
     _contextMap['app'] = AppConfig();
     _contextMap['env'] = EnvConfig();
+    _contextMap['secrets'] = SecretsStore();
     _contextMap['ensemble'] = NativeInvokable(buildContext);
 
     // auth can be selectively turned on
@@ -347,13 +350,24 @@ class NativeInvokable with Invokable {
       'initNotification': () => notificationUtils.initNotifications(),
       'updateSystemAuthorizationToken': (token) =>
           GetIt.instance<TokenManager>()
-              .updateServiceTokens(ServiceName.system, token),
+              .updateServiceTokens(OAuthService.system, token),
+      'saveToKeychain': (key, value) => saveToKeychain(key, value),
     };
   }
 
   @override
   Map<String, Function> setters() {
     return {};
+  }
+
+  Future<void> saveToKeychain(String key, String value) async {
+    try {
+      const platform = MethodChannel('com.ensembleui.dev/safari-extension');
+      final dynamic result =
+          await platform.invokeMethod('saveToKeychain', {key: value});
+    } on PlatformException catch (e) {
+      print('Failed to get value: ${e.message}.');
+    }
   }
 
   void uploadFiles(dynamic inputs) {

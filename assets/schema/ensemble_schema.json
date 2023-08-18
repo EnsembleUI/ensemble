@@ -42,6 +42,10 @@
                   "$ref": "#/$defs/typeColors",
                   "description": "By default the background color uses the theme's 'primary' color. You can override the header's background color here."
                 },
+                "surfaceTintColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "By default the background color will be generate based on 'primary' color. You can override the header's background color when scrolled over here."
+                },
                 "color": {
                   "$ref": "#/$defs/typeColors",
                   "description": "By default the navigation icon, title, and action icons uses the theme's 'onPrimary' color. You can override their colors here."
@@ -143,13 +147,15 @@
     },
     "Global": {
       "type": "string",
+      "label": "Enter code snippet",
       "defaultSnippets": [
         {
           "label": "Define variables and functions in Javascript",
           "body": "|-\n\t//@code\n\t"
         }
       ],
-      "markdownDescription": "Declare Javascript variables and functions that are visible globally within this screen.  \n//@code  \n var myGlobalVar = 'hello';  \nfunction myGlobalFunc() {  \n  }"
+      "markdownDescription": "Declare Javascript variables and functions that are visible globally within this screen.  \n//@code  \n var myGlobalVar = 'hello';  \nfunction myGlobalFunc() {  \n  }",
+      "description": "Declare Javascript variables and functions that are visible globally within this screen.  \n//@code  \n var myGlobalVar = 'hello';  \nfunction myGlobalFunc() {  \n  }"
     },
     "API": {
       "additionalProperties": {
@@ -193,11 +199,14 @@
             }
           },
           "body": {
-            "type": [
-              "string",
-              "object"
+            "oneOf": [
+              { "type": "string" },
+              { "type": "object" }
             ],
-            "description": "The request body to pass along with the URL"
+            "description": "The request body to pass along with the URL",
+            "additionalProperties": {
+              "type": "string"
+            }
           },
           "onResponse": {
             "$ref": "#/$defs/Action-payload",
@@ -240,6 +249,10 @@
       "type": "object",
       "required": [],
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "text": {
           "type": "string",
           "description": "Your text content"
@@ -280,6 +293,10 @@
     "Markdown-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "text": {
           "type": "string",
           "description": "Your text in markdown format"
@@ -311,6 +328,10 @@
     "Html-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "text": {
           "type": "string",
           "description": "Enter the HTML text"
@@ -323,6 +344,10 @@
         "name"
       ],
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "name": {
           "type": "string",
           "description": "Icon name from Material Icons or Font Awesome"
@@ -372,6 +397,10 @@
         "source"
       ],
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "source": {
           "type": "string",
           "description": "URL to or asset name of the image. If the URL is used, it is highly recommended that the dimensions is set (either with width/height or other means) to prevent the UI jerkiness while loading."
@@ -453,6 +482,10 @@
         "source"
       ],
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "source": {
           "type": "string",
           "description": "URL or asset name of the Lottie json file"
@@ -524,6 +557,10 @@
         "value"
       ],
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "value": {
           "type": "string",
           "description": "The data to generate the QR code"
@@ -556,6 +593,10 @@
     "Progress-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "display": {
           "type": "string",
           "enum": [
@@ -605,6 +646,10 @@
     "Divider-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "styles": {
           "allOf": [
             {
@@ -657,6 +702,10 @@
     "Spacer-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "styles": {
           "type": "object",
           "properties": {
@@ -670,6 +719,10 @@
     "Toggle-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "value": {
           "type": "boolean",
           "description": "Whether the toggle is On or Off (true or false)"
@@ -707,6 +760,10 @@
     "ToggleContainer-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "isFirst": {
           "type": "boolean",
           "description": "Whether to display the firstWidget or secondWidget"
@@ -742,6 +799,7 @@
       }
     },
     "TextInput-payload": {
+      "type": "object",
       "allOf": [
         {
           "$ref": "#/$defs/BaseTextInput-payload"
@@ -755,6 +813,10 @@
         {
           "type": "object",
           "properties": {
+            "id": {
+              "type": "string",
+              "description": "A unique identifier for this widget"
+            },
             "value": {
               "type": "string",
               "description": "Specifying the value of your Text Input"
@@ -766,8 +828,16 @@
                 "default",
                 "email",
                 "phone",
-                "ipAddress"
+                "ipAddress",
+                "number",
+                "text",
+                "url",
+                "datetime"
               ]
+            },
+            "mask": {
+              "type": "string",
+              "description": "It formats the input by a given mask. Ex: +# (###) ###-##-##"
             },
             "keyboardAction": {
               "$ref": "#/$defs/keyboardAction"
@@ -804,6 +874,7 @@
       ]
     },
     "PasswordInput-payload": {
+      "type": "object",
       "allOf": [
         {
           "$ref": "#/$defs/BaseTextInput-payload"
@@ -817,6 +888,10 @@
         {
           "type": "object",
           "properties": {
+            "id": {
+              "type": "string",
+              "description": "A unique identifier for this widget"
+            },
             "keyboardAction": {
               "$ref": "#/$defs/keyboardAction"
             },
@@ -837,7 +912,135 @@
         }
       ]
     },
+    "Confirmation-payload": {
+      "type": "object",
+      "properties": {
+        "length": {
+          "type": "integer",
+          "description": "The number of the text fields"
+        },
+        "onChange": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "It is called when a change is detected to the text field"
+        },
+        "onComplete": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "It is called when the text field is completed"
+        },
+        "styles": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
+            },
+            {
+              "$ref": "#/$defs/boxStyles"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "textStyle": {
+                  "$ref": "#/$defs/TextStyle"
+                }
+              },
+              "fieldType": {
+                "type": "string",
+                "description": "How the input field should be displayed",
+                "enum": [
+                  "default",
+                  "underline",
+                  "rounded"
+                ]
+              },
+              "inputType": {
+                "type": "string",
+                "description": "Pick a predefined input type",
+                "enum": [
+                  "default",
+                  "email",
+                  "phone",
+                  "ipAddress",
+                  "number",
+                  "text",
+                  "url",
+                  "datetime"
+                ]
+              },
+              "autoComplete": {
+                "type": "boolean",
+                "description": "If it is True, then it will trigger onComplete when the user specified length and has typed the full length, False will trigger onComplete when the user hit Enter. Defaults (True)"
+              },
+              "enableCursor": {
+                "type": "boolean",
+                "description": "If the button is inside a Form and upon on tap, it will execute the form's onSubmit action if this property is TRUE"
+              },
+              "defaultFieldBorderColor": {
+                "$ref": "#/$defs/typeColors",
+                "description": "Set the border color for inactive/unfocused state of text field"
+              },
+              "activeFieldBorderColor": {
+                "$ref": "#/$defs/typeColors",
+                "description": "Set the border color for active/focused state of text field"
+              },
+              "filledFieldBorderColor": {
+                "$ref": "#/$defs/typeColors",
+                "description": "Set the border color for filled state of text field"
+              },
+              "defaultFieldBackgroundColor": {
+                "$ref": "#/$defs/typeColors",
+                "description": "Set the background Color for inactive/unfocused state of text field"
+              },
+              "activeFieldBackgroundColor": {
+                "$ref": "#/$defs/typeColors",
+                "description": "Set the ackground Color for active/focused state of text field"
+              },
+              "filledFieldBackgroundColor": {
+                "$ref": "#/$defs/typeColors",
+                "description": "Set the ackground Color for filled field state of text field"
+              },
+              "cursorColor": {
+                "$ref": "#/$defs/typeColors",
+                "description": "Set the color for the cursor"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "Slider-payload": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/FormInput-payload"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "initialValue": {
+              "type": "integer",
+              "description": "Initial value where the slider thumb will start"
+            },
+            "min": {
+              "type": "integer", 
+              "description": "Minimum value the user can pick"
+            },
+            "max": {
+              "type": "integer",
+              "description": "Maximum value the user can pick"
+            },
+            "divisions": {
+              "type": "integer",
+              "description": "If set slider will be divided into number passed to divisions else it will be continuous"
+            },
+            "onChange": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Dispatch an action whenever slider is updated"
+            }
+          }
+        }
+      ]
+    },
     "OnOff-payload": {
+      "type": "object",
       "allOf": [
         {
           "$ref": "#/$defs/FormInput-payload"
@@ -859,6 +1062,7 @@
       ]
     },
     "SelectOne-payload": {
+      "type": "object",
       "allOf": [
         {
           "$ref": "#/$defs/FormInput-payload"
@@ -901,6 +1105,7 @@
       ]
     },
     "Date-payload": {
+      "type": "object",
       "allOf": [
         {
           "$ref": "#/$defs/FormInput-payload"
@@ -908,6 +1113,10 @@
         {
           "type": "object",
           "properties": {
+            "id": {
+              "type": "string",
+              "description": "A unique identifier for this widget"
+            },
             "initialValue": {
               "type": "string",
               "description": "The highlighted initial date in the calendar picker (default is Today). Use format YYYY-MM-DD."
@@ -929,6 +1138,7 @@
       ]
     },
     "Time-payload": {
+      "type": "object",
       "allOf": [
         {
           "$ref": "#/$defs/FormInput-payload"
@@ -936,6 +1146,10 @@
         {
           "type": "object",
           "properties": {
+            "id": {
+              "type": "string",
+              "description": "A unique identifier for this widget"
+            },
             "initialValue": {
               "type": "string",
               "description": "The highlighted initial time in the time picker. Use format HH:MM"
@@ -946,22 +1160,26 @@
     },
     "SignInWithGoogle-payload": {
       "type": "object",
-      "required": [
-        "widget"
-      ],
       "allOf": [
         {
           "$ref": "#/$defs/SignIn-payload"
         },
         {
           "properties": {
+            "id": {
+              "type": "string",
+              "description": "A unique identifier for this widget"
+            },
             "widget": {
               "$ref": "#/$defs/Widget",
               "description": "The widget to be rendered as the placeholder (not applicable on Web). Note that any tap event (if specified) will be ignored and automatically intercepted to trigger a Google Sign-In process."
             },
             "scopes": {
               "type": "array",
-              "description": "A list of additional scopes to request permissions from the user"
+              "description": "A list of additional scopes to request permissions from the user",
+              "items": {
+                "type": "string"
+              }
             }
           }
         }
@@ -972,6 +1190,24 @@
       "allOf": [
         {
           "$ref": "#/$defs/SignIn-payload"
+        },
+        {
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "A unique identifier for this widget"
+            },
+            "styles": {
+              "type": "object",
+              "properties": {
+                "buttonStyle": {
+                  "type": "string",
+                  "description": "Select an Apple's pre-defined button style (default whiteOutlined)",
+                  "enum": [ "black", "white", "whiteOutlined" ]
+                }
+              }
+            }
+          }
         }
       ]
     },
@@ -999,12 +1235,75 @@
         },
         "onError": {
           "$ref": "#/$defs/Action-payload"
+        },
+        "styles": {
+          "properties": {
+            "overrideLabel": {
+              "type": "string",
+              "description": "Override the Sign In label. Note that changing the default Apple guideline may get your app rejected when submitting to Apple's App Store."
+            },
+            "iconAlignment": {
+              "type": "string",
+              "description": "Align the Apple icon to the left or center of the button (Note that the text will always be centered). Default: center",
+              "enum": [ "center", "left" ]
+            },
+            "borderRadius": {
+              "$ref": "#/$defs/borderRadius"
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "ConnectWithGoogle-payload": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/Connect-payload"
+        }
+      ]
+    },
+    "ConnectWithMicrosoft-payload": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/Connect-payload"
+        }
+      ]
+    },
+    "Connect-payload": {
+      "type": "object",
+      "properties": {
+        "initialScopes": {
+          "type": "array",
+          "description": "A list of initial scopes to request user's permission."
+        },
+        "widget": {
+          "$ref": "#/$defs/Widget",
+          "description": "The widget to be rendered in place of the default button. Note that any tap event on this widget (if specified) will be ignored and automatically intercepted to trigger an OAuth Connect flow."
+        },
+        "tokenExchangeAPI": {
+          "$ref": "#/$defs/InvokeAPI-payload",
+          "description": "If the server needs access to the access/refresh token, the OAuth token exchange API can be specified. Please see Ensemble's documentation regarding the expected request/response format."
+        },
+        "onAuthorized": {
+          "$ref": "#/$defs/Action-payload"
+        },
+        "onError": {
+          "$ref": "#/$defs/Action-payload"
         }
       }
     },
     "Button-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "label": {
           "type": "string",
           "description": "The button label"
@@ -1059,6 +1358,10 @@
     "IconButton-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "icon": {
           "$ref": "#/$defs/HasIcon"
         },
@@ -1073,6 +1376,10 @@
     "Address-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "showRecent": {
           "type": "boolean",
           "description": "Whether to show the recent searches (default True)"
@@ -1111,6 +1418,10 @@
         },
         {
           "properties": {
+            "id": {
+              "type": "string",
+              "description": "A unique identifier for this widget"
+            },
             "onItemTap": {
               "$ref": "#/$defs/Action-payload",
               "description": "Call Ensemble's built-in functions or execute code when tapping on an item in the list."
@@ -1152,12 +1463,22 @@
     "ToggleButton-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "value": {
           "description": "Set a default value that matches one of the items. If Items are Objects, it should match the value key"
         },
         "items": {
           "type": "array",
-          "description": "List of values, or Objects with value/label pairs"
+          "description": "List of values, or Objects with value/label pairs",
+          "items": {
+            "type": "string",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
         },
         "onChange": {
           "$ref": "#/$defs/Action-payload",
@@ -1221,6 +1542,10 @@
         "children"
       ],
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
         "enabled": {
           "type": "boolean"
         },
@@ -1285,6 +1610,10 @@
             "children"
           ],
           "properties": {
+            "id": {
+              "type": "string",
+              "description": "A unique identifier for this widget"
+            },
             "children": {
               "$ref": "#/$defs/Widgets"
             },
@@ -1314,6 +1643,10 @@
         },
         {
           "properties": {
+            "id": {
+              "type": "string",
+              "description": "A unique identifier for this widget"
+            },
             "children": {
               "$ref": "#/$defs/Widgets"
             },
@@ -1335,6 +1668,10 @@
         },
         {
           "properties": {
+            "id": {
+              "type": "string",
+              "description": "A unique identifier for this widget"
+            },
             "children": {
               "$ref": "#/$defs/Widgets"
             },
@@ -1353,6 +1690,10 @@
         },
         {
           "properties": {
+            "id": {
+              "type": "string",
+              "description": "A unique identifier for this widget"
+            },
             "onItemTap": {
               "$ref": "#/$defs/Action-payload",
               "description": "Call Ensemble's built-in functions or execute code when tapping on an item in the list."
@@ -1421,6 +1762,10 @@
         },
         {
           "properties": {
+            "id": {
+              "type": "string",
+              "description": "A unique identifier for this widget"
+            },
             "children": {
               "$ref": "#/$defs/Widgets"
             },
@@ -1736,6 +2081,10 @@
             "children"
           ],
           "properties": {
+            "id": {
+              "type": "string",
+              "description": "A unique identifier for this widget"
+            },
             "children": {
               "$ref": "#/$defs/Widgets"
             },
@@ -1803,6 +2152,10 @@
             "children"
           ],
           "properties": {
+            "id": {
+              "type": "string",
+              "description": "A unique identifier for this widget"
+            },
             "children": {
               "$ref": "#/$defs/Widgets"
             },
@@ -2239,6 +2592,63 @@
           }
         },
         {
+          "title": "Open Plaid Link",
+          "type": "object",
+          "required": [
+            "openPlaidLink"
+          ],
+          "properties": {
+            "openPlaidLink": {
+              "type": "object",
+              "description": "It will open the Plaid Link Service",
+              "required": [
+                "linkToken"
+              ],
+              "properties": {
+                "linkToken": {
+                  "type": "string",
+                  "description": "Enter the Plaid Link Token. It can be created from /link/token/create endpoint of Plaid"
+                },
+                "onSuccess": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when a user successfully links an Item"
+                },
+                "onEvent": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when certain events in the Plaid Link flow have occurred, for example, when the user selected an institution. This enables your application to gain further insight into what is going on as the user goes through the Plaid Link flow"
+                },
+                "onExit": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when a user exits Link without successfully linking an Item, or when an error occurs during Link initialization"
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Get Phone Contacts",
+          "type": "object",
+          "required": [
+            "getPhoneContacts"
+          ],
+          "properties": {
+            "getPhoneContacts": {
+              "type": "object",
+              "description": "It allows to get the contacts from the device",
+              "properties": {
+                "onSuccess": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when it's fetched the device contacts successfully"
+                },
+                "onError": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when the action failed to get the device contacts"
+                }
+              }
+            }
+          }
+        },
+        {
           "title": "Open URL",
           "type": "object",
           "required": [
@@ -2269,37 +2679,7 @@
           ],
           "properties": {
             "invokeAPI": {
-              "type": "object",
-              "description": "Calling an API",
-              "required": [
-                "name"
-              ],
-              "properties": {
-                "id": {
-                  "type": "string",
-                  "description": "Give the API an ID allows you to bind to its result. e.g. ${apiId.body...}"
-                },
-                "name": {
-                  "type": "string",
-                  "description": "Enter the name of your defined API"
-                },
-                "inputs": {
-                  "type": "object",
-                  "description": "Specify the key/value pairs to pass to the API",
-                  "properties": {},
-                  "additionalProperties": {
-                    "type": "string"
-                  }
-                },
-                "onResponse": {
-                  "$ref": "#/$defs/Action-payload",
-                  "description": "Execute another Action upon API's successful response"
-                },
-                "onError": {
-                  "$ref": "#/$defs/Action-payload",
-                  "description": "Execute an Action when the API completes with error(s)"
-                }
-              }
+              "$ref": "#/$defs/InvokeAPI-payload"
             }
           }
         },
@@ -2970,11 +3350,13 @@
               }
             }
           }
-        }, 
+        },
         {
           "title": "Initialize notification",
           "type": "object",
-          "required": ["requestNotificationAccess"],
+          "required": [
+            "requestNotificationAccess"
+          ],
           "properties": {
             "requestNotificationAccess": {
               "type": "object",
@@ -2995,7 +3377,9 @@
         {
           "title": "Show Notification",
           "type": "object",
-          "required": ["showNotification"],
+          "required": [
+            "showNotification"
+          ],
           "properties": {
             "showNotification": {
               "type": "object",
@@ -3016,12 +3400,17 @@
         {
           "title": "Notification",
           "type": "object",
-          "required": ["notification"],
+          "required": [
+            "notification"
+          ],
           "properties": {
             "notification": {
               "type": "object",
               "description": "Handling notifications.",
-              "required" : ["onTap", "onReceive"],
+              "required": [
+                "onTap",
+                "onReceive"
+              ],
               "properties": {
                 "onTap": {
                   "$ref": "#/$defs/Action-payload",
@@ -3030,6 +3419,40 @@
                 "onReceive": {
                   "$ref": "#/$defs/Action-payload",
                   "description": "Execute an Action on notification is receive."
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "CheckPermission",
+          "type": "object",
+          "required": [
+            "checkPermission"
+          ],
+          "properties": {
+            "checkPermission": {
+              "type": "object",
+              "description": "Check for user permissions for certain device capabilities",
+              "required": [
+                "type"
+              ],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["notification"]
+                },
+                "onAuthorized": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action if this permission was authorized by the user."
+                },
+                "onDenied": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action if this permission was denied by the user."
+                },
+                "onNotDetermined": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action if we can't determine the permission's status. Note that this state is not applicable on Android."
                 }
               }
             }
@@ -3377,6 +3800,18 @@
           }
         },
         {
+          "title": "Slider",
+          "required": [
+            "Slider"
+          ],
+          "properties": {
+            "Slider": {
+              "$ref": "#/$defs/Slider-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/3f4ba37a-0e6a-46a1-9b78-e4e04c84937d#"
+            }
+          }
+        },
+        {
           "title": "Dropdown",
           "required": [
             "Dropdown"
@@ -3420,6 +3855,39 @@
           "properties": {
             "SignInWithGoogle": {
               "$ref": "#/$defs/SignInWithGoogle-payload"
+            }
+          }
+        },
+        {
+          "title": "SignInWithApple",
+          "required": [
+            "SignInWithApple"
+          ],
+          "properties": {
+            "SignInWithApple": {
+              "$ref": "#/$defs/SignInWithApple-payload"
+            }
+          }
+        },
+        {
+          "title": "ConnectWithGoogle",
+          "required": [
+            "ConnectWithGoogle"
+          ],
+          "properties": {
+            "ConnectWithGoogle": {
+              "$ref": "#/$defs/ConnectWithGoogle-payload"
+            }
+          }
+        },
+        {
+          "title": "ConnectWithMicrosoft",
+          "required": [
+            "ConnectWithMicrosoft"
+          ],
+          "properties": {
+            "ConnectWithMicrosoft": {
+              "$ref": "#/$defs/ConnectWithMicrosoft-payload"
             }
           }
         },
@@ -3690,14 +4158,46 @@
                 "conditions": {
                   "type": "array",
                   "items": {
-                    "type": "object",
-                    "properties": {
-                      "if": {
-                        "type": "string"
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "if": {
+                            "type": "string"
+                          },
+                          "allOf": [
+                            {
+                              "$ref": "#/$defs/Widget"
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "elseif": {
+                            "type": "string"
+                          },
+                          "allOf": [
+                            {
+                              "$ref": "#/$defs/Widget"
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "else": {
+                            "type": "string"
+                          },
+                          "allOf": [
+                            {
+                              "$ref": "#/$defs/Widget"
+                            }
+                          ]
+                        }
                       }
-                    },
-                    "required": [
-                      "if"
                     ]
                   }
                 }
@@ -3756,6 +4256,10 @@
     "TabBar-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for this widget"
+        },
         "styles": {
           "allOf": [
             {
@@ -3861,6 +4365,10 @@
     "Maps-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for this widget"
+        },
         "styles": {
           "allOf": [
             {
@@ -4047,6 +4555,10 @@
     "Video-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for this widget"
+        },
         "source": {
           "type": "string",
           "description": "The URL source to the media file"
@@ -4056,6 +4568,10 @@
     "WebView-payload": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier for this widget"
+        },
         "url": {
           "type": "string"
         },
@@ -4103,6 +4619,39 @@
         "config": {
           "type": "string",
           "description": "Chartjs config. \nSee this for an example - https://www.chartjs.org/docs/latest/configuration/"
+        }
+      }
+    },
+    "InvokeAPI-payload": {
+      "type": "object",
+      "description": "Calling an API",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Give the API an ID allows you to bind to its result. e.g. ${apiId.body...}"
+        },
+        "name": {
+          "type": "string",
+          "description": "Enter the name of your defined API"
+        },
+        "inputs": {
+          "type": "object",
+          "description": "Specify the key/value pairs to pass to the API",
+          "properties": {},
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "onResponse": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Execute another Action upon API's successful response"
+        },
+        "onError": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Execute an Action when the API completes with error(s)"
         }
       }
     },

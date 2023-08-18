@@ -141,4 +141,10 @@ class NotificationUtilsMobile implements NotificationUtilsBase {
       log('No context or action to handle remote notification');
     }
   }
+
+  @override
+  Future<bool?> hasPermission() {
+    // we check for permission on Native using Firebase, so no-op here
+    return Future.value(null);
+  }
 }
