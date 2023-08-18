@@ -1,6 +1,7 @@
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/permissions_manager.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -207,6 +208,73 @@ class ShowBottomModalAction extends EnsembleAction {
       widget: payload['widget'],
       styles: Utils.getMap(payload['styles']),
       options: Utils.getMap(payload['options']),
+    );
+  }
+}
+
+class PlaidLinkAction extends EnsembleAction {
+  PlaidLinkAction({
+    super.initiator,
+    required this.linkToken,
+    this.onSuccess,
+    this.onEvent,
+    this.onExit,
+  });
+
+  final String linkToken;
+  final EnsembleAction? onSuccess;
+  final EnsembleAction? onEvent;
+  final EnsembleAction? onExit;
+
+  String getLinkToken(dataContext) =>
+      Utils.getString(dataContext.eval(linkToken), fallback: '');
+
+  factory PlaidLinkAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
+    if (payload == null || payload['linkToken'] == null) {
+      throw LanguageError(
+          "${ActionType.openPlaidLink.name} action requires the plaid's link_token");
+    }
+
+    return PlaidLinkAction(
+      initiator: initiator,
+      linkToken: payload['linkToken'],
+      onSuccess: EnsembleAction.fromYaml(payload['onSuccess']),
+      onEvent: EnsembleAction.fromYaml(payload['onEvent']),
+      onExit: EnsembleAction.fromYaml(payload['onExit']),
+    );
+  }
+}
+
+class PhoneContactAction extends EnsembleAction {
+  PhoneContactAction({
+    super.initiator,
+    this.id,
+    this.onSuccess,
+    this.onError,
+  });
+
+  final String? id;
+  final EnsembleAction? onSuccess;
+  final EnsembleAction? onError;
+
+  EnsembleAction? getOnSuccess(DataContext dataContext) =>
+      dataContext.eval(onSuccess);
+
+  EnsembleAction? getOnError(DataContext dataContext) =>
+      dataContext.eval(onError);
+
+  factory PhoneContactAction.fromYaml(
+      {Invokable? initiator, YamlMap? payload}) {
+    if (payload == null) {
+      throw LanguageError(
+          "${ActionType.getPhoneContacts.name} action requires payload");
+    }
+
+    return PhoneContactAction(
+      initiator: initiator,
+      id: Utils.optionalString(payload['id']),
+      onSuccess: EnsembleAction.fromYaml(payload['onSuccess']),
+      onError: EnsembleAction.fromYaml(payload['onError']),
     );
   }
 }
@@ -612,6 +680,34 @@ class ShowNotificationAction extends EnsembleAction {
   }
 }
 
+class CheckPermission extends EnsembleAction {
+  CheckPermission(
+      {required dynamic type,
+      this.onAuthorized,
+      this.onDenied,
+      this.onNotDetermined})
+      : _type = type;
+  final dynamic _type;
+  final EnsembleAction? onAuthorized;
+  final EnsembleAction? onDenied;
+  final EnsembleAction? onNotDetermined;
+
+  Permission? getType(DataContext dataContext) =>
+      Permission.values.from(dataContext.eval(_type));
+
+  factory CheckPermission.fromYaml({YamlMap? payload}) {
+    if (payload == null || payload['type'] == null) {
+      throw ConfigError('checkPermission requires a type.');
+    }
+    return CheckPermission(
+      type: payload['type'],
+      onAuthorized: EnsembleAction.fromYaml(payload['onAuthorized']),
+      onDenied: EnsembleAction.fromYaml(payload['onDenied']),
+      onNotDetermined: EnsembleAction.fromYaml(payload['onNotDetermined']),
+    );
+  }
+}
+
 enum ActionType {
   invokeAPI,
   navigateScreen,
@@ -635,6 +731,9 @@ enum ActionType {
   requestNotificationAccess,
   showNotification,
   copyToClipboard,
+  openPlaidLink,
+  getPhoneContacts,
+  checkPermission
 }
 
 enum ToastType { success, error, warning, info }
@@ -728,6 +827,13 @@ abstract class EnsembleAction {
       return RequestNotificationAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.copyToClipboard) {
       return CopyToClipboardAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.openPlaidLink) {
+      return PlaidLinkAction.fromYaml(initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.getPhoneContacts) {
+      return PhoneContactAction.fromYaml(
+          initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.checkPermission) {
+      return CheckPermission.fromYaml(payload: payload);
     }
     throw LanguageError("Invalid action.",
         recovery: "Make sure to use one of Ensemble-provided actions.");
