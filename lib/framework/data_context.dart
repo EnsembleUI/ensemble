@@ -361,12 +361,16 @@ class NativeInvokable with Invokable {
   }
 
   Future<void> saveToKeychain(String key, String value) async {
-    try {
-      const platform = MethodChannel('com.ensembleui.dev/safari-extension');
-      final dynamic result =
-          await platform.invokeMethod('saveToKeychain', {key: value});
-    } on PlatformException catch (e) {
-      print('Failed to get value: ${e.message}.');
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      try {
+        const platform = MethodChannel('com.ensembleui.dev/safari-extension');
+        final _ = await platform.invokeMethod('saveToKeychain', {key: value});
+      } on PlatformException catch (e) {
+        throw LanguageError(
+            'Failed to invoke ensemble.saveToKeychain. Reason: ${e.toString()}');
+      }
+    } else {
+      throw LanguageError('ensemble.saveToKeychain is only supported for iOS');
     }
   }
 
