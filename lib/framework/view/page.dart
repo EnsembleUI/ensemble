@@ -337,10 +337,7 @@ class PageState extends State<Page> {
           bottomNavigationBar: _bottomNavBar,
           drawer: _drawer,
           endDrawer: _endDrawer,
-          bottomSheet: Padding(
-            padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom),
-            child: _buildFooter(_scopeManager, widget._pageModel),
+          bottomSheet: _buildFooter(_scopeManager, widget._pageModel,
           ),
           floatingActionButton: closeModalButton,
           floatingActionButtonLocation:
