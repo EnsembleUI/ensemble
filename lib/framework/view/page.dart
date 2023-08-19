@@ -278,6 +278,7 @@ class PageState extends State<Page> {
       // sidebar navBar will be rendered as part of the body
     }
 
+    LinearGradient? backgroundGradient = Utils.getBackgroundGradient(widget._pageModel.pageStyles?['backgroundGradient']);
     Color? backgroundColor =
         Utils.getColor(widget._pageModel.pageStyles?['backgroundColor']);
     // if we have a background image, set the background color to transparent
@@ -286,7 +287,7 @@ class PageState extends State<Page> {
         .eval(widget._pageModel.pageStyles?['backgroundImage']);
     BackgroundImage? backgroundImage =
         Utils.getBackgroundImage(evaluatedBackgroundImg);
-    if (backgroundImage != null && backgroundColor == null) {
+    if (backgroundImage != null || backgroundGradient != null) {
       backgroundColor = Colors.transparent;
     }
 
@@ -352,6 +353,12 @@ class PageState extends State<Page> {
       return Stack(
         children: [Positioned.fill(child: backgroundImage.asImageWidget), rtn],
       );
+    } else if (backgroundGradient != null) {
+      return Scaffold(
+        resizeToAvoidBottomInset: false,
+        body: Container(
+          decoration: BoxDecoration(gradient: backgroundGradient),
+          child: rtn));
     }
     return rtn;
   }

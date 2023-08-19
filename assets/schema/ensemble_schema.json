@@ -103,11 +103,7 @@
         "styles": {
           "allOf": [
             {
-              "$ref": "#/$defs/backgroundImage"
-            },
-            {
-              "$ref": "#/$defs/backgroundColor",
-              "description": "Background color for the screen starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+              "$ref": "#/$defs/HasBackground"
             },
             {
               "properties": {
