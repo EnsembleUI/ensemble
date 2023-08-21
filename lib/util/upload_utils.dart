@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:ensemble/framework/data_context.dart' hide MediaType;
 import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/util/notification_utils.dart';
+import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
@@ -57,13 +58,14 @@ class UploadUtils {
       final mimeType =
           lookupMimeType(file.path ?? '', headerBytes: file.bytes) ??
               'application/octet-stream';
-      if (file.path != null) {
-        multipartFile = await http.MultipartFile.fromPath(fieldName, file.path!,
-            filename: file.name, contentType: MediaType.parse(mimeType));
-      } else if (file.bytes != null) {
+      if (file.bytes != null) {
         multipartFile = http.MultipartFile.fromBytes(fieldName, file.bytes!,
             filename: file.name, contentType: MediaType.parse(mimeType));
+      } else if (file.path != null) {
+        multipartFile = await http.MultipartFile.fromPath(fieldName, file.path!,
+            filename: file.name, contentType: MediaType.parse(mimeType));
       } else {
+        debugPrint('Failed to add ${file.name} ${file.ext} ${file.path}');
         continue;
       }
 
