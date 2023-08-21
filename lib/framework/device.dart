@@ -20,8 +20,7 @@ class Device
         Invokable,
         MediaQueryCapability,
         LocationCapability,
-        DeviceInfoCapability,
-        AppSetting {
+        DeviceInfoCapability {
   static final Device _instance = Device._internal();
   Device._internal();
   factory Device() {
@@ -48,12 +47,20 @@ class Device
 
   @override
   Map<String, Function> methods() {
-    return {};
+    return {
+      'openAppSettings': (target) => openAppSettings(target),
+    };
   }
 
   @override
   Map<String, Function> setters() {
     return {};
+  }
+
+  void openAppSettings(String target) {
+    final settingType =
+        AppSettingsType.values.from(target) ?? AppSettingsType.settings;
+    AppSettings.openAppSettings(type: settingType);
   }
 }
 
@@ -241,31 +248,6 @@ class Location with Invokable {
           (distance > 1 ? ' miles' : ' mile');
     }
     return '';
-  }
-}
-
-class AppSetting with Invokable {
-  @override
-  Map<String, Function> getters() {
-    return {};
-  }
-
-  @override
-  Map<String, Function> setters() {
-    return {};
-  }
-
-  @override
-  Map<String, Function> methods() {
-    return {
-      'openAppSettings': openAppSettings,
-    };
-  }
-
-  void openAppSettings(String type) {
-    final settingType =
-        AppSettingsType.values.from(type) ?? AppSettingsType.settings;
-    AppSettings.openAppSettings(type: settingType);
   }
 }
 
