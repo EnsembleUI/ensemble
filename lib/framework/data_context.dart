@@ -351,7 +351,9 @@ class NativeInvokable with Invokable {
       'updateSystemAuthorizationToken': (token) =>
           GetIt.instance<TokenManager>()
               .updateServiceTokens(OAuthService.system, token),
-      'saveToKeychain': (key, value) => saveToKeychain(key, value),
+      ActionType.saveToKeychain.name: (key, value) =>
+          saveToKeychain(key, value),
+      ActionType.clearKeychain.name: (key) => clearKeychain(key),
     };
   }
 
@@ -364,13 +366,29 @@ class NativeInvokable with Invokable {
     if (defaultTargetPlatform == TargetPlatform.iOS) {
       try {
         const platform = MethodChannel('com.ensembleui.dev/safari-extension');
-        final _ = await platform.invokeMethod('saveToKeychain', {key: value});
+        final _ = await platform
+            .invokeMethod(ActionType.saveToKeychain.name, {key: value});
       } on PlatformException catch (e) {
         throw LanguageError(
             'Failed to invoke ensemble.saveToKeychain. Reason: ${e.toString()}');
       }
     } else {
       throw LanguageError('ensemble.saveToKeychain is only supported for iOS');
+    }
+  }
+
+  Future<void> clearKeychain(String key) async {
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      try {
+        const platform = MethodChannel('com.ensembleui.dev/safari-extension');
+        final _ =
+            await platform.invokeMethod(ActionType.clearKeychain.name, key);
+      } on PlatformException catch (e) {
+        throw LanguageError(
+            'Failed to invoke ensemble.clearKeychain. Reason: ${e.toString()}');
+      }
+    } else {
+      throw LanguageError('ensemble.clearKeychain is only supported for iOS');
     }
   }
 

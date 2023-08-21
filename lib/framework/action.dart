@@ -733,7 +733,9 @@ enum ActionType {
   copyToClipboard,
   openPlaidLink,
   getPhoneContacts,
-  checkPermission
+  checkPermission,
+  saveToKeychain,
+  clearKeychain,
 }
 
 enum ToastType { success, error, warning, info }
