@@ -17,6 +17,7 @@ import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/permissions_manager.dart';
 import 'package:ensemble/framework/stub/camera_manager.dart';
 import 'package:ensemble/framework/stub/file_manager.dart';
 import 'package:ensemble/framework/scope.dart';
@@ -563,6 +564,25 @@ class ScreenController {
       }
     } else if (action is AuthorizeOAuthAction) {
       // TODO
+    } else if (action is CheckPermission) {
+      Permission? type = action.getType(dataContext);
+      if (type == null) {
+        throw RuntimeError('checkPermission requires a type.');
+      }
+      bool? result = await PermissionsManager().hasPermission(type);
+      if (result == true) {
+        if (action.onAuthorized != null) {
+          executeAction(context, action.onAuthorized!);
+        }
+      } else if (result == false) {
+        if (action.onDenied != null) {
+          executeAction(context, action.onDenied!);
+        }
+      } else {
+        if (action.onNotDetermined != null) {
+          executeAction(context, action.onNotDetermined!);
+        }
+      }
     }
   }
 

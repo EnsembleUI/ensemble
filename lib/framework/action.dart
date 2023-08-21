@@ -2,6 +2,7 @@ import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/permissions_manager.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -266,6 +267,40 @@ class AppSettingAction extends EnsembleAction {
     return AppSettingAction(
       initiator: initiator,
       target: Utils.getString(payload['target'], fallback: ''),
+    );
+  }
+}
+
+class PhoneContactAction extends EnsembleAction {
+  PhoneContactAction({
+    super.initiator,
+    this.id,
+    this.onSuccess,
+    this.onError,
+  });
+
+  final String? id;
+  final EnsembleAction? onSuccess;
+  final EnsembleAction? onError;
+
+  EnsembleAction? getOnSuccess(DataContext dataContext) =>
+      dataContext.eval(onSuccess);
+
+  EnsembleAction? getOnError(DataContext dataContext) =>
+      dataContext.eval(onError);
+
+  factory PhoneContactAction.fromYaml(
+      {Invokable? initiator, YamlMap? payload}) {
+    if (payload == null) {
+      throw LanguageError(
+          "${ActionType.getPhoneContacts.name} action requires payload");
+    }
+
+    return PhoneContactAction(
+      initiator: initiator,
+      id: Utils.optionalString(payload['id']),
+      onSuccess: EnsembleAction.fromYaml(payload['onSuccess']),
+      onError: EnsembleAction.fromYaml(payload['onError']),
     );
   }
 }
@@ -671,6 +706,34 @@ class ShowNotificationAction extends EnsembleAction {
   }
 }
 
+class CheckPermission extends EnsembleAction {
+  CheckPermission(
+      {required dynamic type,
+      this.onAuthorized,
+      this.onDenied,
+      this.onNotDetermined})
+      : _type = type;
+  final dynamic _type;
+  final EnsembleAction? onAuthorized;
+  final EnsembleAction? onDenied;
+  final EnsembleAction? onNotDetermined;
+
+  Permission? getType(DataContext dataContext) =>
+      Permission.values.from(dataContext.eval(_type));
+
+  factory CheckPermission.fromYaml({YamlMap? payload}) {
+    if (payload == null || payload['type'] == null) {
+      throw ConfigError('checkPermission requires a type.');
+    }
+    return CheckPermission(
+      type: payload['type'],
+      onAuthorized: EnsembleAction.fromYaml(payload['onAuthorized']),
+      onDenied: EnsembleAction.fromYaml(payload['onDenied']),
+      onNotDetermined: EnsembleAction.fromYaml(payload['onNotDetermined']),
+    );
+  }
+}
+
 enum ActionType {
   invokeAPI,
   navigateScreen,
@@ -696,6 +759,8 @@ enum ActionType {
   copyToClipboard,
   openPlaidLink,
   openAppSettings,
+  getPhoneContacts,
+  checkPermission
 }
 
 enum ToastType { success, error, warning, info }
@@ -793,6 +858,11 @@ abstract class EnsembleAction {
       return PlaidLinkAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.openAppSettings) {
       return AppSettingAction.fromYaml(initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.getPhoneContacts) {
+      return PhoneContactAction.fromYaml(
+          initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.checkPermission) {
+      return CheckPermission.fromYaml(payload: payload);
     }
     throw LanguageError("Invalid action.",
         recovery: "Make sure to use one of Ensemble-provided actions.");

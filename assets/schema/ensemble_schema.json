@@ -103,11 +103,7 @@
         "styles": {
           "allOf": [
             {
-              "$ref": "#/$defs/backgroundImage"
-            },
-            {
-              "$ref": "#/$defs/backgroundColor",
-              "description": "Background color for the screen starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+              "$ref": "#/$defs/HasBackground"
             },
             {
               "properties": {
@@ -1005,6 +1001,39 @@
           ]
         }
       }
+    },
+    "Slider-payload": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/FormInput-payload"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "initialValue": {
+              "type": "integer",
+              "description": "Initial value where the slider thumb will start"
+            },
+            "min": {
+              "type": "integer", 
+              "description": "Minimum value the user can pick"
+            },
+            "max": {
+              "type": "integer",
+              "description": "Maximum value the user can pick"
+            },
+            "divisions": {
+              "type": "integer",
+              "description": "If set slider will be divided into number passed to divisions else it will be continuous"
+            },
+            "onChange": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Dispatch an action whenever slider is updated"
+            }
+          }
+        }
+      ]
     },
     "OnOff-payload": {
       "type": "object",
@@ -3390,6 +3419,40 @@
               }
             }
           }
+        },
+        {
+          "title": "CheckPermission",
+          "type": "object",
+          "required": [
+            "checkPermission"
+          ],
+          "properties": {
+            "checkPermission": {
+              "type": "object",
+              "description": "Check for user permissions for certain device capabilities",
+              "required": [
+                "type"
+              ],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["notification"]
+                },
+                "onAuthorized": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action if this permission was authorized by the user."
+                },
+                "onDenied": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action if this permission was denied by the user."
+                },
+                "onNotDetermined": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action if we can't determine the permission's status. Note that this state is not applicable on Android."
+                }
+              }
+            }
+          }
         }
       ]
     },
@@ -3728,6 +3791,18 @@
           "properties": {
             "Switch": {
               "$ref": "#/$defs/OnOff-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/3f4ba37a-0e6a-46a1-9b78-e4e04c84937d#"
+            }
+          }
+        },
+        {
+          "title": "Slider",
+          "required": [
+            "Slider"
+          ],
+          "properties": {
+            "Slider": {
+              "$ref": "#/$defs/Slider-payload",
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/3f4ba37a-0e6a-46a1-9b78-e4e04c84937d#"
             }
           }
