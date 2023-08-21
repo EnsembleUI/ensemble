@@ -1,6 +1,9 @@
 import 'package:ensemble/util/notification_utils.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:geolocator/geolocator.dart';
+
+import 'device.dart';
 
 class PermissionsManager {
   static final PermissionsManager _instance = PermissionsManager._internal();
@@ -11,28 +14,48 @@ class PermissionsManager {
 
   Future<bool?> hasPermission(Permission type) async {
     bool? status;
-    if (type == Permission.notification) {
-      // firebase messaging does NOT work on Web's html-renderer
-      if (kIsWeb) {
-        status = await notificationUtils.hasPermission();
-      } else {
-        // use Firebase for status check all other platforms
-        var settings =
-            await FirebaseMessaging.instance.getNotificationSettings();
-        switch (settings.authorizationStatus) {
-          case AuthorizationStatus.authorized:
-          case AuthorizationStatus.provisional:
+
+    switch (type) {
+      case Permission.notification:
+        // firebase messaging does NOT work on Web's html-renderer
+        if (kIsWeb) {
+          status = await notificationUtils.hasPermission();
+        } else {
+          // use Firebase for status check all other platforms
+          var settings =
+              await FirebaseMessaging.instance.getNotificationSettings();
+          switch (settings.authorizationStatus) {
+            case AuthorizationStatus.authorized:
+            case AuthorizationStatus.provisional:
+              status = true;
+              break;
+            case AuthorizationStatus.denied:
+              status = false;
+              break;
+            case AuthorizationStatus.notDetermined:
+            default:
+              status = null;
+              break;
+          }
+        }
+      case Permission.location:
+        final locationPermission = await Geolocator.checkPermission();
+        switch (locationPermission) {
+          case LocationPermission.always:
+          case LocationPermission.whileInUse:
             status = true;
             break;
-          case AuthorizationStatus.denied:
+          case LocationPermission.denied:
+          case LocationPermission.deniedForever:
             status = false;
             break;
-          case AuthorizationStatus.notDetermined:
+          case LocationPermission.unableToDetermine:
           default:
             status = null;
             break;
         }
-      }
+      default:
+        return Future.value(status);
     }
     return Future.value(status);
   }
@@ -40,4 +63,5 @@ class PermissionsManager {
 
 enum Permission {
   notification,
+  location,
 }
