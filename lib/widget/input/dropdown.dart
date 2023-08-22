@@ -6,6 +6,7 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/input/form_helper.dart';
+import 'package:ensemble/widget/input/form_textfield.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -72,6 +73,10 @@ abstract class SelectOne extends StatefulWidget
   @override
   Map<String, Function> methods() {
     return {
+      'getValue': () => getValue(),
+      'clear': () => _controller.inputFieldAction?.clear(),
+      'focus': () => _controller.inputFieldAction?.focusInputField(),
+      'unfocus': () => _controller.inputFieldAction?.unfocusInputField(),
       'itemsFromString': (dynamic strValues, [dynamic delimiter = ',']) {
         setItemsFromString(strValues, delimiter);
       }
@@ -167,7 +172,14 @@ abstract class SelectOne extends StatefulWidget
 
 enum SelectOneType { dropdown }
 
+mixin SelectOneInputFieldAction on FormFieldWidgetState<SelectOne> {
+  void clear();
+  void focusInputField();
+  void unfocusInputField();
+}
+
 class SelectOneController extends FormFieldController {
+  SelectOneInputFieldAction? inputFieldAction;
   List<SelectOneItem>? items;
 
   // this is our value but it can be in an invalid state.
@@ -177,11 +189,15 @@ class SelectOneController extends FormFieldController {
   int gap = 0;
   bool autoComplete = false;
 
+  framework.EnsembleAction? clear;
   framework.EnsembleAction? onChange;
 }
 
-class SelectOneState extends FormFieldWidgetState<SelectOne> {
-  final focusNode = FocusNode();
+class SelectOneState extends FormFieldWidgetState<SelectOne>
+    with SelectOneInputFieldAction {
+  FocusNode focusNode = FocusNode();
+  TextEditingController textEditingController = TextEditingController();
+
   @override
   void initState() {
     // validate on blur
@@ -191,6 +207,18 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
       }
     });*/
     super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    widget.controller.inputFieldAction = this;
+  }
+
+  @override
+  void didUpdateWidget(covariant SelectOne oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    widget.controller.inputFieldAction = this;
   }
 
   @override
@@ -246,22 +274,25 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
     } else {
       rtn = LayoutBuilder(
           builder: (context, constraints) => RawAutocomplete<SelectOneItem>(
+                focusNode: focusNode,
+                textEditingController: textEditingController,
                 optionsBuilder: (TextEditingValue textEditingValue) =>
                     buildAutoCompleteOptions(textEditingValue),
                 displayStringForOption: (SelectOneItem option) =>
                     option.label ?? option.value,
                 fieldViewBuilder: (BuildContext context,
-                        TextEditingController fieldTextEditingController,
-                        FocusNode fieldFocusNode,
-                        VoidCallback onFieldSubmitted) =>
-                    TextField(
-                        enabled: isEnabled(),
-                        showCursor: true,
-                        style: const TextStyle(
-                            color: Colors.black, fontWeight: FontWeight.w500),
-                        controller: fieldTextEditingController,
-                        focusNode: fieldFocusNode,
-                        decoration: inputDecoration),
+                    TextEditingController fieldTextEditingController,
+                    FocusNode fieldFocusNode,
+                    VoidCallback onFieldSubmitted) {
+                  return TextField(
+                      enabled: isEnabled(),
+                      showCursor: true,
+                      style: const TextStyle(
+                          color: Colors.black, fontWeight: FontWeight.w500),
+                      controller: fieldTextEditingController,
+                      focusNode: fieldFocusNode,
+                      decoration: inputDecoration);
+                },
                 onSelected: (SelectOneItem selection) {
                   onSelectionChanged(selection.value);
                   if (kDebugMode) {
@@ -418,6 +449,26 @@ class SelectOneState extends FormFieldWidgetState<SelectOne> {
       return (i.abs() - 10).abs().toDouble();
     } else {
       return (i + 10).toDouble();
+    }
+  }
+
+  @override
+  void clear() {
+    onSelectionChanged(null);
+    textEditingController.clear();
+  }
+
+  @override
+  void focusInputField() {
+    if (!focusNode.hasFocus) {
+      focusNode.requestFocus();
+    }
+  }
+
+  @override
+  void unfocusInputField() {
+    if (focusNode.hasFocus) {
+      focusNode.unfocus();
     }
   }
 }

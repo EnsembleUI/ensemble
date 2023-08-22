@@ -1,20 +1,14 @@
-import 'package:ensemble/ensemble.dart';
-import 'package:ensemble/ensemble_theme.dart';
+import 'dart:math';
+
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
-import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/error_screen.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/page_model.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:get_storage/get_storage.dart';
 import 'package:yaml/yaml.dart';
-import 'package:provider/provider.dart';
-
-import '../../ensemble_app.dart';
 
 class Screen extends StatefulWidget {
   const Screen({super.key, required this.appProvider, this.screenPayload});
@@ -27,7 +21,7 @@ class Screen extends StatefulWidget {
 }
 
 class _ScreenState extends State<Screen> {
-  late Future<YamlMap> screenRequester;
+  late Future<ScreenDefinition> screenRequester;
 
   @override
   void initState() {
@@ -39,9 +33,6 @@ class _ScreenState extends State<Screen> {
   @override
   Widget build(BuildContext context) {
     //log("Screen build() - $hashCode (${Ensemble().deviceInfo.size.width} x ${Ensemble().deviceInfo.size.height})");
-
-    final bool isPreview = GetStorage().read(previewConfig) ?? false;
-
     return FutureBuilder(
         future: screenRequester,
         builder: (context, snapshot) {
@@ -64,11 +55,14 @@ class _ScreenState extends State<Screen> {
                             .extension<EnsembleThemeExtension>()
                             ?.loadingScreenIndicatorColor)));
           }
-          return renderScreen(PageModel.fromYaml(snapshot.data as YamlMap));
+          return renderScreen(snapshot.data!);
         });
   }
 
-  Widget renderScreen(PageModel pageModel) {
+  Widget renderScreen(ScreenDefinition screenDefinition) {
+    PageModel pageModel =
+        screenDefinition.getModel(widget.screenPayload?.arguments);
+
     // build the data context
     DataContext dataContext = DataContext(
         buildContext: context, initialMap: widget.screenPayload?.arguments);
@@ -103,5 +97,47 @@ class _ScreenState extends State<Screen> {
     }
 
     throw LanguageError("Invalid Screen Definition");
+  }
+}
+
+class ScreenDefinition {
+  ScreenDefinition(this._content);
+  final YamlMap _content;
+
+  PageModel getModel(Map<String, dynamic>? inputParams) {
+    YamlMap output = _content;
+
+    /// manipulate the screen definition to account for custom widget
+    if (_content.keys.length == 1 && _content['Widget'] != null) {
+      output = _getWidgetAsScreen(_content['Widget'], inputParams);
+    }
+    return PageModel.fromYaml(output);
+  }
+
+  /// wrap a widget so it can be displayed as if it's an actual Screen
+  YamlMap _getWidgetAsScreen(
+      YamlMap widgetContent, Map<String, dynamic>? inputParams) {
+    /// build the input map if specified
+    Map<String, dynamic>? inputMap;
+    if (widgetContent['inputs'] is List) {
+      for (var key in (widgetContent['inputs'] as List)) {
+        if (inputParams != null && inputParams.containsKey(key)) {
+          (inputMap ??= {})[key] = '\${$key}';
+        }
+      }
+    }
+
+    // use random name so we don't accidentally collide with other names
+    String randomWidgetName = "Widget${Random().nextInt(100)}";
+
+    return YamlMap.wrap({
+      'View': {
+        'styles': {'useSafeArea': true},
+        'body': {
+          randomWidgetName: inputMap == null ? null : {'inputs': inputMap}
+        }
+      },
+      randomWidgetName: widgetContent
+    });
   }
 }

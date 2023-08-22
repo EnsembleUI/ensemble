@@ -3,14 +3,13 @@ import 'dart:io';
 import 'dart:developer';
 
 import 'package:device_info_plus/device_info_plus.dart';
-import 'package:ensemble/ensemble_app.dart';
+import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:get_storage/get_storage.dart';
 import 'package:intl/intl.dart';
 
 /// get device information as well as requesting device permissions
@@ -40,7 +39,7 @@ class Device
       "viewInsetBottom": () => viewInsetBottom,
 
       // Misc Info
-      "platform": () => DeviceInfoCapability.platform,
+      "platform": () => platform?.name,
       DevicePlatform.web.name: () => DeviceWebInfo()
     };
   }
@@ -60,8 +59,7 @@ mixin MediaQueryCapability {
   static MediaQueryData? data;
 
   MediaQueryData _getData() {
-    final bool isPreview = GetStorage().read(previewConfig) ?? false;
-    if (isPreview) {
+    if (StorageManager().isPreview() == true) {
       return MediaQuery.of(Utils.globalAppKey.currentContext!);
     }
     data = MediaQuery.of(Utils.globalAppKey.currentContext!);
@@ -140,26 +138,26 @@ mixin LocationCapability {
 /// retrieve basic device info
 mixin DeviceInfoCapability {
   static final DeviceInfoPlugin _deviceInfoPlugin = DeviceInfoPlugin();
-  static DevicePlatform? platform;
+  static DevicePlatform? _platform;
   static WebBrowserInfo? browserInfo;
+
+  DevicePlatform? get platform => _platform;
 
   /// initialize device info
   void initDeviceInfo() async {
-    DevicePlatform? platform;
-    WebBrowserInfo? browserInfo;
     try {
       if (kIsWeb) {
-        platform = DevicePlatform.web;
+        _platform = DevicePlatform.web;
         browserInfo = await _deviceInfoPlugin.webBrowserInfo;
       } else {
         if (Platform.isAndroid) {
-          platform = DevicePlatform.android;
+          _platform = DevicePlatform.android;
         } else if (Platform.isIOS) {
-          platform = DevicePlatform.ios;
+          _platform = DevicePlatform.ios;
         } else if (Platform.isMacOS) {
-          platform = DevicePlatform.macos;
+          _platform = DevicePlatform.macos;
         } else if (Platform.isWindows) {
-          platform = DevicePlatform.windows;
+          _platform = DevicePlatform.windows;
         }
       }
     } on PlatformException {

@@ -50,6 +50,11 @@ mixin ThemeLoader {
           ),
         ),
       ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          textStyle: const TextStyle(fontSize: 16),
+        ),
+      ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
             textStyle: const TextStyle(fontSize: 16),

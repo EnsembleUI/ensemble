@@ -6,6 +6,7 @@ import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/framework/widget/icon.dart' as framework;
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/util/input_formatter.dart';
 import 'package:ensemble/util/input_validator.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/input/form_helper.dart';
@@ -17,6 +18,7 @@ import 'package:email_validator/email_validator.dart';
 import 'package:ensemble/framework/model.dart' as model;
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:form_validator/form_validator.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 /// TextInput
 class TextInput extends BaseTextInput {
@@ -31,6 +33,7 @@ class TextInput extends BaseTextInput {
       'obscureText': (obscure) =>
           _controller.obscureText = Utils.optionalBool(obscure),
       'inputType': (type) => _controller.inputType = Utils.optionalString(type),
+      'mask': (type) => _controller.mask = Utils.optionalString(type),
     });
     return setters;
   }
@@ -47,6 +50,14 @@ class TextInput extends BaseTextInput {
       return TextInputType.emailAddress;
     } else if (_controller.inputType == InputType.phone.name) {
       return TextInputType.phone;
+    } else if (_controller.inputType == InputType.number.name) {
+      return TextInputType.number;
+    } else if (_controller.inputType == InputType.text.name) {
+      return TextInputType.text;
+    } else if (_controller.inputType == InputType.url.name) {
+      return TextInputType.url;
+    } else if (_controller.inputType == InputType.datetime.name) {
+      return TextInputType.datetime;
     }
     return null;
   }
@@ -81,6 +92,7 @@ abstract class BaseTextInput extends StatefulWidget
   // textController manages 'value', while _controller manages the rest
   final TextEditingController textController = TextEditingController();
   final TextInputController _controller = TextInputController();
+
   @override
   TextInputController get controller => _controller;
 
@@ -117,7 +129,10 @@ abstract class BaseTextInput extends StatefulWidget
 
   @override
   Map<String, Function> methods() {
-    return {};
+    return {
+      'focus': () => _controller.inputFieldAction?.focusInputField(),
+      'unfocus': () => _controller.inputFieldAction?.unfocusInputField(),
+    };
   }
 
   TextInputAction? _getKeyboardAction(dynamic value) {
@@ -145,8 +160,14 @@ abstract class BaseTextInput extends StatefulWidget
   TextInputType? get keyboardType;
 }
 
+mixin TextInputFieldAction on FormFieldWidgetState<BaseTextInput> {
+  void focusInputField();
+  void unfocusInputField();
+}
+
 /// controller for both TextField and Password
 class TextInputController extends FormFieldController {
+  TextInputFieldAction? inputFieldAction;
   EnsembleAction? onChange;
   EnsembleAction? onKeyPress;
   TextInputAction? keyboardAction;
@@ -162,12 +183,14 @@ class TextInputController extends FormFieldController {
 
   model.InputValidator? validator;
   String? inputType;
+  String? mask;
   int maxLines = 1;
   TextStyle? textStyle;
   TextStyle? hintStyle;
 }
 
-class TextInputState extends FormFieldWidgetState<BaseTextInput> {
+class TextInputState extends FormFieldWidgetState<BaseTextInput>
+    with TextInputFieldAction {
   final focusNode = FocusNode();
 
   // for this widget we will implement onChange if the text changes AND:
@@ -224,6 +247,18 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    widget.controller.inputFieldAction = this;
+  }
+
+  @override
+  void didUpdateWidget(covariant BaseTextInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    widget.controller.inputFieldAction = this;
+  }
+
+  @override
   void dispose() {
     focusNode.dispose();
     super.dispose();
@@ -274,29 +309,8 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
                       'ensemble.input.required', 'This field is required')
                   : null;
             }
-            // only applicable for TextInput
-            if (!widget.isPassword() && value != null) {
-              if (widget._controller.inputType == InputType.email.name) {
-                if (!EmailValidator.validate(value)) {
-                  return Utils.translateWithFallback(
-                      'ensemble.input.validation.invalidEmailType',
-                      'Please enter a valid email address');
-                }
-              } else if (widget._controller.inputType ==
-                  InputType.ipAddress.name) {
-                if (!InputValidator.ipAddress(value)) {
-                  return Utils.translateWithFallback(
-                      'ensemble.input.validation.invalidIPAddressType',
-                      'Please enter a valid IP Address');
-                }
-              } else if (widget._controller.inputType == InputType.phone.name) {
-                if (!InputValidator.phone(value)) {
-                  return Utils.translateWithFallback(
-                      'ensemble.input.validation.invalidPhoneType',
-                      "Please enter a valid Phone Number");
-                }
-              }
-            }
+
+            // First we're using the validator to validate the TextInput Field
             if (widget._controller.validator != null) {
               ValidationBuilder? builder;
               if (widget._controller.validator?.minLength != null) {
@@ -323,10 +337,37 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
                 return builder.build().call(value);
               }
             }
+
+            // If validator is null, we can use our own validation based on the InputType
+            //only applicable for TextInput
+            if (!widget.isPassword()) {
+              if (widget._controller.inputType == InputType.email.name) {
+                if (!EmailValidator.validate(value)) {
+                  return Utils.translateWithFallback(
+                      'ensemble.input.validation.invalidEmailType',
+                      'Please enter a valid email address');
+                }
+              } else if (widget._controller.inputType ==
+                  InputType.ipAddress.name) {
+                if (!InputValidator.ipAddress(value)) {
+                  return Utils.translateWithFallback(
+                      'ensemble.input.validation.invalidIPAddressType',
+                      'Please enter a valid IP Address');
+                }
+              } else if (widget._controller.inputType == InputType.phone.name) {
+                if (!InputValidator.phone(value)) {
+                  return Utils.translateWithFallback(
+                      'ensemble.input.validation.invalidPhoneType',
+                      "Please enter a valid Phone Number");
+                }
+              }
+            }
             return null;
           },
           textInputAction: widget._controller.keyboardAction,
           keyboardType: widget.keyboardType,
+          inputFormatters: InputFormatter.getFormatter(
+              widget._controller.inputType, widget._controller.mask),
           maxLines: widget._controller.maxLines,
           obscureText: isObscureOrPlainText(),
           enableSuggestions: !widget.isPassword(),
@@ -358,6 +399,20 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput> {
           decoration: decoration,
         ));
   }
+
+  @override
+  void focusInputField() {
+    if (!focusNode.hasFocus) {
+      focusNode.requestFocus();
+    }
+  }
+
+  @override
+  void unfocusInputField() {
+    if (focusNode.hasFocus) {
+      focusNode.unfocus();
+    }
+  }
 }
 
-enum InputType { email, phone, ipAddress }
+enum InputType { email, phone, ipAddress, number, text, url, datetime }
