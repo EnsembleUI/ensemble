@@ -1,9 +1,9 @@
+import 'package:ensemble/framework/stub/contacts_manager.dart';
 import 'package:ensemble/util/notification_utils.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
-
-import 'device.dart';
+import 'package:get_it/get_it.dart';
 
 class PermissionsManager {
   static final PermissionsManager _instance = PermissionsManager._internal();
@@ -54,6 +54,14 @@ class PermissionsManager {
             status = null;
             break;
         }
+      case Permission.contacts:
+        try {
+          final granted = await GetIt.I<ContactManager>().requestPermission();
+          status = granted;
+        } catch (_) {
+          status = null;
+          break;
+        }
       default:
         return Future.value(status);
     }
@@ -64,4 +72,5 @@ class PermissionsManager {
 enum Permission {
   notification,
   location,
+  contacts,
 }
