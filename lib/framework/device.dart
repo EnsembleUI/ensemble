@@ -2,7 +2,9 @@ import 'dart:core';
 import 'dart:io';
 import 'dart:developer';
 
+import 'package:app_settings/app_settings.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -45,12 +47,20 @@ class Device
 
   @override
   Map<String, Function> methods() {
-    return {};
+    return {
+      'openAppSettings': (target) => openAppSettings(target),
+    };
   }
 
   @override
   Map<String, Function> setters() {
     return {};
+  }
+
+  void openAppSettings(String target) {
+    final settingType =
+        AppSettingsType.values.from(target) ?? AppSettingsType.settings;
+    AppSettings.openAppSettings(type: settingType);
   }
 }
 
