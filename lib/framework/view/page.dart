@@ -176,6 +176,8 @@ class PageState extends State<Page> {
         Utils.getBool(headerModel.styles?['centerTitle'], fallback: true);
     Color? backgroundColor =
         Utils.getColor(headerModel.styles?['backgroundColor']);
+    Color? surfaceTintColor =
+        Utils.getColor(headerModel.styles?['surfaceTintColor']);
     Color? color = Utils.getColor(headerModel.styles?['color']);
     Color? shadowColor = Utils.getColor(headerModel.styles?['shadowColor']);
     double? elevation =
@@ -202,6 +204,7 @@ class PageState extends State<Page> {
         title: titleWidget,
         centerTitle: centerTitle,
         backgroundColor: backgroundColor,
+        surfaceTintColor: surfaceTintColor,
         foregroundColor: color,
 
         // control the drop shadow on the header's bottom edge
@@ -275,13 +278,17 @@ class PageState extends State<Page> {
       // sidebar navBar will be rendered as part of the body
     }
 
+    LinearGradient? backgroundGradient = Utils.getBackgroundGradient(
+        widget._pageModel.pageStyles?['backgroundGradient']);
     Color? backgroundColor =
         Utils.getColor(widget._pageModel.pageStyles?['backgroundColor']);
     // if we have a background image, set the background color to transparent
     // since our image is outside the Scaffold
-    BackgroundImage? backgroundImage = Utils.getBackgroundImage(
-        widget._pageModel.pageStyles?['backgroundImage']);
-    if (backgroundImage != null && backgroundColor == null) {
+    dynamic evaluatedBackgroundImg = _scopeManager.dataContext
+        .eval(widget._pageModel.pageStyles?['backgroundImage']);
+    BackgroundImage? backgroundImage =
+        Utils.getBackgroundImage(evaluatedBackgroundImg);
+    if (backgroundImage != null || backgroundGradient != null) {
       backgroundColor = Colors.transparent;
     }
 
@@ -319,7 +326,7 @@ class PageState extends State<Page> {
     Widget rtn = DataScopeWidget(
       scopeManager: _scopeManager,
       child: Scaffold(
-          resizeToAvoidBottomInset: false,
+          resizeToAvoidBottomInset: true,
           // slight optimization, if body background is set, let's paint
           // the entire screen including the Safe Area
           backgroundColor: backgroundColor,
@@ -332,10 +339,9 @@ class PageState extends State<Page> {
           bottomNavigationBar: _bottomNavBar,
           drawer: _drawer,
           endDrawer: _endDrawer,
-          bottomSheet: Padding(
-            padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom),
-            child: _buildFooter(_scopeManager, widget._pageModel),
+          bottomSheet: _buildFooter(
+            _scopeManager,
+            widget._pageModel,
           ),
           floatingActionButton: closeModalButton,
           floatingActionButtonLocation:
@@ -350,6 +356,12 @@ class PageState extends State<Page> {
       return Stack(
         children: [Positioned.fill(child: backgroundImage.asImageWidget), rtn],
       );
+    } else if (backgroundGradient != null) {
+      return Scaffold(
+          resizeToAvoidBottomInset: false,
+          body: Container(
+              decoration: BoxDecoration(gradient: backgroundGradient),
+              child: rtn));
     }
     return rtn;
   }

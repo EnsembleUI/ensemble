@@ -7,6 +7,8 @@ import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/secrets.dart';
+import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/stub/oauth_controller.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/page_model.dart';
@@ -34,6 +36,29 @@ class Ensemble {
 
   late FirebaseApp ensembleFirebaseApp;
   static final Map<String, dynamic> externalDataContext = {};
+
+  /// initialize all the singleton/managers. Note that this function can be
+  /// called multiple times since it's being called inside a widget.
+  /// The actual code block to initialize the managers is guaranteed to run
+  /// at most once.
+  Completer<void>? _completer;
+  Future<void> initManagers() async {
+    // if currently pending or completed, wait till it finishes and do nothing.
+    if (_completer != null) {
+      return _completer!.future;
+    }
+
+    _completer = Completer<void>();
+    try {
+      // this code block is guaranteed to run at most once
+      await StorageManager().init();
+      await SecretsStore().initialize();
+      Device().initDeviceInfo();
+      _completer!.complete();
+    } catch (error) {
+      _completer!.completeError(error);
+    }
+  }
 
   void notifyAppBundleChanges() {
     _config?.updateAppBundle();
@@ -70,8 +95,7 @@ class Ensemble {
       // These are not secrets so OK to include here.
       // https://firebase.google.com/docs/projects/api-keys#api-keys-for-firebase-are-different
       ensembleFirebaseApp = await Firebase.initializeApp(
-          // Firebase.apps will throw exception on Web if initializeApp has not been called before
-          // name: Firebase.apps.isNotEmpty ? 'ensemble' : null,
+          name: getFirebaseName,
           options: const FirebaseOptions(
               apiKey: 'AIzaSyBAZ7wf436RSbcXvhhfg7e4TUh6A2SKve8',
               appId: '1:326748243798:ios:30f2a4f824dc58ea94b8f7',
@@ -176,6 +200,16 @@ class Ensemble {
     } else {
       throw ConfigError(
           "Definitions needed to be defined as 'local', 'remote', or 'ensemble'");
+    }
+  }
+
+  String? get getFirebaseName {
+    try {
+      return Firebase.apps.isNotEmpty ? 'ensemble' : null;
+    } catch (e) {
+      /// Firebase flutter web implementation throws error of uninitialized project
+      /// When project is no initialized which means we can set ensemble as primary project
+      return null;
     }
   }
 

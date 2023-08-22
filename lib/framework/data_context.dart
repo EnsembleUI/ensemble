@@ -351,12 +351,23 @@ class NativeInvokable with Invokable {
       'updateSystemAuthorizationToken': (token) =>
           GetIt.instance<TokenManager>()
               .updateServiceTokens(OAuthService.system, token),
+      'saveToKeychain': (key, value) => saveToKeychain(key, value),
     };
   }
 
   @override
   Map<String, Function> setters() {
     return {};
+  }
+
+  Future<void> saveToKeychain(String key, String value) async {
+    try {
+      const platform = MethodChannel('com.ensembleui.dev/safari-extension');
+      final dynamic result =
+          await platform.invokeMethod('saveToKeychain', {key: value});
+    } on PlatformException catch (e) {
+      print('Failed to get value: ${e.message}.');
+    }
   }
 
   void uploadFiles(dynamic inputs) {
