@@ -2668,6 +2668,41 @@
           }
         },
         {
+          "title": "Open App Settings",
+          "type": "object",
+          "properties": {
+            "target": {
+              "type": "string",
+              "description": "To open the app settings with the targets",
+              "enum": [
+                "settings",
+                "notification",
+                "subscriptions",
+                "accessibility",
+                "alarm",
+                "apn",
+                "batteryOptimization",
+                "bluetooth",
+                "dataRoaming",
+                "date",
+                "developer",
+                "device",
+                "display",
+                "hotspot",
+                "internalStorage",
+                "location",
+                "lockAndPassword",
+                "nfc",
+                "security",
+                "sound",
+                "vpn",
+                "wifi",
+                "wireless"
+              ]
+            }
+          }
+        },
+        {
           "title": "Invoke API",
           "type": "object",
           "required": [

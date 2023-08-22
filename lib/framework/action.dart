@@ -259,14 +259,9 @@ class AppSettingAction extends EnsembleAction {
       AppSettingsType.settings;
 
   factory AppSettingAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
-    if (payload == null || payload['target'] == null) {
-      throw LanguageError(
-          "${ActionType.openAppSettings.name} action requires the app settings target");
-    }
-
     return AppSettingAction(
       initiator: initiator,
-      target: Utils.getString(payload['target'], fallback: ''),
+      target: Utils.getString(payload?['target'], fallback: 'settings'),
     );
   }
 }
