@@ -363,28 +363,29 @@ class NativeInvokable with Invokable {
   }
 
   Future<void> saveToKeychain(String key, String value) async {
-    if (defaultTargetPlatform == TargetPlatform.iOS) {
-      try {
-        const platform = MethodChannel('com.ensembleui.dev/safari-extension');
-        final _ = await platform
-            .invokeMethod(ActionType.saveToKeychain.name, {key: value});
-      } on PlatformException catch (e) {
-        throw LanguageError(
-            'Failed to invoke ensemble.saveToKeychain. Reason: ${e.toString()}');
-      }
+    if (defaultTargetPlatform != TargetPlatform.iOS) {
+      return;
+    }
+    try {
+      const platform = MethodChannel('com.ensembleui.dev/safari-extension');
+      final _ = await platform
+          .invokeMethod(ActionType.saveToKeychain.name, {key: value});
+    } on PlatformException catch (e) {
+      throw LanguageError(
+          'Failed to invoke ensemble.saveToKeychain. Reason: ${e.toString()}');
     }
   }
 
   Future<void> clearKeychain(String key) async {
-    if (defaultTargetPlatform == TargetPlatform.iOS) {
-      try {
-        const platform = MethodChannel('com.ensembleui.dev/safari-extension');
-        final _ =
-            await platform.invokeMethod(ActionType.clearKeychain.name, key);
-      } on PlatformException catch (e) {
-        throw LanguageError(
-            'Failed to invoke ensemble.clearKeychain. Reason: ${e.toString()}');
-      }
+    if (defaultTargetPlatform != TargetPlatform.iOS) {
+      return;
+    }
+    try {
+      const platform = MethodChannel('com.ensembleui.dev/safari-extension');
+      final _ = await platform.invokeMethod(ActionType.clearKeychain.name, key);
+    } on PlatformException catch (e) {
+      throw LanguageError(
+          'Failed to invoke ensemble.clearKeychain. Reason: ${e.toString()}');
     }
   }
 
