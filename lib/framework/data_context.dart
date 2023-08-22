@@ -372,8 +372,6 @@ class NativeInvokable with Invokable {
         throw LanguageError(
             'Failed to invoke ensemble.saveToKeychain. Reason: ${e.toString()}');
       }
-    } else {
-      throw LanguageError('ensemble.saveToKeychain is only supported for iOS');
     }
   }
 
@@ -387,8 +385,6 @@ class NativeInvokable with Invokable {
         throw LanguageError(
             'Failed to invoke ensemble.clearKeychain. Reason: ${e.toString()}');
       }
-    } else {
-      throw LanguageError('ensemble.clearKeychain is only supported for iOS');
     }
   }
 
