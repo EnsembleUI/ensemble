@@ -95,6 +95,7 @@ dependencies:
   dart_jsonwebtoken: ^2.8.2
   flutter_dotenv: ^5.1.0
   get_it: ^7.6.0
+  app_settings: ^5.0.0
   firebase_messaging: ^14.6.5
 
 dev_dependencies:
