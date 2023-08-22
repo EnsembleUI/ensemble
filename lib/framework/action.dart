@@ -1,3 +1,4 @@
+import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
@@ -241,6 +242,26 @@ class PlaidLinkAction extends EnsembleAction {
       onSuccess: EnsembleAction.fromYaml(payload['onSuccess']),
       onEvent: EnsembleAction.fromYaml(payload['onEvent']),
       onExit: EnsembleAction.fromYaml(payload['onExit']),
+    );
+  }
+}
+
+class AppSettingAction extends EnsembleAction {
+  AppSettingAction({
+    super.initiator,
+    required this.target,
+  });
+
+  final String target;
+
+  AppSettingsType getTarget(dataContext) =>
+      AppSettingsType.values.from(dataContext.eval(target)) ??
+      AppSettingsType.settings;
+
+  factory AppSettingAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
+    return AppSettingAction(
+      initiator: initiator,
+      target: Utils.getString(payload?['target'], fallback: 'settings'),
     );
   }
 }
@@ -732,6 +753,7 @@ enum ActionType {
   showNotification,
   copyToClipboard,
   openPlaidLink,
+  openAppSettings,
   getPhoneContacts,
   checkPermission,
   saveToKeychain,
@@ -831,6 +853,8 @@ abstract class EnsembleAction {
       return CopyToClipboardAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.openPlaidLink) {
       return PlaidLinkAction.fromYaml(initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.openAppSettings) {
+      return AppSettingAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.getPhoneContacts) {
       return PhoneContactAction.fromYaml(
           initiator: initiator, payload: payload);
