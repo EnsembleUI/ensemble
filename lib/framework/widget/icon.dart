@@ -1,5 +1,5 @@
 import 'package:ensemble/framework/model.dart';
-import 'package:ensemble/util/fonts/remix.dart';
+import 'package:ensemble_icons/remixicon.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as flutter;
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -14,9 +14,12 @@ class Icon extends flutter.Icon {
   }) : super(_iconFromName(icon, library),
             key: key, size: size?.toDouble(), color: color);
 
-  factory Icon.fromModel(IconModel model) {
+  factory Icon.fromModel(IconModel model,
+      {Color? fallbackColor, String? fallbackLibrary}) {
     return Icon(model.icon,
-        library: model.library, size: model.size, color: model.color);
+        library: model.library ?? fallbackLibrary,
+        size: model.size,
+        color: model.color ?? fallbackColor);
   }
 
   static IconData? _iconFromName(dynamic name, String? library) {
@@ -27,7 +30,7 @@ class Icon extends flutter.Icon {
     } else if (library == 'fontAwesome') {
       return _fontAwesomeIcons[name];
     } else if (library == 'remix') {
-      return _remixIcons[name];
+      return Remix.iconMap[name];
     }
     // tree shaking won't work. Need to add --no-tree-shake-icons to ignore error when building
     else if (name is int) {
@@ -40,20 +43,6 @@ class Icon extends flutter.Icon {
     }
     return null;
   }
-
-  static final Map<String, IconData> _remixIcons = {
-    'time_line': Remix.time_line,
-    'first_aid_kit_line': Remix.first_aid_kit_line,
-    'image_2_line': Remix.image_2_line,
-    'thermometer_line': Remix.thermometer_line,
-    'shield_check_line': Remix.shield_check_line,
-    'road_map_line': Remix.road_map_line,
-    'add_circle_line': Remix.add_circle_line,
-    'user_line': Remix.user_line,
-    'questionnaire_line': Remix.questionnaire_line,
-    'stack_line': Remix.stack_line,
-    'focus_3_line': Remix.focus_3_line
-  };
 
   /// Flutter icons
   static final Map<String, IconData> _defaultIcons = {
