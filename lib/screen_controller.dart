@@ -7,6 +7,7 @@ import 'dart:isolate';
 import 'dart:math' show Random;
 import 'dart:ui';
 
+import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/action/InvokeAPIController.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_app.dart';
@@ -237,6 +238,9 @@ class ScreenController {
         throw RuntimeError(
             "openPlaidLink action requires the plaid's link_token.");
       }
+    } else if (action is AppSettingAction) {
+      final settingType = action.getTarget(dataContext);
+      AppSettings.openAppSettings(type: settingType);
     } else if (action is PhoneContactAction) {
       GetIt.I<ContactManager>().getPhoneContacts((contacts) {
         if (action.getOnSuccess(dataContext) != null) {

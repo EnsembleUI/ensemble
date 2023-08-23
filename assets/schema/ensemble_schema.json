@@ -334,58 +334,72 @@
         }
       }
     },
-    "Icon-payload": {
+    "BaseIcon-payload": {
       "type": "object",
-      "required": [
-        "name"
-      ],
+      "required": ["name"],
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "A unique identifier for this widget"
-        },
         "name": {
           "type": "string",
-          "description": "Icon name from Material Icons or Font Awesome"
+          "description": "The icon name"
         },
         "library": {
           "type": "string",
           "enum": [
             "default",
-            "fontAwesome"
+            "fontAwesome",
+            "remix"
           ]
-        },
-        "onTap": {
-          "$ref": "#/$defs/Action-payload",
-          "description": "Call Ensemble's built-in functions or execute code"
         },
         "styles": {
-          "allOf": [
-            {
-              "$ref": "#/$defs/baseStyles"
-            },
-            {
-              "$ref": "#/$defs/boxStylesWithoutDimension"
-            },
-            {
-              "type": "object",
-              "properties": {
-                "size": {
-                  "type": "integer"
-                },
-                "color": {
-                  "$ref": "#/$defs/typeColors",
-                  "description": "The color of the icon"
-                },
-                "splashColor": {
-                  "$ref": "#/$defs/typeColors",
-                  "description": "If onTap is defined, this color will show up as a splash effect upon tapping the icon. Note that the effect only happens if backgroundColor is not set."
-                }
-              }
-            }
-          ]
+          "size": {
+            "type": "integer"
+          },
+          "color": {
+            "$ref": "#/$defs/typeColors",
+            "description": "The color of the icon"
+          }
         }
       }
+    },
+    "Icon-payload": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/BaseIcon-payload"
+        },
+        {
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "A unique identifier for this widget"
+            },
+            "onTap": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Call Ensemble's built-in functions or execute code"
+            },
+            "styles": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/baseStyles"
+                },
+                {
+                  "$ref": "#/$defs/boxStylesWithoutDimension"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "splashColor": {
+                      "$ref": "#/$defs/typeColors",
+                      "description": "If onTap is defined, this color will show up as a splash effect upon tapping the icon. Note that the effect only happens if backgroundColor is not set."
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+
+      ]
     },
     "Image-payload": {
       "type": "object",
@@ -2664,6 +2678,41 @@
                   "description": "Open URL in an external app"
                 }
               }
+            }
+          }
+        },
+        {
+          "title": "Open App Settings",
+          "type": "object",
+          "properties": {
+            "target": {
+              "type": "string",
+              "description": "To open the app settings with the targets",
+              "enum": [
+                "settings",
+                "notification",
+                "subscriptions",
+                "accessibility",
+                "alarm",
+                "apn",
+                "batteryOptimization",
+                "bluetooth",
+                "dataRoaming",
+                "date",
+                "developer",
+                "device",
+                "display",
+                "hotspot",
+                "internalStorage",
+                "location",
+                "lockAndPassword",
+                "nfc",
+                "security",
+                "sound",
+                "vpn",
+                "wifi",
+                "wireless"
+              ]
             }
           }
         },
