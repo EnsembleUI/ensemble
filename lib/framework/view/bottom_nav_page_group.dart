@@ -168,15 +168,13 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
       final isCustom = customIcon != null || customActiveIcon != null;
       final label = isCustom ? '' : Utils.translate(item.label ?? '', context);
 
-      if (customIcon == null && item.icon == null) {
-        throw LanguageError('Icon is required.');
-      }
-
       final icon = customIcon ??
-          ensemble.Icon.fromModel(
-              item.icon!,
-              fallbackLibrary: item.iconLibrary,
-              fallbackColor: unselectedColor);
+          item.icon != null
+            ? ensemble.Icon.fromModel(
+                item.icon!,
+                fallbackLibrary: item.iconLibrary,
+                fallbackColor: unselectedColor)
+            : ensemble.Icon('');
 
       final activeIcon = customActiveIcon ??
           item.activeIcon != null || item.icon != null
