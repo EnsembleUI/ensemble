@@ -102,7 +102,7 @@ dependencies:
   get_it: ^7.6.0
   google_sign_in: ^6.1.4
   sign_in_with_apple: ^5.0.0
-  crop_your_image: ^0.7.5
+  custom_image_crop: ^0.0.10
   app_settings: ^5.0.0
   firebase_messaging: ^14.6.5
 
