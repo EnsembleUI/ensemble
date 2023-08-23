@@ -1,5 +1,6 @@
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
@@ -60,8 +61,8 @@ abstract class Menu {
               item['page'],
               customActiveWidget: customActiveIconModel,
               customWidget: customIconModel,
-              activeIcon: item['activeIcon'],
-              icon: item['icon'],
+              activeIcon: Utils.getIcon(item['activeIcon']),
+              icon: Utils.getIcon(item['icon']),
               iconLibrary: Utils.optionalString(item['iconLibrary']),
               selected: item['selected'],
               floating: Utils.getBool(item['floating'], fallback: false),
@@ -194,8 +195,8 @@ class MenuItem {
 
   final String? label;
   final String? page;
-  final dynamic icon;
-  final dynamic activeIcon;
+  final IconModel? icon;
+  final IconModel? activeIcon;
   final dynamic customWidget;
   final dynamic customActiveWidget;
   final String? iconLibrary;
