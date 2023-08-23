@@ -414,21 +414,14 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
   }
 
   void _updateTextInputController() {
-    widget.controller.maskedValueText = getTextInputValue(isMasked: true);
-    widget.controller.value = getTextInputValue(isMasked: false);
-  }
-
-  String getTextInputValue({required bool isMasked}) {
     final maskInputFormatter = inputFormatters
         .whereType<MaskTextInputFormatter>()
         .toList()
         .firstOrNull;
-    if (maskInputFormatter != null) {
-      return isMasked
-          ? maskInputFormatter.getMaskedText()
-          : maskInputFormatter.getUnmaskedText();
-    }
-    return widget.textController.text;
+
+    widget.controller.maskedValueText = maskInputFormatter?.getMaskedText();
+    widget.controller.value =
+        maskInputFormatter?.getUnmaskedText() ?? widget.textController.text;
   }
 
   @override
