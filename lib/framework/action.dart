@@ -755,7 +755,9 @@ enum ActionType {
   openPlaidLink,
   openAppSettings,
   getPhoneContacts,
-  checkPermission
+  checkPermission,
+  saveToKeychain,
+  clearKeychain,
 }
 
 enum ToastType { success, error, warning, info }
