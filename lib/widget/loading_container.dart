@@ -68,7 +68,8 @@ class LoadingContainerState extends WidgetState<LoadingContainer> {
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
 
     dataWidget = _buildWidget(widget._controller.widget, scopeManager);
-    loadingWidget = _buildWidget(widget._controller.widget, scopeManager);
+    loadingWidget =
+        _buildWidget(widget._controller.loadingWidget, scopeManager);
 
     return BoxWrapper(
       widget: getWidget(),
