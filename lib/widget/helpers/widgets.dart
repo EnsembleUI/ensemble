@@ -269,3 +269,23 @@ class GradientBoxBorder extends BoxBorder with GradientBorder {
     return this;
   }
 }
+
+/// a wrapper around a widget and enable Tap action.
+class TapOverlay extends StatelessWidget {
+  const TapOverlay({super.key, required this.widget, required this.onTap});
+  final Widget widget;
+  final TapOverlayFunc onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(children: <Widget>[
+      widget,
+      Positioned.fill(
+          child: Material(
+              color: Colors.transparent, child: InkWell(onTap: onTap)))
+    ]);
+  }
+
+}
+
+typedef TapOverlayFunc = void Function();

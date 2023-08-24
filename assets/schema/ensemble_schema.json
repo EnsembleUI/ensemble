@@ -808,6 +808,38 @@
         }
       }
     },
+    "PopupMenu-payload": {
+      "type": "object",
+      "properties": {
+        "widget": {
+          "$ref": "#/$defs/Widget",
+          "description": "The widget to be rendered as the menu anchor. Note that any tap event (if specified) will be ignored and automatically intercepted to open/close the menu."
+        },
+        "onItemSelect": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Invoke an Action when a menu item is selected"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "label"
+            ],
+            "properties": {
+              "label": {
+                "type": "string",
+                "description": "The menu item's label"
+              },
+              "value": {
+                "type": "string",
+                "description": "The value returned when a menu item is selected. If not specified, the label will be return instead."
+              }
+            }
+          }
+        }
+      }
+    },
     "TextInput-payload": {
       "type": "object",
       "allOf": [
@@ -3801,6 +3833,17 @@
           "properties": {
             "ToggleContainer": {
               "$ref": "#/$defs/ToggleContainer-payload"
+            }
+          }
+        },
+        {
+          "title": "PopupMenu",
+          "required": [
+            "PopupMenu"
+          ],
+          "properties": {
+            "PopupMenu": {
+              "$ref": "#/$defs/PopupMenu-payload"
             }
           }
         },
