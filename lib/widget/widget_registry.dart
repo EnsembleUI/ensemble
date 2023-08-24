@@ -17,6 +17,7 @@ import 'package:ensemble/widget/confirmation_input.dart';
 import 'package:ensemble/widget/fintech/finicityconnect/finicityconnect.dart';
 import 'package:ensemble/widget/icon_button.dart';
 import 'package:ensemble/widget/input/slider.dart';
+import 'package:ensemble/widget/loading_container.dart';
 import 'package:ensemble/widget/maps/maps.dart';
 import 'package:ensemble/widget/popup_menu.dart';
 import 'package:ensemble/widget/staggered_grid.dart';
@@ -126,6 +127,7 @@ class WidgetRegistry {
         TabBarOnly.type: () => TabBarOnly(),
         TabBarContainer.type: () => TabBarContainer(),
         AppScroller.type: () => AppScroller(),
+        LoadingContainer.type: () => LoadingContainer(),
 
         // charts
         Highcharts.type: () => Highcharts(),
