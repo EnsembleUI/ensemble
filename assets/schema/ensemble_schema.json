@@ -486,6 +486,135 @@
         }
       }
     },
+    "ImageCropper-payload": {
+      "type": "object",
+      "required": [
+        "source"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
+        "source": {
+          "type": "string",
+          "description": "URL to or asset name of the image. If the URL is used, it is highly recommended that the dimensions is set (either with width/height or other means) to prevent the UI jerkiness while loading."
+        },
+        "onTap": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Call Ensemble's built-in functions or execute code"
+        },
+        "onCropped": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Call Ensemble's built-in functions or execute code"
+        },
+        "styles": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
+            },
+            {
+              "$ref": "#/$defs/boxStyles"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "placeholderColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "The placeholder color while the image is loading."
+                },
+                "fit": {
+                  "type": "string",
+                  "description": "How to fit the image within our width/height or our parent (if dimension is not specified)",
+                  "oneOf": [
+                    {
+                      "const": "fill",
+                      "description": "Stretch our image to fill the dimension, and distorting the aspect ratio if needed"
+                    },
+                    {
+                      "const": "contain",
+                      "description": "Scale the image such that the entire image is contained within our dimension"
+                    },
+                    {
+                      "const": "cover",
+                      "description": "Scale the image to fill our dimension, clipping the image as needed"
+                    },
+                    {
+                      "const": "fitWidth",
+                      "description": "Scale the image to fit the width, and clipping the height if needed"
+                    },
+                    {
+                      "const": "fitHeight",
+                      "description": "Scale the image to fit the height, and clipping the width if needed"
+                    },
+                    {
+                      "const": "none",
+                      "description": "Center-Align the original image size, clipping the content if needed"
+                    },
+                    {
+                      "const": "scaleDown",
+                      "description": "Center-Align the image and only scale down to fit. Image will not be scaled up to bigger dimension."
+                    }
+                  ]
+                },
+                "width": {
+                  "type": "integer",
+                  "description": "Set the width of the ImageCropper."
+                },
+                "height": {
+                  "type": "integer",
+                  "description": "Set the height of the ImageCropper."
+                },
+                "cropPercentage": {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 1.0,
+                  "description": "How big the crop should be in regards to the width and height available to the cropping widget."
+                },
+                "strokeWidth": {
+                  "type": "integer",
+                  "description": "The stroke width of the dotted path."
+                },
+                "strokeColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "The stroke color of the dotted path."
+                },
+                "isRotate": {
+                  "type": "boolean",
+                  "description": "Whether to allow the image to be rotated."
+                },
+                "isMove": {
+                  "type": "boolean",
+                  "description": "Determines whether moving gesture overlay is disabled."
+                },
+                "isScale": {
+                  "type": "boolean",
+                  "description": "Determines whether scaling gesture is disabled."
+                },
+                "shape": {
+                  "type": "string",
+                  "description": "The shape of the cropping path.",
+                  "oneOf": [
+                    {
+                      "const": "circle",
+                      "description": "Sets the cropper in circle shape."
+                    },
+                    {
+                      "const": "square",
+                      "description": "Sets the cropper in square shape."
+                    },
+                    {
+                      "const": "rectangle",
+                      "description": "Sets the cropper in rectangle shape."
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
     "Lottie-payload": {
       "type": "object",
       "required": [
@@ -3753,6 +3882,18 @@
             "Image": {
               "$ref": "#/$defs/Image-payload",
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/7c7a3ffe-68ef-4e99-b9d1-4b5cee166233#"
+            }
+          }
+        },
+        {
+          "title": "ImageCropper",
+          "required": [
+            "ImageCropper"
+          ],
+          "properties": {
+            "ImageCropper": {
+              "$ref": "#/$defs/ImageCropper-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/#"
             }
           }
         },

@@ -3,6 +3,7 @@ import 'dart:io' as io;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:custom_image_crop/custom_image_crop.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_svg_provider/flutter_svg_provider.dart';
@@ -86,8 +87,6 @@ class EnsembleImageCropper extends StatefulWidget
           _controller.isMove = Utils.getBool(value, fallback: true),
       'isScale': (value) =>
           _controller.isScale = Utils.getBool(value, fallback: true),
-      'cropOnTap': (value) =>
-          _controller.cropOnTap = Utils.getBool(value, fallback: true),
       'onCropped': (funcDefinition) => _controller.onCropped =
           EnsembleAction.fromYaml(funcDefinition, initiator: this)
     };
@@ -115,12 +114,10 @@ class EnsembleImageCropperController extends BoxController {
   double? cropPercentage;
   String shape = '';
   Color? strokeColor;
-  bool? cropOnTap;
   bool isRotate = true;
   bool isMove = true;
   bool isScale = true;
   EnsembleAction? onCropped;
-  EnsembleAction? onStatusChanged;
   CustomImageCropController cropController = CustomImageCropController();
 }
 
@@ -153,7 +150,8 @@ class EnsembleImageCropperState extends WidgetState<EnsembleImageCropper>
     if (image != null) {
       io.Directory tempDir = await getTemporaryDirectory();
       String tempPath = tempDir.path;
-      final filePath = '$tempPath/cropped-image.png';
+      final filePath =
+          '$tempPath/${DateTime.now().toIso8601String()}-cropped-image.png';
       final file = io.File(filePath);
       final byteData = image.bytes.buffer.asUint8List();
       file.createSync();
