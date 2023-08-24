@@ -760,4 +760,9 @@ class Utils {
       return dataContext.containsKey(key) ? dataContext[key]! : match.group(0)!;
     });
   }
+
+  static String? capitalizeFirstLetter(String? value) {
+    if (value == null || value.isEmpty) return value;
+    return '${value[0].toUpperCase()}${value.substring(1).toLowerCase()}';
+  }
 }
