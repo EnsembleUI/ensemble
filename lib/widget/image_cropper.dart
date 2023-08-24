@@ -2,25 +2,20 @@ import 'dart:math';
 import 'dart:io' as io;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:custom_image_crop/custom_image_crop.dart';
+import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
-import 'package:ensemble/widget/image.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_svg_provider/flutter_svg_provider.dart';
 import 'package:path_provider/path_provider.dart';
 
-// import 'package:crop_your_image/crop_your_image.dart';
 import 'package:ensemble/framework/action.dart';
-import 'package:ensemble/framework/bindings.dart';
-import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import 'widget_util.dart';
 
@@ -68,10 +63,19 @@ class EnsembleImageCropper extends StatefulWidget
       'id': (value) => _controller.id = Utils.getString(value, fallback: ''),
       'source': (value) =>
           _controller.source = Utils.getString(value, fallback: ''),
+      'shape': (value) =>
+          _controller.shape = Utils.getString(value, fallback: 'Circle'),
       'fit': (value) => _controller.fit = Utils.optionalString(value),
       'width': (width) => _controller.imageWidth = Utils.optionalDouble(width),
       'height': (height) =>
           _controller.imageHeight = Utils.optionalDouble(height),
+      'borderRadius': (borderRadius) =>
+          _controller.shapeBorderRadius = Utils.optionalDouble(borderRadius),
+      'strokeColor': (value) => _controller.strokeColor = Utils.getColor(value),
+      'strokeWidth': (width) =>
+          _controller.strokeWidth = Utils.optionalDouble(width),
+      'cropPercentage': (cropPercentage) => _controller.cropPercentage =
+          Utils.optionalDouble(cropPercentage, max: 1.0),
       'placeholderColor': (value) =>
           _controller.placeholderColor = Utils.getColor(value),
       'onTap': (funcDefinition) => _controller.onTap =
@@ -106,9 +110,11 @@ class EnsembleImageCropperController extends BoxController {
   double? imageHeight;
   double? imageWidth;
 
-  Color? cornerDotColor;
-  Color? maskColor;
-  double? cornerRadius;
+  double? strokeWidth;
+  double? shapeBorderRadius;
+  double? cropPercentage;
+  String shape = '';
+  Color? strokeColor;
   bool? cropOnTap;
   bool isRotate = true;
   bool isMove = true;
@@ -121,7 +127,6 @@ class EnsembleImageCropperController extends BoxController {
 class EnsembleImageCropperState extends WidgetState<EnsembleImageCropper>
     with CropAction {
   late Widget placeholder;
-  Uint8List? _croppedImage;
   final currentShape = CustomCropShape.Circle;
 
   @override
@@ -146,20 +151,22 @@ class EnsembleImageCropperState extends WidgetState<EnsembleImageCropper>
   Future<void> cropImage() async {
     final image = await widget.controller.cropController.onCropImage();
     if (image != null) {
-      _croppedImage = image.bytes;
-      final filePath =
-          File('croppedImage', null, image.bytes.length, null, image.bytes)
-                  .path ??
-              '';
+      io.Directory tempDir = await getTemporaryDirectory();
+      String tempPath = tempDir.path;
+      final filePath = '$tempPath/cropped-image.png';
+      final file = io.File(filePath);
+      final byteData = image.bytes.buffer.asUint8List();
+      file.createSync();
+      file.writeAsBytes(byteData.toList());
+
       ScreenController().executeAction(
         context,
         widget._controller.onCropped!,
         event: EnsembleEvent(
           widget,
-          data: {'file': filePath},
+          data: {'file': file.path},
         ),
       );
-      setState(() {});
     }
   }
 
@@ -189,48 +196,39 @@ class EnsembleImageCropperState extends WidgetState<EnsembleImageCropper>
     }
 
     BoxFit? fit = WidgetUtils.getBoxFit(widget._controller.fit);
+    final cropShape = _getCropShape();
 
     Widget rtn;
-    rtn = _croppedImage != null
-        ? Image.memory(
-            _croppedImage!,
-            height: widget.controller.imageHeight,
-            width: widget.controller.imageWidth,
-          )
-        : SizedBox(
-            height: widget.controller.imageHeight,
-            width: widget.controller.imageWidth,
-            child: BoxWrapper(
-                widget: CustomImageCrop(
-                  backgroundColor:
-                      widget.controller.backgroundColor ?? Colors.white,
-                  cropController: widget.controller.cropController,
-                  image: buildImageProvider(source,
-                      fit), // Any Imageprovider will work, try with a NetworkImage for example...
-                  shape: currentShape,
-                  // ratio: currentShape == CustomCropShape.Ratio
-                  //     ? Ratio(width: width, height: height)
-                  //     : null,
-                  canRotate: widget.controller.isRotate,
-                  canMove: widget.controller.isMove,
-                  canScale: widget.controller.isScale,
-                  // borderRadius:
-                  //     currentShape == CustomCropShape.Ratio ? radius : 0,
-                  customProgressIndicator: const CupertinoActivityIndicator(),
-                  // use custom paint if needed
-                  // pathPaint: Paint()
-                  //   ..color = Colors.red
-                  //   ..strokeWidth = 4.0
-                  //   ..style = PaintingStyle.stroke
-                  //   ..strokeJoin = StrokeJoin.round,
-                ),
-                boxController: widget._controller,
-                ignoresMargin:
-                    true, // make sure the gesture don't include the margin
-                ignoresDimension:
-                    true // we apply width/height in the image already
-                ),
-          );
+    rtn = SizedBox(
+      height: widget.controller.imageHeight,
+      width: widget.controller.imageWidth,
+      child: BoxWrapper(
+          widget: CustomImageCrop(
+            backgroundColor: widget.controller.backgroundColor ?? Colors.white,
+            cropController: widget.controller.cropController,
+            image: buildImageProvider(source,
+                fit), // Any Imageprovider will work, try with a NetworkImage for example...
+            shape: cropShape,
+            imageFit: CustomImageFit.fillVisibleSpace,
+            ratio: _getRatio(cropShape),
+            canRotate: widget.controller.isRotate,
+            canMove: widget.controller.isMove,
+            canScale: widget.controller.isScale,
+            borderRadius: widget.controller.shapeBorderRadius ?? 0,
+            customProgressIndicator: const CupertinoActivityIndicator(),
+            cropPercentage: widget.controller.cropPercentage ?? 0.8,
+            // use custom paint if needed
+            pathPaint: Paint()
+              ..color = widget.controller.strokeColor ?? Colors.white
+              ..strokeWidth = widget.controller.strokeWidth ?? 4.0
+              ..style = PaintingStyle.stroke
+              ..strokeJoin = StrokeJoin.round,
+          ),
+          boxController: widget._controller,
+          ignoresMargin: true, // make sure the gesture don't include the margin
+          ignoresDimension: true // we apply width/height in the image already
+          ),
+    );
     if (widget._controller.onTap != null) {
       rtn = GestureDetector(
           child: rtn,
@@ -244,7 +242,36 @@ class EnsembleImageCropperState extends WidgetState<EnsembleImageCropper>
     return rtn;
   }
 
+  CustomCropShape _getCropShape() {
+    String? shape =
+        Utils.capitalizeFirstLetter(widget.controller.shape.toLowerCase());
+    shape = shape == 'Rectangle' ? CustomCropShape.Ratio.name : shape;
+    return CustomCropShape.values.from(shape) ?? CustomCropShape.Circle;
+  }
+
+  Ratio? _getRatio(CustomCropShape cropShape) {
+    switch (cropShape) {
+      case CustomCropShape.Ratio:
+        return Ratio(width: 19, height: 9);
+      case CustomCropShape.Square:
+        return Ratio(width: 1, height: 1);
+      case CustomCropShape.Circle:
+        return null;
+    }
+  }
+
+  bool isSvg() {
+    return widget._controller.source.endsWith('svg');
+  }
+
   ImageProvider buildImageProvider(String source, BoxFit? fit) {
+    if (isSvg()) {
+      return buildSvgImageProvider(source, fit);
+    }
+    return buildNonSvgImageProvider(source, fit);
+  }
+
+  ImageProvider buildNonSvgImageProvider(String source, BoxFit? fit) {
     if (source.startsWith('https://') || source.startsWith('http://')) {
       return CachedNetworkImageProvider(
         source,
@@ -252,26 +279,31 @@ class EnsembleImageCropperState extends WidgetState<EnsembleImageCropper>
         maxHeight: widget._controller.height,
       );
     } else if (Utils.isMemoryPath(widget._controller.source)) {
-      return Image.file(io.File(widget._controller.source),
-          width: widget._controller.width?.toDouble(),
-          height: widget._controller.height?.toDouble(),
-          fit: fit,
-          errorBuilder: (context, error, stacktrace) => errorFallback()).image;
+      return Image.file(
+        io.File(widget._controller.source),
+        width: widget._controller.width?.toDouble(),
+        height: widget._controller.height?.toDouble(),
+        fit: fit,
+      ).image;
     } else {
-      return Image.asset(Utils.getLocalAssetFullPath(widget._controller.source),
-          width: widget._controller.width?.toDouble(),
-          height: widget._controller.height?.toDouble(),
-          fit: fit,
-          errorBuilder: (context, error, stacktrace) => errorFallback()).image;
+      return Image.asset(
+        Utils.getLocalAssetFullPath(widget._controller.source),
+        width: widget._controller.width?.toDouble(),
+        height: widget._controller.height?.toDouble(),
+        fit: fit,
+      ).image;
     }
   }
 
-  /// display if the image cannot be loaded
-  Widget errorFallback() {
-    return Image.asset(
-      'assets/images/img_placeholder.png',
-      package: 'ensemble',
-      fit: BoxFit.cover,
+  Svg buildSvgImageProvider(String source, BoxFit? fit) {
+    // if is URL
+    if (source.startsWith('https://') || source.startsWith('http://')) {
+      return Svg(widget._controller.source, source: SvgSource.network);
+    }
+    // attempt local assets
+    return Svg(
+      Utils.getLocalAssetFullPath(widget._controller.source),
+      source: SvgSource.asset,
     );
   }
 
