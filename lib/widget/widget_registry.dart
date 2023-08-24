@@ -18,6 +18,7 @@ import 'package:ensemble/widget/fintech/finicityconnect/finicityconnect.dart';
 import 'package:ensemble/widget/icon_button.dart';
 import 'package:ensemble/widget/input/slider.dart';
 import 'package:ensemble/widget/maps/maps.dart';
+import 'package:ensemble/widget/popup_menu.dart';
 import 'package:ensemble/widget/staggered_grid.dart';
 import 'package:ensemble/widget/stub_widgets.dart';
 import 'package:ensemble/widget/text.dart';
@@ -90,6 +91,7 @@ class WidgetRegistry {
         ConnectWithMicrosoft.type: () => GetIt.instance<ConnectWithMicrosoft>(),
         SignInWithAuth0.type: () => GetIt.instance<SignInWithAuth0>(),
         EnsembleChat.type: () => GetIt.instance<EnsembleChat>(),
+        PopupMenu.type: () => PopupMenu(),
 
         // form fields
         EnsembleForm.type: () => EnsembleForm(),
