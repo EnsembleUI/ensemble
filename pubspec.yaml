@@ -102,6 +102,7 @@ dependencies:
   get_it: ^7.6.0
   app_settings: ^5.0.0
   firebase_messaging: ^14.6.5
+  shimmer: ^3.0.0
 
 dev_dependencies:
   flutter_test:
