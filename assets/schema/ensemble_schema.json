@@ -808,6 +808,38 @@
         }
       }
     },
+    "LoadingContainer-payload": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
+        "isLoading": {
+          "type": "boolean",
+          "description": "Whether to display loading widget"
+        },
+        "useShimmer": {
+          "type": "boolean",
+          "description": "Whether to use a shimmer widget in loading state"
+        },
+        "widget": {
+          "$ref": "#/$defs/Widget",
+          "description": "The widget to display when non loading state"
+        },
+        "loadingWidget": {
+          "$ref": "#/$defs/Widget",
+          "description": "The widget to display when loading state"
+        },
+        "styles": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
+            }
+          ]
+        }
+      }
+    },
     "PopupMenu-payload": {
       "type": "object",
       "properties": {
