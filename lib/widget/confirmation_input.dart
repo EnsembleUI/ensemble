@@ -39,6 +39,15 @@ class ConfirmationInput extends StatefulWidget
           _controller.enableCursor = Utils.getBool(newValue, fallback: true),
       'length': (newValue) =>
           _controller.length = Utils.getInt(newValue, fallback: 4),
+      'width': (value) => _controller.fieldWidth = Utils.optionalDouble(value),
+      'height': (value) =>
+          _controller.fieldHeight = Utils.optionalDouble(value),
+      'padding': (value) =>
+          _controller.fieldPadding = Utils.getDouble(value, fallback: 10.0),
+      'borderRadius': (value) =>
+          _controller.fieldBorderRadius = Utils.getDouble(value, fallback: 2.0),
+      'borderWidth': (value) =>
+          _controller.fieldBorderWidth = Utils.getDouble(value, fallback: 2.0),
       'textStyle': (style) => _controller.textStyle =
           Utils.getTextStyleAsComposite(_controller, style: style),
       'defaultFieldBorderColor': (newValue) =>
@@ -64,7 +73,11 @@ class ConfirmationInput extends StatefulWidget
 
   @override
   Map<String, Function> methods() {
-    return {};
+    return {
+      'clear': () => controller.inputFieldAction?.clear(),
+      'focus': () => controller.inputFieldAction?.focusInputField(),
+      'unfocus': () => controller.inputFieldAction?.unfocusInputField(),
+    };
   }
 
   @override
@@ -90,12 +103,18 @@ class ConfirmationInput extends StatefulWidget
 }
 
 class ConfirmationInputController extends BoxController {
+  TextInputFieldAction? inputFieldAction;
   String? text;
   late int length;
   bool? autoComplete;
   bool? enableCursor;
   String? fieldType;
   String? inputType;
+  double? fieldWidth;
+  double? fieldHeight;
+  double? fieldPadding;
+  double? fieldBorderRadius;
+  double? fieldBorderWidth;
   Color? defaultFieldBorderColor;
   Color? activeFieldBorderColor;
   Color? defaultFieldBackgroundColor;
@@ -111,7 +130,28 @@ class ConfirmationInputController extends BoxController {
   set textStyle(TextStyleComposite style) => _textStyle = style;
 }
 
-class ConfirmationInputState extends framework.WidgetState<ConfirmationInput> {
+mixin TextInputFieldAction on framework.WidgetState<ConfirmationInput> {
+  void focusInputField();
+  void unfocusInputField();
+  void clear();
+}
+
+class ConfirmationInputState extends framework.WidgetState<ConfirmationInput>
+    with TextInputFieldAction {
+  final _otpPinFieldController = GlobalKey<OtpPinFieldState>();
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    widget.controller.inputFieldAction = this;
+  }
+
+  @override
+  void didUpdateWidget(covariant ConfirmationInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    widget.controller.inputFieldAction = this;
+  }
+
   @override
   Widget buildWidget(BuildContext context) {
     return BoxWrapper(
@@ -122,6 +162,7 @@ class ConfirmationInputState extends framework.WidgetState<ConfirmationInput> {
 
   Widget buildTextInput(ConfirmationInputController controller) {
     return OtpPinField(
+      key: _otpPinFieldController,
       otpPinFieldStyle: OtpPinFieldStyle(
         textStyle: controller.textStyle.getTextStyle(),
         defaultFieldBorderColor:
@@ -136,7 +177,12 @@ class ConfirmationInputState extends framework.WidgetState<ConfirmationInput> {
             controller.filledFieldBackgroundColor ?? Colors.transparent,
         filledFieldBorderColor:
             controller.filledFieldBorderColor ?? Colors.transparent,
+        fieldPadding: controller.fieldPadding ?? 10.0,
+        fieldBorderRadius: controller.fieldBorderRadius ?? 2.0,
+        fieldBorderWidth: controller.fieldBorderWidth ?? 2.0,
       ),
+      fieldHeight: widget.controller.fieldHeight ?? 50,
+      fieldWidth: widget.controller.fieldWidth ?? 50,
       maxLength: controller.length,
       keyboardType: widget.keyboardType,
       otpPinFieldDecoration: controller.fieldType?.otpPinField ??
@@ -161,13 +207,30 @@ class ConfirmationInputState extends framework.WidgetState<ConfirmationInput> {
       ScreenController().executeAction(context, widget._controller.onComplete!);
     }
   }
+
+  @override
+  void clear() {
+    _otpPinFieldController.currentState?.clearOtp();
+  }
+
+  @override
+  void focusInputField() {
+    _otpPinFieldController.currentState?.hasFocus = true;
+    _otpPinFieldController.currentState?.focusNode.requestFocus();
+  }
+
+  @override
+  void unfocusInputField() {
+    _otpPinFieldController.currentState?.hasFocus = false;
+    _otpPinFieldController.currentState?.focusNode.unfocus();
+  }
 }
 
 extension FieldTypeOtpValue on String {
   OtpPinFieldDecoration get otpPinField {
     switch (this) {
-      case 'default':
-        return OtpPinFieldDecoration.defaultPinBoxDecoration;
+      case 'custom':
+        return OtpPinFieldDecoration.custom;
       case 'rounded':
         return OtpPinFieldDecoration.roundedPinBoxDecoration;
       case 'underline':
