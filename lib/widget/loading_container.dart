@@ -5,6 +5,7 @@ import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
 
 import '../framework/view/page.dart';
 
@@ -55,22 +56,8 @@ class LoadingContainerController extends BoxController {
 }
 
 class LoadingContainerState extends WidgetState<LoadingContainer> {
-  Widget? dataWidget;
-  Widget? loadingWidget;
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
   @override
   Widget buildWidget(BuildContext context) {
-    ScopeManager? scopeManager = DataScopeWidget.getScope(context);
-
-    dataWidget = _buildWidget(widget._controller.widget, scopeManager);
-    loadingWidget =
-        _buildWidget(widget._controller.loadingWidget, scopeManager);
-
     return BoxWrapper(
       widget: getWidget(),
       boxController: widget._controller,
@@ -81,9 +68,19 @@ class LoadingContainerState extends WidgetState<LoadingContainer> {
   }
 
   Widget getWidget() {
-    if (widget._controller.isLoading != null && widget._controller.isLoading!) {
-      return loadingWidget ?? const CircularProgressIndicator();
+    ScopeManager? scopeManager = DataScopeWidget.getScope(context);
+    bool? isLoading =
+        scopeManager?.dataContext.eval(widget._controller.isLoading);
+    if (isLoading != null && isLoading) {
+      final loadingWidget =
+          _buildWidget(widget._controller.loadingWidget, scopeManager);
+      return Shimmer.fromColors(
+        baseColor: const Color(0xFFE0E0E0),
+        highlightColor: const Color(0xFFF5F5F7).withOpacity(0.5),
+        child: loadingWidget ?? const CircularProgressIndicator(),
+      );
     }
+    final dataWidget = _buildWidget(widget._controller.widget, scopeManager);
     return dataWidget ?? const SizedBox.shrink();
   }
 
