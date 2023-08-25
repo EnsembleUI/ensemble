@@ -846,29 +846,6 @@ class ModifiableAPIResponse extends APIResponse {
   }
 }
 
-class CroppedFileData with Invokable {
-  CroppedFileData({File? file}) : _file = file;
-
-  final File? _file;
-
-  @override
-  Map<String, Function> getters() {
-    return {
-      'file': () => _file?.toJson(),
-    };
-  }
-
-  @override
-  Map<String, Function> methods() {
-    return {};
-  }
-
-  @override
-  Map<String, Function> setters() {
-    return {};
-  }
-}
-
 class FileData with Invokable {
   FileData({List<File>? files}) : _files = files;
 
@@ -899,13 +876,6 @@ class File {
       : name = file['name'],
         ext = file['extension'],
         size = file['size'],
-        path = file['path'],
-        bytes = file['bytes'];
-
-  File.fromCropImage(Map<String, dynamic> file)
-      : name = file['name'],
-        ext = file['extension'],
-        size = file['size'] ?? 0,
         path = file['path'],
         bytes = file['bytes'];
 

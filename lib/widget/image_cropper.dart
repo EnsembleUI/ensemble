@@ -271,11 +271,11 @@ class EnsembleImageCropperState extends WidgetState<EnsembleImageCropper>
 
   ImageProvider buildNonSvgImageProvider(String source, BoxFit? fit) {
     if (source.startsWith('https://') || source.startsWith('http://')) {
-      return CachedNetworkImageProvider(
+      return Image.network(
         source,
-        maxWidth: widget._controller.width,
-        maxHeight: widget._controller.height,
-      );
+        width: widget._controller.width?.toDouble(),
+        height: widget._controller.height?.toDouble(),
+      ).image;
     } else if (Utils.isMemoryPath(widget._controller.source)) {
       return Image.file(
         io.File(widget._controller.source),
