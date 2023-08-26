@@ -806,6 +806,8 @@ class APIResponse with Invokable {
     return {
       'body': () => _response?.body,
       'headers': () => _response?.headers,
+      'statusCode': () => _response?.statusCode,
+      'reasonPhrase': () => _response?.reasonPhrase
     };
   }
 
