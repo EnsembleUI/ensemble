@@ -334,58 +334,72 @@
         }
       }
     },
-    "Icon-payload": {
+    "BaseIcon-payload": {
       "type": "object",
-      "required": [
-        "name"
-      ],
+      "required": ["name"],
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "A unique identifier for this widget"
-        },
         "name": {
           "type": "string",
-          "description": "Icon name from Material Icons or Font Awesome"
+          "description": "The icon name"
         },
         "library": {
           "type": "string",
           "enum": [
             "default",
-            "fontAwesome"
+            "fontAwesome",
+            "remix"
           ]
-        },
-        "onTap": {
-          "$ref": "#/$defs/Action-payload",
-          "description": "Call Ensemble's built-in functions or execute code"
         },
         "styles": {
-          "allOf": [
-            {
-              "$ref": "#/$defs/baseStyles"
-            },
-            {
-              "$ref": "#/$defs/boxStylesWithoutDimension"
-            },
-            {
-              "type": "object",
-              "properties": {
-                "size": {
-                  "type": "integer"
-                },
-                "color": {
-                  "$ref": "#/$defs/typeColors",
-                  "description": "The color of the icon"
-                },
-                "splashColor": {
-                  "$ref": "#/$defs/typeColors",
-                  "description": "If onTap is defined, this color will show up as a splash effect upon tapping the icon. Note that the effect only happens if backgroundColor is not set."
-                }
-              }
-            }
-          ]
+          "size": {
+            "type": "integer"
+          },
+          "color": {
+            "$ref": "#/$defs/typeColors",
+            "description": "The color of the icon"
+          }
         }
       }
+    },
+    "Icon-payload": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/BaseIcon-payload"
+        },
+        {
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "A unique identifier for this widget"
+            },
+            "onTap": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Call Ensemble's built-in functions or execute code"
+            },
+            "styles": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/baseStyles"
+                },
+                {
+                  "$ref": "#/$defs/boxStylesWithoutDimension"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "splashColor": {
+                      "$ref": "#/$defs/typeColors",
+                      "description": "If onTap is defined, this color will show up as a splash effect upon tapping the icon. Note that the effect only happens if backgroundColor is not set."
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+
+      ]
     },
     "Image-payload": {
       "type": "object",
@@ -791,6 +805,38 @@
               }
             }
           ]
+        }
+      }
+    },
+    "PopupMenu-payload": {
+      "type": "object",
+      "properties": {
+        "widget": {
+          "$ref": "#/$defs/Widget",
+          "description": "The widget to be rendered as the menu anchor. Note that any tap event (if specified) will be ignored and automatically intercepted to open/close the menu."
+        },
+        "onItemSelect": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Invoke an Action when a menu item is selected"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "label"
+            ],
+            "properties": {
+              "label": {
+                "type": "string",
+                "description": "The menu item's label"
+              },
+              "value": {
+                "type": "string",
+                "description": "The value returned when a menu item is selected. If not specified, the label will be return instead."
+              }
+            }
+          }
         }
       }
     },
@@ -2668,6 +2714,49 @@
           }
         },
         {
+          "title": "Open App Settings",
+          "type": "object",
+          "required": [
+            "openAppSettings"
+          ],
+          "properties": {
+            "openAppSettings": {
+              "type": "object",
+              "description": "Open the device's Settings",
+              "properties": {
+                "target": {
+                  "type": "string",
+                  "enum": [
+                    "settings",
+                    "notification",
+                    "subscriptions",
+                    "accessibility",
+                    "alarm",
+                    "apn",
+                    "batteryOptimization",
+                    "bluetooth",
+                    "dataRoaming",
+                    "date",
+                    "developer",
+                    "device",
+                    "display",
+                    "hotspot",
+                    "internalStorage",
+                    "location",
+                    "lockAndPassword",
+                    "nfc",
+                    "security",
+                    "sound",
+                    "vpn",
+                    "wifi",
+                    "wireless"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
           "title": "Invoke API",
           "type": "object",
           "required": [
@@ -3744,6 +3833,17 @@
           "properties": {
             "ToggleContainer": {
               "$ref": "#/$defs/ToggleContainer-payload"
+            }
+          }
+        },
+        {
+          "title": "PopupMenu",
+          "required": [
+            "PopupMenu"
+          ],
+          "properties": {
+            "PopupMenu": {
+              "$ref": "#/$defs/PopupMenu-payload"
             }
           }
         },
