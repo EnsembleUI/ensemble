@@ -186,7 +186,8 @@ class ImageState extends WidgetState<EnsembleImage> {
   }
 
   bool isSvg() {
-    return widget._controller.source.endsWith('svg');
+    String imgSrc = Utils.stripQueryParamsFromAsset(widget._controller.source);
+    return imgSrc.endsWith('svg');
   }
 
   /// display if the image cannot be loaded
