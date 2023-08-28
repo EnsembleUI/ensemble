@@ -15,7 +15,25 @@ import 'package:http/http.dart' as http;
 
 class InvokeAPIController {
 
-  Future<void> execute(
+  Future<Response?> executeWithContext(
+      BuildContext context, InvokeAPIAction action,
+      {Map<String, dynamic>? additionalInputs}) {
+    ScopeManager? scopeManager = ScreenController().getScopeManager(context);
+    if (scopeManager != null) {
+      // add additional data if specified
+      DataContext dataContext = scopeManager.dataContext;
+      if (additionalInputs != null) {
+        dataContext.addDataContext(additionalInputs);
+      }
+
+      return execute(action, context, dataContext, scopeManager,
+          scopeManager.pageData.apiMap);
+    }
+    throw Exception('Unable to execute API from context');
+  }
+
+
+  Future<Response?> execute(
       InvokeAPIAction action,
       BuildContext context,
       DataContext dataContext,
@@ -50,6 +68,7 @@ class InvokeAPIController {
           processAPIError(context, dataContext, action, apiDefinition, response,
               apiMap, scopeManager);
         }
+        return response;
       } catch (error) {
         processAPIError(context, dataContext, action, apiDefinition, error,
             apiMap, scopeManager);
