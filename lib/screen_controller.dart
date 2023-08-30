@@ -252,7 +252,7 @@ class ScreenController {
             scopeManager!,
             action.getOnSuccess(dataContext)!,
             event: EnsembleEvent(
-              action.initiator!,
+              action.initiator,
               data: {'contacts': contactsData},
             ),
           );

@@ -17,7 +17,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' as foundation;
 
 class HttpUtils {
-  static Future<http.Response> invokeApi(
+  static Future<Response> invokeApi(
       BuildContext context, YamlMap api, DataContext eContext) async {
     // headers
     Map<String, String> headers = {};
@@ -104,7 +104,7 @@ class HttpUtils {
     }
 
     Completer<http.Response> completer = Completer();
-    http.Response? response;
+    http.Response response;
     switch (method) {
       case 'POST':
         response =
@@ -127,15 +127,7 @@ class HttpUtils {
     }
 
     log('Response: ${response.statusCode}');
-    if (response.statusCode >= 200 && response.statusCode <= 299) {
-      completer.complete(response);
-      if (foundation.kDebugMode) {
-        //log("Response(debug only): ${response.body}");
-      }
-    } else {
-      completer.completeError("Unable to reach API");
-    }
-    return completer.future;
+    return Response(response);
   }
 
   /// evaluate the URL, which can be prefix with ${app.baseUrl}
@@ -201,6 +193,8 @@ class HttpUtils {
 class Response {
   dynamic body;
   Map<String, dynamic>? headers;
+  int? statusCode;
+  String? reasonPhrase;
 
   Response.fromBody(this.body, [this.headers]);
 
@@ -211,5 +205,10 @@ class Response {
       log('Warning - Only JSON response is supported');
     }
     headers = response.headers;
+    statusCode = response.statusCode;
+    reasonPhrase = response.reasonPhrase;
   }
+
+  bool get isSuccess => statusCode != null && statusCode! >= 200 && statusCode! <= 299;
+  bool get isError => !isSuccess;
 }
