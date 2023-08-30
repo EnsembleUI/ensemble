@@ -209,6 +209,7 @@ class Response {
     reasonPhrase = response.reasonPhrase;
   }
 
-  bool get isSuccess => statusCode != null && statusCode! >= 200 && statusCode! <= 299;
+  bool get isSuccess =>
+      statusCode != null && statusCode! >= 200 && statusCode! <= 299;
   bool get isError => !isSuccess;
 }
