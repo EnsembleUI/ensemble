@@ -263,3 +263,24 @@ class BoxController extends WidgetController {
       shadowRadius != null ||
       shadowStyle != null;
 }
+
+mixin InputFieldAction<T extends StatefulWidget> on State<T> {
+  void focusInputField();
+  void unfocusInputField();
+  void clear();
+}
+
+class FormInputController extends BoxController {
+  InputFieldAction? inputFieldAction;
+
+  @override
+  Map<String, Function> getBaseMethods() {
+    Map<String, Function> methods = super.getBaseMethods();
+    methods.addAll({
+      'clear': () => inputFieldAction?.clear(),
+      'focus': () => inputFieldAction?.focusInputField(),
+      'unfocus': () => inputFieldAction?.unfocusInputField(),
+    });
+    return methods;
+  }
+}

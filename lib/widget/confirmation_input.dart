@@ -102,8 +102,7 @@ class ConfirmationInput extends StatefulWidget
   }
 }
 
-class ConfirmationInputController extends BoxController {
-  TextInputFieldAction? inputFieldAction;
+class ConfirmationInputController extends FormInputController {
   String? text;
   late int length;
   bool? autoComplete;
@@ -130,14 +129,8 @@ class ConfirmationInputController extends BoxController {
   set textStyle(TextStyleComposite style) => _textStyle = style;
 }
 
-mixin TextInputFieldAction on framework.WidgetState<ConfirmationInput> {
-  void focusInputField();
-  void unfocusInputField();
-  void clear();
-}
-
 class ConfirmationInputState extends framework.WidgetState<ConfirmationInput>
-    with TextInputFieldAction {
+    with InputFieldAction {
   final _otpPinFieldController = GlobalKey<OtpPinFieldState>();
 
   @override
