@@ -54,6 +54,8 @@ import 'package:ensemble/widget/visualization/line_area_chart.dart';
 import 'package:ensemble/widget/webview/webview.dart';
 import 'package:get_it/get_it.dart';
 
+import 'fintech/tabapayconnect.dart';
+
 class WidgetRegistry {
   WidgetRegistry({this.debugLabel});
   final String? debugLabel;
@@ -138,5 +140,6 @@ class WidgetRegistry {
 
         //domain specific or custom widgets
         FinicityConnect.type: () => FinicityConnect(),
+        TabaPayConnect.type: () => TabaPayConnect(),
       };
 }
