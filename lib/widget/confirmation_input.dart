@@ -39,11 +39,12 @@ class ConfirmationInput extends StatefulWidget
           _controller.enableCursor = Utils.getBool(newValue, fallback: true),
       'length': (newValue) =>
           _controller.length = Utils.getInt(newValue, fallback: 4),
-      'width': (value) => _controller.fieldWidth = Utils.optionalDouble(value),
-      'height': (value) =>
+      'fieldWidth': (value) =>
+          _controller.fieldWidth = Utils.optionalDouble(value),
+      'fieldHeight': (value) =>
           _controller.fieldHeight = Utils.optionalDouble(value),
-      'padding': (value) =>
-          _controller.fieldPadding = Utils.getDouble(value, fallback: 10.0),
+      'gap': (value) =>
+          _controller.fieldGap = Utils.getDouble(value, fallback: 10.0),
       'borderRadius': (value) =>
           _controller.fieldBorderRadius = Utils.getDouble(value, fallback: 2.0),
       'borderWidth': (value) =>
@@ -111,7 +112,7 @@ class ConfirmationInputController extends FormInputController {
   String? inputType;
   double? fieldWidth;
   double? fieldHeight;
-  double? fieldPadding;
+  double? fieldGap;
   double? fieldBorderRadius;
   double? fieldBorderWidth;
   Color? defaultFieldBorderColor;
@@ -170,7 +171,7 @@ class ConfirmationInputState extends framework.WidgetState<ConfirmationInput>
             controller.filledFieldBackgroundColor ?? Colors.transparent,
         filledFieldBorderColor:
             controller.filledFieldBorderColor ?? Colors.transparent,
-        fieldPadding: controller.fieldPadding ?? 10.0,
+        fieldPadding: controller.fieldGap ?? 10.0,
         fieldBorderRadius: controller.fieldBorderRadius ?? 2.0,
         fieldBorderWidth: controller.fieldBorderWidth ?? 2.0,
       ),
