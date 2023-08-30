@@ -242,9 +242,14 @@ class EnsembleImageCropperState extends WidgetState<EnsembleImageCropper>
 
   CustomCropShape _getCropShape() {
     String? shape =
-        Utils.capitalizeFirstLetter(widget.controller.shape.toLowerCase());
+        capitalizeFirstLetter(widget.controller.shape.toLowerCase());
     shape = shape == 'Rectangle' ? CustomCropShape.Ratio.name : shape;
     return CustomCropShape.values.from(shape) ?? CustomCropShape.Circle;
+  }
+
+  String? capitalizeFirstLetter(String? value) {
+    if (value == null || value.isEmpty) return value;
+    return '${value[0].toUpperCase()}${value.substring(1).toLowerCase()}';
   }
 
   Ratio? _getRatio(CustomCropShape cropShape) {
