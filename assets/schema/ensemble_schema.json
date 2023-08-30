@@ -1007,6 +1007,18 @@
                   "datetime"
                 ]
               },
+              "fieldWidth": {
+                "type": "integer",
+                "description": "The width of the text field"
+              },
+              "fieldHeight": {
+                "type": "integer",
+                "description": "The height of the text field"
+              },
+              "gap": {
+                "type": "integer",
+                "description": "Horizontal gap to insert between the children (default is 10)"
+              },
               "autoComplete": {
                 "type": "boolean",
                 "description": "If it is True, then it will trigger onComplete when the user specified length and has typed the full length, False will trigger onComplete when the user hit Enter. Defaults (True)"
