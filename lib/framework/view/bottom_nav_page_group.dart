@@ -170,21 +170,17 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
 
       final icon = customIcon ??
           (item.icon != null
-            ? ensemble.Icon.fromModel(
-                item.icon!,
-                fallbackLibrary: item.iconLibrary,
-                fallbackColor: unselectedColor)
-            : ensemble.Icon(''));
+              ? ensemble.Icon.fromModel(item.icon!,
+                  fallbackLibrary: item.iconLibrary,
+                  fallbackColor: unselectedColor)
+              : ensemble.Icon(''));
 
       final activeIcon = customActiveIcon ??
           (item.activeIcon != null || item.icon != null
-            ? ensemble.Icon.fromModel(
-                (item.activeIcon ?? item.icon)!,
-                fallbackColor: selectedColor,
-                fallbackLibrary: item.iconLibrary)
-            : null);
-
-
+              ? ensemble.Icon.fromModel((item.activeIcon ?? item.icon)!,
+                  fallbackColor: selectedColor,
+                  fallbackLibrary: item.iconLibrary)
+              : null);
 
       navItems.add(
         FABBottomAppBarItem(
