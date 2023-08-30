@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:developer';
 import 'dart:io' as io;
 import 'dart:ui';
@@ -362,14 +363,16 @@ class NativeInvokable with Invokable {
     return {};
   }
 
-  Future<void> saveToKeychain(String key, String value) async {
+  Future<void> saveToKeychain(String key, dynamic value) async {
     if (defaultTargetPlatform != TargetPlatform.iOS) {
       return;
     }
     try {
+      final data = jsonEncode(value);
+      final json = {'key': key, 'data': data};
       const platform = MethodChannel('com.ensembleui.dev/safari-extension');
-      final _ = await platform
-          .invokeMethod(ActionType.saveToKeychain.name, {key: value});
+      final _ =
+          await platform.invokeMethod(ActionType.saveToKeychain.name, json);
     } on PlatformException catch (e) {
       throw LanguageError(
           'Failed to invoke ensemble.saveToKeychain. Reason: ${e.toString()}');
@@ -466,10 +469,11 @@ class EnsembleStorage with Invokable {
   Map<String, Function> methods() {
     return {
       'get': (String key) => StorageManager().read(key),
-      'set': (String key, dynamic value) => value == null
-          ? StorageManager().remove(key)
-          : StorageManager().write(key, value),
-      'delete': (key) => StorageManager().remove(key)
+      'set': setProperty,
+      'delete': (key) {
+        StorageManager().remove(key);
+        ScreenController().dispatchStorageChanges(context, key, null);
+      }
     };
   }
 
@@ -803,6 +807,8 @@ class APIResponse with Invokable {
     return {
       'body': () => _response?.body,
       'headers': () => _response?.headers,
+      'statusCode': () => _response?.statusCode,
+      'reasonPhrase': () => _response?.reasonPhrase
     };
   }
 
