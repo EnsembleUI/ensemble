@@ -151,6 +151,10 @@ class InvokeAPIController {
     if (errorResponse is Response) {
       localizedContext.addInvokableContext(
           'response', APIResponse(response: errorResponse));
+
+      // dispatch the changes to the response
+      dispatchAPIChanges(
+          scopeManager, action, APIResponse(response: errorResponse));
     } else {
       // exception, how do we want to expose to the user?
     }
