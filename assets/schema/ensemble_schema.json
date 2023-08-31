@@ -4320,7 +4320,84 @@
           "properties": {
             "BottomNavBar": {
               "description": "Use the bottom navigation bar",
-              "$ref": "#/$defs/MenuBase"
+              "type": "object",
+              "properties": {
+                "styles": {
+                  "type": "object",
+                  "properties": {
+                    "allOf": [
+                      {
+                      "$ref": "#/$defs/MenuBase"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "color": {
+                            "$ref": "#/$defs/typeColors",
+                            "description": "Unselected icon color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+                          },
+                          "selectedColor": {
+                            "$ref": "#/$defs/typeColors",
+                            "description": "Selected icon color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+                          },
+                          "backgroundColor": {
+                            "$ref": "#/$defs/typeColors",
+                            "description": "Background color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+                          },
+                          "floatingBackgroundColor": {
+                            "$ref": "#/$defs/typeColors",
+                            "description": "Floating item background color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+                          },
+                          "floatingIconColor": {
+                            "$ref": "#/$defs/typeColors",
+                            "description": "Floating item icon color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "activeIcon": {
+                        "type": "string",
+                        "description": "Icon name from Material Icons or Font Awesome"
+                      },
+                      "floating": {
+                        "type": "boolean",
+                        "description": "Mark this item as a floating icon"
+                      },
+                      "floatingMargin": {
+                        "$ref": "#/$defs/Margin-payload",
+                        "description": "The margin around the floating."
+                      },
+                      "floatingAlignment": {
+                        "$ref": "#/$defs/alignment",
+                        "description":"How to align the floating in the BottomNavBar. The values are left, center, right and none"
+                      },
+                      "customItem": {
+                        "type": "object",
+                        "required": [
+                          "widget"
+                        ],
+                        "properties": {
+                          "widget": {
+                            "$ref": "#/$defs/Widget",
+                            "description": "Custom bottom navigation item for the unselected state"
+                          },
+                          "selectedWidget": {
+                            "$ref": "#/$defs/Widget",
+                            "description": "Custom bottom navigation item for the selected state"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }   
             }
           }
         },
