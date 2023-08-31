@@ -2,34 +2,53 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 
-import 'package:ensemble/OAuthController.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/stub/oauth_controller.dart';
+import 'package:ensemble/framework/stub/token_manager.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
+import 'package:get_it/get_it.dart';
 import 'package:yaml/yaml.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' as foundation;
 
 class HttpUtils {
-  static Future<http.Response> invokeApi(
-      YamlMap api, DataContext eContext) async {
+  static Future<Response> invokeApi(
+      BuildContext context, YamlMap api, DataContext eContext) async {
     // headers
     Map<String, String> headers = {};
 
-    // include the OAuth token if applicable
-    String? oauthId = Utils.optionalString(api['authorization']?['oauthId']);
+    // this is the OAuth flow, where the authorization triggers before
+    // calling the API. Leave it alone for now
+    OAuthService? oAuthService = OAuthService.values
+        .from(Utils.optionalString(api['authorization']?['oauthId']));
     String? scope = Utils.optionalString(api['authorization']?['scope']);
     bool forceNewTokens =
         Utils.getBool(api['authorization']?['forceNewTokens'], fallback: false);
-    if (oauthId != null && scope != null) {
-      OAuthServiceToken? token = await OAuthController()
-          .authorize(oauthId, scope: scope, forceNewTokens: forceNewTokens);
+    if (oAuthService != null && scope != null) {
+      OAuthServiceToken? token = await GetIt.instance<OAuthController>()
+          .authorize(context, oAuthService,
+              scope: scope, forceNewTokens: forceNewTokens);
       if (token != null) {
         headers['Authorization'] = 'Bearer ${token.accessToken}';
       }
     }
+
+    // this is the Bearer token. TODO: consolidate with the above
+    OAuthService? serviceName =
+        OAuthService.values.from(api['authorization']?['serviceId']);
+    if (serviceName != null) {
+      OAuthServiceToken? token =
+          await GetIt.instance<TokenManager>().getServiceTokens(serviceName);
+      if (token != null) {
+        headers['Authorization'] = 'Bearer ${token.accessToken}';
+      }
+    }
+
     if (api['headers'] is YamlMap) {
       (api['headers'] as YamlMap).forEach((key, value) {
         if (value != null) {
@@ -85,7 +104,7 @@ class HttpUtils {
     }
 
     Completer<http.Response> completer = Completer();
-    http.Response? response;
+    http.Response response;
     switch (method) {
       case 'POST':
         response =
@@ -108,15 +127,7 @@ class HttpUtils {
     }
 
     log('Response: ${response.statusCode}');
-    if (response.statusCode >= 200 && response.statusCode <= 299) {
-      completer.complete(response);
-      if (foundation.kDebugMode) {
-        //log("Response(debug only): ${response.body}");
-      }
-    } else {
-      completer.completeError("Unable to reach API");
-    }
-    return completer.future;
+    return Response(response);
   }
 
   /// evaluate the URL, which can be prefix with ${app.baseUrl}
@@ -182,6 +193,8 @@ class HttpUtils {
 class Response {
   dynamic body;
   Map<String, dynamic>? headers;
+  int? statusCode;
+  String? reasonPhrase;
 
   Response.fromBody(this.body, [this.headers]);
 
@@ -192,5 +205,11 @@ class Response {
       log('Warning - Only JSON response is supported');
     }
     headers = response.headers;
+    statusCode = response.statusCode;
+    reasonPhrase = response.reasonPhrase;
   }
+
+  bool get isSuccess =>
+      statusCode != null && statusCode! >= 200 && statusCode! <= 299;
+  bool get isError => !isSuccess;
 }

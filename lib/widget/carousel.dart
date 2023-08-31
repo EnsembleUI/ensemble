@@ -40,6 +40,9 @@ class Carousel extends StatefulWidget
           _controller.layout = CarouselLayout.values.from(input),
       'autoLayoutBreakpoint': (value) =>
           _controller.autoLayoutBreakpoint = Utils.optionalInt(value, min: 0),
+      'autoplay': (value) => _controller.autoplay = Utils.optionalBool(value),
+      'autoplayInterval': (value) =>
+          _controller.autoplayInterval = Utils.optionalInt(value, min: 1),
       'height': (height) => _controller.height = Utils.optionalInt(height),
       'gap': (gap) => _controller.gap = Utils.optionalInt(gap),
       'leadingGap': (gap) => _controller.leadingGap = Utils.optionalInt(gap),
@@ -126,6 +129,8 @@ class MyController extends BoxController {
   EdgeInsets? indicatorMargin;
   double? indicatorOffset;
   Color? indicatorColor;
+  bool? autoplay;
+  int? autoplayInterval;
 
   // Custom Widget
   dynamic indicatorWidget;
@@ -338,6 +343,9 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
     return CarouselOptions(
       height: widget._controller.height?.toDouble(),
       enableInfiniteScroll: false,
+      autoPlay: widget._controller.autoplay ?? false,
+      autoPlayInterval:
+          Duration(seconds: widget._controller.autoplayInterval ?? 4),
     );
   }
 

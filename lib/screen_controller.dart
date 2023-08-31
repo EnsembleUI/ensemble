@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
@@ -5,7 +7,7 @@ import 'dart:isolate';
 import 'dart:math' show Random;
 import 'dart:ui';
 
-import 'package:ensemble/OAuthController.dart';
+import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/action/InvokeAPIController.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_app.dart';
@@ -15,11 +17,15 @@ import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/permissions_manager.dart';
+import 'package:ensemble/framework/stub/camera_manager.dart';
+import 'package:ensemble/framework/stub/contacts_manager.dart';
+import 'package:ensemble/framework/stub/file_manager.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/stub/plaid_link_manager.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/view/page_group.dart';
-import 'package:ensemble/framework/widget/camera_manager.dart';
 import 'package:ensemble/framework/widget/modal_screen.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/framework/widget/toast.dart';
@@ -27,11 +33,10 @@ import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble/util/http_utils.dart';
+import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_registry.dart';
-import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -41,6 +46,7 @@ import 'package:url_launcher/url_launcher_string.dart';
 import 'package:walletconnect_dart/walletconnect_dart.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:yaml/yaml.dart';
+import 'package:get_it/get_it.dart';
 
 import 'framework/widget/wallet_connect_modal.dart';
 
@@ -57,7 +63,7 @@ class ScreenController {
   }
 
   /// get the ScopeManager given the context
-  ScopeManager? _getScopeManager(BuildContext context) {
+  ScopeManager? getScopeManager(BuildContext context) {
     // get the current scope of the widget that invoked this. It gives us
     // the data context to evaluate expression
     ScopeManager? scopeManager = ensemble.DataScopeWidget.getScope(context);
@@ -80,9 +86,11 @@ class ScreenController {
   /// handle Action e.g invokeAPI
   void executeAction(BuildContext context, EnsembleAction action,
       {EnsembleEvent? event}) {
-    ScopeManager? scopeManager = _getScopeManager(context);
+    ScopeManager? scopeManager = getScopeManager(context);
     if (scopeManager != null) {
       executeActionWithScope(context, scopeManager, action, event: event);
+    } else {
+      throw Exception('Cannot find ScopeManager to execute action');
     }
   }
 
@@ -152,18 +160,121 @@ class ScreenController {
           pageArgs: nextArgs,
           transition: action.transition);
 
-      // process onModalDismiss
-      if (action is NavigateModalScreenAction &&
+      // listen for data returned on popped
+      if (scopeManager == null) {
+        return;
+      }
+      if (action is NavigateScreenAction && action.onNavigateBack != null) {
+        routeBuilder.popped.then((data) => executeActionWithScope(
+            context, scopeManager, action.onNavigateBack!,
+            event: EnsembleEvent(null, data: data)));
+      } else if (action is NavigateModalScreenAction &&
           action.onModalDismiss != null &&
-          routeBuilder.fullscreenDialog &&
-          scopeManager != null) {
+          routeBuilder.fullscreenDialog) {
         // callback on modal pop
         routeBuilder.popped.whenComplete(() {
           executeActionWithScope(context, scopeManager, action.onModalDismiss!);
         });
       }
+    } else if (action is ShowBottomModalAction) {
+      Widget? widget;
+      if (scopeManager != null && action.widget != null) {
+        widget = scopeManager.buildWidgetFromDefinition(action.widget);
+      }
+
+      if (widget != null) {
+        showModalBottomSheet(
+          context: context,
+          backgroundColor: action.backgroundColor(dataContext),
+          barrierColor: action.barrierColor(dataContext),
+          isScrollControlled: true,
+          enableDrag: action.enableDrag(dataContext),
+          showDragHandle: action.enableDragHandler(dataContext),
+          builder: (context) {
+            return widget!;
+          },
+        );
+      }
+    } else if (action is PlaidLinkAction) {
+      final linkToken = action.getLinkToken(dataContext).trim();
+      if (linkToken.isNotEmpty) {
+        GetIt.I<PlaidLinkManager>().openPlaidLink(
+          linkToken,
+          (linkSuccess) {
+            if (action.onSuccess != null) {
+              executeActionWithScope(
+                context,
+                scopeManager!,
+                action.onSuccess!,
+                event: EnsembleEvent(
+                  action.initiator!,
+                  data: linkSuccess,
+                ),
+              );
+            }
+          },
+          (linkEvent) {
+            if (action.onEvent != null) {
+              executeActionWithScope(
+                context,
+                scopeManager!,
+                action.onEvent!,
+                event: EnsembleEvent(
+                  action.initiator!,
+                  data: linkEvent,
+                ),
+              );
+            }
+          },
+          (linkExit) {
+            if (action.onExit != null) {
+              executeActionWithScope(
+                context,
+                scopeManager!,
+                action.onExit!,
+                event: EnsembleEvent(
+                  action.initiator!,
+                  data: linkExit,
+                ),
+              );
+            }
+          },
+        );
+      } else {
+        throw RuntimeError(
+            "openPlaidLink action requires the plaid's link_token.");
+      }
+    } else if (action is AppSettingAction) {
+      final settingType = action.getTarget(dataContext);
+      AppSettings.openAppSettings(type: settingType);
+    } else if (action is PhoneContactAction) {
+      GetIt.I<ContactManager>().getPhoneContacts((contacts) {
+        if (action.getOnSuccess(dataContext) != null) {
+          final contactsData =
+              contacts.map((contact) => contact.toJson()).toList();
+
+          executeActionWithScope(
+            context,
+            scopeManager!,
+            action.getOnSuccess(dataContext)!,
+            event: EnsembleEvent(
+              action.initiator,
+              data: {'contacts': contactsData},
+            ),
+          );
+        }
+      }, (error) {
+        if (action.getOnError(dataContext) != null) {
+          executeActionWithScope(
+            context,
+            scopeManager!,
+            action.getOnError(dataContext)!,
+            event: EnsembleEvent(action.initiator!, data: {'error': error}),
+          );
+        }
+      });
     } else if (action is ShowCameraAction) {
-      CameraManager().openCamera(context, action, scopeManager);
+      GetIt.I<CameraManager>().openCamera(context, action, scopeManager);
     } else if (action is ShowDialogAction) {
       if (scopeManager != null) {
         Widget widget = scopeManager.buildWidgetFromDefinition(action.widget);
@@ -356,41 +467,25 @@ class ScreenController {
           apiMap: apiMap,
           scopeManager: scopeManager);
     } else if (action is FilePickerAction) {
-      FilePicker.platform
-          .pickFiles(
-        type: action.allowedExtensions == null ? FileType.any : FileType.custom,
-        allowedExtensions: action.allowedExtensions,
-        allowCompression: action.allowCompression ?? true,
-        allowMultiple: action.allowMultiple ?? false,
-      )
-          .then((result) {
-        if (result == null || result.files.isEmpty) {
-          if (action.onError != null) executeAction(context, action.onError!);
-          return;
-        }
-
-        final selectedFiles =
-            result.files.map((file) => File.fromPlatformFile(file)).toList();
-        final fileData = FileData(files: selectedFiles);
-        if (scopeManager == null) return;
-        scopeManager.dataContext.addDataContextById(action.id, fileData);
-        scopeManager.dispatch(
-            ModelChangeEvent(SimpleBindingSource(action.id), fileData));
-        if (action.onComplete != null) {
-          executeAction(context, action.onComplete!);
-        }
-      });
+      GetIt.I<FileManager>().pickFiles(context, action, scopeManager);
     } else if (action is NavigateBack) {
       if (scopeManager != null) {
-        Navigator.of(context).maybePop();
+        Navigator.of(context).maybePop(action.getData(dataContext));
       }
     } else if (action is CopyToClipboardAction) {
       if (action.value != null) {
-        Clipboard.setData(ClipboardData(text: action.value!)).then((value) {
-          if (action.onSuccess != null) {
-            executeAction(context, action.onSuccess!);
-          }
-        });
+        String? clipboardValue = action.getValue(dataContext);
+        if (clipboardValue != null) {
+          Clipboard.setData(ClipboardData(text: clipboardValue)).then((value) {
+            if (action.onSuccess != null) {
+              executeAction(context, action.onSuccess!);
+            }
+          }).catchError((_) {
+            if (action.onFailure != null) {
+              executeAction(context, action.onFailure!);
+            }
+          });
+        }
       } else {
         if (action.onFailure != null) executeAction(context, action.onFailure!);
       }
@@ -454,8 +549,47 @@ class ScreenController {
         if (action.onError != null) executeAction(context, action.onError!);
         throw LanguageError('Unable to create wallet connect session');
       }
+    } else if (action is NotificationAction) {
+      notificationUtils.context = context;
+      notificationUtils.onRemoteNotification = action.onReceive;
+      notificationUtils.onRemoteNotificationOpened = action.onTap;
+    } else if (action is ShowNotificationAction) {
+      dataContext.addDataContext(Ensemble.externalDataContext);
+      notificationUtils.showNotification(
+        dataContext.eval(action.title),
+        dataContext.eval(action.body),
+      );
+    } else if (action is RequestNotificationAction) {
+      final isEnabled = await notificationUtils.initNotifications() ?? false;
+
+      if (isEnabled && action.onAccept != null) {
+        executeAction(context, action.onAccept!);
+      }
+
+      if (!isEnabled && action.onReject != null) {
+        executeAction(context, action.onReject!);
+      }
     } else if (action is AuthorizeOAuthAction) {
       // TODO
+    } else if (action is CheckPermission) {
+      Permission? type = action.getType(dataContext);
+      if (type == null) {
+        throw RuntimeError('checkPermission requires a type.');
+      }
+      bool? result = await PermissionsManager().hasPermission(type);
+      if (result == true) {
+        if (action.onAuthorized != null) {
+          executeAction(context, action.onAuthorized!);
+        }
+      } else if (result == false) {
+        if (action.onDenied != null) {
+          executeAction(context, action.onDenied!);
+        }
+      } else {
+        if (action.onNotDetermined != null) {
+          executeAction(context, action.onNotDetermined!);
+        }
+      }
     }
   }
 
@@ -749,10 +883,17 @@ class ScreenController {
   }
 
   void dispatchStorageChanges(BuildContext context, String key, dynamic value) {
-    ScopeManager? scopeManager = _getScopeManager(context);
+    ScopeManager? scopeManager = getScopeManager(context);
     if (scopeManager != null) {
       scopeManager.dispatch(ModelChangeEvent(StorageBindingSource(key), value));
     }
+  }
+
+  void dispatchSystemStorageChanges(
+      BuildContext context, String key, dynamic value,
+      {required String storagePrefix}) {
+    getScopeManager(context)?.dispatch(ModelChangeEvent(
+        SystemStorageBindingSource(key, storagePrefix: storagePrefix), value));
   }
 
   /// Navigate to another screen
