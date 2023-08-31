@@ -281,11 +281,10 @@ class TapOverlay extends StatelessWidget {
     return Stack(children: <Widget>[
       widget,
       Positioned.fill(
-          child: Material(
-              color: Colors.transparent, child: InkWell(onTap: onTap)))
+          child:
+              Material(color: Colors.transparent, child: InkWell(onTap: onTap)))
     ]);
   }
-
 }
 
 typedef TapOverlayFunc = void Function();
