@@ -427,8 +427,8 @@ class NativeInvokable with Invokable {
     ScreenController().executeAction(_buildContext, ShowCameraAction());
   }
 
-  void navigateBack() {
-    ScreenController().executeAction(_buildContext, NavigateBack());
+  void navigateBack(dynamic data) {
+    ScreenController().executeAction(_buildContext, NavigateBack(data));
   }
 }
 
