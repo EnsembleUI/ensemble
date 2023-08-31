@@ -3878,6 +3878,17 @@
           }
         },
         {
+          "title": "LoadingContainer",
+          "required": [
+            "LoadingContainer"
+          ],
+          "properties": {
+            "LoadingContainer": {
+              "$ref": "#/$defs/LoadingContainer-payload"
+            }
+          }
+        },
+        {
           "title": "PopupMenu",
           "required": [
             "PopupMenu"
