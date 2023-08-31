@@ -110,11 +110,13 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
         child: customIcon ??
             FloatingActionButton(
               backgroundColor: floatingBackgroundColor,
-              child: ensemble.Icon(
-                fabMenuItem!.icon ?? '',
-                library: fabMenuItem!.iconLibrary,
-                color: floatingItemColor,
-              ),
+              child: (fabMenuItem!.icon != null
+                  ? ensemble.Icon.fromModel(
+                      fabMenuItem!.icon!,
+                      fallbackLibrary: fabMenuItem!.iconLibrary,
+                      fallbackColor: floatingItemColor,
+                    )
+                  : ensemble.Icon('')),
               onPressed: () => _floatingButtonTapped(fabMenuItem!),
             ),
       );
