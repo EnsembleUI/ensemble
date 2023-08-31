@@ -1,4 +1,3 @@
-
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
@@ -12,7 +11,8 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-class PopupMenu extends StatefulWidget with Invokable, HasController<PopupMenuController, PopupMenuState> {
+class PopupMenu extends StatefulWidget
+    with Invokable, HasController<PopupMenuController, PopupMenuState> {
   static const type = "PopupMenu";
   PopupMenu({Key? key}) : super(key: key);
 
@@ -29,10 +29,11 @@ class PopupMenu extends StatefulWidget with Invokable, HasController<PopupMenuCo
       'widget': (widgetDef) => _controller.widgetDef = widgetDef,
       'onItemSelect': (action) => _controller.onItemSelect =
           EnsembleAction.fromYaml(action, initiator: this),
-      'items': (input) => _controller.items = _getItems(input) ?? _controller.items,
+      'items': (input) =>
+          _controller.items = _getItems(input) ?? _controller.items,
     };
   }
-  
+
   List<PopupMenuItem>? _getItems(dynamic input) {
     List<PopupMenuItem>? items;
     if (input is List) {
@@ -40,7 +41,7 @@ class PopupMenu extends StatefulWidget with Invokable, HasController<PopupMenuCo
       for (var element in input) {
         if (element is Map) {
           items.add(PopupMenuItem(
-              label: Utils.getString(element['label'], fallback: ''), 
+              label: Utils.getString(element['label'], fallback: ''),
               value: element['value']));
         } else {
           items.add(PopupMenuItem(label: element.toString()));
@@ -52,16 +53,13 @@ class PopupMenu extends StatefulWidget with Invokable, HasController<PopupMenuCo
 
   @override
   Map<String, Function> getters() {
-    return {
-
-    };
+    return {};
   }
 
   @override
   Map<String, Function> methods() {
     return {};
   }
-
 }
 
 class PopupMenuController extends WidgetController {
@@ -73,20 +71,18 @@ class PopupMenuController extends WidgetController {
 class PopupMenuState extends WidgetState<PopupMenu> {
   late Widget anchorWidget;
 
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
 
     // build the anchor widget
     var w = DataScopeWidget.getScope(context)
-          ?.buildWidgetFromDefinition(widget._controller.widgetDef);
+        ?.buildWidgetFromDefinition(widget._controller.widgetDef);
     if (w == null) {
       throw LanguageError('PopupMenu requires a widget to render the anchor.');
     }
     anchorWidget = w;
   }
-
 
   @override
   Widget buildWidget(BuildContext context) {
@@ -110,21 +106,15 @@ class PopupMenuState extends WidgetState<PopupMenu> {
   }
 
   void onItemSelect(PopupMenuItem item) {
-    ScreenController().executeAction(
-        context,
-        widget._controller.onItemSelect!,
-        event: EnsembleEvent(widget, data: {
-          'value': item.value ?? item.label
-        }));
+    ScreenController().executeAction(context, widget._controller.onItemSelect!,
+        event:
+            EnsembleEvent(widget, data: {'value': item.value ?? item.label}));
   }
-
 }
 
 class PopupMenuItem {
   PopupMenuItem({required this.label, this.value});
-  
+
   final String label;
   final dynamic value;
-  
-  
 }

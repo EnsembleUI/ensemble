@@ -421,10 +421,9 @@ class OpenUrlAction extends EnsembleAction {
 class NavigateBack extends EnsembleAction {
   NavigateBack(YamlMap? payload) : _data = payload?['data'];
   final dynamic _data;
-  
-  dynamic getData(DataContext dataContext) => _data != null && _data != '' 
-      ? dataContext.eval(_data)
-      : null;
+
+  dynamic getData(DataContext dataContext) =>
+      _data != null && _data != '' ? dataContext.eval(_data) : null;
 }
 
 class ShowToastAction extends EnsembleAction {

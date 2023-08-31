@@ -14,7 +14,6 @@ import 'package:yaml/yaml.dart';
 import 'package:http/http.dart' as http;
 
 class InvokeAPIController {
-
   Future<Response?> executeWithContext(
       BuildContext context, InvokeAPIAction action,
       {Map<String, dynamic>? additionalInputs}) {
@@ -31,7 +30,6 @@ class InvokeAPIController {
     }
     throw Exception('Unable to execute API from context');
   }
-
 
   Future<Response?> execute(
       InvokeAPIAction action,
@@ -62,8 +60,8 @@ class InvokeAPIController {
         Response response =
             await HttpUtils.invokeApi(context, apiDefinition, dataContext);
         if (response.isSuccess) {
-          _onAPIComplete(context, dataContext, action, apiDefinition,
-              response, apiMap, scopeManager);
+          _onAPIComplete(context, dataContext, action, apiDefinition, response,
+              apiMap, scopeManager);
         } else {
           processAPIError(context, dataContext, action, apiDefinition, response,
               apiMap, scopeManager);
@@ -151,14 +149,15 @@ class InvokeAPIController {
 
     DataContext localizedContext = dataContext.clone();
     if (errorResponse is Response) {
-      localizedContext.addInvokableContext('response', APIResponse(response: errorResponse));
+      localizedContext.addInvokableContext(
+          'response', APIResponse(response: errorResponse));
 
       // dispatch the changes to the response
-      dispatchAPIChanges(scopeManager, action, APIResponse(response: errorResponse));
+      dispatchAPIChanges(
+          scopeManager, action, APIResponse(response: errorResponse));
     } else {
       // exception, how do we want to expose to the user?
     }
-
 
     EnsembleAction? onErrorAction =
         EnsembleAction.fromYaml(apiDefinition['onError']);
