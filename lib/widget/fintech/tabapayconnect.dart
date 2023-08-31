@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -111,28 +112,33 @@ class TabaPayConnectState extends WidgetState<TabaPayConnect> {
       _executeAction(widget._controller.onError, {'message': message});
     } else {
       final parts = message.split("|");
-      if (parts.length != 3) {
+      if (parts.length != 4) {
         _executeAction(widget._controller.onError,
             {'message': 'Unexpected response from TabaPay'});
       } else {
         var lastDigits = parts[0];
         var expiration = parts[1];
         var token = parts[2];
+        var zipCode = parts[3];
+
         _executeAction(widget._controller.onSuccess, {
           'last4': lastDigits,
           'expiration': expiration,
           'token': token,
+          'zipCode': zipCode,
           'data': message
         });
       }
     }
   }
 
-  void _executeAction(EnsembleAction? action, Map<String, dynamic> inputs) {
+  void _executeAction(EnsembleAction? action, Map<String, dynamic> payload) {
     if (action == null) {
       return;
     }
-    action.inputs = inputs;
-    ScreenController().executeAction(context, action);
+    ScreenController().executeAction(
+        context,
+        action,
+        event: EnsembleEvent(widget, data: payload));
   }
 }
