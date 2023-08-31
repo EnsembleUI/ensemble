@@ -165,9 +165,9 @@ class ScreenController {
         return;
       }
       if (action is NavigateScreenAction && action.onNavigateBack != null) {
-        routeBuilder.popped.then((data) =>
-          executeActionWithScope(context, scopeManager, action.onNavigateBack!,
-              event: EnsembleEvent(null, data: data)));
+        routeBuilder.popped.then((data) => executeActionWithScope(
+            context, scopeManager, action.onNavigateBack!,
+            event: EnsembleEvent(null, data: data)));
       } else if (action is NavigateModalScreenAction &&
           action.onModalDismiss != null &&
           routeBuilder.fullscreenDialog) {
@@ -176,7 +176,6 @@ class ScreenController {
           executeActionWithScope(context, scopeManager, action.onModalDismiss!);
         });
       }
-
     } else if (action is ShowBottomModalAction) {
       Widget? widget;
       if (scopeManager != null && action.widget != null) {
