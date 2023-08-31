@@ -160,11 +160,17 @@ class ScreenController {
           pageArgs: nextArgs,
           transition: action.transition);
 
-      // process onModalDismiss
-      if (action is NavigateModalScreenAction &&
+      // listen for data returned on popped
+      if (scopeManager == null) {
+        return;
+      }
+      if (action is NavigateScreenAction && action.onNavigateBack != null) {
+        routeBuilder.popped.then((data) => executeActionWithScope(
+            context, scopeManager, action.onNavigateBack!,
+            event: EnsembleEvent(null, data: data)));
+      } else if (action is NavigateModalScreenAction &&
           action.onModalDismiss != null &&
-          routeBuilder.fullscreenDialog &&
-          scopeManager != null) {
+          routeBuilder.fullscreenDialog) {
         // callback on modal pop
         routeBuilder.popped.whenComplete(() {
           executeActionWithScope(context, scopeManager, action.onModalDismiss!);
@@ -464,7 +470,7 @@ class ScreenController {
       GetIt.I<FileManager>().pickFiles(context, action, scopeManager);
     } else if (action is NavigateBack) {
       if (scopeManager != null) {
-        Navigator.of(context).maybePop();
+        Navigator.of(context).maybePop(action.getData(dataContext));
       }
     } else if (action is CopyToClipboardAction) {
       if (action.value != null) {

@@ -16,7 +16,6 @@ import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:email_validator/email_validator.dart';
 import 'package:ensemble/framework/model.dart' as model;
-import 'package:flutter/services.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:form_validator/form_validator.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
@@ -30,7 +29,7 @@ class TextInput extends BaseTextInput {
   Map<String, Function> setters() {
     Map<String, Function> setters = super.setters();
     setters.addAll({
-      'value': (newValue) => controller.value = newValue,
+      'value': (newValue) => textController.text = newValue,
       'obscureText': (obscure) =>
           _controller.obscureText = Utils.optionalBool(obscure),
       'inputType': (type) => _controller.inputType = Utils.optionalString(type),
@@ -91,7 +90,7 @@ abstract class BaseTextInput extends StatefulWidget
   BaseTextInput({Key? key}) : super(key: key);
 
   // textController manages 'value', while _controller manages the rest
-  TextEditingController textController = TextEditingController();
+  final TextEditingController textController = TextEditingController();
   final TextInputController _controller = TextInputController();
 
   @override
@@ -100,8 +99,7 @@ abstract class BaseTextInput extends StatefulWidget
   @override
   Map<String, Function> getters() {
     return {
-      'value': () => _controller.value,
-      'maskedValue': () => _controller.maskedValueText,
+      'value': () => textController.text,
     };
   }
 
@@ -170,8 +168,6 @@ mixin TextInputFieldAction on FormFieldWidgetState<BaseTextInput> {
 /// controller for both TextField and Password
 class TextInputController extends FormFieldController {
   TextInputFieldAction? inputFieldAction;
-  String? maskedValueText = '';
-  String? value = '';
   EnsembleAction? onChange;
   EnsembleAction? onKeyPress;
   TextInputAction? keyboardAction;
@@ -195,7 +191,6 @@ class TextInputController extends FormFieldController {
 
 class TextInputState extends FormFieldWidgetState<BaseTextInput>
     with TextInputFieldAction {
-  List<TextInputFormatter> inputFormatters = [];
   final focusNode = FocusNode();
 
   // for this widget we will implement onChange if the text changes AND:
@@ -207,7 +202,8 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
   void evaluateChanges() {
     if (didItChange) {
       // trigger binding
-      widget.setProperty('value', widget.controller.value);
+      widget.setProperty('value', widget.textController.text);
+
       // call onChange
       if (widget._controller.onChange != null) {
         ScreenController().executeAction(context, widget._controller.onChange!,
@@ -222,8 +218,6 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
 
   @override
   void initState() {
-    widget.textController =
-        TextEditingController(text: widget.controller.value);
     currentlyObscured =
         widget.isPassword() || widget._controller.obscureText == true;
 
@@ -249,9 +243,6 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
         }
       }
     });
-
-    inputFormatters = InputFormatter.getFormatter(
-        widget._controller.inputType, widget._controller.mask);
     super.initState();
   }
 
@@ -375,7 +366,8 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
           },
           textInputAction: widget._controller.keyboardAction,
           keyboardType: widget.keyboardType,
-          inputFormatters: inputFormatters,
+          inputFormatters: InputFormatter.getFormatter(
+              widget._controller.inputType, widget._controller.mask),
           maxLines: widget._controller.maxLines,
           obscureText: isObscureOrPlainText(),
           enableSuggestions: !widget.isPassword(),
@@ -383,13 +375,8 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
           controller: widget.textController,
           focusNode: focusNode,
           enabled: isEnabled(),
-          onFieldSubmitted: (value) {
-            widget.controller.submitForm(context);
-            _updateTextInputController();
-          },
+          onFieldSubmitted: (value) => widget.controller.submitForm(context),
           onChanged: (String txt) {
-            _updateTextInputController();
-
             if (txt != previousText) {
               // for performance reason, we dispatch onChange (as well as binding to value)
               // upon EditingComplete (select Done on virtual keyboard) or Focus Out
@@ -411,17 +398,6 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
                 ),
           decoration: decoration,
         ));
-  }
-
-  void _updateTextInputController() {
-    final maskInputFormatter = inputFormatters
-        .whereType<MaskTextInputFormatter>()
-        .toList()
-        .firstOrNull;
-
-    widget.controller.maskedValueText = maskInputFormatter?.getMaskedText();
-    widget.controller.value =
-        maskInputFormatter?.getUnmaskedText() ?? widget.textController.text;
   }
 
   @override
