@@ -144,16 +144,7 @@ class ImageState extends WidgetState<EnsembleImage> {
           cacheManager: EnsembleImageCacheManager.instance,
           errorWidget: (context, error, stacktrace) => errorFallback(),
           placeholder: (context, url) => placeholder);
-    } else if (widget._controller.source.contains('assets')) {
-      // user might use env variables to switch between remote and local images.
-      // Assets might have additional token e.g. my-image.png?x=2343
-      // so we need to strip them out
-      return Image.asset(Utils.getLocalAssetFullPath(widget._controller.source),
-          width: widget._controller.width?.toDouble(),
-          height: widget._controller.height?.toDouble(),
-          fit: fit,
-          errorBuilder: (context, error, stacktrace) => errorFallback());
-    } else {
+    } else if (Utils.isMemoryPath(widget._controller.source)) {
       return kIsWeb
           ? Image.network(widget._controller.source,
               width: widget._controller.width?.toDouble(),
@@ -165,6 +156,15 @@ class ImageState extends WidgetState<EnsembleImage> {
               height: widget._controller.height?.toDouble(),
               fit: fit,
               errorBuilder: (context, error, stacktrace) => errorFallback());
+    } else {
+      // user might use env variables to switch between remote and local images.
+      // Assets might have additional token e.g. my-image.png?x=2343
+      // so we need to strip them out
+      return Image.asset(Utils.getLocalAssetFullPath(widget._controller.source),
+          width: widget._controller.width?.toDouble(),
+          height: widget._controller.height?.toDouble(),
+          fit: fit,
+          errorBuilder: (context, error, stacktrace) => errorFallback());
     }
   }
 
@@ -186,7 +186,8 @@ class ImageState extends WidgetState<EnsembleImage> {
   }
 
   bool isSvg() {
-    return widget._controller.source.endsWith('svg');
+    String imgSrc = Utils.stripQueryParamsFromAsset(widget._controller.source);
+    return imgSrc.endsWith('svg');
   }
 
   /// display if the image cannot be loaded

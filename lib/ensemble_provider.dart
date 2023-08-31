@@ -3,9 +3,10 @@ import 'dart:developer';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/i18n_loader.dart';
-import 'package:ensemble/framework/widget/view_util.dart';
+import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:yaml/yaml.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ensemble/provider.dart';
@@ -32,14 +33,16 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
 
   static void getAppDefinition(
       String appId, Function callback, Function onError) {
-    FirebaseFirestore db = FirebaseFirestore.instance;
+    final app = Ensemble().ensembleFirebaseApp!;
+    FirebaseFirestore db = FirebaseFirestore.instanceFor(app: app);
     db.collection('apps').doc(appId).get().then(
         (doc) => callback(doc.id, doc.data()),
         onError: (error) => onError(error));
   }
 
   @override
-  Future<YamlMap> getDefinition({String? screenId, String? screenName}) async {
+  Future<ScreenDefinition> getDefinition(
+      {String? screenId, String? screenName}) async {
     YamlMap? content;
 
     // search by ID
@@ -59,7 +62,7 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
       throw LanguageError(
           "Invalid screen content: ${screenId ?? screenName ?? 'Home'}");
     }
-    return content;
+    return ScreenDefinition(content);
   }
 
   @override
@@ -76,6 +79,11 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
   @override
   UserAppConfig? getAppConfig() {
     return appModel.appConfig;
+  }
+
+  @override
+  Map<String, String> getSecrets() {
+    return appModel.secrets ?? {};
   }
 }
 
@@ -95,6 +103,7 @@ class AppModel {
   String? homeMapping;
   String? themeMapping;
   UserAppConfig? appConfig;
+  Map<String, String>? secrets;
 
   // storing the resource cache from imported apps
   Map<String, dynamic> importCache = {};
@@ -103,7 +112,8 @@ class AppModel {
   /// Plus listen for changes and update the cache
   String? listenerError;
   void initListeners() {
-    FirebaseFirestore db = FirebaseFirestore.instance;
+    final app = Ensemble().ensembleFirebaseApp!;
+    FirebaseFirestore db = FirebaseFirestore.instanceFor(app: app);
     db
         .collection('apps')
         .doc(appId)
@@ -130,7 +140,9 @@ class AppModel {
 
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>
       initWidgetArtifactListeners(String appId) {
-    return FirebaseFirestore.instance
+    final app = Ensemble().ensembleFirebaseApp!;
+
+    return FirebaseFirestore.instanceFor(app: app)
         .collection('apps')
         .doc(appId)
         .collection('artifacts')
@@ -166,6 +178,12 @@ class AppModel {
             baseUrl: doc.data()?['appBaseUrl'],
             useBrowserUrl: Utils.optionalBool(doc.data()?['appUseBrowserUrl']),
             envVariables: envVariables);
+      } else if (doc.data()?['type'] == ArtifactType.secrets.name) {
+        dynamic rawSecrets = doc.data()!['secrets'];
+        if (rawSecrets is Map) {
+          secrets = {};
+          rawSecrets.forEach((key, value) => secrets![key] = value);
+        }
       }
 
       // mark the app bundle as dirty
@@ -223,15 +241,7 @@ class AppModel {
       content = artifactCache[screenId];
       log("Cache missed for $screenId");
     }
-    if (content is YamlMap) {
-      // a bit hacky but OK for now. If widget is found, wrap it inside
-      // a proper screen syntax so we can preview it
-      if (content.keys.length == 1 && content['Widget'] != null) {
-        return ViewUtil.getWidgetAsScreen(content['Widget']);
-      }
-      return content;
-    }
-    return null;
+    return content is YamlMap ? content : null;
   }
 
   Future<YamlMap?> getScreenByName(String screenName) async {
@@ -274,7 +284,8 @@ class AppModel {
   }
 
   CollectionReference<Map<String, dynamic>> _getArtifacts() {
-    FirebaseFirestore db = FirebaseFirestore.instance;
+    final app = Ensemble().ensembleFirebaseApp!;
+    FirebaseFirestore db = FirebaseFirestore.instanceFor(app: app);
     return db.collection('apps').doc(appId).collection('artifacts');
   }
 

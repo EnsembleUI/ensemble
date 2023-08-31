@@ -15,6 +15,8 @@ import 'package:ensemble/page_model.dart' as model;
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/button.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:flutter/material.dart';
 
 import '../widget/custom_view.dart';
@@ -174,6 +176,8 @@ class PageState extends State<Page> {
         Utils.getBool(headerModel.styles?['centerTitle'], fallback: true);
     Color? backgroundColor =
         Utils.getColor(headerModel.styles?['backgroundColor']);
+    Color? surfaceTintColor =
+        Utils.getColor(headerModel.styles?['surfaceTintColor']);
     Color? color = Utils.getColor(headerModel.styles?['color']);
     Color? shadowColor = Utils.getColor(headerModel.styles?['shadowColor']);
     double? elevation =
@@ -200,6 +204,7 @@ class PageState extends State<Page> {
         title: titleWidget,
         centerTitle: centerTitle,
         backgroundColor: backgroundColor,
+        surfaceTintColor: surfaceTintColor,
         foregroundColor: color,
 
         // control the drop shadow on the header's bottom edge
@@ -273,13 +278,17 @@ class PageState extends State<Page> {
       // sidebar navBar will be rendered as part of the body
     }
 
+    LinearGradient? backgroundGradient = Utils.getBackgroundGradient(
+        widget._pageModel.pageStyles?['backgroundGradient']);
     Color? backgroundColor =
         Utils.getColor(widget._pageModel.pageStyles?['backgroundColor']);
     // if we have a background image, set the background color to transparent
     // since our image is outside the Scaffold
-    BackgroundImage? backgroundImage = Utils.getBackgroundImage(
-        widget._pageModel.pageStyles?['backgroundImage']);
-    if (backgroundImage != null && backgroundColor == null) {
+    dynamic evaluatedBackgroundImg = _scopeManager.dataContext
+        .eval(widget._pageModel.pageStyles?['backgroundImage']);
+    BackgroundImage? backgroundImage =
+        Utils.getBackgroundImage(evaluatedBackgroundImg);
+    if (backgroundImage != null || backgroundGradient != null) {
       backgroundColor = Colors.transparent;
     }
 
@@ -317,7 +326,7 @@ class PageState extends State<Page> {
     Widget rtn = DataScopeWidget(
       scopeManager: _scopeManager,
       child: Scaffold(
-          resizeToAvoidBottomInset: false,
+          resizeToAvoidBottomInset: true,
           // slight optimization, if body background is set, let's paint
           // the entire screen including the Safe Area
           backgroundColor: backgroundColor,
@@ -330,7 +339,10 @@ class PageState extends State<Page> {
           bottomNavigationBar: _bottomNavBar,
           drawer: _drawer,
           endDrawer: _endDrawer,
-          bottomSheet: _buildFooter(_scopeManager, widget._pageModel),
+          bottomSheet: _buildFooter(
+            _scopeManager,
+            widget._pageModel,
+          ),
           floatingActionButton: closeModalButton,
           floatingActionButtonLocation:
               widget._pageModel.pageStyles?['navigationIconPosition'] == 'start'
@@ -344,6 +356,12 @@ class PageState extends State<Page> {
       return Stack(
         children: [Positioned.fill(child: backgroundImage.asImageWidget), rtn],
       );
+    } else if (backgroundGradient != null) {
+      return Scaffold(
+          resizeToAvoidBottomInset: false,
+          body: Container(
+              decoration: BoxDecoration(gradient: backgroundGradient),
+              child: rtn));
     }
     return rtn;
   }
@@ -561,18 +579,28 @@ class PageState extends State<Page> {
   Widget? _buildFooter(ScopeManager scopeManager, SinglePageModel pageModel) {
     // Footer can only take 1 child by our design. Ignore the rest
     if (pageModel.footer != null && pageModel.footer!.children.isNotEmpty) {
+      final footerStyles = pageModel.footer?.styles;
+      final boxController = BoxController()
+        ..padding = Utils.getInsets(footerStyles?['padding'])
+        ..margin = Utils.optionalInsets(footerStyles?['margin'])
+        ..width = Utils.optionalInt(footerStyles?['width'])
+        ..height = Utils.optionalInt(footerStyles?['height'])
+        ..backgroundColor = Utils.getColor(footerStyles?['backgroundColor'])
+        ..backgroundGradient =
+            Utils.getBackgroundGradient(footerStyles?['backgroundGradient'])
+        ..shadowColor = Utils.getColor(footerStyles?['shadowColor'])
+        ..borderRadius = Utils.getBorderRadius(footerStyles?['borderRadius'])
+        ..borderColor = Utils.getColor(footerStyles?['borderColor'])
+        ..borderWidth = Utils.optionalInt(footerStyles?['borderWidth']);
+
       return AnimatedOpacity(
-          opacity: 1.0,
-          duration: const Duration(milliseconds: 500),
-          child: SizedBox(
-              width: double.infinity,
-              height: 110,
-              child: Padding(
-                padding: const EdgeInsets.only(
-                    left: 16, right: 16, top: 16, bottom: 32),
-                child:
-                    scopeManager.buildWidget(pageModel.footer!.children.first),
-              )));
+        opacity: 1.0,
+        duration: const Duration(milliseconds: 500),
+        child: BoxWrapper(
+          boxController: boxController,
+          widget: scopeManager.buildWidget(pageModel.footer!.children.first),
+        ),
+      );
     }
     return null;
   }

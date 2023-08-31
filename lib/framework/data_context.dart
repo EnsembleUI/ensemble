@@ -1,16 +1,22 @@
+import 'dart:convert';
 import 'dart:developer';
 import 'dart:io' as io;
 import 'dart:ui';
+import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
-import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/secrets.dart';
+import 'package:ensemble/framework/stub/auth_context_manager.dart';
+import 'package:ensemble/framework/stub/oauth_controller.dart';
+import 'package:ensemble/framework/stub/token_manager.dart';
+import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/util/extensions.dart';
+import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
-import 'package:get_storage/get_storage.dart';
+import 'package:get_it/get_it.dart';
 
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -42,8 +48,14 @@ class DataContext {
     }
     _contextMap['app'] = AppConfig();
     _contextMap['env'] = EnvConfig();
+    _contextMap['secrets'] = SecretsStore();
     _contextMap['ensemble'] = NativeInvokable(buildContext);
-    _contextMap['user'] = UserInfo();
+
+    // auth can be selectively turned on
+    if (GetIt.instance.isRegistered<AuthContextManager>()) {
+      _contextMap['auth'] = GetIt.instance<AuthContextManager>();
+    }
+
     // device is a common name. If user already uses that, don't override it
     if (_contextMap['device'] == null) {
       _contextMap['device'] = Device();
@@ -312,6 +324,7 @@ class NativeInvokable with Invokable {
   Map<String, Function> getters() {
     return {
       'storage': () => EnsembleStorage(_buildContext),
+      'user': () => UserInfo(),
       'formatter': () => Formatter(_buildContext),
     };
   }
@@ -334,13 +347,49 @@ class NativeInvokable with Invokable {
       ActionType.uploadFiles.name: uploadFiles,
       'debug': (value) => debugPrint('Debug: $value'),
       'copyToClipboard': (value) =>
-          Clipboard.setData(ClipboardData(text: value))
+          Clipboard.setData(ClipboardData(text: value)),
+      'initNotification': () => notificationUtils.initNotifications(),
+      'updateSystemAuthorizationToken': (token) =>
+          GetIt.instance<TokenManager>()
+              .updateServiceTokens(OAuthService.system, token),
+      ActionType.saveToKeychain.name: (key, value) =>
+          saveToKeychain(key, value),
+      ActionType.clearKeychain.name: (key) => clearKeychain(key),
     };
   }
 
   @override
   Map<String, Function> setters() {
     return {};
+  }
+
+  Future<void> saveToKeychain(String key, dynamic value) async {
+    if (defaultTargetPlatform != TargetPlatform.iOS) {
+      return;
+    }
+    try {
+      final data = jsonEncode(value);
+      final json = {'key': key, 'data': data};
+      const platform = MethodChannel('com.ensembleui.dev/safari-extension');
+      final _ =
+          await platform.invokeMethod(ActionType.saveToKeychain.name, json);
+    } on PlatformException catch (e) {
+      throw LanguageError(
+          'Failed to invoke ensemble.saveToKeychain. Reason: ${e.toString()}');
+    }
+  }
+
+  Future<void> clearKeychain(String key) async {
+    if (defaultTargetPlatform != TargetPlatform.iOS) {
+      return;
+    }
+    try {
+      const platform = MethodChannel('com.ensembleui.dev/safari-extension');
+      final _ = await platform.invokeMethod(ActionType.clearKeychain.name, key);
+    } on PlatformException catch (e) {
+      throw LanguageError(
+          'Failed to invoke ensemble.clearKeychain. Reason: ${e.toString()}');
+    }
   }
 
   void uploadFiles(dynamic inputs) {
@@ -378,8 +427,8 @@ class NativeInvokable with Invokable {
     ScreenController().executeAction(_buildContext, ShowCameraAction());
   }
 
-  void navigateBack() {
-    ScreenController().executeAction(_buildContext, NavigateBack());
+  void navigateBack(dynamic data) {
+    ScreenController().executeAction(_buildContext, NavigateBack(data));
   }
 }
 
@@ -392,15 +441,14 @@ class EnsembleStorage with Invokable {
     return _instance;
   }
   static late BuildContext context;
-  final storage = GetStorage();
 
   @override
   void setProperty(prop, val) {
     if (prop is String) {
       if (val == null) {
-        storage.remove(prop);
+        StorageManager().remove(prop);
       } else {
-        storage.write(prop, val);
+        StorageManager().write(prop, val);
       }
       // dispatch changes
       ScreenController().dispatchStorageChanges(context, prop, val);
@@ -409,7 +457,7 @@ class EnsembleStorage with Invokable {
 
   @override
   getProperty(prop) {
-    return prop is String ? storage.read(prop) : null;
+    return prop is String ? StorageManager().read(prop) : null;
   }
 
   @override
@@ -420,10 +468,12 @@ class EnsembleStorage with Invokable {
   @override
   Map<String, Function> methods() {
     return {
-      'get': (String key) => storage.read(key),
-      'set': (String key, dynamic value) =>
-          value == null ? storage.remove(key) : storage.write(key, value),
-      'delete': (key) => storage.remove(key)
+      'get': (String key) => StorageManager().read(key),
+      'set': setProperty,
+      'delete': (key) {
+        StorageManager().remove(key);
+        ScreenController().dispatchStorageChanges(context, key, null);
+      }
     };
   }
 
@@ -757,6 +807,8 @@ class APIResponse with Invokable {
     return {
       'body': () => _response?.body,
       'headers': () => _response?.headers,
+      'statusCode': () => _response?.statusCode,
+      'reasonPhrase': () => _response?.reasonPhrase
     };
   }
 
@@ -822,13 +874,6 @@ class FileData with Invokable {
 
 class File {
   File(this.name, this.ext, this.size, this.path, this.bytes);
-
-  File.fromPlatformFile(PlatformFile file)
-      : name = file.name,
-        ext = file.extension,
-        size = file.size,
-        path = kIsWeb ? null : file.path,
-        bytes = file.bytes;
 
   File.fromJson(Map<String, dynamic> file)
       : name = file['name'],
