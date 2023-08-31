@@ -103,7 +103,8 @@ class ConfirmationInput extends StatefulWidget
   }
 }
 
-class ConfirmationInputController extends FormInputController {
+class ConfirmationInputController extends BoxController {
+  InputFieldAction? inputFieldAction;
   String? text;
   late int length;
   bool? autoComplete;
@@ -128,6 +129,12 @@ class ConfirmationInputController extends FormInputController {
   TextStyleComposite? _textStyle;
   TextStyleComposite get textStyle => _textStyle ??= TextStyleComposite(this);
   set textStyle(TextStyleComposite style) => _textStyle = style;
+}
+
+mixin InputFieldAction on framework.WidgetState<ConfirmationInput> {
+  void focusInputField();
+  void unfocusInputField();
+  void clear();
 }
 
 class ConfirmationInputState extends framework.WidgetState<ConfirmationInput>
