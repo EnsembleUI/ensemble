@@ -136,9 +136,7 @@ class TabaPayConnectState extends WidgetState<TabaPayConnect> {
     if (action == null) {
       return;
     }
-    ScreenController().executeAction(
-        context,
-        action,
+    ScreenController().executeAction(context, action,
         event: EnsembleEvent(widget, data: payload));
   }
 }

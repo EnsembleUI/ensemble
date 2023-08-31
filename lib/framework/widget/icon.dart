@@ -14,9 +14,12 @@ class Icon extends flutter.Icon {
   }) : super(_iconFromName(icon, library),
             key: key, size: size?.toDouble(), color: color);
 
-  factory Icon.fromModel(IconModel model, {Color? fallbackColor, String? fallbackLibrary}) {
-    return Icon(model.icon, library: model.library ?? fallbackLibrary,
-        size: model.size, color: model.color ?? fallbackColor);
+  factory Icon.fromModel(IconModel model,
+      {Color? fallbackColor, String? fallbackLibrary}) {
+    return Icon(model.icon,
+        library: model.library ?? fallbackLibrary,
+        size: model.size,
+        color: model.color ?? fallbackColor);
   }
 
   static IconData? _iconFromName(dynamic name, String? library) {
