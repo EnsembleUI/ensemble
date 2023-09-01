@@ -104,6 +104,7 @@ dependencies:
   custom_image_crop: ^0.0.10
   app_settings: ^5.0.0
   firebase_messaging: ^14.6.5
+  shimmer: ^3.0.0
 
 dev_dependencies:
   flutter_test:
