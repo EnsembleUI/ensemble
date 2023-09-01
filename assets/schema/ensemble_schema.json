@@ -817,24 +817,33 @@
         },
         "isLoading": {
           "type": "boolean",
-          "description": "Whether to display loading widget"
+          "description": "Whether to display a loading widget. The default will be empty (without shimmer) or a default loading shimmer, unless a loadingWidget is specified."
         },
         "useShimmer": {
           "type": "boolean",
-          "description": "Whether to use a shimmer widget in loading state"
+          "description": "a shining animation to designate that the content is loading. The animation can be over a defaults shimmer or the loadingWidget if specified."
         },
         "widget": {
           "$ref": "#/$defs/Widget",
-          "description": "The widget to display when non loading state"
+          "description": "The main widget to show in non-loading state"
         },
         "loadingWidget": {
           "$ref": "#/$defs/Widget",
-          "description": "The widget to display when loading state"
+          "description": "The widget to display in loading state. When enabling shimmer, ensure your widget has a background color for the animation to shine through."
         },
         "styles": {
           "allOf": [
             {
               "$ref": "#/$defs/baseStyles"
+            },
+            {
+              "properties": {
+                "defaultShimmerPadding": {
+                  "type": "object",
+                  "description": "Specified the padding for the default shimmer widget (not applicable if loadingWidget is specified or useShimmer is not enabled).",
+                  "$ref": "#/$defs/Padding-payload"
+                }
+              }
             }
           ]
         }
@@ -1231,6 +1240,32 @@
           }
         }
       ]
+    },
+    "Shape-payload": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["square", "rectangle", "circle", "oval"]
+        },
+        "styles": {
+          "properties": {
+            "width": {
+              "type": "integer"
+            },
+            "height": {
+              "type": "integer"
+            },
+            "borderRadius": {
+              "$ref": "#/$defs/borderRadius",
+              "description": "Applicable only for square/rectangle shape"
+            },
+            "backgroundColor": {
+              "$ref": "#/$defs/typeColors"
+            }
+          }
+        }
+      }
     },
     "SignInWithGoogle-payload": {
       "type": "object",
@@ -3992,6 +4027,18 @@
             "Time": {
               "$ref": "#/$defs/Time-payload",
               "description": "Kitchen Sink Example: ...coming ..."
+            }
+          }
+        },
+        {
+          "title": "Shape",
+          "required": [
+            "Shape"
+          ],
+          "properties": {
+            "Shape": {
+              "$ref": "#/$defs/Shape-payload",
+              "description": "Draw some common shapes"
             }
           }
         },
