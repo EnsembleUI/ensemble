@@ -1,9 +1,7 @@
 import 'dart:math';
 import 'dart:io' as io;
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:custom_image_crop/custom_image_crop.dart';
 import 'package:ensemble/framework/extensions.dart';
-import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_svg_provider/flutter_svg_provider.dart';
@@ -52,9 +50,9 @@ class EnsembleImageCropper extends StatefulWidget
   Map<String, Function> methods() {
     return {
       'crop': () => _controller.cropAction?.cropImage(),
-      'reset': () => _controller.cropAction?.reset(),
-      'rotateLeft': () => _controller.cropAction?.rotateLeft(),
-      'rotateRight': () => _controller.cropAction?.rotateRight(),
+      'reset': () => _controller.reset(),
+      'rotateLeft': () => _controller.rotateLeft(),
+      'rotateRight': () => _controller.rotateRight(),
     };
   }
 
@@ -95,9 +93,6 @@ class EnsembleImageCropper extends StatefulWidget
 
 mixin CropAction on WidgetState<EnsembleImageCropper> {
   Future<void> cropImage();
-  void reset();
-  void rotateLeft();
-  void rotateRight();
 }
 
 class EnsembleImageCropperController extends BoxController {
@@ -119,6 +114,34 @@ class EnsembleImageCropperController extends BoxController {
   bool isScale = true;
   EnsembleAction? onCropped;
   CustomImageCropController cropController = CustomImageCropController();
+
+  Future<String?> cropImage() async {
+    final image = await cropController.onCropImage();
+    if (image != null) {
+      io.Directory tempDir = await getTemporaryDirectory();
+      String tempPath = tempDir.path;
+      final filePath =
+          '$tempPath/${DateTime.now().toIso8601String()}-cropped-image.png';
+      final file = io.File(filePath);
+      final byteData = image.bytes.buffer.asUint8List();
+      file.createSync();
+      file.writeAsBytes(byteData.toList());
+      return file.path;
+    }
+    return null;
+  }
+
+  void reset() {
+    cropController.reset();
+  }
+
+  void rotateLeft() {
+    cropController.addTransition(CropImageData(angle: -pi / 4));
+  }
+
+  void rotateRight() {
+    cropController.addTransition(CropImageData(angle: pi / 4));
+  }
 }
 
 class EnsembleImageCropperState extends WidgetState<EnsembleImageCropper>
@@ -146,43 +169,17 @@ class EnsembleImageCropperState extends WidgetState<EnsembleImageCropper>
 
   @override
   Future<void> cropImage() async {
-    final image = await widget.controller.cropController.onCropImage();
-    if (image != null) {
-      io.Directory tempDir = await getTemporaryDirectory();
-      String tempPath = tempDir.path;
-      final filePath =
-          '$tempPath/${DateTime.now().toIso8601String()}-cropped-image.png';
-      final file = io.File(filePath);
-      final byteData = image.bytes.buffer.asUint8List();
-      file.createSync();
-      file.writeAsBytes(byteData.toList());
-
+    final imagePath = await widget.controller.cropImage();
+    if (imagePath != null) {
       ScreenController().executeAction(
         context,
         widget._controller.onCropped!,
         event: EnsembleEvent(
           widget,
-          data: {'file': file.path},
+          data: {'file': imagePath},
         ),
       );
     }
-  }
-
-  @override
-  void reset() {
-    widget.controller.cropController.reset();
-  }
-
-  @override
-  void rotateLeft() {
-    widget.controller.cropController
-        .addTransition(CropImageData(angle: -pi / 4));
-  }
-
-  @override
-  void rotateRight() {
-    widget.controller.cropController
-        .addTransition(CropImageData(angle: pi / 4));
   }
 
   @override
