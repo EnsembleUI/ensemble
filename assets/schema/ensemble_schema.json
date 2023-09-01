@@ -995,7 +995,7 @@
         }
       ]
     },
-    "Confirmation-payload": {
+    "ConfirmationInput-payload": {
       "type": "object",
       "properties": {
         "length": {
@@ -1023,78 +1023,83 @@
               "properties": {
                 "textStyle": {
                   "$ref": "#/$defs/TextStyle"
+                },
+                "fieldType": {
+                  "type": "string",
+                  "description": "How the input field should be displayed",
+                  "enum": [
+                    "default",
+                    "underline",
+                    "rounded",
+                    "custom"
+                  ]
+                },
+                "inputType": {
+                  "type": "string",
+                  "description": "Pick a predefined input type",
+                  "enum": [
+                    "default",
+                    "email",
+                    "phone",
+                    "ipAddress",
+                    "number",
+                    "text",
+                    "url",
+                    "datetime"
+                  ]
+                },
+                "length": {
+                  "type": "integer",
+                  "description": "The length of the Confirmation Input Field (default is 4)"
+                },
+                "fieldWidth": {
+                  "type": "integer",
+                  "description": "The width of the text field"
+                },
+                "fieldHeight": {
+                  "type": "integer",
+                  "description": "The height of the text field"
+                },
+                "gap": {
+                  "type": "integer",
+                  "description": "Horizontal gap to insert between the children (default is 10)"
+                },
+                "autoComplete": {
+                  "type": "boolean",
+                  "description": "If it is True, then it will trigger onComplete when the user specified length and has typed the full length, False will trigger onComplete when the user hit Enter. Defaults (True)"
+                },
+                "enableCursor": {
+                  "type": "boolean",
+                  "description": "If the button is inside a Form and upon on tap, it will execute the form's onSubmit action if this property is TRUE"
+                },
+                "defaultFieldBorderColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Set the border color for inactive/unfocused state of text field"
+                },
+                "activeFieldBorderColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Set the border color for active/focused state of text field"
+                },
+                "filledFieldBorderColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Set the border color for filled state of text field"
+                },
+                "defaultFieldBackgroundColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Set the background Color for inactive/unfocused state of text field"
+                },
+                "activeFieldBackgroundColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Set the ackground Color for active/focused state of text field"
+                },
+                "filledFieldBackgroundColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Set the ackground Color for filled field state of text field"
+                },
+                "cursorColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Set the color for the cursor"
                 }
-              },
-              "fieldType": {
-                "type": "string",
-                "description": "How the input field should be displayed",
-                "enum": [
-                  "default",
-                  "underline",
-                  "rounded"
-                ]
-              },
-              "inputType": {
-                "type": "string",
-                "description": "Pick a predefined input type",
-                "enum": [
-                  "default",
-                  "email",
-                  "phone",
-                  "ipAddress",
-                  "number",
-                  "text",
-                  "url",
-                  "datetime"
-                ]
-              },
-              "fieldWidth": {
-                "type": "integer",
-                "description": "The width of the text field"
-              },
-              "fieldHeight": {
-                "type": "integer",
-                "description": "The height of the text field"
-              },
-              "gap": {
-                "type": "integer",
-                "description": "Horizontal gap to insert between the children (default is 10)"
-              },
-              "autoComplete": {
-                "type": "boolean",
-                "description": "If it is True, then it will trigger onComplete when the user specified length and has typed the full length, False will trigger onComplete when the user hit Enter. Defaults (True)"
-              },
-              "enableCursor": {
-                "type": "boolean",
-                "description": "If the button is inside a Form and upon on tap, it will execute the form's onSubmit action if this property is TRUE"
-              },
-              "defaultFieldBorderColor": {
-                "$ref": "#/$defs/typeColors",
-                "description": "Set the border color for inactive/unfocused state of text field"
-              },
-              "activeFieldBorderColor": {
-                "$ref": "#/$defs/typeColors",
-                "description": "Set the border color for active/focused state of text field"
-              },
-              "filledFieldBorderColor": {
-                "$ref": "#/$defs/typeColors",
-                "description": "Set the border color for filled state of text field"
-              },
-              "defaultFieldBackgroundColor": {
-                "$ref": "#/$defs/typeColors",
-                "description": "Set the background Color for inactive/unfocused state of text field"
-              },
-              "activeFieldBackgroundColor": {
-                "$ref": "#/$defs/typeColors",
-                "description": "Set the ackground Color for active/focused state of text field"
-              },
-              "filledFieldBackgroundColor": {
-                "$ref": "#/$defs/typeColors",
-                "description": "Set the ackground Color for filled field state of text field"
-              },
-              "cursorColor": {
-                "$ref": "#/$defs/typeColors",
-                "description": "Set the color for the cursor"
               }
             }
           ]
@@ -3967,6 +3972,18 @@
             "PasswordInput": {
               "$ref": "#/$defs/PasswordInput-payload",
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/218fa244-f0cd-4d17-91e6-7c099bbedede#"
+            }
+          }
+        },
+        {
+          "title": "ConfirmationInput",
+          "required": [
+            "ConfirmationInput"
+          ],
+          "properties": {
+            "ConfirmationInput": {
+              "$ref": "#/$defs/ConfirmationInput-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/iCOvav6CcioH46LR6wYF"
             }
           }
         },
