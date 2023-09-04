@@ -24,6 +24,38 @@ abstract class WidgetCompositeProperty with Invokable {
   }
 }
 
+class BackgroundImageComposite extends WidgetCompositeProperty {
+  BackgroundImageComposite(
+    super.widgetController, {
+    required this.source,
+    required this.fit,
+    required this.alignment,
+  });
+
+  String? source;
+  BoxFit? fit;
+  Alignment? alignment;
+
+  @override
+  Map<String, Function> getters() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {
+      'source': (value) => source = Utils.optionalString(value),
+      'fit': (value) => fit = BoxFit.values.from(value),
+      'alignment': (value) => alignment = Utils.getAlignment(value),
+    };
+  }
+}
+
 class TextStyleComposite extends WidgetCompositeProperty {
   TextStyleComposite(super.widgetController,
       {LinearGradient? textGradient, TextStyle? styleWithFontFamily})
