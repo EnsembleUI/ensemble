@@ -8,10 +8,8 @@ import 'package:flutter/material.dart';
 
 import '../data_context.dart';
 
-class PageWidget extends StatefulWidget
-    with Invokable, HasController<PageWidgetController, PageWidgetState> {
-  static const type = 'Page';
-  PageWidget({
+class PageWidget extends StatefulWidget {
+  const PageWidget({
     Key? key,
     required DataContext dataContext,
     required SinglePageModel pageModel,
@@ -22,12 +20,60 @@ class PageWidget extends StatefulWidget
   final DataContext _initialDataContext;
   final SinglePageModel _pageModel;
 
-  final PageWidgetController _controller = PageWidgetController();
+  @override
+  State<PageWidget> createState() => _PageWidgetState();
+}
+
+class _PageWidgetState extends State<PageWidget> {
+  late Widget rootWidget;
+  late ScopeManager _scopeManager;
+
+  @override
+  void initState() {
+    _scopeManager = ScopeManager(
+        widget._initialDataContext.clone(newBuildContext: context),
+        PageData(
+            customViewDefinitions: widget._pageModel.customViewDefinitions,
+            apiMap: widget._pageModel.apiMap));
+
+    // build the root widget
+    rootWidget = _scopeManager.buildRootWidget(
+        widget._pageModel.rootWidgetModel, executeGlobalCode);
+    super.initState();
+  }
+
+  /// This is a callback because we need the widget to be first instantiate
+  /// since the global code block may reference them. Once the global code
+  /// block runs, only then we can continue the next steps for the widget
+  /// creation process (propagate data scopes and execute bindings)
+  void executeGlobalCode() {
+    if (widget._pageModel.globalCode != null) {
+      _scopeManager.dataContext.evalCode(
+          widget._pageModel.globalCode!, widget._pageModel.globalCodeSpan!);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DataScopeWidget(
+      scopeManager: _scopeManager,
+      child: rootWidget,
+    );
+  }
+}
+
+class EnsemblePage extends StatefulWidget
+    with Invokable, HasController<EnsemblePageController, EnsemblePageState> {
+  static const type = 'View';
+
+  EnsemblePage({Key? key}) : super(key: key);
+
+  final EnsemblePageController _controller = EnsemblePageController();
   @override
   get controller => _controller;
 
   @override
-  State<StatefulWidget> createState() => PageWidgetState();
+  State<StatefulWidget> createState() => EnsemblePageState();
 
   @override
   Map<String, Function> getters() {
@@ -49,29 +95,29 @@ class PageWidget extends StatefulWidget
   }
 }
 
-class PageWidgetController extends BoxController {
+class EnsemblePageController extends BoxController {
   bool? isLoading = false;
+  HeaderModel? headerModel;
+
+  Map<String, dynamic>? pageStyles;
 }
 
-class PageWidgetState extends WidgetState<PageWidget> {
+class EnsemblePageState extends WidgetState<EnsemblePage> {
   late ScopeManager _scopeManager;
 
   @override
   void initState() {
-    _scopeManager = ScopeManager(
-        widget._initialDataContext.clone(newBuildContext: context),
-        PageData(
-            customViewDefinitions: widget._pageModel.customViewDefinitions,
-            apiMap: widget._pageModel.apiMap));
     super.initState();
+    // _scopeManager = DataScopeWidget.getScope(context)!;
   }
 
   /// create AppBar that is part of a CustomScrollView
   Widget? buildSliverAppBar(SinglePageModel pageModel, bool hasDrawer) {
-    if (pageModel.headerModel != null) {
-      dynamic appBar = _buildAppBar(pageModel.headerModel!,
+    if (widget.controller.headerModel != null) {
+      dynamic appBar = _buildAppBar(widget.controller.headerModel!,
           scrollableView: true,
-          showNavigationIcon: pageModel.pageStyles?['showNavigationIcon']);
+          showNavigationIcon:
+              widget.controller.pageStyles?['showNavigationIcon']);
       if (appBar is SliverAppBar) {
         return appBar;
       }
@@ -83,12 +129,14 @@ class PageWidgetState extends WidgetState<PageWidget> {
   }
 
   /// fixed AppBar
-  PreferredSizeWidget? buildFixedAppBar(
-      SinglePageModel pageModel, bool hasDrawer) {
-    if (pageModel.headerModel != null) {
-      dynamic appBar = _buildAppBar(pageModel.headerModel!,
+  PreferredSizeWidget? buildFixedAppBar(bool hasDrawer) {
+    final pageStyles = widget.controller.pageStyles;
+    final headerModel = widget.controller.headerModel;
+
+    if (headerModel != null) {
+      dynamic appBar = _buildAppBar(headerModel,
           scrollableView: false,
-          showNavigationIcon: pageModel.pageStyles?['showNavigationIcon']);
+          showNavigationIcon: pageStyles?['showNavigationIcon']);
       if (appBar is PreferredSizeWidget) {
         return appBar;
       }
@@ -197,13 +245,20 @@ class PageWidgetState extends WidgetState<PageWidget> {
 
   @override
   Widget buildWidget(BuildContext context) {
+    _scopeManager = DataScopeWidget.getScope(context)!;
+    if (_scopeManager == null) {
+      throw Exception(
+          'scopeManager is null in the EnsemblePage.buildWidget method. This is unexpected. EnsemblePage.id=${widget.id}');
+    }
+
+    print('IsLoading Widget: ${widget.controller.isLoading}');
     // whether to usse CustomScrollView for the entire page
     bool isScrollableView =
-        widget._pageModel.pageStyles?['scrollableView'] == true;
+        widget.controller.pageStyles?['scrollableView'] == true;
 
     PreferredSizeWidget? fixedAppBar;
     if (!isScrollableView) {
-      fixedAppBar = buildFixedAppBar(widget._pageModel, false);
+      fixedAppBar = buildFixedAppBar(false);
     }
 
     Widget rtn = DataScopeWidget(
@@ -215,9 +270,7 @@ class PageWidgetState extends WidgetState<PageWidget> {
         backgroundColor: widget.controller.backgroundColor,
 
         // appBar is inside CustomScrollView if defined
-        appBar: AppBar(
-          title: const Text('PageWidget'),
-        ),
+        appBar: fixedAppBar,
         body: const Center(child: Text('Rendered Page View')),
       ),
     );
@@ -265,23 +318,5 @@ class DataScopeWidget extends InheritedWidget {
       return viewWidget.scopeManager;
     }
     return null;
-  }
-}
-
-class ActionResponse {
-  Map<String, dynamic>? _resultData;
-  Set<Function> listeners = {};
-
-  void addListener(Function listener) {
-    listeners.add(listener);
-  }
-
-  set resultData(Map<String, dynamic> data) {
-    _resultData = data;
-
-    // notify listeners
-    for (var listener in listeners) {
-      listener(_resultData);
-    }
   }
 }

@@ -4,6 +4,7 @@ import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/view/page_group.dart';
+import 'package:ensemble/framework/view/ensemble_page.dart';
 import 'package:ensemble/framework/widget/error_screen.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/page_model.dart';
@@ -93,7 +94,8 @@ class _ScreenState extends State<Screen> {
               ScreenOptions(pageType: widget.screenPayload!.pageType!);
         }
       }
-      return ensemble.Page(dataContext: dataContext, pageModel: pageModel);
+      // return ensemble.Page(dataContext: dataContext, pageModel: pageModel);
+      return PageWidget(dataContext: dataContext, pageModel: pageModel);
     }
 
     throw LanguageError("Invalid Screen Definition");

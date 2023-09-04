@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/stub/ensemble_chat.dart';
+import 'package:ensemble/framework/view/ensemble_page.dart';
 import 'package:ensemble/layout/app_scroller.dart';
 import 'package:ensemble/layout/box/box_layout.dart';
 import 'package:ensemble/layout/data_grid.dart';
@@ -66,6 +67,7 @@ class WidgetRegistry {
   );
 
   static Map<String, Function> get widgetMap => <String, Function>{
+        EnsemblePage.type: () => EnsemblePage(),
         EnsembleText.type: () => EnsembleText(),
         Markdown.type: () => Markdown(),
         EnsembleHtml.type: () => EnsembleHtml(),
