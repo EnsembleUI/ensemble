@@ -89,6 +89,7 @@ class SliderState extends FormFieldWidgetState<EnsembleSlider> {
                     }
                   }
                 : null,
+            fullWidth: true,
           );
         },
       ),
@@ -96,12 +97,14 @@ class SliderState extends FormFieldWidgetState<EnsembleSlider> {
   }
 }
 
-class SliderWidget extends StatelessWidget {
+class SliderWidget extends StatefulWidget {
   final double min;
   final double max;
   final double value;
   final int? divisions;
   final ValueChanged<double>? onChanged;
+  final double sliderHeight;
+  final bool fullWidth;
 
   const SliderWidget({
     super.key,
@@ -110,26 +113,153 @@ class SliderWidget extends StatelessWidget {
     required this.value,
     this.onChanged,
     this.divisions,
+    this.sliderHeight = 48,
+    required this.fullWidth,
   });
 
   @override
+  State<SliderWidget> createState() => _SliderWidgetState();
+}
+
+class _SliderWidgetState extends State<SliderWidget> {
+  @override
   Widget build(BuildContext context) {
-    return SliderTheme(
-      data: SliderTheme.of(context).copyWith(
-        valueIndicatorShape: const PaddleSliderValueIndicatorShape(),
-        showValueIndicator: ShowValueIndicator.always,
-        valueIndicatorTextStyle: const TextStyle(
-          color: Colors.white,
+    double paddingFactor = .2;
+
+    if (widget.fullWidth) paddingFactor = .3;
+
+    return SizedBox(
+      width: widget.fullWidth ? double.infinity : (widget.sliderHeight) * 5.5,
+      height: (widget.sliderHeight),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(widget.sliderHeight * paddingFactor, 2,
+            widget.sliderHeight * paddingFactor, 2),
+        child: Row(
+          children: <Widget>[
+            Text(
+              '${widget.min}',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: widget.sliderHeight * .3,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+            SizedBox(
+              width: widget.sliderHeight * .1,
+            ),
+            Expanded(
+              child: Center(
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    activeTrackColor: Colors.white.withOpacity(1),
+                    inactiveTrackColor: Colors.white.withOpacity(.5),
+                    trackHeight: 4.0,
+                    thumbShape: CustomSliderThumbRect(
+                      thumbRadius: widget.sliderHeight * .4,
+                      min: widget.min.toInt(),
+                      max: widget.max.toInt(),
+                      thumbHeight: 80,
+                    ),
+                    overlayColor: Colors.white.withOpacity(.4),
+                    activeTickMarkColor: Colors.white,
+                    inactiveTickMarkColor: Colors.red.withOpacity(.7),
+                  ),
+                  child: Slider(
+                    value: widget.value,
+                    min: widget.min,
+                    max: widget.max,
+                    onChanged: widget.onChanged,
+                    label: widget.value.round().toString(),
+                    divisions: widget.divisions,
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(
+              width: widget.sliderHeight * .1,
+            ),
+            Text(
+              '${widget.max}',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: widget.sliderHeight * .3,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+          ],
         ),
       ),
-      child: Slider(
-        value: value,
-        min: min,
-        max: max,
-        onChanged: onChanged,
-        label: value.round().toString(),
-        divisions: divisions,
-      ),
     );
+  }
+}
+
+class CustomSliderThumbRect extends SliderComponentShape {
+  final double thumbRadius;
+  final double thumbHeight;
+  final int min;
+  final int max;
+
+  const CustomSliderThumbRect({
+    required this.thumbRadius,
+    required this.thumbHeight,
+    required this.min,
+    required this.max,
+  });
+
+  @override
+  Size getPreferredSize(bool isEnabled, bool isDiscrete) {
+    return Size.fromRadius(thumbRadius);
+  }
+
+  @override
+  void paint(
+    PaintingContext context,
+    Offset center, {
+    required Animation<double> activationAnimation,
+    required Animation<double> enableAnimation,
+    required bool isDiscrete,
+    required TextPainter labelPainter,
+    required RenderBox parentBox,
+    required SliderThemeData sliderTheme,
+    required TextDirection textDirection,
+    required double value,
+    required double textScaleFactor,
+    required Size sizeWithOverflow,
+  }) {
+    final Canvas canvas = context.canvas;
+
+    final rRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(
+          center: center, width: thumbHeight * 1.2, height: thumbHeight * .6),
+      Radius.circular(thumbRadius * .4),
+    );
+
+    final paint = Paint()
+      ..color = sliderTheme.activeTrackColor!
+      ..style = PaintingStyle.fill;
+
+    TextSpan span = TextSpan(
+        style: TextStyle(
+            fontSize: thumbHeight * .3,
+            fontWeight: FontWeight.w700,
+            color: sliderTheme.thumbColor,
+            height: 1),
+        text: getValue(value));
+    TextPainter tp = TextPainter(
+        text: span,
+        textAlign: TextAlign.left,
+        textDirection: TextDirection.ltr);
+    tp.layout();
+    Offset textCenter =
+        Offset(center.dx - (tp.width / 2), center.dy - (tp.height / 2));
+
+    canvas.drawRRect(rRect, paint);
+    tp.paint(canvas, textCenter);
+  }
+
+  String getValue(double value) {
+    return (min + (max - min) * value).round().toString();
   }
 }
