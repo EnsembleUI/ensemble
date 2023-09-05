@@ -77,7 +77,6 @@ class DateRangeState extends FormFieldWidgetState<DateRange> {
         readOnly: true,
         controller: widget.textController,
         enabled: isEnabled(),
-        onChanged: _onChange,
         style: widget._controller.fontSize != null
             ? TextStyle(fontSize: widget._controller.fontSize!.toDouble())
             : null,
@@ -88,13 +87,6 @@ class DateRangeState extends FormFieldWidgetState<DateRange> {
                 onPressed: () {
                   _selectDate(context);
                 })));
-  }
-
-  void _onChange(String value) {
-    if (widget._controller.onChange != null) {
-      ScreenController().executeAction(context, widget._controller.onChange!,
-          event: EnsembleEvent(widget, data: {'value': value}));
-    }
   }
 
   void _selectDate(BuildContext context) async {
@@ -119,15 +111,20 @@ class DateRangeState extends FormFieldWidgetState<DateRange> {
         widget._controller.endDate = picked.end;
         setState(() {
           final df = DateFormat('MMM dd');
-          widget.textController.text =
+          final pickedDate =
               df.format(picked.start) + " - " + df.format(picked.end);
+          widget.textController.text = pickedDate;
+          onDateChange(pickedDate);
         });
-        onDateChange();
       });
     }
   }
 
-  void onDateChange() {
+  void onDateChange(String value) {
+    if (widget._controller.onChange != null) {
+      ScreenController().executeAction(context, widget._controller.onChange!,
+          event: EnsembleEvent(widget, data: {'value': value}));
+    }
     /*if (widget.widgetData['events'] != null) {
       for (int i=0; i<(widget.widgetData['events'] as List).length; i++) {
         var event = widget.widgetData['events'][i];
