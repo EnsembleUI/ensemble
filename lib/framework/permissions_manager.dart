@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/stub/camera_manager.dart';
 import 'package:ensemble/framework/stub/contacts_manager.dart';
 import 'package:ensemble/util/notification_utils.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -62,6 +63,14 @@ class PermissionsManager {
           status = null;
           break;
         }
+      case Permission.camera:
+        try {
+          final granted = await GetIt.I<CameraManager>().hasPermission();
+          status = granted;
+        } catch (_) {
+          status = null;
+          break;
+        }
       default:
         return Future.value(status);
     }
@@ -73,4 +82,5 @@ enum Permission {
   notification,
   location,
   contacts,
+  camera,
 }
