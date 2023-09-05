@@ -110,11 +110,13 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
         child: customIcon ??
             FloatingActionButton(
               backgroundColor: floatingBackgroundColor,
-              child: ensemble.Icon(
-                fabMenuItem!.icon ?? '',
-                library: fabMenuItem!.iconLibrary,
-                color: floatingItemColor,
-              ),
+              child: (fabMenuItem!.icon != null
+                  ? ensemble.Icon.fromModel(
+                      fabMenuItem!.icon!,
+                      fallbackLibrary: fabMenuItem!.iconLibrary,
+                      fallbackColor: floatingItemColor,
+                    )
+                  : ensemble.Icon('')),
               onPressed: () => _floatingButtonTapped(fabMenuItem!),
             ),
       );
@@ -168,18 +170,20 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
       final isCustom = customIcon != null || customActiveIcon != null;
       final label = isCustom ? '' : Utils.translate(item.label ?? '', context);
 
-      final activeIcon = customActiveIcon ??
-          ensemble.Icon(
-            item.activeIcon ?? item.icon,
-            library: item.iconLibrary,
-            color: selectedColor,
-          );
       final icon = customIcon ??
-          ensemble.Icon(
-            item.icon ?? '',
-            library: item.iconLibrary,
-            color: unselectedColor,
-          );
+          (item.icon != null
+              ? ensemble.Icon.fromModel(item.icon!,
+                  fallbackLibrary: item.iconLibrary,
+                  fallbackColor: unselectedColor)
+              : ensemble.Icon(''));
+
+      final activeIcon = customActiveIcon ??
+          (item.activeIcon != null || item.icon != null
+              ? ensemble.Icon.fromModel((item.activeIcon ?? item.icon)!,
+                  fallbackColor: selectedColor,
+                  fallbackLibrary: item.iconLibrary)
+              : null);
+
       navItems.add(
         FABBottomAppBarItem(
           icon: icon,

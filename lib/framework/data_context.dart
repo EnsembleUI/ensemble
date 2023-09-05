@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:developer';
 import 'dart:io' as io;
 import 'dart:ui';
@@ -351,7 +352,9 @@ class NativeInvokable with Invokable {
       'updateSystemAuthorizationToken': (token) =>
           GetIt.instance<TokenManager>()
               .updateServiceTokens(OAuthService.system, token),
-      'saveToKeychain': (key, value) => saveToKeychain(key, value),
+      ActionType.saveToKeychain.name: (key, value) =>
+          saveToKeychain(key, value),
+      ActionType.clearKeychain.name: (key) => clearKeychain(key),
     };
   }
 
@@ -360,13 +363,32 @@ class NativeInvokable with Invokable {
     return {};
   }
 
-  Future<void> saveToKeychain(String key, String value) async {
+  Future<void> saveToKeychain(String key, dynamic value) async {
+    if (defaultTargetPlatform != TargetPlatform.iOS) {
+      return;
+    }
+    try {
+      final data = jsonEncode(value);
+      final json = {'key': key, 'data': data};
+      const platform = MethodChannel('com.ensembleui.dev/safari-extension');
+      final _ =
+          await platform.invokeMethod(ActionType.saveToKeychain.name, json);
+    } on PlatformException catch (e) {
+      throw LanguageError(
+          'Failed to invoke ensemble.saveToKeychain. Reason: ${e.toString()}');
+    }
+  }
+
+  Future<void> clearKeychain(String key) async {
+    if (defaultTargetPlatform != TargetPlatform.iOS) {
+      return;
+    }
     try {
       const platform = MethodChannel('com.ensembleui.dev/safari-extension');
-      final dynamic result =
-          await platform.invokeMethod('saveToKeychain', {key: value});
+      final _ = await platform.invokeMethod(ActionType.clearKeychain.name, key);
     } on PlatformException catch (e) {
-      print('Failed to get value: ${e.message}.');
+      throw LanguageError(
+          'Failed to invoke ensemble.clearKeychain. Reason: ${e.toString()}');
     }
   }
 
@@ -405,8 +427,8 @@ class NativeInvokable with Invokable {
     ScreenController().executeAction(_buildContext, ShowCameraAction());
   }
 
-  void navigateBack() {
-    ScreenController().executeAction(_buildContext, NavigateBack());
+  void navigateBack(dynamic data) {
+    ScreenController().executeAction(_buildContext, NavigateBack(data));
   }
 }
 
@@ -447,10 +469,11 @@ class EnsembleStorage with Invokable {
   Map<String, Function> methods() {
     return {
       'get': (String key) => StorageManager().read(key),
-      'set': (String key, dynamic value) => value == null
-          ? StorageManager().remove(key)
-          : StorageManager().write(key, value),
-      'delete': (key) => StorageManager().remove(key)
+      'set': setProperty,
+      'delete': (key) {
+        StorageManager().remove(key);
+        ScreenController().dispatchStorageChanges(context, key, null);
+      }
     };
   }
 
@@ -784,6 +807,8 @@ class APIResponse with Invokable {
     return {
       'body': () => _response?.body,
       'headers': () => _response?.headers,
+      'statusCode': () => _response?.statusCode,
+      'reasonPhrase': () => _response?.reasonPhrase
     };
   }
 
