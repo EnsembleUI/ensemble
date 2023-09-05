@@ -1,3 +1,4 @@
+import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
@@ -103,8 +104,10 @@ class NavigateScreenAction extends BaseNavigateScreenAction {
       required super.screenName,
       super.inputs,
       super.options,
+      this.onNavigateBack,
       super.transition})
       : super(asModal: false);
+  EnsembleAction? onNavigateBack;
 
   factory NavigateScreenAction.fromYaml(
       {Invokable? initiator, YamlMap? payload}) {
@@ -117,6 +120,7 @@ class NavigateScreenAction extends BaseNavigateScreenAction {
       screenName: payload['name'].toString(),
       inputs: Utils.getMap(payload['inputs']),
       options: Utils.getMap(payload['options']),
+      onNavigateBack: EnsembleAction.fromYaml(payload['onNavigateBack']),
       transition: Utils.getMap(payload['transition']),
     );
   }
@@ -241,6 +245,26 @@ class PlaidLinkAction extends EnsembleAction {
       onSuccess: EnsembleAction.fromYaml(payload['onSuccess']),
       onEvent: EnsembleAction.fromYaml(payload['onEvent']),
       onExit: EnsembleAction.fromYaml(payload['onExit']),
+    );
+  }
+}
+
+class AppSettingAction extends EnsembleAction {
+  AppSettingAction({
+    super.initiator,
+    required this.target,
+  });
+
+  final String target;
+
+  AppSettingsType getTarget(dataContext) =>
+      AppSettingsType.values.from(dataContext.eval(target)) ??
+      AppSettingsType.settings;
+
+  factory AppSettingAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
+    return AppSettingAction(
+      initiator: initiator,
+      target: Utils.getString(payload?['target'], fallback: 'settings'),
     );
   }
 }
@@ -394,7 +418,13 @@ class OpenUrlAction extends EnsembleAction {
   }
 }
 
-class NavigateBack extends EnsembleAction {}
+class NavigateBack extends EnsembleAction {
+  NavigateBack(YamlMap? payload) : _data = payload?['data'];
+  final dynamic _data;
+
+  dynamic getData(DataContext dataContext) =>
+      _data != null && _data != '' ? dataContext.eval(_data) : null;
+}
 
 class ShowToastAction extends EnsembleAction {
   ShowToastAction(
@@ -732,8 +762,11 @@ enum ActionType {
   showNotification,
   copyToClipboard,
   openPlaidLink,
+  openAppSettings,
   getPhoneContacts,
-  checkPermission
+  checkPermission,
+  saveToKeychain,
+  clearKeychain,
 }
 
 enum ToastType { success, error, warning, info }
@@ -779,7 +812,7 @@ abstract class EnsembleAction {
       return NavigateModalScreenAction.fromYaml(
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.navigateBack) {
-      return NavigateBack();
+      return NavigateBack(payload);
     } else if (actionType == ActionType.showBottomModal) {
       return ShowBottomModalAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.invokeAPI) {
@@ -829,6 +862,8 @@ abstract class EnsembleAction {
       return CopyToClipboardAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.openPlaidLink) {
       return PlaidLinkAction.fromYaml(initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.openAppSettings) {
+      return AppSettingAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.getPhoneContacts) {
       return PhoneContactAction.fromYaml(
           initiator: initiator, payload: payload);

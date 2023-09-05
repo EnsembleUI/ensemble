@@ -7,6 +7,7 @@ import 'dart:isolate';
 import 'dart:math' show Random;
 import 'dart:ui';
 
+import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/action/InvokeAPIController.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_app.dart';
@@ -159,11 +160,17 @@ class ScreenController {
           pageArgs: nextArgs,
           transition: action.transition);
 
-      // process onModalDismiss
-      if (action is NavigateModalScreenAction &&
+      // listen for data returned on popped
+      if (scopeManager == null) {
+        return;
+      }
+      if (action is NavigateScreenAction && action.onNavigateBack != null) {
+        routeBuilder.popped.then((data) => executeActionWithScope(
+            context, scopeManager, action.onNavigateBack!,
+            event: EnsembleEvent(null, data: data)));
+      } else if (action is NavigateModalScreenAction &&
           action.onModalDismiss != null &&
-          routeBuilder.fullscreenDialog &&
-          scopeManager != null) {
+          routeBuilder.fullscreenDialog) {
         // callback on modal pop
         routeBuilder.popped.whenComplete(() {
           executeActionWithScope(context, scopeManager, action.onModalDismiss!);
@@ -237,6 +244,9 @@ class ScreenController {
         throw RuntimeError(
             "openPlaidLink action requires the plaid's link_token.");
       }
+    } else if (action is AppSettingAction) {
+      final settingType = action.getTarget(dataContext);
+      AppSettings.openAppSettings(type: settingType);
     } else if (action is PhoneContactAction) {
       GetIt.I<ContactManager>().getPhoneContacts((contacts) {
         if (action.getOnSuccess(dataContext) != null) {
@@ -248,7 +258,7 @@ class ScreenController {
             scopeManager!,
             action.getOnSuccess(dataContext)!,
             event: EnsembleEvent(
-              action.initiator!,
+              action.initiator,
               data: {'contacts': contactsData},
             ),
           );
@@ -460,7 +470,7 @@ class ScreenController {
       GetIt.I<FileManager>().pickFiles(context, action, scopeManager);
     } else if (action is NavigateBack) {
       if (scopeManager != null) {
-        Navigator.of(context).maybePop();
+        Navigator.of(context).maybePop(action.getData(dataContext));
       }
     } else if (action is CopyToClipboardAction) {
       if (action.value != null) {
