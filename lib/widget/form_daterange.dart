@@ -1,6 +1,8 @@
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/input/form_helper.dart';
 import 'package:ensemble/widget/widget_registry.dart';
@@ -75,7 +77,7 @@ class DateRangeState extends FormFieldWidgetState<DateRange> {
         readOnly: true,
         controller: widget.textController,
         enabled: isEnabled(),
-        onChanged: (String txt) {},
+        onChanged: _onChange,
         style: widget._controller.fontSize != null
             ? TextStyle(fontSize: widget._controller.fontSize!.toDouble())
             : null,
@@ -86,6 +88,13 @@ class DateRangeState extends FormFieldWidgetState<DateRange> {
                 onPressed: () {
                   _selectDate(context);
                 })));
+  }
+
+  void _onChange(String value) {
+    if (widget._controller.onChange != null) {
+      ScreenController().executeAction(context, widget._controller.onChange!,
+          event: EnsembleEvent(widget, data: {'value': value}));
+    }
   }
 
   void _selectDate(BuildContext context) async {
