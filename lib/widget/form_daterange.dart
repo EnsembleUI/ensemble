@@ -1,6 +1,9 @@
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/model.dart';
+import 'package:ensemble/framework/theme/theme_manager.dart';
+import 'package:ensemble/framework/widget/icon.dart' as framework;
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -44,6 +47,7 @@ class DateRange extends StatefulWidget
   Map<String, Function> setters() {
     return {
       'fontSize': (value) => _controller.fontSize = Utils.optionalInt(value),
+      'suffixIcon': (value) => _controller.suffixIcon = Utils.getIcon(value),
       'onChange': (definition) => _controller.onChange =
           EnsembleAction.fromYaml(definition, initiator: this)
     };
@@ -53,6 +57,7 @@ class DateRange extends StatefulWidget
 class DateRangeController extends FormFieldController {
   int? fontSize;
   EnsembleAction? onChange;
+  IconModel? suffixIcon;
 
   DateTime? startDate;
   DateTime? endDate;
@@ -64,29 +69,41 @@ class DateRangeState extends FormFieldWidgetState<DateRange> {
   @override
   Widget buildWidget(BuildContext context) {
     return TextFormField(
-        key: validatorKey,
-        validator: (value) {
-          if (widget._controller.required) {
-            if (value == null || value.isEmpty) {
-              return Utils.translateWithFallback(
-                  'ensemble.input.required', 'This field is required');
-            }
+      key: validatorKey,
+      validator: (value) {
+        if (widget._controller.required) {
+          if (value == null || value.isEmpty) {
+            return Utils.translateWithFallback(
+                'ensemble.input.required', 'This field is required');
           }
-          return null;
-        },
-        readOnly: true,
-        controller: widget.textController,
-        enabled: isEnabled(),
-        style: widget._controller.fontSize != null
-            ? TextStyle(fontSize: widget._controller.fontSize!.toDouble())
-            : null,
-        cursorColor: EnsembleTheme.buildLightTheme().primaryColor,
-        decoration: inputDecoration.copyWith(
-            suffixIcon: IconButton(
-                icon: const Icon(FontAwesomeIcons.calendarAlt),
-                onPressed: () {
-                  _selectDate(context);
-                })));
+        }
+        return null;
+      },
+      readOnly: true,
+      controller: widget.textController,
+      enabled: isEnabled(),
+      style: widget._controller.fontSize != null
+          ? TextStyle(fontSize: widget._controller.fontSize!.toDouble())
+          : null,
+      cursorColor: EnsembleTheme.buildLightTheme().primaryColor,
+      decoration: inputDecoration.copyWith(
+        suffixIcon: IconButton(
+          icon: widget._controller.suffixIcon == null
+              ? const Icon(FontAwesomeIcons.calendarAlt)
+              : framework.Icon(
+                  widget._controller.suffixIcon!.icon,
+                  library: widget._controller.suffixIcon!.library,
+                  size: widget._controller.suffixIcon!.size ??
+                      ThemeManager().getInputIconSize(context),
+                  color: widget._controller.suffixIcon!.color ??
+                      Theme.of(context).inputDecorationTheme.iconColor,
+                ),
+          onPressed: () {
+            _selectDate(context);
+          },
+        ),
+      ),
+    );
   }
 
   void _selectDate(BuildContext context) async {
