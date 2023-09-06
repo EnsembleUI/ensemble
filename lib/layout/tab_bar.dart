@@ -50,8 +50,8 @@ abstract class BaseTabBar extends StatefulWidget
   @override
   Map<String, Function> setters() {
     return {
-      'tabPosition': (position) =>
-          _controller.tabPosition = Utils.optionalString(position),
+      'isScrollable': (value) =>
+          _controller.isScrollable = Utils.getBool(value, fallback: false),
       'margin': (margin) => _controller.margin = Utils.optionalInsets(margin),
       'tabPadding': (padding) =>
           _controller.tabPadding = Utils.optionalInsets(padding),
@@ -65,6 +65,8 @@ abstract class BaseTabBar extends StatefulWidget
           _controller.activeTabColor = Utils.getColor(color),
       'inactiveTabColor': (color) =>
           _controller.inactiveTabColor = Utils.getColor(color),
+      'activeTabBackgroundColor': (color) =>
+          _controller.activeTabBackgroundColor = Utils.getColor(color),
       'dividerColor': (color) =>
           _controller.dividerColor = Utils.getColor(color),
       'indicatorColor': (color) =>
@@ -80,15 +82,16 @@ abstract class BaseTabBar extends StatefulWidget
   }
 }
 
-class TabBarController extends WidgetController {
-  String? tabPosition;
-  EdgeInsets? margin;
+class TabBarController extends BoxController {
+  bool? isScrollable;
+  String? tabType;
   EdgeInsets? tabPadding;
   int? tabFontSize;
   FontWeight? tabFontWeight;
   Color? tabBackgroundColor;
   Color? activeTabColor;
   Color? inactiveTabColor;
+  Color? activeTabBackgroundColor;
   Color? indicatorColor;
   Color? dividerColor;
   int? indicatorThickness;
@@ -216,17 +219,21 @@ class TabBarState extends WidgetState<BaseTabBar>
 
     // TODO: center-align labels in its compact form
     // Only stretch or left-align currently
-    bool labelPosition =
-        widget._controller.tabPosition == 'stretch' ? false : true;
+    // bool labelPosition =
+    //     widget._controller.tabPosition == 'stretch' ? false : true;
 
     double indicatorThickness =
         widget._controller.indicatorThickness?.toDouble() ?? 2;
+    print(indicatorThickness);
 
     Widget tabBar = TabBar(
       labelPadding: labelPadding,
       dividerColor: widget._controller.dividerColor,
       indicator: indicatorThickness == 0
-          ? const BoxDecoration()
+          ? BoxDecoration(
+              color: widget.controller.activeTabBackgroundColor ??
+                  Colors.transparent,
+            )
           : UnderlineTabIndicator(
               borderSide: BorderSide(
                   width: indicatorThickness,
@@ -234,7 +241,8 @@ class TabBarState extends WidgetState<BaseTabBar>
                       Theme.of(context).colorScheme.primary),
             ),
       controller: _tabController,
-      isScrollable: labelPosition,
+      isScrollable: widget.controller.isScrollable ?? false,
+      indicatorSize: TabBarIndicatorSize.tab,
       labelStyle: tabStyle,
       labelColor: widget._controller.activeTabColor ??
           Theme.of(context).colorScheme.primary,
@@ -257,9 +265,18 @@ class TabBarState extends WidgetState<BaseTabBar>
     );
 
     if (widget._controller.tabBackgroundColor != null) {
-      return ColoredBox(
+      tabBar = ColoredBox(
           color: widget._controller.tabBackgroundColor!, child: tabBar);
     }
+
+    if (widget._controller.borderRadius != null) {
+      final borderRadius = widget._controller.borderRadius?.getValue();
+      tabBar = ClipRRect(
+        borderRadius: borderRadius ?? BorderRadius.zero,
+        child: tabBar,
+      );
+    }
+
     return tabBar;
   }
 
