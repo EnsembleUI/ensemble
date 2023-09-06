@@ -178,22 +178,12 @@ class DataContext {
 
   /// format the expression result for user consumption
   /// Here we make sure the output is purely string and
-  /// is friendly (not null or InvokableNull)
-  String asString(dynamic input) {
-    if (input is InvokableNull) {
-      return '';
-    }
-    return input?.toString() ?? '';
-  }
+  /// is friendly (not null)
+  String asString(dynamic input) => input?.toString() ?? '';
 
   /// return the input as its original object, but also inject
-  /// some user-friendliness output (not null, not InvokableNull)
-  dynamic asObject(dynamic input) {
-    if (input is InvokableNull) {
-      return '';
-    }
-    return input ?? '';
-  }
+  /// some user-friendliness output (not null)
+  dynamic asObject(dynamic input) => input ?? '';
 
   Future<String> replaceAllMappedAsync(String string, Pattern exp,
       Future<String> Function(Match match) replace) async {
