@@ -451,7 +451,7 @@ class ScreenController {
       if (scopeManager != null && action.widget != null) {
         customToastBody = scopeManager.buildWidgetFromDefinition(action.widget);
       }
-      ToastController().showToast(context, dataContext, action, customToastBody);
+      ToastController().showToast(context, action, customToastBody, dataContext: dataContext);
     } else if (action is OpenUrlAction) {
       dynamic value = dataContext.eval(action.url);
       value ??= '';
@@ -780,13 +780,13 @@ class ScreenController {
     if (totalSize > maxFileSize) {
       ToastController().showToast(
           context,
-          dataContext,
           ShowToastAction(
               type: ToastType.error,
               message: message,
               alignment: Alignment.bottomCenter,
               duration: 3),
-          null);
+          null,
+          dataContext: dataContext);
       if (action.onError != null) executeAction(context, action.onError!);
       return true;
     }
