@@ -4635,6 +4635,10 @@
                   "$ref": "#/$defs/typeColors",
                   "description": "The color of the selected tab's indicator"
                 },
+                "activeTabBackgroundColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "The background color of the selected tab"
+                },
                 "indicatorThickness": {
                   "type": "integer",
                   "description": "The thickness of the selected tab's indicator"
