@@ -5026,6 +5026,7 @@
         {
           "title": "name",
           "type": "string",
+          "additionalProperties": true,
           "enum": [
             "transparent",
             "black",
