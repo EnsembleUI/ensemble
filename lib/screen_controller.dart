@@ -631,7 +631,7 @@ class ScreenController {
     selectedFiles =
         rawFiles.map((data) => File.fromJson(data)).toList().cast<File>();
 
-    if (isFileSizeOverLimit(context, selectedFiles, action)) {
+    if (isFileSizeOverLimit(context, dataContext, selectedFiles, action)) {
       if (action.onError != null) executeAction(context, action.onError!);
       return;
     }
@@ -763,7 +763,7 @@ class ScreenController {
   }
 
   bool isFileSizeOverLimit(
-      BuildContext context, List<File> selectedFiles, FileUploadAction action) {
+      BuildContext context, DataContext dataContext, List<File> selectedFiles, FileUploadAction action) {
     final defaultMaxFileSize = 100.mb;
     const defaultOverMaxFileSizeMessage =
         'The size of is which is larger than the maximum allowed';
@@ -780,6 +780,7 @@ class ScreenController {
     if (totalSize > maxFileSize) {
       ToastController().showToast(
           context,
+          dataContext,
           ShowToastAction(
               type: ToastType.error,
               message: message,
