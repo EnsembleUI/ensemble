@@ -3,6 +3,7 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/page.dart';
+import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/screen_controller.dart';
@@ -248,11 +249,7 @@ class TabBarState extends WidgetState<BaseTabBar>
           Theme.of(context).colorScheme.primary,
       unselectedLabelColor:
           widget._controller.inactiveTabColor ?? Colors.black87,
-      tabs: widget._controller._items
-          .map((e) => Tab(
-              text: e.label,
-              icon: e.icon != null ? ensemble.Icon.fromModel(e.icon!) : null))
-          .toList(),
+      tabs: _buildTabs(widget._controller._items),
       onTap: (index) {
         setState(() {
           widget._controller.selectedIndex = index;
@@ -280,6 +277,35 @@ class TabBarState extends WidgetState<BaseTabBar>
     return tabBar;
   }
 
+  List<Widget> _buildTabs(List<TabItem> items) {
+    List<Widget> tabItems = [];
+    for (final tabItem in items) {
+      // TODO: Build custom tab item
+      if (tabItem.tabWidget != null) {
+        // final customIconModel =
+        //     ViewUtil.buildModel(tabItem.tabWidget, customViewDefinitions);
+        // if (customIconModel != null) {
+        //   final child = widget.scopeManager.buildWidget(customWidgetModel!);
+        //   final dataScopeWidget = child as DataScopeWidget;
+        //   final customWidget = dataScopeWidget.child as CustomView;
+        //   iconWidget = customWidget.childWidget;
+        // }
+
+        // tabItems.add(Tab(
+        //   child: tabItem.tabWidget,
+        // ));
+      } else {
+        tabItems.add(Tab(
+          text: tabItem.label,
+          icon: tabItem.icon != null
+              ? ensemble.Icon.fromModel(tabItem.icon!)
+              : null,
+        ));
+      }
+    }
+    return tabItems;
+  }
+
   Widget buildSelectedTab() {
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
     if (scopeManager != null) {
@@ -299,6 +325,7 @@ class TabItem {
   }
 
   String label;
+  dynamic tabWidget;
   dynamic widget;
   IconModel? icon;
 }
