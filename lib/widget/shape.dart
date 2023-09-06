@@ -31,9 +31,10 @@ class Shape extends StatefulWidget
       'type': (type) => _controller.type = ShapeType.values.from(type),
       'width': (value) => _controller.width = Utils.optionalInt(value),
       'height': (value) => _controller.height = Utils.optionalInt(value),
-      'borderRadius': (value) => _controller.borderRadius = Utils.getBorderRadius(value),
-      'backgroundColor': (color) => _controller.backgroundColor = Utils.getColor(color),
-
+      'borderRadius': (value) =>
+          _controller.borderRadius = Utils.getBorderRadius(value),
+      'backgroundColor': (color) =>
+          _controller.backgroundColor = Utils.getColor(color),
     };
   }
 
@@ -48,9 +49,7 @@ class Shape extends StatefulWidget
   }
 }
 
-enum ShapeType {
-  square, rectangle, circle, oval
-}
+enum ShapeType { square, rectangle, circle, oval }
 
 class BoxContainerController extends WidgetController {
   ShapeType? type;
@@ -58,7 +57,6 @@ class BoxContainerController extends WidgetController {
   int? height;
   EBorderRadius? borderRadius;
   Color? backgroundColor;
-
 }
 
 class ShapeState extends WidgetState<Shape> {
@@ -69,13 +67,17 @@ class ShapeState extends WidgetState<Shape> {
       height: widget._controller.height,
       borderRadius: widget._controller.borderRadius?.getValue(),
       backgroundColor: widget._controller.backgroundColor);
-
 }
 
 /// Shape that can also be used internally within our framework
 class InternalShape extends StatelessWidget {
-  const InternalShape({super.key, this.type, this.width, this.height,
-    this.borderRadius, this.backgroundColor});
+  const InternalShape(
+      {super.key,
+      this.type,
+      this.width,
+      this.height,
+      this.borderRadius,
+      this.backgroundColor});
 
   final ShapeType? type;
   final int? width;
@@ -92,14 +94,19 @@ class InternalShape extends StatelessWidget {
     double h = (height ?? width)!.toDouble();
     switch (type) {
       case ShapeType.circle:
-        return Container(width: w, height: h, decoration: BoxDecoration(
-            color: backgroundColor,
-            shape: BoxShape.circle));
+        return Container(
+            width: w,
+            height: h,
+            decoration:
+                BoxDecoration(color: backgroundColor, shape: BoxShape.circle));
       case ShapeType.oval:
-        return Container(width: w, height: h, decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(100),
-            color: backgroundColor,
-            shape: BoxShape.rectangle));
+        return Container(
+            width: w,
+            height: h,
+            decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(100),
+                color: backgroundColor,
+                shape: BoxShape.rectangle));
       case ShapeType.square:
         return Container(
             width: min(w, h),
@@ -110,12 +117,13 @@ class InternalShape extends StatelessWidget {
                 shape: BoxShape.rectangle));
       case ShapeType.rectangle:
       default:
-        return Container(width: w, height: h, decoration: BoxDecoration(
-            borderRadius:borderRadius,
-            color: backgroundColor,
-            shape: BoxShape.rectangle));
-
+        return Container(
+            width: w,
+            height: h,
+            decoration: BoxDecoration(
+                borderRadius: borderRadius,
+                color: backgroundColor,
+                shape: BoxShape.rectangle));
     }
   }
-
 }
