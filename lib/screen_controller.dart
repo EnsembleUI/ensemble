@@ -84,20 +84,20 @@ class ScreenController {
   }
 
   /// handle Action e.g invokeAPI
-  void executeAction(BuildContext context, EnsembleAction action,
+  Future<void> executeAction(BuildContext context, EnsembleAction action,
       {EnsembleEvent? event}) {
     ScopeManager? scopeManager = getScopeManager(context);
     if (scopeManager != null) {
-      executeActionWithScope(context, scopeManager, action, event: event);
+      return executeActionWithScope(context, scopeManager, action, event: event);
     } else {
       throw Exception('Cannot find ScopeManager to execute action');
     }
   }
 
-  void executeActionWithScope(
+  Future<void> executeActionWithScope(
       BuildContext context, ScopeManager scopeManager, EnsembleAction action,
       {EnsembleEvent? event}) {
-    nowExecuteAction(context, scopeManager.dataContext, action,
+    return nowExecuteAction(context, scopeManager.dataContext, action,
         scopeManager.pageData.apiMap, scopeManager,
         event: event);
   }
@@ -451,7 +451,7 @@ class ScreenController {
       if (scopeManager != null && action.widget != null) {
         customToastBody = scopeManager.buildWidgetFromDefinition(action.widget);
       }
-      ToastController().showToast(context, action, customToastBody);
+      ToastController().showToast(context, dataContext, action, customToastBody);
     } else if (action is OpenUrlAction) {
       dynamic value = dataContext.eval(action.url);
       value ??= '';

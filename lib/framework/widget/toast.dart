@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/model.dart';
@@ -23,7 +24,7 @@ class ToastController {
     return _instance;
   }
 
-  void showToast(BuildContext context, ShowToastAction toastAction,
+  void showToast(BuildContext context, DataContext dataContext, ShowToastAction toastAction,
       Widget? customToastBody) {
     _toast.init(context);
     _toast.removeQueuedCustomToasts();
@@ -54,10 +55,10 @@ class ToastController {
         toastDuration: toastAction.duration != null
             ? Duration(seconds: toastAction.duration!)
             : const Duration(days: 99),
-        child: getToastWidget(context, toastAction, customToastBody));
+        child: getToastWidget(context, dataContext, toastAction, customToastBody));
   }
 
-  Widget getToastWidget(BuildContext context, ShowToastAction toastAction,
+  Widget getToastWidget(BuildContext context, DataContext dataContext, ShowToastAction toastAction,
       Widget? customToastBody) {
     EdgeInsets padding = Utils.getInsets(toastAction.styles?['padding'],
         fallback: const EdgeInsets.symmetric(vertical: 20, horizontal: 22));
@@ -94,9 +95,7 @@ class ToastController {
 
       const double closeButtonRadius = 10;
 
-      String? message = DataScopeWidget.getScope(context)
-          ?.dataContext
-          .eval(toastAction.message);
+      String? message = dataContext.eval(toastAction.message);
 
       content = Row(
         mainAxisSize: MainAxisSize.min,
