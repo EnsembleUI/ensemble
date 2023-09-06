@@ -12,8 +12,7 @@ abstract class CameraManager {
 class CameraManagerStub extends CameraManager {
   @override
   Future<bool?> hasPermission() {
-    throw ConfigError(
-        "Camera Service is not enabled. Please review the Ensemble documentation.");
+    return Future.value(false);
   }
 
   @override
