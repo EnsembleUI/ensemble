@@ -1,5 +1,6 @@
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/page.dart';
@@ -51,8 +52,10 @@ abstract class BaseTabBar extends StatefulWidget
   @override
   Map<String, Function> setters() {
     return {
-      'isScrollable': (value) =>
-          _controller.isScrollable = Utils.getBool(value, fallback: false),
+      'tabPosition': (position) =>
+          _controller.tabPosition = Utils.optionalString(position),
+      'indicatorType': (type) =>
+          _controller.indicatorType = Utils.optionalString(type),
       'margin': (margin) => _controller.margin = Utils.optionalInsets(margin),
       'tabPadding': (padding) =>
           _controller.tabPadding = Utils.optionalInsets(padding),
@@ -84,7 +87,8 @@ abstract class BaseTabBar extends StatefulWidget
 }
 
 class TabBarController extends BoxController {
-  bool? isScrollable;
+  String? tabPosition;
+  String? indicatorType;
   String? tabType;
   EdgeInsets? tabPadding;
   int? tabFontSize;
@@ -220,12 +224,15 @@ class TabBarState extends WidgetState<BaseTabBar>
 
     // TODO: center-align labels in its compact form
     // Only stretch or left-align currently
-    // bool labelPosition =
-    //     widget._controller.tabPosition == 'stretch' ? false : true;
+    bool labelPosition =
+        widget._controller.tabPosition == 'stretch' ? false : true;
 
     double indicatorThickness =
         widget._controller.indicatorThickness?.toDouble() ?? 2;
     print(indicatorThickness);
+
+    final indicatorType =
+        TabBarIndicatorSize.values.from(widget._controller.indicatorType);
 
     Widget tabBar = TabBar(
       labelPadding: labelPadding,
@@ -242,8 +249,8 @@ class TabBarState extends WidgetState<BaseTabBar>
                       Theme.of(context).colorScheme.primary),
             ),
       controller: _tabController,
-      isScrollable: widget.controller.isScrollable ?? false,
-      indicatorSize: TabBarIndicatorSize.tab,
+      isScrollable: labelPosition,
+      indicatorSize: indicatorType,
       labelStyle: tabStyle,
       labelColor: widget._controller.activeTabColor ??
           Theme.of(context).colorScheme.primary,
