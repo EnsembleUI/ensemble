@@ -1,4 +1,3 @@
-
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/page_model.dart';
