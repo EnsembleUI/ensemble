@@ -4580,6 +4580,20 @@
                     }
                   ]
                 },
+                "indicatorType": {
+                  "type": "string",
+                  "description": "Defines how the bounds of the selected tab indicator are computed",
+                  "oneOf": [
+                    {
+                      "const": "tab",
+                      "description": "The tab indicator's bounds are as wide as the space occupied by the tab in the tab bar"
+                    },
+                    {
+                      "const": "label",
+                      "description": "The tab's bounds are only as wide as the label or icon width"
+                    }
+                  ]
+                },
                 "tabPadding": {
                   "oneOf": [
                     {
