@@ -4588,7 +4588,7 @@
                     }
                   ]
                 },
-                "indicatorType": {
+                "indicatorSize": {
                   "type": "string",
                   "description": "Defines how the bounds of the selected tab indicator are computed",
                   "oneOf": [
