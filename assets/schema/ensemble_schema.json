@@ -2222,8 +2222,8 @@
               "type": "integer",
               "description": "Selecting a ListView item gives the index of selected item"
             },
-            "onSwipeToRefresh": {
-              "description": "Enable swipe to refresh. This will trigger onRefresh action if enabled",
+            "onPullToRefresh": {
+              "description": "Trigger an Action with pull to refresh",
               "$ref": "#/$defs/Action-payload"
             },
             "styles": {

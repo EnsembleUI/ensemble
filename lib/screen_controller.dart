@@ -134,8 +134,9 @@ class ScreenController {
     }
 
     if (action is InvokeAPIAction) {
-      InvokeAPIController()
+      await InvokeAPIController()
           .execute(action, context, dataContext, scopeManager, apiMap);
+
     } else if (action is BaseNavigateScreenAction) {
       // process input parameters
       Map<String, dynamic>? nextArgs = {};
