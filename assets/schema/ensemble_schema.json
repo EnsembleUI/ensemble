@@ -1778,6 +1778,10 @@
             },
             "styles": {
               "$ref": "#/$defs/columnStyles"
+            },
+            "onPullToRefresh": {
+              "description": "Trigger an Action with pull to refresh. Applicable only if scrollable is enabled.",
+              "$ref": "#/$defs/Action-payload"
             }
           }
         }
@@ -1823,6 +1827,10 @@
             "onItemTap": {
               "$ref": "#/$defs/Action-payload",
               "description": "Call Ensemble's built-in functions or execute code when tapping on an item in the list."
+            },
+            "onPullToRefresh": {
+              "description": "Trigger an Action with pull to refresh",
+              "$ref": "#/$defs/Action-payload"
             },
             "styles": {
               "allOf": [
