@@ -102,7 +102,6 @@ dependencies:
   get_it: ^7.6.0
   app_settings: ^5.0.0
   firebase_messaging: ^14.6.5
-  shimmer: ^3.0.0
   custom_refresh_indicator: ^2.2.1
 
 dev_dependencies:
