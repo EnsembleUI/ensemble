@@ -4,7 +4,6 @@ import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/page.dart';
-import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/screen_controller.dart';
@@ -46,7 +45,9 @@ abstract class BaseTabBar extends StatefulWidget
 
   @override
   Map<String, Function> methods() {
-    return {};
+    return {
+      'changeTabItem': (index) => _controller.tabBarAction?.onTabChange(index),
+    };
   }
 
   @override
@@ -102,6 +103,7 @@ class TabBarController extends BoxController {
   int? indicatorThickness;
 
   EnsembleAction? onTabSelection;
+  TabBarAction? tabBarAction;
 
   int selectedIndex = 0;
   final List<TabItem> _items = [];
@@ -113,6 +115,7 @@ class TabBarController extends BoxController {
           Utils.getString(item['label'], fallback: ''),
           item['widget'] ??
               item['body'], // item['body'] for backward compatibility
+          item['tabItem'],
           icon: Utils.getIcon(item['icon']),
         ));
       }
@@ -120,8 +123,12 @@ class TabBarController extends BoxController {
   }
 }
 
+mixin TabBarAction on WidgetState<BaseTabBar> {
+  void onTabChange(int index);
+}
+
 class TabBarState extends WidgetState<BaseTabBar>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, TabBarAction {
   late final TabController _tabController;
 
   @override
@@ -141,6 +148,26 @@ class TabBarState extends WidgetState<BaseTabBar>
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    widget.controller.tabBarAction = this;
+  }
+
+  @override
+  void didUpdateWidget(covariant BaseTabBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    widget.controller.tabBarAction = this;
+  }
+
+  @override
+  void onTabChange(int index) {
+    _tabController.animateTo(index);
+    setState(() {
+      widget._controller.selectedIndex = index;
+    });
   }
 
   /// override to handle Expanded properly
@@ -287,30 +314,25 @@ class TabBarState extends WidgetState<BaseTabBar>
   List<Widget> _buildTabs(List<TabItem> items) {
     List<Widget> tabItems = [];
     for (final tabItem in items) {
-      // TODO: Build custom tab item
-      if (tabItem.tabWidget != null) {
-        // final customIconModel =
-        //     ViewUtil.buildModel(tabItem.tabWidget, customViewDefinitions);
-        // if (customIconModel != null) {
-        //   final child = widget.scopeManager.buildWidget(customWidgetModel!);
-        //   final dataScopeWidget = child as DataScopeWidget;
-        //   final customWidget = dataScopeWidget.child as CustomView;
-        //   iconWidget = customWidget.childWidget;
-        // }
-
-        // tabItems.add(Tab(
-        //   child: tabItem.tabWidget,
-        // ));
-      } else {
-        tabItems.add(Tab(
-          text: tabItem.label,
-          icon: tabItem.icon != null
-              ? ensemble.Icon.fromModel(tabItem.icon!)
-              : null,
-        ));
-      }
+      ScopeManager? scopeManager = DataScopeWidget.getScope(context);
+      tabItems.add(_buildTabWidget(scopeManager, tabItem));
     }
     return tabItems;
+  }
+
+  Widget _buildTabWidget(ScopeManager? scopeManager, TabItem tabItem) {
+    final tabWidget = tabItem.tabWidget;
+    if (scopeManager != null && tabWidget != null) {
+      final customWidget = scopeManager.buildWidgetFromDefinition(tabWidget);
+      return Tab(
+        child: customWidget,
+      );
+    }
+    return Tab(
+      text: tabItem.label,
+      icon:
+          tabItem.icon != null ? ensemble.Icon.fromModel(tabItem.icon!) : null,
+    );
   }
 
   Widget buildSelectedTab() {
@@ -325,7 +347,7 @@ class TabBarState extends WidgetState<BaseTabBar>
 }
 
 class TabItem {
-  TabItem(this.label, this.widget, {this.icon}) {
+  TabItem(this.label, this.widget, this.tabWidget, {this.icon}) {
     if (widget == null) {
       throw LanguageError('Tab item requires a widget.');
     }
