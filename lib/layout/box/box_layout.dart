@@ -10,6 +10,7 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/layout_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
+import 'package:ensemble/widget/helpers/pull_to_refresh_container.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
@@ -28,6 +29,16 @@ class Column extends BoxLayout {
   @override
   bool isVertical() {
     return true;
+  }
+
+  @override
+  Map<String, Function> setters() {
+    Map<String, Function> entries = super.setters();
+    entries.addAll({
+      'onPullToRefresh': (funcDefinition) => _controller.onPullToRefresh =
+          EnsembleAction.fromYaml(funcDefinition, initiator: this)
+    });
+    return entries;
   }
 }
 
@@ -218,12 +229,28 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
     Widget rtn =
         BoxLayoutWrapper(boxWidget: boxWidget, controller: widget._controller);
 
-    return !widget._controller.scrollable
-        ? rtn
-        : SingleChildScrollView(
-            scrollDirection:
-                widget.isVertical() ? Axis.vertical : Axis.horizontal,
-            child: rtn);
+
+    if (widget._controller.scrollable) {
+      rtn = SingleChildScrollView(
+          scrollDirection:
+          widget.isVertical() ? Axis.vertical : Axis.horizontal,
+          physics: widget._controller.onPullToRefresh != null ? const AlwaysScrollableScrollPhysics() : null,
+          child: rtn);
+
+      if (widget is Column && widget._controller.onPullToRefresh != null ) {
+        rtn = PullToRefreshContainer(
+            contentWidget: rtn, onRefresh: _pullToRefresh);
+      }
+
+    }
+    return rtn;
+  }
+
+  Future<void> _pullToRefresh() async {
+    if (widget._controller.onPullToRefresh != null) {
+      await ScreenController()
+          .executeAction(context, widget._controller.onPullToRefresh!);
+    }
   }
 
   void _onItemTap(int index) {
