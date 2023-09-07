@@ -1,12 +1,12 @@
+
 import 'package:ensemble/framework/action.dart';
-import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/box/base_box_layout.dart';
 import 'package:ensemble/layout/box/box_layout.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/framework/theme/theme_manager.dart';
+import 'package:ensemble/widget/helpers/pull_to_refresh_container.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
@@ -35,7 +35,7 @@ class ListView extends StatefulWidget
   @override
   Map<String, Function> setters() {
     return {
-      'onSwipeToRefresh': (funcDefinition) => _controller.onSwipeToRefresh =
+      'onPullToRefresh': (funcDefinition) => _controller.onPullToRefresh =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'onItemTap': (funcDefinition) => _controller.onItemTap =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
@@ -67,7 +67,7 @@ class ListView extends StatefulWidget
 
 class ListViewController extends BoxLayoutController {
   EnsembleAction? onItemTap;
-  EnsembleAction? onSwipeToRefresh;
+  EnsembleAction? onPullToRefresh;
   int selectedItemIndex = -1;
 
   bool? showSeparator;
@@ -109,7 +109,7 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
     Widget listView = flutter.ListView.separated(
         padding: widget._controller.padding ?? const EdgeInsets.all(0),
         scrollDirection: Axis.vertical,
-        physics: const ScrollPhysics(),
+        physics: widget._controller.onPullToRefresh != null ? const AlwaysScrollableScrollPhysics() : null,
         itemCount: itemCount,
         shrinkWrap: false,
         itemBuilder: (BuildContext context, int index) {
@@ -138,22 +138,20 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
           return const SizedBox.shrink();
         },
         separatorBuilder: (context, index) =>
-            widget._controller.showSeparator == false
-                ? const SizedBox.shrink()
-                : flutter.Padding(
+            widget._controller.showSeparator == true
+                ? flutter.Padding(
                     padding: widget._controller.separatorPadding ??
                         const EdgeInsets.all(0),
                     child: flutter.Divider(
                         color: widget._controller.separatorColor,
                         thickness:
-                            widget._controller.separatorWidth?.toDouble())));
+                        widget._controller.separatorWidth?.toDouble()))
+                : const SizedBox.shrink());
 
-    if (widget._controller.onSwipeToRefresh != null) {
-      final tempList = listView;
-      listView = flutter.RefreshIndicator(
-        onRefresh: _swipeToRefresh,
-        child: tempList,
-      );
+    if (widget._controller.onPullToRefresh != null) {
+      listView = PullToRefreshContainer(
+          contentWidget: listView,
+          onRefresh: _pullToRefresh);
     }
 
     return BoxWrapper(
@@ -165,10 +163,10 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
             child: listView));
   }
 
-  Future<void> _swipeToRefresh() async {
-    if (widget._controller.onSwipeToRefresh != null) {
-      ScreenController()
-          .executeAction(context, widget._controller.onSwipeToRefresh!);
+  Future<void> _pullToRefresh() async {
+    if (widget._controller.onPullToRefresh != null) {
+      await ScreenController()
+          .executeAction(context, widget._controller.onPullToRefresh!);
     }
   }
 
