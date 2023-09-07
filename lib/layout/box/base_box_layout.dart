@@ -70,6 +70,9 @@ class BoxLayoutController extends BaseBoxLayoutController {
   // applicable to Flex container only
   String? direction;
 
+  // applicable to Column only
+  EnsembleAction? onPullToRefresh;
+
   @override
   Map<String, Function> getBaseSetters() {
     Map<String, Function> setters = super.getBaseSetters();
