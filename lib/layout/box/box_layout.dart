@@ -229,19 +229,19 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
     Widget rtn =
         BoxLayoutWrapper(boxWidget: boxWidget, controller: widget._controller);
 
-
     if (widget._controller.scrollable) {
       rtn = SingleChildScrollView(
           scrollDirection:
-          widget.isVertical() ? Axis.vertical : Axis.horizontal,
-          physics: widget._controller.onPullToRefresh != null ? const AlwaysScrollableScrollPhysics() : null,
+              widget.isVertical() ? Axis.vertical : Axis.horizontal,
+          physics: widget._controller.onPullToRefresh != null
+              ? const AlwaysScrollableScrollPhysics()
+              : null,
           child: rtn);
 
-      if (widget is Column && widget._controller.onPullToRefresh != null ) {
+      if (widget is Column && widget._controller.onPullToRefresh != null) {
         rtn = PullToRefreshContainer(
             contentWidget: rtn, onRefresh: _pullToRefresh);
       }
-
     }
     return rtn;
   }
