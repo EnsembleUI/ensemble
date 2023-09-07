@@ -418,7 +418,9 @@ class PageState extends State<Page> {
         MenuItem item = menuItems[i];
         navItems.add(NavigationRailDestination(
             padding: Utils.getInsets(sidebarMenu.styles?['itemPadding']),
-            icon: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
+            icon: item.icon != null
+                ? ensemble.Icon.fromModel(item.icon!)
+                : const SizedBox.shrink(),
             label: Text(Utils.translate(item.label ?? '', context))));
       }
 
