@@ -4683,6 +4683,10 @@
               "widget": {
                 "$ref": "#/$defs/Widget",
                 "description": "Return an inline widget or specify a custom widget to be rendered as this tab's content"
+              },
+              "tabItem": {
+                "$ref": "#/$defs/Widget",
+                "description": "Return an inline widget or specify a custom widget to be rendered as this tab bar item"
               }
             }
           }
