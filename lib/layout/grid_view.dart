@@ -191,14 +191,13 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
             : null,
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: _getTileCount(constraints),
-          crossAxisSpacing:
-          widget._controller.horizontalGap?.toDouble() ?? gap,
+          crossAxisSpacing: widget._controller.horizontalGap?.toDouble() ?? gap,
           mainAxisSpacing: widget._controller.verticalGap?.toDouble() ?? gap,
 
           // itemHeight take precedent, then itemAspectRatio
           mainAxisExtent: widget._controller.itemHeight?.toDouble(),
           childAspectRatio:
-          widget._controller.itemAspectRatio?.toDouble() ?? 1.0,
+              widget._controller.itemAspectRatio?.toDouble() ?? 1.0,
         ),
         itemCount: _items.length,
         scrollDirection: Axis.vertical,
@@ -210,8 +209,7 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
 
     if (widget._controller.onPullToRefresh != null) {
       myGridView = PullToRefreshContainer(
-          contentWidget: myGridView,
-          onRefresh: _pullToRefresh);
+          contentWidget: myGridView, onRefresh: _pullToRefresh);
     }
 
     return BoxWrapper(

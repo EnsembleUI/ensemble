@@ -88,7 +88,8 @@ class ScreenController {
       {EnsembleEvent? event}) {
     ScopeManager? scopeManager = getScopeManager(context);
     if (scopeManager != null) {
-      return executeActionWithScope(context, scopeManager, action, event: event);
+      return executeActionWithScope(context, scopeManager, action,
+          event: event);
     } else {
       throw Exception('Cannot find ScopeManager to execute action');
     }
@@ -136,7 +137,6 @@ class ScreenController {
     if (action is InvokeAPIAction) {
       await InvokeAPIController()
           .execute(action, context, dataContext, scopeManager, apiMap);
-
     } else if (action is BaseNavigateScreenAction) {
       // process input parameters
       Map<String, dynamic>? nextArgs = {};
@@ -452,7 +452,8 @@ class ScreenController {
       if (scopeManager != null && action.widget != null) {
         customToastBody = scopeManager.buildWidgetFromDefinition(action.widget);
       }
-      ToastController().showToast(context, action, customToastBody, dataContext: dataContext);
+      ToastController().showToast(context, action, customToastBody,
+          dataContext: dataContext);
     } else if (action is OpenUrlAction) {
       dynamic value = dataContext.eval(action.url);
       value ??= '';
@@ -763,8 +764,8 @@ class ScreenController {
     return null;
   }
 
-  bool isFileSizeOverLimit(
-      BuildContext context, DataContext dataContext, List<File> selectedFiles, FileUploadAction action) {
+  bool isFileSizeOverLimit(BuildContext context, DataContext dataContext,
+      List<File> selectedFiles, FileUploadAction action) {
     final defaultMaxFileSize = 100.mb;
     const defaultOverMaxFileSizeMessage =
         'The size of is which is larger than the maximum allowed';
