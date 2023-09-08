@@ -4642,6 +4642,20 @@
                     }
                   ]
                 },
+                "indicatorSize": {
+                  "type": "string",
+                  "description": "Defines how the bounds of the selected tab indicator are computed",
+                  "oneOf": [
+                    {
+                      "const": "tab",
+                      "description": "The tab indicator's bounds are as wide as the space occupied by the tab in the tab bar"
+                    },
+                    {
+                      "const": "label",
+                      "description": "The tab's bounds are only as wide as the label or icon width"
+                    }
+                  ]
+                },
                 "tabPadding": {
                   "oneOf": [
                     {
@@ -4683,6 +4697,10 @@
                   "$ref": "#/$defs/typeColors",
                   "description": "The color of the selected tab's indicator"
                 },
+                "activeTabBackgroundColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "The background color of the selected tab"
+                },
                 "indicatorThickness": {
                   "type": "integer",
                   "description": "The thickness of the selected tab's indicator"
@@ -4719,6 +4737,10 @@
               "widget": {
                 "$ref": "#/$defs/Widget",
                 "description": "Return an inline widget or specify a custom widget to be rendered as this tab's content"
+              },
+              "tabItem": {
+                "$ref": "#/$defs/Widget",
+                "description": "Return an inline widget or specify a custom widget to be rendered as this tab bar item"
               }
             }
           }
