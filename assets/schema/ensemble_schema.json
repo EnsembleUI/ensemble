@@ -823,6 +823,14 @@
           "type": "boolean",
           "description": "a shining animation to designate that the content is loading. The animation can be over a defaults shimmer or the loadingWidget if specified."
         },
+        "baseColor": {
+          "$ref": "#/$defs/typeColors",
+          "description": "The base color of the Shimmer."
+        },
+        "highlightColor": {
+          "$ref": "#/$defs/typeColors",
+          "description": "The highlight color of the Shimmer."
+        },
         "widget": {
           "$ref": "#/$defs/Widget",
           "description": "The main widget to show in non-loading state"

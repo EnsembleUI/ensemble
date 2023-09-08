@@ -44,6 +44,9 @@ class LoadingContainer extends StatefulWidget
           _controller.useShimmer = Utils.optionalBool(value),
       'defaultShimmerPadding': (value) =>
           _controller.defaultShimmerPadding = Utils.getInsets(value),
+      'baseColor': (color) => _controller.baseColor = Utils.getColor(color),
+      'highlightColor': (color) =>
+          _controller.highlightColor = Utils.getColor(color),
       'widget': (widget) => _controller.widget = widget,
       'loadingWidget': (loadingWidget) =>
           _controller.loadingWidget = loadingWidget,
@@ -55,6 +58,8 @@ class LoadingContainerController extends BoxController {
   bool? isLoading;
   bool? useShimmer;
   EdgeInsets? defaultShimmerPadding;
+  Color? baseColor;
+  Color? highlightColor;
   dynamic widget;
   dynamic loadingWidget;
 }
@@ -92,7 +97,19 @@ class LoadingContainerState extends WidgetState<LoadingContainer> {
             duration: const Duration(milliseconds: 300),
             child: widget._controller.useShimmer == true
                 ? CustomShimmer(
-                    linearGradient: _shimmerGradient,
+                    linearGradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.centerRight,
+                      colors: <Color>[
+                        widget._controller.baseColor ?? const Color(0xFFEBEBF4),
+                        widget._controller.highlightColor ??
+                            const Color(0xFFEBEBF4).withOpacity(0.3),
+                        widget._controller.baseColor ?? const Color(0xFFEBEBF4),
+                      ],
+                      // stops: const <double>[0.0, 0.35, 0.5, 0.65, 1.0],
+                      stops: const [0.1, 0.3, 0.4],
+                      tileMode: TileMode.clamp,
+                    ),
                     child: ShimmerLoading(
                       isLoading: true,
                       child: loadingWidget ??
@@ -170,22 +187,6 @@ class ListDetailShape extends StatelessWidget {
         ],
       );
 }
-
-const _shimmerGradient = LinearGradient(
-  colors: [
-    Color(0xFFEBEBF4),
-    Color(0xFFF4F4F4),
-    Color(0xFFEBEBF4),
-  ],
-  stops: [
-    0.1,
-    0.3,
-    0.4,
-  ],
-  begin: Alignment(-1.0, -0.3),
-  end: Alignment(1.0, 0.3),
-  tileMode: TileMode.clamp,
-);
 
 class _SlidingGradientTransform extends GradientTransform {
   const _SlidingGradientTransform({
