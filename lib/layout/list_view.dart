@@ -1,4 +1,3 @@
-
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/box/base_box_layout.dart';
@@ -109,7 +108,9 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
     Widget listView = flutter.ListView.separated(
         padding: widget._controller.padding ?? const EdgeInsets.all(0),
         scrollDirection: Axis.vertical,
-        physics: widget._controller.onPullToRefresh != null ? const AlwaysScrollableScrollPhysics() : null,
+        physics: widget._controller.onPullToRefresh != null
+            ? const AlwaysScrollableScrollPhysics()
+            : null,
         itemCount: itemCount,
         shrinkWrap: false,
         itemBuilder: (BuildContext context, int index) {
@@ -145,13 +146,12 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
                     child: flutter.Divider(
                         color: widget._controller.separatorColor,
                         thickness:
-                        widget._controller.separatorWidth?.toDouble()))
+                            widget._controller.separatorWidth?.toDouble()))
                 : const SizedBox.shrink());
 
     if (widget._controller.onPullToRefresh != null) {
       listView = PullToRefreshContainer(
-          contentWidget: listView,
-          onRefresh: _pullToRefresh);
+          contentWidget: listView, onRefresh: _pullToRefresh);
     }
 
     return BoxWrapper(
