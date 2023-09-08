@@ -20,7 +20,8 @@ class ContactManagerStub extends ContactManager {
 
   @override
   Future<bool> requestPermission() {
-    return Future.value(false);
+    throw ConfigError(
+        "Phone Contact Service is not enabled. Please review the Ensemble documentation.");
   }
 }
 
