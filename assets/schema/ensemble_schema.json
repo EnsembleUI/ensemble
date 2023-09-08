@@ -3732,15 +3732,9 @@
             ],
             "properties": {
               "icon": {
-                "type": "string",
-                "description": "Icon name from Material Icons or Font Awesome"
-              },
-              "iconLibrary": {
-                "type": "string",
-                "enum": [
-                  "default",
-                  "fontAwesome"
-                ]
+                "type": "object",
+                "description": "Icon name from Material Icons or Font Awesome",
+                "$ref": "#/$defs/BaseIcon-payload"
               },
               "label": {
                 "type": "string"
@@ -3762,6 +3756,96 @@
               "$ref": "#/$defs/backgroundColor"
             }
           ]
+        }
+      }
+    },
+    "BottomNavBarMenuItems-Payload": {
+      "properties": {
+        "styles": {
+          "type": "object",
+          "properties": {
+            "color": {
+              "$ref": "#/$defs/typeColors",
+              "description": "Unselected icon color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+            },
+            "selectedColor": {
+              "$ref": "#/$defs/typeColors",
+              "description": "Selected icon color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+            },
+            "backgroundColor": {
+              "$ref": "#/$defs/typeColors",
+              "description": "Background color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+            },
+            "floatingBackgroundColor": {
+              "$ref": "#/$defs/typeColors",
+              "description": "Floating item background color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+            },
+            "floatingIconColor": {
+              "$ref": "#/$defs/typeColors",
+              "description": "Floating item icon color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+            }   
+          }
+        },
+        "items": {
+          "type": "array",
+          "description": "List of menu items (minimum 2)",
+          "items": {
+            "type": "object",
+            "properties": {
+              "icon": {
+                "type": "object",
+                "description": "Icon name from Material Icons or Font Awesome",
+                "$ref": "#/$defs/BaseIcon-payload"
+              },
+              "label": {
+                "type": "string"
+              },
+              "page": {
+                "type": "string",
+                "description": "The new page to navigate to on click"
+              },
+              "selected": {
+                "type": "boolean",
+                "description": "Mark this item as selected. There should only be one selected item per page."
+              },
+              "activeIcon": {
+                "type": "string",
+                "description": "Icon name from Material Icons or Font Awesome"
+              },
+              "floating": {
+                "type": "boolean",
+                "description": "Mark this item as a floating icon"
+              },
+              "floatingMargin": {
+                "$ref": "#/$defs/Margin-payload",
+                "description": "The margin around the floating."
+              },
+              "floatingAlignment": {
+                "$ref": "#/$defs/alignment",
+                "description":"How to align the floating in the BottomNavBar. The values are left, center, right and none"
+              },
+              "onTap": {
+                "$ref": "#/$defs/Action-payload",
+                "description": "Call Ensemble's built-in functions"
+              },
+              "customItem": {
+                "type": "object",
+                "required": [
+                  "widget"
+                ],
+                "properties": {
+                  "widget": {
+                    "$ref": "#/$defs/Widget",
+                    "description": "Custom bottom navigation item for the unselected state"
+                  },
+                  "selectedWidget": {
+                    "$ref": "#/$defs/Widget",
+                    "description": "Custom bottom navigation item for the selected state"
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -4498,91 +4582,22 @@
       "description": "Specify the navigation menu for this page",
       "oneOf": [
         {
+          "title": "BottomNavBar",
+          "required": [
+            "BottomNavBar"
+          ],
           "properties": {
             "BottomNavBar": {
               "description": "Use the bottom navigation bar",
-              "type": "object",
-              "properties": {
-                "styles": {
-                  "type": "object",
-                  "properties": {
-                    "allOf": [
-                      {
-                      "$ref": "#/$defs/MenuBase"
-                      },
-                      {
-                        "type": "object",
-                        "properties": {
-                          "color": {
-                            "$ref": "#/$defs/typeColors",
-                            "description": "Unselected icon color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
-                          },
-                          "selectedColor": {
-                            "$ref": "#/$defs/typeColors",
-                            "description": "Selected icon color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
-                          },
-                          "backgroundColor": {
-                            "$ref": "#/$defs/typeColors",
-                            "description": "Background color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
-                          },
-                          "floatingBackgroundColor": {
-                            "$ref": "#/$defs/typeColors",
-                            "description": "Floating item background color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
-                          },
-                          "floatingIconColor": {
-                            "$ref": "#/$defs/typeColors",
-                            "description": "Floating item icon color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
-                          }
-                        }
-                      }
-                    ]
-                  }
-                },
-                "items": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "activeIcon": {
-                        "type": "string",
-                        "description": "Icon name from Material Icons or Font Awesome"
-                      },
-                      "floating": {
-                        "type": "boolean",
-                        "description": "Mark this item as a floating icon"
-                      },
-                      "floatingMargin": {
-                        "$ref": "#/$defs/Margin-payload",
-                        "description": "The margin around the floating."
-                      },
-                      "floatingAlignment": {
-                        "$ref": "#/$defs/alignment",
-                        "description":"How to align the floating in the BottomNavBar. The values are left, center, right and none"
-                      },
-                      "customItem": {
-                        "type": "object",
-                        "required": [
-                          "widget"
-                        ],
-                        "properties": {
-                          "widget": {
-                            "$ref": "#/$defs/Widget",
-                            "description": "Custom bottom navigation item for the unselected state"
-                          },
-                          "selectedWidget": {
-                            "$ref": "#/$defs/Widget",
-                            "description": "Custom bottom navigation item for the selected state"
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }   
+              "$ref": "#/$defs/BottomNavBarMenuItems-Payload"
             }
           }
         },
         {
+          "title": "Drawer",
+          "required": [
+            "Drawer"
+          ],
           "properties": {
             "Drawer": {
               "description": "Put the menu behind a drawer icon on the header. The drawer icon will be positioned to the 'start' of the header (left for most languages, right for RTL languages).",
@@ -4591,6 +4606,10 @@
           }
         },
         {
+          "title": "EndDrawer",
+          "required": [
+            "EndDrawer"
+          ],
           "properties": {
             "EndDrawer": {
               "description": "Put the menu behind a drawer icon on the header. The drawer icon will be positioned to the 'end' of the header (right for most languages, left for RTL languages).",
@@ -4599,17 +4618,13 @@
           }
         },
         {
+          "title": "Sidebar",
+          "required": [
+            "Sidebar"
+          ],
           "properties": {
             "Sidebar": {
               "description": "Enable a fixed navigation menu to the 'start' of the screen (left for most languages, right for RTL languages). The menu may become a drawer menu on lower resolution.",
-              "$ref": "#/$defs/MenuWithAdditionalStyles"
-            }
-          }
-        },
-        {
-          "properties": {
-            "EndSidebar": {
-              "description": "Enable a fixed navigation menu to the 'end' of the screen (right for most languages, left for RTL languages). The menu may become a drawer menu on lower resolution.",
               "$ref": "#/$defs/MenuWithAdditionalStyles"
             }
           }
