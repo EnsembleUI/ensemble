@@ -907,6 +907,7 @@ class ScreenController {
   /// [pageArgs] - Key/Value pairs to send to the screen if it takes input parameters
   PageRouteBuilder navigateToScreen(
     BuildContext context, {
+    String? screenId,
     String? screenName,
     bool? asModal,
     RouteOption? routeOption,
@@ -916,7 +917,7 @@ class ScreenController {
     PageType pageType = asModal == true ? PageType.modal : PageType.regular;
 
     Widget screenWidget =
-        getScreen(screenName: screenName, asModal: asModal, pageArgs: pageArgs);
+        getScreen(screenId: screenId, screenName: screenName, asModal: asModal, pageArgs: pageArgs);
 
     Map<String, dynamic>? defaultTransitionOptions =
         Theme.of(context).extension<EnsembleThemeExtension>()?.transitions ??
@@ -954,6 +955,7 @@ class ScreenController {
   /// get the screen widget. If screen is not specified, return the home screen
   Widget getScreen({
     Key? key,
+    String? screenId,
     String? screenName,
     bool? asModal,
     Map<String, dynamic>? pageArgs,
@@ -964,6 +966,7 @@ class ScreenController {
       appProvider: AppProvider(
           definitionProvider: Ensemble().getConfig()!.definitionProvider),
       screenPayload: ScreenPayload(
+        screenId: screenId,
         screenName: screenName,
         pageType: pageType,
         arguments: pageArgs,
