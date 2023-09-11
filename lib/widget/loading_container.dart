@@ -87,17 +87,18 @@ class LoadingContainerState extends WidgetState<LoadingContainer> {
   Widget buildWidget(BuildContext context) {
     return Stack(children: [
       // loading widget
-      AnimatedOpacity(
-          opacity: widget._controller.isLoading == true ? 1 : 0,
-          duration: const Duration(milliseconds: 300),
-          child: widget._controller.useShimmer == true
-              ? Shimmer.fromColors(
-                  baseColor: const Color(0xFFE0E0E0),
-                  highlightColor: const Color(0xFFF5F5F7).withOpacity(0.5),
-                  child: loadingWidget ??
-                      DefaultLoadingShape(
-                          padding: widget._controller.defaultShimmerPadding))
-              : loadingWidget ?? const SizedBox.shrink()),
+      if (widget.controller.isLoading == true)
+        AnimatedOpacity(
+            opacity: 1,
+            duration: const Duration(milliseconds: 300),
+            child: widget._controller.useShimmer == true
+                ? Shimmer.fromColors(
+                    baseColor: const Color(0xFFE0E0E0),
+                    highlightColor: const Color(0xFFF5F5F7).withOpacity(0.5),
+                    child: loadingWidget ??
+                        DefaultLoadingShape(
+                            padding: widget._controller.defaultShimmerPadding))
+                : loadingWidget ?? const SizedBox.shrink()),
 
       // fade in main content
       AnimatedOpacity(

@@ -1235,6 +1235,48 @@
         }
       }
     },
+    "DateRange-payload": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID to be referenced later"
+        },
+        "label": {
+          "type": "string",
+          "description": "Label for your widget"
+        },
+        "hintText": {
+          "type": "string",
+          "description": "Hint text explaining your widget"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "icon": {
+          "$ref": "#/$defs/HasIcon",
+          "description": "The icon to show before the Date Range field"
+        },
+        "suffixIcon": {
+          "$ref": "#/$defs/HasIcon",
+          "description": "The icon to show after the Date Range field"
+        },
+        "onChange": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Call Ensemble's built-in functions or execute code when the input changes. Note for free-form text input, this event only dispatches if the text changes AND the focus is lost (e.g. clicking on button)"
+        },
+        "styles": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
+            }
+          ]
+        }
+      }
+    },
     "Slider-payload": {
       "type": "object",
       "allOf": [
@@ -1907,6 +1949,10 @@
             },
             "styles": {
               "$ref": "#/$defs/columnStyles"
+            },
+            "onPullToRefresh": {
+              "description": "Trigger an Action with pull to refresh. Applicable only if scrollable is enabled.",
+              "$ref": "#/$defs/Action-payload"
             }
           }
         }
@@ -1952,6 +1998,10 @@
             "onItemTap": {
               "$ref": "#/$defs/Action-payload",
               "description": "Call Ensemble's built-in functions or execute code when tapping on an item in the list."
+            },
+            "onPullToRefresh": {
+              "description": "Trigger an Action with pull to refresh",
+              "$ref": "#/$defs/Action-payload"
             },
             "styles": {
               "allOf": [
@@ -2351,8 +2401,8 @@
               "type": "integer",
               "description": "Selecting a ListView item gives the index of selected item"
             },
-            "onSwipeToRefresh": {
-              "description": "Enable swipe to refresh. This will trigger onRefresh action if enabled",
+            "onPullToRefresh": {
+              "description": "Trigger an Action with pull to refresh",
               "$ref": "#/$defs/Action-payload"
             },
             "styles": {
@@ -4189,6 +4239,18 @@
           }
         },
         {
+          "title": "DateRange",
+          "required": [
+            "DateRange"
+          ],
+          "properties": {
+            "DateRange": {
+              "$ref": "#/$defs/DateRange-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/b45c5576-ec22-4b04-832f-6dd7571dd20f#"
+            }
+          }
+        },
+        {
           "title": "Time",
           "required": [
             "Time"
@@ -4721,6 +4783,20 @@
                     }
                   ]
                 },
+                "indicatorSize": {
+                  "type": "string",
+                  "description": "Defines how the bounds of the selected tab indicator are computed",
+                  "oneOf": [
+                    {
+                      "const": "tab",
+                      "description": "The tab indicator's bounds are as wide as the space occupied by the tab in the tab bar"
+                    },
+                    {
+                      "const": "label",
+                      "description": "The tab's bounds are only as wide as the label or icon width"
+                    }
+                  ]
+                },
                 "tabPadding": {
                   "oneOf": [
                     {
@@ -4762,6 +4838,10 @@
                   "$ref": "#/$defs/typeColors",
                   "description": "The color of the selected tab's indicator"
                 },
+                "activeTabBackgroundColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "The background color of the selected tab"
+                },
                 "indicatorThickness": {
                   "type": "integer",
                   "description": "The thickness of the selected tab's indicator"
@@ -4798,6 +4878,10 @@
               "widget": {
                 "$ref": "#/$defs/Widget",
                 "description": "Return an inline widget or specify a custom widget to be rendered as this tab's content"
+              },
+              "tabItem": {
+                "$ref": "#/$defs/Widget",
+                "description": "Return an inline widget or specify a custom widget to be rendered as this tab bar item"
               }
             }
           }
@@ -5196,6 +5280,7 @@
         {
           "title": "name",
           "type": "string",
+          "additionalProperties": true,
           "enum": [
             "transparent",
             "black",
