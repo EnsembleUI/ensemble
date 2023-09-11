@@ -581,15 +581,15 @@
                 },
                 "isRotate": {
                   "type": "boolean",
-                  "description": "Whether to allow the image to be rotated."
+                  "description": "Whether to allow the image to be rotated. Defaults to true."
                 },
                 "isMove": {
                   "type": "boolean",
-                  "description": "Determines whether moving gesture overlay is disabled."
+                  "description": "Determines whether moving gesture overlay is disabled. Defaults to true."
                 },
                 "isScale": {
                   "type": "boolean",
-                  "description": "Determines whether scaling gesture is disabled."
+                  "description": "Determines whether scaling gesture is disabled. Defaults to true."
                 },
                 "shape": {
                   "type": "string",
