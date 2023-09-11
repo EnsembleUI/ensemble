@@ -1,5 +1,6 @@
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/page.dart';
@@ -44,7 +45,9 @@ abstract class BaseTabBar extends StatefulWidget
 
   @override
   Map<String, Function> methods() {
-    return {};
+    return {
+      'changeTabItem': (index) => _controller.tabBarAction?.onTabChange(index),
+    };
   }
 
   @override
@@ -52,6 +55,8 @@ abstract class BaseTabBar extends StatefulWidget
     return {
       'tabPosition': (position) =>
           _controller.tabPosition = Utils.optionalString(position),
+      'indicatorSize': (type) =>
+          _controller.indicatorSize = Utils.optionalString(type),
       'margin': (margin) => _controller.margin = Utils.optionalInsets(margin),
       'tabPadding': (padding) =>
           _controller.tabPadding = Utils.optionalInsets(padding),
@@ -65,6 +70,8 @@ abstract class BaseTabBar extends StatefulWidget
           _controller.activeTabColor = Utils.getColor(color),
       'inactiveTabColor': (color) =>
           _controller.inactiveTabColor = Utils.getColor(color),
+      'activeTabBackgroundColor': (color) =>
+          _controller.activeTabBackgroundColor = Utils.getColor(color),
       'dividerColor': (color) =>
           _controller.dividerColor = Utils.getColor(color),
       'indicatorColor': (color) =>
@@ -80,20 +87,23 @@ abstract class BaseTabBar extends StatefulWidget
   }
 }
 
-class TabBarController extends WidgetController {
+class TabBarController extends BoxController {
   String? tabPosition;
-  EdgeInsets? margin;
+  String? indicatorSize;
+  String? tabType;
   EdgeInsets? tabPadding;
   int? tabFontSize;
   FontWeight? tabFontWeight;
   Color? tabBackgroundColor;
   Color? activeTabColor;
   Color? inactiveTabColor;
+  Color? activeTabBackgroundColor;
   Color? indicatorColor;
   Color? dividerColor;
   int? indicatorThickness;
 
   EnsembleAction? onTabSelection;
+  TabBarAction? tabBarAction;
 
   int selectedIndex = 0;
   final List<TabItem> _items = [];
@@ -105,6 +115,7 @@ class TabBarController extends WidgetController {
           Utils.getString(item['label'], fallback: ''),
           item['widget'] ??
               item['body'], // item['body'] for backward compatibility
+          item['tabItem'],
           icon: Utils.getIcon(item['icon']),
         ));
       }
@@ -112,8 +123,12 @@ class TabBarController extends WidgetController {
   }
 }
 
+mixin TabBarAction on WidgetState<BaseTabBar> {
+  void onTabChange(int index);
+}
+
 class TabBarState extends WidgetState<BaseTabBar>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, TabBarAction {
   late final TabController _tabController;
 
   @override
@@ -133,6 +148,26 @@ class TabBarState extends WidgetState<BaseTabBar>
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    widget.controller.tabBarAction = this;
+  }
+
+  @override
+  void didUpdateWidget(covariant BaseTabBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    widget.controller.tabBarAction = this;
+  }
+
+  @override
+  void onTabChange(int index) {
+    _tabController.animateTo(index);
+    setState(() {
+      widget._controller.selectedIndex = index;
+    });
   }
 
   /// override to handle Expanded properly
@@ -221,12 +256,19 @@ class TabBarState extends WidgetState<BaseTabBar>
 
     double indicatorThickness =
         widget._controller.indicatorThickness?.toDouble() ?? 2;
+    print(indicatorThickness);
+
+    final indicatorSize =
+        TabBarIndicatorSize.values.from(widget._controller.indicatorSize);
 
     Widget tabBar = TabBar(
       labelPadding: labelPadding,
       dividerColor: widget._controller.dividerColor,
       indicator: indicatorThickness == 0
-          ? const BoxDecoration()
+          ? BoxDecoration(
+              color: widget.controller.activeTabBackgroundColor ??
+                  Colors.transparent,
+            )
           : UnderlineTabIndicator(
               borderSide: BorderSide(
                   width: indicatorThickness,
@@ -235,16 +277,13 @@ class TabBarState extends WidgetState<BaseTabBar>
             ),
       controller: _tabController,
       isScrollable: labelPosition,
+      indicatorSize: indicatorSize,
       labelStyle: tabStyle,
       labelColor: widget._controller.activeTabColor ??
           Theme.of(context).colorScheme.primary,
       unselectedLabelColor:
           widget._controller.inactiveTabColor ?? Colors.black87,
-      tabs: widget._controller._items
-          .map((e) => Tab(
-              text: e.label,
-              icon: e.icon != null ? ensemble.Icon.fromModel(e.icon!) : null))
-          .toList(),
+      tabs: _buildTabs(widget._controller._items),
       onTap: (index) {
         setState(() {
           widget._controller.selectedIndex = index;
@@ -257,10 +296,43 @@ class TabBarState extends WidgetState<BaseTabBar>
     );
 
     if (widget._controller.tabBackgroundColor != null) {
-      return ColoredBox(
+      tabBar = ColoredBox(
           color: widget._controller.tabBackgroundColor!, child: tabBar);
     }
+
+    if (widget._controller.borderRadius != null) {
+      final borderRadius = widget._controller.borderRadius?.getValue();
+      tabBar = ClipRRect(
+        borderRadius: borderRadius ?? BorderRadius.zero,
+        child: tabBar,
+      );
+    }
+
     return tabBar;
+  }
+
+  List<Widget> _buildTabs(List<TabItem> items) {
+    List<Widget> tabItems = [];
+    for (final tabItem in items) {
+      ScopeManager? scopeManager = DataScopeWidget.getScope(context);
+      tabItems.add(_buildTabWidget(scopeManager, tabItem));
+    }
+    return tabItems;
+  }
+
+  Widget _buildTabWidget(ScopeManager? scopeManager, TabItem tabItem) {
+    final tabWidget = tabItem.tabWidget;
+    if (scopeManager != null && tabWidget != null) {
+      final customWidget = scopeManager.buildWidgetFromDefinition(tabWidget);
+      return Tab(
+        child: customWidget,
+      );
+    }
+    return Tab(
+      text: tabItem.label,
+      icon:
+          tabItem.icon != null ? ensemble.Icon.fromModel(tabItem.icon!) : null,
+    );
   }
 
   Widget buildSelectedTab() {
@@ -275,13 +347,14 @@ class TabBarState extends WidgetState<BaseTabBar>
 }
 
 class TabItem {
-  TabItem(this.label, this.widget, {this.icon}) {
+  TabItem(this.label, this.widget, this.tabWidget, {this.icon}) {
     if (widget == null) {
       throw LanguageError('Tab item requires a widget.');
     }
   }
 
   String label;
+  dynamic tabWidget;
   dynamic widget;
   IconModel? icon;
 }
