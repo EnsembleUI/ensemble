@@ -84,20 +84,21 @@ class ScreenController {
   }
 
   /// handle Action e.g invokeAPI
-  void executeAction(BuildContext context, EnsembleAction action,
+  Future<void> executeAction(BuildContext context, EnsembleAction action,
       {EnsembleEvent? event}) {
     ScopeManager? scopeManager = getScopeManager(context);
     if (scopeManager != null) {
-      executeActionWithScope(context, scopeManager, action, event: event);
+      return executeActionWithScope(context, scopeManager, action,
+          event: event);
     } else {
       throw Exception('Cannot find ScopeManager to execute action');
     }
   }
 
-  void executeActionWithScope(
+  Future<void> executeActionWithScope(
       BuildContext context, ScopeManager scopeManager, EnsembleAction action,
       {EnsembleEvent? event}) {
-    nowExecuteAction(context, scopeManager.dataContext, action,
+    return nowExecuteAction(context, scopeManager.dataContext, action,
         scopeManager.pageData.apiMap, scopeManager,
         event: event);
   }
@@ -134,7 +135,7 @@ class ScreenController {
     }
 
     if (action is InvokeAPIAction) {
-      InvokeAPIController()
+      await InvokeAPIController()
           .execute(action, context, dataContext, scopeManager, apiMap);
     } else if (action is BaseNavigateScreenAction) {
       // process input parameters
@@ -451,7 +452,8 @@ class ScreenController {
       if (scopeManager != null && action.widget != null) {
         customToastBody = scopeManager.buildWidgetFromDefinition(action.widget);
       }
-      ToastController().showToast(context, action, customToastBody);
+      ToastController().showToast(context, action, customToastBody,
+          dataContext: dataContext);
     } else if (action is OpenUrlAction) {
       dynamic value = dataContext.eval(action.url);
       value ??= '';
@@ -631,7 +633,7 @@ class ScreenController {
     selectedFiles =
         rawFiles.map((data) => File.fromJson(data)).toList().cast<File>();
 
-    if (isFileSizeOverLimit(context, selectedFiles, action)) {
+    if (isFileSizeOverLimit(context, dataContext, selectedFiles, action)) {
       if (action.onError != null) executeAction(context, action.onError!);
       return;
     }
@@ -762,8 +764,8 @@ class ScreenController {
     return null;
   }
 
-  bool isFileSizeOverLimit(
-      BuildContext context, List<File> selectedFiles, FileUploadAction action) {
+  bool isFileSizeOverLimit(BuildContext context, DataContext dataContext,
+      List<File> selectedFiles, FileUploadAction action) {
     final defaultMaxFileSize = 100.mb;
     const defaultOverMaxFileSizeMessage =
         'The size of is which is larger than the maximum allowed';
@@ -785,7 +787,8 @@ class ScreenController {
               message: message,
               alignment: Alignment.bottomCenter,
               duration: 3),
-          null);
+          null,
+          dataContext: dataContext);
       if (action.onError != null) executeAction(context, action.onError!);
       return true;
     }
