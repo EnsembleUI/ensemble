@@ -354,7 +354,12 @@ class PageState extends State<Page> {
     // keyboard sliding up (when entering value) won't resize the background
     if (backgroundImage != null) {
       return Stack(
-        children: [Positioned.fill(child: backgroundImage.asImageWidget), rtn],
+        children: [
+          Positioned.fill(
+            child: backgroundImage.getImageAsWidget(_scopeManager),
+          ),
+          rtn,
+        ],
       );
     } else if (backgroundGradient != null) {
       return Scaffold(
