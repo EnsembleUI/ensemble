@@ -1,6 +1,8 @@
 /// This class contains common widgets for use with Ensemble widgets.
 
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/form.dart' as ensemble;
 import 'package:ensemble/widget/input/form_helper.dart';
@@ -53,6 +55,7 @@ class BoxWrapper extends StatelessWidget {
         boxController.hasBoxDecoration()) {
       clip = Clip.hardEdge;
     }
+    ScopeManager? scopeManager = DataScopeWidget.getScope(context);
 
     return Container(
         width: ignoresDimension ? null : boxController.width?.toDouble(),
@@ -65,7 +68,8 @@ class BoxWrapper extends StatelessWidget {
             ? null
             : BoxDecoration(
                 color: boxController.backgroundColor,
-                image: boxController.backgroundImage?.asDecorationImage,
+                image: boxController.backgroundImage
+                    ?.getImageAsDecorated(scopeManager),
                 gradient: boxController.backgroundGradient,
                 border: !boxController.hasBorder()
                     ? null
