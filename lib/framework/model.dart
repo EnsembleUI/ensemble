@@ -28,7 +28,11 @@ class BackgroundImage {
   final Alignment _alignment;
   final dynamic _fallback;
 
-  DecorationImage get asDecorationImage {
+  DecorationImage getImageAsDecorated(ScopeManager? scopeManager) {
+    final Widget? fallbackWidget = _fallback != null
+        ? scopeManager?.buildWidgetFromDefinition(_fallback)
+        : null;
+
     ImageProvider imageProvider;
     if (Utils.isUrl(_source)) {
       imageProvider = NetworkImage(_source);
@@ -36,7 +40,12 @@ class BackgroundImage {
       imageProvider = AssetImage(Utils.getLocalAssetFullPath(_source));
     }
     return DecorationImage(
-        image: imageProvider, fit: _fit, alignment: _alignment);
+      image: imageProvider,
+      fit: _fit,
+      alignment: _alignment,
+      onError: (_, __) =>
+          fallbackWidget != null ? (_, __, ___) => fallbackWidget : null,
+    );
   }
 
   Widget getImageAsWidget(ScopeManager? scopeManager) {
