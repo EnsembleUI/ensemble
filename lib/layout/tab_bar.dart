@@ -164,6 +164,9 @@ class TabBarState extends WidgetState<BaseTabBar>
 
   @override
   void onTabChange(int index) {
+    if (widget._controller.selectedIndex == index) {
+      return;
+    }
     _tabController.animateTo(index);
     setState(() {
       widget._controller.selectedIndex = index;
@@ -256,14 +259,13 @@ class TabBarState extends WidgetState<BaseTabBar>
 
     double indicatorThickness =
         widget._controller.indicatorThickness?.toDouble() ?? 2;
-    print(indicatorThickness);
 
     final indicatorSize =
         TabBarIndicatorSize.values.from(widget._controller.indicatorSize);
 
     Widget tabBar = TabBar(
       labelPadding: labelPadding,
-      dividerColor: widget._controller.dividerColor,
+      dividerColor: widget._controller.dividerColor ?? Colors.transparent,
       indicator: indicatorThickness == 0
           ? BoxDecoration(
               color: widget.controller.activeTabBackgroundColor ??
@@ -285,6 +287,9 @@ class TabBarState extends WidgetState<BaseTabBar>
           widget._controller.inactiveTabColor ?? Colors.black87,
       tabs: _buildTabs(widget._controller._items),
       onTap: (index) {
+        if (widget._controller.selectedIndex == index) {
+          return;
+        }
         setState(() {
           widget._controller.selectedIndex = index;
         });
