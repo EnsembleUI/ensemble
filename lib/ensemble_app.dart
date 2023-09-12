@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'dart:async';
 
 import 'package:device_preview/device_preview.dart';
+import 'package:ensemble/deep_link_manager.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/device.dart';
@@ -101,6 +102,7 @@ class EnsembleAppState extends State<EnsembleApp> {
   void initState() {
     super.initState();
     config = initApp();
+    DeepLinkManager().init();
     if (!kIsWeb) {
       Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
     }

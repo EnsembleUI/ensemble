@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 
@@ -13,15 +14,25 @@ class IconModel {
 }
 
 class BackgroundImage {
-  BackgroundImage(this._source, {BoxFit? fit, Alignment? alignment})
-      : _fit = fit ?? BoxFit.cover,
-        _alignment = alignment ?? Alignment.center;
+  BackgroundImage(
+    this._source, {
+    BoxFit? fit,
+    Alignment? alignment,
+    dynamic fallback,
+  })  : _fit = fit ?? BoxFit.cover,
+        _alignment = alignment ?? Alignment.center,
+        _fallback = fallback;
 
   final String _source;
   final BoxFit _fit;
   final Alignment _alignment;
+  final dynamic _fallback;
 
-  DecorationImage get asDecorationImage {
+  DecorationImage getImageAsDecorated(ScopeManager? scopeManager) {
+    final Widget? fallbackWidget = _fallback != null
+        ? scopeManager?.buildWidgetFromDefinition(_fallback)
+        : null;
+
     ImageProvider imageProvider;
     if (Utils.isUrl(_source)) {
       imageProvider = NetworkImage(_source);
@@ -29,21 +40,34 @@ class BackgroundImage {
       imageProvider = AssetImage(Utils.getLocalAssetFullPath(_source));
     }
     return DecorationImage(
-        image: imageProvider, fit: _fit, alignment: _alignment);
+      image: imageProvider,
+      fit: _fit,
+      alignment: _alignment,
+      onError: (_, __) =>
+          fallbackWidget != null ? (_, __, ___) => fallbackWidget : null,
+    );
   }
 
-  Widget get asImageWidget {
+  Widget getImageAsWidget(ScopeManager? scopeManager) {
+    final Widget? fallbackWidget = _fallback != null
+        ? scopeManager?.buildWidgetFromDefinition(_fallback)
+        : null;
+
     if (Utils.isUrl(_source)) {
       return CachedNetworkImage(
         imageUrl: _source,
         fit: _fit,
         alignment: _alignment,
+        errorWidget:
+            fallbackWidget != null ? (_, __, ___) => fallbackWidget : null,
       );
     } else {
       return Image.asset(
         Utils.getLocalAssetFullPath(_source),
         fit: _fit,
         alignment: _alignment,
+        errorBuilder:
+            fallbackWidget != null ? (_, __, ___) => fallbackWidget : null,
       );
     }
   }
