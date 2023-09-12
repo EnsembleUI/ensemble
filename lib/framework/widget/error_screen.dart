@@ -61,9 +61,66 @@ class _ErrorScreenState extends State<ErrorScreen> {
   void createErrorOverlay() {
     // Remove the existing OverlayEntry.
     removeErrorOverlay();
-
     assert(overlayEntry == null);
 
+    overlayEntry = OverlayEntry(
+      // Create a new OverlayEntry.
+      builder: (BuildContext context) {
+        // Studio gets debug info even though it is compiled as release mode
+        if (!kReleaseMode
+            || String.fromEnvironment('studio', defaultValue: 'false') == 'true') {
+          return _debugErrorWidget();
+        }
+        return _releaseErrorWidget();
+      });
+
+    // Add the OverlayEntry to the Overlay.
+    Overlay.of(context, debugRequiredFor: widget).insert(overlayEntry!);
+  }
+
+  // Remove the OverlayEntry.
+  void removeErrorOverlay() {
+    overlayEntry?.remove();
+    overlayEntry = null;
+  }
+
+  /// return this widget in release mode
+  Widget _releaseErrorWidget() {
+    return Scaffold(
+      body: Center(
+        /// attempt to first load /ensemble/assets/error.png from Starter repo.
+        /// This is how customers can customize a primitive error image.
+        /// If the image is not found, fallback to our default
+        child: Image.asset(
+          'ensemble/assets/error.png',
+          errorBuilder: (context, error, stackTrace) =>
+              _releaseDefaultErrorWidget())));
+  }
+
+  Widget _releaseDefaultErrorWidget() {
+    return const Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Image(
+            image: AssetImage("assets/images/error.png", package: 'ensemble'),
+            width: 200),
+        Text(
+          "Oops. Something's wrong.",
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 24),
+        ),
+        Text(
+          "Please close and restart the app to continue",
+          style: TextStyle(fontSize: 18),
+        ),
+        SizedBox(height: 50)
+      ],
+    )
+
+      ;
+  }
+
+  /// use this error widget in debug mode
+  Widget _debugErrorWidget() {
     List<Widget> children = [];
 
     // main error and graphics
@@ -102,30 +159,15 @@ class _ErrorScreenState extends State<ErrorScreen> {
       ]));
     }
 
-    overlayEntry = OverlayEntry(
-      // Create a new OverlayEntry.
-      builder: (BuildContext context) {
-        // Align is used to position the highlight overlay
-        // relative to the NavigationBar destination.
-        return Scaffold(
-            body: SafeArea(
-                child: SingleChildScrollView(
-                    padding:
-                        const EdgeInsets.only(left: 40, right: 40, top: 40),
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: children))));
-      },
-    );
+    return Scaffold(
+        body: SafeArea(
+            child: SingleChildScrollView(
+                padding:
+                const EdgeInsets.only(left: 40, right: 40, top: 40),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: children))));
 
-    // Add the OverlayEntry to the Overlay.
-    Overlay.of(context, debugRequiredFor: widget).insert(overlayEntry!);
-  }
-
-  // Remove the OverlayEntry.
-  void removeErrorOverlay() {
-    overlayEntry?.remove();
-    overlayEntry = null;
   }
 
   @override
