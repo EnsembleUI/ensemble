@@ -104,7 +104,6 @@ dependencies:
   custom_image_crop: ^0.0.10
   app_settings: ^5.0.0
   firebase_messaging: ^14.6.5
-  shimmer: ^3.0.0
   custom_refresh_indicator: ^2.2.1
   app_links: ^3.4.3
 
