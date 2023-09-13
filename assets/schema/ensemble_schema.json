@@ -1961,6 +1961,11 @@
             "onPullToRefresh": {
               "description": "Trigger an Action with pull to refresh. Applicable only if scrollable is enabled.",
               "$ref": "#/$defs/Action-payload"
+            },
+            "refreshIndicatorType": {
+              "type": "string",
+              "description": "The refresh indicator type if onPullToRefresh is specified. Default is 'material'.",
+              "enum": [ "material", "cupertino" ]
             }
           }
         }
@@ -1998,6 +2003,9 @@
           "$ref": "#/$defs/Templated-payload"
         },
         {
+          "$ref": "#/$defs/HasPullToRefresh"
+        },
+        {
           "properties": {
             "id": {
               "type": "string",
@@ -2006,10 +2014,6 @@
             "onItemTap": {
               "$ref": "#/$defs/Action-payload",
               "description": "Call Ensemble's built-in functions or execute code when tapping on an item in the list."
-            },
-            "onPullToRefresh": {
-              "description": "Trigger an Action with pull to refresh",
-              "$ref": "#/$defs/Action-payload"
             },
             "styles": {
               "allOf": [
@@ -2390,6 +2394,9 @@
           "$ref": "#/$defs/Templated-payload"
         },
         {
+          "$ref": "#/$defs/HasPullToRefresh"
+        },
+        {
           "required": [
             "children"
           ],
@@ -2408,10 +2415,6 @@
             "selectedItemIndex": {
               "type": "integer",
               "description": "Selecting a ListView item gives the index of selected item"
-            },
-            "onPullToRefresh": {
-              "description": "Trigger an Action with pull to refresh",
-              "$ref": "#/$defs/Action-payload"
             },
             "styles": {
               "allOf": [
@@ -6071,6 +6074,20 @@
         "size": {
           "type": "integer",
           "minimum": 0
+        }
+      }
+    },
+    "HasPullToRefresh": {
+      "type": "object",
+      "properties": {
+        "onPullToRefresh": {
+          "description": "Trigger an Action with pull to refresh",
+          "$ref": "#/$defs/Action-payload"
+        },
+        "refreshIndicatorType": {
+          "type": "string",
+          "description": "The refresh indicator type if onPullToRefresh is specified. Default is 'material'.",
+          "enum": [ "material", "cupertino" ]
         }
       }
     },
