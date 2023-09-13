@@ -98,6 +98,7 @@ class EnsembleApp extends StatefulWidget {
 
 class EnsembleAppState extends State<EnsembleApp> {
   late Future<EnsembleConfig> config;
+
   @override
   void initState() {
     super.initState();
