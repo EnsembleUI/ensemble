@@ -338,6 +338,7 @@ class NativeInvokable with Invokable {
       'debug': (value) => debugPrint('Debug: $value'),
       'copyToClipboard': (value) =>
           Clipboard.setData(ClipboardData(text: value)),
+      ActionType.share.name: (payload) => ShareAction.from(payload: payload),
       'initNotification': () => notificationUtils.initNotifications(),
       'updateSystemAuthorizationToken': (token) =>
           GetIt.instance<TokenManager>()
