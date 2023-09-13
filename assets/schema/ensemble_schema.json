@@ -5749,6 +5749,10 @@
               "type": "string",
               "description": "The Image URL to fill the background"
             },
+            "fallback": {
+              "$ref": "#/$defs/Widget",
+              "description": "Return an inline widget or specify a custom widget to be rendered when the backgroundImage failed to load the image"
+            },
             "fit": {
               "type": "string",
               "description": "How to fit the image within our width/height or our parent (if dimension is not specified)",

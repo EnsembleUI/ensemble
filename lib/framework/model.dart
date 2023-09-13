@@ -43,8 +43,10 @@ class BackgroundImage {
       image: imageProvider,
       fit: _fit,
       alignment: _alignment,
-      onError: (_, __) =>
-          fallbackWidget != null ? (_, __, ___) => fallbackWidget : null,
+      onError: (_, __) {
+        // TODO: onError doesn't have errorBuilder to set the fallback widget
+        // return fallbackWidget != null ? (_, __, ___) => fallbackWidget : null;
+      },
     );
   }
 
