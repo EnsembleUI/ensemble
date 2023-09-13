@@ -1,6 +1,7 @@
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/box/base_box_layout.dart';
@@ -10,6 +11,7 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/layout_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
+import 'package:ensemble/widget/carousel.dart';
 import 'package:ensemble/widget/helpers/pull_to_refresh_container.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -36,7 +38,9 @@ class Column extends BoxLayout {
     Map<String, Function> entries = super.setters();
     entries.addAll({
       'onPullToRefresh': (funcDefinition) => _controller.onPullToRefresh =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this)
+          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'refreshIndicatorType': (value) => _controller.refreshIndicatorType =
+          RefreshIndicatorType.values.from(value),
     });
     return entries;
   }
@@ -240,7 +244,9 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
 
       if (widget is Column && widget._controller.onPullToRefresh != null) {
         rtn = PullToRefreshContainer(
-            contentWidget: rtn, onRefresh: _pullToRefresh);
+            indicatorType: widget._controller.refreshIndicatorType,
+            contentWidget: rtn,
+            onRefresh: _pullToRefresh);
       }
     }
     return rtn;

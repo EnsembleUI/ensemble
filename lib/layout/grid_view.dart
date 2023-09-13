@@ -3,7 +3,9 @@ import 'dart:developer';
 
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/layout/helper/layout_helpers.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -64,7 +66,9 @@ class GridView extends StatefulWidget
       'onItemTap': (funcDefinition) => _controller.onItemTap =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'onPullToRefresh': (funcDefinition) => _controller.onPullToRefresh =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this)
+          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'refreshIndicatorType': (value) => _controller.refreshIndicatorType =
+          RefreshIndicatorType.values.from(value),
     };
   }
 
@@ -74,12 +78,11 @@ class GridView extends StatefulWidget
   }
 }
 
-class GridViewController extends BoxController {
+class GridViewController extends BoxController with HasPullToRefresh {
   List<int>? horizontalTileCount;
   int? horizontalGap;
   int? verticalGap;
 
-  EnsembleAction? onPullToRefresh;
   int? itemHeight;
   double? itemAspectRatio;
 
@@ -209,7 +212,9 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
 
     if (widget._controller.onPullToRefresh != null) {
       myGridView = PullToRefreshContainer(
-          contentWidget: myGridView, onRefresh: _pullToRefresh);
+          indicatorType: widget._controller.refreshIndicatorType,
+          contentWidget: myGridView,
+          onRefresh: _pullToRefresh);
     }
 
     return BoxWrapper(
