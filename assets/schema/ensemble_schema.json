@@ -3658,6 +3658,30 @@
           }
         },
         {
+          "title": "Share",
+          "type": "object",
+          "required": [
+            "share"
+          ],
+          "properties": {
+            "share": {
+              "type": "object",
+              "description": "Open each platform's share sheet",
+              "required": ["text"],
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "description": "Text and/or URL to share"
+                },
+                "title": {
+                  "type": "string",
+                  "description": "Optional title (e.g. email's title)"
+                }
+              }
+            }
+          }
+        },
+        {
           "title": "Connect Wallet",
           "type": "object",
           "required": [

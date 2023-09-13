@@ -604,6 +604,22 @@ class CopyToClipboardAction extends EnsembleAction {
   }
 }
 
+class ShareAction extends EnsembleAction {
+  ShareAction(this._text, {String? title}) : _title = title;
+  String? _title;
+  dynamic _text;
+
+  dynamic getText(DataContext dataContext) => dataContext.eval(_text);
+  String? getTitle(DataContext datContext) => Utils.optionalString(datContext.eval(_title));
+
+  factory ShareAction.from({Map? payload}) {
+    if (payload == null || payload['text'] == null) {
+      throw LanguageError("${ActionType.share.name} requires 'text'");
+    }
+    return ShareAction(payload['text'], title: payload['title']?.toString());
+  }
+}
+
 class WalletConnectAction extends EnsembleAction {
   WalletConnectAction({
     this.id,
@@ -761,6 +777,7 @@ enum ActionType {
   requestNotificationAccess,
   showNotification,
   copyToClipboard,
+  share,
   openPlaidLink,
   openAppSettings,
   getPhoneContacts,
@@ -860,6 +877,8 @@ abstract class EnsembleAction {
       return RequestNotificationAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.copyToClipboard) {
       return CopyToClipboardAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.share) {
+      return ShareAction.from(payload: payload);
     } else if (actionType == ActionType.openPlaidLink) {
       return PlaidLinkAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.openAppSettings) {
