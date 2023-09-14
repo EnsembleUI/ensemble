@@ -106,7 +106,7 @@ dependencies:
   firebase_messaging: ^14.6.5
   custom_refresh_indicator: ^2.2.1
   app_links: ^3.4.3
-  share_plus: ^7.1.0
+  share_plus: ^6.2.0
 
 dev_dependencies:
   flutter_test:
