@@ -65,8 +65,8 @@ class _PullToRefreshContainerState extends State<PullToRefreshContainer> {
     if (widget.indicatorType == RefreshIndicatorType.cupertino) {
       return controller.isDragging || controller.isArmed
           ? CupertinoActivityIndicator.partiallyRevealed(
-                progress: controller.value.clamp(0, 1),
-                radius: _defaultIndicatorSize / 2)
+              progress: controller.value.clamp(0, 1),
+              radius: _defaultIndicatorSize / 2)
           : const CupertinoActivityIndicator(radius: _defaultIndicatorSize / 2);
     } else {
       // default to Material theme
@@ -75,13 +75,7 @@ class _PullToRefreshContainerState extends State<PullToRefreshContainer> {
               ? controller.value.clamp(0, 1)
               : null);
     }
-
-
-
   }
 }
 
-enum RefreshIndicatorType {
-  material,
-  cupertino
-}
+enum RefreshIndicatorType { material, cupertino }
