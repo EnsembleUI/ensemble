@@ -100,7 +100,7 @@ class BoxWrapper extends StatelessWidget {
       child: backgroundImage != null
           ? Stack(
               children: [
-                backgroundImage,
+                Positioned.fill(child: backgroundImage),
                 widget,
               ],
             )
