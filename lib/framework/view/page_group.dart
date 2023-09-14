@@ -131,12 +131,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
         return BottomNavPageGroup(
           scopeManager: _scopeManager,
           menu: widget.menu,
-          child: pageWidgets[selectedPage],
-          onTabSelected: (index) {
-            setState(() {
-              selectedPage = index;
-            });
-          },
+          children: pageWidgets,
         );
       }
     }
