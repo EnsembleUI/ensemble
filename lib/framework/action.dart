@@ -610,7 +610,8 @@ class ShareAction extends EnsembleAction {
   dynamic _text;
 
   dynamic getText(DataContext dataContext) => dataContext.eval(_text);
-  String? getTitle(DataContext datContext) => Utils.optionalString(datContext.eval(_title));
+  String? getTitle(DataContext datContext) =>
+      Utils.optionalString(datContext.eval(_title));
 
   factory ShareAction.from({Map? payload}) {
     if (payload == null || payload['text'] == null) {
