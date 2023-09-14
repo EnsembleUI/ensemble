@@ -60,7 +60,8 @@ class FittedBoxLayoutController extends BaseBoxLayoutController {
 }
 
 /// controller for Column/Row/Flex
-class BoxLayoutController extends BaseBoxLayoutController with HasPullToRefresh {
+class BoxLayoutController extends BaseBoxLayoutController
+    with HasPullToRefresh {
   ItemTemplate? itemTemplate;
 
   bool scrollable = false;
