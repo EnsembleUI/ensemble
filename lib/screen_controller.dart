@@ -41,6 +41,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:walletconnect_dart/walletconnect_dart.dart';
@@ -57,7 +58,9 @@ class ScreenController {
 
   // Singleton
   static final ScreenController _instance = ScreenController._internal();
+
   ScreenController._internal();
+
   factory ScreenController() {
     return _instance;
   }
@@ -290,13 +293,13 @@ class ScreenController {
         BuildContext? dialogContext;
 
         showGeneralDialog(
-            useRootNavigator:
-                false, // use inner-most MaterialApp (our App) as root so theming is ours
+            useRootNavigator: false,
+            // use inner-most MaterialApp (our App) as root so theming is ours
             context: context,
             barrierDismissible: true,
             barrierLabel: "Barrier",
-            barrierColor: Colors
-                .black54, // this has some transparency so the bottom shown through
+            barrierColor: Colors.black54,
+            // this has some transparency so the bottom shown through
 
             pageBuilder: (context, animation, secondaryAnimation) {
               // save a reference to the builder's context so we can close it programmatically
@@ -491,6 +494,9 @@ class ScreenController {
       } else {
         if (action.onFailure != null) executeAction(context, action.onFailure!);
       }
+    } else if (action is ShareAction) {
+      Share.share(action.getText(dataContext),
+          subject: action.getTitle(dataContext));
     } else if (action is WalletConnectAction) {
       //  TODO store session:  WalletConnectSession? session = await sessionStorage.getSession();
 
@@ -907,6 +913,7 @@ class ScreenController {
   /// [pageArgs] - Key/Value pairs to send to the screen if it takes input parameters
   PageRouteBuilder navigateToScreen(
     BuildContext context, {
+    String? screenId,
     String? screenName,
     bool? asModal,
     RouteOption? routeOption,
@@ -915,8 +922,11 @@ class ScreenController {
   }) {
     PageType pageType = asModal == true ? PageType.modal : PageType.regular;
 
-    Widget screenWidget =
-        getScreen(screenName: screenName, asModal: asModal, pageArgs: pageArgs);
+    Widget screenWidget = getScreen(
+        screenId: screenId,
+        screenName: screenName,
+        asModal: asModal,
+        pageArgs: pageArgs);
 
     Map<String, dynamic>? defaultTransitionOptions =
         Theme.of(context).extension<EnsembleThemeExtension>()?.transitions ??
@@ -954,6 +964,7 @@ class ScreenController {
   /// get the screen widget. If screen is not specified, return the home screen
   Widget getScreen({
     Key? key,
+    String? screenId,
     String? screenName,
     bool? asModal,
     Map<String, dynamic>? pageArgs,
@@ -964,6 +975,7 @@ class ScreenController {
       appProvider: AppProvider(
           definitionProvider: Ensemble().getConfig()!.definitionProvider),
       screenPayload: ScreenPayload(
+        screenId: screenId,
         screenName: screenName,
         pageType: pageType,
         arguments: pageArgs,

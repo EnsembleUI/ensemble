@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'dart:async';
 
 import 'package:device_preview/device_preview.dart';
+import 'package:ensemble/deep_link_manager.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/device.dart';
@@ -80,16 +81,20 @@ void callbackDispatcher() {
 
 /// use this as the root widget for Ensemble
 class EnsembleApp extends StatefulWidget {
-  EnsembleApp({
+  const EnsembleApp({
     super.key,
     this.screenPayload,
     this.ensembleConfig,
     this.isPreview = false,
+    this.placeholderBackgroundColor
   });
 
   final ScreenPayload? screenPayload;
   final EnsembleConfig? ensembleConfig;
   final bool isPreview;
+
+  /// use this as the placeholder background while Ensemble is loading
+  final Color? placeholderBackgroundColor;
 
   @override
   State<StatefulWidget> createState() => EnsembleAppState();
@@ -97,10 +102,12 @@ class EnsembleApp extends StatefulWidget {
 
 class EnsembleAppState extends State<EnsembleApp> {
   late Future<EnsembleConfig> config;
+
   @override
   void initState() {
     super.initState();
     config = initApp();
+    DeepLinkManager().init();
     if (!kIsWeb) {
       Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
     }
@@ -145,7 +152,8 @@ class EnsembleAppState extends State<EnsembleApp> {
           // the app is loading
           if (!snapshot.hasData) {
             // blank loading screen
-            return _appPlaceholderWrapper();
+            return _appPlaceholderWrapper(
+                placeholderBackgroundColor: widget.placeholderBackgroundColor);
           }
 
           return renderApp(snapshot.data as EnsembleConfig);
@@ -157,6 +165,7 @@ class EnsembleAppState extends State<EnsembleApp> {
     StorageManager().setIsPreview(widget.isPreview);
 
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       navigatorKey: Utils.globalAppKey,
       theme: config.getAppTheme(),
       localizationsDelegates: [
@@ -189,8 +198,11 @@ class EnsembleAppState extends State<EnsembleApp> {
   /// we are at the root here. Error/Spinner widgets need
   /// to be wrapped inside MaterialApp
   Widget _appPlaceholderWrapper(
-      {Widget? widget, Color? loadingBackgroundColor}) {
+      {Widget? widget, Color? placeholderBackgroundColor}) {
     return MaterialApp(
-        home: Scaffold(backgroundColor: loadingBackgroundColor, body: widget));
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+            backgroundColor: placeholderBackgroundColor,
+            body: widget));
   }
 }

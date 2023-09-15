@@ -1,9 +1,11 @@
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/model.dart';
+import 'package:ensemble/layout/helper/layout_helpers.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/layout_utils.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/carousel.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:flutter/material.dart';
@@ -58,7 +60,8 @@ class FittedBoxLayoutController extends BaseBoxLayoutController {
 }
 
 /// controller for Column/Row/Flex
-class BoxLayoutController extends BaseBoxLayoutController {
+class BoxLayoutController extends BaseBoxLayoutController
+    with HasPullToRefresh {
   ItemTemplate? itemTemplate;
 
   bool scrollable = false;
@@ -69,9 +72,6 @@ class BoxLayoutController extends BaseBoxLayoutController {
 
   // applicable to Flex container only
   String? direction;
-
-  // applicable to Column only
-  EnsembleAction? onPullToRefresh;
 
   @override
   Map<String, Function> getBaseSetters() {

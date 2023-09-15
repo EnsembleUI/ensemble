@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/box/base_box_layout.dart';
 import 'package:ensemble/layout/box/box_layout.dart';
@@ -34,8 +35,6 @@ class ListView extends StatefulWidget
   @override
   Map<String, Function> setters() {
     return {
-      'onPullToRefresh': (funcDefinition) => _controller.onPullToRefresh =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'onItemTap': (funcDefinition) => _controller.onItemTap =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'showSeparator': (value) =>
@@ -46,6 +45,10 @@ class ListView extends StatefulWidget
           _controller.separatorWidth = Utils.optionalDouble(value),
       'separatorPadding': (value) =>
           _controller.separatorPadding = Utils.optionalInsets(value),
+      'onPullToRefresh': (funcDefinition) => _controller.onPullToRefresh =
+          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'refreshIndicatorType': (value) => _controller.refreshIndicatorType =
+          RefreshIndicatorType.values.from(value),
     };
   }
 
@@ -65,8 +68,6 @@ class ListView extends StatefulWidget
 }
 
 class ListViewController extends BoxLayoutController {
-  EnsembleAction? onItemTap;
-  EnsembleAction? onPullToRefresh;
   int selectedItemIndex = -1;
 
   bool? showSeparator;
@@ -151,7 +152,9 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
 
     if (widget._controller.onPullToRefresh != null) {
       listView = PullToRefreshContainer(
-          contentWidget: listView, onRefresh: _pullToRefresh);
+          indicatorType: widget._controller.refreshIndicatorType,
+          contentWidget: listView,
+          onRefresh: _pullToRefresh);
     }
 
     return BoxWrapper(
