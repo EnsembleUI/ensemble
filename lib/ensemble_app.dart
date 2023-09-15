@@ -81,16 +81,20 @@ void callbackDispatcher() {
 
 /// use this as the root widget for Ensemble
 class EnsembleApp extends StatefulWidget {
-  EnsembleApp({
+  const EnsembleApp({
     super.key,
     this.screenPayload,
     this.ensembleConfig,
     this.isPreview = false,
+    this.placeholderBackgroundColor
   });
 
   final ScreenPayload? screenPayload;
   final EnsembleConfig? ensembleConfig;
   final bool isPreview;
+
+  /// use this as the placeholder background while Ensemble is loading
+  final Color? placeholderBackgroundColor;
 
   @override
   State<StatefulWidget> createState() => EnsembleAppState();
@@ -148,7 +152,8 @@ class EnsembleAppState extends State<EnsembleApp> {
           // the app is loading
           if (!snapshot.hasData) {
             // blank loading screen
-            return _appPlaceholderWrapper();
+            return _appPlaceholderWrapper(
+                placeholderBackgroundColor: widget.placeholderBackgroundColor);
           }
 
           return renderApp(snapshot.data as EnsembleConfig);
@@ -193,8 +198,11 @@ class EnsembleAppState extends State<EnsembleApp> {
   /// we are at the root here. Error/Spinner widgets need
   /// to be wrapped inside MaterialApp
   Widget _appPlaceholderWrapper(
-      {Widget? widget, Color? loadingBackgroundColor}) {
+      {Widget? widget, Color? placeholderBackgroundColor}) {
     return MaterialApp(
-        home: Scaffold(backgroundColor: loadingBackgroundColor, body: widget));
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+            backgroundColor: placeholderBackgroundColor,
+            body: widget));
   }
 }
