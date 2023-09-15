@@ -10,6 +10,7 @@ class PullToRefreshContainer extends StatefulWidget {
       {super.key,
       required this.contentWidget,
       this.refreshWidget,
+      this.indicatorType,
       required this.onRefresh});
 
   final Widget contentWidget;
@@ -17,6 +18,7 @@ class PullToRefreshContainer extends StatefulWidget {
 
   // TODO: size the refresh widget properly before expose it.
   final Widget? refreshWidget;
+  final RefreshIndicatorType? indicatorType;
 
   @override
   State<PullToRefreshContainer> createState() => _PullToRefreshContainerState();
@@ -46,11 +48,7 @@ class _PullToRefreshContainerState extends State<PullToRefreshContainer> {
                               SizedBox(
                                   width: _defaultIndicatorSize,
                                   height: _defaultIndicatorSize,
-                                  child: CircularProgressIndicator(
-                                      value: controller.isDragging ||
-                                              controller.isArmed
-                                          ? controller.value.clamp(0, 1)
-                                          : null)))
+                                  child: getProgressIndicator(controller)))
                     ],
                   ),
 
@@ -62,4 +60,22 @@ class _PullToRefreshContainerState extends State<PullToRefreshContainer> {
             ),
         child: widget.contentWidget);
   }
+
+  Widget getProgressIndicator(IndicatorController controller) {
+    if (widget.indicatorType == RefreshIndicatorType.cupertino) {
+      return controller.isDragging || controller.isArmed
+          ? CupertinoActivityIndicator.partiallyRevealed(
+              progress: controller.value.clamp(0, 1),
+              radius: _defaultIndicatorSize / 2)
+          : const CupertinoActivityIndicator(radius: _defaultIndicatorSize / 2);
+    } else {
+      // default to Material theme
+      return CircularProgressIndicator(
+          value: controller.isDragging || controller.isArmed
+              ? controller.value.clamp(0, 1)
+              : null);
+    }
+  }
 }
+
+enum RefreshIndicatorType { material, cupertino }

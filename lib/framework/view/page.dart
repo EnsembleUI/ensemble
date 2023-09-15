@@ -46,12 +46,15 @@ class Page extends StatefulWidget {
   State<Page> createState() => PageState();
 }
 
-class PageState extends State<Page> {
+class PageState extends State<Page> with AutomaticKeepAliveClientMixin {
   late Widget rootWidget;
   late ScopeManager _scopeManager;
 
   // a menu can include other pages, keep track of what is selected
   int selectedPage = 0;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void didUpdateWidget(covariant Page oldWidget) {
@@ -250,6 +253,7 @@ class PageState extends State<Page> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     //log("View build() $hashCode");
 
     // drawer might be injected from the PageGroup, so check for it first.
@@ -354,7 +358,12 @@ class PageState extends State<Page> {
     // keyboard sliding up (when entering value) won't resize the background
     if (backgroundImage != null) {
       return Stack(
-        children: [Positioned.fill(child: backgroundImage.asImageWidget), rtn],
+        children: [
+          Positioned.fill(
+            child: backgroundImage.getImageAsWidget(_scopeManager),
+          ),
+          rtn,
+        ],
       );
     } else if (backgroundGradient != null) {
       return Scaffold(
