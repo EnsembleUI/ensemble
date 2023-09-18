@@ -449,8 +449,7 @@ class ScreenController {
           dataContext.addDataContextById(key, val);
         }
       });
-      dataContext.evalCode(
-          action.getCodeBlock(dataContext), action.codeBlockSpan);
+      dataContext.evalCode(action.codeBlock, action.codeBlockSpan);
 
       if (action.getOnComplete(dataContext) != null && scopeManager != null) {
         executeActionWithScope(
