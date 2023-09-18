@@ -86,7 +86,7 @@ class EnsembleApp extends StatefulWidget {
     this.screenPayload,
     this.ensembleConfig,
     this.isPreview = false,
-    this.placeholderBackgroundColor
+    this.placeholderBackgroundColor,
   });
 
   final ScreenPayload? screenPayload;
@@ -180,6 +180,7 @@ class EnsembleAppState extends State<EnsembleApp> {
         resizeToAvoidBottomInset: false,
 
         body: Screen(
+          key: UniqueKey(),
           appProvider:
               AppProvider(definitionProvider: config.definitionProvider),
           screenPayload: widget.screenPayload,
@@ -200,9 +201,8 @@ class EnsembleAppState extends State<EnsembleApp> {
   Widget _appPlaceholderWrapper(
       {Widget? widget, Color? placeholderBackgroundColor}) {
     return MaterialApp(
-        debugShowCheckedModeBanner: false,
-        home: Scaffold(
-            backgroundColor: placeholderBackgroundColor,
-            body: widget));
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(backgroundColor: placeholderBackgroundColor, body: widget),
+    );
   }
 }
