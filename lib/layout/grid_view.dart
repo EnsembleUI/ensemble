@@ -5,7 +5,6 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/widget/widget.dart';
-import 'package:ensemble/layout/helper/layout_helpers.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/model/pull_to_refresh.dart';
 import 'package:ensemble/page_model.dart';
@@ -213,9 +212,9 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
 
     if (widget._controller.onPullToRefresh != null) {
       myGridView = PullToRefreshContainer(
-          indicatorType: widget._controller.refreshIndicatorType,
-          contentWidget: myGridView,
-          onRefresh: _pullToRefresh);
+          options: widget._controller.pullToRefreshOptions,
+          onRefresh: _pullToRefresh,
+          contentWidget: myGridView);
     }
 
     return BoxWrapper(
