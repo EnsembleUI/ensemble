@@ -58,18 +58,6 @@ class ShowCameraAction extends EnsembleAction {
   EnsembleAction? onClose;
   EnsembleAction? onCapture;
 
-  Map<String, dynamic>? getOptions(DataContext dataContext) =>
-      dataContext.eval(options);
-
-  EnsembleAction? getOnComplete(DataContext dataContext) =>
-      dataContext.eval(onComplete);
-
-  EnsembleAction? getOnClose(DataContext dataContext) =>
-      dataContext.eval(onClose);
-
-  EnsembleAction? getOnCapture(DataContext dataContext) =>
-      dataContext.eval(onCapture);
-
   factory ShowCameraAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
     return ShowCameraAction(
       initiator: initiator,
@@ -95,14 +83,6 @@ class ShowDialogAction extends EnsembleAction {
   final dynamic widget;
   final Map<String, dynamic>? options;
   final EnsembleAction? onDialogDismiss;
-
-  dynamic getWidget(DataContext dataContext) => dataContext.eval(widget);
-
-  Map<String, dynamic>? getOptions(DataContext dataContext) =>
-      dataContext.eval(options);
-
-  EnsembleAction? getOnDialogDismiss(DataContext dataContext) =>
-      dataContext.eval(onDialogDismiss);
 
   factory ShowDialogAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
     if (payload == null || payload['widget'] == null) {
@@ -163,9 +143,6 @@ class NavigateModalScreenAction extends BaseNavigateScreenAction {
   }) : super(asModal: true);
   EnsembleAction? onModalDismiss;
 
-  EnsembleAction? getOnModalDismiss(DataContext dataContext) =>
-      dataContext.eval(onModalDismiss);
-
   factory NavigateModalScreenAction.fromYaml(
       {Invokable? initiator, YamlMap? payload}) {
     if (payload == null || payload['name'] == null) {
@@ -193,28 +170,6 @@ abstract class BaseNavigateScreenAction extends EnsembleAction {
   bool asModal;
   Map<String, dynamic>? transition;
   final Map<String, dynamic>? options;
-
-  String getScreenName(DataContext dataContext) =>
-      Utils.getString(screenName, fallback: '');
-
-  bool isAsModal(DataContext dataContext) =>
-      Utils.getBool(dataContext.eval(asModal), fallback: false);
-
-  // To clear all the screens
-  bool isClearAllScreens(DataContext dataContext) =>
-      Utils.getBool(dataContext.eval(options?['clearAllScreens']),
-          fallback: false);
-
-  // To replace the current screen
-  bool isReplaceCurrentScreen(DataContext dataContext) =>
-      Utils.getBool(dataContext.eval(options?['replaceCurrentScreen']),
-          fallback: false);
-
-  Map<String, dynamic>? getOptions(DataContext dataContext) =>
-      dataContext.eval(options);
-
-  Map<String, dynamic>? getTransition(DataContext dataContext) =>
-      dataContext.eval(transition);
 }
 
 class ShowBottomModalAction extends EnsembleAction {
@@ -230,8 +185,6 @@ class ShowBottomModalAction extends EnsembleAction {
   final dynamic widget;
   final Map<String, dynamic>? _styles;
   final Map<String, dynamic>? _options;
-
-  dynamic getWidget(DataContext dataContext) => dataContext.eval(widget);
 
   bool enableDrag(dataContext) =>
       Utils.getBool(dataContext.eval(_options?['enableDrag']), fallback: true);
@@ -368,15 +321,15 @@ class StartTimerAction extends EnsembleAction {
   int? getStartAfter(DataContext dataContext) =>
       Utils.optionalInt(dataContext.eval(_options?['startAfter']), min: 0);
 
-  bool isRepeat(DataContext dataContext) =>
+  bool isRepeat(dataContext) =>
       Utils.getBool(dataContext.eval(_options?['repeat']), fallback: false);
 
   // The repeat interval in seconds
-  int? getRepeatInterval(DataContext dataContext) =>
+  int? getRepeatInterval(dataContext) =>
       Utils.optionalInt(dataContext.eval(_options?['repeatInterval']), min: 1);
 
   // how many times to trigger onTimer
-  int? getMaxTimes(DataContext dataContext) =>
+  int? getMaxTimes(dataContext) =>
       Utils.optionalInt(dataContext.eval(_options?['maxNumberOfTimes']),
           min: 1);
 
@@ -435,9 +388,6 @@ class ExecuteCodeAction extends EnsembleAction {
   EnsembleAction? onComplete;
   SourceSpan codeBlockSpan;
 
-  EnsembleAction? getOnComplete(DataContext dataContext) =>
-      dataContext.eval(onComplete);
-
   factory ExecuteCodeAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
     if (payload == null || payload['body'] == null) {
       throw LanguageError(
@@ -457,10 +407,6 @@ class OpenUrlAction extends EnsembleAction {
   OpenUrlAction(this.url, {this.openInExternalApp = false});
   String url;
   bool openInExternalApp;
-
-  String? getUrl(dataContext) => Utils.optionalString(dataContext.eval(url));
-
-  bool? isOpenInExternalApp(dataContext) => dataContext.eval(url);
 
   factory OpenUrlAction.fromYaml({YamlMap? payload}) {
     if (payload == null || payload['url'] == null) {
@@ -505,25 +451,6 @@ class ShowToastAction extends EnsembleAction {
   final int? duration; // the during in seconds before toast is dismissed
   final Map<String, dynamic>? styles;
 
-  dynamic getType(DataContext dataContext) => dataContext.eval(type);
-
-  String? getTitle(DataContext dataContext) => dataContext.eval(title);
-
-  String? getMessage(DataContext dataContext) => dataContext.eval(message);
-
-  dynamic getWidget(DataContext dataContext) => dataContext.eval(widget);
-
-  bool? getDismissible(DataContext dataContext) =>
-      dataContext.eval(dismissible);
-
-  Alignment? getAlignment(DataContext dataContext) =>
-      dataContext.eval(alignment);
-
-  int? getDuration(DataContext dataContext) => dataContext.eval(duration);
-
-  Map<String, dynamic>? getStyles(DataContext dataContext) =>
-      dataContext.eval(alignment);
-
   factory ShowToastAction.fromYaml({YamlMap? payload}) {
     if (payload == null ||
         (payload['message'] == null && payload['widget'] == null)) {
@@ -533,7 +460,7 @@ class ShowToastAction extends EnsembleAction {
     return ShowToastAction(
         type: ToastType.values.from(payload['options']?['type']),
         title: Utils.optionalString(payload['title']),
-        message: Utils.optionalString(payload['message']),
+        message: payload['message']?.toString(),
         widget: payload['widget'],
         dismissible: Utils.optionalBool(payload['options']?['dismissible']),
         alignment: Utils.getAlignment(payload['options']?['alignment']),
@@ -574,21 +501,6 @@ class FilePickerAction extends EnsembleAction {
   bool? allowCompression;
   EnsembleAction? onComplete;
   EnsembleAction? onError;
-
-  List<String>? getAllowedExtension(DataContext dataContext) =>
-      dataContext.eval(allowedExtensions);
-
-  bool? getAllowMultiple(DataContext dataContext) =>
-      dataContext.eval(allowMultiple);
-
-  bool? getAllowCompression(DataContext dataContext) =>
-      dataContext.eval(allowCompression);
-
-  EnsembleAction? getOnComplete(DataContext dataContext) =>
-      dataContext.eval(onComplete);
-
-  EnsembleAction? getOnError(DataContext dataContext) =>
-      dataContext.eval(onError);
 
   factory FilePickerAction.fromYaml({YamlMap? payload}) {
     if (payload == null || payload['id'] == null) {
@@ -637,35 +549,6 @@ class FileUploadAction extends EnsembleAction {
   bool? requiresBatteryNotLow;
   bool showNotification;
 
-  EnsembleAction? getOnComplete(DataContext dataContext) =>
-      dataContext.eval(onComplete);
-
-  EnsembleAction? getOnError(DataContext dataContext) =>
-      dataContext.eval(onError);
-
-  String getUploadApi(DataContext dataContext) => dataContext.eval(uploadApi);
-
-  String getFieldName(DataContext dataContext) => dataContext.eval(fieldName);
-
-  int? getMaxFileSize(DataContext dataContext) => dataContext.eval(maxFileSize);
-
-  dynamic getFiles(DataContext dataContext) => dataContext.eval(files);
-
-  String? getOverMaxFileSizeMessage(DataContext dataContext) =>
-      dataContext.eval(overMaxFileSizeMessage);
-
-  bool getIsBackgroundTask(DataContext dataContext) =>
-      dataContext.eval(isBackgroundTask);
-
-  String? getNetworkType(DataContext dataContext) =>
-      dataContext.eval(networkType);
-
-  bool? getRequiresBatteryNotLow(DataContext dataContext) =>
-      dataContext.eval(requiresBatteryNotLow);
-
-  bool getShowNotification(DataContext dataContext) =>
-      dataContext.eval(showNotification);
-
   factory FileUploadAction.fromYaml({YamlMap? payload}) {
     if (payload == null || payload['uploadApi'] == null) {
       throw LanguageError("${ActionType.uploadFiles.name} requires '  '.");
@@ -705,13 +588,8 @@ class CopyToClipboardAction extends EnsembleAction {
   EnsembleAction? onSuccess;
   EnsembleAction? onFailure;
 
-  String? getValue(DataContext dataContext) => dataContext.eval(value);
-
-  EnsembleAction? getOnSuccess(DataContext dataContext) =>
-      dataContext.eval(onSuccess);
-
-  EnsembleAction? getOnFailure(DataContext dataContext) =>
-      dataContext.eval(onFailure);
+  String? getValue(DataContext dataContext) =>
+      Utils.optionalString(dataContext.eval(value));
 
   factory CopyToClipboardAction.fromYaml({YamlMap? payload}) {
     if (payload == null || payload['value'] == null) {
@@ -719,7 +597,7 @@ class CopyToClipboardAction extends EnsembleAction {
           '${ActionType.copyToClipboard.name} requires the value.');
     }
     return CopyToClipboardAction(
-      value: Utils.optionalString(payload['value']),
+      value: payload['value'],
       onSuccess: EnsembleAction.fromYaml(payload['onSuccess']),
       onFailure: EnsembleAction.fromYaml(payload['onFailure']),
     );
@@ -764,15 +642,6 @@ class WalletConnectAction extends EnsembleAction {
   EnsembleAction? onComplete;
   EnsembleAction? onError;
 
-  String getWcProjectId(DataContext dataContext) =>
-      dataContext.eval(wcProjectId);
-  String getAppName(DataContext dataContext) => dataContext.eval(appName);
-  String? getAppDescription(DataContext dataContext) =>
-      dataContext.eval(appDescription);
-  String? getAppUrl(DataContext dataContext) => dataContext.eval(appUrl);
-  String? getAppIconUrl(DataContext dataContext) =>
-      dataContext.eval(appIconUrl);
-
   factory WalletConnectAction.fromYaml({YamlMap? payload}) {
     if (payload == null ||
         (payload['wcProjectId'] == null ||
@@ -801,12 +670,6 @@ class AuthorizeOAuthAction extends EnsembleAction {
   EnsembleAction? onResponse;
   EnsembleAction? onError;
 
-  EnsembleAction? getOnResponse(DataContext dataContext) =>
-      dataContext.eval(onResponse);
-
-  EnsembleAction? getOnError(DataContext dataContext) =>
-      dataContext.eval(onError);
-
   factory AuthorizeOAuthAction.fromYaml({YamlMap? payload}) {
     if (payload == null || payload['id'] == null) {
       throw LanguageError(
@@ -826,11 +689,6 @@ class NotificationAction extends EnsembleAction {
   EnsembleAction? onTap;
   EnsembleAction? onReceive;
 
-  EnsembleAction? getOnTap(DataContext dataContext) => dataContext.eval(onTap);
-
-  EnsembleAction? getOnReceive(DataContext dataContext) =>
-      dataContext.eval(onReceive);
-
   factory NotificationAction.fromYaml(
       {Invokable? initiator, YamlMap? payload}) {
     return NotificationAction(
@@ -843,12 +701,6 @@ class NotificationAction extends EnsembleAction {
 class RequestNotificationAction extends EnsembleAction {
   EnsembleAction? onAccept;
   EnsembleAction? onReject;
-
-  EnsembleAction? getOnAccept(DataContext dataContext) =>
-      dataContext.eval(onAccept);
-
-  EnsembleAction? getOnReject(DataContext dataContext) =>
-      dataContext.eval(onReject);
 
   RequestNotificationAction({this.onAccept, this.onReject});
 
@@ -866,9 +718,6 @@ class ShowNotificationAction extends EnsembleAction {
   late String body;
 
   ShowNotificationAction({this.title = '', this.body = ''});
-
-  String getTitle(DataContext dataContext) => dataContext.eval(title);
-  String getBody(DataContext dataContext) => dataContext.eval(body);
 
   factory ShowNotificationAction.fromYaml({YamlMap? payload}) {
     return ShowNotificationAction(
