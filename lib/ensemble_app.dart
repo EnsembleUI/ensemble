@@ -22,6 +22,8 @@ import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:workmanager/workmanager.dart';
 
+import 'framework/theme/theme_loader.dart';
+
 const String backgroundUploadTask = 'backgroundUploadTask';
 
 @pragma('vm:entry-point')
@@ -179,11 +181,17 @@ class EnsembleAppState extends State<EnsembleApp> {
         // The Page's Scaffold can handle the resizing.
         resizeToAvoidBottomInset: false,
 
-        body: Screen(
-          key: UniqueKey(),
-          appProvider:
-              AppProvider(definitionProvider: config.definitionProvider),
-          screenPayload: widget.screenPayload,
+        body: Builder(
+          builder: (context) {
+            Theme.of(context).extension<EnsembleThemeExtension>();
+
+            return Screen(
+              key: UniqueKey(),
+              appProvider:
+                  AppProvider(definitionProvider: config.definitionProvider),
+              screenPayload: widget.screenPayload,
+            );
+          },
         ),
       ),
       useInheritedMediaQuery: widget.isPreview,
