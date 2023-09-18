@@ -2,7 +2,9 @@ import 'dart:core';
 import 'dart:io';
 import 'dart:developer';
 
+import 'package:app_settings/app_settings.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -38,19 +40,27 @@ class Device
       "safeAreaBottom": () => safeAreaBottom,
 
       // Misc Info
-      "platform": () => DeviceInfoCapability.platform,
+      "platform": () => platform?.name,
       DevicePlatform.web.name: () => DeviceWebInfo()
     };
   }
 
   @override
   Map<String, Function> methods() {
-    return {};
+    return {
+      'openAppSettings': (target) => openAppSettings(target),
+    };
   }
 
   @override
   Map<String, Function> setters() {
     return {};
+  }
+
+  void openAppSettings(String target) {
+    final settingType =
+        AppSettingsType.values.from(target) ?? AppSettingsType.settings;
+    AppSettings.openAppSettings(type: settingType);
   }
 }
 
@@ -132,26 +142,26 @@ mixin LocationCapability {
 /// retrieve basic device info
 mixin DeviceInfoCapability {
   static final DeviceInfoPlugin _deviceInfoPlugin = DeviceInfoPlugin();
-  static DevicePlatform? platform;
+  static DevicePlatform? _platform;
   static WebBrowserInfo? browserInfo;
+
+  DevicePlatform? get platform => _platform;
 
   /// initialize device info
   void initDeviceInfo() async {
-    DevicePlatform? platform;
-    WebBrowserInfo? browserInfo;
     try {
       if (kIsWeb) {
-        platform = DevicePlatform.web;
+        _platform = DevicePlatform.web;
         browserInfo = await _deviceInfoPlugin.webBrowserInfo;
       } else {
         if (Platform.isAndroid) {
-          platform = DevicePlatform.android;
+          _platform = DevicePlatform.android;
         } else if (Platform.isIOS) {
-          platform = DevicePlatform.ios;
+          _platform = DevicePlatform.ios;
         } else if (Platform.isMacOS) {
-          platform = DevicePlatform.macos;
+          _platform = DevicePlatform.macos;
         } else if (Platform.isWindows) {
-          platform = DevicePlatform.windows;
+          _platform = DevicePlatform.windows;
         }
       }
     } on PlatformException {

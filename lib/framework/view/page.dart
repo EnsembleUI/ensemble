@@ -46,12 +46,15 @@ class Page extends StatefulWidget {
   State<Page> createState() => PageState();
 }
 
-class PageState extends State<Page> {
+class PageState extends State<Page> with AutomaticKeepAliveClientMixin {
   late Widget rootWidget;
   late ScopeManager _scopeManager;
 
   // a menu can include other pages, keep track of what is selected
   int selectedPage = 0;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void didUpdateWidget(covariant Page oldWidget) {
@@ -176,6 +179,8 @@ class PageState extends State<Page> {
         Utils.getBool(headerModel.styles?['centerTitle'], fallback: true);
     Color? backgroundColor =
         Utils.getColor(headerModel.styles?['backgroundColor']);
+    Color? surfaceTintColor =
+        Utils.getColor(headerModel.styles?['surfaceTintColor']);
     Color? color = Utils.getColor(headerModel.styles?['color']);
     Color? shadowColor = Utils.getColor(headerModel.styles?['shadowColor']);
     double? elevation =
@@ -202,6 +207,7 @@ class PageState extends State<Page> {
         title: titleWidget,
         centerTitle: centerTitle,
         backgroundColor: backgroundColor,
+        surfaceTintColor: surfaceTintColor,
         foregroundColor: color,
 
         // control the drop shadow on the header's bottom edge
@@ -247,6 +253,7 @@ class PageState extends State<Page> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     //log("View build() $hashCode");
 
     // drawer might be injected from the PageGroup, so check for it first.
@@ -275,13 +282,17 @@ class PageState extends State<Page> {
       // sidebar navBar will be rendered as part of the body
     }
 
+    LinearGradient? backgroundGradient = Utils.getBackgroundGradient(
+        widget._pageModel.pageStyles?['backgroundGradient']);
     Color? backgroundColor =
         Utils.getColor(widget._pageModel.pageStyles?['backgroundColor']);
     // if we have a background image, set the background color to transparent
     // since our image is outside the Scaffold
-    BackgroundImage? backgroundImage = Utils.getBackgroundImage(
-        widget._pageModel.pageStyles?['backgroundImage']);
-    if (backgroundImage != null && backgroundColor == null) {
+    dynamic evaluatedBackgroundImg = _scopeManager.dataContext
+        .eval(widget._pageModel.pageStyles?['backgroundImage']);
+    BackgroundImage? backgroundImage =
+        Utils.getBackgroundImage(evaluatedBackgroundImg);
+    if (backgroundImage != null || backgroundGradient != null) {
       backgroundColor = Colors.transparent;
     }
 
@@ -319,7 +330,7 @@ class PageState extends State<Page> {
     Widget rtn = DataScopeWidget(
       scopeManager: _scopeManager,
       child: Scaffold(
-          resizeToAvoidBottomInset: false,
+          resizeToAvoidBottomInset: true,
           // slight optimization, if body background is set, let's paint
           // the entire screen including the Safe Area
           backgroundColor: backgroundColor,
@@ -332,10 +343,9 @@ class PageState extends State<Page> {
           bottomNavigationBar: _bottomNavBar,
           drawer: _drawer,
           endDrawer: _endDrawer,
-          bottomSheet: Padding(
-            padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom),
-            child: _buildFooter(_scopeManager, widget._pageModel),
+          bottomSheet: _buildFooter(
+            _scopeManager,
+            widget._pageModel,
           ),
           floatingActionButton: closeModalButton,
           floatingActionButtonLocation:
@@ -348,8 +358,19 @@ class PageState extends State<Page> {
     // keyboard sliding up (when entering value) won't resize the background
     if (backgroundImage != null) {
       return Stack(
-        children: [Positioned.fill(child: backgroundImage.asImageWidget), rtn],
+        children: [
+          Positioned.fill(
+            child: backgroundImage.getImageAsWidget(_scopeManager),
+          ),
+          rtn,
+        ],
       );
+    } else if (backgroundGradient != null) {
+      return Scaffold(
+          resizeToAvoidBottomInset: false,
+          body: Container(
+              decoration: BoxDecoration(gradient: backgroundGradient),
+              child: rtn));
     }
     return rtn;
   }
@@ -406,7 +427,9 @@ class PageState extends State<Page> {
         MenuItem item = menuItems[i];
         navItems.add(NavigationRailDestination(
             padding: Utils.getInsets(sidebarMenu.styles?['itemPadding']),
-            icon: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
+            icon: item.icon != null
+                ? ensemble.Icon.fromModel(item.icon!)
+                : const SizedBox.shrink(),
             label: Text(Utils.translate(item.label ?? '', context))));
       }
 

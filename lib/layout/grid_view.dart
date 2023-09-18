@@ -3,7 +3,9 @@ import 'dart:developer';
 
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/layout/helper/layout_helpers.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -11,6 +13,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/util/gesture_detector.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
+import 'package:ensemble/widget/helpers/pull_to_refresh_container.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
@@ -62,6 +65,10 @@ class GridView extends StatefulWidget
           _controller.itemAspectRatio = Utils.optionalDouble(value, min: 0),
       'onItemTap': (funcDefinition) => _controller.onItemTap =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onPullToRefresh': (funcDefinition) => _controller.onPullToRefresh =
+          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'refreshIndicatorType': (value) => _controller.refreshIndicatorType =
+          RefreshIndicatorType.values.from(value),
     };
   }
 
@@ -71,7 +78,7 @@ class GridView extends StatefulWidget
   }
 }
 
-class GridViewController extends BoxController {
+class GridViewController extends BoxController with HasPullToRefresh {
   List<int>? horizontalTileCount;
   int? horizontalGap;
   int? verticalGap;
@@ -180,31 +187,49 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
       return const SizedBox.shrink();
     }
 
+    Widget myGridView = LayoutBuilder(
+      builder: (context, constraints) => flutter.GridView.builder(
+        physics: widget._controller.onPullToRefresh != null
+            ? const AlwaysScrollableScrollPhysics()
+            : null,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: _getTileCount(constraints),
+          crossAxisSpacing: widget._controller.horizontalGap?.toDouble() ?? gap,
+          mainAxisSpacing: widget._controller.verticalGap?.toDouble() ?? gap,
+
+          // itemHeight take precedent, then itemAspectRatio
+          mainAxisExtent: widget._controller.itemHeight?.toDouble(),
+          childAspectRatio:
+              widget._controller.itemAspectRatio?.toDouble() ?? 1.0,
+        ),
+        itemCount: _items.length,
+        scrollDirection: Axis.vertical,
+        cacheExtent: cachedPixels,
+        padding: widget._controller.padding,
+        itemBuilder: (context, index) => _buildItem(index),
+      ),
+    );
+
+    if (widget._controller.onPullToRefresh != null) {
+      myGridView = PullToRefreshContainer(
+          indicatorType: widget._controller.refreshIndicatorType,
+          contentWidget: myGridView,
+          onRefresh: _pullToRefresh);
+    }
+
     return BoxWrapper(
       boxController: widget._controller,
       // we handle padding in the GridView so the scrollbar doesn't overlap content
       ignoresPadding: true,
-      widget: LayoutBuilder(
-        builder: (context, constraints) => flutter.GridView.builder(
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: _getTileCount(constraints),
-            crossAxisSpacing:
-                widget._controller.horizontalGap?.toDouble() ?? gap,
-            mainAxisSpacing: widget._controller.verticalGap?.toDouble() ?? gap,
-
-            // itemHeight take precedent, then itemAspectRatio
-            mainAxisExtent: widget._controller.itemHeight?.toDouble(),
-            childAspectRatio:
-                widget._controller.itemAspectRatio?.toDouble() ?? 1.0,
-          ),
-          itemCount: _items.length,
-          scrollDirection: Axis.vertical,
-          cacheExtent: cachedPixels,
-          padding: widget._controller.padding,
-          itemBuilder: (context, index) => _buildItem(index),
-        ),
-      ),
+      widget: myGridView,
     );
+  }
+
+  Future<void> _pullToRefresh() async {
+    if (widget._controller.onPullToRefresh != null) {
+      await ScreenController()
+          .executeAction(context, widget._controller.onPullToRefresh!);
+    }
   }
 
   dynamic _buildItem(int index) {

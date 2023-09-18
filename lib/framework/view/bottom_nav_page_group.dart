@@ -53,14 +53,12 @@ class BottomNavPageGroup extends StatefulWidget {
     super.key,
     required this.scopeManager,
     required this.menu,
-    required this.onTabSelected,
-    required this.child,
+    required this.children,
   });
 
   final ScopeManager scopeManager;
   final Menu menu;
-  final Function(int) onTabSelected;
-  final Widget child;
+  final List<Widget> children;
 
   @override
   State<BottomNavPageGroup> createState() => _BottomNavPageGroupState();
@@ -68,6 +66,7 @@ class BottomNavPageGroup extends StatefulWidget {
 
 class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
   late List<MenuItem> menuItems;
+  late PageController controller;
   FloatingAlignment floatingAlignment = FloatingAlignment.center;
   int? floatingMargin;
   MenuItem? fabMenuItem;
@@ -75,6 +74,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
   @override
   void initState() {
     super.initState();
+    controller = PageController();
     menuItems = widget.menu.menuItems
         .where((element) => element.floating != true)
         .toList();
@@ -91,6 +91,12 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
       floatingAlignment =
           FloatingAlignment.values.byName(fabMenuItem!.floatingAlignment);
     }
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
   }
 
   Widget? _buildFloatingButton() {
@@ -110,11 +116,13 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
         child: customIcon ??
             FloatingActionButton(
               backgroundColor: floatingBackgroundColor,
-              child: ensemble.Icon(
-                fabMenuItem!.icon ?? '',
-                library: fabMenuItem!.iconLibrary,
-                color: floatingItemColor,
-              ),
+              child: (fabMenuItem!.icon != null
+                  ? ensemble.Icon.fromModel(
+                      fabMenuItem!.icon!,
+                      fallbackLibrary: fabMenuItem!.iconLibrary,
+                      fallbackColor: floatingItemColor,
+                    )
+                  : ensemble.Icon('')),
               onPressed: () => _floatingButtonTapped(fabMenuItem!),
             ),
       );
@@ -145,7 +153,11 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
       floatingActionButton: _buildFloatingButton(),
       body: PageGroupWidget(
         scopeManager: widget.scopeManager,
-        child: widget.child,
+        child: PageView(
+          controller: controller,
+          physics: const NeverScrollableScrollPhysics(),
+          children: widget.children,
+        ),
       ),
     );
   }
@@ -168,18 +180,20 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
       final isCustom = customIcon != null || customActiveIcon != null;
       final label = isCustom ? '' : Utils.translate(item.label ?? '', context);
 
-      final activeIcon = customActiveIcon ??
-          ensemble.Icon(
-            item.activeIcon ?? item.icon,
-            library: item.iconLibrary,
-            color: selectedColor,
-          );
       final icon = customIcon ??
-          ensemble.Icon(
-            item.icon ?? '',
-            library: item.iconLibrary,
-            color: unselectedColor,
-          );
+          (item.icon != null
+              ? ensemble.Icon.fromModel(item.icon!,
+                  fallbackLibrary: item.iconLibrary,
+                  fallbackColor: unselectedColor)
+              : ensemble.Icon(''));
+
+      final activeIcon = customActiveIcon ??
+          (item.activeIcon != null || item.icon != null
+              ? ensemble.Icon.fromModel((item.activeIcon ?? item.icon)!,
+                  fallbackColor: selectedColor,
+                  fallbackLibrary: item.iconLibrary)
+              : null);
+
       navItems.add(
         FABBottomAppBarItem(
           icon: icon,
@@ -198,7 +212,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
       color: unselectedColor,
       selectedColor: selectedColor,
       notchedShape: const CircularNotchedRectangle(),
-      onTabSelected: widget.onTabSelected,
+      onTabSelected: controller.jumpToPage,
       items: navItems,
       isFloating: fabMenuItem != null,
       floatingAlignment: floatingAlignment,

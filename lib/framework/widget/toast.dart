@@ -26,9 +26,9 @@ class ToastController {
     return _instance;
   }
 
-  void showToast(BuildContext context, DataContext dataContext,
-      ShowToastAction toastAction, Widget? customToastBody) {
-    _dataContext = dataContext;
+  void showToast(BuildContext context, ShowToastAction toastAction,
+      Widget? customToastBody,
+      {DataContext? dataContext}) {
     _toast.init(context);
     _toast.removeQueuedCustomToasts();
 
@@ -62,11 +62,12 @@ class ToastController {
         toastDuration: duration != null
             ? Duration(seconds: duration)
             : const Duration(days: 99),
-        child: getToastWidget(context, toastAction, customToastBody));
+        child: _getToastWidget(
+            context, dataContext, toastAction, customToastBody));
   }
 
-  Widget getToastWidget(BuildContext context, ShowToastAction toastAction,
-      Widget? customToastBody) {
+  Widget _getToastWidget(BuildContext context, DataContext? dataContext,
+      ShowToastAction toastAction, Widget? customToastBody) {
     EdgeInsets padding = Utils.getInsets(toastAction.styles?['padding'],
         fallback: const EdgeInsets.symmetric(vertical: 20, horizontal: 22));
     Color? bgColor = Utils.getColor(toastAction.styles?['backgroundColor']);
@@ -102,7 +103,10 @@ class ToastController {
       }
 
       const double closeButtonRadius = 10;
-      String? message = toastAction.getMessage(_dataContext);
+
+      dataContext ??= DataScopeWidget.getScope(context)?.dataContext;
+      String? message =
+          dataContext?.eval(toastAction.message) ?? toastAction.message;
 
       content = Row(
         mainAxisSize: MainAxisSize.min,
