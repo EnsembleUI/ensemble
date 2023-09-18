@@ -7,6 +7,7 @@ import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/helper/layout_helpers.dart';
 import 'package:ensemble/layout/templated.dart';
+import 'package:ensemble/model/pull_to_refresh.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -67,8 +68,8 @@ class GridView extends StatefulWidget
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'onPullToRefresh': (funcDefinition) => _controller.onPullToRefresh =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
-      'refreshIndicatorType': (value) => _controller.refreshIndicatorType =
-          RefreshIndicatorType.values.from(value),
+      'pullToRefreshOptions': (input) => _controller.pullToRefreshOptions =
+          PullToRefreshOptions.fromMap(input),
     };
   }
 
