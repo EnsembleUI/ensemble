@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/stub/ensemble_chat.dart';
 import 'package:ensemble/layout/app_scroller.dart';
 import 'package:ensemble/layout/box/box_layout.dart';
 import 'package:ensemble/layout/data_grid.dart';
@@ -11,10 +12,16 @@ import 'package:ensemble/layout/grid_view.dart';
 import 'package:ensemble/layout/toggle_container.dart';
 import 'package:ensemble/widget/Toggle.dart';
 import 'package:ensemble/widget/address.dart';
+import 'package:ensemble/widget/shape.dart';
 import 'package:ensemble/widget/conditional.dart';
+import 'package:ensemble/widget/confirmation_input.dart';
 import 'package:ensemble/widget/fintech/finicityconnect/finicityconnect.dart';
 import 'package:ensemble/widget/icon_button.dart';
+import 'package:ensemble/widget/image_cropper.dart';
+import 'package:ensemble/widget/input/slider.dart';
+import 'package:ensemble/widget/loading_container.dart';
 import 'package:ensemble/widget/maps/maps.dart';
+import 'package:ensemble/widget/popup_menu.dart';
 import 'package:ensemble/widget/staggered_grid.dart';
 import 'package:ensemble/widget/stub_widgets.dart';
 import 'package:ensemble/widget/text.dart';
@@ -49,6 +56,8 @@ import 'package:ensemble/widget/visualization/line_area_chart.dart';
 import 'package:ensemble/widget/webview/webview.dart';
 import 'package:get_it/get_it.dart';
 
+import 'fintech/tabapayconnect.dart';
+
 class WidgetRegistry {
   WidgetRegistry({this.debugLabel});
   final String? debugLabel;
@@ -63,6 +72,7 @@ class WidgetRegistry {
         EnsembleHtml.type: () => EnsembleHtml(),
         EnsembleIcon.type: () => EnsembleIcon(),
         EnsembleImage.type: () => EnsembleImage(),
+        EnsembleImageCropper.type: () => EnsembleImageCropper(),
         EnsembleDivider.type: () => EnsembleDivider(),
         EnsembleSpacer.type: () => EnsembleSpacer(),
         Toggle.type: () => Toggle(),
@@ -84,11 +94,15 @@ class WidgetRegistry {
         SignInWithGoogle.type: () => GetIt.instance<SignInWithGoogle>(),
         SignInWithApple.type: () => GetIt.instance<SignInWithApple>(),
         ConnectWithGoogle.type: () => GetIt.instance<ConnectWithGoogle>(),
+        ConnectWithMicrosoft.type: () => GetIt.instance<ConnectWithMicrosoft>(),
         SignInWithAuth0.type: () => GetIt.instance<SignInWithAuth0>(),
+        EnsembleChat.type: () => GetIt.instance<EnsembleChat>(),
+        PopupMenu.type: () => PopupMenu(),
 
         // form fields
         EnsembleForm.type: () => EnsembleForm(),
         TextInput.type: () => TextInput(),
+        ConfirmationInput.type: () => ConfirmationInput(),
         Date.type: () => Date(),
         Time.type: () => Time(),
         DateRange.type: () => DateRange(),
@@ -99,6 +113,7 @@ class WidgetRegistry {
         Button.type: () => Button(),
         EnsembleIconButton.type: () => EnsembleIconButton(),
         EnsembleToggleButton.type: () => EnsembleToggleButton(),
+        EnsembleSlider.type: () => EnsembleSlider(),
 
         // containers
         ToggleContainer.type: () => ToggleContainer(),
@@ -117,6 +132,8 @@ class WidgetRegistry {
         TabBarOnly.type: () => TabBarOnly(),
         TabBarContainer.type: () => TabBarContainer(),
         AppScroller.type: () => AppScroller(),
+        LoadingContainer.type: () => LoadingContainer(),
+        Shape.type: () => Shape(),
 
         // charts
         Highcharts.type: () => Highcharts(),
@@ -127,5 +144,6 @@ class WidgetRegistry {
 
         //domain specific or custom widgets
         FinicityConnect.type: () => FinicityConnect(),
+        TabaPayConnect.type: () => TabaPayConnect(),
       };
 }

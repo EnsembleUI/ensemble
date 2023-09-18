@@ -73,6 +73,7 @@ abstract class SelectOne extends StatefulWidget
   @override
   Map<String, Function> methods() {
     return {
+      'getValue': () => getValue(),
       'clear': () => _controller.inputFieldAction?.clear(),
       'focus': () => _controller.inputFieldAction?.focusInputField(),
       'unfocus': () => _controller.inputFieldAction?.unfocusInputField(),

@@ -131,12 +131,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
         return BottomNavPageGroup(
           scopeManager: _scopeManager,
           menu: widget.menu,
-          child: pageWidgets[selectedPage],
-          onTabSelected: (index) {
-            setState(() {
-              selectedPage = index;
-            });
-          },
+          children: pageWidgets,
         );
       }
     }
@@ -194,7 +189,9 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     for (var item in menu.menuItems) {
       navItems.add(NavigationRailDestination(
           padding: Utils.getInsets(menu.styles?['itemPadding']),
-          icon: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
+          icon: item.icon != null
+              ? ensemble.Icon.fromModel(item.icon!)
+              : const SizedBox.shrink(),
           label: Text(Utils.translate(item.label ?? '', context))));
     }
 

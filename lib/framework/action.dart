@@ -1,6 +1,8 @@
+import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/permissions_manager.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -122,8 +124,10 @@ class NavigateScreenAction extends BaseNavigateScreenAction {
       required super.screenName,
       super.inputs,
       super.options,
+      this.onNavigateBack,
       super.transition})
       : super(asModal: false);
+  EnsembleAction? onNavigateBack;
 
   factory NavigateScreenAction.fromYaml(
       {Invokable? initiator, YamlMap? payload}) {
@@ -136,6 +140,7 @@ class NavigateScreenAction extends BaseNavigateScreenAction {
       screenName: payload['name'].toString(),
       inputs: Utils.getMap(payload['inputs']),
       options: Utils.getMap(payload['options']),
+      onNavigateBack: EnsembleAction.fromYaml(payload['onNavigateBack']),
       transition: Utils.getMap(payload['transition']),
     );
   }
@@ -291,6 +296,60 @@ class PlaidLinkAction extends EnsembleAction {
   }
 }
 
+class AppSettingAction extends EnsembleAction {
+  AppSettingAction({
+    super.initiator,
+    required this.target,
+  });
+
+  final String target;
+
+  AppSettingsType getTarget(dataContext) =>
+      AppSettingsType.values.from(dataContext.eval(target)) ??
+      AppSettingsType.settings;
+
+  factory AppSettingAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
+    return AppSettingAction(
+      initiator: initiator,
+      target: Utils.getString(payload?['target'], fallback: 'settings'),
+    );
+  }
+}
+
+class PhoneContactAction extends EnsembleAction {
+  PhoneContactAction({
+    super.initiator,
+    this.id,
+    this.onSuccess,
+    this.onError,
+  });
+
+  final String? id;
+  final EnsembleAction? onSuccess;
+  final EnsembleAction? onError;
+
+  EnsembleAction? getOnSuccess(DataContext dataContext) =>
+      dataContext.eval(onSuccess);
+
+  EnsembleAction? getOnError(DataContext dataContext) =>
+      dataContext.eval(onError);
+
+  factory PhoneContactAction.fromYaml(
+      {Invokable? initiator, YamlMap? payload}) {
+    if (payload == null) {
+      throw LanguageError(
+          "${ActionType.getPhoneContacts.name} action requires payload");
+    }
+
+    return PhoneContactAction(
+      initiator: initiator,
+      id: Utils.optionalString(payload['id']),
+      onSuccess: EnsembleAction.fromYaml(payload['onSuccess']),
+      onError: EnsembleAction.fromYaml(payload['onError']),
+    );
+  }
+}
+
 class StartTimerAction extends EnsembleAction {
   StartTimerAction(
       {super.initiator,
@@ -416,7 +475,13 @@ class OpenUrlAction extends EnsembleAction {
   }
 }
 
-class NavigateBack extends EnsembleAction {}
+class NavigateBack extends EnsembleAction {
+  NavigateBack(YamlMap? payload) : _data = payload?['data'];
+  final dynamic _data;
+
+  dynamic getData(DataContext dataContext) =>
+      _data != null && _data != '' ? dataContext.eval(_data) : null;
+}
 
 class ShowToastAction extends EnsembleAction {
   ShowToastAction(
@@ -664,6 +729,23 @@ class CopyToClipboardAction extends EnsembleAction {
   }
 }
 
+class ShareAction extends EnsembleAction {
+  ShareAction(this._text, {String? title}) : _title = title;
+  String? _title;
+  dynamic _text;
+
+  dynamic getText(DataContext dataContext) => dataContext.eval(_text);
+  String? getTitle(DataContext datContext) =>
+      Utils.optionalString(datContext.eval(_title));
+
+  factory ShareAction.from({Map? payload}) {
+    if (payload == null || payload['text'] == null) {
+      throw LanguageError("${ActionType.share.name} requires 'text'");
+    }
+    return ShareAction(payload['text'], title: payload['title']?.toString());
+  }
+}
+
 class WalletConnectAction extends EnsembleAction {
   WalletConnectAction({
     this.id,
@@ -799,6 +881,34 @@ class ShowNotificationAction extends EnsembleAction {
   }
 }
 
+class CheckPermission extends EnsembleAction {
+  CheckPermission(
+      {required dynamic type,
+      this.onAuthorized,
+      this.onDenied,
+      this.onNotDetermined})
+      : _type = type;
+  final dynamic _type;
+  final EnsembleAction? onAuthorized;
+  final EnsembleAction? onDenied;
+  final EnsembleAction? onNotDetermined;
+
+  Permission? getType(DataContext dataContext) =>
+      Permission.values.from(dataContext.eval(_type));
+
+  factory CheckPermission.fromYaml({YamlMap? payload}) {
+    if (payload == null || payload['type'] == null) {
+      throw ConfigError('checkPermission requires a type.');
+    }
+    return CheckPermission(
+      type: payload['type'],
+      onAuthorized: EnsembleAction.fromYaml(payload['onAuthorized']),
+      onDenied: EnsembleAction.fromYaml(payload['onDenied']),
+      onNotDetermined: EnsembleAction.fromYaml(payload['onNotDetermined']),
+    );
+  }
+}
+
 enum ActionType {
   invokeAPI,
   navigateScreen,
@@ -822,7 +932,13 @@ enum ActionType {
   requestNotificationAccess,
   showNotification,
   copyToClipboard,
+  share,
   openPlaidLink,
+  openAppSettings,
+  getPhoneContacts,
+  checkPermission,
+  saveToKeychain,
+  clearKeychain,
 }
 
 enum ToastType { success, error, warning, info }
@@ -868,7 +984,7 @@ abstract class EnsembleAction {
       return NavigateModalScreenAction.fromYaml(
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.navigateBack) {
-      return NavigateBack();
+      return NavigateBack(payload);
     } else if (actionType == ActionType.showBottomModal) {
       return ShowBottomModalAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.invokeAPI) {
@@ -916,8 +1032,17 @@ abstract class EnsembleAction {
       return RequestNotificationAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.copyToClipboard) {
       return CopyToClipboardAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.share) {
+      return ShareAction.from(payload: payload);
     } else if (actionType == ActionType.openPlaidLink) {
       return PlaidLinkAction.fromYaml(initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.openAppSettings) {
+      return AppSettingAction.fromYaml(initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.getPhoneContacts) {
+      return PhoneContactAction.fromYaml(
+          initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.checkPermission) {
+      return CheckPermission.fromYaml(payload: payload);
     }
     throw LanguageError("Invalid action.",
         recovery: "Make sure to use one of Ensemble-provided actions.");

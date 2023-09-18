@@ -7,6 +7,7 @@ import 'dart:isolate';
 import 'dart:math' show Random;
 import 'dart:ui';
 
+import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/action/InvokeAPIController.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_app.dart';
@@ -16,7 +17,9 @@ import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/permissions_manager.dart';
 import 'package:ensemble/framework/stub/camera_manager.dart';
+import 'package:ensemble/framework/stub/contacts_manager.dart';
 import 'package:ensemble/framework/stub/file_manager.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/stub/plaid_link_manager.dart';
@@ -38,6 +41,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:walletconnect_dart/walletconnect_dart.dart';
@@ -54,7 +58,9 @@ class ScreenController {
 
   // Singleton
   static final ScreenController _instance = ScreenController._internal();
+
   ScreenController._internal();
+
   factory ScreenController() {
     return _instance;
   }
@@ -81,20 +87,21 @@ class ScreenController {
   }
 
   /// handle Action e.g invokeAPI
-  void executeAction(BuildContext context, EnsembleAction action,
+  Future<void> executeAction(BuildContext context, EnsembleAction action,
       {EnsembleEvent? event}) {
     ScopeManager? scopeManager = getScopeManager(context);
     if (scopeManager != null) {
-      executeActionWithScope(context, scopeManager, action, event: event);
+      return executeActionWithScope(context, scopeManager, action,
+          event: event);
     } else {
       throw Exception('Cannot find ScopeManager to execute action');
     }
   }
 
-  void executeActionWithScope(
+  Future<void> executeActionWithScope(
       BuildContext context, ScopeManager scopeManager, EnsembleAction action,
       {EnsembleEvent? event}) {
-    nowExecuteAction(context, scopeManager.dataContext, action,
+    return nowExecuteAction(context, scopeManager.dataContext, action,
         scopeManager.pageData.apiMap, scopeManager,
         event: event);
   }
@@ -131,7 +138,7 @@ class ScreenController {
     }
 
     if (action is InvokeAPIAction) {
-      InvokeAPIController()
+      await InvokeAPIController()
           .execute(action, context, dataContext, scopeManager, apiMap);
     } else if (action is BaseNavigateScreenAction) {
       // process input parameters
@@ -158,11 +165,17 @@ class ScreenController {
         transition: action.getTransition(dataContext),
       );
 
-      // process onModalDismiss
-      if (action is NavigateModalScreenAction &&
+      // listen for data returned on popped
+      if (scopeManager == null) {
+        return;
+      }
+      if (action is NavigateScreenAction && action.onNavigateBack != null) {
+        routeBuilder.popped.then((data) => executeActionWithScope(
+            context, scopeManager, action.onNavigateBack!,
+            event: EnsembleEvent(null, data: data)));
+      } else if (action is NavigateModalScreenAction &&
           action.getOnModalDismiss(dataContext) != null &&
-          routeBuilder.fullscreenDialog &&
-          scopeManager != null) {
+          routeBuilder.fullscreenDialog) {
         // callback on modal pop
         routeBuilder.popped.whenComplete(() {
           executeActionWithScope(
@@ -238,6 +251,35 @@ class ScreenController {
         throw RuntimeError(
             "openPlaidLink action requires the plaid's link_token.");
       }
+    } else if (action is AppSettingAction) {
+      final settingType = action.getTarget(dataContext);
+      AppSettings.openAppSettings(type: settingType);
+    } else if (action is PhoneContactAction) {
+      GetIt.I<ContactManager>().getPhoneContacts((contacts) {
+        if (action.getOnSuccess(dataContext) != null) {
+          final contactsData =
+              contacts.map((contact) => contact.toJson()).toList();
+
+          executeActionWithScope(
+            context,
+            scopeManager!,
+            action.getOnSuccess(dataContext)!,
+            event: EnsembleEvent(
+              action.initiator,
+              data: {'contacts': contactsData},
+            ),
+          );
+        }
+      }, (error) {
+        if (action.getOnError(dataContext) != null) {
+          executeActionWithScope(
+            context,
+            scopeManager!,
+            action.getOnError(dataContext)!,
+            event: EnsembleEvent(action.initiator!, data: {'error': error}),
+          );
+        }
+      });
     } else if (action is ShowCameraAction) {
       GetIt.I<CameraManager>().openCamera(context, action, scopeManager);
     } else if (action is ShowDialogAction) {
@@ -255,13 +297,13 @@ class ScreenController {
         BuildContext? dialogContext;
 
         showGeneralDialog(
-            useRootNavigator:
-                false, // use inner-most MaterialApp (our App) as root so theming is ours
+            useRootNavigator: false,
+            // use inner-most MaterialApp (our App) as root so theming is ours
             context: context,
             barrierDismissible: true,
             barrierLabel: "Barrier",
-            barrierColor: Colors
-                .black54, // this has some transparency so the bottom shown through
+            barrierColor: Colors.black54,
+            // this has some transparency so the bottom shown through
 
             pageBuilder: (context, animation, secondaryAnimation) {
               // save a reference to the builder's context so we can close it programmatically
@@ -420,8 +462,8 @@ class ScreenController {
         customToastBody = scopeManager
             .buildWidgetFromDefinition(action.getWidget(dataContext));
       }
-      ToastController()
-          .showToast(context, dataContext, action, customToastBody);
+      ToastController().showToast(context, action, customToastBody,
+          dataContext: dataContext);
     } else if (action is OpenUrlAction) {
       dynamic value = action.getUrl(dataContext);
       value ??= '';
@@ -442,7 +484,7 @@ class ScreenController {
       GetIt.I<FileManager>().pickFiles(context, action, scopeManager);
     } else if (action is NavigateBack) {
       if (scopeManager != null) {
-        Navigator.of(context).maybePop();
+        Navigator.of(context).maybePop(action.getData(dataContext));
       }
     } else if (action is CopyToClipboardAction) {
       if (action.value != null) {
@@ -463,6 +505,9 @@ class ScreenController {
           executeAction(context, action.getOnFailure(dataContext)!);
         }
       }
+    } else if (action is ShareAction) {
+      Share.share(action.getText(dataContext),
+          subject: action.getTitle(dataContext));
     } else if (action is WalletConnectAction) {
       //  TODO store session:  WalletConnectSession? session = await sessionStorage.getSession();
 
@@ -471,7 +516,7 @@ class ScreenController {
       final WalletConnect walletConnect = WalletConnect(
         bridge: 'https://bridge.walletconnect.org',
         clientMeta: PeerMeta(
-          name: action.getappName(dataContext),
+          name: action.getAppName(dataContext),
           description: action.getAppDescription(dataContext),
           url: action.getAppUrl(dataContext),
           icons: action.getAppIconUrl(dataContext) != null
@@ -547,6 +592,25 @@ class ScreenController {
       }
     } else if (action is AuthorizeOAuthAction) {
       // TODO
+    } else if (action is CheckPermission) {
+      Permission? type = action.getType(dataContext);
+      if (type == null) {
+        throw RuntimeError('checkPermission requires a type.');
+      }
+      bool? result = await PermissionsManager().hasPermission(type);
+      if (result == true) {
+        if (action.onAuthorized != null) {
+          executeAction(context, action.onAuthorized!);
+        }
+      } else if (result == false) {
+        if (action.onDenied != null) {
+          executeAction(context, action.onDenied!);
+        }
+      } else {
+        if (action.onNotDetermined != null) {
+          executeAction(context, action.onNotDetermined!);
+        }
+      }
     }
   }
 
@@ -592,7 +656,7 @@ class ScreenController {
 
     if (isFileSizeOverLimit(context, dataContext, selectedFiles, action)) {
       if (action.onError != null) {
-        executeAction(context, action.getOnComplete(dataContext)!);
+        executeAction(context, action.getOnError(dataContext)!);
       }
       return;
     }
@@ -745,13 +809,13 @@ class ScreenController {
     if (totalSize > maxFileSize) {
       ToastController().showToast(
           context,
-          dataContext,
           ShowToastAction(
               type: ToastType.error,
               message: message,
               alignment: Alignment.bottomCenter,
               duration: 3),
-          null);
+          null,
+          dataContext: dataContext);
       if (action.onError != null) executeAction(context, action.onError!);
       return true;
     }
@@ -870,6 +934,7 @@ class ScreenController {
   /// [pageArgs] - Key/Value pairs to send to the screen if it takes input parameters
   PageRouteBuilder navigateToScreen(
     BuildContext context, {
+    String? screenId,
     String? screenName,
     bool? asModal,
     RouteOption? routeOption,
@@ -878,8 +943,11 @@ class ScreenController {
   }) {
     PageType pageType = asModal == true ? PageType.modal : PageType.regular;
 
-    Widget screenWidget =
-        getScreen(screenName: screenName, asModal: asModal, pageArgs: pageArgs);
+    Widget screenWidget = getScreen(
+        screenId: screenId,
+        screenName: screenName,
+        asModal: asModal,
+        pageArgs: pageArgs);
 
     Map<String, dynamic>? defaultTransitionOptions =
         Theme.of(context).extension<EnsembleThemeExtension>()?.transitions ??
@@ -917,6 +985,7 @@ class ScreenController {
   /// get the screen widget. If screen is not specified, return the home screen
   Widget getScreen({
     Key? key,
+    String? screenId,
     String? screenName,
     bool? asModal,
     Map<String, dynamic>? pageArgs,
@@ -927,6 +996,7 @@ class ScreenController {
       appProvider: AppProvider(
           definitionProvider: Ensemble().getConfig()!.definitionProvider),
       screenPayload: ScreenPayload(
+        screenId: screenId,
         screenName: screenName,
         pageType: pageType,
         arguments: pageArgs,

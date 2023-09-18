@@ -18,7 +18,8 @@ description: Ensemble Runtime
 version: 1.0.0+5
 
 environment:
-  sdk: ">=2.17.0 <=3.10.0"
+  sdk: ">=3.0.6 <4.0.0"
+  flutter: ">=1.17.0"
 
 dependencies:
   flutter:
@@ -41,6 +42,11 @@ dependencies:
   fl_chart: ^0.62.0
   signature: ^5.2.1
 
+  ensemble_icons:
+    git:
+      url: https://github.com/EnsembleUI/ensemble_icons.git
+      ref: main
+
   ensemble_ts_interpreter:
     git:
       url: https://github.com/EnsembleUI/ensemble_ts_interpreter.git
@@ -52,10 +58,16 @@ dependencies:
   event_bus: ^2.0.0
   flutter_layout_grid: ^2.0.3
   email_validator: ^2.0.1
+  mask_text_input_formatter: ^2.5.0
+  otp_pin_field:
+    git:
+      url: https://github.com/EnsembleUI/otp_pin_field.git
+      ref: develop
   form_validator: ^2.1.1
   flutter_svg: ^2.0.7
+  flutter_svg_provider: ^1.0.4
   qr_flutter: ^4.1.0
-  device_info_plus: ^9.0.0
+  device_info_plus: ^8.2.0
   flutter_map: ^2.2.0
   carousel_slider: ^4.1.1
   fluttertoast: ^8.0.9
@@ -66,7 +78,7 @@ dependencies:
   flutter_markdown: ^0.6.10+5
   url_launcher: ^6.1.11
   provider: ^6.0.3
-  cloud_firestore: 4.8.2
+  cloud_firestore: ^4.8.2
   geolocator: ^9.0.2
   get_storage: ^2.0.3
   flutter_html: ^3.0.0-beta.1 # flutter_html ^2.0.0 requires flutter_svg <1.0.0, conflicts with ours
@@ -89,6 +101,12 @@ dependencies:
   dart_jsonwebtoken: ^2.8.2
   flutter_dotenv: ^5.1.0
   get_it: ^7.6.0
+  custom_image_crop: ^0.0.10
+  app_settings: ^5.0.0
+  firebase_messaging: ^14.6.5
+  custom_refresh_indicator: ^2.2.1
+  app_links: ^3.4.3
+  share_plus: ^6.2.0
 
 dev_dependencies:
   flutter_test:
