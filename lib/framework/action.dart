@@ -435,9 +435,6 @@ class ExecuteCodeAction extends EnsembleAction {
   EnsembleAction? onComplete;
   SourceSpan codeBlockSpan;
 
-  String getCodeBlock(DataContext dataContext) =>
-      dataContext.eval(Utils.optionalString(codeBlock));
-
   EnsembleAction? getOnComplete(DataContext dataContext) =>
       dataContext.eval(onComplete);
 
