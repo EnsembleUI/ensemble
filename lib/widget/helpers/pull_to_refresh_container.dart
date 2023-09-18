@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
+import 'package:ensemble/model/pull_to_refresh.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -10,7 +11,7 @@ class PullToRefreshContainer extends StatefulWidget {
       {super.key,
       required this.contentWidget,
       this.refreshWidget,
-      this.indicatorType,
+      this.options,
       required this.onRefresh});
 
   final Widget contentWidget;
@@ -18,7 +19,7 @@ class PullToRefreshContainer extends StatefulWidget {
 
   // TODO: size the refresh widget properly before expose it.
   final Widget? refreshWidget;
-  final RefreshIndicatorType? indicatorType;
+  final PullToRefreshOptions? options;
 
   @override
   State<PullToRefreshContainer> createState() => _PullToRefreshContainerState();
@@ -31,7 +32,7 @@ class _PullToRefreshContainerState extends State<PullToRefreshContainer> {
   Widget build(BuildContext context) {
     return CustomRefreshIndicator(
         offsetToArmed: _defaultIndicatorSize,
-        onRefresh: widget.onRefresh,
+        onRefresh: processOnRefresh,
         builder: (context, child, controller) => Stack(
               children: [
                 if (!controller.isIdle && !controller.isCanceling)
@@ -62,7 +63,7 @@ class _PullToRefreshContainerState extends State<PullToRefreshContainer> {
   }
 
   Widget getProgressIndicator(IndicatorController controller) {
-    if (widget.indicatorType == RefreshIndicatorType.cupertino) {
+    if (widget.options?.indicatorType == RefreshIndicatorType.cupertino) {
       return controller.isDragging || controller.isArmed
           ? CupertinoActivityIndicator.partiallyRevealed(
               progress: controller.value.clamp(0, 1),
@@ -76,6 +77,11 @@ class _PullToRefreshContainerState extends State<PullToRefreshContainer> {
               : null);
     }
   }
-}
 
-enum RefreshIndicatorType { material, cupertino }
+  Future<void> processOnRefresh() async {
+    // wait for the callback to return
+    await widget.onRefresh();
+
+    // await Future.delayed(Duration(seconds: 2));
+  }
+}
