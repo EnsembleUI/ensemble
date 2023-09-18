@@ -149,21 +149,20 @@ class ScreenController {
 
       RouteOption? routeOption;
       if (action is NavigateScreenAction) {
-        if (action.isClearAllScreens(dataContext)) {
+        if (action.options?['clearAllScreens'] == true) {
           routeOption = RouteOption.clearAllScreens;
-        } else if (action.isReplaceCurrentScreen(dataContext)) {
+        } else if (action.options?['replaceCurrentScreen'] == true) {
           routeOption = RouteOption.replaceCurrentScreen;
         }
       }
 
       PageRouteBuilder routeBuilder = navigateToScreen(
-        providedDataContext.buildContext,
-        screenName: action.getScreenName(dataContext),
-        asModal: action.isAsModal(dataContext),
-        routeOption: routeOption,
-        pageArgs: nextArgs,
-        transition: action.getTransition(dataContext),
-      );
+          providedDataContext.buildContext,
+          screenName: dataContext.eval(action.screenName),
+          asModal: action.asModal,
+          routeOption: routeOption,
+          pageArgs: nextArgs,
+          transition: action.transition);
 
       // listen for data returned on popped
       if (scopeManager == null) {
@@ -174,19 +173,17 @@ class ScreenController {
             context, scopeManager, action.onNavigateBack!,
             event: EnsembleEvent(null, data: data)));
       } else if (action is NavigateModalScreenAction &&
-          action.getOnModalDismiss(dataContext) != null &&
+          action.onModalDismiss != null &&
           routeBuilder.fullscreenDialog) {
         // callback on modal pop
         routeBuilder.popped.whenComplete(() {
-          executeActionWithScope(
-              context, scopeManager, action.getOnModalDismiss(dataContext)!);
+          executeActionWithScope(context, scopeManager, action.onModalDismiss!);
         });
       }
     } else if (action is ShowBottomModalAction) {
       Widget? widget;
-      if (scopeManager != null && action.getWidget(dataContext) != null) {
-        widget = scopeManager
-            .buildWidgetFromDefinition(action.getWidget(dataContext));
+      if (scopeManager != null && action.widget != null) {
+        widget = scopeManager.buildWidgetFromDefinition(action.widget);
       }
 
       if (widget != null) {
@@ -284,12 +281,11 @@ class ScreenController {
       GetIt.I<CameraManager>().openCamera(context, action, scopeManager);
     } else if (action is ShowDialogAction) {
       if (scopeManager != null) {
-        Widget widget = scopeManager
-            .buildWidgetFromDefinition(action.getWidget(dataContext));
+        Widget widget = scopeManager.buildWidgetFromDefinition(action.widget);
 
         // get styles. TODO: make bindable
         Map<String, dynamic> dialogStyles = {};
-        action.getOptions(dataContext)?.forEach((key, value) {
+        action.options?.forEach((key, value) {
           dialogStyles[key] = dataContext.eval(value);
         });
 
@@ -360,9 +356,9 @@ class ScreenController {
           scopeManager.openedDialogs.remove(dialogContext);
 
           // callback when dialog is dismissed
-          if (action.getOnDialogDismiss(dataContext) != null) {
+          if (action.onDialogDismiss != null) {
             executeActionWithScope(
-                context, scopeManager, action.getOnDialogDismiss(dataContext)!);
+                context, scopeManager, action.onDialogDismiss!);
           }
         });
       }
@@ -451,25 +447,21 @@ class ScreenController {
       });
       dataContext.evalCode(action.codeBlock, action.codeBlockSpan);
 
-      if (action.getOnComplete(dataContext) != null && scopeManager != null) {
-        executeActionWithScope(
-            context, scopeManager, action.getOnComplete(dataContext)!);
+      if (action.onComplete != null && scopeManager != null) {
+        executeActionWithScope(context, scopeManager, action.onComplete!);
       }
     } else if (action is ShowToastAction) {
       Widget? customToastBody;
-      if (scopeManager != null && action.getWidget(dataContext) != null) {
-        customToastBody = scopeManager
-            .buildWidgetFromDefinition(action.getWidget(dataContext));
+      if (scopeManager != null && action.widget != null) {
+        customToastBody = scopeManager.buildWidgetFromDefinition(action.widget);
       }
       ToastController().showToast(context, action, customToastBody,
           dataContext: dataContext);
     } else if (action is OpenUrlAction) {
-      dynamic value = action.getUrl(dataContext);
+      dynamic value = dataContext.eval(action.url);
       value ??= '';
-      dynamic isToOpenInExternalApp = action.isOpenInExternalApp(dataContext);
-
       launchUrl(Uri.parse(value),
-          mode: (isToOpenInExternalApp)
+          mode: (action.openInExternalApp)
               ? LaunchMode.externalApplication
               : LaunchMode.platformDefault);
     } else if (action is FileUploadAction) {
@@ -490,19 +482,17 @@ class ScreenController {
         String? clipboardValue = action.getValue(dataContext);
         if (clipboardValue != null) {
           Clipboard.setData(ClipboardData(text: clipboardValue)).then((value) {
-            if (action.getOnSuccess(dataContext) != null) {
-              executeAction(context, action.getOnSuccess(dataContext)!);
+            if (action.onSuccess != null) {
+              executeAction(context, action.onSuccess!);
             }
           }).catchError((_) {
-            if (action.getOnFailure(dataContext) != null) {
-              executeAction(context, action.getOnFailure(dataContext)!);
+            if (action.onFailure != null) {
+              executeAction(context, action.onFailure!);
             }
           });
         }
       } else {
-        if (action.getOnFailure(dataContext) != null) {
-          executeAction(context, action.getOnFailure(dataContext)!);
-        }
+        if (action.onFailure != null) executeAction(context, action.onFailure!);
       }
     } else if (action is ShareAction) {
       Share.share(action.getText(dataContext),
@@ -515,12 +505,11 @@ class ScreenController {
       final WalletConnect walletConnect = WalletConnect(
         bridge: 'https://bridge.walletconnect.org',
         clientMeta: PeerMeta(
-          name: action.getAppName(dataContext),
-          description: action.getAppDescription(dataContext),
-          url: action.getAppUrl(dataContext),
-          icons: action.getAppIconUrl(dataContext) != null
-              ? <String>[action.getAppIconUrl(dataContext)!]
-              : null,
+          name: action.appName,
+          description: action.appDescription,
+          url: action.appUrl,
+          icons:
+              action.appIconUrl != null ? <String>[action.appIconUrl!] : null,
         ),
       );
 
@@ -570,24 +559,23 @@ class ScreenController {
       }
     } else if (action is NotificationAction) {
       notificationUtils.context = context;
-      notificationUtils.onRemoteNotification = action.getOnReceive(dataContext);
-      notificationUtils.onRemoteNotificationOpened =
-          action.getOnTap(dataContext);
+      notificationUtils.onRemoteNotification = action.onReceive;
+      notificationUtils.onRemoteNotificationOpened = action.onTap;
     } else if (action is ShowNotificationAction) {
       dataContext.addDataContext(Ensemble.externalDataContext);
       notificationUtils.showNotification(
-        action.getTitle(dataContext),
-        action.getBody(dataContext),
+        dataContext.eval(action.title),
+        dataContext.eval(action.body),
       );
     } else if (action is RequestNotificationAction) {
       final isEnabled = await notificationUtils.initNotifications() ?? false;
 
-      if (isEnabled && action.getOnAccept(dataContext) != null) {
-        executeAction(context, action.getOnAccept(dataContext)!);
+      if (isEnabled && action.onAccept != null) {
+        executeAction(context, action.onAccept!);
       }
 
-      if (!isEnabled && action.getOnReject(dataContext) != null) {
-        executeAction(context, action.getOnReject(dataContext)!);
+      if (!isEnabled && action.onReject != null) {
+        executeAction(context, action.onReject!);
       }
     } else if (action is AuthorizeOAuthAction) {
       // TODO
@@ -641,12 +629,10 @@ class ScreenController {
   }) async {
     List<File>? selectedFiles;
 
-    final rawFiles = _getRawFiles(action.getFiles(dataContext), dataContext);
+    final rawFiles = _getRawFiles(action.files, dataContext);
 
     if (rawFiles is! List<dynamic>) {
-      if (action.getOnError(dataContext) != null) {
-        executeAction(context, action.getOnError(dataContext)!);
-      }
+      if (action.onError != null) executeAction(context, action.onError!);
       return;
     }
 
@@ -654,9 +640,7 @@ class ScreenController {
         rawFiles.map((data) => File.fromJson(data)).toList().cast<File>();
 
     if (isFileSizeOverLimit(context, dataContext, selectedFiles, action)) {
-      if (action.onError != null) {
-        executeAction(context, action.getOnError(dataContext)!);
-      }
+      if (action.onError != null) executeAction(context, action.onError!);
       return;
     }
 
@@ -738,11 +722,11 @@ class ScreenController {
       method: method,
       url: url,
       files: selectedFiles,
-      fieldName: action.getFieldName(dataContext),
-      showNotification: action.getShowNotification(dataContext),
-      onError: action.getOnError(dataContext) == null
+      fieldName: action.fieldName,
+      showNotification: action.showNotification,
+      onError: action.onError == null
           ? null
-          : (error) => executeAction(context, action.getOnError(dataContext)!),
+          : (error) => executeAction(context, action.onError!),
       progressCallback: (progress) {
         fileResponse?.setProgress(taskId, progress);
         scopeManager?.dispatch(
@@ -761,9 +745,7 @@ class ScreenController {
     scopeManager?.dispatch(
         ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
 
-    if (action.getOnComplete(dataContext) != null) {
-      executeAction(context, action.getOnComplete(dataContext)!);
-    }
+    if (action.onComplete != null) executeAction(context, action.onComplete!);
   }
 
   List<dynamic>? _getRawFiles(dynamic files, DataContext dataContext) {
@@ -796,13 +778,11 @@ class ScreenController {
 
     final totalSize = selectedFiles.fold<double>(
         0, (previousValue, element) => previousValue + element.size);
-    final maxFileSize =
-        action.getMaxFileSize(dataContext)?.kb ?? defaultMaxFileSize;
+    final maxFileSize = action.maxFileSize?.kb ?? defaultMaxFileSize;
 
     final message = Utils.translateWithFallback(
       'ensemble.input.overMaxFileSizeMessage',
-      action.getOverMaxFileSizeMessage(dataContext) ??
-          defaultOverMaxFileSizeMessage,
+      action.overMaxFileSizeMessage ?? defaultOverMaxFileSizeMessage,
     );
 
     if (totalSize > maxFileSize) {

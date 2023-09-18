@@ -15,13 +15,11 @@ import 'package:fluttertoast/fluttertoast.dart';
 class ToastController {
   static final FToast _toast = FToast();
 
-  late DataContext _dataContext;
   // Singleton
   static final ToastController _instance = ToastController._internal();
   ToastController._internal() {
     //_toast.init(Utils.globalAppKey.currentContext!);
   }
-
   factory ToastController() {
     return _instance;
   }
@@ -33,34 +31,30 @@ class ToastController {
     _toast.removeQueuedCustomToasts();
 
     ToastGravity toastGravity;
-    Alignment? taostAlignment = toastAction.getAlignment(_dataContext);
-
-    if (taostAlignment == Alignment.topCenter) {
+    if (toastAction.alignment == Alignment.topCenter) {
       toastGravity = ToastGravity.TOP;
-    } else if (taostAlignment == Alignment.topLeft) {
+    } else if (toastAction.alignment == Alignment.topLeft) {
       toastGravity = ToastGravity.TOP_LEFT;
-    } else if (taostAlignment == Alignment.center) {
+    } else if (toastAction.alignment == Alignment.center) {
       toastGravity = ToastGravity.CENTER;
-    } else if (taostAlignment == Alignment.centerLeft) {
+    } else if (toastAction.alignment == Alignment.centerLeft) {
       toastGravity = ToastGravity.CENTER_LEFT;
-    } else if (taostAlignment == Alignment.centerRight) {
+    } else if (toastAction.alignment == Alignment.centerRight) {
       toastGravity = ToastGravity.CENTER_RIGHT;
-    } else if (taostAlignment == Alignment.bottomCenter) {
+    } else if (toastAction.alignment == Alignment.bottomCenter) {
       toastGravity = ToastGravity.BOTTOM;
-    } else if (taostAlignment == Alignment.bottomLeft) {
+    } else if (toastAction.alignment == Alignment.bottomLeft) {
       toastGravity = ToastGravity.BOTTOM_LEFT;
-    } else if (taostAlignment == Alignment.bottomRight) {
+    } else if (toastAction.alignment == Alignment.bottomRight) {
       toastGravity = ToastGravity.BOTTOM_RIGHT;
     } else {
       // default
       toastGravity = ToastGravity.TOP_RIGHT;
     }
-    int? duration = toastAction.getDuration(_dataContext);
-
     _toast.showToast(
         gravity: toastGravity,
-        toastDuration: duration != null
-            ? Duration(seconds: duration)
+        toastDuration: toastAction.duration != null
+            ? Duration(seconds: toastAction.duration!)
             : const Duration(days: 99),
         child: _getToastWidget(
             context, dataContext, toastAction, customToastBody));
@@ -86,14 +80,13 @@ class ToastController {
       }
       // render the message as the body
       IconData icon;
-      ToastType? toastType = toastAction.getType(_dataContext);
-      if (toastType == ToastType.success) {
+      if (toastAction.type == ToastType.success) {
         icon = Icons.check_circle_outline;
         bgColor ??= DesignSystem.successBackgroundColor;
-      } else if (toastType == ToastType.error) {
+      } else if (toastAction.type == ToastType.error) {
         icon = Icons.error_outline;
         bgColor ??= DesignSystem.errorBackgroundColor;
-      } else if (toastType == ToastType.warning) {
+      } else if (toastAction.type == ToastType.warning) {
         icon = Icons.warning;
         bgColor ??= DesignSystem.warningBackgroundColor;
       } else {
@@ -118,12 +111,12 @@ class ToastController {
           if (message != null && message.isNotEmpty)
             Flexible(
               child: Text(
-                message,
+                message!,
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-          if (toastAction.getDismissible(_dataContext) != false)
+          if (toastAction.dismissible != false)
             InkWell(
               child: const CircleAvatar(
                 backgroundColor: Colors.transparent,
