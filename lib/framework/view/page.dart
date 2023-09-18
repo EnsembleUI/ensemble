@@ -228,6 +228,7 @@ class PageState extends State<Page> with AutomaticKeepAliveClientMixin {
         title: titleWidget,
         centerTitle: centerTitle,
         backgroundColor: backgroundColor,
+        surfaceTintColor: surfaceTintColor,
         foregroundColor: color,
 
         // control the drop shadow on the header's bottom edge
