@@ -6103,10 +6103,18 @@
           "description": "Trigger an Action with pull to refresh",
           "$ref": "#/$defs/Action-payload"
         },
-        "refreshIndicatorType": {
-          "type": "string",
-          "description": "The refresh indicator type if onPullToRefresh is specified. Default is 'material'.",
-          "enum": [ "material", "cupertino" ]
+        "pullToRefreshOptions": {
+          "properties": {
+            "indicatorType": {
+              "type": "string",
+              "description": "Indicate the refresh indicator look-and-feel if onPullToRefresh is specified. Default is 'material'.",
+              "enum": [ "material", "cupertino" ]
+            },
+            "indicatorMinDuration": {
+              "type": "integer",
+              "description": "The minimum duration in milliseconds that the indicator will be shown, regardless if the onPullToRefresh's Action has completed or not."
+            }
+          }
         }
       }
     },
