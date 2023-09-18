@@ -769,7 +769,7 @@ class WalletConnectAction extends EnsembleAction {
 
   String getWcProjectId(DataContext dataContext) =>
       dataContext.eval(wcProjectId);
-  String getappName(DataContext dataContext) => dataContext.eval(appName);
+  String getAppName(DataContext dataContext) => dataContext.eval(appName);
   String? getAppDescription(DataContext dataContext) =>
       dataContext.eval(appDescription);
   String? getAppUrl(DataContext dataContext) => dataContext.eval(appUrl);
