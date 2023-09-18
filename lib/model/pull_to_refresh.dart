@@ -24,8 +24,7 @@ class PullToRefreshOptions {
       return PullToRefreshOptions(
           indicatorType: RefreshIndicatorType.values.from(
               input['indicatorType']),
-          indicatorMinDuration: Utils.getDurationMs(
-              int.tryParse(input['indicatorMinDuration'])));
+          indicatorMinDuration: Utils.getDurationMs(input['indicatorMinDuration']));
     }
   }
 }

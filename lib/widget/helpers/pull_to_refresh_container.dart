@@ -79,9 +79,19 @@ class _PullToRefreshContainerState extends State<PullToRefreshContainer> {
   }
 
   Future<void> processOnRefresh() async {
-    // wait for the callback to return
+    final stopwatch = Stopwatch()..start();
     await widget.onRefresh();
+    stopwatch.stop();
 
-    // await Future.delayed(Duration(seconds: 2));
+    // ensure we run the minimum duration specified
+    if (widget.options?.indicatorMinDuration != null && widget.options!
+        .indicatorMinDuration!.compareTo(stopwatch.elapsed) > 0) {
+      int additionalMs = widget.options!.indicatorMinDuration!.inMilliseconds
+          - stopwatch.elapsedMilliseconds;
+
+        return Future.delayed(Duration(milliseconds: additionalMs));
+    }
+
   }
+  
 }

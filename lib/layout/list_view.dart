@@ -153,9 +153,9 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
 
     if (widget._controller.onPullToRefresh != null) {
       listView = PullToRefreshContainer(
-          indicatorType: widget._controller.refreshIndicatorType,
-          contentWidget: listView,
-          onRefresh: _pullToRefresh);
+          options: widget._controller.pullToRefreshOptions,
+          onRefresh: _pullToRefresh,
+          contentWidget: listView);
     }
 
     return BoxWrapper(
