@@ -81,13 +81,12 @@ void callbackDispatcher() {
 
 /// use this as the root widget for Ensemble
 class EnsembleApp extends StatefulWidget {
-  const EnsembleApp({
-    super.key,
-    this.screenPayload,
-    this.ensembleConfig,
-    this.isPreview = false,
-    this.placeholderBackgroundColor
-  });
+  const EnsembleApp(
+      {super.key,
+      this.screenPayload,
+      this.ensembleConfig,
+      this.isPreview = false,
+      this.placeholderBackgroundColor});
 
   final ScreenPayload? screenPayload;
   final EnsembleConfig? ensembleConfig;
@@ -202,7 +201,6 @@ class EnsembleAppState extends State<EnsembleApp> {
     return MaterialApp(
         debugShowCheckedModeBanner: false,
         home: Scaffold(
-            backgroundColor: placeholderBackgroundColor,
-            body: widget));
+            backgroundColor: placeholderBackgroundColor, body: widget));
   }
 }

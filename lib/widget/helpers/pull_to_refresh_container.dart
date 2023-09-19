@@ -84,14 +84,13 @@ class _PullToRefreshContainerState extends State<PullToRefreshContainer> {
     stopwatch.stop();
 
     // ensure we run the minimum duration specified
-    if (widget.options?.indicatorMinDuration != null && widget.options!
-        .indicatorMinDuration!.compareTo(stopwatch.elapsed) > 0) {
-      int additionalMs = widget.options!.indicatorMinDuration!.inMilliseconds
-          - stopwatch.elapsedMilliseconds;
+    if (widget.options?.indicatorMinDuration != null &&
+        widget.options!.indicatorMinDuration!.compareTo(stopwatch.elapsed) >
+            0) {
+      int additionalMs = widget.options!.indicatorMinDuration!.inMilliseconds -
+          stopwatch.elapsedMilliseconds;
 
-        return Future.delayed(Duration(milliseconds: additionalMs));
+      return Future.delayed(Duration(milliseconds: additionalMs));
     }
-
   }
-  
 }
