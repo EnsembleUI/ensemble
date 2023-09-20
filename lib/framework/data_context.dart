@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 import 'dart:io' as io;
@@ -6,6 +7,7 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble/framework/stub/auth_context_manager.dart';
 import 'package:ensemble/framework/stub/oauth_controller.dart';
@@ -32,6 +34,7 @@ import 'package:intl/intl.dart';
 import 'package:mime/mime.dart';
 import 'package:source_span/source_span.dart';
 import 'package:walletconnect_dart/walletconnect_dart.dart';
+import 'package:web_socket_client/web_socket_client.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:yaml/yaml.dart';
 import 'package:collection/collection.dart';
@@ -316,6 +319,7 @@ class NativeInvokable with Invokable {
       'storage': () => EnsembleStorage(_buildContext),
       'user': () => UserInfo(),
       'formatter': () => Formatter(_buildContext),
+      'socket': () => EnsembleSocketInvokable(_buildContext),
     };
   }
 
@@ -419,6 +423,78 @@ class NativeInvokable with Invokable {
 
   void navigateBack(dynamic data) {
     ScreenController().executeAction(_buildContext, NavigateBack(data));
+  }
+}
+
+class EnsembleSocketInvokable with Invokable {
+  static late BuildContext context;
+  dynamic message;
+  final socketService = SocketService();
+
+  static final EnsembleSocketInvokable _instance =
+      EnsembleSocketInvokable._internal();
+
+  EnsembleSocketInvokable._internal();
+
+  factory EnsembleSocketInvokable(BuildContext buildContext) {
+    context = buildContext;
+    return _instance;
+  }
+
+  @override
+  Map<String, Function> getters() {
+    return {'data': () => message};
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {
+      'send': (String socketName, dynamic data) {
+        socketService.send(socketName, data);
+      },
+      'connect': (String socketName) {
+        _connect(socketName);
+      },
+      'disconnect': (String socketName) {
+        socketService.disconnect(socketName);
+      },
+      'state': (String socketName) {
+        // TODO
+      },
+    };
+  }
+
+  Future<void> _connect(String socketName) async {
+    final (WebSocket socket, EnsembleSocket data) =
+        socketService.connect(socketName);
+    final connectionStateSub = socket.connection.listen((event) {
+      if ((event is Connected || event is Reconnected) &&
+          data.onSuccess != null) {
+        ScreenController().executeAction(context, data.onSuccess!);
+        return;
+      }
+      if (event is Disconnected && data.onDisconnect != null) {
+        ScreenController().executeAction(context, data.onDisconnect!);
+        return;
+      }
+      if (event is Reconnecting && data.onReconnecting != null) {
+        ScreenController().executeAction(context, data.onReconnecting!);
+        return;
+      }
+    });
+
+    final subscription = socket.messages.listen((event) {
+      message = event;
+      if (data.onReceive == null) return;
+      ScreenController().executeAction(context, data.onReceive!);
+    });
+    socketService.setSubscription(socketName, subscription);
+    socketService.setConnectionSubscription(socketName, connectionStateSub);
   }
 }
 

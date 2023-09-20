@@ -1,22 +1,23 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
-import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
 import 'package:event_bus/event_bus.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:web_socket_client/web_socket_client.dart';
 import 'package:yaml/yaml.dart';
 
 /// ScopeManager handles all data/view relative to a Scope. It also has a
@@ -515,7 +516,7 @@ mixin PageBindingManager on IsScopeManager {
 
 /// data for the current Page.
 class PageData {
-  PageData({this.customViewDefinitions, this.apiMap}) {
+  PageData({this.customViewDefinitions, this.apiMap, this.socketData}) {
     //log("EventBus ${eventBus.hashCode} created");
   }
 
@@ -543,6 +544,7 @@ class PageData {
 
   // API model mapping
   Map<String, YamlMap>? apiMap;
+  Map<String, EnsembleSocket>? socketData;
 
   /// everytime we call this, we make sure any populated API result will have its updated values here
   /*DataContext getEnsembleContext() {
@@ -579,5 +581,132 @@ class EnsembleTimer {
 
   void cancel() {
     timer.cancel();
+  }
+}
+
+class EnsembleSocket {
+  final Uri uri;
+  final SocketOptions options;
+
+  // callbacks
+  final EnsembleAction? onSuccess;
+  final EnsembleAction? onError;
+  final EnsembleAction? onDisconnect;
+  final EnsembleAction? onReconnecting;
+  final EnsembleAction? onReceive;
+
+  factory EnsembleSocket.fromYaml({YamlMap? payload}) {
+    if (payload == null || payload['uri'] == null) {
+      throw LanguageError("Socket requires uri to connect");
+    }
+
+    final parsedUri = Uri.tryParse(payload['uri']);
+    final data = EnsembleSocket(
+      uri: parsedUri!,
+      options: SocketOptions.fromYaml(payload: payload['options']),
+      onReceive: EnsembleAction.fromYaml(payload['onReceive']),
+      onSuccess: EnsembleAction.fromYaml(payload['onSuccess']),
+      onError: EnsembleAction.fromYaml(payload['onError']),
+      onDisconnect: EnsembleAction.fromYaml(payload['onDisconnect']),
+      onReconnecting: EnsembleAction.fromYaml(payload['onReconnectAttempt']),
+    );
+    
+    return data;
+  }
+
+  EnsembleSocket({
+    required this.uri,
+    required this.options,
+    this.onReceive,
+    this.onSuccess,
+    this.onError,
+    this.onDisconnect,
+    this.onReconnecting,
+  });
+}
+
+class SocketOptions {
+  final bool autoReconnect;
+  final bool disconnctOnPageClose;
+  final int reconnectInitialTimer;
+  final int reconnectMaxStep;
+
+  SocketOptions({
+    this.autoReconnect = true,
+    this.disconnctOnPageClose = true,
+    this.reconnectInitialTimer = 1,
+    this.reconnectMaxStep = 3,
+  });
+
+  factory SocketOptions.fromYaml({YamlMap? payload}) {
+    return SocketOptions(
+      autoReconnect: Utils.getBool(payload?['autoReconnect'], fallback: true),
+      disconnctOnPageClose:
+          Utils.getBool(payload?['disconnctOnPageClose'], fallback: true),
+      reconnectInitialTimer:
+          Utils.getInt(payload?['reconnectInitialTimer'], fallback: 1),
+      reconnectMaxStep: Utils.getInt(payload?['reconnectMaxStep'], fallback: 1),
+    );
+  }
+}
+
+class SocketService {
+  static Map<String, EnsembleSocket> socketData = {};
+  static Map<String, WebSocket> activeConnections = {};
+  static Map<String, StreamSubscription> subscriptions = {};
+  static Map<String, StreamSubscription> connectionStateSubscriptions = {};
+
+  SocketService._internal();
+
+  static final SocketService _instance = SocketService._internal();
+  factory SocketService() {
+    return _instance;
+  }
+
+  dynamic connect(String socketName) {
+    final data = socketData[socketName];
+    if (data == null) {
+      throw LanguageError('Please define socket first');
+    }
+    Backoff? backoff;
+    if (data.options.autoReconnect) {
+      backoff = BinaryExponentialBackoff(
+        initial: Duration(seconds: data.options.reconnectInitialTimer),
+        maximumStep: data.options.reconnectMaxStep,
+      );
+    }
+
+    final socket = WebSocket(
+      data.uri,
+      backoff: backoff,
+    );
+
+    activeConnections[socketName] = socket;
+    return (socket, data);
+  }
+
+  void send(String socketName, dynamic message) {
+    final socket = activeConnections[socketName];
+    socket?.send(jsonEncode(message));
+  }
+
+  Future<void> disconnect(String socketName) async {
+    final socket = activeConnections[socketName];
+    final subscription = subscriptions[socketName];
+    socket?.close();
+    await subscription?.cancel();
+    if (socket != null) activeConnections.remove(socketName);
+    if (subscription != null) subscriptions.remove(socketName);
+  }
+
+  void setSubscription(String socketName, StreamSubscription subscription) {
+    subscriptions[socketName] = subscription;
+  }
+  void setConnectionSubscription(String socketName, StreamSubscription subscription) {
+    connectionStateSubscriptions[socketName] = subscription;
+  }
+
+  void dispose() {
+    // TODO
   }
 }
