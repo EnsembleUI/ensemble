@@ -15,9 +15,10 @@ import 'box_utils.dart';
 /// convenience wrapper for BoxLayout
 class BoxLayoutWrapper extends StatelessWidget {
   const BoxLayoutWrapper(
-      {super.key, required this.boxWidget, required this.controller});
+      {super.key, required this.boxWidget, required this.controller, this.ignoresMargin=false});
   final Widget boxWidget;
   final BaseBoxLayoutController controller;
+  final bool ignoresMargin;
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +39,7 @@ class BoxLayoutWrapper extends StatelessWidget {
             ScreenController().executeAction(context, controller.onTap!),
       );
     }
-    if (controller.margin != null) {
+    if (!ignoresMargin && controller.margin != null) {
       rtn = Padding(padding: controller.margin!, child: rtn);
     }
     return rtn;
