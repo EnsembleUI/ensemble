@@ -85,10 +85,13 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
   void initState() {
     super.initState();
     _scopeManager = ScopeManager(
-        widget.initialDataContext.clone(newBuildContext: context),
-        PageData(
-            customViewDefinitions: widget.model.customViewDefinitions,
-            apiMap: widget.model.apiMap));
+      widget.initialDataContext.clone(newBuildContext: context),
+      PageData(
+        customViewDefinitions: widget.model.customViewDefinitions,
+        apiMap: widget.model.apiMap,
+        socketData: widget.model.socketData,
+      ),
+    );
 
     // init the pages (TODO: need to update if definition changes)
     for (int i = 0; i < widget.menu.menuItems.length; i++) {

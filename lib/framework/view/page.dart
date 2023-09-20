@@ -70,10 +70,13 @@ class PageState extends State<Page> {
   @override
   void initState() {
     _scopeManager = ScopeManager(
-        widget._initialDataContext.clone(newBuildContext: context),
-        PageData(
-            customViewDefinitions: widget._pageModel.customViewDefinitions,
-            apiMap: widget._pageModel.apiMap));
+      widget._initialDataContext.clone(newBuildContext: context),
+      PageData(
+        customViewDefinitions: widget._pageModel.customViewDefinitions,
+        apiMap: widget._pageModel.apiMap,
+        socketData: widget._pageModel.socketData,
+      ),
+    );
     widget.rootScopeManager = _scopeManager;
 
     // if we have a menu, figure out which child page to display initially
