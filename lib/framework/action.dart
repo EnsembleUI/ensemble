@@ -257,16 +257,16 @@ class ReceiveIntentAction extends EnsembleAction {
     Invokable? initiator,
     this.options,
     this.id,
-    this.onSuccess,
+    this.onReceive,
     this.onError,
   }) : super(initiator: initiator);
   final Map<String, dynamic>? options;
   String? id;
-  EnsembleAction? onSuccess;
+  EnsembleAction? onReceive;
   EnsembleAction? onError;
 
-  EnsembleAction? getOnSuccess(DataContext dataContext) =>
-      dataContext.eval(onSuccess);
+  EnsembleAction? getOnReceive(DataContext dataContext) =>
+      dataContext.eval(onReceive);
 
   EnsembleAction? getOnError(DataContext dataContext) =>
       dataContext.eval(onError);
@@ -277,7 +277,7 @@ class ReceiveIntentAction extends EnsembleAction {
       initiator: initiator,
       options: Utils.getMap(payload?['options']),
       id: Utils.optionalString(payload?['id']),
-      onSuccess: EnsembleAction.fromYaml(payload?['onSuccess']),
+      onReceive: EnsembleAction.fromYaml(payload?['onReceive']),
       onError: EnsembleAction.fromYaml(payload?['onError']),
     );
   }
