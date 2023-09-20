@@ -416,6 +416,9 @@ class OpenUrlAction extends EnsembleAction {
         openInExternalApp:
             Utils.getBool(payload['openInExternalApp'], fallback: false));
   }
+  factory OpenUrlAction.fromMap(dynamic inputs) =>
+      OpenUrlAction.fromYaml(payload: Utils.getYamlMap(inputs));
+
 }
 
 class NavigateBack extends EnsembleAction {
