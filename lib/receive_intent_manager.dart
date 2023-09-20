@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:ensemble/screen_controller.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
 class ReceiveIntentManager {
@@ -15,7 +14,7 @@ class ReceiveIntentManager {
 
   late StreamSubscription _intentDataStreamSubscription;
   List<SharedMediaFile>? _sharedFiles;
-  String? _sharedText;
+  String? sharedText;
 
   void init() {
     receiveMediaWhenInMemory();
@@ -44,7 +43,6 @@ class ReceiveIntentManager {
     ReceiveSharingIntent.getInitialMedia().then((List<SharedMediaFile> value) {
       _sharedFiles = value;
       print("Shared:" + (_sharedFiles?.map((f) => f.path).join(",") ?? ""));
-      // ScreenController().executeGetLocationAction(scopeManager, dataContext, context, action)
     });
   }
 
@@ -52,8 +50,8 @@ class ReceiveIntentManager {
   void receiveTextUrlWhenInMemory() {
     _intentDataStreamSubscription =
         ReceiveSharingIntent.getTextStream().listen((String value) {
-      _sharedText = value;
-      print("Shared: $_sharedText");
+      sharedText = value;
+      print("Shared: $sharedText");
     }, onError: (err) {
       print("getLinkStream error: $err");
     });
@@ -62,8 +60,8 @@ class ReceiveIntentManager {
   /// For sharing or opening urls/text coming from outside the app while the app is closed
   void receiveTextUrlWhenClosed() {
     ReceiveSharingIntent.getInitialText().then((String? value) {
-      _sharedText = value;
-      print("Shared: $_sharedText");
+      sharedText = value;
+      print("Shared: $sharedText");
     });
   }
 }

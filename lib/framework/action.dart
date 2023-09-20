@@ -252,6 +252,37 @@ class PlaidLinkAction extends EnsembleAction {
   }
 }
 
+class ReceiveIntentAction extends EnsembleAction {
+  ReceiveIntentAction({
+    Invokable? initiator,
+    this.options,
+    this.id,
+    this.onSuccess,
+    this.onError,
+  }) : super(initiator: initiator);
+  final Map<String, dynamic>? options;
+  String? id;
+  EnsembleAction? onSuccess;
+  EnsembleAction? onError;
+
+  EnsembleAction? getOnSuccess(DataContext dataContext) =>
+      dataContext.eval(onSuccess);
+
+  EnsembleAction? getOnError(DataContext dataContext) =>
+      dataContext.eval(onError);
+
+  factory ReceiveIntentAction.fromYaml(
+      {Invokable? initiator, YamlMap? payload}) {
+    return ReceiveIntentAction(
+      initiator: initiator,
+      options: Utils.getMap(payload?['options']),
+      id: Utils.optionalString(payload?['id']),
+      onSuccess: EnsembleAction.fromYaml(payload?['onSuccess']),
+      onError: EnsembleAction.fromYaml(payload?['onError']),
+    );
+  }
+}
+
 class AppSettingAction extends EnsembleAction {
   AppSettingAction({
     super.initiator,
@@ -421,7 +452,6 @@ class OpenUrlAction extends EnsembleAction {
   }
   factory OpenUrlAction.fromMap(dynamic inputs) =>
       OpenUrlAction.fromYaml(payload: Utils.getYamlMap(inputs));
-
 }
 
 class NavigateBack extends EnsembleAction {
@@ -711,16 +741,17 @@ class GetDeviceTokenAction extends EnsembleAction {
 
   factory GetDeviceTokenAction.fromMap({dynamic payload}) {
     if (payload is Map) {
-      EnsembleAction? successAction = EnsembleAction.fromYaml(payload['onSuccess']);
+      EnsembleAction? successAction =
+          EnsembleAction.fromYaml(payload['onSuccess']);
       if (successAction == null) {
         throw LanguageError("onSuccess() is required for Get Token Action");
       }
-      return GetDeviceTokenAction(onSuccess: successAction,
+      return GetDeviceTokenAction(
+          onSuccess: successAction,
           onError: EnsembleAction.fromYaml(payload['onError']));
     }
     throw LanguageError("Missing inputs for getDeviceToken.}");
   }
-
 }
 
 class RequestNotificationAction extends EnsembleAction {
@@ -811,6 +842,7 @@ enum ActionType {
   saveToKeychain,
   clearKeychain,
   getDeviceToken,
+  receiveIntent,
 }
 
 enum ToastType { success, error, warning, info }
@@ -917,6 +949,9 @@ abstract class EnsembleAction {
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.checkPermission) {
       return CheckPermission.fromYaml(payload: payload);
+    } else if (actionType == ActionType.receiveIntent) {
+      return ReceiveIntentAction.fromYaml(
+          initiator: initiator, payload: payload);
     }
     throw LanguageError("Invalid action.",
         recovery: "Make sure to use one of Ensemble-provided actions.");
