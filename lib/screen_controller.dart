@@ -499,20 +499,25 @@ class ScreenController {
       Share.share(action.getText(dataContext),
           subject: action.getTitle(dataContext));
     } else if (action is GetDeviceTokenAction) {
-      String? deviceToken = await FirebaseMessaging.instance.getToken();
-      if (deviceToken != null && action.onSuccess != null) {
-        return ScreenController().executeAction(
-            context,
-            action.onSuccess!,
-            event: EnsembleEvent(null, data: {
-              'token': deviceToken
-            }));
+      String? deviceToken;
+      try {
+        await FirebaseMessaging.instance.getAPNSToken();
+        deviceToken = await FirebaseMessaging.instance.getToken();
+        if (deviceToken != null && action.onSuccess != null) {
+          return ScreenController().executeAction(
+              context,
+              action.onSuccess!,
+              event: EnsembleEvent(null, data: {
+                'token': deviceToken
+              }));
+        }
+      } on Exception catch (e) {
+        log(e.toString());
+        log('Error getting device token');
       }
       if (deviceToken == null && action.onError != null) {
         return ScreenController().executeAction(context, action.onError!);
       }
-
-
     } else if (action is WalletConnectAction) {
       //  TODO store session:  WalletConnectSession? session = await sessionStorage.getSession();
 
