@@ -108,6 +108,13 @@ dependencies:
   app_links: ^3.4.3
   share_plus: ^6.2.0
 
+  # Using the forked copy of receive_sharing_intent because of the gradle version issue
+  # https://github.com/KasemJaffer/receive_sharing_intent/issues/256
+  receive_sharing_intent:
+    git:
+      url: https://github.com/AyushmanG26/receive_sharing_intent.git
+      ref: abedc3d6d5b80df396e9c300fd1a052cbab08827
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
