@@ -319,7 +319,6 @@ class NativeInvokable with Invokable {
       'storage': () => EnsembleStorage(_buildContext),
       'user': () => UserInfo(),
       'formatter': () => Formatter(_buildContext),
-      'socket': () => EnsembleSocketInvokable(_buildContext),
     };
   }
 
@@ -349,12 +348,64 @@ class NativeInvokable with Invokable {
       ActionType.saveToKeychain.name: (key, value) =>
           saveToKeychain(key, value),
       ActionType.clearKeychain.name: (key) => clearKeychain(key),
+      'connectSocket': (String socketName) {
+        connectSocket(_buildContext, socketName);
+      },
+      'disconnectSocket': (String socketName) {
+        disconnectSocket(socketName);
+      },
+      'sendSocket': (String socketName, dynamic message) {
+        sendSocket(socketName, message);
+      },
     };
   }
 
   @override
   Map<String, Function> setters() {
     return {};
+  }
+
+  Future<void> connectSocket(BuildContext context, String socketName) async {
+    final socketService = SocketService();
+    final (WebSocket socket, EnsembleSocket data) =
+        socketService.connect(socketName);
+    final connectionStateSub = socket.connection.listen((event) {
+      if ((event is Connected || event is Reconnected) &&
+          data.onSuccess != null) {
+        ScreenController().executeAction(context, data.onSuccess!);
+        return;
+      }
+      if (event is Disconnected && data.onDisconnect != null) {
+        ScreenController().executeAction(context, data.onDisconnect!);
+        return;
+      }
+      if (event is Reconnecting && data.onReconnecting != null) {
+        ScreenController().executeAction(context, data.onReconnecting!);
+        return;
+      }
+    });
+
+    final subscription = socket.messages.listen((message) {
+      if (data.onReceive == null) return;
+      final ScopeManager? scope =
+          ScreenController().getScopeManager(_buildContext);
+      scope?.dataContext
+          .addInvokableContext(socketName, EnsembleSocketInvokable(message));
+
+      ScreenController().executeAction(context, data.onReceive!);
+    });
+    socketService.setSubscription(socketName, subscription);
+    socketService.setConnectionSubscription(socketName, connectionStateSub);
+  }
+
+  Future<void> disconnectSocket(String socketName) async {
+    final socketService = SocketService();
+    await socketService.disconnect(socketName);
+  }
+
+  void sendSocket(String socketName, dynamic message) {
+    final socketService = SocketService();
+    socketService.send(socketName, message);
   }
 
   Future<void> saveToKeychain(String key, dynamic value) async {
@@ -427,74 +478,25 @@ class NativeInvokable with Invokable {
 }
 
 class EnsembleSocketInvokable with Invokable {
-  static late BuildContext context;
-  dynamic message;
-  final socketService = SocketService();
+  dynamic data;
 
-  static final EnsembleSocketInvokable _instance =
-      EnsembleSocketInvokable._internal();
-
-  EnsembleSocketInvokable._internal();
-
-  factory EnsembleSocketInvokable(BuildContext buildContext) {
-    context = buildContext;
-    return _instance;
-  }
+  EnsembleSocketInvokable(this.data);
 
   @override
   Map<String, Function> getters() {
-    return {'data': () => message};
+    return {
+      'data': () => data,
+    };
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {};
   }
 
   @override
   Map<String, Function> setters() {
     return {};
-  }
-
-  @override
-  Map<String, Function> methods() {
-    return {
-      'send': (String socketName, dynamic data) {
-        socketService.send(socketName, data);
-      },
-      'connect': (String socketName) {
-        _connect(socketName);
-      },
-      'disconnect': (String socketName) {
-        socketService.disconnect(socketName);
-      },
-      'state': (String socketName) {
-        // TODO
-      },
-    };
-  }
-
-  Future<void> _connect(String socketName) async {
-    final (WebSocket socket, EnsembleSocket data) =
-        socketService.connect(socketName);
-    final connectionStateSub = socket.connection.listen((event) {
-      if ((event is Connected || event is Reconnected) &&
-          data.onSuccess != null) {
-        ScreenController().executeAction(context, data.onSuccess!);
-        return;
-      }
-      if (event is Disconnected && data.onDisconnect != null) {
-        ScreenController().executeAction(context, data.onDisconnect!);
-        return;
-      }
-      if (event is Reconnecting && data.onReconnecting != null) {
-        ScreenController().executeAction(context, data.onReconnecting!);
-        return;
-      }
-    });
-
-    final subscription = socket.messages.listen((event) {
-      message = event;
-      if (data.onReceive == null) return;
-      ScreenController().executeAction(context, data.onReceive!);
-    });
-    socketService.setSubscription(socketName, subscription);
-    socketService.setConnectionSubscription(socketName, connectionStateSub);
   }
 }
 
