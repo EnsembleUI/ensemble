@@ -1,5 +1,10 @@
 import 'dart:async';
 
+import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:flutter/material.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
 class ReceiveIntentManager {
@@ -12,14 +17,19 @@ class ReceiveIntentManager {
     return _instance;
   }
 
+  Invokable? invokable;
+  BuildContext? context;
+  EnsembleAction? onReceive;
+  EnsembleAction? onError;
+
   late StreamSubscription _intentDataStreamSubscription;
   List<SharedMediaFile>? _sharedFiles;
   String? sharedText;
 
   void init() {
-    receiveMediaWhenInMemory();
+    // receiveMediaWhenInMemory();
     receiveMediaWhenClosed();
-    receiveTextUrlWhenInMemory();
+    // receiveTextUrlWhenInMemory();
     receiveTextUrlWhenClosed();
   }
 
@@ -32,7 +42,12 @@ class ReceiveIntentManager {
     _intentDataStreamSubscription = ReceiveSharingIntent.getMediaStream()
         .listen((List<SharedMediaFile> value) {
       _sharedFiles = value;
-      print("Shared:" + (_sharedFiles?.map((f) => f.path).join(",") ?? ""));
+      final filePath = (_sharedFiles?.map((f) => f.path).join(",") ?? "");
+      if (context != null && onReceive != null) {
+        print("Shared Media: InMemory - $filePath");
+        ScreenController().executeAction(context!, onReceive!,
+            event: EnsembleEvent(invokable, data: {'file': filePath}));
+      }
     }, onError: (err) {
       print("getIntentDataStream error: $err");
     });
@@ -40,9 +55,20 @@ class ReceiveIntentManager {
 
   /// For sharing images coming from outside the app while the app is closed
   void receiveMediaWhenClosed() {
-    ReceiveSharingIntent.getInitialMedia().then((List<SharedMediaFile> value) {
-      _sharedFiles = value;
-      print("Shared:" + (_sharedFiles?.map((f) => f.path).join(",") ?? ""));
+    Future.delayed(const Duration(seconds: 1)).then((value) {
+      ReceiveSharingIntent.getInitialMedia()
+          .then((List<SharedMediaFile> value) {
+        _sharedFiles = value;
+        final filePath = (_sharedFiles?.map((f) => f.path).join(",") ?? "");
+        if (context != null &&
+            onReceive != null &&
+            _sharedFiles != null &&
+            _sharedFiles!.isNotEmpty) {
+          print("Shared Media: Closed - $filePath");
+          ScreenController().executeAction(context!, onReceive!,
+              event: EnsembleEvent(invokable, data: {'file': filePath}));
+        }
+      });
     });
   }
 
@@ -51,7 +77,11 @@ class ReceiveIntentManager {
     _intentDataStreamSubscription =
         ReceiveSharingIntent.getTextStream().listen((String value) {
       sharedText = value;
-      print("Shared: $sharedText");
+      if (context != null && onReceive != null && value.isNotEmpty) {
+        print("Shared Text - In Memory: $sharedText");
+        ScreenController().executeAction(context!, onReceive!,
+            event: EnsembleEvent(invokable, data: {'text': sharedText}));
+      }
     }, onError: (err) {
       print("getLinkStream error: $err");
     });
@@ -59,9 +89,16 @@ class ReceiveIntentManager {
 
   /// For sharing or opening urls/text coming from outside the app while the app is closed
   void receiveTextUrlWhenClosed() {
-    ReceiveSharingIntent.getInitialText().then((String? value) {
-      sharedText = value;
-      print("Shared: $sharedText");
+    Future.delayed(const Duration(seconds: 1)).then((value) {
+      ReceiveSharingIntent.getInitialText().then((String? value) {
+        sharedText = value;
+        if (context != null && onReceive != null && value != null) {
+          print("Shared Text - Closed: $sharedText");
+          ScreenController().executeAction(context!, onReceive!,
+              event: EnsembleEvent(invokable,
+                  data: {'text': sharedText ?? 'Not Found'}));
+        }
+      });
     });
   }
 }

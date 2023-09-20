@@ -251,14 +251,12 @@ class ScreenController {
             "openPlaidLink action requires the plaid's link_token.");
       }
     } else if (action is ReceiveIntentAction) {
-      final text = ReceiveIntentManager().sharedText;
-      if (action.getOnSuccess(dataContext) != null) {
-        executeActionWithScope(
-          context,
-          scopeManager!,
-          action.getOnSuccess(dataContext)!,
-          event: EnsembleEvent(action.initiator, data: {'text': text}),
-        );
+      if (action.getOnReceive(dataContext) != null) {
+        ReceiveIntentManager().init();
+        ReceiveIntentManager().invokable = action.initiator;
+        ReceiveIntentManager().context = context;
+        ReceiveIntentManager().onReceive = action.getOnReceive(dataContext);
+        ReceiveIntentManager().onError = action.getOnError(dataContext);
       }
     } else if (action is AppSettingAction) {
       final settingType = action.getTarget(dataContext);
