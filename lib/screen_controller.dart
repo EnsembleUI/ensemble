@@ -31,6 +31,7 @@ import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/framework/widget/toast.dart';
 import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/receive_intent_manager.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/util/notification_utils.dart';
@@ -248,6 +249,16 @@ class ScreenController {
       } else {
         throw RuntimeError(
             "openPlaidLink action requires the plaid's link_token.");
+      }
+    } else if (action is ReceiveIntentAction) {
+      final text = ReceiveIntentManager().sharedText;
+      if (action.getOnSuccess(dataContext) != null) {
+        executeActionWithScope(
+          context,
+          scopeManager!,
+          action.getOnSuccess(dataContext)!,
+          event: EnsembleEvent(action.initiator, data: {'text': text}),
+        );
       }
     } else if (action is AppSettingAction) {
       final settingType = action.getTarget(dataContext);
@@ -499,21 +510,10 @@ class ScreenController {
       Share.share(action.getText(dataContext),
           subject: action.getTitle(dataContext));
     } else if (action is GetDeviceTokenAction) {
-      String? deviceToken;
-      try {
-        await FirebaseMessaging.instance.getAPNSToken();
-        deviceToken = await FirebaseMessaging.instance.getToken();
-        if (deviceToken != null && action.onSuccess != null) {
-          return ScreenController().executeAction(
-              context,
-              action.onSuccess!,
-              event: EnsembleEvent(null, data: {
-                'token': deviceToken
-              }));
-        }
-      } on Exception catch (e) {
-        log(e.toString());
-        log('Error getting device token');
+      String? deviceToken = await FirebaseMessaging.instance.getToken();
+      if (deviceToken != null && action.onSuccess != null) {
+        return ScreenController().executeAction(context, action.onSuccess!,
+            event: EnsembleEvent(null, data: {'token': deviceToken}));
       }
       if (deviceToken == null && action.onError != null) {
         return ScreenController().executeAction(context, action.onError!);
