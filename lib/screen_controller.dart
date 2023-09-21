@@ -513,12 +513,8 @@ class ScreenController {
         // then get device token
         deviceToken = await FirebaseMessaging.instance.getToken();
         if (deviceToken != null && action.onSuccess != null) {
-          return ScreenController().executeAction(
-              context,
-              action.onSuccess!,
-              event: EnsembleEvent(null, data: {
-                'token': deviceToken
-              }));
+          return ScreenController().executeAction(context, action.onSuccess!,
+              event: EnsembleEvent(null, data: {'token': deviceToken}));
         }
       } on Exception catch (e) {
         log(e.toString());
@@ -629,33 +625,41 @@ class ScreenController {
         }
       }
     } else if (action is ConnectSocketAction) {
+      dynamic resolveURI(String uri) {
+        final result = dataContext.eval(uri);
+        return Uri.tryParse(result);
+      }
+
+      for (var element in action.inputs?.entries ?? const Iterable.empty()) {
+        dynamic value = dataContext.eval(element.value);
+        dataContext.addDataContextById(element.key, value);
+      }
       final socketName = action.name;
       final socketService = SocketService();
       final (WebSocket socket, EnsembleSocket data) =
-          socketService.connect(socketName);
-      final connectionStateSub = socket.connection.listen((event) {
-        if ((event is Connected || event is Reconnected) &&
-            data.onSuccess != null) {
-          ScreenController().executeAction(context, data.onSuccess!);
-          if (action.onSuccess != null) {
-            ScreenController().executeAction(context, action.onSuccess!);
+          socketService.connect(socketName, resolveURI);
+      final connectionStateSub = socket.connection.listen(
+        (event) {
+          if (event is Connected || event is Reconnected) {
+            if (data.onSuccess != null) {
+              ScreenController().executeAction(context, data.onSuccess!);
+            }
+
+            if (action.onSuccess != null) {
+              ScreenController().executeAction(context, action.onSuccess!);
+            }
+            return;
           }
-          return;
-        }
-        if (event is Disconnected && data.onDisconnect != null) {
-          ScreenController().executeAction(context, data.onDisconnect!);
-          return;
-        }
-        if (event is Reconnecting && data.onReconnecting != null) {
-          ScreenController().executeAction(context, data.onReconnecting!);
-          return;
-        }
-      }, onDone: () {
-        if (data.onDisconnect != null) {
-          ScreenController().executeAction(context, data.onDisconnect!);
-          return;
-        }
-      });
+          if (event is Disconnected && data.onDisconnect != null) {
+            ScreenController().executeAction(context, data.onDisconnect!);
+            return;
+          }
+          if (event is Reconnecting && data.onReconnecting != null) {
+            ScreenController().executeAction(context, data.onReconnecting!);
+            return;
+          }
+        },
+      );
 
       final subscription = socket.messages.listen((message) {
         if (data.onReceive == null) return;

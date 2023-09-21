@@ -350,8 +350,8 @@ class NativeInvokable with Invokable {
       ActionType.saveToKeychain.name: (key, value) =>
           saveToKeychain(key, value),
       ActionType.clearKeychain.name: (key) => clearKeychain(key),
-      'connectSocket': (String socketName) {
-        connectSocket(_buildContext, socketName);
+      'connectSocket': (String socketName, Map<dynamic, dynamic>? inputs) {
+        connectSocket(_buildContext, socketName, inputs: inputs);
       },
       'disconnectSocket': (String socketName) {
         disconnectSocket(socketName);
@@ -367,9 +367,12 @@ class NativeInvokable with Invokable {
     return {};
   }
 
-  Future<void> connectSocket(BuildContext context, String socketName) async {
-    ScreenController()
-        .executeAction(context, ConnectSocketAction(name: socketName));
+  Future<void> connectSocket(BuildContext context, String socketName,
+      {Map<dynamic, dynamic>? inputs}) async {
+    ScreenController().executeAction(
+        context,
+        ConnectSocketAction(
+            name: socketName, inputs: inputs?.cast<String, dynamic>()));
   }
 
   Future<void> disconnectSocket(String socketName) async {
@@ -431,11 +434,12 @@ class NativeInvokable with Invokable {
     ScreenController()
         .executeAction(_buildContext, ShowDialogAction(widget: widget));
   }
+
   void openUrl([dynamic inputs]) {
     Map<String, dynamic>? inputMap = Utils.getMap(inputs);
     inputMap ??= {};
-    ScreenController().executeAction(
-        _buildContext, OpenUrlAction.fromMap(inputMap));
+    ScreenController()
+        .executeAction(_buildContext, OpenUrlAction.fromMap(inputMap));
   }
 
   void invokeAPI(String apiName, [dynamic inputs]) {

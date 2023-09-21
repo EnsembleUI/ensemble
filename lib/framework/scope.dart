@@ -587,7 +587,8 @@ class EnsembleTimer {
 }
 
 class EnsembleSocket {
-  final Uri uri;
+  final List<String> inputs;
+  final String uri;
   final SocketOptions options;
 
   // callbacks
@@ -601,10 +602,9 @@ class EnsembleSocket {
     if (payload == null || payload['uri'] == null) {
       throw LanguageError("Socket requires uri to connect");
     }
-
-    final parsedUri = Uri.tryParse(payload['uri']);
-    final data = EnsembleSocket(
-      uri: parsedUri!,
+    return EnsembleSocket(
+      inputs: Utils.getList(payload['inputs'])?.cast<String>() ?? [],
+      uri: Utils.getString(payload['uri'], fallback: ''),
       options: SocketOptions.fromYaml(payload: payload['options']),
       onReceive: EnsembleAction.fromYaml(payload['onReceive']),
       onSuccess: EnsembleAction.fromYaml(payload['onSuccess']),
@@ -612,11 +612,10 @@ class EnsembleSocket {
       onDisconnect: EnsembleAction.fromYaml(payload['onDisconnect']),
       onReconnecting: EnsembleAction.fromYaml(payload['onReconnectAttempt']),
     );
-
-    return data;
   }
 
   EnsembleSocket({
+    this.inputs = const [],
     required this.uri,
     required this.options,
     this.onReceive,
@@ -665,7 +664,8 @@ class SocketService {
     return _instance;
   }
 
-  dynamic connect(String socketName) {
+  (WebSocket, EnsembleSocket) connect(
+      String socketName, Function(String uri) resolveURI) {
     final data = socketData[socketName];
     if (data == null) {
       throw LanguageError('Please define socket first');
@@ -677,9 +677,10 @@ class SocketService {
         maximumStep: data.options.reconnectMaxStep,
       );
     }
+    final uri = resolveURI(data.uri);
 
     final socket = WebSocket(
-      data.uri,
+      uri,
       backoff: backoff,
     );
 
