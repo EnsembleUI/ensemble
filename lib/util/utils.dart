@@ -87,9 +87,12 @@ class Utils {
   static BackgroundImage? getBackgroundImage(dynamic value) {
     if (value is Map) {
       if (value['source'] != null) {
-        return BackgroundImage(value['source'].toString(),
-            fit: BoxFit.values.from(value['fit']),
-            alignment: getAlignment(value['alignment']));
+        return BackgroundImage(
+          value['source'].toString(),
+          fit: BoxFit.values.from(value['fit']),
+          alignment: getAlignment(value['alignment']),
+          fallback: value['fallback'],
+        );
       }
     }
     // legacy, just a simply URL string
