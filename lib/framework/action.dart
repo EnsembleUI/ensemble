@@ -421,7 +421,6 @@ class OpenUrlAction extends EnsembleAction {
   }
   factory OpenUrlAction.fromMap(dynamic inputs) =>
       OpenUrlAction.fromYaml(payload: Utils.getYamlMap(inputs));
-
 }
 
 class NavigateBack extends EnsembleAction {
@@ -711,16 +710,17 @@ class GetDeviceTokenAction extends EnsembleAction {
 
   factory GetDeviceTokenAction.fromMap({dynamic payload}) {
     if (payload is Map) {
-      EnsembleAction? successAction = EnsembleAction.fromYaml(payload['onSuccess']);
+      EnsembleAction? successAction =
+          EnsembleAction.fromYaml(payload['onSuccess']);
       if (successAction == null) {
         throw LanguageError("onSuccess() is required for Get Token Action");
       }
-      return GetDeviceTokenAction(onSuccess: successAction,
+      return GetDeviceTokenAction(
+          onSuccess: successAction,
           onError: EnsembleAction.fromYaml(payload['onError']));
     }
     throw LanguageError("Missing inputs for getDeviceToken.}");
   }
-
 }
 
 class RequestNotificationAction extends EnsembleAction {
@@ -757,14 +757,20 @@ class ConnectSocketAction extends EnsembleAction {
   final EnsembleAction? onSuccess;
   final EnsembleAction? onError;
 
-  ConnectSocketAction({required this.name, this.onSuccess, this.onError});
+  ConnectSocketAction({
+    required this.name,
+    this.onSuccess,
+    this.onError,
+    Map<String, dynamic>? inputs,
+  }) : super(inputs: inputs);
 
   factory ConnectSocketAction.fromYaml({YamlMap? payload}) {
     if (payload == null || payload['name'] == null) {
       throw ConfigError('connectSocket requires a name');
     }
     return ConnectSocketAction(
-      name: payload['name'],
+      inputs: Utils.getMap(payload['inputs']),
+      name: Utils.getString(payload['name'], fallback: ''),
       onSuccess: EnsembleAction.fromYaml(payload['onSuccess']),
       onError: EnsembleAction.fromYaml(payload['onError']),
     );
@@ -781,7 +787,8 @@ class DisconnectSocketAction extends EnsembleAction {
       throw ConfigError('disconnectSocket requires a name');
     }
 
-    return DisconnectSocketAction(name: payload['name']);
+    return DisconnectSocketAction(
+        name: Utils.getString(payload['name'], fallback: ''));
   }
 }
 
@@ -796,7 +803,10 @@ class MessageSocketAction extends EnsembleAction {
       throw ConfigError('messageSocket requires a name');
     }
 
-    return MessageSocketAction(name: payload['name'], message: payload['message']);
+    return MessageSocketAction(
+      name: Utils.getString(payload['name'], fallback: ''),
+      message: payload['message'],
+    );
   }
 }
 
