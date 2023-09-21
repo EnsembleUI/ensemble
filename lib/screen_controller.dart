@@ -501,7 +501,14 @@ class ScreenController {
     } else if (action is GetDeviceTokenAction) {
       String? deviceToken;
       try {
+        await FirebaseMessaging.instance.requestPermission(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+        // need to get APNS first
         await FirebaseMessaging.instance.getAPNSToken();
+        // then get device token
         deviceToken = await FirebaseMessaging.instance.getToken();
         if (deviceToken != null && action.onSuccess != null) {
           return ScreenController().executeAction(
