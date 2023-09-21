@@ -53,14 +53,12 @@ class BottomNavPageGroup extends StatefulWidget {
     super.key,
     required this.scopeManager,
     required this.menu,
-    required this.onTabSelected,
-    required this.child,
+    required this.children,
   });
 
   final ScopeManager scopeManager;
   final Menu menu;
-  final Function(int) onTabSelected;
-  final Widget child;
+  final List<Widget> children;
 
   @override
   State<BottomNavPageGroup> createState() => _BottomNavPageGroupState();
@@ -68,6 +66,7 @@ class BottomNavPageGroup extends StatefulWidget {
 
 class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
   late List<MenuItem> menuItems;
+  late PageController controller;
   FloatingAlignment floatingAlignment = FloatingAlignment.center;
   int? floatingMargin;
   MenuItem? fabMenuItem;
@@ -75,6 +74,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
   @override
   void initState() {
     super.initState();
+    controller = PageController();
     menuItems = widget.menu.menuItems
         .where((element) => element.floating != true)
         .toList();
@@ -91,6 +91,12 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
       floatingAlignment =
           FloatingAlignment.values.byName(fabMenuItem!.floatingAlignment);
     }
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
   }
 
   Widget? _buildFloatingButton() {
@@ -147,7 +153,11 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
       floatingActionButton: _buildFloatingButton(),
       body: PageGroupWidget(
         scopeManager: widget.scopeManager,
-        child: widget.child,
+        child: PageView(
+          controller: controller,
+          physics: const NeverScrollableScrollPhysics(),
+          children: widget.children,
+        ),
       ),
     );
   }
@@ -202,7 +212,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
       color: unselectedColor,
       selectedColor: selectedColor,
       notchedShape: const CircularNotchedRectangle(),
-      onTabSelected: widget.onTabSelected,
+      onTabSelected: controller.jumpToPage,
       items: navItems,
       isFloating: fabMenuItem != null,
       floatingAlignment: floatingAlignment,

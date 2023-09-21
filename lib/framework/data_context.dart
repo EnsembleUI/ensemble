@@ -330,6 +330,7 @@ class NativeInvokable with Invokable {
       ActionType.navigateModalScreen.name: navigateToModalScreen,
       ActionType.showDialog.name: showDialog,
       ActionType.invokeAPI.name: invokeAPI,
+      ActionType.openUrl.name: openUrl,
       ActionType.stopTimer.name: stopTimer,
       ActionType.openCamera.name: showCamera,
       ActionType.navigateBack.name: navigateBack,
@@ -341,6 +342,7 @@ class NativeInvokable with Invokable {
       'debug': (value) => debugPrint('Debug: $value'),
       'copyToClipboard': (value) =>
           Clipboard.setData(ClipboardData(text: value)),
+      ActionType.share.name: (payload) => ShareAction.from(payload: payload),
       'initNotification': () => notificationUtils.initNotifications(),
       'updateSystemAuthorizationToken': (token) =>
           GetIt.instance<TokenManager>()
@@ -428,6 +430,12 @@ class NativeInvokable with Invokable {
   void showDialog(dynamic widget) {
     ScreenController()
         .executeAction(_buildContext, ShowDialogAction(widget: widget));
+  }
+  void openUrl([dynamic inputs]) {
+    Map<String, dynamic>? inputMap = Utils.getMap(inputs);
+    inputMap ??= {};
+    ScreenController().executeAction(
+        _buildContext, OpenUrlAction.fromMap(inputMap));
   }
 
   void invokeAPI(String apiName, [dynamic inputs]) {
