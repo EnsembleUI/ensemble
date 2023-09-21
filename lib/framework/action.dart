@@ -710,6 +710,54 @@ class ShowNotificationAction extends EnsembleAction {
   }
 }
 
+class ConnectSocketAction extends EnsembleAction {
+  final String name;
+  final EnsembleAction? onSuccess;
+  final EnsembleAction? onError;
+
+  ConnectSocketAction({required this.name, this.onSuccess, this.onError});
+
+  factory ConnectSocketAction.fromYaml({YamlMap? payload}) {
+    if (payload == null || payload['name'] == null) {
+      throw ConfigError('connectSocket requires a name');
+    }
+    return ConnectSocketAction(
+      name: payload['name'],
+      onSuccess: EnsembleAction.fromYaml(payload['onSuccess']),
+      onError: EnsembleAction.fromYaml(payload['onError']),
+    );
+  }
+}
+
+class DisconnectSocketAction extends EnsembleAction {
+  final String name;
+
+  DisconnectSocketAction({required this.name});
+
+  factory DisconnectSocketAction.fromYaml({YamlMap? payload}) {
+    if (payload == null || payload['name'] == null) {
+      throw ConfigError('disconnectSocket requires a name');
+    }
+
+    return DisconnectSocketAction(name: payload['name']);
+  }
+}
+
+class MessageSocketAction extends EnsembleAction {
+  final String name;
+  final dynamic message;
+
+  MessageSocketAction({required this.name, required this.message});
+
+  factory MessageSocketAction.fromYaml({YamlMap? payload}) {
+    if (payload == null || payload['name'] == null) {
+      throw ConfigError('messageSocket requires a name');
+    }
+
+    return MessageSocketAction(name: payload['name'], message: payload['message']);
+  }
+}
+
 class CheckPermission extends EnsembleAction {
   CheckPermission(
       {required dynamic type,
@@ -767,6 +815,9 @@ enum ActionType {
   checkPermission,
   saveToKeychain,
   clearKeychain,
+  connectSocket,
+  disconnectSocket,
+  messageSocket,
 }
 
 enum ToastType { success, error, warning, info }
@@ -869,6 +920,12 @@ abstract class EnsembleAction {
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.checkPermission) {
       return CheckPermission.fromYaml(payload: payload);
+    } else if (actionType == ActionType.connectSocket) {
+      return ConnectSocketAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.disconnectSocket) {
+      return DisconnectSocketAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.messageSocket) {
+      return MessageSocketAction.fromYaml(payload: payload);
     }
     throw LanguageError("Invalid action.",
         recovery: "Make sure to use one of Ensemble-provided actions.");

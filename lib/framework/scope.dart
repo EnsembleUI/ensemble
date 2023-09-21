@@ -68,6 +68,8 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
 
     // cancel the screen's location listener
     pageData.locationListener?.cancel();
+
+    SocketService().dispose();
   }
 
   /// only 1 location listener per screen
@@ -610,7 +612,7 @@ class EnsembleSocket {
       onDisconnect: EnsembleAction.fromYaml(payload['onDisconnect']),
       onReconnecting: EnsembleAction.fromYaml(payload['onReconnectAttempt']),
     );
-    
+
     return data;
   }
 
@@ -685,7 +687,7 @@ class SocketService {
     return (socket, data);
   }
 
-  void send(String socketName, dynamic message) {
+  void message(String socketName, dynamic message) {
     final socket = activeConnections[socketName];
     socket?.send(jsonEncode(message));
   }
@@ -702,11 +704,17 @@ class SocketService {
   void setSubscription(String socketName, StreamSubscription subscription) {
     subscriptions[socketName] = subscription;
   }
-  void setConnectionSubscription(String socketName, StreamSubscription subscription) {
+
+  void setConnectionSubscription(
+      String socketName, StreamSubscription subscription) {
     connectionStateSubscriptions[socketName] = subscription;
   }
 
-  void dispose() {
-    // TODO
+  Future<void> dispose() async {
+    for (var element in socketData.entries) {
+      if (element.value.options.disconnctOnPageClose == true) {
+        await disconnect(element.key);
+      }
+    }
   }
 }
