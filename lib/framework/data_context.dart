@@ -354,8 +354,8 @@ class NativeInvokable with Invokable {
       'disconnectSocket': (String socketName) {
         disconnectSocket(socketName);
       },
-      'sendSocket': (String socketName, dynamic message) {
-        sendSocket(socketName, message);
+      'messageSocket': (String socketName, dynamic message) {
+        messageSocket(socketName, message);
       },
     };
   }
@@ -366,36 +366,8 @@ class NativeInvokable with Invokable {
   }
 
   Future<void> connectSocket(BuildContext context, String socketName) async {
-    final socketService = SocketService();
-    final (WebSocket socket, EnsembleSocket data) =
-        socketService.connect(socketName);
-    final connectionStateSub = socket.connection.listen((event) {
-      if ((event is Connected || event is Reconnected) &&
-          data.onSuccess != null) {
-        ScreenController().executeAction(context, data.onSuccess!);
-        return;
-      }
-      if (event is Disconnected && data.onDisconnect != null) {
-        ScreenController().executeAction(context, data.onDisconnect!);
-        return;
-      }
-      if (event is Reconnecting && data.onReconnecting != null) {
-        ScreenController().executeAction(context, data.onReconnecting!);
-        return;
-      }
-    });
-
-    final subscription = socket.messages.listen((message) {
-      if (data.onReceive == null) return;
-      final ScopeManager? scope =
-          ScreenController().getScopeManager(_buildContext);
-      scope?.dataContext
-          .addInvokableContext(socketName, EnsembleSocketInvokable(message));
-
-      ScreenController().executeAction(context, data.onReceive!);
-    });
-    socketService.setSubscription(socketName, subscription);
-    socketService.setConnectionSubscription(socketName, connectionStateSub);
+    ScreenController()
+        .executeAction(context, ConnectSocketAction(name: socketName));
   }
 
   Future<void> disconnectSocket(String socketName) async {
@@ -403,9 +375,9 @@ class NativeInvokable with Invokable {
     await socketService.disconnect(socketName);
   }
 
-  void sendSocket(String socketName, dynamic message) {
+  void messageSocket(String socketName, dynamic message) {
     final socketService = SocketService();
-    socketService.send(socketName, message);
+    socketService.message(socketName, message);
   }
 
   Future<void> saveToKeychain(String key, dynamic value) async {
