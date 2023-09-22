@@ -69,6 +69,8 @@ class GridView extends StatefulWidget
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'pullToRefreshOptions': (input) => _controller.pullToRefreshOptions =
           PullToRefreshOptions.fromMap(input),
+      'onScrollEnd': (funcDefinition) => _controller.onScrollEnd =
+          EnsembleAction.fromYaml(funcDefinition, initiator: this),
     };
   }
 
@@ -89,6 +91,7 @@ class GridViewController extends BoxController with HasPullToRefresh {
   ItemTemplate? itemTemplate;
   EnsembleAction? onItemTap;
   int selectedItemIndex = -1;
+  EnsembleAction? onScrollEnd;
 
   // single number, 3 numbers (small, medium, large), or 5 numbers (xSmall, small, medium, large, xLarge)
   // min 1, max 5
@@ -210,6 +213,8 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
       ),
     );
 
+    // wrapping view inside
+
     if (widget._controller.onPullToRefresh != null) {
       myGridView = PullToRefreshContainer(
           options: widget._controller.pullToRefreshOptions,
@@ -233,6 +238,9 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
   }
 
   dynamic _buildItem(int index) {
+    if (index == _items.length - 1 && widget._controller.onScrollEnd != null) {
+      ScreenController().executeAction(context, widget._controller.onScrollEnd!);
+    }
     if (widget._controller.onItemTap != null) {
       return EnsembleGestureDetector(
         onTap: (() => _onItemTap(index)),

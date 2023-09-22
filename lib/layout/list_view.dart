@@ -50,6 +50,8 @@ class ListView extends StatefulWidget
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'pullToRefreshOptions': (input) => _controller.pullToRefreshOptions =
           PullToRefreshOptions.fromMap(input),
+      'onScrollEnd': (funcDefinition) => _controller.onScrollEnd =
+          EnsembleAction.fromYaml(funcDefinition, initiator: this),
     };
   }
 
@@ -75,6 +77,7 @@ class ListViewController extends BoxLayoutController {
   Color? separatorColor;
   double? separatorWidth;
   EdgeInsets? separatorPadding;
+  EnsembleAction? onScrollEnd;
 }
 
 class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
@@ -116,7 +119,8 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
         itemCount: itemCount,
         shrinkWrap: false,
         itemBuilder: (BuildContext context, int index) {
-          // show children
+          // show childrenfocus
+          _checkScrollEnd(context, index);
           Widget? itemWidget;
           if (widget._controller.children != null &&
               index < widget._controller.children!.length) {
@@ -182,6 +186,14 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
       ScreenController().executeAction(context, widget._controller.onItemTap!);
       print(
           "The Selected index in data array of ListView is ${widget._controller.selectedItemIndex}");
+    }
+  }
+
+  void _checkScrollEnd(BuildContext context, int index) {
+    final totalItems = (widget._controller.children?.length ?? 0) +
+        (templatedDataList?.length ?? 0);
+    if (index == totalItems - 1 && widget._controller.onScrollEnd != null) {
+      ScreenController().executeAction(context, widget._controller.onScrollEnd!);
     }
   }
 }
