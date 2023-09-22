@@ -415,6 +415,10 @@
           "type": "string",
           "description": "URL to or asset name of the image. If the URL is used, it is highly recommended that the dimensions is set (either with width/height or other means) to prevent the UI jerkiness while loading."
         },
+        "fallback": {
+          "$ref": "#/$defs/Widget",
+          "description": "Return an inline widget or specify a custom widget to be rendered when the image failed to load the image"
+        },
         "onTap": {
           "$ref": "#/$defs/Action-payload",
           "description": "Call Ensemble's built-in functions or execute code"

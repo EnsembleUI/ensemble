@@ -421,7 +421,6 @@ class OpenUrlAction extends EnsembleAction {
   }
   factory OpenUrlAction.fromMap(dynamic inputs) =>
       OpenUrlAction.fromYaml(payload: Utils.getYamlMap(inputs));
-
 }
 
 class NavigateBack extends EnsembleAction {
@@ -711,16 +710,17 @@ class GetDeviceTokenAction extends EnsembleAction {
 
   factory GetDeviceTokenAction.fromMap({dynamic payload}) {
     if (payload is Map) {
-      EnsembleAction? successAction = EnsembleAction.fromYaml(payload['onSuccess']);
+      EnsembleAction? successAction =
+          EnsembleAction.fromYaml(payload['onSuccess']);
       if (successAction == null) {
         throw LanguageError("onSuccess() is required for Get Token Action");
       }
-      return GetDeviceTokenAction(onSuccess: successAction,
+      return GetDeviceTokenAction(
+          onSuccess: successAction,
           onError: EnsembleAction.fromYaml(payload['onError']));
     }
     throw LanguageError("Missing inputs for getDeviceToken.}");
   }
-
 }
 
 class RequestNotificationAction extends EnsembleAction {
