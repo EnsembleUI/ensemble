@@ -2019,6 +2019,10 @@
               "$ref": "#/$defs/Action-payload",
               "description": "Call Ensemble's built-in functions or execute code when tapping on an item in the list."
             },
+            "onScrollEnd": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Execute an Ensemble action when user has reached bottom of grid."
+            },
             "styles": {
               "allOf": [
                 {
@@ -2419,6 +2423,10 @@
             "selectedItemIndex": {
               "type": "integer",
               "description": "Selecting a ListView item gives the index of selected item"
+            },
+            "onScrollEnd": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Execute an Ensemble action when user has reached bottom of list."
             },
             "styles": {
               "allOf": [
