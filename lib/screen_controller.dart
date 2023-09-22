@@ -511,12 +511,8 @@ class ScreenController {
         // then get device token
         deviceToken = await FirebaseMessaging.instance.getToken();
         if (deviceToken != null && action.onSuccess != null) {
-          return ScreenController().executeAction(
-              context,
-              action.onSuccess!,
-              event: EnsembleEvent(null, data: {
-                'token': deviceToken
-              }));
+          return ScreenController().executeAction(context, action.onSuccess!,
+              event: EnsembleEvent(null, data: {'token': deviceToken}));
         }
       } on Exception catch (e) {
         log(e.toString());
