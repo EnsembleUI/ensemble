@@ -53,11 +53,13 @@ class BottomNavPageGroup extends StatefulWidget {
     super.key,
     required this.scopeManager,
     required this.menu,
+    required this.selectedPage,
     required this.children,
   });
 
   final ScopeManager scopeManager;
   final Menu menu;
+  final int selectedPage;
   final List<Widget> children;
 
   @override
@@ -111,20 +113,23 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
           Utils.getColor(widget.menu.styles?['floatingBackgroundColor']) ??
               Theme.of(context).colorScheme.secondary;
 
-      return Theme(
-        data: ThemeData(useMaterial3: false),
-        child: customIcon ??
-            FloatingActionButton(
-              backgroundColor: floatingBackgroundColor,
-              child: (fabMenuItem!.icon != null
-                  ? ensemble.Icon.fromModel(
-                      fabMenuItem!.icon!,
-                      fallbackLibrary: fabMenuItem!.iconLibrary,
-                      fallbackColor: floatingItemColor,
-                    )
-                  : ensemble.Icon('')),
-              onPressed: () => _floatingButtonTapped(fabMenuItem!),
-            ),
+      return Visibility(
+        visible: MediaQuery.of(context).viewInsets.bottom == 0.0,
+        child: Theme(
+          data: ThemeData(useMaterial3: false),
+          child: customIcon ??
+              FloatingActionButton(
+                backgroundColor: floatingBackgroundColor,
+                child: (fabMenuItem!.icon != null
+                    ? ensemble.Icon.fromModel(
+                        fabMenuItem!.icon!,
+                        fallbackLibrary: fabMenuItem!.iconLibrary,
+                        fallbackColor: floatingItemColor,
+                      )
+                    : ensemble.Icon('')),
+                onPressed: () => _floatingButtonTapped(fabMenuItem!),
+              ),
+        ),
       );
     }
     return null;
@@ -144,7 +149,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
         Theme.of(context).scaffoldBackgroundColor;
 
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       backgroundColor: notchColor,
       bottomNavigationBar: _buildBottomNavBar(),
       floatingActionButtonLocation: floatingAlignment == FloatingAlignment.none
@@ -205,6 +210,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
     }
 
     return EnsembleBottomAppBar(
+      selectedIndex: widget.selectedPage,
       backgroundColor: Utils.getColor(widget.menu.styles?['backgroundColor']) ??
           Colors.white,
       height: Utils.optionalDouble(widget.menu.styles?['height'] ?? 60),
@@ -238,6 +244,7 @@ class EnsembleBottomAppBar extends StatefulWidget {
   EnsembleBottomAppBar({
     super.key,
     required this.items,
+    required this.selectedIndex,
     this.height,
     this.padding,
     this.iconSize = 24.0,
@@ -254,6 +261,7 @@ class EnsembleBottomAppBar extends StatefulWidget {
     // assert(items.length == 2 || items.length == 4);
   }
   final List<FABBottomAppBarItem> items;
+  final int selectedIndex;
   final double? height;
   final dynamic padding;
   final double iconSize;
@@ -302,6 +310,15 @@ class EnsembleBottomAppBarState extends State<EnsembleBottomAppBar> {
       default:
         return null;
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.selectedIndex;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateIndex(_selectedIndex);
+    });
   }
 
   @override
