@@ -55,20 +55,17 @@ class ReceiveIntentManager {
 
   /// For sharing images coming from outside the app while the app is closed
   void receiveMediaWhenClosed() {
-    Future.delayed(const Duration(seconds: 1)).then((value) {
-      ReceiveSharingIntent.getInitialMedia()
-          .then((List<SharedMediaFile> value) {
-        _sharedFiles = value;
-        final filePath = (_sharedFiles?.map((f) => f.path).join(",") ?? "");
-        if (context != null &&
-            onReceive != null &&
-            _sharedFiles != null &&
-            _sharedFiles!.isNotEmpty) {
-          print("Shared Media: Closed - $filePath");
-          ScreenController().executeAction(context!, onReceive!,
-              event: EnsembleEvent(invokable, data: {'file': filePath}));
-        }
-      });
+    ReceiveSharingIntent.getInitialMedia().then((List<SharedMediaFile> value) {
+      _sharedFiles = value;
+      final filePath = (_sharedFiles?.map((f) => f.path).join(",") ?? "");
+      if (context != null &&
+          onReceive != null &&
+          _sharedFiles != null &&
+          _sharedFiles!.isNotEmpty) {
+        print("Shared Media: Closed - $filePath");
+        ScreenController().executeAction(context!, onReceive!,
+            event: EnsembleEvent(invokable, data: {'file': filePath}));
+      }
     });
   }
 
@@ -89,16 +86,14 @@ class ReceiveIntentManager {
 
   /// For sharing or opening urls/text coming from outside the app while the app is closed
   void receiveTextUrlWhenClosed() {
-    Future.delayed(const Duration(seconds: 1)).then((value) {
-      ReceiveSharingIntent.getInitialText().then((String? value) {
-        sharedText = value;
-        if (context != null && onReceive != null && value != null) {
-          print("Shared Text - Closed: $sharedText");
-          ScreenController().executeAction(context!, onReceive!,
-              event: EnsembleEvent(invokable,
-                  data: {'text': sharedText ?? 'Not Found'}));
-        }
-      });
+    ReceiveSharingIntent.getInitialText().then((String? value) {
+      sharedText = value;
+      if (context != null && onReceive != null && value != null) {
+        print("Shared Text - Closed: $sharedText");
+        ScreenController().executeAction(context!, onReceive!,
+            event: EnsembleEvent(invokable,
+                data: {'text': sharedText ?? 'Not Found'}));
+      }
     });
   }
 }
