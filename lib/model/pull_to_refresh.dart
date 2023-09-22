@@ -1,6 +1,7 @@
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:flutter/cupertino.dart';
 
 mixin HasPullToRefresh {
   EnsembleAction? onPullToRefresh;
@@ -8,7 +9,7 @@ mixin HasPullToRefresh {
 }
 
 class PullToRefreshOptions {
-  PullToRefreshOptions({this.indicatorType, this.indicatorMinDuration});
+  PullToRefreshOptions({this.indicatorType, this.indicatorMinDuration, this.indicatorPadding});
 
   RefreshIndicatorType? indicatorType;
 
@@ -18,13 +19,16 @@ class PullToRefreshOptions {
   // spin for a minimum duration to emulate async calls
   Duration? indicatorMinDuration;
 
+  EdgeInsets? indicatorPadding;
+
   static PullToRefreshOptions? fromMap(dynamic input) {
     if (input is Map) {
       return PullToRefreshOptions(
-          indicatorType:
-              RefreshIndicatorType.values.from(input['indicatorType']),
-          indicatorMinDuration:
-              Utils.getDurationMs(input['indicatorMinDuration']));
+          indicatorType: RefreshIndicatorType.values.from(
+              input['indicatorType']),
+          indicatorMinDuration: Utils.getDurationMs(input['indicatorMinDuration']),
+          indicatorPadding: Utils.getInsets(input['indicatorPadding'])
+      );
     }
   }
 }

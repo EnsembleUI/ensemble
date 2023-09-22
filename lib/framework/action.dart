@@ -1,11 +1,14 @@
 import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/permissions_manager.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:source_span/source_span.dart';
 import 'package:yaml/yaml.dart';
@@ -416,6 +419,9 @@ class OpenUrlAction extends EnsembleAction {
         openInExternalApp:
             Utils.getBool(payload['openInExternalApp'], fallback: false));
   }
+  factory OpenUrlAction.fromMap(dynamic inputs) =>
+      OpenUrlAction.fromYaml(payload: Utils.getYamlMap(inputs));
+
 }
 
 class NavigateBack extends EnsembleAction {
@@ -698,6 +704,25 @@ class NotificationAction extends EnsembleAction {
   }
 }
 
+class GetDeviceTokenAction extends EnsembleAction {
+  GetDeviceTokenAction({required this.onSuccess, this.onError});
+  EnsembleAction? onSuccess;
+  EnsembleAction? onError;
+
+  factory GetDeviceTokenAction.fromMap({dynamic payload}) {
+    if (payload is Map) {
+      EnsembleAction? successAction = EnsembleAction.fromYaml(payload['onSuccess']);
+      if (successAction == null) {
+        throw LanguageError("onSuccess() is required for Get Token Action");
+      }
+      return GetDeviceTokenAction(onSuccess: successAction,
+          onError: EnsembleAction.fromYaml(payload['onError']));
+    }
+    throw LanguageError("Missing inputs for getDeviceToken.}");
+  }
+
+}
+
 class RequestNotificationAction extends EnsembleAction {
   EnsembleAction? onAccept;
   EnsembleAction? onReject;
@@ -785,6 +810,7 @@ enum ActionType {
   checkPermission,
   saveToKeychain,
   clearKeychain,
+  getDeviceToken,
 }
 
 enum ToastType { success, error, warning, info }
@@ -880,6 +906,8 @@ abstract class EnsembleAction {
       return CopyToClipboardAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.share) {
       return ShareAction.from(payload: payload);
+    } else if (actionType == ActionType.getDeviceToken) {
+      return GetDeviceTokenAction.fromMap(payload: payload);
     } else if (actionType == ActionType.openPlaidLink) {
       return PlaidLinkAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.openAppSettings) {

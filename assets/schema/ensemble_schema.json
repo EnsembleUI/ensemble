@@ -6113,6 +6113,10 @@
             "indicatorMinDuration": {
               "type": "integer",
               "description": "The minimum duration in milliseconds that the indicator will be shown, regardless if the onPullToRefresh's Action has completed or not."
+            },
+            "indicatorPadding": {
+              "$ref": "#/$defs/Padding-payload",
+              "description": "The padding around the refresh indicator"
             }
           }
         }
