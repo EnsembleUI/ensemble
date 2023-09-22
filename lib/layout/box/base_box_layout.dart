@@ -15,7 +15,10 @@ import 'box_utils.dart';
 /// convenience wrapper for BoxLayout
 class BoxLayoutWrapper extends StatelessWidget {
   const BoxLayoutWrapper(
-      {super.key, required this.boxWidget, required this.controller, this.ignoresMargin=false});
+      {super.key,
+      required this.boxWidget,
+      required this.controller,
+      this.ignoresMargin = false});
   final Widget boxWidget;
   final BaseBoxLayoutController controller;
   final bool ignoresMargin;

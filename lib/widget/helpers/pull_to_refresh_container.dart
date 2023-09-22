@@ -32,11 +32,13 @@ class _PullToRefreshContainerState extends State<PullToRefreshContainer> {
   Widget build(BuildContext context) {
     double totalIndicatorHeight = _defaultIndicatorSize +
         (widget.options?.indicatorPadding != null
-            ? widget.options!.indicatorPadding!.top + widget.options!.indicatorPadding!.bottom
+            ? widget.options!.indicatorPadding!.top +
+                widget.options!.indicatorPadding!.bottom
             : 0);
 
     return CustomRefreshIndicator(
-        offsetToArmed: totalIndicatorHeight / 2,    // tweak this number or expose it
+        offsetToArmed:
+            totalIndicatorHeight / 2, // tweak this number or expose it
         onRefresh: processOnRefresh,
         builder: (context, child, controller) => Stack(
               children: [
@@ -65,13 +67,11 @@ class _PullToRefreshContainerState extends State<PullToRefreshContainer> {
   Widget _getRefreshWidget(IndicatorController controller) {
     Widget rtn = widget.refreshWidget ??
         SizedBox(
-          width: _defaultIndicatorSize,
-          height: _defaultIndicatorSize,
-          child: _getProgressIndicator(controller));
+            width: _defaultIndicatorSize,
+            height: _defaultIndicatorSize,
+            child: _getProgressIndicator(controller));
     if (widget.options?.indicatorPadding != null) {
-      rtn = Padding(
-          padding: widget.options!.indicatorPadding!,
-          child: rtn);
+      rtn = Padding(padding: widget.options!.indicatorPadding!, child: rtn);
     }
     return rtn;
   }

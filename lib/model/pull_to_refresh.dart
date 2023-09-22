@@ -9,7 +9,8 @@ mixin HasPullToRefresh {
 }
 
 class PullToRefreshOptions {
-  PullToRefreshOptions({this.indicatorType, this.indicatorMinDuration, this.indicatorPadding});
+  PullToRefreshOptions(
+      {this.indicatorType, this.indicatorMinDuration, this.indicatorPadding});
 
   RefreshIndicatorType? indicatorType;
 
@@ -24,11 +25,11 @@ class PullToRefreshOptions {
   static PullToRefreshOptions? fromMap(dynamic input) {
     if (input is Map) {
       return PullToRefreshOptions(
-          indicatorType: RefreshIndicatorType.values.from(
-              input['indicatorType']),
-          indicatorMinDuration: Utils.getDurationMs(input['indicatorMinDuration']),
-          indicatorPadding: Utils.getInsets(input['indicatorPadding'])
-      );
+          indicatorType:
+              RefreshIndicatorType.values.from(input['indicatorType']),
+          indicatorMinDuration:
+              Utils.getDurationMs(input['indicatorMinDuration']),
+          indicatorPadding: Utils.getInsets(input['indicatorPadding']));
     }
   }
 }
