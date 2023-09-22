@@ -30,8 +30,13 @@ class _PullToRefreshContainerState extends State<PullToRefreshContainer> {
 
   @override
   Widget build(BuildContext context) {
+    double totalIndicatorHeight = _defaultIndicatorSize +
+        (widget.options?.indicatorPadding != null
+            ? widget.options!.indicatorPadding!.top + widget.options!.indicatorPadding!.bottom
+            : 0);
+
     return CustomRefreshIndicator(
-        offsetToArmed: _defaultIndicatorSize,
+        offsetToArmed: totalIndicatorHeight / 2,    // tweak this number or expose it
         onRefresh: processOnRefresh,
         builder: (context, child, controller) => Stack(
               children: [
@@ -41,28 +46,37 @@ class _PullToRefreshContainerState extends State<PullToRefreshContainer> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Container(
-                          //height: _defaultIndicatorSize * controller.value,
                           width: double.infinity,
                           alignment: Alignment.center,
                           decoration: const BoxDecoration(),
-                          child: widget.refreshWidget ??
-                              SizedBox(
-                                  width: _defaultIndicatorSize,
-                                  height: _defaultIndicatorSize,
-                                  child: getProgressIndicator(controller)))
+                          child: _getRefreshWidget(controller))
                     ],
                   ),
 
                 // this is the content widget (which slides down as the progress widget appears)
                 Transform.translate(
-                    offset: Offset(0, _defaultIndicatorSize * controller.value),
+                    offset: Offset(0, totalIndicatorHeight * controller.value),
                     child: child)
               ],
             ),
         child: widget.contentWidget);
   }
 
-  Widget getProgressIndicator(IndicatorController controller) {
+  Widget _getRefreshWidget(IndicatorController controller) {
+    Widget rtn = widget.refreshWidget ??
+        SizedBox(
+          width: _defaultIndicatorSize,
+          height: _defaultIndicatorSize,
+          child: _getProgressIndicator(controller));
+    if (widget.options?.indicatorPadding != null) {
+      rtn = Padding(
+          padding: widget.options!.indicatorPadding!,
+          child: rtn);
+    }
+    return rtn;
+  }
+
+  Widget _getProgressIndicator(IndicatorController controller) {
     if (widget.options?.indicatorType == RefreshIndicatorType.cupertino) {
       return controller.isDragging || controller.isArmed
           ? CupertinoActivityIndicator.partiallyRevealed(

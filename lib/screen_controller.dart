@@ -37,6 +37,7 @@ import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_registry.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -497,6 +498,33 @@ class ScreenController {
     } else if (action is ShareAction) {
       Share.share(action.getText(dataContext),
           subject: action.getTitle(dataContext));
+    } else if (action is GetDeviceTokenAction) {
+      String? deviceToken;
+      try {
+        await FirebaseMessaging.instance.requestPermission(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+        // need to get APNS first
+        await FirebaseMessaging.instance.getAPNSToken();
+        // then get device token
+        deviceToken = await FirebaseMessaging.instance.getToken();
+        if (deviceToken != null && action.onSuccess != null) {
+          return ScreenController().executeAction(
+              context,
+              action.onSuccess!,
+              event: EnsembleEvent(null, data: {
+                'token': deviceToken
+              }));
+        }
+      } on Exception catch (e) {
+        log(e.toString());
+        log('Error getting device token');
+      }
+      if (deviceToken == null && action.onError != null) {
+        return ScreenController().executeAction(context, action.onError!);
+      }
     } else if (action is WalletConnectAction) {
       //  TODO store session:  WalletConnectSession? session = await sessionStorage.getSession();
 
