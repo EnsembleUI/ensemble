@@ -130,6 +130,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
       } else if (widget.menu is BottomNavBarMenu) {
         return BottomNavPageGroup(
           scopeManager: _scopeManager,
+          selectedPage: selectedPage,
           menu: widget.menu,
           children: pageWidgets,
         );
