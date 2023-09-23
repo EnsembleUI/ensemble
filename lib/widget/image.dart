@@ -57,6 +57,7 @@ class EnsembleImage extends StatefulWidget
           Utils.optionalInt(height, min: 0, max: 2000),
       'placeholderColor': (value) =>
           _controller.placeholderColor = Utils.getColor(value),
+      'fallback': (widget) => _controller.fallback = widget,
       'onTap': (funcDefinition) => _controller.onTap =
           EnsembleAction.fromYaml(funcDefinition, initiator: this)
     };
@@ -73,6 +74,7 @@ class ImageController extends BoxController {
   // resizedWidth or resizedHeight but not both so the aspect ratio is maintained
   int? resizedWidth;
   int? resizedHeight;
+  dynamic fallback;
 }
 
 class ImageState extends WidgetState<EnsembleImage> {
@@ -192,8 +194,24 @@ class ImageState extends WidgetState<EnsembleImage> {
 
   /// display if the image cannot be loaded
   Widget errorFallback() {
-    return Image.asset('assets/images/img_placeholder.png',
-        package: 'ensemble', fit: BoxFit.cover);
+    Widget fallbackWidget;
+    if (scopeManager != null && widget._controller.fallback != null) {
+      fallbackWidget =
+          scopeManager!.buildWidgetFromDefinition(widget._controller.fallback);
+    } else {
+      fallbackWidget = Image.asset('assets/images/img_placeholder.png',
+          package: 'ensemble', fit: BoxFit.cover);
+    }
+
+    // image dimensions (if specified) don't apply to the fallback widget,
+    // so we wrap it inside a SizeBox and center for better UX
+    if (widget._controller.width != null || widget._controller.height != null) {
+      fallbackWidget = SizedBox(
+          width: widget._controller.width?.toDouble(),
+          height: widget._controller.height?.toDouble(),
+          child: Center(child: fallbackWidget));
+    }
+    return fallbackWidget;
   }
 
   // use modern colors as background placeholder while images are being loaded
