@@ -107,6 +107,8 @@ dependencies:
   custom_refresh_indicator: ^2.2.1
   app_links: ^3.4.3
   share_plus: ^6.2.0
+  calendar_date_picker2: ^0.5.3
+  table_calendar: ^3.0.9
 
 dev_dependencies:
   flutter_test:

@@ -12,6 +12,7 @@ import 'package:ensemble/layout/grid_view.dart';
 import 'package:ensemble/layout/toggle_container.dart';
 import 'package:ensemble/widget/Toggle.dart';
 import 'package:ensemble/widget/address.dart';
+import 'package:ensemble/widget/calendar.dart';
 import 'package:ensemble/widget/shape.dart';
 import 'package:ensemble/widget/conditional.dart';
 import 'package:ensemble/widget/confirmation_input.dart';
@@ -106,6 +107,7 @@ class WidgetRegistry {
         Date.type: () => Date(),
         Time.type: () => Time(),
         DateRange.type: () => DateRange(),
+        Calendar.type: () => Calendar(),
         PasswordInput.type: () => PasswordInput(),
         EnsembleCheckbox.type: () => EnsembleCheckbox(),
         EnsembleSwitch.type: () => EnsembleSwitch(),
