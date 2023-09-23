@@ -196,8 +196,8 @@ class ImageState extends WidgetState<EnsembleImage> {
   Widget errorFallback() {
     Widget fallbackWidget;
     if (scopeManager != null && widget._controller.fallback != null) {
-      fallbackWidget = scopeManager!
-          .buildWidgetFromDefinition(widget._controller.fallback);
+      fallbackWidget =
+          scopeManager!.buildWidgetFromDefinition(widget._controller.fallback);
     } else {
       fallbackWidget = Image.asset('assets/images/img_placeholder.png',
           package: 'ensemble', fit: BoxFit.cover);
