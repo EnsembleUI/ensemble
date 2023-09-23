@@ -214,6 +214,73 @@
           }
         }
       }
+    },
+    "Socket": {
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "uri"
+        ],
+        "properties": {
+          "inputs": {
+            "type": "array", 
+            "items": {
+              "type": "string"
+            },
+            "description": "Define the list of inputs that ths socket accepts"
+          },
+          "uri": {
+            "type": "string",
+            "description": "The URL of this socket"
+          }, 
+          "onSuccess": {
+            "$ref": "#/$defs/Action-payload",
+            "description": "Execute this callback upon a successful connection of socket with server"
+          },
+          "onError": {
+            "$ref": "#/$defs/Action-payload",
+            "description": "Execute this callback upon a encountering error while trying to do socket connection."
+          },
+          "onDisconnect": {
+            "$ref": "#/$defs/Action-payload",
+            "description": "Execute this callback upon a successful disconnect of socket with server"
+          },
+          "onReconnectAttempt": {
+            "$ref": "#/$defs/Action-payload",
+            "description": "Execute this callback upon auto reconnect is attempted"
+          },
+          "onReceive": {
+            "$ref": "#/$defs/Action-payload",
+            "description": "Execute this callback upon a message from socket is received. Use socketName.data to access the"
+          },
+          "options": {
+            "type": "object", 
+            "properties": {
+              "disconnectOnPageClose": {
+                "type": "boolean",
+                "description": "Whether to disconnect socket on page pop. Default true."
+              },
+              "autoReconnect": {
+                "type": "boolean",
+                "description": "Whether to attempt socket connection on interrupted. Default true."
+              },
+              "reconnectOptions": {
+                "type": "object",
+                "properties": {
+                  "initial": {
+                    "type": "integer",
+                    "description": "Initial wait to do reconnect attempt. "
+                  },
+                  "maxStep": {
+                    "type": "integer",
+                    "description": "When to stop increasing wait time e.g initial 1 and maxStep 3 wait time is as follows [1, 2, 4, 4, 4, ...]."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "additionalProperties": {
@@ -3849,6 +3916,97 @@
                 "onNotDetermined": {
                   "$ref": "#/$defs/Action-payload",
                   "description": "Execute an Action if we can't determine the permission's status. Note that this state is not applicable on Android."
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Connect Socket",
+          "type": "object",
+          "required": [
+            "connectSocket"
+          ],
+          "properties": {
+            "connectSocket": {
+              "type": "object",
+              "description": "Connect to a given socket name.",
+              "required": [
+                "name"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Enter the name of your defined socket"
+                },
+                "inputs": {
+                  "type": "object",
+                  "description": "Specify the key/value pairs to pass to the socket",
+                  "properties": {},
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "onSuccess": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute this callback upon a successful connection of socket with server."  
+                },
+                "onError": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute this callback upon a encountering error while trying to do socket connection."  
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Disconnect Socket",
+          "type": "object",
+          "required": [
+            "disconnectSocket"
+          ],
+          "properties": {
+            "disconnectSocket": {
+              "type": "object",
+              "description": "Disconnect socket to a given name.",
+              "required": [
+                "name"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Enter the name of your defined socket"
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Message Socket",
+          "type": "object",
+          "required": [
+            "messageSocket"
+          ],
+          "properties": {
+            "messageSocket": {
+              "type": "object",
+              "description": "Send a message to a given socket name.",
+              "required" : [
+                "name",
+                "message"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Enter the name of your defined socket"
+                },
+                "message": {
+                  "type": "object",
+                  "description": "Specify the key/value pairs to pass to the socket",
+                  "properties": {},
+                  "additionalProperties": {
+                    "type": "string"
+                  }
                 }
               }
             }
