@@ -1141,6 +1141,15 @@
               "type": "boolean",
               "description": "enable the toggling between plain and obscure text."
             },
+            "onDelayedKeyPress": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Execute an Action after a brief delay specified by delayedKeyPressDuration (default: 300 ms). Consecutive calls within this delay will reset the timer, useful for minimizing server calls for type-ahead scenarios."
+            },
+            "delayedKeyPressDuration": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "The delay in milliseconds to trigger onDelayedKeyPress"
+            },
             "styles": {
               "type": "object",
               "properties": {
