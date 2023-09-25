@@ -231,11 +231,10 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
     //       : IntrinsicHeight(child: boxWidget);
     // }
 
-    Widget rtn =
-        BoxLayoutWrapper(
-            boxWidget: boxWidget,
-            controller: widget._controller,
-            ignoresMargin: widget is Column);
+    Widget rtn = BoxLayoutWrapper(
+        boxWidget: boxWidget,
+        controller: widget._controller,
+        ignoresMargin: widget is Column);
 
     if (widget._controller.scrollable) {
       rtn = SingleChildScrollView(
@@ -256,9 +255,7 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
 
     // for Column we add margin at the end, just in case it is inside a Scrollable or PulltoRefresh
     if (widget is Column && widget._controller.margin != null) {
-      rtn = Padding(
-        padding: widget._controller.margin!,
-        child: rtn);
+      rtn = Padding(padding: widget._controller.margin!, child: rtn);
     }
 
     return rtn;
