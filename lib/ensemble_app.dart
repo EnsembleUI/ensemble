@@ -22,8 +22,6 @@ import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:workmanager/workmanager.dart';
 
-import 'framework/theme/theme_loader.dart';
-
 const String backgroundUploadTask = 'backgroundUploadTask';
 
 @pragma('vm:entry-point')
@@ -83,13 +81,12 @@ void callbackDispatcher() {
 
 /// use this as the root widget for Ensemble
 class EnsembleApp extends StatefulWidget {
-  const EnsembleApp({
-    super.key,
-    this.screenPayload,
-    this.ensembleConfig,
-    this.isPreview = false,
-    this.placeholderBackgroundColor,
-  });
+  const EnsembleApp(
+      {super.key,
+      this.screenPayload,
+      this.ensembleConfig,
+      this.isPreview = false,
+      this.placeholderBackgroundColor});
 
   final ScreenPayload? screenPayload;
   final EnsembleConfig? ensembleConfig;
@@ -181,17 +178,10 @@ class EnsembleAppState extends State<EnsembleApp> {
         // The Page's Scaffold can handle the resizing.
         resizeToAvoidBottomInset: false,
 
-        body: Builder(
-          builder: (context) {
-            Theme.of(context).extension<EnsembleThemeExtension>();
-
-            return Screen(
-              key: UniqueKey(),
-              appProvider:
-                  AppProvider(definitionProvider: config.definitionProvider),
-              screenPayload: widget.screenPayload,
-            );
-          },
+        body: Screen(
+          appProvider:
+              AppProvider(definitionProvider: config.definitionProvider),
+          screenPayload: widget.screenPayload,
         ),
       ),
       useInheritedMediaQuery: widget.isPreview,
@@ -209,9 +199,8 @@ class EnsembleAppState extends State<EnsembleApp> {
   Widget _appPlaceholderWrapper(
       {Widget? widget, Color? placeholderBackgroundColor}) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(backgroundColor: placeholderBackgroundColor, body: widget),
-    );
-
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+            backgroundColor: placeholderBackgroundColor, body: widget));
   }
 }
