@@ -212,5 +212,6 @@ class EnsembleAppState extends State<EnsembleApp> {
       debugShowCheckedModeBanner: false,
       home: Scaffold(backgroundColor: placeholderBackgroundColor, body: widget),
     );
+
   }
 }

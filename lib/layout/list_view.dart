@@ -4,6 +4,7 @@ import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/box/base_box_layout.dart';
 import 'package:ensemble/layout/box/box_layout.dart';
 import 'package:ensemble/layout/templated.dart';
+import 'package:ensemble/model/pull_to_refresh.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/pull_to_refresh_container.dart';
@@ -47,8 +48,8 @@ class ListView extends StatefulWidget
           _controller.separatorPadding = Utils.optionalInsets(value),
       'onPullToRefresh': (funcDefinition) => _controller.onPullToRefresh =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
-      'refreshIndicatorType': (value) => _controller.refreshIndicatorType =
-          RefreshIndicatorType.values.from(value),
+      'pullToRefreshOptions': (input) => _controller.pullToRefreshOptions =
+          PullToRefreshOptions.fromMap(input),
     };
   }
 
@@ -152,9 +153,9 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
 
     if (widget._controller.onPullToRefresh != null) {
       listView = PullToRefreshContainer(
-          indicatorType: widget._controller.refreshIndicatorType,
-          contentWidget: listView,
-          onRefresh: _pullToRefresh);
+          options: widget._controller.pullToRefreshOptions,
+          onRefresh: _pullToRefresh,
+          contentWidget: listView);
     }
 
     return BoxWrapper(
