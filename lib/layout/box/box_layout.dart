@@ -6,6 +6,7 @@ import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/box/base_box_layout.dart';
 import 'package:ensemble/layout/templated.dart';
+import 'package:ensemble/model/pull_to_refresh.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/layout_utils.dart';
@@ -39,8 +40,8 @@ class Column extends BoxLayout {
     entries.addAll({
       'onPullToRefresh': (funcDefinition) => _controller.onPullToRefresh =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
-      'refreshIndicatorType': (value) => _controller.refreshIndicatorType =
-          RefreshIndicatorType.values.from(value),
+      'pullToRefreshOptions': (input) => _controller.pullToRefreshOptions =
+          PullToRefreshOptions.fromMap(input),
     });
     return entries;
   }
@@ -230,8 +231,10 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
     //       : IntrinsicHeight(child: boxWidget);
     // }
 
-    Widget rtn =
-        BoxLayoutWrapper(boxWidget: boxWidget, controller: widget._controller);
+    Widget rtn = BoxLayoutWrapper(
+        boxWidget: boxWidget,
+        controller: widget._controller,
+        ignoresMargin: widget is Column);
 
     if (widget._controller.scrollable) {
       rtn = SingleChildScrollView(
@@ -244,11 +247,17 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
 
       if (widget is Column && widget._controller.onPullToRefresh != null) {
         rtn = PullToRefreshContainer(
-            indicatorType: widget._controller.refreshIndicatorType,
-            contentWidget: rtn,
-            onRefresh: _pullToRefresh);
+            options: widget._controller.pullToRefreshOptions,
+            onRefresh: _pullToRefresh,
+            contentWidget: rtn);
       }
     }
+
+    // for Column we add margin at the end, just in case it is inside a Scrollable or PulltoRefresh
+    if (widget is Column && widget._controller.margin != null) {
+      rtn = Padding(padding: widget._controller.margin!, child: rtn);
+    }
+
     return rtn;
   }
 

@@ -1,11 +1,14 @@
 import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/permissions_manager.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:source_span/source_span.dart';
 import 'package:yaml/yaml.dart';
@@ -416,6 +419,8 @@ class OpenUrlAction extends EnsembleAction {
         openInExternalApp:
             Utils.getBool(payload['openInExternalApp'], fallback: false));
   }
+  factory OpenUrlAction.fromMap(dynamic inputs) =>
+      OpenUrlAction.fromYaml(payload: Utils.getYamlMap(inputs));
 }
 
 class NavigateBack extends EnsembleAction {
@@ -698,6 +703,26 @@ class NotificationAction extends EnsembleAction {
   }
 }
 
+class GetDeviceTokenAction extends EnsembleAction {
+  GetDeviceTokenAction({required this.onSuccess, this.onError});
+  EnsembleAction? onSuccess;
+  EnsembleAction? onError;
+
+  factory GetDeviceTokenAction.fromMap({dynamic payload}) {
+    if (payload is Map) {
+      EnsembleAction? successAction =
+          EnsembleAction.fromYaml(payload['onSuccess']);
+      if (successAction == null) {
+        throw LanguageError("onSuccess() is required for Get Token Action");
+      }
+      return GetDeviceTokenAction(
+          onSuccess: successAction,
+          onError: EnsembleAction.fromYaml(payload['onError']));
+    }
+    throw LanguageError("Missing inputs for getDeviceToken.}");
+  }
+}
+
 class RequestNotificationAction extends EnsembleAction {
   EnsembleAction? onAccept;
   EnsembleAction? onReject;
@@ -723,6 +748,64 @@ class ShowNotificationAction extends EnsembleAction {
     return ShowNotificationAction(
       title: Utils.getString(payload?['title'], fallback: ''),
       body: Utils.getString(payload?['body'], fallback: ''),
+    );
+  }
+}
+
+class ConnectSocketAction extends EnsembleAction {
+  final String name;
+  final EnsembleAction? onSuccess;
+  final EnsembleAction? onError;
+
+  ConnectSocketAction({
+    required this.name,
+    this.onSuccess,
+    this.onError,
+    Map<String, dynamic>? inputs,
+  }) : super(inputs: inputs);
+
+  factory ConnectSocketAction.fromYaml({YamlMap? payload}) {
+    if (payload == null || payload['name'] == null) {
+      throw ConfigError('connectSocket requires a name');
+    }
+    return ConnectSocketAction(
+      inputs: Utils.getMap(payload['inputs']),
+      name: Utils.getString(payload['name'], fallback: ''),
+      onSuccess: EnsembleAction.fromYaml(payload['onSuccess']),
+      onError: EnsembleAction.fromYaml(payload['onError']),
+    );
+  }
+}
+
+class DisconnectSocketAction extends EnsembleAction {
+  final String name;
+
+  DisconnectSocketAction({required this.name});
+
+  factory DisconnectSocketAction.fromYaml({YamlMap? payload}) {
+    if (payload == null || payload['name'] == null) {
+      throw ConfigError('disconnectSocket requires a name');
+    }
+
+    return DisconnectSocketAction(
+        name: Utils.getString(payload['name'], fallback: ''));
+  }
+}
+
+class MessageSocketAction extends EnsembleAction {
+  final String name;
+  final dynamic message;
+
+  MessageSocketAction({required this.name, required this.message});
+
+  factory MessageSocketAction.fromYaml({YamlMap? payload}) {
+    if (payload == null || payload['name'] == null) {
+      throw ConfigError('messageSocket requires a name');
+    }
+
+    return MessageSocketAction(
+      name: Utils.getString(payload['name'], fallback: ''),
+      message: payload['message'],
     );
   }
 }
@@ -785,6 +868,10 @@ enum ActionType {
   checkPermission,
   saveToKeychain,
   clearKeychain,
+  getDeviceToken,
+  connectSocket,
+  disconnectSocket,
+  messageSocket,
 }
 
 enum ToastType { success, error, warning, info }
@@ -880,6 +967,8 @@ abstract class EnsembleAction {
       return CopyToClipboardAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.share) {
       return ShareAction.from(payload: payload);
+    } else if (actionType == ActionType.getDeviceToken) {
+      return GetDeviceTokenAction.fromMap(payload: payload);
     } else if (actionType == ActionType.openPlaidLink) {
       return PlaidLinkAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.openAppSettings) {
@@ -889,6 +978,12 @@ abstract class EnsembleAction {
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.checkPermission) {
       return CheckPermission.fromYaml(payload: payload);
+    } else if (actionType == ActionType.connectSocket) {
+      return ConnectSocketAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.disconnectSocket) {
+      return DisconnectSocketAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.messageSocket) {
+      return MessageSocketAction.fromYaml(payload: payload);
     }
     throw LanguageError("Invalid action.",
         recovery: "Make sure to use one of Ensemble-provided actions.");
