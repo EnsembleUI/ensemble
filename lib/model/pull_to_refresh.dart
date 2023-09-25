@@ -3,14 +3,14 @@ import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/cupertino.dart';
 
-
 mixin HasPullToRefresh {
   EnsembleAction? onPullToRefresh;
   PullToRefreshOptions? pullToRefreshOptions;
 }
 
 class PullToRefreshOptions {
-  PullToRefreshOptions({this.indicatorType, this.indicatorMinDuration, this.indicatorPadding});
+  PullToRefreshOptions(
+      {this.indicatorType, this.indicatorMinDuration, this.indicatorPadding});
 
   RefreshIndicatorType? indicatorType;
 
@@ -25,11 +25,11 @@ class PullToRefreshOptions {
   static PullToRefreshOptions? fromMap(dynamic input) {
     if (input is Map) {
       return PullToRefreshOptions(
-          indicatorType: RefreshIndicatorType.values.from(
-              input['indicatorType']),
-          indicatorMinDuration: Utils.getDurationMs(input['indicatorMinDuration']),
-          indicatorPadding: Utils.getInsets(input['indicatorPadding'])
-      );
+          indicatorType:
+              RefreshIndicatorType.values.from(input['indicatorType']),
+          indicatorMinDuration:
+              Utils.getDurationMs(input['indicatorMinDuration']),
+          indicatorPadding: Utils.getInsets(input['indicatorPadding']));
     }
   }
 }
