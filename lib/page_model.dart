@@ -16,6 +16,8 @@ import 'package:ensemble/widget/widget_registry.dart';
 import 'package:source_span/source_span.dart';
 import 'package:yaml/yaml.dart';
 
+import 'framework/scope.dart';
+
 abstract class PageModel {
   PageModel();
 
@@ -25,6 +27,7 @@ abstract class PageModel {
     'ViewGroup',
     'Action',
     'API',
+    'Socket',
     'Functions',
     'App',
     'Model',
@@ -35,6 +38,7 @@ abstract class PageModel {
 
   Menu? menu;
   Map<String, YamlMap>? apiMap;
+  Map<String, EnsembleSocket> socketData = {};
   Map<String, dynamic>? customViewDefinitions;
   String? globalCode;
   SourceSpan? globalCodeSpan;
@@ -53,6 +57,7 @@ abstract class PageModel {
   }
   void _processModel(YamlMap docMap) {
     _processAPI(docMap['API']);
+    _processSocket(docMap['Socket']);
     YamlNode? globalCodeNode = docMap.nodes['Global'];
     if (globalCodeNode != null) {
       globalCode = Utils.optionalString(globalCodeNode.value);
@@ -70,6 +75,14 @@ abstract class PageModel {
         apiMap![key] = value;
       });
     }
+  }
+
+  void _processSocket(YamlMap? map) {
+    if (map == null) return;
+    map.forEach((key, value) {
+      socketData[key] = EnsembleSocket.fromYaml(payload: value);
+    });
+    SocketService.socketData = socketData;
   }
 
   /// Create a map of Ensemble's custom widgets so WidgetModel can reference them

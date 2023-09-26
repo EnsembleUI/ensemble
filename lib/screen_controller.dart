@@ -3,6 +3,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
+import 'dart:io';
 import 'dart:isolate';
 import 'dart:math' show Random;
 import 'dart:ui';
@@ -46,6 +47,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:walletconnect_dart/walletconnect_dart.dart';
+import 'package:web_socket_client/web_socket_client.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:yaml/yaml.dart';
 import 'package:get_it/get_it.dart';
@@ -498,6 +500,8 @@ class ScreenController {
     } else if (action is ShareAction) {
       Share.share(action.getText(dataContext),
           subject: action.getTitle(dataContext));
+    } else if (action is RateAppAction) {
+      action.execute(context, dataContext);
     } else if (action is GetDeviceTokenAction) {
       String? deviceToken;
       try {
@@ -622,6 +626,59 @@ class ScreenController {
           executeAction(context, action.onNotDetermined!);
         }
       }
+    } else if (action is ConnectSocketAction) {
+      dynamic resolveURI(String uri) {
+        final result = dataContext.eval(uri);
+        return Uri.tryParse(result);
+      }
+
+      for (var element in action.inputs?.entries ?? const Iterable.empty()) {
+        dynamic value = dataContext.eval(element.value);
+        dataContext.addDataContextById(element.key, value);
+      }
+      final socketName = action.name;
+      final socketService = SocketService();
+      final (WebSocket socket, EnsembleSocket data) =
+          socketService.connect(socketName, resolveURI);
+      final connectionStateSub = socket.connection.listen(
+        (event) {
+          if (event is Connected || event is Reconnected) {
+            if (data.onSuccess != null) {
+              ScreenController().executeAction(context, data.onSuccess!);
+            }
+
+            if (action.onSuccess != null) {
+              ScreenController().executeAction(context, action.onSuccess!);
+            }
+            return;
+          }
+          if (event is Disconnected && data.onDisconnect != null) {
+            ScreenController().executeAction(context, data.onDisconnect!);
+            return;
+          }
+          if (event is Reconnecting && data.onReconnecting != null) {
+            ScreenController().executeAction(context, data.onReconnecting!);
+            return;
+          }
+        },
+      );
+
+      final subscription = socket.messages.listen((message) {
+        if (data.onReceive == null) return;
+        final ScopeManager? scope = ScreenController().getScopeManager(context);
+        scope?.dataContext
+            .addInvokableContext(socketName, EnsembleSocketInvokable(message));
+
+        ScreenController().executeAction(context, data.onReceive!);
+      });
+      socketService.setSubscription(socketName, subscription);
+      socketService.setConnectionSubscription(socketName, connectionStateSub);
+    } else if (action is DisconnectSocketAction) {
+      final socketService = SocketService();
+      await socketService.disconnect(action.name);
+    } else if (action is MessageSocketAction) {
+      final socketService = SocketService();
+      socketService.message(action.name, action.message);
     }
   }
 
