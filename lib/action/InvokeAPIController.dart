@@ -57,9 +57,13 @@ class InvokeAPIController {
       }
 
       try {
+        // Setting Loading
+        _updateAPIState(scopeManager, action,
+            isLoading: true, isSuccess: false, isError: false);
+
         Response response =
             await HttpUtils.invokeApi(context, apiDefinition, dataContext);
-        if (response.isSuccess) {
+        if (response.isOkay) {
           _onAPIComplete(context, dataContext, action, apiDefinition, response,
               apiMap, scopeManager);
         } else {
@@ -76,6 +80,27 @@ class InvokeAPIController {
     }
   }
 
+  void _updateAPIState(
+    ScopeManager? scopeManager,
+    InvokeAPIAction action, {
+    required bool isLoading,
+    required bool isSuccess,
+    required bool isError,
+  }) {
+    // Setting Success
+    dispatchAPIChanges(
+      scopeManager,
+      action,
+      APIResponse(
+        response: Response.updateState(
+          isLoading: isLoading,
+          isSuccess: isSuccess,
+          isError: isError,
+        ),
+      ),
+    );
+  }
+
   /// e.g upon return of API result
   void _onAPIComplete(
       BuildContext context,
@@ -90,6 +115,9 @@ class InvokeAPIController {
         apiDefinition['onResponse'],
         initiator: action.initiator);
     if (onResponse != null) {
+      response.isLoading = false;
+      response.isSuccess = true;
+      response.isError = false;
       processAPIResponse(
           context, dataContext, onResponse, response, apiMap, scopeManager,
           apiChangeHandler: dispatchAPIChanges,
@@ -98,6 +126,9 @@ class InvokeAPIController {
     }
     // dispatch changes even if we don't have onResponse
     else {
+      response.isLoading = false;
+      response.isSuccess = true;
+      response.isError = false;
       dispatchAPIChanges(scopeManager, action, APIResponse(response: response));
     }
 
@@ -152,11 +183,16 @@ class InvokeAPIController {
       localizedContext.addInvokableContext(
           'response', APIResponse(response: errorResponse));
 
+      errorResponse.isLoading = false;
+      errorResponse.isSuccess = false;
+      errorResponse.isError = true;
       // dispatch the changes to the response
       dispatchAPIChanges(
           scopeManager, action, APIResponse(response: errorResponse));
     } else {
       // exception, how do we want to expose to the user?
+      _updateAPIState(scopeManager, action,
+          isLoading: false, isSuccess: false, isError: true);
     }
 
     EnsembleAction? onErrorAction =
