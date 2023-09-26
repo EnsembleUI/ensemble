@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:io' as io;
 import 'dart:ui';
+import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
@@ -311,6 +312,7 @@ class DataContext {
 /// built-in helpers/utils accessible to all DataContext
 class NativeInvokable with Invokable {
   final BuildContext _buildContext;
+
   NativeInvokable(this._buildContext);
 
   @override
@@ -456,8 +458,9 @@ class NativeInvokable with Invokable {
     ScreenController().executeAction(_buildContext, ShowCameraAction());
   }
 
-  void navigateBack(dynamic data) {
-    ScreenController().executeAction(_buildContext, NavigateBack(data));
+  void navigateBack([dynamic payload]) {
+    ScreenController().executeAction(
+        _buildContext, NavigateBackAction.from(payload: payload));
   }
 }
 
@@ -487,11 +490,14 @@ class EnsembleSocketInvokable with Invokable {
 /// Singleton handling user storage
 class EnsembleStorage with Invokable {
   static final EnsembleStorage _instance = EnsembleStorage._internal();
+
   EnsembleStorage._internal();
+
   factory EnsembleStorage(BuildContext buildContext) {
     context = buildContext;
     return _instance;
   }
+
   static late BuildContext context;
 
   @override
@@ -537,6 +543,7 @@ class EnsembleStorage with Invokable {
 
 class Formatter with Invokable {
   final BuildContext _buildContext;
+
   Formatter(this._buildContext);
 
   @override
@@ -598,6 +605,7 @@ class DateInfo with Invokable {
   DateInfo({this.value});
 
   DateTime? value;
+
   DateTime get dateTime => value ?? DateTime.now();
   Locale locale = Localizations.localeOf(Utils.globalAppKey.currentContext!);
 
@@ -643,6 +651,7 @@ class DateTimeInfo with Invokable {
   DateTimeInfo({this.value});
 
   DateTime? value;
+
   DateTime get dateTime => value ?? DateTime.now();
   Locale locale = Localizations.localeOf(Utils.globalAppKey.currentContext!);
 
@@ -704,6 +713,7 @@ class DateTimeInfo with Invokable {
 /// legacy
 class UserDateTime with Invokable {
   DateTime? _dateTime;
+
   DateTime get dateTime => _dateTime ??= DateTime.now();
 
   @override
