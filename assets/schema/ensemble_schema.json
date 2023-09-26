@@ -3765,6 +3765,19 @@
           }
         },
         {
+          "title": "Rate App",
+          "type": "object",
+          "required": [
+            "rateApp"
+          ],
+          "properties": {
+            "rateApp": {
+              "type": "object",
+              "description": "(iOS only) Prompt the user to rate this App"
+            }
+          }
+        },
+        {
           "title": "Connect Wallet",
           "type": "object",
           "required": [

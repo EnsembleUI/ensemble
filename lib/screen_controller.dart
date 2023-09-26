@@ -500,6 +500,8 @@ class ScreenController {
     } else if (action is ShareAction) {
       Share.share(action.getText(dataContext),
           subject: action.getTitle(dataContext));
+    } else if (action is RateAppAction) {
+      action.execute(context, dataContext);
     } else if (action is GetDeviceTokenAction) {
       String? deviceToken;
       try {
