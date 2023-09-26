@@ -2859,9 +2859,9 @@
               "type": "object",
               "description": "Navigating back to the previous screen if possible. The current screen will be removed from the navigation history. This also works for a modal screen.",
               "properties": {
-                "data": {
-                  "type": ["string", "object"],
-                  "description": "Passing optional data back to the original screen that we are navigating back to. The data can be a simple value or an object of key/value pairs."
+                "payload": {
+                  "type": "object",
+                  "description": "Pass a payload of key/value pairs to the original screen that we are navigating back to."
                 }
               }
             }
@@ -2959,12 +2959,16 @@
               "type": "object",
               "description": "Open a view as a bottom modal sheet",
               "required": [
-                "widget"
+                "body"
               ],
               "properties": {
-                "widget": {
+                "body": {
                   "$ref": "#/$defs/Widget",
                   "description": "The custom widget to show as the bottom modal sheet."
+                },
+                "onDismiss": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Triggers an Action upon the Bottom Modal's dismissal. A payload (if specified) is available on 'event.data'"
                 },
                 "options": {
                   "type": "object",
@@ -2991,6 +2995,23 @@
                       "description": "By default the barrierColor color use theme's 'bottomSheetTheme.modalBarrierColor' . You can override the bottom modal sheet's barrierColor color here."
                     }
                   }
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Dismiss the Bottom Modal",
+          "type": "object",
+          "required": [
+            "dismissBottomModal"
+          ],
+          "properties": {
+            "dismissBottomModal": {
+              "properties": {
+                "payload": {
+                  "type": "object",
+                  "description": "Pass a payload of key/value pairs to the Bottom Modal's onDismiss action"
                 }
               }
             }
