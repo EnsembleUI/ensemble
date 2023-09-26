@@ -192,12 +192,21 @@ class HttpUtils {
 
 /// a wrapper class around the http Response
 class Response {
+  bool isLoading = false;
+  bool isSuccess = false;
+  bool isError = false;
   dynamic body;
   Map<String, dynamic>? headers;
   int? statusCode;
   String? reasonPhrase;
 
   Response.fromBody(this.body, [this.headers]);
+
+  Response.updateState({
+    required this.isLoading,
+    required this.isSuccess,
+    required this.isError,
+  });
 
   Response(http.Response response) {
     try {
@@ -210,7 +219,7 @@ class Response {
     reasonPhrase = response.reasonPhrase;
   }
 
-  bool get isSuccess =>
+  bool get isOkay =>
       statusCode != null && statusCode! >= 200 && statusCode! <= 299;
-  bool get isError => !isSuccess;
+  // bool get isError => !isSuccess;
 }
