@@ -24,6 +24,7 @@ import 'package:ensemble/framework/stub/contacts_manager.dart';
 import 'package:ensemble/framework/stub/file_manager.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/stub/plaid_link_manager.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/view/page_group.dart';
@@ -72,7 +73,7 @@ class ScreenController {
   ScopeManager? getScopeManager(BuildContext context) {
     // get the current scope of the widget that invoked this. It gives us
     // the data context to evaluate expression
-    ScopeManager? scopeManager = ensemble.DataScopeWidget.getScope(context);
+    ScopeManager? scopeManager = DataScopeWidget.getScope(context);
 
     // when context is at the root View, we can't reach the DataScopeWidget which is
     // actually a child of View. Let's just get the scopeManager directly.
@@ -197,7 +198,8 @@ class ScreenController {
           isScrollControlled: true,
           enableDrag: action.enableDrag(dataContext),
           showDragHandle: action.enableDragHandler(dataContext),
-          builder: (context) {
+          builder: (modalContext) {
+            // TODO: wrap the widget inside a InheritedWidget with access to modalContext
             return widget!;
           },
         );
