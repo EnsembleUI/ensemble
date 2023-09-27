@@ -359,7 +359,9 @@ class NativeInvokable with Invokable {
         disconnectSocket(socketName);
       },
       'messageSocket': (String socketName, dynamic message) {
-        messageSocket(socketName, message);
+        final scope = ScreenController().getScopeManager(_buildContext);
+        final evalMessage = scope?.dataContext.eval(message);
+        messageSocket(socketName, evalMessage);
       },
     };
   }
