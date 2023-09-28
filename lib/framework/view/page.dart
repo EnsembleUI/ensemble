@@ -1,21 +1,18 @@
 import 'dart:developer';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
-import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/menu.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/bottom_nav_page_view.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/page_model.dart';
-import 'package:ensemble/page_model.dart' as model;
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:flutter/material.dart';
@@ -47,7 +44,7 @@ class Page extends StatefulWidget {
   State<Page> createState() => PageState();
 }
 
-class PageState extends State<Page> with AutomaticKeepAliveClientMixin {
+class PageState extends State<Page> with AutomaticKeepAliveClientMixin, RouteAware {
   late Widget rootWidget;
   late ScopeManager _scopeManager;
 
@@ -69,6 +66,39 @@ class PageState extends State<Page> with AutomaticKeepAliveClientMixin {
     super.didChangeDependencies();
     // if our widget changes, we need to save the scopeManager to it.
     widget.rootScopeManager = _scopeManager;
+
+    // see if we are part of a ViewGroup or not
+    BottomNavScreen? bottomNavRootScreen = BottomNavScreen.getScreen(context);
+    if (bottomNavRootScreen != null) {
+      bottomNavRootScreen.onReVisited(() {
+        if (widget._pageModel.viewBehavior.onResume != null) {
+          ScreenController().executeActionWithScope(
+              context, _scopeManager, widget._pageModel.viewBehavior.onResume!);
+        }
+      });
+    }
+    // standalone screen, listen when another screen is popped and we are back here
+    else {
+      var route = ModalRoute.of(context);
+      if (route is PageRoute) {
+        Ensemble.routeObserver.subscribe(this, route);
+      }
+    }
+
+  }
+
+  // @override
+  // void didPush() {
+  //   log("didPush() for ${widget.hashCode}");
+  // }
+
+  /// when a page is popped and we go back to this page
+  @override
+  void didPopNext() {
+    if (widget._pageModel.viewBehavior.onResume != null) {
+      ScreenController().executeActionWithScope(
+          context, _scopeManager, widget._pageModel.viewBehavior.onResume!);
+    }
   }
 
   @override
@@ -623,10 +653,16 @@ class PageState extends State<Page> with AutomaticKeepAliveClientMixin {
 
   @override
   void dispose() {
+    Ensemble.routeObserver.unsubscribe(this);
+
+
+
     //log('Disposing View ${widget.hashCode}');
     _scopeManager.dispose();
     //_scopeManager.debugListenerMap();
     super.dispose();
+
+
   }
 }
 

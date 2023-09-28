@@ -292,7 +292,7 @@ class ScreenController {
                 scopeManager!,
                 action.onSuccess!,
                 event: EnsembleEvent(
-                  action.initiator!,
+                  action.initiator,
                   data: linkSuccess,
                 ),
               );
@@ -305,7 +305,7 @@ class ScreenController {
                 scopeManager!,
                 action.onEvent!,
                 event: EnsembleEvent(
-                  action.initiator!,
+                  action.initiator,
                   data: linkEvent,
                 ),
               );
@@ -318,7 +318,7 @@ class ScreenController {
                 scopeManager!,
                 action.onExit!,
                 event: EnsembleEvent(
-                  action.initiator!,
+                  action.initiator,
                   data: linkExit,
                 ),
               );

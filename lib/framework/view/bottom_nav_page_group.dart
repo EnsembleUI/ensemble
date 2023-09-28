@@ -1,7 +1,11 @@
+import 'dart:developer';
+
+import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/menu.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/bottom_nav_page_view.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/framework/view/page_group.dart';
@@ -67,7 +71,7 @@ class BottomNavPageGroup extends StatefulWidget {
   State<BottomNavPageGroup> createState() => _BottomNavPageGroupState();
 }
 
-class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
+class _BottomNavPageGroupState extends State<BottomNavPageGroup> with RouteAware {
   late List<MenuItem> menuItems;
   late PageController controller;
   FloatingAlignment floatingAlignment = FloatingAlignment.center;
@@ -97,9 +101,28 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // TODO: this should be moved to PageGroup for the other ViewGroup types all behave the same way
+    var route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      Ensemble.routeObserver.subscribe(this, route);
+    }
+  }
+
+  @override
   void dispose() {
     controller.dispose();
+    Ensemble.routeObserver.unsubscribe(this);
     super.dispose();
+  }
+
+  /// this is when a screen is popped and we go back to the screen with this ViewGroup
+  @override
+  void didPopNext() {
+    // TODO: dispatch onRevisit so the child Page can execute onResume()
+    
   }
 
   Widget? _buildFloatingButton() {
@@ -159,9 +182,8 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
       floatingActionButton: _buildFloatingButton(),
       body: PageGroupWidget(
         scopeManager: widget.scopeManager,
-        child: PageView(
+        child: BottomNavPageView(
           controller: controller,
-          physics: const NeverScrollableScrollPhysics(),
           children: widget.children,
         ),
       ),
