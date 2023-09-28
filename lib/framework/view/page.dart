@@ -44,7 +44,7 @@ class Page extends StatefulWidget {
   State<Page> createState() => PageState();
 }
 
-class PageState extends State<Page> with AutomaticKeepAliveClientMixin, RouteAware {
+class PageState extends State<Page> with AutomaticKeepAliveClientMixin, RouteAware, WidgetsBindingObserver {
   late Widget rootWidget;
   late ScopeManager _scopeManager;
 
@@ -87,10 +87,33 @@ class PageState extends State<Page> with AutomaticKeepAliveClientMixin, RouteAwa
 
   }
 
-  // @override
-  // void didPush() {
-  //   log("didPush() for ${widget.hashCode}");
-  // }
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed
+        && widget._pageModel.viewBehavior.onResume != null) {
+      // if we our screen is the currently active route
+      var route = ModalRoute.of(context);
+      if (route != null && route.isCurrent) {
+
+        // BottomNavBar is the route that contains each Tabs,
+        // so we ignore if we are currently not an active Tab
+        BottomNavScreen? bottomNavRootScreen = BottomNavScreen.getScreen(context);
+        if (bottomNavRootScreen != null && !bottomNavRootScreen.isActive()) {
+          return;
+        }
+        ScreenController().executeActionWithScope(
+            context, _scopeManager, widget._pageModel.viewBehavior.onResume!);
+        
+      }
+
+    }
+  }
+
+  @override
+  void didPush() {
+    log("didPush() for ${widget.hashCode}");
+  }
 
   /// when a page is popped and we go back to this page
   @override
@@ -103,6 +126,7 @@ class PageState extends State<Page> with AutomaticKeepAliveClientMixin, RouteAwa
 
   @override
   void initState() {
+    WidgetsBinding.instance.addObserver(this);
     _scopeManager = ScopeManager(
       widget._initialDataContext.clone(newBuildContext: context),
       PageData(
@@ -654,7 +678,7 @@ class PageState extends State<Page> with AutomaticKeepAliveClientMixin, RouteAwa
   @override
   void dispose() {
     Ensemble.routeObserver.unsubscribe(this);
-
+    WidgetsBinding.instance.removeObserver(this);
 
 
     //log('Disposing View ${widget.hashCode}');
