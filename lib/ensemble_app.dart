@@ -164,6 +164,7 @@ class EnsembleAppState extends State<EnsembleApp> {
     StorageManager().setIsPreview(widget.isPreview);
 
     return MaterialApp(
+      navigatorObservers: [Ensemble.routeObserver],
       debugShowCheckedModeBanner: false,
       navigatorKey: Utils.globalAppKey,
       theme: config.getAppTheme(),
