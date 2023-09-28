@@ -27,7 +27,14 @@ class BoxWrapper extends StatelessWidget {
       this.ignoresMargin = false,
 
       // width/height maybe applied at the child, or not applicable
-      this.ignoresDimension = false});
+      this.ignoresDimension = false,
+
+      // some widget (i.e. Image) will not respect the Container's boundary
+      // even if clipBehavior is enabled. In these case we need to apply
+      // an explicit ClipRRect around it. Note also that apply it around
+      // another Container may cause clipping at the borderRadius's corners.
+      // Also note that clipping is not necessary unless borderRadius is set
+      this.applyClipping = false});
 
   final Widget widget;
   final BoxController boxController;
@@ -36,6 +43,7 @@ class BoxWrapper extends StatelessWidget {
   final bool ignoresPadding;
   final bool ignoresMargin;
   final bool ignoresDimension;
+  final bool applyClipping;
 
   @override
   Widget build(BuildContext context) {
@@ -108,7 +116,7 @@ class BoxWrapper extends StatelessWidget {
 
   /// The child widget need to clip separately from the Container's decoration
   Widget _getWidget() {
-    return boxController.borderRadius != null
+    return boxController.borderRadius != null && applyClipping
         ? ClipRRect(
             borderRadius: boxController.borderRadius!.getValue(),
             clipBehavior: Clip.hardEdge,
