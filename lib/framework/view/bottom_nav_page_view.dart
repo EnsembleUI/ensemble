@@ -17,6 +17,7 @@ class BottomNavPageView extends StatefulWidget {
 class BottomNavPageViewState extends State<BottomNavPageView> {
   Set<int> _visitedScreens = {};
   List<BottomNavScreen> screens = [];
+  BottomNavScreen? selectedScreen;
 
   @override
   void initState() {
@@ -24,7 +25,7 @@ class BottomNavPageViewState extends State<BottomNavPageView> {
 
     // wrap each screen inside a InheritedWidget for sending changes
     screens = widget.children.map((child) =>
-        BottomNavScreen(child: child)).toList();
+        BottomNavScreen(child: child, bottomNavRoot: this,)).toList();
 
     // mark the initial screen as visited
     _visitedScreens.add(widget.initialIndex);
@@ -38,6 +39,7 @@ class BottomNavPageViewState extends State<BottomNavPageView> {
           screens[newScreenIndex]._revisit();
         }
         _visitedScreens.add(newScreenIndex);
+        selectedScreen = screens[newScreenIndex];
       }
     });
   }
@@ -53,7 +55,8 @@ class BottomNavPageViewState extends State<BottomNavPageView> {
 /// This InheritedWidget enables each Page to be notified when
 /// the page is being revisited again
 class BottomNavScreen extends InheritedWidget {
-  BottomNavScreen({required super.child});
+  BottomNavScreen({required super.child, required this.bottomNavRoot});
+  BottomNavPageViewState bottomNavRoot;
 
   // This enable each page to attach its listener to
   Function()? _onRevisited;
@@ -64,6 +67,10 @@ class BottomNavScreen extends InheritedWidget {
   // we privately call this from our PageView, no one else need to know
   void _revisit() {
     _onRevisited?.call();
+  }
+
+  bool isActive() {
+    return bottomNavRoot.selectedScreen == this;
   }
 
   static BottomNavScreen? getScreen(BuildContext context) {
