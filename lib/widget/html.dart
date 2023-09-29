@@ -54,14 +54,15 @@ class HtmlState extends framework.WidgetState<EnsembleHtml> {
     return Html(
       data: widget._controller.text ?? '',
       onLinkTap: ((url, attributes, element) {
-          if (widget.controller.onLinkTap != null) {
-            ScreenController().executeAction(
-                context, widget.controller.onLinkTap!,
-                event: EnsembleEvent(widget, data: {'url': url,'attributes':attributes}));
-          } else if (url != null) {
-            launchUrl(Uri.parse(url));
-          }
-        }),
+        if (widget.controller.onLinkTap != null) {
+          ScreenController().executeAction(
+              context, widget.controller.onLinkTap!,
+              event: EnsembleEvent(widget,
+                  data: {'url': url, 'attributes': attributes}));
+        } else if (url != null) {
+          launchUrl(Uri.parse(url));
+        }
+      }),
     );
   }
 }
