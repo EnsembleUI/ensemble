@@ -92,6 +92,14 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
   }
 
   @override
+  void dispose() {
+    if (widget is Invokable) {
+      scopeManager?.removeBindingListeners(widget as Invokable);
+    }
+    super.dispose();
+  }
+
+  @override
   void changeState() {
     super.changeState();
     // dispatch changes, so anything binding to this will be notified
