@@ -694,17 +694,12 @@ class ScreenController {
     ScopeManager? scopeManager,
     Map<String, YamlMap>? apiMap,
   }) async {
-    List<File>? selectedFiles;
+    List<File>? selectedFiles = _getRawFiles(action.files, dataContext);
 
-    final rawFiles = _getRawFiles(action.files, dataContext);
-
-    if (rawFiles is! List<dynamic>) {
+    if (selectedFiles == null) {
       if (action.onError != null) executeAction(context, action.onError!);
       return;
     }
-
-    selectedFiles =
-        rawFiles.map((data) => File.fromJson(data)).toList().cast<File>();
 
     if (isFileSizeOverLimit(context, dataContext, selectedFiles, action)) {
       if (action.onError != null) executeAction(context, action.onError!);
@@ -815,23 +810,27 @@ class ScreenController {
     if (action.onComplete != null) executeAction(context, action.onComplete!);
   }
 
-  List<dynamic>? _getRawFiles(dynamic files, DataContext dataContext) {
-    if (files is YamlList) {
+  List<File>? _getRawFiles(dynamic rawFiles, DataContext dataContext) {
+    var files = dataContext.eval(rawFiles);
+    if (files is YamlList || files is List) {
       return files
-          .map((element) => Map<String, dynamic>.from(element))
-          .toList();
+          .map((element) {
+            if (element is String) {
+              return File.fromString(element);
+            }
+            return File.fromJson(element);
+          })
+          .toList()
+          .cast<File>();
     }
 
     if (files is Map && files.containsKey('path')) {
-      return [Map<String, dynamic>.from(files)];
+      return [File.fromJson(files)];
     }
 
     if (files is String) {
-      var rawFiles = dataContext.eval(files);
-      if (rawFiles is Map && rawFiles.containsKey('path')) {
-        rawFiles = [rawFiles];
-      }
-      return rawFiles;
+      final rawFiles = File.fromString(files);
+      return [rawFiles];
     }
 
     return null;
@@ -844,7 +843,7 @@ class ScreenController {
         'The size of is which is larger than the maximum allowed';
 
     final totalSize = selectedFiles.fold<double>(
-        0, (previousValue, element) => previousValue + element.size);
+        0, (previousValue, element) => previousValue + (element.size ?? 0));
     final maxFileSize = action.maxFileSize?.kb ?? defaultMaxFileSize;
 
     final message = Utils.translateWithFallback(
