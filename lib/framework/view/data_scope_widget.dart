@@ -17,7 +17,7 @@ class DataScopeWidget extends InheritedWidget {
   /// return the ScopeManager which includes the dataContext
   static ScopeManager? getScope(BuildContext context) {
     DataScopeWidget? viewWidget =
-    context.dependOnInheritedWidgetOfExactType<DataScopeWidget>();
+        context.dependOnInheritedWidgetOfExactType<DataScopeWidget>();
     if (viewWidget != null) {
       return viewWidget.scopeManager;
     }
