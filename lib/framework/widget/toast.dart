@@ -4,6 +4,7 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/theme/default_theme.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/ensemble_icon.dart';
