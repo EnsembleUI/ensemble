@@ -242,16 +242,16 @@ class ScreenController {
                           child: Container(
                               decoration: useDefaultStyle
                                   ? const BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius:
-                                  BorderRadius.all(Radius.circular(5)),
-                                  boxShadow: <BoxShadow>[
-                                    BoxShadow(
-                                      color: Colors.white38,
-                                      blurRadius: 5,
-                                      offset: Offset(0, 0),
-                                    )
-                                  ])
+                                      color: Colors.white,
+                                      borderRadius:
+                                          BorderRadius.all(Radius.circular(5)),
+                                      boxShadow: <BoxShadow>[
+                                          BoxShadow(
+                                            color: Colors.white38,
+                                            blurRadius: 5,
+                                            offset: Offset(0, 0),
+                                          )
+                                        ])
                                   : null,
                               margin: useDefaultStyle
                                   ? const EdgeInsets.all(20)
