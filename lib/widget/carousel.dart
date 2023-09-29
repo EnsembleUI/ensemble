@@ -66,6 +66,8 @@ class Carousel extends StatefulWidget
           _controller.indicatorOffset = Utils.optionalDouble(value),
       'indicatorColor': (value) =>
           _controller.indicatorColor = Utils.getColor(value),
+      'selectedItemIndex': (value) =>
+          _controller.selectedItemIndex = Utils.getInt(value, fallback: 0),
       'onItemChange': (action) => _controller.onItemChange =
           EnsembleAction.fromYaml(action, initiator: this),
       'onItemTap': (funcDefinition) => _controller.onItemTap =
@@ -154,6 +156,12 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
 
   // this is used to highlight the correct indicator index
   int focusIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    focusIndex = widget._controller.selectedItemIndex;
+  }
 
   @override
   void didChangeDependencies() {
@@ -343,6 +351,7 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
   CarouselOptions _getBaseCarouselOptions() {
     return CarouselOptions(
       height: widget._controller.height?.toDouble(),
+      initialPage: widget._controller.selectedItemIndex,
       enableInfiniteScroll: false,
       autoPlay: widget._controller.autoplay ?? false,
       autoPlayInterval:
