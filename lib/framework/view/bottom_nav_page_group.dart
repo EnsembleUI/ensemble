@@ -71,7 +71,8 @@ class BottomNavPageGroup extends StatefulWidget {
   State<BottomNavPageGroup> createState() => _BottomNavPageGroupState();
 }
 
-class _BottomNavPageGroupState extends State<BottomNavPageGroup> with RouteAware {
+class _BottomNavPageGroupState extends State<BottomNavPageGroup>
+    with RouteAware {
   late List<MenuItem> menuItems;
   late PageController controller;
   FloatingAlignment floatingAlignment = FloatingAlignment.center;
@@ -122,7 +123,6 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> with RouteAware
   @override
   void didPopNext() {
     // TODO: dispatch onRevisit so the child Page can execute onResume()
-    
   }
 
   Widget? _buildFloatingButton() {
