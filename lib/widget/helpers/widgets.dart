@@ -2,7 +2,7 @@
 
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
-import 'package:ensemble/framework/view/page.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/form.dart' as ensemble;
 import 'package:ensemble/widget/input/form_helper.dart';
@@ -27,7 +27,14 @@ class BoxWrapper extends StatelessWidget {
       this.ignoresMargin = false,
 
       // width/height maybe applied at the child, or not applicable
-      this.ignoresDimension = false});
+      this.ignoresDimension = false,
+
+      // some widget (i.e. Image) will not respect the Container's boundary
+      // even if clipBehavior is enabled. In these case we need to apply
+      // an explicit ClipRRect around it. Note also that apply it around
+      // another Container may cause clipping at the borderRadius's corners.
+      // Also note that clipping is not necessary unless borderRadius is set
+      this.applyClipping = false});
 
   final Widget widget;
   final BoxController boxController;
@@ -36,6 +43,7 @@ class BoxWrapper extends StatelessWidget {
   final bool ignoresPadding;
   final bool ignoresMargin;
   final bool ignoresDimension;
+  final bool applyClipping;
 
   @override
   Widget build(BuildContext context) {
@@ -45,11 +53,9 @@ class BoxWrapper extends StatelessWidget {
         ignoresDimension: ignoresDimension)) {
       return widget;
     }
-    // when we have a border radius, we may need to clip the child (e.g. image)
-    // so it doesn't bleed through the border. This really only applies for
-    // the actual child widget, as the backgroundColor/backgroundImage will already
-    // be clipped properly. For simplicity just apply it and take a small
-    // performance hit.
+    // when we have a border radius, we need to clip the decoration.
+    // Note that this clip only apply to the background decoration.
+    // The child of the Container will need a separate ClipRRect
     Clip clip = Clip.none;
     if (boxController.borderRadius != null &&
         boxController.hasBoxDecoration()) {
@@ -101,11 +107,21 @@ class BoxWrapper extends StatelessWidget {
           ? Stack(
               children: [
                 Positioned.fill(child: backgroundImage),
-                widget,
+                _getWidget(),
               ],
             )
-          : widget,
+          : _getWidget(),
     );
+  }
+
+  /// The child widget need to clip separately from the Container's decoration
+  Widget _getWidget() {
+    return boxController.borderRadius != null && applyClipping
+        ? ClipRRect(
+            borderRadius: boxController.borderRadius!.getValue(),
+            clipBehavior: Clip.hardEdge,
+            child: widget)
+        : widget;
   }
 }
 
@@ -117,6 +133,7 @@ class InputWrapper extends StatelessWidget {
       required this.type,
       required this.widget,
       required this.controller});
+
   final String type;
   final Widget widget;
   final FormFieldController controller;
@@ -230,7 +247,9 @@ class ClearableInput extends StatelessWidget {
 
 mixin GradientBorder {
   BorderSide get bottom => BorderSide.none;
+
   BorderSide get top => BorderSide.none;
+
   bool get isUniform => true;
 
   void paintRect(
@@ -285,6 +304,7 @@ class GradientBoxBorder extends BoxBorder with GradientBorder {
 /// a wrapper around a widget and enable Tap action.
 class TapOverlay extends StatelessWidget {
   const TapOverlay({super.key, required this.widget, required this.onTap});
+
   final Widget widget;
   final TapOverlayFunc onTap;
 

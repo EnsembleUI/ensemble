@@ -35,8 +35,7 @@ class BoxLayoutWrapper extends StatelessWidget {
       ignoresMargin: true,
     );
     if (controller.onTap != null) {
-      rtn = InkWell(
-        splashColor: Colors.transparent,
+      rtn = GestureDetector(
         child: rtn,
         onTap: () =>
             ScreenController().executeAction(context, controller.onTap!),

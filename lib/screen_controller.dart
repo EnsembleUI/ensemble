@@ -10,6 +10,8 @@ import 'dart:ui';
 
 import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/action/InvokeAPIController.dart';
+import 'package:ensemble/action/bottom_modal_action.dart';
+import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/framework/action.dart';
@@ -24,6 +26,8 @@ import 'package:ensemble/framework/stub/contacts_manager.dart';
 import 'package:ensemble/framework/stub/file_manager.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/stub/plaid_link_manager.dart';
+import 'package:ensemble/framework/view/context_scope_widget.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/view/page_group.dart';
@@ -72,7 +76,7 @@ class ScreenController {
   ScopeManager? getScopeManager(BuildContext context) {
     // get the current scope of the widget that invoked this. It gives us
     // the data context to evaluate expression
-    ScopeManager? scopeManager = ensemble.DataScopeWidget.getScope(context);
+    ScopeManager? scopeManager = DataScopeWidget.getScope(context);
 
     // when context is at the root View, we can't reach the DataScopeWidget which is
     // actually a child of View. Let's just get the scopeManager directly.
@@ -132,6 +136,9 @@ class ScreenController {
       dataContext = providedDataContext.clone(newBuildContext: context);
     }*/
 
+    /// TODO: ScopeManager should be non-null. Should be refactored to be clear
+    /// For now, we'll do scopeManager!
+
     // scope the initiator to *this* variable
     if (action.initiator != null) {
       dataContext.addInvokableContext('this', action.initiator!);
@@ -183,105 +190,6 @@ class ScreenController {
           executeActionWithScope(context, scopeManager, action.onModalDismiss!);
         });
       }
-    } else if (action is ShowBottomModalAction) {
-      Widget? widget;
-      if (scopeManager != null && action.widget != null) {
-        widget = scopeManager.buildWidgetFromDefinition(action.widget);
-      }
-
-      if (widget != null) {
-        showModalBottomSheet(
-          context: context,
-          backgroundColor: action.backgroundColor(dataContext),
-          barrierColor: action.barrierColor(dataContext),
-          isScrollControlled: true,
-          enableDrag: action.enableDrag(dataContext),
-          showDragHandle: action.enableDragHandler(dataContext),
-          builder: (context) {
-            return widget!;
-          },
-        );
-      }
-    } else if (action is PlaidLinkAction) {
-      final linkToken = action.getLinkToken(dataContext).trim();
-      if (linkToken.isNotEmpty) {
-        GetIt.I<PlaidLinkManager>().openPlaidLink(
-          linkToken,
-          (linkSuccess) {
-            if (action.onSuccess != null) {
-              executeActionWithScope(
-                context,
-                scopeManager!,
-                action.onSuccess!,
-                event: EnsembleEvent(
-                  action.initiator!,
-                  data: linkSuccess,
-                ),
-              );
-            }
-          },
-          (linkEvent) {
-            if (action.onEvent != null) {
-              executeActionWithScope(
-                context,
-                scopeManager!,
-                action.onEvent!,
-                event: EnsembleEvent(
-                  action.initiator!,
-                  data: linkEvent,
-                ),
-              );
-            }
-          },
-          (linkExit) {
-            if (action.onExit != null) {
-              executeActionWithScope(
-                context,
-                scopeManager!,
-                action.onExit!,
-                event: EnsembleEvent(
-                  action.initiator!,
-                  data: linkExit,
-                ),
-              );
-            }
-          },
-        );
-      } else {
-        throw RuntimeError(
-            "openPlaidLink action requires the plaid's link_token.");
-      }
-    } else if (action is AppSettingAction) {
-      final settingType = action.getTarget(dataContext);
-      AppSettings.openAppSettings(type: settingType);
-    } else if (action is PhoneContactAction) {
-      GetIt.I<ContactManager>().getPhoneContacts((contacts) {
-        if (action.getOnSuccess(dataContext) != null) {
-          final contactsData =
-              contacts.map((contact) => contact.toJson()).toList();
-
-          executeActionWithScope(
-            context,
-            scopeManager!,
-            action.getOnSuccess(dataContext)!,
-            event: EnsembleEvent(
-              action.initiator,
-              data: {'contacts': contactsData},
-            ),
-          );
-        }
-      }, (error) {
-        if (action.getOnError(dataContext) != null) {
-          executeActionWithScope(
-            context,
-            scopeManager!,
-            action.getOnError(dataContext)!,
-            event: EnsembleEvent(action.initiator!, data: {'error': error}),
-          );
-        }
-      });
-    } else if (action is ShowCameraAction) {
-      GetIt.I<CameraManager>().openCamera(context, action, scopeManager);
     } else if (action is ShowDialogAction) {
       if (scopeManager != null) {
         Widget widget = scopeManager.buildWidgetFromDefinition(action.widget);
@@ -334,16 +242,16 @@ class ScreenController {
                           child: Container(
                               decoration: useDefaultStyle
                                   ? const BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius:
-                                          BorderRadius.all(Radius.circular(5)),
-                                      boxShadow: <BoxShadow>[
-                                          BoxShadow(
-                                            color: Colors.white38,
-                                            blurRadius: 5,
-                                            offset: Offset(0, 0),
-                                          )
-                                        ])
+                                  color: Colors.white,
+                                  borderRadius:
+                                  BorderRadius.all(Radius.circular(5)),
+                                  boxShadow: <BoxShadow>[
+                                    BoxShadow(
+                                      color: Colors.white38,
+                                      blurRadius: 5,
+                                      offset: Offset(0, 0),
+                                    )
+                                  ])
                                   : null,
                               margin: useDefaultStyle
                                   ? const EdgeInsets.all(20)
@@ -372,6 +280,86 @@ class ScreenController {
         }
         scopeManager.openedDialogs.clear();
       }
+    } else if (action is PlaidLinkAction) {
+      final linkToken = action.getLinkToken(dataContext).trim();
+      if (linkToken.isNotEmpty) {
+        GetIt.I<PlaidLinkManager>().openPlaidLink(
+          linkToken,
+          (linkSuccess) {
+            if (action.onSuccess != null) {
+              executeActionWithScope(
+                context,
+                scopeManager!,
+                action.onSuccess!,
+                event: EnsembleEvent(
+                  action.initiator,
+                  data: linkSuccess,
+                ),
+              );
+            }
+          },
+          (linkEvent) {
+            if (action.onEvent != null) {
+              executeActionWithScope(
+                context,
+                scopeManager!,
+                action.onEvent!,
+                event: EnsembleEvent(
+                  action.initiator,
+                  data: linkEvent,
+                ),
+              );
+            }
+          },
+          (linkExit) {
+            if (action.onExit != null) {
+              executeActionWithScope(
+                context,
+                scopeManager!,
+                action.onExit!,
+                event: EnsembleEvent(
+                  action.initiator,
+                  data: linkExit,
+                ),
+              );
+            }
+          },
+        );
+      } else {
+        throw RuntimeError(
+            "openPlaidLink action requires the plaid's link_token.");
+      }
+    } else if (action is AppSettingAction) {
+      final settingType = action.getTarget(dataContext);
+      AppSettings.openAppSettings(type: settingType);
+    } else if (action is PhoneContactAction) {
+      GetIt.I<ContactManager>().getPhoneContacts((contacts) {
+        if (action.getOnSuccess(dataContext) != null) {
+          final contactsData =
+              contacts.map((contact) => contact.toJson()).toList();
+
+          executeActionWithScope(
+            context,
+            scopeManager!,
+            action.getOnSuccess(dataContext)!,
+            event: EnsembleEvent(
+              action.initiator,
+              data: {'contacts': contactsData},
+            ),
+          );
+        }
+      }, (error) {
+        if (action.getOnError(dataContext) != null) {
+          executeActionWithScope(
+            context,
+            scopeManager!,
+            action.getOnError(dataContext)!,
+            event: EnsembleEvent(action.initiator!, data: {'error': error}),
+          );
+        }
+      });
+    } else if (action is ShowCameraAction) {
+      GetIt.I<CameraManager>().openCamera(context, action, scopeManager);
     } else if (action is StartTimerAction) {
       // what happened if ScopeManager is null?
       if (scopeManager != null) {
@@ -476,10 +464,6 @@ class ScreenController {
           scopeManager: scopeManager);
     } else if (action is FilePickerAction) {
       GetIt.I<FileManager>().pickFiles(context, action, scopeManager);
-    } else if (action is NavigateBack) {
-      if (scopeManager != null) {
-        Navigator.of(context).maybePop(action.getData(dataContext));
-      }
     } else if (action is CopyToClipboardAction) {
       if (action.value != null) {
         String? clipboardValue = action.getValue(dataContext);
@@ -500,8 +484,6 @@ class ScreenController {
     } else if (action is ShareAction) {
       Share.share(action.getText(dataContext),
           subject: action.getTitle(dataContext));
-    } else if (action is RateAppAction) {
-      action.execute(context, dataContext);
     } else if (action is GetDeviceTokenAction) {
       String? deviceToken;
       try {
@@ -679,6 +661,10 @@ class ScreenController {
     } else if (action is MessageSocketAction) {
       final socketService = SocketService();
       socketService.message(action.name, action.message);
+    }
+    // catch-all. All Actions should just be using this
+    else {
+      action.execute(context, scopeManager!);
     }
   }
 
