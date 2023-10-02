@@ -1,5 +1,6 @@
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/box/base_box_layout.dart';
 import 'package:ensemble/layout/box/box_layout.dart';
@@ -59,7 +60,7 @@ class ListView extends StatefulWidget
   }
 
   @override
-  void initChildren({List<Widget>? children, ItemTemplate? itemTemplate}) {
+  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate}) {
     _controller.children = children;
     _controller.itemTemplate = itemTemplate;
   }
@@ -77,7 +78,8 @@ class ListViewController extends BoxLayoutController {
   EdgeInsets? separatorPadding;
 }
 
-class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
+class ListViewState extends WidgetState<ListView>
+    with TemplatedWidgetState, HasChildren<ListView> {
   // template item is created on scroll. this will store the template's data list
   List<dynamic>? templatedDataList;
 
@@ -120,7 +122,7 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
           Widget? itemWidget;
           if (widget._controller.children != null &&
               index < widget._controller.children!.length) {
-            itemWidget = widget._controller.children![index];
+            itemWidget = buildChild(widget._controller.children![index]);
           }
           // create widget from item template
           else if (templatedDataList != null &&

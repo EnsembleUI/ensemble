@@ -15,7 +15,7 @@ import 'package:yaml/yaml.dart';
 
 /// base mixin for Ensemble Container (e.g Column)
 mixin UpdatableContainer<T extends Widget> {
-  void initChildren({List<T>? children, ItemTemplate? itemTemplate});
+  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate});
 }
 
 /// base class for widgets that want to participate in Ensemble layout

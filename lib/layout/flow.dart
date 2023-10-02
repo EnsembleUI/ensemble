@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/templated.dart';
@@ -60,7 +61,7 @@ class Flow extends StatefulWidget
   }
 
   @override
-  void initChildren({List<Widget>? children, ItemTemplate? itemTemplate}) {
+  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate}) {
     _controller.children = children;
     this.itemTemplate = itemTemplate;
   }
@@ -78,12 +79,12 @@ class FlowController extends BoxController {
   int? maxWidth;
   int? maxHeight;
 
-  List<Widget>? children;
+  List<WidgetModel>? children;
   EnsembleAction? onItemTap;
   int selectedItemIndex = -1;
 }
 
-class FlowState extends WidgetState<Flow> with TemplatedWidgetState {
+class FlowState extends WidgetState<Flow> with TemplatedWidgetState, HasChildren<Flow> {
   List<Widget>? templatedChildren;
 
   @override
@@ -119,7 +120,7 @@ class FlowState extends WidgetState<Flow> with TemplatedWidgetState {
     List<Widget> children = [];
 
     if (widget._controller.children != null) {
-      children.addAll(widget._controller.children!);
+      children.addAll(buildChildren(widget._controller.children!));
     }
 
     if (templatedChildren != null) {
