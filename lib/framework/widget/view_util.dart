@@ -235,12 +235,15 @@ class ViewUtil {
       if (w is UpdatableContainer) {
         List<Widget>? children;
         if (model.children != null) {
-          children = [];
-          for (WidgetModel model in model.children!) {
-            //children.add(buildBareWidget(ScopeNode(currentScope), model, modelMap));
-            children.add(buildBareWidget(scopeNode, model, modelMap));
-          }
-          modelMap[model]!.children = children;
+          // children = [];
+          // for (WidgetModel model in model.children!) {
+          //   //children.add(buildBareWidget(ScopeNode(currentScope), model, modelMap));
+          //   children.add(buildBareWidget(scopeNode, model, modelMap));
+          // }
+
+          // we are now defer the widget building to the actual parent widget.
+          // Here we just pass the children's WidgetModel
+          modelMap[model]!.children = model.children;
         }
       }
       // for Custom View, we wraps it around a DataScope to separate the data context.
@@ -299,7 +302,7 @@ class ModelPayload {
 
   final Widget widget;
   final ScopeManager scopeManager;
-  List<Widget>? children;
+  List<WidgetModel>? children;
 }
 
 /// wrapper ScopeManager as a tree node

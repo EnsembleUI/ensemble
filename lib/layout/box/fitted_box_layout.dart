@@ -1,6 +1,7 @@
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/model.dart';
+import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/box/base_box_layout.dart';
 import 'package:ensemble/layout/box/box_layout.dart';
@@ -60,7 +61,7 @@ abstract class FittedBoxLayout extends StatefulWidget
   }
 
   @override
-  void initChildren({List<Widget>? children, ItemTemplate? itemTemplate}) {
+  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate}) {
     _controller.children = children;
   }
 
@@ -68,7 +69,7 @@ abstract class FittedBoxLayout extends StatefulWidget
 }
 
 class FittedBoxLayoutState extends WidgetState<FittedBoxLayout>
-    with TemplatedWidgetState {
+    with TemplatedWidgetState, HasChildren<FittedBoxLayout> {
   @override
   Widget buildWidget(BuildContext context) {
     if (widget._controller.children == null ||
@@ -79,7 +80,7 @@ class FittedBoxLayoutState extends WidgetState<FittedBoxLayout>
     // by default wrap each child inside Expanded unless `auto` is specified
     List<Widget> items = [];
     for (int i = 0; i < widget._controller.children!.length; i++) {
-      Widget child = widget._controller.children![i];
+      Widget child = buildChild(widget._controller.children![i]);
 
       // default flex is 1 if not specified
       BoxFlex flex = widget._controller.childrenFits != null &&

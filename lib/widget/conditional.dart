@@ -74,15 +74,19 @@ class ConditionalState extends WidgetState<Conditional> {
         expression,
         destination: BindingDestination(widget, 'conditions'),
         onDataChange: (event) {
-          setState(() {
-            _widget = _buildConditionalWidget(scopeManager, conditions);
-          });
+          if (mounted) {
+            setState(() {
+              _widget = _buildConditionalWidget(scopeManager, conditions);
+            });
+          }
         },
       );
     }
-    setState(() {
-      _widget = _buildConditionalWidget(scopeManager, conditions);
-    });
+    if (mounted) {
+      setState(() {
+        _widget = _buildConditionalWidget(scopeManager, conditions);
+      });
+    }
   }
 
   @override
