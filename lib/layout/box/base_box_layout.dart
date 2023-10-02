@@ -92,7 +92,7 @@ class BoxLayoutController extends BaseBoxLayoutController
 }
 
 abstract class BaseBoxLayoutController extends BoxController {
-  List<Widget>? children;
+  List<WidgetModel>? children;
   EnsembleAction? onTap;
   EnsembleAction? onItemTap;
 
