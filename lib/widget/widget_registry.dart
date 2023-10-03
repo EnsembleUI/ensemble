@@ -12,6 +12,7 @@ import 'package:ensemble/layout/grid_view.dart';
 import 'package:ensemble/layout/toggle_container.dart';
 import 'package:ensemble/widget/Toggle.dart';
 import 'package:ensemble/widget/address.dart';
+import 'package:ensemble/widget/input/form_radio.dart';
 import 'package:ensemble/widget/shape.dart';
 import 'package:ensemble/widget/conditional.dart';
 import 'package:ensemble/widget/confirmation_input.dart';
@@ -114,6 +115,7 @@ class WidgetRegistry {
         EnsembleIconButton.type: () => EnsembleIconButton(),
         EnsembleToggleButton.type: () => EnsembleToggleButton(),
         EnsembleSlider.type: () => EnsembleSlider(),
+        EnsembleRadio.type: () => EnsembleRadio(),
 
         // containers
         ToggleContainer.type: () => ToggleContainer(),

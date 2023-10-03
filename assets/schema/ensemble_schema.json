@@ -1402,6 +1402,28 @@
         }
       ]
     },
+    "Radio-payload":{
+      "type": "object",
+      "allOf" : [
+        {
+          "$ref": "#/$defs/FormInput-payload"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "leadingTitle": {
+              "type": "boolean"
+            },
+            "radioValue": {
+              "type": "string"
+            },
+            "groupId" : {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
     "OnOff-payload": {
       "type": "object",
       "allOf": [
@@ -4503,6 +4525,18 @@
             "ConfirmationInput": {
               "$ref": "#/$defs/ConfirmationInput-payload",
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/iCOvav6CcioH46LR6wYF"
+            }
+          }
+        },
+        {
+          "title": "Radio",
+          "required": [
+            "Radio"
+          ],
+          "properties": {
+            "Radio": {
+              "$ref" : "#/$defs/Radio-payload",
+              "description" : "Testing RadioWidget"
             }
           }
         },
