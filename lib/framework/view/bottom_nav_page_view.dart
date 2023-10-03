@@ -3,15 +3,16 @@ import 'package:flutter/cupertino.dart';
 /// a PageView implementation that keeps track of visited screens of a
 /// BottomNavBar. We use this to expose an onResume callback for each screen.
 class BottomNavPageView extends StatefulWidget {
-  BottomNavPageView({required this.controller, required this.children, this.initialIndex = 0});
+  BottomNavPageView(
+      {required this.controller,
+      required this.children,
+      this.initialIndex = 0});
   final PageController controller;
   final List<Widget> children;
   final int initialIndex;
 
   @override
   State<StatefulWidget> createState() => BottomNavPageViewState();
-
-
 }
 
 class BottomNavPageViewState extends State<BottomNavPageView> {
@@ -24,8 +25,12 @@ class BottomNavPageViewState extends State<BottomNavPageView> {
     super.initState();
 
     // wrap each screen inside a InheritedWidget for sending changes
-    screens = widget.children.map((child) =>
-        BottomNavScreen(child: child, bottomNavRoot: this,)).toList();
+    screens = widget.children
+        .map((child) => BottomNavScreen(
+              child: child,
+              bottomNavRoot: this,
+            ))
+        .toList();
 
     // mark the initial screen as visited
     _visitedScreens.add(widget.initialIndex);
@@ -43,13 +48,12 @@ class BottomNavPageViewState extends State<BottomNavPageView> {
       }
     });
   }
-  
+
   @override
   Widget build(BuildContext context) => PageView(
       physics: const NeverScrollableScrollPhysics(),
       controller: widget.controller,
       children: screens);
-
 }
 
 /// This InheritedWidget enables each Page to be notified when
@@ -82,10 +86,8 @@ class BottomNavScreen extends InheritedWidget {
     return null;
   }
 
-
   @override
   bool updateShouldNotify(covariant BottomNavScreen oldWidget) {
     return oldWidget._onRevisited != _onRevisited;
   }
-
 }
