@@ -45,6 +45,8 @@ class Carousel extends StatefulWidget
       'autoLayoutBreakpoint': (value) =>
           _controller.autoLayoutBreakpoint = Utils.optionalInt(value, min: 0),
       'autoplay': (value) => _controller.autoplay = Utils.optionalBool(value),
+      'enableInfiniteScroll': (value) =>
+          _controller.enableInfiniteScroll = Utils.optionalBool(value),
       'autoplayInterval': (value) =>
           _controller.autoplayInterval = Utils.optionalInt(value, min: 1),
       'height': (height) => _controller.height = Utils.optionalInt(height),
@@ -69,6 +71,8 @@ class Carousel extends StatefulWidget
           _controller.indicatorOffset = Utils.optionalDouble(value),
       'indicatorColor': (value) =>
           _controller.indicatorColor = Utils.getColor(value),
+      'selectedItemIndex': (value) =>
+          _controller.selectedItemIndex = Utils.getInt(value, fallback: 0),
       'onItemChange': (action) => _controller.onItemChange =
           EnsembleAction.fromYaml(action, initiator: this),
       'onItemTap': (funcDefinition) => _controller.onItemTap =
@@ -134,6 +138,7 @@ class MyController extends BoxController {
   double? indicatorOffset;
   Color? indicatorColor;
   bool? autoplay;
+  bool? enableInfiniteScroll;
   int? autoplayInterval;
 
   // Custom Widget
@@ -158,6 +163,12 @@ class CarouselState extends WidgetState<Carousel>
 
   // this is used to highlight the correct indicator index
   int focusIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    focusIndex = widget._controller.selectedItemIndex;
+  }
 
   @override
   void didChangeDependencies() {
@@ -350,7 +361,8 @@ class CarouselState extends WidgetState<Carousel>
   CarouselOptions _getBaseCarouselOptions() {
     return CarouselOptions(
       height: widget._controller.height?.toDouble(),
-      enableInfiniteScroll: false,
+      initialPage: widget._controller.selectedItemIndex,
+      enableInfiniteScroll: widget._controller.enableInfiniteScroll ?? false,
       autoPlay: widget._controller.autoplay ?? false,
       autoPlayInterval:
           Duration(seconds: widget._controller.autoplayInterval ?? 4),

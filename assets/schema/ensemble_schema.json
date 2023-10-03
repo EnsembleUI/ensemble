@@ -2639,6 +2639,10 @@
                       "type": "boolean",
                       "description": "If true, Enables autoplay, sliding one page at a time. Default (false)"
                     },
+                    "enableInfiniteScroll": {
+                      "type": "boolean",
+                      "description": "Determines if carousel should loop infinitely or be limited to item length. Default (false)"
+                    },
                     "autoplayInterval": {
                       "type": "integer",
                       "description": "Sets the duration in seconds for the autoplay. Default (4 second)"
