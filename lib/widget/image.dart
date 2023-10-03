@@ -65,6 +65,11 @@ class EnsembleImage extends StatefulWidget
 }
 
 class ImageController extends BoxController {
+  ImageController() {
+    /// Image's Box need to apply an additional ClipRRect or
+    /// the image will bleed through the borderRadius
+    clipContent = true;
+  }
   String source = '';
   String? fit;
   Color? placeholderColor;
@@ -107,8 +112,7 @@ class ImageState extends WidgetState<EnsembleImage> {
         boxController: widget._controller,
         ignoresMargin: true, // make sure the gesture don't include the margin
         ignoresDimension: true, // we apply width/height in the image already
-        applyClipping: true // Image doesn't respect Container's clipBehavior
-        );
+    );
     if (widget._controller.onTap != null) {
       rtn = GestureDetector(
           child: rtn,
