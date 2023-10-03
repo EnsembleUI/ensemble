@@ -322,7 +322,12 @@ class ItemTemplate {
   final dynamic template;
   List<dynamic>? initialValue;
 
-  ItemTemplate(this.data, this.name, this.template, {this.initialValue});
+  ItemTemplate(
+    this.data,
+    this.name,
+    this.template, {
+    this.initialValue,
+  });
 }
 
 class HeaderModel {
