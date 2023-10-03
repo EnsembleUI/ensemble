@@ -166,14 +166,11 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState, Has
     if (widget._controller.itemTemplate != null) {
       registerItemTemplate(context, widget._controller.itemTemplate!,
           evaluateInitialValue: true, onDataChanged: (List dataList) {
-        if (mounted) {
-          setState(() {
-            templatedChildren = buildWidgetsFromTemplate(
-                context, dataList, widget._controller.itemTemplate!);
-          });
-        } else {
-          log("Stale setState() for ${widget.runtimeType} - ${widget.hashCode}");
-        }
+        setState(() {
+          templatedChildren = buildWidgetsFromTemplate(
+              context, dataList, widget._controller.itemTemplate!);
+        });
+
       });
     }
   }

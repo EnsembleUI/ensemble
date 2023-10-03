@@ -59,7 +59,7 @@ class BoxWrapper extends StatelessWidget {
     Clip clip = Clip.none;
     if (boxController.borderRadius != null &&
         boxController.hasBoxDecoration()) {
-      clip = Clip.antiAlias;
+      clip = Clip.hardEdge;
     }
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
     final Widget? backgroundImage =
@@ -119,7 +119,7 @@ class BoxWrapper extends StatelessWidget {
     return boxController.borderRadius != null && applyClipping
         ? ClipRRect(
             borderRadius: boxController.borderRadius!.getValue(),
-            clipBehavior: Clip.antiAlias,
+            clipBehavior: Clip.hardEdge,
             child: widget)
         : widget;
   }
