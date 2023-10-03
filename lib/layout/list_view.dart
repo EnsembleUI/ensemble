@@ -52,6 +52,8 @@ class ListView extends StatefulWidget
           PullToRefreshOptions.fromMap(input),
       'onScrollEnd': (funcDefinition) => _controller.onScrollEnd =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'reverse': (value) =>
+          _controller.reverse = Utils.getBool(value, fallback: false),
     };
   }
 
@@ -78,6 +80,7 @@ class ListViewController extends BoxLayoutController {
   double? separatorWidth;
   EdgeInsets? separatorPadding;
   EnsembleAction? onScrollEnd;
+  bool reverse = false;
 }
 
 class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
@@ -118,6 +121,7 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
             : null,
         itemCount: itemCount,
         shrinkWrap: false,
+        reverse: widget._controller.reverse,
         itemBuilder: (BuildContext context, int index) {
           // show childrenfocus
           _checkScrollEnd(context, index);
@@ -193,7 +197,8 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
     final totalItems = (widget._controller.children?.length ?? 0) +
         (templatedDataList?.length ?? 0);
     if (index == totalItems - 1 && widget._controller.onScrollEnd != null) {
-      ScreenController().executeAction(context, widget._controller.onScrollEnd!);
+      ScreenController()
+          .executeAction(context, widget._controller.onScrollEnd!);
     }
   }
 }
