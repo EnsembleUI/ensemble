@@ -2099,6 +2099,10 @@
               "$ref": "#/$defs/Action-payload",
               "description": "Call Ensemble's built-in functions or execute code when tapping on an item in the list."
             },
+            "onScrollEnd": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Execute an Ensemble action when user has reached bottom of grid."
+            },
             "styles": {
               "allOf": [
                 {
@@ -2143,6 +2147,10 @@
                       "type": "number",
                       "description": "Instead of itemHeight, you can set the tile's dimension as a ratio of (item width / item height). For example, a tile with 3x width and 2x height is 3/2 = 1.5. This attribute will be ignored if itemHeight is set.",
                       "minimum": 0
+                    },
+                    "reverse": {
+                      "type": "boolean",
+                      "description": "Show Grid in reverse order. Default is false"
                     }
                   }
                 }
@@ -2500,6 +2508,10 @@
               "type": "integer",
               "description": "Selecting a ListView item gives the index of selected item"
             },
+            "onScrollEnd": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Execute an Ensemble action when user has reached bottom of list."
+            },
             "styles": {
               "allOf": [
                 {
@@ -2535,6 +2547,10 @@
                         }
                       ],
                       "description": "Padding with CSS-style value e.g. padding: 5 20 5 Default 0 0 0"
+                    },
+                    "reverse": {
+                      "type": "boolean",
+                      "description": "Show list in reverse order. Default is false"
                     }
                   }
                 }
