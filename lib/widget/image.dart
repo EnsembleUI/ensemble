@@ -65,6 +65,11 @@ class EnsembleImage extends StatefulWidget
 }
 
 class ImageController extends BoxController {
+  ImageController() {
+    /// Image's Box need to apply an additional ClipRRect or
+    /// the image will bleed through the borderRadius
+    clipContent = true;
+  }
   String source = '';
   String? fit;
   Color? placeholderColor;
@@ -103,11 +108,11 @@ class ImageState extends WidgetState<EnsembleImage> {
     }
 
     Widget rtn = BoxWrapper(
-        widget: image,
-        boxController: widget._controller,
-        ignoresMargin: true, // make sure the gesture don't include the margin
-        ignoresDimension: true // we apply width/height in the image already
-        );
+      widget: image,
+      boxController: widget._controller,
+      ignoresMargin: true, // make sure the gesture don't include the margin
+      ignoresDimension: true, // we apply width/height in the image already
+    );
     if (widget._controller.onTap != null) {
       rtn = GestureDetector(
           child: rtn,
@@ -194,12 +199,24 @@ class ImageState extends WidgetState<EnsembleImage> {
 
   /// display if the image cannot be loaded
   Widget errorFallback() {
+    Widget fallbackWidget;
     if (scopeManager != null && widget._controller.fallback != null) {
-      return scopeManager!
-          .buildWidgetFromDefinition(widget._controller.fallback);
+      fallbackWidget =
+          scopeManager!.buildWidgetFromDefinition(widget._controller.fallback);
+    } else {
+      fallbackWidget = Image.asset('assets/images/img_placeholder.png',
+          package: 'ensemble', fit: BoxFit.cover);
     }
-    return Image.asset('assets/images/img_placeholder.png',
-        package: 'ensemble', fit: BoxFit.cover);
+
+    // image dimensions (if specified) don't apply to the fallback widget,
+    // so we wrap it inside a SizeBox and center for better UX
+    if (widget._controller.width != null || widget._controller.height != null) {
+      fallbackWidget = SizedBox(
+          width: widget._controller.width?.toDouble(),
+          height: widget._controller.height?.toDouble(),
+          child: Center(child: fallbackWidget));
+    }
+    return fallbackWidget;
   }
 
   // use modern colors as background placeholder while images are being loaded

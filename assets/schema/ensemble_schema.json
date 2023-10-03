@@ -214,6 +214,73 @@
           }
         }
       }
+    },
+    "Socket": {
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "uri"
+        ],
+        "properties": {
+          "inputs": {
+            "type": "array", 
+            "items": {
+              "type": "string"
+            },
+            "description": "Define the list of inputs that ths socket accepts"
+          },
+          "uri": {
+            "type": "string",
+            "description": "The URL of this socket"
+          }, 
+          "onSuccess": {
+            "$ref": "#/$defs/Action-payload",
+            "description": "Execute this callback upon a successful connection of socket with server"
+          },
+          "onError": {
+            "$ref": "#/$defs/Action-payload",
+            "description": "Execute this callback upon a encountering error while trying to do socket connection."
+          },
+          "onDisconnect": {
+            "$ref": "#/$defs/Action-payload",
+            "description": "Execute this callback upon a successful disconnect of socket with server"
+          },
+          "onReconnectAttempt": {
+            "$ref": "#/$defs/Action-payload",
+            "description": "Execute this callback upon auto reconnect is attempted"
+          },
+          "onReceive": {
+            "$ref": "#/$defs/Action-payload",
+            "description": "Execute this callback upon a message from socket is received. Use socketName.data to access the"
+          },
+          "options": {
+            "type": "object", 
+            "properties": {
+              "disconnectOnPageClose": {
+                "type": "boolean",
+                "description": "Whether to disconnect socket on page pop. Default true."
+              },
+              "autoReconnect": {
+                "type": "boolean",
+                "description": "Whether to attempt socket connection on interrupted. Default true."
+              },
+              "reconnectOptions": {
+                "type": "object",
+                "properties": {
+                  "initial": {
+                    "type": "integer",
+                    "description": "Initial wait to do reconnect attempt. "
+                  },
+                  "maxStep": {
+                    "type": "integer",
+                    "description": "When to stop increasing wait time e.g initial 1 and maxStep 3 wait time is as follows [1, 2, 4, 4, 4, ...]."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "additionalProperties": {
@@ -331,6 +398,10 @@
         "text": {
           "type": "string",
           "description": "Enter the HTML text"
+        },
+        "onLinkTap": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Call Ensemble's built-in functions to handle the case when a link within the HTML is tapped. When specified, the default behavior of opening the url will not be invoked."
         }
       }
     },
@@ -1073,6 +1144,15 @@
             "obscureToggle": {
               "type": "boolean",
               "description": "enable the toggling between plain and obscure text."
+            },
+            "onDelayedKeyPress": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Execute an Action after a brief delay specified by delayedKeyPressDuration (default: 300 ms). Consecutive calls within this delay will reset the timer, useful for minimizing server calls for type-ahead scenarios."
+            },
+            "delayedKeyPressDuration": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "The delay in milliseconds to trigger onDelayedKeyPress"
             },
             "styles": {
               "type": "object",
@@ -2575,6 +2655,10 @@
                       "type": "boolean",
                       "description": "If true, Enables autoplay, sliding one page at a time. Default (false)"
                     },
+                    "enableInfiniteScroll": {
+                      "type": "boolean",
+                      "description": "Determines if carousel should loop infinitely or be limited to item length. Default (false)"
+                    },
                     "autoplayInterval": {
                       "type": "integer",
                       "description": "Sets the duration in seconds for the autoplay. Default (4 second)"
@@ -2799,9 +2883,9 @@
               "type": "object",
               "description": "Navigating back to the previous screen if possible. The current screen will be removed from the navigation history. This also works for a modal screen.",
               "properties": {
-                "data": {
-                  "type": ["string", "object"],
-                  "description": "Passing optional data back to the original screen that we are navigating back to. The data can be a simple value or an object of key/value pairs."
+                "payload": {
+                  "type": "object",
+                  "description": "Pass a payload of key/value pairs to the original screen that we are navigating back to."
                 }
               }
             }
@@ -2899,12 +2983,16 @@
               "type": "object",
               "description": "Open a view as a bottom modal sheet",
               "required": [
-                "widget"
+                "body"
               ],
               "properties": {
-                "widget": {
+                "body": {
                   "$ref": "#/$defs/Widget",
                   "description": "The custom widget to show as the bottom modal sheet."
+                },
+                "onDismiss": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Triggers an Action upon the Bottom Modal's dismissal. A payload (if specified) is available on 'event.data'"
                 },
                 "options": {
                   "type": "object",
@@ -2931,6 +3019,23 @@
                       "description": "By default the barrierColor color use theme's 'bottomSheetTheme.modalBarrierColor' . You can override the bottom modal sheet's barrierColor color here."
                     }
                   }
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Dismiss the Bottom Modal",
+          "type": "object",
+          "required": [
+            "dismissBottomModal"
+          ],
+          "properties": {
+            "dismissBottomModal": {
+              "properties": {
+                "payload": {
+                  "type": "object",
+                  "description": "Pass a payload of key/value pairs to the Bottom Modal's onDismiss action"
                 }
               }
             }
@@ -3705,6 +3810,19 @@
           }
         },
         {
+          "title": "Rate App",
+          "type": "object",
+          "required": [
+            "rateApp"
+          ],
+          "properties": {
+            "rateApp": {
+              "type": "object",
+              "description": "(iOS only) Prompt the user to rate this App"
+            }
+          }
+        },
+        {
           "title": "Connect Wallet",
           "type": "object",
           "required": [
@@ -3865,6 +3983,97 @@
                 "onNotDetermined": {
                   "$ref": "#/$defs/Action-payload",
                   "description": "Execute an Action if we can't determine the permission's status. Note that this state is not applicable on Android."
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Connect Socket",
+          "type": "object",
+          "required": [
+            "connectSocket"
+          ],
+          "properties": {
+            "connectSocket": {
+              "type": "object",
+              "description": "Connect to a given socket name.",
+              "required": [
+                "name"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Enter the name of your defined socket"
+                },
+                "inputs": {
+                  "type": "object",
+                  "description": "Specify the key/value pairs to pass to the socket",
+                  "properties": {},
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "onSuccess": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute this callback upon a successful connection of socket with server."  
+                },
+                "onError": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute this callback upon a encountering error while trying to do socket connection."  
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Disconnect Socket",
+          "type": "object",
+          "required": [
+            "disconnectSocket"
+          ],
+          "properties": {
+            "disconnectSocket": {
+              "type": "object",
+              "description": "Disconnect socket to a given name.",
+              "required": [
+                "name"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Enter the name of your defined socket"
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Message Socket",
+          "type": "object",
+          "required": [
+            "messageSocket"
+          ],
+          "properties": {
+            "messageSocket": {
+              "type": "object",
+              "description": "Send a message to a given socket name.",
+              "required" : [
+                "name",
+                "message"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Enter the name of your defined socket"
+                },
+                "message": {
+                  "type": "object",
+                  "description": "Specify the key/value pairs to pass to the socket",
+                  "properties": {},
+                  "additionalProperties": {
+                    "type": "string"
+                  }
                 }
               }
             }
@@ -5421,6 +5630,14 @@
         },
         {
           "$ref": "#/$defs/HasShadow"
+        },
+        {
+          "properties": {
+            "clipContent": {
+              "type": "boolean",
+              "description": "Some widgets (such as Image) may bleed through the container when borderRadius is set. Use this to apply a clipping to ensure this does not happen."
+            }
+          }
         }
       ]
     },
