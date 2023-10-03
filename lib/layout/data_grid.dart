@@ -2,6 +2,8 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
+import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -42,7 +44,7 @@ class DataGrid extends StatefulWidget
   }
 
   @override
-  void initChildren({List<Widget>? children, ItemTemplate? itemTemplate}) {
+  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate}) {
     _controller.children = children;
     this.itemTemplate = itemTemplate;
   }
@@ -131,7 +133,7 @@ class EnsembleDataColumn extends DataColumn {
 class EnsembleDataRow extends StatefulWidget
     with UpdatableContainer, Invokable {
   static const type = 'DataRow';
-  List<Widget>? children;
+  List<WidgetModel>? children;
   ItemTemplate? itemTemplate;
   bool visible = true;
 
@@ -139,7 +141,7 @@ class EnsembleDataRow extends StatefulWidget
   State<StatefulWidget> createState() => EnsembleDataRowState();
 
   @override
-  void initChildren({List<Widget>? children, ItemTemplate? itemTemplate}) {
+  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate}) {
     this.children = children;
     this.itemTemplate = itemTemplate;
   }
@@ -171,7 +173,7 @@ class EnsembleDataRowState extends State<EnsembleDataRow> {
 }
 
 class DataGridController extends BoxController {
-  List<Widget>? children;
+  List<WidgetModel>? children;
   Map<String, dynamic>? sorting;
   double? horizontalMargin;
   GenericTextController? headingTextController;
@@ -211,7 +213,8 @@ class DataColumnSort {
   });
 }
 
-class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
+class DataGridState extends WidgetState<DataGrid>
+    with TemplatedWidgetState, HasChildren<DataGrid> {
   List<Widget>? templatedChildren;
   List<EnsembleDataColumn> _columns = [];
   List<dynamic> dataList = [];
@@ -369,7 +372,7 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
       }
       List<DataCell> cells = [];
       if (child.children != null) {
-        child.children!.asMap().forEach((index, Widget c) {
+        buildChildren(child.children!).asMap().forEach((index, Widget c) {
           // for templated row only, wrap each cell widget in a DataScopeWidget, and simply use the row's datascope
           if (rowScope != null) {
             Widget scopeWidget =
@@ -434,7 +437,7 @@ class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState {
   void _buildChildren() {
     _children.clear();
     if (widget._controller.children != null) {
-      _children.addAll(widget._controller.children!);
+      _children.addAll(buildChildren(widget._controller.children!));
     }
     if (templatedChildren != null) {
       _children.addAll(templatedChildren!);

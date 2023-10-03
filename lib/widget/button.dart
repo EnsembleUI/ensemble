@@ -1,5 +1,6 @@
 import 'package:ensemble/framework/action.dart' as ensemble;
 import 'package:ensemble/framework/theme/theme_manager.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/layout/form.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';

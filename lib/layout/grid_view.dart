@@ -71,12 +71,13 @@ class GridView extends StatefulWidget
           PullToRefreshOptions.fromMap(input),
       'onScrollEnd': (funcDefinition) => _controller.onScrollEnd =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
-      'reverse': (value) => _controller.reverse = Utils.getBool(value, fallback: false),
+      'reverse': (value) =>
+          _controller.reverse = Utils.getBool(value, fallback: false),
     };
   }
 
   @override
-  void initChildren({List<Widget>? children, ItemTemplate? itemTemplate}) {
+  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate}) {
     _controller.itemTemplate = itemTemplate;
   }
 }
@@ -242,7 +243,8 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
 
   dynamic _buildItem(int index) {
     if (index == _items.length - 1 && widget._controller.onScrollEnd != null) {
-      ScreenController().executeAction(context, widget._controller.onScrollEnd!);
+      ScreenController()
+          .executeAction(context, widget._controller.onScrollEnd!);
     }
     if (widget._controller.onItemTap != null) {
       return EnsembleGestureDetector(
