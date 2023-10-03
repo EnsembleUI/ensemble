@@ -1,3 +1,5 @@
+import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart' as framework;
 import 'package:ensemble/widget/helpers/controllers.dart';
@@ -6,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter_html/flutter_html.dart';
+import 'package:ensemble/framework/action.dart' as ensemble;
 
 /// widget to render Html content
 class EnsembleHtml extends StatefulWidget
@@ -29,6 +32,8 @@ class EnsembleHtml extends StatefulWidget
   Map<String, Function> setters() {
     return {
       'text': (newValue) => _controller.text = Utils.optionalString(newValue),
+      'onLinkTap': (funcDefinition) => _controller.onLinkTap =
+          ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
     };
   }
 
@@ -40,6 +45,7 @@ class EnsembleHtml extends StatefulWidget
 
 class HtmlController extends WidgetController {
   String? text;
+  ensemble.EnsembleAction? onLinkTap;
 }
 
 class HtmlState extends framework.WidgetState<EnsembleHtml> {
@@ -48,7 +54,12 @@ class HtmlState extends framework.WidgetState<EnsembleHtml> {
     return Html(
       data: widget._controller.text ?? '',
       onLinkTap: ((url, attributes, element) {
-        if (url != null) {
+        if (widget.controller.onLinkTap != null) {
+          ScreenController().executeAction(
+              context, widget.controller.onLinkTap!,
+              event: EnsembleEvent(widget,
+                  data: {'url': url, 'attributes': attributes}));
+        } else if (url != null) {
           launchUrl(Uri.parse(url));
         }
       }),

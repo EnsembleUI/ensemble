@@ -14,14 +14,14 @@ import 'package:yaml/yaml.dart';
 
 /// open a Modal Bottom Sheet
 class ShowBottomModalAction extends EnsembleAction {
-  ShowBottomModalAction({
-    super.initiator,
-    super.inputs,
-    this.body,
-    styles,
-    options,
-    this.onDismiss
-  })  : _styles = styles,
+  ShowBottomModalAction(
+      {super.initiator,
+      super.inputs,
+      this.body,
+      styles,
+      options,
+      this.onDismiss})
+      : _styles = styles,
         _options = options;
 
   final dynamic body;
@@ -30,14 +30,15 @@ class ShowBottomModalAction extends EnsembleAction {
   final EnsembleAction? onDismiss;
 
   bool _enableDrag(scopeManager) =>
-      Utils.getBool(scopeManager.dataContext.eval(_options?['enableDrag']), fallback: true);
+      Utils.getBool(scopeManager.dataContext.eval(_options?['enableDrag']),
+          fallback: true);
 
-  bool _enableDragHandler(scopeManager) =>
-      Utils.getBool(scopeManager.dataContext.eval(_options?['enableDragHandler']),
-          fallback: false);
+  bool _enableDragHandler(scopeManager) => Utils.getBool(
+      scopeManager.dataContext.eval(_options?['enableDragHandler']),
+      fallback: false);
 
-  Color? _backgroundColor(scopeManager) =>
-      Utils.getColor(scopeManager.dataContext.eval(_styles?['backgroundColor']));
+  Color? _backgroundColor(scopeManager) => Utils.getColor(
+      scopeManager.dataContext.eval(_styles?['backgroundColor']));
 
   Color? _barrierColor(scopeManager) =>
       Utils.getColor(scopeManager.dataContext.eval(_styles?['barrierColor']));
@@ -54,8 +55,7 @@ class ShowBottomModalAction extends EnsembleAction {
         body: body,
         styles: Utils.getMap(payload['styles']),
         options: Utils.getMap(payload['options']),
-        onDismiss: EnsembleAction.fromYaml(payload['onDismiss'])
-    );
+        onDismiss: EnsembleAction.fromYaml(payload['onDismiss']));
   }
 
   @override
@@ -67,24 +67,24 @@ class ShowBottomModalAction extends EnsembleAction {
 
     if (widget != null) {
       showModalBottomSheet(
-          context: context,
-          backgroundColor: _backgroundColor(scopeManager),
-          barrierColor: _barrierColor(scopeManager),
-          isScrollControlled: true,
-          enableDrag: _enableDrag(scopeManager),
-          showDragHandle: _enableDragHandler(scopeManager),
-          builder: (modalContext) => ContextScopeWidget(
-              rootContext: modalContext, child: widget!)
-      ).then((payload) {
+              context: context,
+              backgroundColor: _backgroundColor(scopeManager),
+              barrierColor: _barrierColor(scopeManager),
+              isScrollControlled: true,
+              enableDrag: _enableDrag(scopeManager),
+              showDragHandle: _enableDragHandler(scopeManager),
+              builder: (modalContext) =>
+                  ContextScopeWidget(rootContext: modalContext, child: widget!))
+          .then((payload) {
         if (onDismiss != null) {
-          return ScreenController().executeActionWithScope(context, scopeManager, onDismiss!,
+          return ScreenController().executeActionWithScope(
+              context, scopeManager, onDismiss!,
               event: EnsembleEvent(null, data: payload));
         }
       });
     }
     return Future.value(null);
   }
-
 }
 
 /// Dismiss the Bottom Modal (if the context is a descendant, no-op otherwise)

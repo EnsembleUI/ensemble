@@ -47,7 +47,7 @@ class BoxWrapper extends StatelessWidget {
     }
     // when we have a border radius, we need to clip the decoration.
     // Note that this clip only apply to the background decoration.
-    // The child of the Container will need a separate ClipRRect
+    // Some children (i.e. Images) might need an additional ClipRRect
     Clip clip = Clip.none;
     if (boxController.borderRadius != null &&
         boxController.hasBoxDecoration()) {
@@ -108,7 +108,13 @@ class BoxWrapper extends StatelessWidget {
 
   /// The child widget need to clip separately from the Container's decoration
   Widget _getWidget() {
-    return boxController.borderRadius != null
+    // some widget (i.e. Image) will not respect the Container's boundary
+    // even if clipBehavior is enabled. In these case we need to apply
+    // an explicit ClipRRect around it. Note also that apply it around
+    // another Container may cause clipping at the borderRadius's corners.
+    // Also note that clipping is not necessary unless borderRadius is set
+    return
+      boxController.borderRadius != null && boxController.clipContent == true
         ? ClipRRect(
             borderRadius: boxController.borderRadius!.getValue(),
             clipBehavior: Clip.hardEdge,
