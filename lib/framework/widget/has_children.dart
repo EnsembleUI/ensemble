@@ -7,7 +7,6 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 
 mixin HasChildren<W extends HasController> on WidgetState<W> {
-
   List<Widget> buildChildren(List<WidgetModel> models) {
     if (scopeManager != null) {
       return models.map((model) => scopeManager!.buildWidget(model)).toList();
