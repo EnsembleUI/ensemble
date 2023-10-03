@@ -250,16 +250,11 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
   }
 
   Widget? _buildCustomIcon(MenuItem item, {bool isActive = false}) {
-    Widget? iconWidget;
     dynamic customWidgetModel =
         isActive ? item.customActiveWidget : item.customWidget;
     if (customWidgetModel != null) {
-      final child = widget.scopeManager.buildWidget(customWidgetModel!);
-      final dataScopeWidget = child as DataScopeWidget;
-      final customWidget = dataScopeWidget.child as CustomView;
-      iconWidget = customWidget.childWidget;
+      return widget.scopeManager.buildWidget(customWidgetModel!);
     }
-    return iconWidget;
   }
 }
 

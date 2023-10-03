@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -31,7 +32,7 @@ class EnsembleStack extends StatefulWidget
   }
 
   @override
-  void initChildren({List<Widget>? children, ItemTemplate? itemTemplate}) {
+  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate}) {
     _controller.children = children;
     this.itemTemplate = itemTemplate;
   }
@@ -51,11 +52,12 @@ class EnsembleStack extends StatefulWidget
 }
 
 class StackController extends WidgetController {
-  List<Widget>? children;
+  List<WidgetModel>? children;
   Alignment? alignChildren;
 }
 
-class StackState extends WidgetState<EnsembleStack> {
+class StackState extends WidgetState<EnsembleStack>
+    with HasChildren<EnsembleStack> {
   @override
   Widget buildWidget(BuildContext context) {
     if (widget._controller.children == null ||
@@ -65,7 +67,7 @@ class StackState extends WidgetState<EnsembleStack> {
 
     return Stack(
       alignment: widget._controller.alignChildren ?? Alignment.topLeft,
-      children: widget._controller.children!,
+      children: buildChildren(widget._controller.children!),
     );
   }
 }

@@ -359,7 +359,9 @@ class NativeInvokable with Invokable {
         disconnectSocket(socketName);
       },
       'messageSocket': (String socketName, dynamic message) {
-        messageSocket(socketName, message);
+        final scope = ScreenController().getScopeManager(_buildContext);
+        final evalMessage = scope?.dataContext.eval(message);
+        messageSocket(socketName, evalMessage);
       },
     };
   }
@@ -937,18 +939,19 @@ class FileData with Invokable {
 class File {
   File(this.name, this.ext, this.size, this.path, this.bytes);
 
-  File.fromJson(Map<String, dynamic> file)
+  factory File.fromString(String filePath) {
+    return File(null, null, null, filePath, null);
+  }
+
+  File.fromJson(Map<dynamic, dynamic> file)
       : name = file['name'],
         ext = file['extension'],
         size = file['size'],
         path = file['path'],
         bytes = file['bytes'];
 
-  final String name;
-
-  /// The file size in bytes. Defaults to `0` if the file size could not be
-  /// determined.
-  final int size;
+  final String? name;
+  final int? size;
   final String? ext;
   final String? path;
   final Uint8List? bytes;
