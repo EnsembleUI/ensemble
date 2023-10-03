@@ -84,7 +84,8 @@ class FlowController extends BoxController {
   int selectedItemIndex = -1;
 }
 
-class FlowState extends WidgetState<Flow> with TemplatedWidgetState, HasChildren<Flow> {
+class FlowState extends WidgetState<Flow>
+    with TemplatedWidgetState, HasChildren<Flow> {
   List<Widget>? templatedChildren;
 
   @override

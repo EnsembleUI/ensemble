@@ -108,10 +108,10 @@ class ImageState extends WidgetState<EnsembleImage> {
     }
 
     Widget rtn = BoxWrapper(
-        widget: image,
-        boxController: widget._controller,
-        ignoresMargin: true, // make sure the gesture don't include the margin
-        ignoresDimension: true, // we apply width/height in the image already
+      widget: image,
+      boxController: widget._controller,
+      ignoresMargin: true, // make sure the gesture don't include the margin
+      ignoresDimension: true, // we apply width/height in the image already
     );
     if (widget._controller.onTap != null) {
       rtn = GestureDetector(

@@ -56,7 +56,8 @@ class StackController extends WidgetController {
   Alignment? alignChildren;
 }
 
-class StackState extends WidgetState<EnsembleStack> with HasChildren<EnsembleStack> {
+class StackState extends WidgetState<EnsembleStack>
+    with HasChildren<EnsembleStack> {
   @override
   Widget buildWidget(BuildContext context) {
     if (widget._controller.children == null ||

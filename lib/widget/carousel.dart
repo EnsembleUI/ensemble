@@ -149,7 +149,8 @@ class MyController extends BoxController {
   final CarouselController _carouselController = CarouselController();
 }
 
-class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState, HasChildren<Carousel> {
+class CarouselState extends WidgetState<Carousel>
+    with TemplatedWidgetState, HasChildren<Carousel> {
   List<Widget>? templatedChildren;
 
   Widget? customIndicator;
@@ -170,7 +171,6 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState, Has
           templatedChildren = buildWidgetsFromTemplate(
               context, dataList, widget._controller.itemTemplate!);
         });
-
       });
     }
   }
