@@ -73,7 +73,7 @@ class GridView extends StatefulWidget
   }
 
   @override
-  void initChildren({List<Widget>? children, ItemTemplate? itemTemplate}) {
+  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate}) {
     _controller.itemTemplate = itemTemplate;
   }
 }

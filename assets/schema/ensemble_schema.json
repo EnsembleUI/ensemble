@@ -398,6 +398,10 @@
         "text": {
           "type": "string",
           "description": "Enter the HTML text"
+        },
+        "onLinkTap": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Call Ensemble's built-in functions to handle the case when a link within the HTML is tapped. When specified, the default behavior of opening the url will not be invoked."
         }
       }
     },
@@ -5606,6 +5610,14 @@
         },
         {
           "$ref": "#/$defs/HasShadow"
+        },
+        {
+          "properties": {
+            "clipContent": {
+              "type": "boolean",
+              "description": "Some widgets (such as Image) may bleed through the container when borderRadius is set. Use this to apply a clipping to ensure this does not happen."
+            }
+          }
         }
       ]
     },
