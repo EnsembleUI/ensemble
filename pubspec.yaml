@@ -108,6 +108,7 @@ dependencies:
   web_socket_client: ^0.1.0
   app_links: ^3.4.3
   share_plus: ^6.2.0
+  rate_my_app: ^2.0.0
 
   # Using the forked copy of receive_sharing_intent because of the gradle version issue
   # https://github.com/KasemJaffer/receive_sharing_intent/issues/256
