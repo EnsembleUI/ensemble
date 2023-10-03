@@ -1,15 +1,21 @@
+import 'dart:io';
+
 import 'package:app_settings/app_settings.dart';
+import 'package:ensemble/action/bottom_modal_action.dart';
+import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/permissions_manager.dart';
+import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:rate_my_app/rate_my_app.dart';
 import 'package:source_span/source_span.dart';
 import 'package:yaml/yaml.dart';
 
@@ -173,50 +179,6 @@ abstract class BaseNavigateScreenAction extends EnsembleAction {
   bool asModal;
   Map<String, dynamic>? transition;
   final Map<String, dynamic>? options;
-}
-
-class ShowBottomModalAction extends EnsembleAction {
-  ShowBottomModalAction({
-    super.initiator,
-    super.inputs,
-    this.widget,
-    styles,
-    options,
-  })  : _styles = styles,
-        _options = options;
-
-  final dynamic widget;
-  final Map<String, dynamic>? _styles;
-  final Map<String, dynamic>? _options;
-
-  bool enableDrag(dataContext) =>
-      Utils.getBool(dataContext.eval(_options?['enableDrag']), fallback: true);
-
-  bool enableDragHandler(dataContext) =>
-      Utils.getBool(dataContext.eval(_options?['enableDragHandler']),
-          fallback: false);
-
-  Color? backgroundColor(dataContext) =>
-      Utils.getColor(dataContext.eval(_styles?['backgroundColor']));
-
-  Color? barrierColor(dataContext) =>
-      Utils.getColor(dataContext.eval(_styles?['barrierColor']));
-
-  factory ShowBottomModalAction.fromYaml(
-      {Invokable? initiator, YamlMap? payload}) {
-    if (payload == null || payload['widget'] == null) {
-      throw LanguageError(
-          "${ActionType.showBottomModal.name} requires the widget to show as a modal bottom sheet.");
-    }
-
-    return ShowBottomModalAction(
-      initiator: initiator,
-      inputs: Utils.getMap(payload['inputs']),
-      widget: payload['widget'],
-      styles: Utils.getMap(payload['styles']),
-      options: Utils.getMap(payload['options']),
-    );
-  }
 }
 
 class PlaidLinkAction extends EnsembleAction {
@@ -396,6 +358,7 @@ class StartTimerAction extends EnsembleAction {
 
 class StopTimerAction extends EnsembleAction {
   StopTimerAction(this.id);
+
   String id;
 
   factory StopTimerAction.fromYaml({YamlMap? payload}) {
@@ -439,6 +402,7 @@ class ExecuteCodeAction extends EnsembleAction {
 
 class OpenUrlAction extends EnsembleAction {
   OpenUrlAction(this.url, {this.openInExternalApp = false});
+
   String url;
   bool openInExternalApp;
 
@@ -450,16 +414,9 @@ class OpenUrlAction extends EnsembleAction {
         openInExternalApp:
             Utils.getBool(payload['openInExternalApp'], fallback: false));
   }
+
   factory OpenUrlAction.fromMap(dynamic inputs) =>
       OpenUrlAction.fromYaml(payload: Utils.getYamlMap(inputs));
-}
-
-class NavigateBack extends EnsembleAction {
-  NavigateBack(YamlMap? payload) : _data = payload?['data'];
-  final dynamic _data;
-
-  dynamic getData(DataContext dataContext) =>
-      _data != null && _data != '' ? dataContext.eval(_data) : null;
 }
 
 class ShowToastAction extends EnsembleAction {
@@ -514,6 +471,7 @@ class GetLocationAction extends EnsembleAction {
       this.onError,
       this.recurring,
       this.recurringDistanceFilter});
+
   EnsembleAction? onLocationReceived;
   EnsembleAction? onError;
 
@@ -620,6 +578,7 @@ class CopyToClipboardAction extends EnsembleAction {
     this.onSuccess,
     this.onFailure,
   });
+
   dynamic value;
   EnsembleAction? onSuccess;
   EnsembleAction? onFailure;
@@ -646,6 +605,7 @@ class ShareAction extends EnsembleAction {
   dynamic _text;
 
   dynamic getText(DataContext dataContext) => dataContext.eval(_text);
+
   String? getTitle(DataContext datContext) =>
       Utils.optionalString(datContext.eval(_title));
 
@@ -654,6 +614,29 @@ class ShareAction extends EnsembleAction {
       throw LanguageError("${ActionType.share.name} requires 'text'");
     }
     return ShareAction(payload['text'], title: payload['title']?.toString());
+  }
+}
+
+class RateAppAction extends EnsembleAction {
+  RateAppAction({dynamic title, dynamic message})
+      : _title = title,
+        _message = message;
+  final dynamic _title;
+  final dynamic _message;
+
+  factory RateAppAction.from({Map? payload}) {
+    return RateAppAction(
+        title: payload?['title'], message: payload?['message']);
+  }
+
+  @override
+  Future<void> execute(BuildContext context, ScopeManager scopeManager) {
+    // what a mess of options on Android. TODO: add them
+    if (Platform.isIOS) {
+      RateMyApp rateMyApp = RateMyApp(minDays: 0, minLaunches: 0);
+      rateMyApp.init().then((_) => rateMyApp.showStarRateDialog(context));
+    }
+    return Future.value(null);
   }
 }
 
@@ -702,6 +685,7 @@ class WalletConnectAction extends EnsembleAction {
 /// not in use yet
 class AuthorizeOAuthAction extends EnsembleAction {
   AuthorizeOAuthAction(this.id, {this.onResponse, this.onError});
+
   final String id;
   EnsembleAction? onResponse;
   EnsembleAction? onError;
@@ -736,6 +720,7 @@ class NotificationAction extends EnsembleAction {
 
 class GetDeviceTokenAction extends EnsembleAction {
   GetDeviceTokenAction({required this.onSuccess, this.onError});
+
   EnsembleAction? onSuccess;
   EnsembleAction? onError;
 
@@ -874,6 +859,7 @@ enum ActionType {
   navigateScreen,
   navigateModalScreen,
   showBottomModal,
+  dismissBottomModal,
   showDialog,
   startTimer,
   stopTimer,
@@ -893,6 +879,7 @@ enum ActionType {
   showNotification,
   copyToClipboard,
   share,
+  rateApp,
   openPlaidLink,
   openAppSettings,
   getPhoneContacts,
@@ -915,6 +902,12 @@ abstract class EnsembleAction {
   // initiator is an Invokable so we can scope to *this* variable
   Invokable? initiator;
   Map<String, dynamic>? inputs;
+
+  /// TODO: each Action does all the execution in here
+  Future<void> execute(BuildContext context, ScopeManager scopeManager) {
+    // placeholder until all Actions are implemented
+    return Future.value(null);
+  }
 
   static EnsembleAction? fromYaml(dynamic action, {Invokable? initiator}) {
     if (action is YamlMap) {
@@ -949,9 +942,11 @@ abstract class EnsembleAction {
       return NavigateModalScreenAction.fromYaml(
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.navigateBack) {
-      return NavigateBack(payload);
+      return NavigateBackAction.from(payload: payload);
     } else if (actionType == ActionType.showBottomModal) {
-      return ShowBottomModalAction.fromYaml(payload: payload);
+      return ShowBottomModalAction.from(payload: payload);
+    } else if (actionType == ActionType.dismissBottomModal) {
+      return DismissBottomModalAction.from(payload: payload);
     } else if (actionType == ActionType.invokeAPI) {
       return InvokeAPIAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.openCamera) {
@@ -999,6 +994,8 @@ abstract class EnsembleAction {
       return CopyToClipboardAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.share) {
       return ShareAction.from(payload: payload);
+    } else if (actionType == ActionType.rateApp) {
+      return RateAppAction.from(payload: payload);
     } else if (actionType == ActionType.getDeviceToken) {
       return GetDeviceTokenAction.fromMap(payload: payload);
     } else if (actionType == ActionType.openPlaidLink) {
