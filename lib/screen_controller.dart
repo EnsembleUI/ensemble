@@ -653,10 +653,11 @@ class ScreenController {
 
       final subscription = socket.messages.listen((message) {
         if (data.onReceive == null) return;
-        final ScopeManager? scope = ScreenController().getScopeManager(context);
-        scope?.dataContext
-            .addInvokableContext(socketName, EnsembleSocketInvokable(message));
 
+        scopeManager?.dataContext
+            .addInvokableContext(socketName, EnsembleSocketInvokable(message));
+        scopeManager?.dispatch(
+            ModelChangeEvent(SimpleBindingSource(socketName), message));
         ScreenController().executeAction(context, data.onReceive!);
       });
       socketService.setSubscription(socketName, subscription);
@@ -666,7 +667,8 @@ class ScreenController {
       await socketService.disconnect(action.name);
     } else if (action is MessageSocketAction) {
       final socketService = SocketService();
-      socketService.message(action.name, action.message);
+      final message = dataContext.eval(action.message);
+      socketService.message(action.name, message);
     }
     // catch-all. All Actions should just be using this
     else {
