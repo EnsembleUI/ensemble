@@ -156,7 +156,6 @@ class BoxLayoutState extends WidgetState<BoxLayout>
           templatedChildren = buildWidgetsFromTemplate(
               context, dataList, widget._controller.itemTemplate!);
         });
-
       });
     }
   }

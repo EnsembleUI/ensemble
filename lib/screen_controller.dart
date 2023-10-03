@@ -182,8 +182,9 @@ class ScreenController {
         routeBuilder.popped.then((data) {
           // animating transition while executing this Action causes stutter
           // if we do some heaviy processing. Delay it
-          Future.delayed(const Duration(milliseconds: 300), () =>
-              executeActionWithScope(
+          Future.delayed(
+              const Duration(milliseconds: 300),
+              () => executeActionWithScope(
                   context, scopeManager, action.onNavigateBack!,
                   event: EnsembleEvent(null, data: data)));
         });
@@ -652,11 +653,11 @@ class ScreenController {
 
       final subscription = socket.messages.listen((message) {
         if (data.onReceive == null) return;
-        
+
         scopeManager?.dataContext
             .addInvokableContext(socketName, EnsembleSocketInvokable(message));
-      scopeManager?.dispatch(
-          ModelChangeEvent(SimpleBindingSource(socketName), message));
+        scopeManager?.dispatch(
+            ModelChangeEvent(SimpleBindingSource(socketName), message));
         ScreenController().executeAction(context, data.onReceive!);
       });
       socketService.setSubscription(socketName, subscription);

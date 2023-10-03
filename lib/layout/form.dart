@@ -103,7 +103,8 @@ class FormController extends WidgetController {
   int gap = _defaultGap;
 }
 
-class FormState extends WidgetState<EnsembleForm> with HasChildren<EnsembleForm> {
+class FormState extends WidgetState<EnsembleForm>
+    with HasChildren<EnsembleForm> {
   final _formKey = GlobalKey<flutter.FormState>();
   bool validate() {
     return _formKey.currentState!.validate();
