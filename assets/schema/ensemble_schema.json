@@ -2103,6 +2103,10 @@
               "$ref": "#/$defs/Action-payload",
               "description": "Call Ensemble's built-in functions or execute code when tapping on an item in the list."
             },
+            "onScrollEnd": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Execute an Ensemble action when user has reached bottom of grid."
+            },
             "styles": {
               "allOf": [
                 {
@@ -2147,6 +2151,10 @@
                       "type": "number",
                       "description": "Instead of itemHeight, you can set the tile's dimension as a ratio of (item width / item height). For example, a tile with 3x width and 2x height is 3/2 = 1.5. This attribute will be ignored if itemHeight is set.",
                       "minimum": 0
+                    },
+                    "reverse": {
+                      "type": "boolean",
+                      "description": "Show Grid in reverse order. Default is false"
                     }
                   }
                 }
@@ -2504,6 +2512,10 @@
               "type": "integer",
               "description": "Selecting a ListView item gives the index of selected item"
             },
+            "onScrollEnd": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Execute an Ensemble action when user has reached bottom of list."
+            },
             "styles": {
               "allOf": [
                 {
@@ -2539,6 +2551,10 @@
                         }
                       ],
                       "description": "Padding with CSS-style value e.g. padding: 5 20 5 Default 0 0 0"
+                    },
+                    "reverse": {
+                      "type": "boolean",
+                      "description": "Show list in reverse order. Default is false"
                     }
                   }
                 }
@@ -2642,6 +2658,14 @@
                     "autoplay": {
                       "type": "boolean",
                       "description": "If true, Enables autoplay, sliding one page at a time. Default (false)"
+                    },
+                    "enableInfiniteScroll": {
+                      "type": "boolean",
+                      "description": "Determines if carousel should loop infinitely or be limited to item length. Default (false)"
+                    },
+                    "selectedItemIndex": {
+                      "type": "integer",
+                      "description": "The initial page to show when first creating the Carousel. Default (0)"
                     },
                     "autoplayInterval": {
                       "type": "integer",
@@ -5614,6 +5638,14 @@
         },
         {
           "$ref": "#/$defs/HasShadow"
+        },
+        {
+          "properties": {
+            "clipContent": {
+              "type": "boolean",
+              "description": "Some widgets (such as Image) may bleed through the container when borderRadius is set. Use this to apply a clipping to ensure this does not happen."
+            }
+          }
         }
       ]
     },

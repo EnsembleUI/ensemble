@@ -121,11 +121,16 @@ class LoadingContainerState extends WidgetState<LoadingContainer> {
                   )
                 : loadingWidget ?? const SizedBox.shrink()),
 
+      // TODO: fade in content causes problem when the State is being
+      // recreated constantly. Fix this so we can put back the animation
+      Visibility(
+          visible: widget._controller.isLoading != true, child: contentWidget)
+
       // fade in main content
-      AnimatedOpacity(
-          opacity: widget._controller.isLoading == true ? 0 : 1,
-          duration: const Duration(milliseconds: 300),
-          child: contentWidget)
+      // AnimatedOpacity(
+      //     opacity: widget._controller.isLoading == true ? 0 : 1,
+      //     duration: const Duration(milliseconds: 300),
+      //     child: contentWidget)
     ]);
   }
 }
