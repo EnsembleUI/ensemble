@@ -5610,6 +5610,14 @@
         },
         {
           "$ref": "#/$defs/HasShadow"
+        },
+        {
+          "properties": {
+            "clipContent": {
+              "type": "boolean",
+              "description": "Some widgets (such as Image) may bleed through the container when borderRadius is set. Use this to apply a clipping to ensure this does not happen."
+            }
+          }
         }
       ]
     },

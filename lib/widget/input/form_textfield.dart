@@ -39,8 +39,8 @@ class TextInput extends BaseTextInput {
       'onDelayedKeyPress': (function) => _controller.onDelayedKeyPress =
           EnsembleAction.fromYaml(function, initiator: this),
       'delayedKeyPressDuration': (value) =>
-          _controller.delayedKeyPressDuration = Utils.getDurationMs(value) ??
-              _controller.delayedKeyPressDuration,
+          _controller.delayedKeyPressDuration =
+              Utils.getDurationMs(value) ?? _controller.delayedKeyPressDuration,
     });
     return setters;
   }
@@ -418,11 +418,10 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
         ));
   }
 
-
   void executeDelayedAction(EnsembleAction action) {
     getKeyPressDebouncer().run(() async {
-      ScreenController().executeAction(context, action,
-          event: EnsembleEvent(widget));
+      ScreenController()
+          .executeAction(context, action, event: EnsembleEvent(widget));
     });
   }
 
@@ -430,16 +429,21 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
   Duration? _lastDelayedKeyPressDuration;
   Debouncer getKeyPressDebouncer() {
     if (_delayedKeyPressDebouncer == null) {
-      _delayedKeyPressDebouncer = Debouncer(widget._controller.delayedKeyPressDuration);
+      _delayedKeyPressDebouncer =
+          Debouncer(widget._controller.delayedKeyPressDuration);
       _lastDelayedKeyPressDuration = widget._controller.delayedKeyPressDuration;
     }
     // debouncer exists, but has the duration changed?
     else {
       // re-create if anything changed, but need to cancel first
-      if (_lastDelayedKeyPressDuration!.compareTo(widget._controller.delayedKeyPressDuration) != 0) {
+      if (_lastDelayedKeyPressDuration!
+              .compareTo(widget._controller.delayedKeyPressDuration) !=
+          0) {
         _delayedKeyPressDebouncer!.cancel();
-        _delayedKeyPressDebouncer = Debouncer(widget._controller.delayedKeyPressDuration);
-        _lastDelayedKeyPressDuration = widget._controller.delayedKeyPressDuration;
+        _delayedKeyPressDebouncer =
+            Debouncer(widget._controller.delayedKeyPressDuration);
+        _lastDelayedKeyPressDuration =
+            widget._controller.delayedKeyPressDuration;
       }
     }
 

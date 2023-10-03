@@ -44,7 +44,8 @@ class Page extends StatefulWidget {
   State<Page> createState() => PageState();
 }
 
-class PageState extends State<Page> with AutomaticKeepAliveClientMixin, RouteAware, WidgetsBindingObserver {
+class PageState extends State<Page>
+    with AutomaticKeepAliveClientMixin, RouteAware, WidgetsBindingObserver {
   late Widget rootWidget;
   late ScopeManager _scopeManager;
 
@@ -84,29 +85,26 @@ class PageState extends State<Page> with AutomaticKeepAliveClientMixin, RouteAwa
         Ensemble.routeObserver.subscribe(this, route);
       }
     }
-
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.resumed
-        && widget._pageModel.viewBehavior.onResume != null) {
+    if (state == AppLifecycleState.resumed &&
+        widget._pageModel.viewBehavior.onResume != null) {
       // if we our screen is the currently active route
       var route = ModalRoute.of(context);
       if (route != null && route.isCurrent) {
-
         // BottomNavBar is the route that contains each Tabs,
         // so we ignore if we are currently not an active Tab
-        BottomNavScreen? bottomNavRootScreen = BottomNavScreen.getScreen(context);
+        BottomNavScreen? bottomNavRootScreen =
+            BottomNavScreen.getScreen(context);
         if (bottomNavRootScreen != null && !bottomNavRootScreen.isActive()) {
           return;
         }
         ScreenController().executeActionWithScope(
             context, _scopeManager, widget._pageModel.viewBehavior.onResume!);
-        
       }
-
     }
   }
 
@@ -680,13 +678,10 @@ class PageState extends State<Page> with AutomaticKeepAliveClientMixin, RouteAwa
     Ensemble.routeObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
 
-
     //log('Disposing View ${widget.hashCode}');
     _scopeManager.dispose();
     //_scopeManager.debugListenerMap();
     super.dispose();
-
-
   }
 }
 

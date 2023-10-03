@@ -71,7 +71,8 @@ class BottomNavPageGroup extends StatefulWidget {
   State<BottomNavPageGroup> createState() => _BottomNavPageGroupState();
 }
 
-class _BottomNavPageGroupState extends State<BottomNavPageGroup> with RouteAware {
+class _BottomNavPageGroupState extends State<BottomNavPageGroup>
+    with RouteAware {
   late List<MenuItem> menuItems;
   late PageController controller;
   FloatingAlignment floatingAlignment = FloatingAlignment.center;
@@ -122,7 +123,6 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> with RouteAware
   @override
   void didPopNext() {
     // TODO: dispatch onRevisit so the child Page can execute onResume()
-    
   }
 
   Widget? _buildFloatingButton() {
@@ -250,16 +250,11 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> with RouteAware
   }
 
   Widget? _buildCustomIcon(MenuItem item, {bool isActive = false}) {
-    Widget? iconWidget;
     dynamic customWidgetModel =
         isActive ? item.customActiveWidget : item.customWidget;
     if (customWidgetModel != null) {
-      final child = widget.scopeManager.buildWidget(customWidgetModel!);
-      final dataScopeWidget = child as DataScopeWidget;
-      final customWidget = dataScopeWidget.child as CustomView;
-      iconWidget = customWidget.childWidget;
+      return widget.scopeManager.buildWidget(customWidgetModel!);
     }
-    return iconWidget;
   }
 }
 

@@ -181,8 +181,6 @@ abstract class BaseNavigateScreenAction extends EnsembleAction {
   final Map<String, dynamic>? options;
 }
 
-
-
 class PlaidLinkAction extends EnsembleAction {
   PlaidLinkAction({
     super.initiator,
@@ -596,7 +594,8 @@ class RateAppAction extends EnsembleAction {
   final dynamic _message;
 
   factory RateAppAction.from({Map? payload}) {
-    return RateAppAction(title: payload?['title'], message: payload?['message']);
+    return RateAppAction(
+        title: payload?['title'], message: payload?['message']);
   }
 
   @override

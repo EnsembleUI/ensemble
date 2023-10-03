@@ -419,6 +419,16 @@ mixin PageBindingManager on IsScopeManager {
   //   }
   // }
 
+  /// remove all the binding listeners that this widget is listening to.
+  /// Call this when a widget is disposed
+  void removeBindingListeners(Invokable destinationWidget) {
+    // int? count = listenerMap[destinationWidget]?.values.length;
+    // if (count != null) {
+    //   log("Removing ${count} binding listeners for (${destinationWidget.runtimeType} - ${destinationWidget.hashCode})");
+    // }
+    listenerMap[destinationWidget]?.values.forEach((e) => e.cancel());
+  }
+
   /// listen for changes on the bindingExpression and invoke onDataChange() callback.
   /// Multiple calls to this is safe as we remove the existing listeners before adding.
   /// [bindingExpression] a valid binding expression in the form of getter e.g $(myText.text)
