@@ -2659,6 +2659,10 @@
                       "type": "boolean",
                       "description": "Determines if carousel should loop infinitely or be limited to item length. Default (false)"
                     },
+                    "selectedItemIndex": {
+                      "type": "integer",
+                      "description": "The initial page to show when first creating the Carousel. Default (0)"
+                    },
                     "autoplayInterval": {
                       "type": "integer",
                       "description": "Sets the duration in seconds for the autoplay. Default (4 second)"
