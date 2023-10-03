@@ -2067,6 +2067,10 @@
                       "type": "number",
                       "description": "Instead of itemHeight, you can set the tile's dimension as a ratio of (item width / item height). For example, a tile with 3x width and 2x height is 3/2 = 1.5. This attribute will be ignored if itemHeight is set.",
                       "minimum": 0
+                    },
+                    "reverse": {
+                      "type": "boolean",
+                      "description": "Show Grid in reverse order. Default is false"
                     }
                   }
                 }
@@ -2463,6 +2467,10 @@
                         }
                       ],
                       "description": "Padding with CSS-style value e.g. padding: 5 20 5 Default 0 0 0"
+                    },
+                    "reverse": {
+                      "type": "boolean",
+                      "description": "Show list in reverse order. Default is false"
                     }
                   }
                 }
