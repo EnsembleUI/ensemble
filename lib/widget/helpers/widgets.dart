@@ -113,8 +113,8 @@ class BoxWrapper extends StatelessWidget {
     // an explicit ClipRRect around it. Note also that apply it around
     // another Container may cause clipping at the borderRadius's corners.
     // Also note that clipping is not necessary unless borderRadius is set
-    return
-      boxController.borderRadius != null && boxController.clipContent == true
+    return boxController.borderRadius != null &&
+            boxController.clipContent == true
         ? ClipRRect(
             borderRadius: boxController.borderRadius!.getValue(),
             clipBehavior: Clip.hardEdge,

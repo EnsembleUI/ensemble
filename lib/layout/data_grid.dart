@@ -213,7 +213,8 @@ class DataColumnSort {
   });
 }
 
-class DataGridState extends WidgetState<DataGrid> with TemplatedWidgetState, HasChildren<DataGrid> {
+class DataGridState extends WidgetState<DataGrid>
+    with TemplatedWidgetState, HasChildren<DataGrid> {
   List<Widget>? templatedChildren;
   List<EnsembleDataColumn> _columns = [];
   List<dynamic> dataList = [];

@@ -19,8 +19,7 @@ class EnsembleStaggeredGrid extends StatefulWidget
     with
         Invokable,
         UpdatableContainer,
-        HasController<StaggeredGridController,
-        EnsembleStaggeredGridState> {
+        HasController<StaggeredGridController, EnsembleStaggeredGridState> {
   static const type = 'StaggeredGrid';
 
   EnsembleStaggeredGrid({Key? key}) : super(key: key);

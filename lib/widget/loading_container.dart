@@ -124,8 +124,7 @@ class LoadingContainerState extends WidgetState<LoadingContainer> {
       // TODO: fade in content causes problem when the State is being
       // recreated constantly. Fix this so we can put back the animation
       Visibility(
-          visible: widget._controller.isLoading != true,
-          child: contentWidget)
+          visible: widget._controller.isLoading != true, child: contentWidget)
 
       // fade in main content
       // AnimatedOpacity(
