@@ -69,6 +69,10 @@ class GridView extends StatefulWidget
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'pullToRefreshOptions': (input) => _controller.pullToRefreshOptions =
           PullToRefreshOptions.fromMap(input),
+      'onScrollEnd': (funcDefinition) => _controller.onScrollEnd =
+          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'reverse': (value) =>
+          _controller.reverse = Utils.getBool(value, fallback: false),
     };
   }
 
@@ -89,6 +93,8 @@ class GridViewController extends BoxController with HasPullToRefresh {
   ItemTemplate? itemTemplate;
   EnsembleAction? onItemTap;
   int selectedItemIndex = -1;
+  EnsembleAction? onScrollEnd;
+  bool reverse = false;
 
   // single number, 3 numbers (small, medium, large), or 5 numbers (xSmall, small, medium, large, xLarge)
   // min 1, max 5
@@ -203,12 +209,15 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
               widget._controller.itemAspectRatio?.toDouble() ?? 1.0,
         ),
         itemCount: _items.length,
+        reverse: widget._controller.reverse,
         scrollDirection: Axis.vertical,
         cacheExtent: cachedPixels,
         padding: widget._controller.padding,
         itemBuilder: (context, index) => _buildItem(index),
       ),
     );
+
+    // wrapping view inside
 
     if (widget._controller.onPullToRefresh != null) {
       myGridView = PullToRefreshContainer(
@@ -233,6 +242,10 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
   }
 
   dynamic _buildItem(int index) {
+    if (index == _items.length - 1 && widget._controller.onScrollEnd != null) {
+      ScreenController()
+          .executeAction(context, widget._controller.onScrollEnd!);
+    }
     if (widget._controller.onItemTap != null) {
       return EnsembleGestureDetector(
         onTap: (() => _onItemTap(index)),
