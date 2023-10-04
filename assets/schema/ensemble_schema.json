@@ -2917,6 +2917,10 @@
                   "type": "string",
                   "description": "Enter the Name or ID of your Screen"
                 },
+                "external": {
+                  "type": "boolean",
+                  "description": "(Default false) Specify if screen is externally provided or not. If set true the screen is expected from external source."
+                },
                 "inputs": {
                   "type": "object",
                   "description": "Specify the key/value pairs to pass into the next Screen",
