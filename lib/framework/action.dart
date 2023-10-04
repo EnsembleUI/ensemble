@@ -114,7 +114,8 @@ class NavigateScreenAction extends BaseNavigateScreenAction {
       super.inputs,
       super.options,
       this.onNavigateBack,
-      super.transition})
+      super.transition,
+      super.isExternal})
       : super(asModal: false);
   EnsembleAction? onNavigateBack;
 
@@ -131,6 +132,7 @@ class NavigateScreenAction extends BaseNavigateScreenAction {
       options: Utils.getMap(payload['options']),
       onNavigateBack: EnsembleAction.fromYaml(payload['onNavigateBack']),
       transition: Utils.getMap(payload['transition']),
+      isExternal: Utils.getBool(payload['external'], fallback: false),
     );
   }
 
@@ -173,12 +175,14 @@ abstract class BaseNavigateScreenAction extends EnsembleAction {
       required this.asModal,
       this.transition,
       super.inputs,
-      this.options});
+      this.options,
+      this.isExternal = false});
 
   String screenName;
   bool asModal;
   Map<String, dynamic>? transition;
   final Map<String, dynamic>? options;
+  final bool isExternal;
 }
 
 class PlaidLinkAction extends EnsembleAction {
