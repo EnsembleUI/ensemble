@@ -167,12 +167,14 @@ class ScreenController {
       }
 
       PageRouteBuilder routeBuilder = navigateToScreen(
-          providedDataContext.buildContext,
-          screenName: dataContext.eval(action.screenName),
-          asModal: action.asModal,
-          routeOption: routeOption,
-          pageArgs: nextArgs,
-          transition: action.transition);
+        providedDataContext.buildContext,
+        screenName: dataContext.eval(action.screenName),
+        asModal: action.asModal,
+        routeOption: routeOption,
+        pageArgs: nextArgs,
+        transition: action.transition,
+        isExternal: action.isExternal,
+      );
 
       // listen for data returned on popped
       if (scopeManager == null) {
@@ -993,14 +995,17 @@ class ScreenController {
     RouteOption? routeOption,
     Map<String, dynamic>? pageArgs,
     Map<String, dynamic>? transition,
+    bool isExternal = false,
   }) {
     PageType pageType = asModal == true ? PageType.modal : PageType.regular;
 
     Widget screenWidget = getScreen(
-        screenId: screenId,
-        screenName: screenName,
-        asModal: asModal,
-        pageArgs: pageArgs);
+      screenId: screenId,
+      screenName: screenName,
+      asModal: asModal,
+      pageArgs: pageArgs,
+      isExternal: isExternal,
+    );
 
     Map<String, dynamic>? defaultTransitionOptions =
         Theme.of(context).extension<EnsembleThemeExtension>()?.transitions ??
@@ -1042,6 +1047,7 @@ class ScreenController {
     String? screenName,
     bool? asModal,
     Map<String, dynamic>? pageArgs,
+    required bool isExternal,
   }) {
     PageType pageType = asModal == true ? PageType.modal : PageType.regular;
     return Screen(
@@ -1053,6 +1059,7 @@ class ScreenController {
         screenName: screenName,
         pageType: pageType,
         arguments: pageArgs,
+        isExternal: isExternal,
       ),
     );
   }
