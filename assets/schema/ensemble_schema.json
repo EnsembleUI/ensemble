@@ -2655,7 +2655,7 @@
                       "type": "boolean",
                       "description": "If true, Enables autoplay, sliding one page at a time. Default (false)"
                     },
-                    "enableInfiniteScroll": {
+                    "enableLoop": {
                       "type": "boolean",
                       "description": "Determines if carousel should loop infinitely or be limited to item length. Default (false)"
                     },
