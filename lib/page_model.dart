@@ -364,7 +364,7 @@ class AppProvider {
 /// payload to pass to the Screen
 class ScreenPayload {
   ScreenPayload(
-      {this.screenId, this.screenName, this.arguments, this.pageType});
+      {this.screenId, this.screenName, this.arguments, this.pageType, this.isExternal = false});
 
   // screen ID is optional as the App always have a default screen
   String? screenId;
@@ -375,6 +375,9 @@ class ScreenPayload {
   Map<String, dynamic>? arguments;
 
   PageType? pageType;
+
+  // check if screen is externally provided. i.e not ensemble screen.
+  bool isExternal;
 }
 
 /// rendering options for the screenc

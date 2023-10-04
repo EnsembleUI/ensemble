@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/theme/theme_loader.dart';
@@ -8,6 +9,7 @@ import 'package:ensemble/framework/widget/error_screen.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/page_model.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:yaml/yaml.dart';
 
 class Screen extends StatefulWidget {
@@ -22,10 +24,20 @@ class Screen extends StatefulWidget {
 
 class _ScreenState extends State<Screen> {
   late Future<ScreenDefinition> screenRequester;
+  Widget? externalScreen;
 
   @override
   void initState() {
     super.initState();
+    if (widget.screenPayload?.isExternal ?? false) {
+      if (widget.screenPayload?.screenName == null) {
+        throw LanguageError('ScreenName is mandatory, when external is true');
+      }
+      externalScreen = Ensemble()
+          .externalScreenWidgets[widget.screenPayload!.screenName]
+          ?.call(context, widget.screenPayload?.arguments);
+      return;
+    }
     screenRequester =
         widget.appProvider.getDefinition(payload: widget.screenPayload);
   }
@@ -33,30 +45,32 @@ class _ScreenState extends State<Screen> {
   @override
   Widget build(BuildContext context) {
     //log("Screen build() - $hashCode (${Ensemble().deviceInfo.size.width} x ${Ensemble().deviceInfo.size.height})");
-    return FutureBuilder(
-        future: screenRequester,
-        builder: (context, snapshot) {
-          // show error
-          if (snapshot.hasError) {
-            return ErrorScreen(LanguageError(
-                "I'm not able to read your page definition",
-                detailError: snapshot.error.toString()));
-          }
-          // show progress bar
-          else if (!snapshot.hasData) {
-            return Scaffold(
-                backgroundColor: Theme.of(context)
-                    .extension<EnsembleThemeExtension>()
-                    ?.loadingScreenBackgroundColor,
-                resizeToAvoidBottomInset: false,
-                body: Center(
-                    child: CircularProgressIndicator(
-                        color: Theme.of(context)
-                            .extension<EnsembleThemeExtension>()
-                            ?.loadingScreenIndicatorColor)));
-          }
-          return renderScreen(snapshot.data!);
-        });
+    return widget.screenPayload?.isExternal ?? false
+        ? ExternalScreen(screen: externalScreen)
+        : FutureBuilder(
+            future: screenRequester,
+            builder: (context, snapshot) {
+              // show error
+              if (snapshot.hasError) {
+                return ErrorScreen(LanguageError(
+                    "I'm not able to read your page definition",
+                    detailError: snapshot.error.toString()));
+              }
+              // show progress bar
+              else if (!snapshot.hasData) {
+                return Scaffold(
+                    backgroundColor: Theme.of(context)
+                        .extension<EnsembleThemeExtension>()
+                        ?.loadingScreenBackgroundColor,
+                    resizeToAvoidBottomInset: false,
+                    body: Center(
+                        child: CircularProgressIndicator(
+                            color: Theme.of(context)
+                                .extension<EnsembleThemeExtension>()
+                                ?.loadingScreenIndicatorColor)));
+              }
+              return renderScreen(snapshot.data!);
+            });
   }
 
   Widget renderScreen(ScreenDefinition screenDefinition) {
@@ -139,5 +153,47 @@ class ScreenDefinition {
       },
       randomWidgetName: widgetContent
     });
+  }
+}
+
+class ExternalScreen extends StatelessWidget {
+  const ExternalScreen({super.key, this.screen});
+
+  final Widget? screen;
+
+  @override
+  Widget build(BuildContext context) {
+    return screen ??
+        Scaffold(
+          body: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 64.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                IconButton(onPressed: () {Navigator.pop(context);}, icon: const Icon(Icons.arrow_back_ios)),
+                const SizedBox(height: 32),
+                const Text(
+                  'External Screen',
+                  style: TextStyle(fontSize: 24),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                    'Currently studio preview doesn\'t supports external screen.'),
+                const SizedBox(height: 24),
+                const Text(
+                    'If you are seeing screen on native device please make sure you have passed valid screenName and given screenbuilder for corresponding screenName.'),
+                const SizedBox(height: 24),
+                const Text('For more information check the following docs'),
+                const SizedBox(height: 12),
+                OutlinedButton(
+                  onPressed: () {
+                    launchUrl(Uri.parse('https://docs.ensembleui.com/#/'));
+                  },
+                  child: const Text('Ensemble docs'),
+                ),
+              ],
+            ),
+          ),
+        );
   }
 }
