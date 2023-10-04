@@ -1,11 +1,8 @@
-import 'package:ensemble/framework/event.dart';
-import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/input/form_helper.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
-import 'package:ensemble/framework/action.dart' as framework;
 import 'package:provider/provider.dart';
 
 class EnsembleRadio extends RadioWidget {
@@ -27,12 +24,10 @@ abstract class RadioWidget extends StatefulWidget
 
   @override
   Map<String, Function> getters() =>
-      {'value': () => CustomRadioController(controller).groupValue};
+      {'value': () => CustomRadioController(controller).selectedValue};
 
   @override
   Map<String, Function> setters() => {
-        'onChange': (definition) => controller.onChange =
-            framework.EnsembleAction.fromYaml(definition, initiator: this),
         'groupId': (value) {
           var str = Utils.getString(value, fallback: "id1");
           controller.groupId = str;
@@ -51,17 +46,9 @@ class RadioController extends FormFieldController {
   String groupId = "";
   String radioValue = "";
   String? leadingTitle;
-  framework.EnsembleAction? onChange;
 }
 
 class RadioState extends FormFieldWidgetState<RadioWidget> {
-  void onToggle(String groupValue, String groupId) {
-    if (widget.controller.onChange != null) {
-      ScreenController().executeAction(context, widget.controller.onChange!,
-          event: EnsembleEvent(widget));
-    }
-  }
-
   @override
   Widget buildWidget(BuildContext context) {
     String titleText = widget.controller.leadingTitle == null
@@ -75,7 +62,9 @@ class RadioState extends FormFieldWidgetState<RadioWidget> {
               if (CustomRadioController(widget.controller)
                       .controller
                       .required &&
-                  CustomRadioController(widget.controller).groupValue.isEmpty) {
+                  CustomRadioController(widget.controller)
+                      .selectedValue
+                      .isEmpty) {
                 return Utils.translateWithFallback(
                     'ensemble.input.required', 'This field is required');
               }
@@ -98,7 +87,7 @@ class RadioState extends FormFieldWidgetState<RadioWidget> {
                         child: Consumer<CustomRadioController>(
                           builder: (context, ref, child) => Radio.adaptive(
                               value: widget.controller.radioValue,
-                              groupValue: ref.groupValue,
+                              groupValue: ref.selectedValue,
                               onChanged: (String? value) => ref
                                   .setGroupValue(widget.controller.radioValue)),
                         ),
@@ -126,9 +115,9 @@ class CustomRadioController extends ChangeNotifier {
   CustomRadioController._internal(this.radioController)
       : controller = radioController;
 
-  String groupValue = "";
+  String selectedValue = "";
   void setGroupValue(String value) {
-    groupValue = value;
+    selectedValue = value;
     notifyListeners();
   }
 
