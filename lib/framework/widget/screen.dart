@@ -166,11 +166,16 @@ class ExternalScreen extends StatelessWidget {
     return screen ??
         Scaffold(
           body: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 64.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 32.0, vertical: 64.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                IconButton(onPressed: () {Navigator.pop(context);}, icon: const Icon(Icons.arrow_back_ios)),
+                IconButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    icon: const Icon(Icons.arrow_back_ios)),
                 const SizedBox(height: 32),
                 const Text(
                   'External Screen',

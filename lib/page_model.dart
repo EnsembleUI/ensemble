@@ -364,7 +364,11 @@ class AppProvider {
 /// payload to pass to the Screen
 class ScreenPayload {
   ScreenPayload(
-      {this.screenId, this.screenName, this.arguments, this.pageType, this.isExternal = false});
+      {this.screenId,
+      this.screenName,
+      this.arguments,
+      this.pageType,
+      this.isExternal = false});
 
   // screen ID is optional as the App always have a default screen
   String? screenId;
