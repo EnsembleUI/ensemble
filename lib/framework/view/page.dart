@@ -641,7 +641,8 @@ class PageState extends State<Page>
   }
 
   void selectNavigationIndex(BuildContext context, MenuItem menuItem) {
-    ScreenController().navigateToScreen(context, screenName: menuItem.page);
+    ScreenController().navigateToScreen(context,
+        screenName: menuItem.page, isExternal: menuItem.isExternal);
   }
 
   Widget? _buildFooter(ScopeManager scopeManager, SinglePageModel pageModel) {

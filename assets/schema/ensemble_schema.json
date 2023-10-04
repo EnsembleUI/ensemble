@@ -1289,6 +1289,10 @@
                   "type": "boolean",
                   "description": "If it is True, then it will trigger onComplete when the user specified length and has typed the full length, False will trigger onComplete when the user hit Enter. Defaults (True)"
                 },
+                "spaceEvenly": {
+                  "type": "boolean",
+                  "description": "If it is True, then it will arrange all the textfields eqaully based on the remaining space in the horizontal axis. Defaults (True)"
+                },
                 "enableCursor": {
                   "type": "boolean",
                   "description": "If the button is inside a Form and upon on tap, it will execute the form's onSubmit action if this property is TRUE"
@@ -2655,9 +2659,13 @@
                       "type": "boolean",
                       "description": "If true, Enables autoplay, sliding one page at a time. Default (false)"
                     },
-                    "enableInfiniteScroll": {
+                    "enableLoop": {
                       "type": "boolean",
                       "description": "Determines if carousel should loop infinitely or be limited to item length. Default (false)"
+                    },
+                    "selectedItemIndex": {
+                      "type": "integer",
+                      "description": "The initial page to show when first creating the Carousel. Default (0)"
                     },
                     "autoplayInterval": {
                       "type": "integer",
@@ -2908,6 +2916,10 @@
                 "name": {
                   "type": "string",
                   "description": "Enter the Name or ID of your Screen"
+                },
+                "external": {
+                  "type": "boolean",
+                  "description": "(Default false) Specify if screen is externally provided or not. If set true the screen is expected from external source."
                 },
                 "inputs": {
                   "type": "object",

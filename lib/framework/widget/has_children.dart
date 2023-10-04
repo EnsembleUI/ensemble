@@ -7,14 +7,11 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 
 mixin HasChildren<W extends HasController> on WidgetState<W> {
-  List<Widget> buildChildren(List<WidgetModel> models) {
-    if (scopeManager != null) {
-      return models.map((model) => scopeManager!.buildWidget(model)).toList();
+  List<Widget> buildChildren(
+      List<WidgetModel> models, {ScopeManager? preferredScopeManager}) {
+    if (preferredScopeManager != null || scopeManager != null) {
+      return models.map((model) => (preferredScopeManager ?? scopeManager)!.buildWidget(model)).toList();
     }
-
-    BuildContext _context = context;
-    ScopeManager? _scopeManager = DataScopeWidget.getScope(context);
-
     return [];
   }
 
