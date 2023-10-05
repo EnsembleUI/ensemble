@@ -145,6 +145,21 @@ class NavigateScreenAction extends BaseNavigateScreenAction {
   }
 }
 
+class NavigateViewGroupAction extends EnsembleAction {
+  NavigateViewGroupAction({dynamic viewIndex}) : _viewIndex = viewIndex;
+
+  final dynamic _viewIndex;
+
+  factory NavigateViewGroupAction.from({Map? payload}) {
+    return NavigateViewGroupAction(viewIndex: payload?['title']);
+  }
+
+  @override
+  Future<void> execute(BuildContext context, ScopeManager scopeManager) {
+    return Future.value(null);
+  }
+}
+
 class NavigateModalScreenAction extends BaseNavigateScreenAction {
   NavigateModalScreenAction({
     super.initiator,
@@ -830,6 +845,7 @@ class CheckPermission extends EnsembleAction {
 enum ActionType {
   invokeAPI,
   navigateScreen,
+  navigateViewGroup,
   navigateModalScreen,
   showBottomModal,
   dismissBottomModal,
@@ -909,6 +925,9 @@ abstract class EnsembleAction {
       {Invokable? initiator, YamlMap? payload}) {
     if (actionType == ActionType.navigateScreen) {
       return NavigateScreenAction.fromYaml(
+          initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.navigateViewGroup) {
+      return NavigateModalScreenAction.fromYaml(
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.navigateModalScreen) {
       return NavigateModalScreenAction.fromYaml(
