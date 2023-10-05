@@ -3,12 +3,15 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
+import 'dart:io';
 import 'dart:isolate';
 import 'dart:math' show Random;
 import 'dart:ui';
 
 import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/action/InvokeAPIController.dart';
+import 'package:ensemble/action/bottom_modal_action.dart';
+import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/framework/action.dart';
@@ -23,6 +26,8 @@ import 'package:ensemble/framework/stub/contacts_manager.dart';
 import 'package:ensemble/framework/stub/file_manager.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/stub/plaid_link_manager.dart';
+import 'package:ensemble/framework/view/context_scope_widget.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/view/page_group.dart';
@@ -37,6 +42,7 @@ import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_registry.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -45,6 +51,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:walletconnect_dart/walletconnect_dart.dart';
+import 'package:web_socket_client/web_socket_client.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:yaml/yaml.dart';
 import 'package:get_it/get_it.dart';
@@ -69,7 +76,7 @@ class ScreenController {
   ScopeManager? getScopeManager(BuildContext context) {
     // get the current scope of the widget that invoked this. It gives us
     // the data context to evaluate expression
-    ScopeManager? scopeManager = ensemble.DataScopeWidget.getScope(context);
+    ScopeManager? scopeManager = DataScopeWidget.getScope(context);
 
     // when context is at the root View, we can't reach the DataScopeWidget which is
     // actually a child of View. Let's just get the scopeManager directly.
@@ -129,6 +136,9 @@ class ScreenController {
       dataContext = providedDataContext.clone(newBuildContext: context);
     }*/
 
+    /// TODO: ScopeManager should be non-null. Should be refactored to be clear
+    /// For now, we'll do scopeManager!
+
     // scope the initiator to *this* variable
     if (action.initiator != null) {
       dataContext.addInvokableContext('this', action.initiator!);
@@ -157,21 +167,29 @@ class ScreenController {
       }
 
       PageRouteBuilder routeBuilder = navigateToScreen(
-          providedDataContext.buildContext,
-          screenName: dataContext.eval(action.screenName),
-          asModal: action.asModal,
-          routeOption: routeOption,
-          pageArgs: nextArgs,
-          transition: action.transition);
+        providedDataContext.buildContext,
+        screenName: dataContext.eval(action.screenName),
+        asModal: action.asModal,
+        routeOption: routeOption,
+        pageArgs: nextArgs,
+        transition: action.transition,
+        isExternal: action.isExternal,
+      );
 
       // listen for data returned on popped
       if (scopeManager == null) {
         return;
       }
       if (action is NavigateScreenAction && action.onNavigateBack != null) {
-        routeBuilder.popped.then((data) => executeActionWithScope(
-            context, scopeManager, action.onNavigateBack!,
-            event: EnsembleEvent(null, data: data)));
+        routeBuilder.popped.then((data) {
+          // animating transition while executing this Action causes stutter
+          // if we do some heaviy processing. Delay it
+          Future.delayed(
+              const Duration(milliseconds: 300),
+              () => executeActionWithScope(
+                  context, scopeManager, action.onNavigateBack!,
+                  event: EnsembleEvent(null, data: data)));
+        });
       } else if (action is NavigateModalScreenAction &&
           action.onModalDismiss != null &&
           routeBuilder.fullscreenDialog) {
@@ -180,105 +198,6 @@ class ScreenController {
           executeActionWithScope(context, scopeManager, action.onModalDismiss!);
         });
       }
-    } else if (action is ShowBottomModalAction) {
-      Widget? widget;
-      if (scopeManager != null && action.widget != null) {
-        widget = scopeManager.buildWidgetFromDefinition(action.widget);
-      }
-
-      if (widget != null) {
-        showModalBottomSheet(
-          context: context,
-          backgroundColor: action.backgroundColor(dataContext),
-          barrierColor: action.barrierColor(dataContext),
-          isScrollControlled: true,
-          enableDrag: action.enableDrag(dataContext),
-          showDragHandle: action.enableDragHandler(dataContext),
-          builder: (context) {
-            return widget!;
-          },
-        );
-      }
-    } else if (action is PlaidLinkAction) {
-      final linkToken = action.getLinkToken(dataContext).trim();
-      if (linkToken.isNotEmpty) {
-        GetIt.I<PlaidLinkManager>().openPlaidLink(
-          linkToken,
-          (linkSuccess) {
-            if (action.onSuccess != null) {
-              executeActionWithScope(
-                context,
-                scopeManager!,
-                action.onSuccess!,
-                event: EnsembleEvent(
-                  action.initiator!,
-                  data: linkSuccess,
-                ),
-              );
-            }
-          },
-          (linkEvent) {
-            if (action.onEvent != null) {
-              executeActionWithScope(
-                context,
-                scopeManager!,
-                action.onEvent!,
-                event: EnsembleEvent(
-                  action.initiator!,
-                  data: linkEvent,
-                ),
-              );
-            }
-          },
-          (linkExit) {
-            if (action.onExit != null) {
-              executeActionWithScope(
-                context,
-                scopeManager!,
-                action.onExit!,
-                event: EnsembleEvent(
-                  action.initiator!,
-                  data: linkExit,
-                ),
-              );
-            }
-          },
-        );
-      } else {
-        throw RuntimeError(
-            "openPlaidLink action requires the plaid's link_token.");
-      }
-    } else if (action is AppSettingAction) {
-      final settingType = action.getTarget(dataContext);
-      AppSettings.openAppSettings(type: settingType);
-    } else if (action is PhoneContactAction) {
-      GetIt.I<ContactManager>().getPhoneContacts((contacts) {
-        if (action.getOnSuccess(dataContext) != null) {
-          final contactsData =
-              contacts.map((contact) => contact.toJson()).toList();
-
-          executeActionWithScope(
-            context,
-            scopeManager!,
-            action.getOnSuccess(dataContext)!,
-            event: EnsembleEvent(
-              action.initiator,
-              data: {'contacts': contactsData},
-            ),
-          );
-        }
-      }, (error) {
-        if (action.getOnError(dataContext) != null) {
-          executeActionWithScope(
-            context,
-            scopeManager!,
-            action.getOnError(dataContext)!,
-            event: EnsembleEvent(action.initiator!, data: {'error': error}),
-          );
-        }
-      });
-    } else if (action is ShowCameraAction) {
-      GetIt.I<CameraManager>().openCamera(context, action, scopeManager);
     } else if (action is ShowDialogAction) {
       if (scopeManager != null) {
         Widget widget = scopeManager.buildWidgetFromDefinition(action.widget);
@@ -369,6 +288,86 @@ class ScreenController {
         }
         scopeManager.openedDialogs.clear();
       }
+    } else if (action is PlaidLinkAction) {
+      final linkToken = action.getLinkToken(dataContext).trim();
+      if (linkToken.isNotEmpty) {
+        GetIt.I<PlaidLinkManager>().openPlaidLink(
+          linkToken,
+          (linkSuccess) {
+            if (action.onSuccess != null) {
+              executeActionWithScope(
+                context,
+                scopeManager!,
+                action.onSuccess!,
+                event: EnsembleEvent(
+                  action.initiator,
+                  data: linkSuccess,
+                ),
+              );
+            }
+          },
+          (linkEvent) {
+            if (action.onEvent != null) {
+              executeActionWithScope(
+                context,
+                scopeManager!,
+                action.onEvent!,
+                event: EnsembleEvent(
+                  action.initiator,
+                  data: linkEvent,
+                ),
+              );
+            }
+          },
+          (linkExit) {
+            if (action.onExit != null) {
+              executeActionWithScope(
+                context,
+                scopeManager!,
+                action.onExit!,
+                event: EnsembleEvent(
+                  action.initiator,
+                  data: linkExit,
+                ),
+              );
+            }
+          },
+        );
+      } else {
+        throw RuntimeError(
+            "openPlaidLink action requires the plaid's link_token.");
+      }
+    } else if (action is AppSettingAction) {
+      final settingType = action.getTarget(dataContext);
+      AppSettings.openAppSettings(type: settingType);
+    } else if (action is PhoneContactAction) {
+      GetIt.I<ContactManager>().getPhoneContacts((contacts) {
+        if (action.getOnSuccess(dataContext) != null) {
+          final contactsData =
+              contacts.map((contact) => contact.toJson()).toList();
+
+          executeActionWithScope(
+            context,
+            scopeManager!,
+            action.getOnSuccess(dataContext)!,
+            event: EnsembleEvent(
+              action.initiator,
+              data: {'contacts': contactsData},
+            ),
+          );
+        }
+      }, (error) {
+        if (action.getOnError(dataContext) != null) {
+          executeActionWithScope(
+            context,
+            scopeManager!,
+            action.getOnError(dataContext)!,
+            event: EnsembleEvent(action.initiator!, data: {'error': error}),
+          );
+        }
+      });
+    } else if (action is ShowCameraAction) {
+      GetIt.I<CameraManager>().openCamera(context, action, scopeManager);
     } else if (action is StartTimerAction) {
       // what happened if ScopeManager is null?
       if (scopeManager != null) {
@@ -473,10 +472,6 @@ class ScreenController {
           scopeManager: scopeManager);
     } else if (action is FilePickerAction) {
       GetIt.I<FileManager>().pickFiles(context, action, scopeManager);
-    } else if (action is NavigateBack) {
-      if (scopeManager != null) {
-        Navigator.of(context).maybePop(action.getData(dataContext));
-      }
     } else if (action is CopyToClipboardAction) {
       if (action.value != null) {
         String? clipboardValue = action.getValue(dataContext);
@@ -497,6 +492,29 @@ class ScreenController {
     } else if (action is ShareAction) {
       Share.share(action.getText(dataContext),
           subject: action.getTitle(dataContext));
+    } else if (action is GetDeviceTokenAction) {
+      String? deviceToken;
+      try {
+        await FirebaseMessaging.instance.requestPermission(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+        // need to get APNS first
+        await FirebaseMessaging.instance.getAPNSToken();
+        // then get device token
+        deviceToken = await FirebaseMessaging.instance.getToken();
+        if (deviceToken != null && action.onSuccess != null) {
+          return ScreenController().executeAction(context, action.onSuccess!,
+              event: EnsembleEvent(null, data: {'token': deviceToken}));
+        }
+      } on Exception catch (e) {
+        log(e.toString());
+        log('Error getting device token');
+      }
+      if (deviceToken == null && action.onError != null) {
+        return ScreenController().executeAction(context, action.onError!);
+      }
     } else if (action is WalletConnectAction) {
       //  TODO store session:  WalletConnectSession? session = await sessionStorage.getSession();
 
@@ -598,6 +616,65 @@ class ScreenController {
           executeAction(context, action.onNotDetermined!);
         }
       }
+    } else if (action is ConnectSocketAction) {
+      dynamic resolveURI(String uri) {
+        final result = dataContext.eval(uri);
+        return Uri.tryParse(result);
+      }
+
+      for (var element in action.inputs?.entries ?? const Iterable.empty()) {
+        dynamic value = dataContext.eval(element.value);
+        dataContext.addDataContextById(element.key, value);
+      }
+      final socketName = action.name;
+      final socketService = SocketService();
+      final (WebSocket socket, EnsembleSocket data) =
+          socketService.connect(socketName, resolveURI);
+      final connectionStateSub = socket.connection.listen(
+        (event) {
+          if (event is Connected || event is Reconnected) {
+            if (data.onSuccess != null) {
+              ScreenController().executeAction(context, data.onSuccess!);
+            }
+
+            if (action.onSuccess != null) {
+              ScreenController().executeAction(context, action.onSuccess!);
+            }
+            return;
+          }
+          if (event is Disconnected && data.onDisconnect != null) {
+            ScreenController().executeAction(context, data.onDisconnect!);
+            return;
+          }
+          if (event is Reconnecting && data.onReconnecting != null) {
+            ScreenController().executeAction(context, data.onReconnecting!);
+            return;
+          }
+        },
+      );
+
+      final subscription = socket.messages.listen((message) {
+        if (data.onReceive == null) return;
+
+        scopeManager?.dataContext
+            .addInvokableContext(socketName, EnsembleSocketInvokable(message));
+        scopeManager?.dispatch(
+            ModelChangeEvent(SimpleBindingSource(socketName), message));
+        ScreenController().executeAction(context, data.onReceive!);
+      });
+      socketService.setSubscription(socketName, subscription);
+      socketService.setConnectionSubscription(socketName, connectionStateSub);
+    } else if (action is DisconnectSocketAction) {
+      final socketService = SocketService();
+      await socketService.disconnect(action.name);
+    } else if (action is MessageSocketAction) {
+      final socketService = SocketService();
+      final message = dataContext.eval(action.message);
+      socketService.message(action.name, message);
+    }
+    // catch-all. All Actions should just be using this
+    else {
+      action.execute(context, scopeManager!);
     }
   }
 
@@ -627,17 +704,12 @@ class ScreenController {
     ScopeManager? scopeManager,
     Map<String, YamlMap>? apiMap,
   }) async {
-    List<File>? selectedFiles;
+    List<File>? selectedFiles = _getRawFiles(action.files, dataContext);
 
-    final rawFiles = _getRawFiles(action.files, dataContext);
-
-    if (rawFiles is! List<dynamic>) {
+    if (selectedFiles == null) {
       if (action.onError != null) executeAction(context, action.onError!);
       return;
     }
-
-    selectedFiles =
-        rawFiles.map((data) => File.fromJson(data)).toList().cast<File>();
 
     if (isFileSizeOverLimit(context, dataContext, selectedFiles, action)) {
       if (action.onError != null) executeAction(context, action.onError!);
@@ -748,23 +820,27 @@ class ScreenController {
     if (action.onComplete != null) executeAction(context, action.onComplete!);
   }
 
-  List<dynamic>? _getRawFiles(dynamic files, DataContext dataContext) {
-    if (files is YamlList) {
+  List<File>? _getRawFiles(dynamic rawFiles, DataContext dataContext) {
+    var files = dataContext.eval(rawFiles);
+    if (files is YamlList || files is List) {
       return files
-          .map((element) => Map<String, dynamic>.from(element))
-          .toList();
+          .map((element) {
+            if (element is String) {
+              return File.fromString(element);
+            }
+            return File.fromJson(element);
+          })
+          .toList()
+          .cast<File>();
     }
 
     if (files is Map && files.containsKey('path')) {
-      return [Map<String, dynamic>.from(files)];
+      return [File.fromJson(files)];
     }
 
     if (files is String) {
-      var rawFiles = dataContext.eval(files);
-      if (rawFiles is Map && rawFiles.containsKey('path')) {
-        rawFiles = [rawFiles];
-      }
-      return rawFiles;
+      final rawFiles = File.fromString(files);
+      return [rawFiles];
     }
 
     return null;
@@ -777,7 +853,7 @@ class ScreenController {
         'The size of is which is larger than the maximum allowed';
 
     final totalSize = selectedFiles.fold<double>(
-        0, (previousValue, element) => previousValue + element.size);
+        0, (previousValue, element) => previousValue + (element.size ?? 0));
     final maxFileSize = action.maxFileSize?.kb ?? defaultMaxFileSize;
 
     final message = Utils.translateWithFallback(
@@ -919,14 +995,17 @@ class ScreenController {
     RouteOption? routeOption,
     Map<String, dynamic>? pageArgs,
     Map<String, dynamic>? transition,
+    bool isExternal = false,
   }) {
     PageType pageType = asModal == true ? PageType.modal : PageType.regular;
 
     Widget screenWidget = getScreen(
-        screenId: screenId,
-        screenName: screenName,
-        asModal: asModal,
-        pageArgs: pageArgs);
+      screenId: screenId,
+      screenName: screenName,
+      asModal: asModal,
+      pageArgs: pageArgs,
+      isExternal: isExternal,
+    );
 
     Map<String, dynamic>? defaultTransitionOptions =
         Theme.of(context).extension<EnsembleThemeExtension>()?.transitions ??
@@ -968,6 +1047,7 @@ class ScreenController {
     String? screenName,
     bool? asModal,
     Map<String, dynamic>? pageArgs,
+    required bool isExternal,
   }) {
     PageType pageType = asModal == true ? PageType.modal : PageType.regular;
     return Screen(
@@ -979,6 +1059,7 @@ class ScreenController {
         screenName: screenName,
         pageType: pageType,
         arguments: pageArgs,
+        isExternal: isExternal,
       ),
     );
   }

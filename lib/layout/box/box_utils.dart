@@ -1,5 +1,6 @@
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/model.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/layout/box/base_box_layout.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';

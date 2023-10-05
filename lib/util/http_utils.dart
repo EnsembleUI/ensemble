@@ -118,7 +118,8 @@ class HttpUtils {
             await http.patch(Uri.parse(url), headers: headers, body: body);
         break;
       case 'DELETE':
-        response = await http.delete(Uri.parse(url), headers: headers);
+        response =
+            await http.delete(Uri.parse(url), headers: headers, body: body);
         break;
       case 'GET':
       default:

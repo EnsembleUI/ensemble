@@ -24,8 +24,10 @@ class CustomView extends StatelessWidget with Invokable {
   Widget build(BuildContext context) {
     // execute onLoad once if applicable
     if (viewBehavior.onLoad != null && !onLoadExecuted) {
-      ScreenController().executeAction(context, viewBehavior.onLoad!);
       onLoadExecuted = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScreenController().executeAction(context, viewBehavior.onLoad!);
+      });
     }
     return childWidget;
   }

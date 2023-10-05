@@ -1,11 +1,14 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 import 'dart:io' as io;
 import 'dart:ui';
+import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble/framework/stub/auth_context_manager.dart';
 import 'package:ensemble/framework/stub/oauth_controller.dart';
@@ -32,6 +35,7 @@ import 'package:intl/intl.dart';
 import 'package:mime/mime.dart';
 import 'package:source_span/source_span.dart';
 import 'package:walletconnect_dart/walletconnect_dart.dart';
+import 'package:web_socket_client/web_socket_client.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:yaml/yaml.dart';
 import 'package:collection/collection.dart';
@@ -308,6 +312,7 @@ class DataContext {
 /// built-in helpers/utils accessible to all DataContext
 class NativeInvokable with Invokable {
   final BuildContext _buildContext;
+
   NativeInvokable(this._buildContext);
 
   @override
@@ -327,6 +332,7 @@ class NativeInvokable with Invokable {
       ActionType.navigateModalScreen.name: navigateToModalScreen,
       ActionType.showDialog.name: showDialog,
       ActionType.invokeAPI.name: invokeAPI,
+      ActionType.openUrl.name: openUrl,
       ActionType.stopTimer.name: stopTimer,
       ActionType.openCamera.name: showCamera,
       ActionType.navigateBack.name: navigateBack,
@@ -346,12 +352,41 @@ class NativeInvokable with Invokable {
       ActionType.saveToKeychain.name: (key, value) =>
           saveToKeychain(key, value),
       ActionType.clearKeychain.name: (key) => clearKeychain(key),
+      'connectSocket': (String socketName, Map<dynamic, dynamic>? inputs) {
+        connectSocket(_buildContext, socketName, inputs: inputs);
+      },
+      'disconnectSocket': (String socketName) {
+        disconnectSocket(socketName);
+      },
+      'messageSocket': (String socketName, dynamic message) {
+        final scope = ScreenController().getScopeManager(_buildContext);
+        final evalMessage = scope?.dataContext.eval(message);
+        messageSocket(socketName, evalMessage);
+      },
     };
   }
 
   @override
   Map<String, Function> setters() {
     return {};
+  }
+
+  Future<void> connectSocket(BuildContext context, String socketName,
+      {Map<dynamic, dynamic>? inputs}) async {
+    ScreenController().executeAction(
+        context,
+        ConnectSocketAction(
+            name: socketName, inputs: inputs?.cast<String, dynamic>()));
+  }
+
+  Future<void> disconnectSocket(String socketName) async {
+    final socketService = SocketService();
+    await socketService.disconnect(socketName);
+  }
+
+  void messageSocket(String socketName, dynamic message) {
+    final socketService = SocketService();
+    socketService.message(socketName, message);
   }
 
   Future<void> saveToKeychain(String key, dynamic value) async {
@@ -404,6 +439,13 @@ class NativeInvokable with Invokable {
         .executeAction(_buildContext, ShowDialogAction(widget: widget));
   }
 
+  void openUrl([dynamic inputs]) {
+    Map<String, dynamic>? inputMap = Utils.getMap(inputs);
+    inputMap ??= {};
+    ScreenController()
+        .executeAction(_buildContext, OpenUrlAction.fromMap(inputMap));
+  }
+
   void invokeAPI(String apiName, [dynamic inputs]) {
     Map<String, dynamic>? inputMap = Utils.getMap(inputs);
     ScreenController().executeAction(
@@ -418,19 +460,46 @@ class NativeInvokable with Invokable {
     ScreenController().executeAction(_buildContext, ShowCameraAction());
   }
 
-  void navigateBack(dynamic data) {
-    ScreenController().executeAction(_buildContext, NavigateBack(data));
+  void navigateBack([dynamic payload]) {
+    ScreenController().executeAction(
+        _buildContext, NavigateBackAction.from(payload: payload));
+  }
+}
+
+class EnsembleSocketInvokable with Invokable {
+  dynamic data;
+
+  EnsembleSocketInvokable(this.data);
+
+  @override
+  Map<String, Function> getters() {
+    return {
+      'data': () => data,
+    };
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
   }
 }
 
 /// Singleton handling user storage
 class EnsembleStorage with Invokable {
   static final EnsembleStorage _instance = EnsembleStorage._internal();
+
   EnsembleStorage._internal();
+
   factory EnsembleStorage(BuildContext buildContext) {
     context = buildContext;
     return _instance;
   }
+
   static late BuildContext context;
 
   @override
@@ -476,6 +545,7 @@ class EnsembleStorage with Invokable {
 
 class Formatter with Invokable {
   final BuildContext _buildContext;
+
   Formatter(this._buildContext);
 
   @override
@@ -537,6 +607,7 @@ class DateInfo with Invokable {
   DateInfo({this.value});
 
   DateTime? value;
+
   DateTime get dateTime => value ?? DateTime.now();
   Locale locale = Localizations.localeOf(Utils.globalAppKey.currentContext!);
 
@@ -582,6 +653,7 @@ class DateTimeInfo with Invokable {
   DateTimeInfo({this.value});
 
   DateTime? value;
+
   DateTime get dateTime => value ?? DateTime.now();
   Locale locale = Localizations.localeOf(Utils.globalAppKey.currentContext!);
 
@@ -643,6 +715,7 @@ class DateTimeInfo with Invokable {
 /// legacy
 class UserDateTime with Invokable {
   DateTime? _dateTime;
+
   DateTime get dateTime => _dateTime ??= DateTime.now();
 
   @override
@@ -866,18 +939,19 @@ class FileData with Invokable {
 class File {
   File(this.name, this.ext, this.size, this.path, this.bytes);
 
-  File.fromJson(Map<String, dynamic> file)
+  factory File.fromString(String filePath) {
+    return File(null, null, null, filePath, null);
+  }
+
+  File.fromJson(Map<dynamic, dynamic> file)
       : name = file['name'],
         ext = file['extension'],
         size = file['size'],
         path = file['path'],
         bytes = file['bytes'];
 
-  final String name;
-
-  /// The file size in bytes. Defaults to `0` if the file size could not be
-  /// determined.
-  final int size;
+  final String? name;
+  final int? size;
   final String? ext;
   final String? path;
   final Uint8List? bytes;
