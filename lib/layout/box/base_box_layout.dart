@@ -15,7 +15,10 @@ import 'box_utils.dart';
 /// convenience wrapper for BoxLayout
 class BoxLayoutWrapper extends StatelessWidget {
   const BoxLayoutWrapper(
-      {super.key, required this.boxWidget, required this.controller, this.ignoresMargin=false});
+      {super.key,
+      required this.boxWidget,
+      required this.controller,
+      this.ignoresMargin = false});
   final Widget boxWidget;
   final BaseBoxLayoutController controller;
   final bool ignoresMargin;
@@ -32,8 +35,7 @@ class BoxLayoutWrapper extends StatelessWidget {
       ignoresMargin: true,
     );
     if (controller.onTap != null) {
-      rtn = InkWell(
-        splashColor: Colors.transparent,
+      rtn = GestureDetector(
         child: rtn,
         onTap: () =>
             ScreenController().executeAction(context, controller.onTap!),
@@ -90,7 +92,7 @@ class BoxLayoutController extends BaseBoxLayoutController
 }
 
 abstract class BaseBoxLayoutController extends BoxController {
-  List<Widget>? children;
+  List<WidgetModel>? children;
   EnsembleAction? onTap;
   EnsembleAction? onItemTap;
 

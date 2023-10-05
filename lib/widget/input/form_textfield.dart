@@ -6,6 +6,7 @@ import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/framework/widget/icon.dart' as framework;
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/util/debouncer.dart';
 import 'package:ensemble/util/input_formatter.dart';
 import 'package:ensemble/util/input_validator.dart';
 import 'package:ensemble/util/utils.dart';
@@ -23,6 +24,7 @@ import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 /// TextInput
 class TextInput extends BaseTextInput {
   static const type = 'TextInput';
+
   TextInput({Key? key}) : super(key: key);
 
   @override
@@ -34,6 +36,11 @@ class TextInput extends BaseTextInput {
           _controller.obscureText = Utils.optionalBool(obscure),
       'inputType': (type) => _controller.inputType = Utils.optionalString(type),
       'mask': (type) => _controller.mask = Utils.optionalString(type),
+      'onDelayedKeyPress': (function) => _controller.onDelayedKeyPress =
+          EnsembleAction.fromYaml(function, initiator: this),
+      'delayedKeyPressDuration': (value) =>
+          _controller.delayedKeyPressDuration =
+              Utils.getDurationMs(value) ?? _controller.delayedKeyPressDuration,
     });
     return setters;
   }
@@ -66,6 +73,7 @@ class TextInput extends BaseTextInput {
 /// PasswordInput
 class PasswordInput extends BaseTextInput {
   static const type = 'PasswordInput';
+
   PasswordInput({Key? key}) : super(key: key);
 
   @override
@@ -157,11 +165,13 @@ abstract class BaseTextInput extends StatefulWidget
   TextInputState createState() => TextInputState();
 
   bool isPassword();
+
   TextInputType? get keyboardType;
 }
 
 mixin TextInputFieldAction on FormFieldWidgetState<BaseTextInput> {
   void focusInputField();
+
   void unfocusInputField();
 }
 
@@ -171,6 +181,9 @@ class TextInputController extends FormFieldController {
   EnsembleAction? onChange;
   EnsembleAction? onKeyPress;
   TextInputAction? keyboardAction;
+
+  EnsembleAction? onDelayedKeyPress;
+  Duration delayedKeyPressDuration = const Duration(milliseconds: 300);
 
   EnsembleAction? onFocusReceived;
   EnsembleAction? onFocusLost;
@@ -199,6 +212,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
   // This is so we can be consistent with the other input widgets' onChange
   String previousText = '';
   bool didItChange = false;
+
   void evaluateChanges() {
     if (didItChange) {
       // trigger binding
@@ -295,6 +309,13 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
           });
         },
       ));
+    } else if (!widget.isPassword() && widget.textController.text.isNotEmpty) {
+      decoration = decoration.copyWith(
+        suffixIcon: IconButton(
+          onPressed: _clearSelection,
+          icon: const Icon(Icons.close),
+        ),
+      );
     }
 
     return InputWrapper(
@@ -389,7 +410,12 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
                     context, widget._controller.onKeyPress!,
                     event: EnsembleEvent(widget));
               }
+
+              if (widget._controller.onDelayedKeyPress != null) {
+                executeDelayedAction(widget._controller.onDelayedKeyPress!);
+              }
             }
+            setState(() {});
           },
           style: isEnabled()
               ? widget._controller.textStyle
@@ -398,6 +424,44 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
                 ),
           decoration: decoration,
         ));
+  }
+
+  void _clearSelection() {
+    widget.textController.clear();
+    focusNode.unfocus();
+  }
+
+  void executeDelayedAction(EnsembleAction action) {
+    getKeyPressDebouncer().run(() async {
+      ScreenController()
+          .executeAction(context, action, event: EnsembleEvent(widget));
+    });
+  }
+
+  Debouncer? _delayedKeyPressDebouncer;
+  Duration? _lastDelayedKeyPressDuration;
+  Debouncer getKeyPressDebouncer() {
+    if (_delayedKeyPressDebouncer == null) {
+      _delayedKeyPressDebouncer =
+          Debouncer(widget._controller.delayedKeyPressDuration);
+      _lastDelayedKeyPressDuration = widget._controller.delayedKeyPressDuration;
+    }
+    // debouncer exists, but has the duration changed?
+    else {
+      // re-create if anything changed, but need to cancel first
+      if (_lastDelayedKeyPressDuration!
+              .compareTo(widget._controller.delayedKeyPressDuration) !=
+          0) {
+        _delayedKeyPressDebouncer!.cancel();
+        _delayedKeyPressDebouncer =
+            Debouncer(widget._controller.delayedKeyPressDuration);
+        _lastDelayedKeyPressDuration =
+            widget._controller.delayedKeyPressDuration;
+      }
+    }
+
+    // here debouncer is valid
+    return _delayedKeyPressDebouncer!;
   }
 
   @override

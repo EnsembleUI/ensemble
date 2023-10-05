@@ -1,7 +1,12 @@
+import 'dart:developer';
+
+import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/menu.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/bottom_nav_page_view.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/custom_view.dart';
@@ -53,18 +58,21 @@ class BottomNavPageGroup extends StatefulWidget {
     super.key,
     required this.scopeManager,
     required this.menu,
+    required this.selectedPage,
     required this.children,
   });
 
   final ScopeManager scopeManager;
   final Menu menu;
+  final int selectedPage;
   final List<Widget> children;
 
   @override
   State<BottomNavPageGroup> createState() => _BottomNavPageGroupState();
 }
 
-class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
+class _BottomNavPageGroupState extends State<BottomNavPageGroup>
+    with RouteAware {
   late List<MenuItem> menuItems;
   late PageController controller;
   FloatingAlignment floatingAlignment = FloatingAlignment.center;
@@ -94,9 +102,27 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // TODO: this should be moved to PageGroup for the other ViewGroup types all behave the same way
+    var route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      Ensemble.routeObserver.subscribe(this, route);
+    }
+  }
+
+  @override
   void dispose() {
     controller.dispose();
+    Ensemble.routeObserver.unsubscribe(this);
     super.dispose();
+  }
+
+  /// this is when a screen is popped and we go back to the screen with this ViewGroup
+  @override
+  void didPopNext() {
+    // TODO: dispatch onRevisit so the child Page can execute onResume()
   }
 
   Widget? _buildFloatingButton() {
@@ -111,20 +137,23 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
           Utils.getColor(widget.menu.styles?['floatingBackgroundColor']) ??
               Theme.of(context).colorScheme.secondary;
 
-      return Theme(
-        data: ThemeData(useMaterial3: false),
-        child: customIcon ??
-            FloatingActionButton(
-              backgroundColor: floatingBackgroundColor,
-              child: (fabMenuItem!.icon != null
-                  ? ensemble.Icon.fromModel(
-                      fabMenuItem!.icon!,
-                      fallbackLibrary: fabMenuItem!.iconLibrary,
-                      fallbackColor: floatingItemColor,
-                    )
-                  : ensemble.Icon('')),
-              onPressed: () => _floatingButtonTapped(fabMenuItem!),
-            ),
+      return Visibility(
+        visible: MediaQuery.of(context).viewInsets.bottom == 0.0,
+        child: Theme(
+          data: ThemeData(useMaterial3: false),
+          child: customIcon ??
+              FloatingActionButton(
+                backgroundColor: floatingBackgroundColor,
+                child: (fabMenuItem!.icon != null
+                    ? ensemble.Icon.fromModel(
+                        fabMenuItem!.icon!,
+                        fallbackLibrary: fabMenuItem!.iconLibrary,
+                        fallbackColor: floatingItemColor,
+                      )
+                    : ensemble.Icon('')),
+                onPressed: () => _floatingButtonTapped(fabMenuItem!),
+              ),
+        ),
       );
     }
     return null;
@@ -144,7 +173,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
         Theme.of(context).scaffoldBackgroundColor;
 
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       backgroundColor: notchColor,
       bottomNavigationBar: _buildBottomNavBar(),
       floatingActionButtonLocation: floatingAlignment == FloatingAlignment.none
@@ -153,9 +182,8 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
       floatingActionButton: _buildFloatingButton(),
       body: PageGroupWidget(
         scopeManager: widget.scopeManager,
-        child: PageView(
+        child: BottomNavPageView(
           controller: controller,
-          physics: const NeverScrollableScrollPhysics(),
           children: widget.children,
         ),
       ),
@@ -205,6 +233,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
     }
 
     return EnsembleBottomAppBar(
+      selectedIndex: widget.selectedPage,
       backgroundColor: Utils.getColor(widget.menu.styles?['backgroundColor']) ??
           Colors.white,
       height: Utils.optionalDouble(widget.menu.styles?['height'] ?? 60),
@@ -221,16 +250,11 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup> {
   }
 
   Widget? _buildCustomIcon(MenuItem item, {bool isActive = false}) {
-    Widget? iconWidget;
     dynamic customWidgetModel =
         isActive ? item.customActiveWidget : item.customWidget;
     if (customWidgetModel != null) {
-      final child = widget.scopeManager.buildWidget(customWidgetModel!);
-      final dataScopeWidget = child as DataScopeWidget;
-      final customWidget = dataScopeWidget.child as CustomView;
-      iconWidget = customWidget.childWidget;
+      return widget.scopeManager.buildWidget(customWidgetModel!);
     }
-    return iconWidget;
   }
 }
 
@@ -238,6 +262,7 @@ class EnsembleBottomAppBar extends StatefulWidget {
   EnsembleBottomAppBar({
     super.key,
     required this.items,
+    required this.selectedIndex,
     this.height,
     this.padding,
     this.iconSize = 24.0,
@@ -254,6 +279,7 @@ class EnsembleBottomAppBar extends StatefulWidget {
     // assert(items.length == 2 || items.length == 4);
   }
   final List<FABBottomAppBarItem> items;
+  final int selectedIndex;
   final double? height;
   final dynamic padding;
   final double iconSize;
@@ -302,6 +328,15 @@ class EnsembleBottomAppBarState extends State<EnsembleBottomAppBar> {
       default:
         return null;
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.selectedIndex;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateIndex(_selectedIndex);
+    });
   }
 
   @override
