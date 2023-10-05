@@ -13,7 +13,7 @@ class DeepLinkNavigator {
     String? screenName =
         (uri.queryParameters['screenName'] ?? uri.queryParameters['screenName'])
             ?.toString();
-    if (screenId != null && screenName != null) {
+    if (screenId != null || screenName != null) {
       ScreenController().navigateToScreen(Utils.globalAppKey.currentContext!,
           screenId: screenId, screenName: screenName);
     }
