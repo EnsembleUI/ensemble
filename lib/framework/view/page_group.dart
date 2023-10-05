@@ -149,8 +149,9 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
   Widget buildSidebarNavigation(BuildContext context, SidebarMenu menu) {
     Widget sidebar = _buildSidebar(context, menu);
     Widget? separator = _buildSidebarSeparator(menu);
-    Widget content = Expanded(child: pageWidgets[selectedPage]);
-
+    Widget content = Expanded(
+      child: IndexedStack(index: selectedPage, children: pageWidgets),
+    );
     // figuring out the direction to lay things out
     bool rtlLocale = Directionality.of(context) == TextDirection.rtl;
     // standard layout is the sidebar menu then content
