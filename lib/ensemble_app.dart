@@ -111,7 +111,7 @@ class EnsembleAppState extends State<EnsembleApp> {
     // if (Platform.isIOS) {
     //   IOSDeepLinkManager().init();
     // } else {
-      DeepLinkManager().init();
+    DeepLinkManager().init();
     // }
 
     if (!kIsWeb) {
