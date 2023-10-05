@@ -309,13 +309,6 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
           });
         },
       ));
-    } else if (!widget.isPassword() && widget.textController.text.isNotEmpty) {
-      decoration = decoration.copyWith(
-        suffixIcon: IconButton(
-          onPressed: _clearSelection,
-          icon: const Icon(Icons.close),
-        ),
-      );
     }
 
     return InputWrapper(
@@ -415,7 +408,6 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
                 executeDelayedAction(widget._controller.onDelayedKeyPress!);
               }
             }
-            setState(() {});
           },
           style: isEnabled()
               ? widget._controller.textStyle
@@ -424,11 +416,6 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
                 ),
           decoration: decoration,
         ));
-  }
-
-  void _clearSelection() {
-    widget.textController.clear();
-    focusNode.unfocus();
   }
 
   void executeDelayedAction(EnsembleAction action) {
