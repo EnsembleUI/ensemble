@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/action.dart';
@@ -5,7 +7,9 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page.dart';
+import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/layout/templated.dart';
@@ -41,6 +45,8 @@ class Carousel extends StatefulWidget
       'autoLayoutBreakpoint': (value) =>
           _controller.autoLayoutBreakpoint = Utils.optionalInt(value, min: 0),
       'autoplay': (value) => _controller.autoplay = Utils.optionalBool(value),
+      'enableLoop': (value) =>
+          _controller.enableLoop = Utils.optionalBool(value),
       'autoplayInterval': (value) =>
           _controller.autoplayInterval = Utils.optionalInt(value, min: 1),
       'height': (height) => _controller.height = Utils.optionalInt(height),
@@ -65,6 +71,8 @@ class Carousel extends StatefulWidget
           _controller.indicatorOffset = Utils.optionalDouble(value),
       'indicatorColor': (value) =>
           _controller.indicatorColor = Utils.getColor(value),
+      'selectedItemIndex': (value) =>
+          _controller.selectedItemIndex = Utils.getInt(value, fallback: 0),
       'onItemChange': (action) => _controller.onItemChange =
           EnsembleAction.fromYaml(action, initiator: this),
       'onItemTap': (funcDefinition) => _controller.onItemTap =
@@ -95,7 +103,7 @@ class Carousel extends StatefulWidget
   }
 
   @override
-  void initChildren({List<Widget>? children, ItemTemplate? itemTemplate}) {
+  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate}) {
     _controller.children = children;
     _controller.itemTemplate = itemTemplate;
   }
@@ -105,7 +113,7 @@ class MyController extends BoxController {
   static const double defaultItemGap = 10;
 
   ItemTemplate? itemTemplate;
-  List<Widget>? children;
+  List<WidgetModel>? children;
 
   int? gap; // gap between the children
 
@@ -130,6 +138,7 @@ class MyController extends BoxController {
   double? indicatorOffset;
   Color? indicatorColor;
   bool? autoplay;
+  bool? enableLoop;
   int? autoplayInterval;
 
   // Custom Widget
@@ -145,7 +154,8 @@ class MyController extends BoxController {
   final CarouselController _carouselController = CarouselController();
 }
 
-class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
+class CarouselState extends WidgetState<Carousel>
+    with TemplatedWidgetState, HasChildren<Carousel> {
   List<Widget>? templatedChildren;
 
   Widget? customIndicator;
@@ -153,6 +163,12 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
 
   // this is used to highlight the correct indicator index
   int focusIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    focusIndex = widget._controller.selectedItemIndex;
+  }
 
   @override
   void didChangeDependencies() {
@@ -258,13 +274,16 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
 
   List<Widget> buildItems() {
     ViewUtil.checkValidWidget(
-        widget._controller.children, widget._controller.itemTemplate);
+        widget._controller.children != null
+            ? buildChildren(widget._controller.children!)
+            : null,
+        widget._controller.itemTemplate);
 
     // children will be rendered before templated children
     List<Widget> children = [];
 
     if (widget._controller.children != null) {
-      children.addAll(widget._controller.children!);
+      children.addAll(buildChildren(widget._controller.children!));
     }
 
     if (templatedChildren != null) {
@@ -342,7 +361,8 @@ class CarouselState extends WidgetState<Carousel> with TemplatedWidgetState {
   CarouselOptions _getBaseCarouselOptions() {
     return CarouselOptions(
       height: widget._controller.height?.toDouble(),
-      enableInfiniteScroll: false,
+      initialPage: widget._controller.selectedItemIndex,
+      enableInfiniteScroll: widget._controller.enableLoop ?? false,
       autoPlay: widget._controller.autoplay ?? false,
       autoPlayInterval:
           Duration(seconds: widget._controller.autoplayInterval ?? 4),

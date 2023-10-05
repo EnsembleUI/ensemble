@@ -70,6 +70,7 @@ abstract class Menu {
                   Utils.optionalString(item['floatingAlignment']) ?? 'center',
               floatingMargin: Utils.optionalInt(item['floatingMargin']),
               onTap: item['onTap'],
+              isExternal: Utils.getBool(item['isExternal'], fallback: false),
             ),
           );
           customIconModel = null; // Resetting custom icon model
@@ -191,6 +192,7 @@ class MenuItem {
     this.floatingAlignment = 'center',
     this.floatingMargin,
     this.onTap,
+    required this.isExternal,
   });
 
   final String? label;
@@ -205,4 +207,5 @@ class MenuItem {
   final String floatingAlignment;
   final int? floatingMargin;
   final dynamic onTap;
+  final bool isExternal;
 }

@@ -2,6 +2,7 @@ import 'package:ensemble/framework/action.dart' as action;
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/page_model.dart';
@@ -14,7 +15,7 @@ import 'package:yaml/yaml.dart';
 
 /// base mixin for Ensemble Container (e.g Column)
 mixin UpdatableContainer<T extends Widget> {
-  void initChildren({List<T>? children, ItemTemplate? itemTemplate});
+  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate});
 }
 
 /// base class for widgets that want to participate in Ensemble layout
@@ -88,6 +89,14 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     scopeManager = DataScopeWidget.getScope(context);
+  }
+
+  @override
+  void dispose() {
+    if (widget is Invokable) {
+      scopeManager?.removeBindingListeners(widget as Invokable);
+    }
+    super.dispose();
   }
 
   @override

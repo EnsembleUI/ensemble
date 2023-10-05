@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:ui';
 import 'dart:async';
 
@@ -12,6 +13,7 @@ import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/widget/error_screen.dart';
 import 'package:ensemble/framework/widget/screen.dart';
+import 'package:ensemble/ios_deep_link_manager.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
@@ -81,13 +83,12 @@ void callbackDispatcher() {
 
 /// use this as the root widget for Ensemble
 class EnsembleApp extends StatefulWidget {
-  const EnsembleApp({
-    super.key,
-    this.screenPayload,
-    this.ensembleConfig,
-    this.isPreview = false,
-    this.placeholderBackgroundColor
-  });
+  const EnsembleApp(
+      {super.key,
+      this.screenPayload,
+      this.ensembleConfig,
+      this.isPreview = false,
+      this.placeholderBackgroundColor});
 
   final ScreenPayload? screenPayload;
   final EnsembleConfig? ensembleConfig;
@@ -107,7 +108,12 @@ class EnsembleAppState extends State<EnsembleApp> {
   void initState() {
     super.initState();
     config = initApp();
+    // if (Platform.isIOS) {
+    //   IOSDeepLinkManager().init();
+    // } else {
     DeepLinkManager().init();
+    // }
+
     if (!kIsWeb) {
       Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
     }
@@ -165,6 +171,7 @@ class EnsembleAppState extends State<EnsembleApp> {
     StorageManager().setIsPreview(widget.isPreview);
 
     return MaterialApp(
+      navigatorObservers: [Ensemble.routeObserver],
       debugShowCheckedModeBanner: false,
       navigatorKey: Utils.globalAppKey,
       theme: config.getAppTheme(),
@@ -202,7 +209,6 @@ class EnsembleAppState extends State<EnsembleApp> {
     return MaterialApp(
         debugShowCheckedModeBanner: false,
         home: Scaffold(
-            backgroundColor: placeholderBackgroundColor,
-            body: widget));
+            backgroundColor: placeholderBackgroundColor, body: widget));
   }
 }

@@ -1,7 +1,10 @@
+import 'dart:developer';
+
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/box/base_box_layout.dart';
@@ -116,7 +119,7 @@ abstract class BoxLayout extends StatefulWidget
   }
 
   @override
-  void initChildren({List<Widget>? children, ItemTemplate? itemTemplate}) {
+  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate}) {
     _controller.children = children;
     _controller.itemTemplate = itemTemplate;
   }
@@ -127,7 +130,8 @@ abstract class BoxLayout extends StatefulWidget
   bool isVertical();
 }
 
-class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
+class BoxLayoutState extends WidgetState<BoxLayout>
+    with TemplatedWidgetState, HasChildren<BoxLayout> {
   List<Widget>? templatedChildren;
 
   @override
@@ -164,7 +168,9 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
 
   @override
   Widget buildWidget(BuildContext context) {
-    List<Widget>? childrenList = widget._controller.children;
+    List<Widget>? childrenList = widget._controller.children != null
+        ? buildChildren(widget._controller.children!)
+        : null;
     List<Widget>? templatedList = templatedChildren;
 
     if (widget._controller.onItemTap != null) {
@@ -231,11 +237,10 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
     //       : IntrinsicHeight(child: boxWidget);
     // }
 
-    Widget rtn =
-        BoxLayoutWrapper(
-            boxWidget: boxWidget,
-            controller: widget._controller,
-            ignoresMargin: widget is Column);
+    Widget rtn = BoxLayoutWrapper(
+        boxWidget: boxWidget,
+        controller: widget._controller,
+        ignoresMargin: widget is Column);
 
     if (widget._controller.scrollable) {
       rtn = SingleChildScrollView(
@@ -256,9 +261,7 @@ class BoxLayoutState extends WidgetState<BoxLayout> with TemplatedWidgetState {
 
     // for Column we add margin at the end, just in case it is inside a Scrollable or PulltoRefresh
     if (widget is Column && widget._controller.margin != null) {
-      rtn = Padding(
-        padding: widget._controller.margin!,
-        child: rtn);
+      rtn = Padding(padding: widget._controller.margin!, child: rtn);
     }
 
     return rtn;

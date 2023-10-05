@@ -5,6 +5,7 @@ import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/menu.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -85,19 +86,24 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
   void initState() {
     super.initState();
     _scopeManager = ScopeManager(
-        widget.initialDataContext.clone(newBuildContext: context),
-        PageData(
-            customViewDefinitions: widget.model.customViewDefinitions,
-            apiMap: widget.model.apiMap));
+      widget.initialDataContext.clone(newBuildContext: context),
+      PageData(
+        customViewDefinitions: widget.model.customViewDefinitions,
+        apiMap: widget.model.apiMap,
+        socketData: widget.model.socketData,
+      ),
+    );
 
     // init the pages (TODO: need to update if definition changes)
     for (int i = 0; i < widget.menu.menuItems.length; i++) {
       MenuItem menuItem = widget.menu.menuItems[i];
       pageWidgets.add(ScreenController().getScreen(
-          key: UniqueKey(),
-          // ensure each screen is different for Flutter not to optimize
-          screenName: menuItem.page,
-          pageArgs: widget.pageArgs));
+        key: UniqueKey(),
+        // ensure each screen is different for Flutter not to optimize
+        screenName: menuItem.page,
+        pageArgs: widget.pageArgs,
+        isExternal: menuItem.isExternal,
+      ));
       dynamic selected = _scopeManager.dataContext.eval(menuItem.selected);
       if (selected == true || selected == 'true') {
         selectedPage = i;
@@ -130,6 +136,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
       } else if (widget.menu is BottomNavBarMenu) {
         return BottomNavPageGroup(
           scopeManager: _scopeManager,
+          selectedPage: selectedPage,
           menu: widget.menu,
           children: pageWidgets,
         );
