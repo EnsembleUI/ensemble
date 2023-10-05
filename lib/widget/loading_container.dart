@@ -1,5 +1,6 @@
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
@@ -120,11 +121,16 @@ class LoadingContainerState extends WidgetState<LoadingContainer> {
                   )
                 : loadingWidget ?? const SizedBox.shrink()),
 
+      // TODO: fade in content causes problem when the State is being
+      // recreated constantly. Fix this so we can put back the animation
+      Visibility(
+          visible: widget._controller.isLoading != true, child: contentWidget)
+
       // fade in main content
-      AnimatedOpacity(
-          opacity: widget._controller.isLoading == true ? 0 : 1,
-          duration: const Duration(milliseconds: 300),
-          child: contentWidget)
+      // AnimatedOpacity(
+      //     opacity: widget._controller.isLoading == true ? 0 : 1,
+      //     duration: const Duration(milliseconds: 300),
+      //     child: contentWidget)
     ]);
   }
 }

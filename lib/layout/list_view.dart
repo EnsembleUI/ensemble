@@ -1,9 +1,11 @@
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/box/base_box_layout.dart';
 import 'package:ensemble/layout/box/box_layout.dart';
 import 'package:ensemble/layout/templated.dart';
+import 'package:ensemble/model/pull_to_refresh.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/pull_to_refresh_container.dart';
@@ -47,8 +49,12 @@ class ListView extends StatefulWidget
           _controller.separatorPadding = Utils.optionalInsets(value),
       'onPullToRefresh': (funcDefinition) => _controller.onPullToRefresh =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
-      'refreshIndicatorType': (value) => _controller.refreshIndicatorType =
-          RefreshIndicatorType.values.from(value),
+      'pullToRefreshOptions': (input) => _controller.pullToRefreshOptions =
+          PullToRefreshOptions.fromMap(input),
+      'onScrollEnd': (funcDefinition) => _controller.onScrollEnd =
+          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'reverse': (value) =>
+          _controller.reverse = Utils.getBool(value, fallback: false),
     };
   }
 
@@ -58,7 +64,7 @@ class ListView extends StatefulWidget
   }
 
   @override
-  void initChildren({List<Widget>? children, ItemTemplate? itemTemplate}) {
+  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate}) {
     _controller.children = children;
     _controller.itemTemplate = itemTemplate;
   }
@@ -74,9 +80,12 @@ class ListViewController extends BoxLayoutController {
   Color? separatorColor;
   double? separatorWidth;
   EdgeInsets? separatorPadding;
+  EnsembleAction? onScrollEnd;
+  bool reverse = false;
 }
 
-class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
+class ListViewState extends WidgetState<ListView>
+    with TemplatedWidgetState, HasChildren<ListView> {
   // template item is created on scroll. this will store the template's data list
   List<dynamic>? templatedDataList;
 
@@ -114,12 +123,14 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
             : null,
         itemCount: itemCount,
         shrinkWrap: false,
+        reverse: widget._controller.reverse,
         itemBuilder: (BuildContext context, int index) {
-          // show children
+          // show childrenfocus
+          _checkScrollEnd(context, index);
           Widget? itemWidget;
           if (widget._controller.children != null &&
               index < widget._controller.children!.length) {
-            itemWidget = widget._controller.children![index];
+            itemWidget = buildChild(widget._controller.children![index]);
           }
           // create widget from item template
           else if (templatedDataList != null &&
@@ -152,9 +163,9 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
 
     if (widget._controller.onPullToRefresh != null) {
       listView = PullToRefreshContainer(
-          indicatorType: widget._controller.refreshIndicatorType,
-          contentWidget: listView,
-          onRefresh: _pullToRefresh);
+          options: widget._controller.pullToRefreshOptions,
+          onRefresh: _pullToRefresh,
+          contentWidget: listView);
     }
 
     return BoxWrapper(
@@ -181,6 +192,15 @@ class ListViewState extends WidgetState<ListView> with TemplatedWidgetState {
       ScreenController().executeAction(context, widget._controller.onItemTap!);
       print(
           "The Selected index in data array of ListView is ${widget._controller.selectedItemIndex}");
+    }
+  }
+
+  void _checkScrollEnd(BuildContext context, int index) {
+    final totalItems = (widget._controller.children?.length ?? 0) +
+        (templatedDataList?.length ?? 0);
+    if (index == totalItems - 1 && widget._controller.onScrollEnd != null) {
+      ScreenController()
+          .executeAction(context, widget._controller.onScrollEnd!);
     }
   }
 }

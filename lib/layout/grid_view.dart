@@ -5,8 +5,8 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/widget/widget.dart';
-import 'package:ensemble/layout/helper/layout_helpers.dart';
 import 'package:ensemble/layout/templated.dart';
+import 'package:ensemble/model/pull_to_refresh.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -67,13 +67,17 @@ class GridView extends StatefulWidget
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'onPullToRefresh': (funcDefinition) => _controller.onPullToRefresh =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
-      'refreshIndicatorType': (value) => _controller.refreshIndicatorType =
-          RefreshIndicatorType.values.from(value),
+      'pullToRefreshOptions': (input) => _controller.pullToRefreshOptions =
+          PullToRefreshOptions.fromMap(input),
+      'onScrollEnd': (funcDefinition) => _controller.onScrollEnd =
+          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'reverse': (value) =>
+          _controller.reverse = Utils.getBool(value, fallback: false),
     };
   }
 
   @override
-  void initChildren({List<Widget>? children, ItemTemplate? itemTemplate}) {
+  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate}) {
     _controller.itemTemplate = itemTemplate;
   }
 }
@@ -89,6 +93,8 @@ class GridViewController extends BoxController with HasPullToRefresh {
   ItemTemplate? itemTemplate;
   EnsembleAction? onItemTap;
   int selectedItemIndex = -1;
+  EnsembleAction? onScrollEnd;
+  bool reverse = false;
 
   // single number, 3 numbers (small, medium, large), or 5 numbers (xSmall, small, medium, large, xLarge)
   // min 1, max 5
@@ -203,6 +209,7 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
               widget._controller.itemAspectRatio?.toDouble() ?? 1.0,
         ),
         itemCount: _items.length,
+        reverse: widget._controller.reverse,
         scrollDirection: Axis.vertical,
         cacheExtent: cachedPixels,
         padding: widget._controller.padding,
@@ -210,11 +217,13 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
       ),
     );
 
+    // wrapping view inside
+
     if (widget._controller.onPullToRefresh != null) {
       myGridView = PullToRefreshContainer(
-          indicatorType: widget._controller.refreshIndicatorType,
-          contentWidget: myGridView,
-          onRefresh: _pullToRefresh);
+          options: widget._controller.pullToRefreshOptions,
+          onRefresh: _pullToRefresh,
+          contentWidget: myGridView);
     }
 
     return BoxWrapper(
@@ -233,6 +242,10 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
   }
 
   dynamic _buildItem(int index) {
+    if (index == _items.length - 1 && widget._controller.onScrollEnd != null) {
+      ScreenController()
+          .executeAction(context, widget._controller.onScrollEnd!);
+    }
     if (widget._controller.onItemTap != null) {
       return EnsembleGestureDetector(
         onTap: (() => _onItemTap(index)),
