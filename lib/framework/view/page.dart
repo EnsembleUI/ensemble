@@ -93,9 +93,9 @@ class PageState extends State<Page>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    //log(state.toString());
+    log(state.toString());
     // make a note of when the app was paused
-    if (state == AppLifecycleState.paused) {
+    if (state == AppLifecycleState.inactive) {
       appPausedTimestamp = DateTime.now();
     }
     if (state == AppLifecycleState.resumed &&
