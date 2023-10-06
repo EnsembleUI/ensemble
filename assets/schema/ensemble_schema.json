@@ -398,6 +398,10 @@
         "text": {
           "type": "string",
           "description": "Enter the HTML text"
+        },
+        "onLinkTap": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Call Ensemble's built-in functions to handle the case when a link within the HTML is tapped. When specified, the default behavior of opening the url will not be invoked."
         }
       }
     },
@@ -1285,6 +1289,10 @@
                   "type": "boolean",
                   "description": "If it is True, then it will trigger onComplete when the user specified length and has typed the full length, False will trigger onComplete when the user hit Enter. Defaults (True)"
                 },
+                "spaceEvenly": {
+                  "type": "boolean",
+                  "description": "If it is True, then it will arrange all the textfields eqaully based on the remaining space in the horizontal axis. Defaults (True)"
+                },
                 "enableCursor": {
                   "type": "boolean",
                   "description": "If the button is inside a Form and upon on tap, it will execute the form's onSubmit action if this property is TRUE"
@@ -2095,6 +2103,10 @@
               "$ref": "#/$defs/Action-payload",
               "description": "Call Ensemble's built-in functions or execute code when tapping on an item in the list."
             },
+            "onScrollEnd": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Execute an Ensemble action when user has reached bottom of grid."
+            },
             "styles": {
               "allOf": [
                 {
@@ -2139,6 +2151,10 @@
                       "type": "number",
                       "description": "Instead of itemHeight, you can set the tile's dimension as a ratio of (item width / item height). For example, a tile with 3x width and 2x height is 3/2 = 1.5. This attribute will be ignored if itemHeight is set.",
                       "minimum": 0
+                    },
+                    "reverse": {
+                      "type": "boolean",
+                      "description": "Show Grid in reverse order. Default is false"
                     }
                   }
                 }
@@ -2496,6 +2512,10 @@
               "type": "integer",
               "description": "Selecting a ListView item gives the index of selected item"
             },
+            "onScrollEnd": {
+              "$ref": "#/$defs/Action-payload",
+              "description": "Execute an Ensemble action when user has reached bottom of list."
+            },
             "styles": {
               "allOf": [
                 {
@@ -2531,6 +2551,10 @@
                         }
                       ],
                       "description": "Padding with CSS-style value e.g. padding: 5 20 5 Default 0 0 0"
+                    },
+                    "reverse": {
+                      "type": "boolean",
+                      "description": "Show list in reverse order. Default is false"
                     }
                   }
                 }
@@ -2634,6 +2658,14 @@
                     "autoplay": {
                       "type": "boolean",
                       "description": "If true, Enables autoplay, sliding one page at a time. Default (false)"
+                    },
+                    "enableLoop": {
+                      "type": "boolean",
+                      "description": "Determines if carousel should loop infinitely or be limited to item length. Default (false)"
+                    },
+                    "selectedItemIndex": {
+                      "type": "integer",
+                      "description": "The initial page to show when first creating the Carousel. Default (0)"
                     },
                     "autoplayInterval": {
                       "type": "integer",
@@ -2859,9 +2891,9 @@
               "type": "object",
               "description": "Navigating back to the previous screen if possible. The current screen will be removed from the navigation history. This also works for a modal screen.",
               "properties": {
-                "data": {
-                  "type": ["string", "object"],
-                  "description": "Passing optional data back to the original screen that we are navigating back to. The data can be a simple value or an object of key/value pairs."
+                "payload": {
+                  "type": "object",
+                  "description": "Pass a payload of key/value pairs to the original screen that we are navigating back to."
                 }
               }
             }
@@ -2884,6 +2916,10 @@
                 "name": {
                   "type": "string",
                   "description": "Enter the Name or ID of your Screen"
+                },
+                "external": {
+                  "type": "boolean",
+                  "description": "(Default false) Specify if screen is externally provided or not. If set true the screen is expected from external source."
                 },
                 "inputs": {
                   "type": "object",
@@ -2959,12 +2995,16 @@
               "type": "object",
               "description": "Open a view as a bottom modal sheet",
               "required": [
-                "widget"
+                "body"
               ],
               "properties": {
-                "widget": {
+                "body": {
                   "$ref": "#/$defs/Widget",
                   "description": "The custom widget to show as the bottom modal sheet."
+                },
+                "onDismiss": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Triggers an Action upon the Bottom Modal's dismissal. A payload (if specified) is available on 'event.data'"
                 },
                 "options": {
                   "type": "object",
@@ -2991,6 +3031,23 @@
                       "description": "By default the barrierColor color use theme's 'bottomSheetTheme.modalBarrierColor' . You can override the bottom modal sheet's barrierColor color here."
                     }
                   }
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Dismiss the Bottom Modal",
+          "type": "object",
+          "required": [
+            "dismissBottomModal"
+          ],
+          "properties": {
+            "dismissBottomModal": {
+              "properties": {
+                "payload": {
+                  "type": "object",
+                  "description": "Pass a payload of key/value pairs to the Bottom Modal's onDismiss action"
                 }
               }
             }
@@ -5585,6 +5642,14 @@
         },
         {
           "$ref": "#/$defs/HasShadow"
+        },
+        {
+          "properties": {
+            "clipContent": {
+              "type": "boolean",
+              "description": "Some widgets (such as Image) may bleed through the container when borderRadius is set. Use this to apply a clipping to ensure this does not happen."
+            }
+          }
         }
       ]
     },

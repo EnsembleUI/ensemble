@@ -153,6 +153,7 @@ class SinglePageModel extends PageModel {
 
     // set the view behavior
     viewBehavior.onLoad = EnsembleAction.fromYaml(viewMap['onLoad']);
+    viewBehavior.onResume = EnsembleAction.fromYaml(viewMap['onResume']);
 
     processHeader(viewMap['header'], viewMap['title']);
 
@@ -301,15 +302,18 @@ class CustomWidgetModel extends WidgetModel {
   }
 
   ViewBehavior getViewBehavior() {
-    return ViewBehavior(onLoad: EnsembleAction.fromYaml(props['onLoad']));
+    return ViewBehavior(
+        onLoad: EnsembleAction.fromYaml(props['onLoad']),
+        onResume: EnsembleAction.fromYaml(props['onResume']));
   }
 }
 
 /// special behaviors for RootView (View) and Custom Views
 class ViewBehavior {
-  ViewBehavior({this.onLoad});
+  ViewBehavior({this.onLoad, this.onResume});
 
   EnsembleAction? onLoad;
+  EnsembleAction? onResume;
 }
 
 class ItemTemplate {
@@ -318,7 +322,12 @@ class ItemTemplate {
   final dynamic template;
   List<dynamic>? initialValue;
 
-  ItemTemplate(this.data, this.name, this.template, {this.initialValue});
+  ItemTemplate(
+    this.data,
+    this.name,
+    this.template, {
+    this.initialValue,
+  });
 }
 
 class HeaderModel {
@@ -355,7 +364,11 @@ class AppProvider {
 /// payload to pass to the Screen
 class ScreenPayload {
   ScreenPayload(
-      {this.screenId, this.screenName, this.arguments, this.pageType});
+      {this.screenId,
+      this.screenName,
+      this.arguments,
+      this.pageType,
+      this.isExternal = false});
 
   // screen ID is optional as the App always have a default screen
   String? screenId;
@@ -366,6 +379,9 @@ class ScreenPayload {
   Map<String, dynamic>? arguments;
 
   PageType? pageType;
+
+  // check if screen is externally provided. i.e not ensemble screen.
+  bool isExternal;
 }
 
 /// rendering options for the screenc

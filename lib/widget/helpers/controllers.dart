@@ -203,6 +203,9 @@ class BoxController extends WidgetController {
   int? shadowRadius;
   BlurStyle? shadowStyle;
 
+  // some children like Image don't get clipped properly with Box's clipBehavior
+  bool? clipContent;
+
   @override
   Map<String, Function> getBaseSetters() {
     Map<String, Function> setters = super.getBaseSetters();
@@ -229,7 +232,9 @@ class BoxController extends WidgetController {
       'shadowColor': (value) => shadowColor = Utils.getColor(value),
       'shadowOffset': (list) => shadowOffset = Utils.getOffset(list),
       'shadowRadius': (value) => shadowRadius = Utils.optionalInt(value),
-      'shadowStyle': (value) => shadowStyle = Utils.getShadowBlurStyle(value)
+      'shadowStyle': (value) => shadowStyle = Utils.getShadowBlurStyle(value),
+
+      'clipContent': (value) => clipContent = Utils.optionalBool(value)
     });
     return setters;
   }
