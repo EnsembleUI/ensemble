@@ -5,6 +5,7 @@ import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/menu.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -97,10 +98,12 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     for (int i = 0; i < widget.menu.menuItems.length; i++) {
       MenuItem menuItem = widget.menu.menuItems[i];
       pageWidgets.add(ScreenController().getScreen(
-          key: UniqueKey(),
-          // ensure each screen is different for Flutter not to optimize
-          screenName: menuItem.page,
-          pageArgs: widget.pageArgs));
+        key: UniqueKey(),
+        // ensure each screen is different for Flutter not to optimize
+        screenName: menuItem.page,
+        pageArgs: widget.pageArgs,
+        isExternal: menuItem.isExternal,
+      ));
       dynamic selected = _scopeManager.dataContext.eval(menuItem.selected);
       if (selected == true || selected == 'true') {
         selectedPage = i;
@@ -146,8 +149,9 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
   Widget buildSidebarNavigation(BuildContext context, SidebarMenu menu) {
     Widget sidebar = _buildSidebar(context, menu);
     Widget? separator = _buildSidebarSeparator(menu);
-    Widget content = Expanded(child: pageWidgets[selectedPage]);
-
+    Widget content = Expanded(
+      child: IndexedStack(index: selectedPage, children: pageWidgets),
+    );
     // figuring out the direction to lay things out
     bool rtlLocale = Directionality.of(context) == TextDirection.rtl;
     // standard layout is the sidebar menu then content

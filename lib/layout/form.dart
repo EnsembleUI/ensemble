@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/layout_utils.dart';
@@ -34,7 +35,7 @@ class EnsembleForm extends StatefulWidget
   }
 
   @override
-  void initChildren({List<Widget>? children, ItemTemplate? itemTemplate}) {
+  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate}) {
     _controller.children = children;
   }
 
@@ -88,7 +89,7 @@ class FormController extends WidgetController {
   static const _defaultGap = 10;
 
   EnsembleAction? onSubmit;
-  List<Widget>? children;
+  List<WidgetModel>? children;
   LabelPosition labelPosition = LabelPosition.top;
   String? labelOverflow;
   bool? enabled;
@@ -102,7 +103,8 @@ class FormController extends WidgetController {
   int gap = _defaultGap;
 }
 
-class FormState extends WidgetState<EnsembleForm> {
+class FormState extends WidgetState<EnsembleForm>
+    with HasChildren<EnsembleForm> {
   final _formKey = GlobalKey<flutter.FormState>();
   bool validate() {
     return _formKey.currentState!.validate();
@@ -118,9 +120,9 @@ class FormState extends WidgetState<EnsembleForm> {
     Widget? body;
     // use grid if labels are side by side
     if (widget._controller.labelPosition == LabelPosition.start) {
-      body = buildGrid(widget._controller.children!);
+      body = buildGrid(buildChildren(widget._controller.children!));
     } else {
-      body = buildColumn(widget._controller.children!);
+      body = buildColumn(buildChildren(widget._controller.children!));
     }
     Widget rtn = SizedBox(
         width: widget._controller.width?.toDouble(),

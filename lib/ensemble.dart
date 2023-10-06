@@ -26,6 +26,9 @@ import 'html_shim.dart' if (dart.library.html) 'dart:html' show window;
 import 'framework/theme/theme_loader.dart';
 import 'layout/ensemble_page_route.dart';
 
+typedef CustomBuilder = Widget Function(
+    BuildContext context, Map<String, dynamic>? args);
+
 /// Singleton Controller
 class Ensemble {
   static final Ensemble _instance = Ensemble._internal();
@@ -36,6 +39,14 @@ class Ensemble {
 
   late FirebaseApp ensembleFirebaseApp;
   static final Map<String, dynamic> externalDataContext = {};
+  Map<String, CustomBuilder> externalScreenWidgets = {};
+
+  static final RouteObserver<PageRoute> routeObserver =
+      RouteObserver<PageRoute>();
+
+  void setExternalScreenWidgets(Map<String, CustomBuilder> widgets) {
+    externalScreenWidgets = widgets;
+  }
 
   /// initialize all the singleton/managers. Note that this function can be
   /// called multiple times since it's being called inside a widget.
@@ -240,6 +251,7 @@ class Ensemble {
     String? screenName,
     bool? asModal,
     Map<String, dynamic>? pageArgs,
+    bool isExternal = false,
   }) {
     PageType pageType = asModal == true ? PageType.modal : PageType.regular;
 
@@ -248,7 +260,8 @@ class Ensemble {
             screenId: screenId,
             screenName: screenName,
             pageType: pageType,
-            arguments: pageArgs));
+            arguments: pageArgs,
+            isExternal: isExternal));
 
     Map<String, dynamic>? transition =
         Theme.of(context).extension<EnsembleThemeExtension>()?.transitions;

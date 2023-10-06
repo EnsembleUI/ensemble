@@ -1,11 +1,14 @@
 import 'dart:io';
 
 import 'package:app_settings/app_settings.dart';
+import 'package:ensemble/action/bottom_modal_action.dart';
+import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/permissions_manager.dart';
+import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -111,7 +114,8 @@ class NavigateScreenAction extends BaseNavigateScreenAction {
       super.inputs,
       super.options,
       this.onNavigateBack,
-      super.transition})
+      super.transition,
+      super.isExternal})
       : super(asModal: false);
   EnsembleAction? onNavigateBack;
 
@@ -128,6 +132,7 @@ class NavigateScreenAction extends BaseNavigateScreenAction {
       options: Utils.getMap(payload['options']),
       onNavigateBack: EnsembleAction.fromYaml(payload['onNavigateBack']),
       transition: Utils.getMap(payload['transition']),
+      isExternal: Utils.getBool(payload['external'], fallback: false),
     );
   }
 
@@ -170,56 +175,14 @@ abstract class BaseNavigateScreenAction extends EnsembleAction {
       required this.asModal,
       this.transition,
       super.inputs,
-      this.options});
+      this.options,
+      this.isExternal = false});
 
   String screenName;
   bool asModal;
   Map<String, dynamic>? transition;
   final Map<String, dynamic>? options;
-}
-
-class ShowBottomModalAction extends EnsembleAction {
-  ShowBottomModalAction({
-    super.initiator,
-    super.inputs,
-    this.widget,
-    styles,
-    options,
-  })  : _styles = styles,
-        _options = options;
-
-  final dynamic widget;
-  final Map<String, dynamic>? _styles;
-  final Map<String, dynamic>? _options;
-
-  bool enableDrag(dataContext) =>
-      Utils.getBool(dataContext.eval(_options?['enableDrag']), fallback: true);
-
-  bool enableDragHandler(dataContext) =>
-      Utils.getBool(dataContext.eval(_options?['enableDragHandler']),
-          fallback: false);
-
-  Color? backgroundColor(dataContext) =>
-      Utils.getColor(dataContext.eval(_styles?['backgroundColor']));
-
-  Color? barrierColor(dataContext) =>
-      Utils.getColor(dataContext.eval(_styles?['barrierColor']));
-
-  factory ShowBottomModalAction.fromYaml(
-      {Invokable? initiator, YamlMap? payload}) {
-    if (payload == null || payload['widget'] == null) {
-      throw LanguageError(
-          "${ActionType.showBottomModal.name} requires the widget to show as a modal bottom sheet.");
-    }
-
-    return ShowBottomModalAction(
-      initiator: initiator,
-      inputs: Utils.getMap(payload['inputs']),
-      widget: payload['widget'],
-      styles: Utils.getMap(payload['styles']),
-      options: Utils.getMap(payload['options']),
-    );
-  }
+  final bool isExternal;
 }
 
 class PlaidLinkAction extends EnsembleAction {
@@ -429,14 +392,6 @@ class OpenUrlAction extends EnsembleAction {
       OpenUrlAction.fromYaml(payload: Utils.getYamlMap(inputs));
 }
 
-class NavigateBack extends EnsembleAction {
-  NavigateBack(YamlMap? payload) : _data = payload?['data'];
-  final dynamic _data;
-
-  dynamic getData(DataContext dataContext) =>
-      _data != null && _data != '' ? dataContext.eval(_data) : null;
-}
-
 class ShowToastAction extends EnsembleAction {
   ShowToastAction(
       {super.initiator,
@@ -643,15 +598,18 @@ class RateAppAction extends EnsembleAction {
   final dynamic _message;
 
   factory RateAppAction.from({Map? payload}) {
-    return RateAppAction(title: payload?['title'], message: payload?['message']);
+    return RateAppAction(
+        title: payload?['title'], message: payload?['message']);
   }
 
-  void execute(BuildContext context, DataContext dataContext) {
+  @override
+  Future<void> execute(BuildContext context, ScopeManager scopeManager) {
     // what a mess of options on Android. TODO: add them
     if (Platform.isIOS) {
-      RateMyApp rateMyApp = RateMyApp();
+      RateMyApp rateMyApp = RateMyApp(minDays: 0, minLaunches: 0);
       rateMyApp.init().then((_) => rateMyApp.showStarRateDialog(context));
     }
+    return Future.value(null);
   }
 }
 
@@ -874,6 +832,7 @@ enum ActionType {
   navigateScreen,
   navigateModalScreen,
   showBottomModal,
+  dismissBottomModal,
   showDialog,
   startTimer,
   stopTimer,
@@ -916,6 +875,12 @@ abstract class EnsembleAction {
   Invokable? initiator;
   Map<String, dynamic>? inputs;
 
+  /// TODO: each Action does all the execution in here
+  Future<void> execute(BuildContext context, ScopeManager scopeManager) {
+    // placeholder until all Actions are implemented
+    return Future.value(null);
+  }
+
   static EnsembleAction? fromYaml(dynamic action, {Invokable? initiator}) {
     if (action is YamlMap) {
       ActionType? actionType = ActionType.values.from(action.keys.first);
@@ -949,9 +914,11 @@ abstract class EnsembleAction {
       return NavigateModalScreenAction.fromYaml(
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.navigateBack) {
-      return NavigateBack(payload);
+      return NavigateBackAction.from(payload: payload);
     } else if (actionType == ActionType.showBottomModal) {
-      return ShowBottomModalAction.fromYaml(payload: payload);
+      return ShowBottomModalAction.from(payload: payload);
+    } else if (actionType == ActionType.dismissBottomModal) {
+      return DismissBottomModalAction.from(payload: payload);
     } else if (actionType == ActionType.invokeAPI) {
       return InvokeAPIAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.openCamera) {

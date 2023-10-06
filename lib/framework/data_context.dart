@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:io' as io;
 import 'dart:ui';
+import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
@@ -311,6 +312,7 @@ class DataContext {
 /// built-in helpers/utils accessible to all DataContext
 class NativeInvokable with Invokable {
   final BuildContext _buildContext;
+
   NativeInvokable(this._buildContext);
 
   @override
@@ -357,7 +359,9 @@ class NativeInvokable with Invokable {
         disconnectSocket(socketName);
       },
       'messageSocket': (String socketName, dynamic message) {
-        messageSocket(socketName, message);
+        final scope = ScreenController().getScopeManager(_buildContext);
+        final evalMessage = scope?.dataContext.eval(message);
+        messageSocket(socketName, evalMessage);
       },
     };
   }
@@ -456,8 +460,9 @@ class NativeInvokable with Invokable {
     ScreenController().executeAction(_buildContext, ShowCameraAction());
   }
 
-  void navigateBack(dynamic data) {
-    ScreenController().executeAction(_buildContext, NavigateBack(data));
+  void navigateBack([dynamic payload]) {
+    ScreenController().executeAction(
+        _buildContext, NavigateBackAction.from(payload: payload));
   }
 }
 
@@ -487,11 +492,14 @@ class EnsembleSocketInvokable with Invokable {
 /// Singleton handling user storage
 class EnsembleStorage with Invokable {
   static final EnsembleStorage _instance = EnsembleStorage._internal();
+
   EnsembleStorage._internal();
+
   factory EnsembleStorage(BuildContext buildContext) {
     context = buildContext;
     return _instance;
   }
+
   static late BuildContext context;
 
   @override
@@ -537,6 +545,7 @@ class EnsembleStorage with Invokable {
 
 class Formatter with Invokable {
   final BuildContext _buildContext;
+
   Formatter(this._buildContext);
 
   @override
@@ -598,6 +607,7 @@ class DateInfo with Invokable {
   DateInfo({this.value});
 
   DateTime? value;
+
   DateTime get dateTime => value ?? DateTime.now();
   Locale locale = Localizations.localeOf(Utils.globalAppKey.currentContext!);
 
@@ -643,6 +653,7 @@ class DateTimeInfo with Invokable {
   DateTimeInfo({this.value});
 
   DateTime? value;
+
   DateTime get dateTime => value ?? DateTime.now();
   Locale locale = Localizations.localeOf(Utils.globalAppKey.currentContext!);
 
@@ -704,6 +715,7 @@ class DateTimeInfo with Invokable {
 /// legacy
 class UserDateTime with Invokable {
   DateTime? _dateTime;
+
   DateTime get dateTime => _dateTime ??= DateTime.now();
 
   @override
@@ -930,18 +942,19 @@ class FileData with Invokable {
 class File {
   File(this.name, this.ext, this.size, this.path, this.bytes);
 
-  File.fromJson(Map<String, dynamic> file)
+  factory File.fromString(String filePath) {
+    return File(null, null, null, filePath, null);
+  }
+
+  File.fromJson(Map<dynamic, dynamic> file)
       : name = file['name'],
         ext = file['extension'],
         size = file['size'],
         path = file['path'],
         bytes = file['bytes'];
 
-  final String name;
-
-  /// The file size in bytes. Defaults to `0` if the file size could not be
-  /// determined.
-  final int size;
+  final String? name;
+  final int? size;
   final String? ext;
   final String? path;
   final Uint8List? bytes;
