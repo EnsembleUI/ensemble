@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:email_validator/email_validator.dart';
 import 'package:ensemble/framework/model.dart' as model;
+import 'package:flutter/services.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:form_validator/form_validator.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
@@ -124,6 +125,8 @@ abstract class BaseTextInput extends StatefulWidget
       'onFocusLost': (definition) => _controller.onFocusLost =
           EnsembleAction.fromYaml(definition, initiator: this),
       'validator': (value) => _controller.validator = Utils.getValidator(value),
+      'disableClear': (value) =>
+          _controller.disableClear = Utils.optionalBool(value),
       'obscureToggle': (value) =>
           _controller.obscureToggle = Utils.optionalBool(value),
       'keyboardAction': (value) =>
@@ -187,6 +190,7 @@ class TextInputController extends FormFieldController {
 
   EnsembleAction? onFocusReceived;
   EnsembleAction? onFocusLost;
+  bool? disableClear;
 
   // applicable only for TextInput
   bool? obscureText;
@@ -229,12 +233,14 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
 
   // password is obscure by default
   late bool currentlyObscured;
+  late List<TextInputFormatter> _inputFormatter;
 
   @override
   void initState() {
     currentlyObscured =
         widget.isPassword() || widget._controller.obscureText == true;
-
+    _inputFormatter = InputFormatter.getFormatter(
+        widget._controller.inputType, widget._controller.mask);
     focusNode.addListener(() {
       if (focusNode.hasFocus) {
         if (widget._controller.onFocusReceived != null) {
@@ -309,6 +315,15 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
           });
         },
       ));
+    } else if (!widget.isPassword() &&
+        widget.textController.text.isNotEmpty &&
+        widget._controller.disableClear != false) {
+      decoration = decoration.copyWith(
+        suffixIcon: IconButton(
+          onPressed: _clearSelection,
+          icon: const Icon(Icons.close),
+        ),
+      );
     }
 
     return InputWrapper(
@@ -380,8 +395,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
           },
           textInputAction: widget._controller.keyboardAction,
           keyboardType: widget.keyboardType,
-          inputFormatters: InputFormatter.getFormatter(
-              widget._controller.inputType, widget._controller.mask),
+          inputFormatters: _inputFormatter,
           maxLines: widget._controller.maxLines,
           obscureText: isObscureOrPlainText(),
           enableSuggestions: !widget.isPassword(),
@@ -408,6 +422,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
                 executeDelayedAction(widget._controller.onDelayedKeyPress!);
               }
             }
+            setState(() {});
           },
           style: isEnabled()
               ? widget._controller.textStyle
@@ -416,6 +431,11 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
                 ),
           decoration: decoration,
         ));
+  }
+
+  void _clearSelection() {
+    widget.textController.clear();
+    focusNode.unfocus();
   }
 
   void executeDelayedAction(EnsembleAction action) {
