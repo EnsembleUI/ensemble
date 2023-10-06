@@ -126,9 +126,9 @@ class HttpUtils {
         response = await http.get(Uri.parse(url), headers: headers);
         break;
     }
-
+    final isOkay = response.statusCode >= 200 && response.statusCode <= 299;
     log('Response: ${response.statusCode}');
-    return Response(response);
+    return Response(response, isOkay ? APIState.success : APIState.error);
   }
 
   /// evaluate the URL, which can be prefix with ${app.baseUrl}
@@ -190,30 +190,40 @@ class HttpUtils {
   }
 }
 
+enum APIState {
+  idle,
+  loading,
+  success,
+  error,
+}
+
+extension APIStateX on APIState {
+  bool get isLoading => this == APIState.loading;
+  bool get isSuccess => this == APIState.success;
+  bool get isError => this == APIState.error;
+}
+
 /// a wrapper class around the http Response
 class Response {
-  bool isLoading = false;
-  bool isSuccess = false;
-  bool isError = false;
+  APIState apiState = APIState.idle;
   dynamic body;
   Map<String, dynamic>? headers;
   int? statusCode;
   String? reasonPhrase;
 
+  // APIState get apiState => _apiState;
+
   Response.fromBody(this.body, [this.headers]);
 
-  Response.updateState({
-    required this.isLoading,
-    required this.isSuccess,
-    required this.isError,
-  });
+  Response.updateState({required this.apiState});
 
-  Response(http.Response response) {
+  Response(http.Response response, APIState apiState) {
     try {
       body = json.decode(response.body);
     } on FormatException catch (_, e) {
       log('Warning - Only JSON response is supported');
     }
+    apiState = apiState;
     headers = response.headers;
     statusCode = response.statusCode;
     reasonPhrase = response.reasonPhrase;
