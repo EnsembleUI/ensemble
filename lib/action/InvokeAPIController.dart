@@ -58,7 +58,12 @@ class InvokeAPIController {
 
       try {
         // Setting Loading
-        _updateAPIState(scopeManager, action, apiState: APIState.loading);
+        dispatchAPIChanges(
+          scopeManager,
+          action,
+          APIResponse(
+              response: Response.updateState(apiState: APIState.loading)),
+        );
 
         Response response =
             await HttpUtils.invokeApi(context, apiDefinition, dataContext);
@@ -77,21 +82,6 @@ class InvokeAPIController {
     } else {
       throw RuntimeError("Unable to find api definition for ${action.apiName}");
     }
-  }
-
-  void _updateAPIState(
-    ScopeManager? scopeManager,
-    InvokeAPIAction action, {
-    required APIState apiState,
-  }) {
-    // Setting Success
-    dispatchAPIChanges(
-      scopeManager,
-      action,
-      APIResponse(
-        response: Response.updateState(apiState: apiState),
-      ),
-    );
   }
 
   /// e.g upon return of API result
@@ -178,7 +168,11 @@ class InvokeAPIController {
           scopeManager, action, APIResponse(response: errorResponse));
     } else {
       // exception, how do we want to expose to the user?
-      _updateAPIState(scopeManager, action, apiState: APIState.error);
+      dispatchAPIChanges(
+        scopeManager,
+        action,
+        APIResponse(response: Response(errorResponse, APIState.error)),
+      );
     }
 
     EnsembleAction? onErrorAction =
