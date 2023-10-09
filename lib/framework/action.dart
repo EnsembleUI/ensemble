@@ -9,6 +9,7 @@ import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/permissions_manager.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -151,11 +152,12 @@ class NavigateViewGroupAction extends EnsembleAction {
   final dynamic _viewIndex;
 
   factory NavigateViewGroupAction.from({Map? payload}) {
-    return NavigateViewGroupAction(viewIndex: payload?['title']);
+    return NavigateViewGroupAction(viewIndex: payload?['viewIndex']);
   }
 
   @override
   Future<void> execute(BuildContext context, ScopeManager scopeManager) {
+    pageNotifier.updatePage(_viewIndex);
     return Future.value(null);
   }
 }
@@ -927,8 +929,7 @@ abstract class EnsembleAction {
       return NavigateScreenAction.fromYaml(
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.navigateViewGroup) {
-      return NavigateModalScreenAction.fromYaml(
-          initiator: initiator, payload: payload);
+      return NavigateViewGroupAction.from(payload: payload);
     } else if (actionType == ActionType.navigateModalScreen) {
       return NavigateModalScreenAction.fromYaml(
           initiator: initiator, payload: payload);
