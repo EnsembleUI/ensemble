@@ -18,6 +18,19 @@ import 'package:ensemble/framework/extensions.dart';
 import '../widget/custom_view.dart';
 import 'bottom_nav_page_group.dart';
 
+class PageGroupNotifier extends ChangeNotifier {
+  int _viewIndex = 0;
+
+  int get viewIndex => _viewIndex;
+
+  void updatePage(int index) {
+    _viewIndex = index;
+    notifyListeners();
+  }
+}
+
+final pageNotifier = PageGroupNotifier();
+
 /// a collection of pages grouped under a navigation menu
 class PageGroup extends StatefulWidget {
   const PageGroup(
@@ -113,6 +126,14 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
 
   @override
   Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: pageNotifier,
+      builder: (context, _) => buildPageGroupChild(),
+    );
+  }
+
+  Widget buildPageGroupChild() {
+    final selectedPage = pageNotifier.viewIndex;
     // skip rendering the menu if only 1 menu item, just the content itself
     if (widget.menu.menuItems.length == 1) {
       return pageWidgets[0];
@@ -125,16 +146,19 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
         Drawer? drawer = _buildDrawer(context, widget.menu);
         bool atStart = (widget.menu as DrawerMenu).atStart;
         return PageGroupWidget(
+            key: UniqueKey(),
             scopeManager: _scopeManager,
             navigationDrawer: atStart ? drawer : null,
             navigationEndDrawer: !atStart ? drawer : null,
             child: pageWidgets[selectedPage]);
       } else if (widget.menu is SidebarMenu) {
         return PageGroupWidget(
+            key: UniqueKey(),
             scopeManager: _scopeManager,
             child: buildSidebarNavigation(context, widget.menu as SidebarMenu));
       } else if (widget.menu is BottomNavBarMenu) {
         return BottomNavPageGroup(
+          key: UniqueKey(),
           scopeManager: _scopeManager,
           selectedPage: selectedPage,
           menu: widget.menu,
@@ -149,8 +173,9 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
   Widget buildSidebarNavigation(BuildContext context, SidebarMenu menu) {
     Widget sidebar = _buildSidebar(context, menu);
     Widget? separator = _buildSidebarSeparator(menu);
-    Widget content = Expanded(child: pageWidgets[selectedPage]);
-
+    Widget content = Expanded(
+      child: IndexedStack(index: selectedPage, children: pageWidgets),
+    );
     // figuring out the direction to lay things out
     bool rtlLocale = Directionality.of(context) == TextDirection.rtl;
     // standard layout is the sidebar menu then content
