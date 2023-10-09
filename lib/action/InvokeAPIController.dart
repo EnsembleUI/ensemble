@@ -123,6 +123,7 @@ class InvokeAPIController {
 
     // if our Action has onResponse, invoke that next
     if (action.onResponse != null) {
+      response.apiState = APIState.success;
       processAPIResponse(context, dataContext, action.onResponse!, response,
           apiMap, scopeManager);
     }
@@ -169,9 +170,9 @@ class InvokeAPIController {
 
     DataContext localizedContext = dataContext.clone();
     if (errorResponse is Response) {
+      errorResponse.apiState = APIState.error;
       localizedContext.addInvokableContext(
           'response', APIResponse(response: errorResponse));
-      errorResponse.apiState = APIState.error;
       // dispatch the changes to the response
       dispatchAPIChanges(
           scopeManager, action, APIResponse(response: errorResponse));
