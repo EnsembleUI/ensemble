@@ -1145,9 +1145,9 @@
               "type": "boolean",
               "description": "enable the toggling between plain and obscure text."
             },
-            "disableClear": {
+            "enableClearText": {
               "type": "boolean",
-              "description": "It disable the default suffix clear icon button for the text input field."
+              "description": "It enables the default suffix clear icon button for the text input field to clear the values. Default (false)"
             },
             "onDelayedKeyPress": {
               "$ref": "#/$defs/Action-payload",

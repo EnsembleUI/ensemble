@@ -125,8 +125,8 @@ abstract class BaseTextInput extends StatefulWidget
       'onFocusLost': (definition) => _controller.onFocusLost =
           EnsembleAction.fromYaml(definition, initiator: this),
       'validator': (value) => _controller.validator = Utils.getValidator(value),
-      'disableClear': (value) =>
-          _controller.disableClear = Utils.optionalBool(value),
+      'enableClearText': (value) =>
+          _controller.enableClearText = Utils.optionalBool(value),
       'obscureToggle': (value) =>
           _controller.obscureToggle = Utils.optionalBool(value),
       'keyboardAction': (value) =>
@@ -190,7 +190,7 @@ class TextInputController extends FormFieldController {
 
   EnsembleAction? onFocusReceived;
   EnsembleAction? onFocusLost;
-  bool? disableClear;
+  bool? enableClearText;
 
   // applicable only for TextInput
   bool? obscureText;
@@ -317,7 +317,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
       ));
     } else if (!widget.isPassword() &&
         widget.textController.text.isNotEmpty &&
-        widget._controller.disableClear != false) {
+        widget._controller.enableClearText == true) {
       decoration = decoration.copyWith(
         suffixIcon: IconButton(
           onPressed: _clearSelection,
