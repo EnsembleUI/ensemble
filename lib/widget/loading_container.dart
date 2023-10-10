@@ -68,48 +68,44 @@ class LoadingContainerState extends WidgetState<LoadingContainer> {
   @override
   Widget buildWidget(BuildContext context) {
     var loadingWidget = _buildLoadingWidget();
-    return Stack(children: [
-      // loading widget
-      AnimatedOpacity(
-          opacity: widget._controller.isLoading == true ? 1 : 0,
-          duration: const Duration(milliseconds: 300),
-          child: widget._controller.useShimmer == true
-              ? CustomShimmer(
-                  linearGradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.centerRight,
-                    colors: <Color>[
-                      widget._controller.baseColor ?? const Color(0xFFEBEBF4),
-                      widget._controller.highlightColor ??
-                          const Color(0xFFEBEBF4).withOpacity(0.3),
-                      widget._controller.baseColor ?? const Color(0xFFEBEBF4),
-                    ],
-                    // stops: const <double>[0.0, 0.35, 0.5, 0.65, 1.0],
-                    stops: const [0.1, 0.3, 0.4],
-                    tileMode: TileMode.clamp,
-                  ),
-                  child: ShimmerLoading(
-                    isLoading: true,
-                    child: loadingWidget ??
-                        DefaultLoadingShape(
-                            padding:
-                                widget._controller.defaultShimmerPadding),
-                  ),
-                )
-              : loadingWidget ?? const SizedBox.shrink()),
 
-      // main content
-      AnimatedOpacity(
-          opacity: widget._controller.isLoading == true ? 0 : 1,
-          duration: const Duration(milliseconds: 300),
-          child: _buildContentWidget())
-    ]);
+    return AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        transitionBuilder: (child, animation) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        child: widget._controller.isLoading == true
+            ? _buildLoadingWidget()
+            : _buildContentWidget());
   }
 
-  Widget? _buildLoadingWidget() => widget._controller.loadingWidget != null
-      ? scopeManager
-          ?.buildWidgetFromDefinition(widget._controller.loadingWidget)
-      : null;
+  Widget? _buildLoadingWidget() {
+    Widget? loadingWidget = widget._controller.loadingWidget != null
+        ? scopeManager
+            ?.buildWidgetFromDefinition(widget._controller.loadingWidget)
+        : null;
+
+    return widget._controller.useShimmer == true
+        ? CustomShimmer(
+            linearGradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.centerRight,
+                colors: <Color>[
+                  widget._controller.baseColor ?? const Color(0xFFEBEBF4),
+                  widget._controller.highlightColor ??
+                      const Color(0xFFEBEBF4).withOpacity(0.3),
+                  widget._controller.baseColor ?? const Color(0xFFEBEBF4),
+                ],
+                // stops: const <double>[0.0, 0.35, 0.5, 0.65, 1.0],
+                stops: const [0.1, 0.3, 0.4],
+                tileMode: TileMode.clamp),
+            child: ShimmerLoading(
+                isLoading: true,
+                child: loadingWidget ??
+                    DefaultLoadingShape(
+                        padding: widget._controller.defaultShimmerPadding)))
+        : loadingWidget ?? const SizedBox.shrink();
+  }
 
   Widget _buildContentWidget() {
     Widget? w =
