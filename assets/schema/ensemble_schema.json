@@ -3835,6 +3835,40 @@
           }
         },
         {
+          "title": "Update Badge Count",
+          "type": "object",
+          "required": [
+            "updateBadgeCount"
+          ],
+          "properties": {
+            "updateBadgeCount": {
+              "type": "object",
+              "description": "Update the app's badge count (applicable on iOS, MacOS, and some Android devices only). Notifications must also be enabled for this to work properly.",
+              "required": ["count"],
+              "properties": {
+                "count": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Update the app's badge count (applicable on iOS, MacOS, and some Android devices)"
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Clear Badge Count",
+          "type": "object",
+          "required": [
+            "clearBadgeCount"
+          ],
+          "properties": {
+            "clearBadgeCount": {
+              "type": "object",
+              "description": "Clear the app's badge count (applicable on iOS, MacOS, and some Android devices only). Notifications must also be enabled for this to work properly."
+            }
+          }
+        },
+        {
           "title": "Connect Wallet",
           "type": "object",
           "required": [
