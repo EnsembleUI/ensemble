@@ -112,10 +112,7 @@ class ConditionalState extends WidgetState<Conditional> {
       return _buildWidget(scopeManager, conditions.first);
     }
 
-    final elseIfCount = getElseIfCount(scopeManager, conditions);
-    final conditionCount =
-        elseIfCount == 1 ? conditions.length : conditions.length - 1;
-    for (var i = 1; i < conditionCount; i++) {
+    for (var i = 1; i <= conditions.length - 1; i++) {
       final condition = conditions[i];
 
       if (condition.containsKey('elseif') &&
@@ -129,16 +126,6 @@ class ConditionalState extends WidgetState<Conditional> {
     }
 
     return null;
-  }
-
-  int getElseIfCount(ScopeManager scopeManager, dynamic conditions) {
-    int elseIfCount = conditions
-        .map((element) => element['elseif'] != null &&
-                _evaluateCondition(scopeManager, element['elseif'])
-            ? 1
-            : 0)
-        .reduce((value, element) => value + element);
-    return elseIfCount;
   }
 
   bool _evaluateCondition(ScopeManager scopeManager, String expression) {
