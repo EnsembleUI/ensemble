@@ -6,6 +6,7 @@ import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -40,7 +41,12 @@ class EnsembleCalendar extends StatefulWidget
   @override
   Map<String, Function> methods() {
     return {
-      'markCall': (value) => _markCell(value),
+      'selectCell': (value) => _selectCell(value),
+      'markCell': (value) => _markCell(value),
+      'previous': (value) => _controller.pageController?.previousPage(
+          duration: const Duration(milliseconds: 300), curve: Curves.easeOut),
+      'next': (value) => _controller.pageController?.nextPage(
+          duration: const Duration(milliseconds: 300), curve: Curves.easeOut)
     };
   }
 
@@ -52,18 +58,46 @@ class EnsembleCalendar extends StatefulWidget
       'cell': (value) => setCellData(value, _controller.cell),
       'selectedCell': (value) => setCellData(value, _controller.selectedCell),
       'todayCell': (value) => setCellData(value, _controller.todayCell),
+      'markCell': (value) => setCellData(value, _controller.markCell),
       'range': (value) => setRangeData(value),
     };
   }
 
+  DateTime? _getDate(dynamic value) {
+    if (value is DateTime) {
+      return value;
+    }
+    return Utils.getDate(value);
+  }
+
+  void _selectCell(dynamic value) {
+    final rawDate = _getDate(value);
+    if (rawDate == null) return;
+    final date = rawDate.toDate();
+
+    if (_controller.selectedDays.value.contains(date)) {
+      _controller.selectedDays.value = {..._controller.selectedDays.value}
+        ..remove(date);
+    } else {
+      _controller.selectedDays.value = {..._controller.selectedDays.value}
+        ..add(date);
+    }
+
+    // _focusedDay.value = focusedDay;
+    _controller.rangeStart = null;
+    _controller.rangeEnd = null;
+  }
+
   void _markCell(dynamic value) {
-    final date = Utils.getDate(value);
-    if (date == null) return;
-    _controller.markedDays.value.add(date);
+    final rawDate = _getDate(value);
+    if (rawDate == null) return;
+    final date = rawDate.toDate();
+    _controller.markedDays.value = {..._controller.markedDays.value}..add(date);
   }
 
   void setRangeData(dynamic data) {
     if (data is YamlMap) {
+      _controller.highlightColor = Utils.getColor(data['highlightColor']);
       _controller.rangeSelectionMode = RangeSelectionMode.toggledOn;
       _controller.onRangeStart =
           EnsembleAction.fromYaml(data['onStart'], initiator: this);
@@ -71,6 +105,7 @@ class EnsembleCalendar extends StatefulWidget
           EnsembleAction.fromYaml(data['onComplete'], initiator: this);
       setCellData(data['startCell'], _controller.rangeStartCell);
       setCellData(data['endCell'], _controller.rangeEndCell);
+      setCellData(data['betweenCell'], _controller.rangeBetweenCell);
     }
   }
 
@@ -80,31 +115,31 @@ class EnsembleCalendar extends StatefulWidget
       cell.onTap = EnsembleAction.fromYaml(data['onTap'], initiator: this);
       if (data.containsKey('config')) {
         cell.config = CellConfig(
-            color: Utils.getColor(data['config']['color']),
-            padding: Utils.getInsets(data['config']['padding']),
-            margin: Utils.getInsets(data['config']['margin']),
-            labelStyle: Utils.getTextStyle(data['config']['labelStyle']),
-            alignment: Utils.getAlignment(data['config']['alignment']),
+            backgroundColor: Utils.getColor(data['config']?['backgroundColor']),
+            padding: Utils.getInsets(data['config']?['padding']),
+            margin: Utils.getInsets(data['config']?['margin']),
+            textStyle: Utils.getTextStyle(data['config']?['textStylek']),
+            alignment: Utils.getAlignment(data['config']?['alignment']),
             borderRadius:
-                Utils.getBorderRadius(data['config']['borderRadius']));
+                Utils.getBorderRadius(data['config']?['borderRadius']));
       }
     }
   }
 }
 
 class CellConfig {
-  Color? color;
+  Color? backgroundColor;
   EdgeInsets? margin;
   EdgeInsets? padding;
-  TextStyle? labelStyle;
+  TextStyle? textStyle;
   Alignment? alignment;
   EBorderRadius? borderRadius;
 
   CellConfig({
-    this.color,
+    this.backgroundColor,
     this.margin,
     this.padding,
-    this.labelStyle,
+    this.textStyle,
     this.alignment,
     this.borderRadius,
   });
@@ -125,15 +160,20 @@ class CalendarController extends WidgetController {
   Cell cell = Cell();
   Cell selectedCell = Cell();
   Cell todayCell = Cell();
+  Cell markCell = Cell();
   Cell rangeStartCell = Cell();
   Cell rangeEndCell = Cell();
+  Cell rangeBetweenCell = Cell();
+
+  DateTime? selectedDate;
 
   PageController? pageController;
-  DateTime? _rangeStart;
-  DateTime? _rangeEnd;
+  DateTime? rangeStart;
+  DateTime? rangeEnd;
   RangeSelectionMode rangeSelectionMode = RangeSelectionMode.toggledOff;
   EnsembleAction? onRangeComplete;
   EnsembleAction? onRangeStart;
+  Color? highlightColor;
 
   final ValueNotifier<Set<DateTime>> markedDays = ValueNotifier(
     LinkedHashSet<DateTime>(
@@ -157,13 +197,31 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
   final CalendarFormat _calendarFormat = CalendarFormat.month;
   final ValueNotifier<DateTime> _focusedDay = ValueNotifier(DateTime.now());
 
+  @override
+  void initState() {
+    widget._controller.selectedDays.addListener(() {
+      setState(() {});
+    });
+
+    widget._controller.markedDays.addListener(() {
+      setState(() {});
+    });
+
+    super.initState();
+  }
+
   void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
     final data = {
       'day': selectedDay.day,
+      'month': selectedDay.month,
+      'year': selectedDay.year,
+      'date': selectedDay,
       'focusedDay': focusedDay.day,
     };
     ScopeManager? parentScope = DataScopeWidget.getScope(context);
     parentScope?.dataContext.addDataContext(data);
+
+    widget._controller.selectedDate = selectedDay;
 
     if (widget._controller.cell.onTap != null) {
       ScreenController().executeAction(
@@ -171,160 +229,194 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
         widget._controller.cell.onTap!,
       );
     }
-    setState(() {
-      if (widget._controller.selectedDays.value.contains(selectedDay)) {
-        widget._controller.selectedDays.value.remove(selectedDay);
-        if (widget._controller.selectedCell.onTap != null) {
-          ScreenController().executeAction(
-            context,
-            widget._controller.selectedCell.onTap!,
-          );
-        }
-      } else {
-        widget._controller.selectedDays.value.add(selectedDay);
-      }
-
-      _focusedDay.value = focusedDay;
-      widget._controller._rangeStart = null;
-      widget._controller._rangeEnd = null;
-    });
   }
 
   void _onRangeSelected(DateTime? start, DateTime? end, DateTime focusedDay) {
     setState(() {
       _focusedDay.value = focusedDay;
-      widget._controller._rangeStart = start;
-      widget._controller._rangeEnd = end;
+      widget._controller.rangeStart = start;
+      widget._controller.rangeEnd = end;
       widget._controller.selectedDays.value.clear();
     });
+    if (end != null && widget._controller.onRangeComplete != null) {
+      ScreenController().executeAction(
+        context,
+        widget._controller.onRangeComplete!,
+      );
+    } else if (start != null && widget._controller.onRangeStart != null) {
+      ScreenController().executeAction(
+        context,
+        widget._controller.onRangeStart!,
+      );
+    }
   }
 
   @override
   Widget buildWidget(BuildContext context) {
-    return ValueListenableBuilder(
-        valueListenable: widget._controller.markedDays,
-        builder: (context, markedDay, child) {
-          return Column(children: [
-            // ValueListenableBuilder<DateTime>(
-            //   valueListenable: _focusedDay,
-            //   builder: (context, value, _) {
-            //     return _CalendarHeader(
-            //       focusedDay: value,
-            //       clearButtonVisible: canClearSelection,
-            //       onTodayButtonTap: () {
-            //         setState(() => _focusedDay.value = DateTime.now());
-            //       },
-            //       onClearButtonTap: () {
-            //         setState(() {
-            //           _rangeStart = null;
-            //           _rangeEnd = null;
-            //           _selectedDays.clear();
-            //         });
-            //       },
-            //       onLeftArrowTap: () {
-            //         _pageController.previousPage(
-            //           duration: const Duration(milliseconds: 300),
-            //           curve: Curves.easeOut,
-            //         );
-            //       },
-            //       onRightArrowTap: () {
-            //         _pageController.nextPage(
-            //           duration: const Duration(milliseconds: 300),
-            //           curve: Curves.easeOut,
-            //         );
-            //       },
-            //     );
-            //   },
-            // ),
-            TableCalendar(
-              firstDay: kFirstDay,
-              lastDay: kLastDay,
-              focusedDay: _focusedDay.value,
-              headerVisible: false,
-              selectedDayPredicate: (day) =>
-                  widget._controller.selectedDays.value.contains(day),
-              rangeStartDay: widget._controller._rangeStart,
-              rangeEndDay: widget._controller._rangeEnd,
-              calendarFormat: _calendarFormat,
-              rangeSelectionMode: widget._controller.rangeSelectionMode,
-              onDaySelected: _onDaySelected,
-              onRangeSelected: _onRangeSelected,
-              onCalendarCreated: (controller) =>
-                  widget._controller.pageController = controller,
-              onPageChanged: (focusedDay) => _focusedDay.value = focusedDay,
-              rowHeight: widget._controller.rowHeight,
-              calendarBuilders: CalendarBuilders(
-                rangeStartBuilder: widget._controller.rangeStartCell.isDefault
-                    ? null
-                    : (context, day, focusedDay) {
-                        final text = "${day.day}";
-                        return AnimatedContainer(
-                          duration: const Duration(milliseconds: 250),
-                          margin:
-                              widget._controller.rangeStartCell.config?.margin,
-                          padding:
-                              widget._controller.rangeStartCell.config?.padding,
-                          decoration: BoxDecoration(
-                            color:
-                                widget._controller.rangeStartCell.config?.color,
-                            borderRadius: widget
-                                ._controller.rangeStartCell.config?.borderRadius
-                                ?.getValue(),
-                            shape: BoxShape.circle,
-                          ),
-                          alignment: widget
-                              ._controller.rangeStartCell.config?.alignment,
-                          child: Text(
-                            text,
-                            style: widget
-                                ._controller.rangeStartCell.config?.labelStyle,
-                          ),
-                        );
-                      },
-                rangeEndBuilder: widget._controller.rangeEndCell.isDefault
-                    ? null
-                    : (context, day, focusedDay) {
-                        final text = "${day.day}";
-                        return AnimatedContainer(
-                          duration: const Duration(milliseconds: 250),
-                          margin:
-                              widget._controller.rangeEndCell.config?.margin,
-                          padding:
-                              widget._controller.rangeEndCell.config?.padding,
-                          decoration: BoxDecoration(
-                            color:
-                                widget._controller.rangeEndCell.config?.color,
-                            borderRadius: widget
-                                ._controller.rangeEndCell.config?.borderRadius
-                                ?.getValue(),
-                            shape: BoxShape.circle,
-                          ),
-                          alignment:
-                              widget._controller.rangeEndCell.config?.alignment,
-                          child: Text(
-                            text,
-                            style: widget
-                                ._controller.rangeEndCell.config?.labelStyle,
-                          ),
-                        );
-                      },
-                rangeHighlightBuilder: (context, day, isWithinRange) {
-                  if (isWithinRange) {
-                    return Center(
-                      child: Container(
-                        height: 80,
-                        color: const Color(0xFFBBDDFF),
+    return Column(
+      children: [
+        TableCalendar(
+          firstDay: kFirstDay,
+          lastDay: kLastDay,
+          focusedDay: _focusedDay.value,
+          headerVisible: false,
+          selectedDayPredicate: (day) =>
+              widget._controller.selectedDays.value.contains(day.toDate()),
+          rangeStartDay: widget._controller.rangeStart,
+          rangeEndDay: widget._controller.rangeEnd,
+          calendarFormat: _calendarFormat,
+          rangeSelectionMode: widget._controller.rangeSelectionMode,
+          onDaySelected: _onDaySelected,
+          onRangeSelected: _onRangeSelected,
+          onCalendarCreated: (controller) =>
+              widget._controller.pageController = controller,
+          onPageChanged: (focusedDay) => _focusedDay.value = focusedDay,
+          rowHeight: widget._controller.rowHeight,
+          calendarBuilders: CalendarBuilders(
+            rangeStartBuilder: widget._controller.rangeStartCell.isDefault
+                ? null
+                : (context, day, focusedDay) {
+                    final text = "${day.day}";
+                    return AnimatedContainer(
+                      width: double.maxFinite,
+                      height: double.maxFinite,
+                      duration: const Duration(milliseconds: 250),
+                      margin: widget._controller.rangeStartCell.config?.margin,
+                      padding:
+                          widget._controller.rangeStartCell.config?.padding,
+                      decoration: BoxDecoration(
+                        color: widget
+                            ._controller.rangeStartCell.config?.backgroundColor,
+                        borderRadius: widget
+                            ._controller.rangeStartCell.config?.borderRadius
+                            ?.getValue(),
+                      ),
+                      alignment:
+                          widget._controller.rangeStartCell.config?.alignment,
+                      child: Text(
+                        text,
+                        style:
+                            widget._controller.rangeStartCell.config?.textStyle,
                       ),
                     );
-                  }
-                  return null;
-                },
-                markerBuilder: (context, day, events) {
-                  if (widget._controller.markedDays.value.contains(day)) {
+                  },
+            rangeEndBuilder: widget._controller.rangeEndCell.isDefault
+                ? null
+                : (context, day, focusedDay) {
+                    final text = "${day.day}";
+                    return AnimatedContainer(
+                      width: double.maxFinite,
+                      height: double.maxFinite,
+                      duration: const Duration(milliseconds: 250),
+                      margin: widget._controller.rangeEndCell.config?.margin,
+                      padding: widget._controller.rangeEndCell.config?.padding,
+                      decoration: BoxDecoration(
+                        color: widget
+                            ._controller.rangeEndCell.config?.backgroundColor,
+                        borderRadius: widget
+                            ._controller.rangeEndCell.config?.borderRadius
+                            ?.getValue(),
+                      ),
+                      alignment:
+                          widget._controller.rangeEndCell.config?.alignment,
+                      child: Text(
+                        text,
+                        style:
+                            widget._controller.rangeEndCell.config?.textStyle,
+                      ),
+                    );
+                  },
+            withinRangeBuilder: widget._controller.rangeBetweenCell.isDefault
+                ? null
+                : (context, day, focusedDay) {
                     final data = {
                       'day': day.day,
+                      'month': day.month,
                     };
 
+                    Widget? cell;
+                    if (widget._controller.rangeBetweenCell.widget != null) {
+                      cell = widgetBuilder(context,
+                          widget._controller.rangeBetweenCell.widget, data);
+                    }
+
+                    return cell ??
+                        AnimatedContainer(
+                          width: double.maxFinite,
+                          height: double.maxFinite,
+                          duration: const Duration(milliseconds: 250),
+                          margin: widget
+                              ._controller.rangeBetweenCell.config?.margin,
+                          padding: widget
+                              ._controller.rangeBetweenCell.config?.padding,
+                          decoration: BoxDecoration(
+                            color: widget._controller.rangeBetweenCell.config
+                                ?.backgroundColor,
+                            borderRadius: widget._controller.rangeBetweenCell
+                                .config?.borderRadius
+                                ?.getValue(),
+                          ),
+                          alignment: widget
+                              ._controller.rangeBetweenCell.config?.alignment,
+                          child: Text("${day.day}",
+                              style: widget._controller.rangeBetweenCell.config
+                                  ?.textStyle),
+                        );
+                  },
+            rangeHighlightBuilder: (context, day, isWithinRange) {
+              if (isWithinRange) {
+                return Center(
+                  child: Container(
+                    height: widget._controller.rowHeight,
+                    color: widget._controller.highlightColor ??
+                        const Color(0x5D7FC2F8),
+                  ),
+                );
+              }
+              return null;
+            },
+            markerBuilder: (context, rawDate, events) {
+              final day = rawDate.toDate();
+              if (widget._controller.markedDays.value.contains(day)) {
+                final data = {
+                  'day': day.day,
+                  'month': day.month,
+                };
+
+                Widget? cell;
+                if (widget._controller.markCell.widget != null) {
+                  cell = widgetBuilder(
+                      context, widget._controller.markCell.widget, data);
+                }
+
+                return cell ??
+                    AnimatedContainer(
+                      width: double.maxFinite,
+                      height: double.maxFinite,
+                      duration: const Duration(milliseconds: 250),
+                      margin: widget._controller.markCell.config?.margin,
+                      padding: widget._controller.markCell.config?.padding,
+                      decoration: BoxDecoration(
+                        color:
+                            widget._controller.markCell.config?.backgroundColor,
+                        borderRadius: widget
+                            ._controller.markCell.config?.borderRadius
+                            ?.getValue(),
+                      ),
+                      alignment: widget._controller.markCell.config?.alignment,
+                      child: Text("${day.day}",
+                          style: widget._controller.markCell.config?.textStyle),
+                    );
+              }
+              return null;
+            },
+            todayBuilder: widget._controller.todayCell.isDefault
+                ? null
+                : (context, day, focusedDay) {
+                    final data = {
+                      'day': day.day,
+                      'focusedDay': focusedDay,
+                    };
                     Widget? cell;
                     if (widget._controller.todayCell.widget != null) {
                       cell = widgetBuilder(
@@ -339,7 +431,8 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
                           margin: widget._controller.todayCell.config?.margin,
                           padding: widget._controller.todayCell.config?.padding,
                           decoration: BoxDecoration(
-                            color: widget._controller.todayCell.config?.color,
+                            color: widget
+                                ._controller.todayCell.config?.backgroundColor,
                             borderRadius: widget
                                 ._controller.todayCell.config?.borderRadius
                                 ?.getValue(),
@@ -348,120 +441,81 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
                               widget._controller.todayCell.config?.alignment,
                           child: Text("${day.day}",
                               style: widget
-                                  ._controller.todayCell.config?.labelStyle),
+                                  ._controller.todayCell.config?.textStyle),
                         );
-                  }
-                  return null;
-                },
-                todayBuilder: widget._controller.todayCell.isDefault
-                    ? null
-                    : (context, day, focusedDay) {
-                        final data = {
-                          'day': day.day,
-                          'focusedDay': focusedDay,
-                        };
-                        Widget? cell;
-                        if (widget._controller.todayCell.widget != null) {
-                          cell = widgetBuilder(context,
-                              widget._controller.todayCell.widget, data);
-                        }
+                  },
+            defaultBuilder: widget._controller.cell.isDefault
+                ? null
+                : (context, day, focusedDay) {
+                    final data = {
+                      'day': day.day,
+                      'focusedDay': focusedDay.day,
+                    };
+                    Widget? cell;
+                    if (widget._controller.cell.widget != null) {
+                      cell = widgetBuilder(
+                          context, widget._controller.cell.widget, data);
+                    }
 
-                        return cell ??
-                            AnimatedContainer(
-                              width: double.maxFinite,
-                              height: double.maxFinite,
-                              duration: const Duration(milliseconds: 250),
-                              margin:
-                                  widget._controller.todayCell.config?.margin,
-                              padding:
-                                  widget._controller.todayCell.config?.padding,
-                              decoration: BoxDecoration(
-                                color:
-                                    widget._controller.todayCell.config?.color,
-                                borderRadius: widget
-                                    ._controller.todayCell.config?.borderRadius
-                                    ?.getValue(),
-                              ),
-                              alignment: widget
-                                  ._controller.todayCell.config?.alignment,
-                              child: Text("${day.day}",
-                                  style: widget._controller.todayCell.config
-                                      ?.labelStyle),
-                            );
-                      },
-                defaultBuilder: widget._controller.cell.isDefault
-                    ? null
-                    : (context, day, focusedDay) {
-                        final data = {
-                          'day': day.day,
-                          'focusedDay': focusedDay.day,
-                        };
-                        Widget? cell;
-                        if (widget._controller.cell.widget != null) {
-                          cell = widgetBuilder(
-                              context, widget._controller.cell.widget, data);
-                        }
+                    return cell ??
+                        AnimatedContainer(
+                          width: double.maxFinite,
+                          height: double.maxFinite,
+                          duration: const Duration(milliseconds: 250),
+                          margin: widget._controller.cell.config?.margin,
+                          padding: widget._controller.cell.config?.padding,
+                          decoration: BoxDecoration(
+                            color:
+                                widget._controller.cell.config?.backgroundColor,
+                            borderRadius: widget
+                                ._controller.cell.config?.borderRadius
+                                ?.getValue(),
+                          ),
+                          alignment: widget._controller.cell.config?.alignment,
+                          child: Text("${day.day}",
+                              style: widget._controller.cell.config?.textStyle),
+                        );
+                  },
+            selectedBuilder: widget._controller.selectedCell.isDefault
+                ? null
+                : (context, day, focusedDay) {
+                    final data = {
+                      'day': day.day,
+                      'focusedDay': focusedDay,
+                    };
+                    Widget? cell;
+                    if (widget._controller.selectedCell.widget != null) {
+                      cell = widgetBuilder(context,
+                          widget._controller.selectedCell.widget, data);
+                    }
 
-                        return cell ??
-                            AnimatedContainer(
-                              width: double.maxFinite,
-                              height: double.maxFinite,
-                              duration: const Duration(milliseconds: 250),
-                              margin: widget._controller.cell.config?.margin,
-                              padding: widget._controller.cell.config?.padding,
-                              decoration: BoxDecoration(
-                                color: widget._controller.cell.config?.color,
-                                borderRadius: widget
-                                    ._controller.cell.config?.borderRadius
-                                    ?.getValue(),
-                              ),
-                              alignment:
-                                  widget._controller.cell.config?.alignment,
-                              child: Text("${day.day}",
-                                  style: widget
-                                      ._controller.cell.config?.labelStyle),
-                            );
-                      },
-                selectedBuilder: widget._controller.selectedCell.isDefault
-                    ? null
-                    : (context, day, focusedDay) {
-                        final data = {
-                          'day': day.day,
-                          'focusedDay': focusedDay,
-                        };
-                        Widget? cell;
-                        if (widget._controller.selectedCell.widget != null) {
-                          cell = widgetBuilder(context,
-                              widget._controller.selectedCell.widget, data);
-                        }
-
-                        return cell ??
-                            AnimatedContainer(
-                              width: double.maxFinite,
-                              height: double.maxFinite,
-                              duration: const Duration(milliseconds: 250),
-                              margin: widget
-                                  ._controller.selectedCell.config?.margin,
-                              padding: widget
-                                  ._controller.selectedCell.config?.padding,
-                              decoration: BoxDecoration(
-                                color: widget
-                                    ._controller.selectedCell.config?.color,
-                                borderRadius: widget._controller.selectedCell
-                                    .config?.borderRadius
-                                    ?.getValue(),
-                              ),
-                              alignment: widget
-                                  ._controller.selectedCell.config?.alignment,
-                              child: Text("${day.day}",
-                                  style: widget._controller.selectedCell.config
-                                      ?.labelStyle),
-                            );
-                      },
-              ),
-            ),
-          ]);
-        });
+                    return cell ??
+                        AnimatedContainer(
+                          width: double.maxFinite,
+                          height: double.maxFinite,
+                          duration: const Duration(milliseconds: 250),
+                          margin:
+                              widget._controller.selectedCell.config?.margin,
+                          padding:
+                              widget._controller.selectedCell.config?.padding,
+                          decoration: BoxDecoration(
+                            color: widget._controller.selectedCell.config
+                                ?.backgroundColor,
+                            borderRadius: widget
+                                ._controller.selectedCell.config?.borderRadius
+                                ?.getValue(),
+                          ),
+                          alignment:
+                              widget._controller.selectedCell.config?.alignment,
+                          child: Text("${day.day}",
+                              style: widget
+                                  ._controller.selectedCell.config?.textStyle),
+                        );
+                  },
+          ),
+        ),
+      ],
+    );
   }
 
   Widget? widgetBuilder(
@@ -471,4 +525,3 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
     return parentScope?.buildWidgetFromDefinition(item);
   }
 }
-
