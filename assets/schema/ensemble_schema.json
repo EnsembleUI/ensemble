@@ -2959,7 +2959,7 @@
           "properties": {
             "navigateViewGroup": {
               "type": "object",
-              "description": "Navigate between the screens in the view group",
+              "description": "Navigate between the screens in the view group. It is applicable only when inside a ViewGroup",
               "required": [
                 "viewIndex"
               ],
