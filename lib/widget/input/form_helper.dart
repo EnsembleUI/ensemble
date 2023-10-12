@@ -20,6 +20,7 @@ class FormFieldController extends WidgetController {
   bool? enabled;
   bool required = false;
   String? hintText;
+  String? labelText;
   IconModel? icon;
   int? fontSize;
   int? maxWidth;
@@ -168,77 +169,86 @@ abstract class FormFieldWidgetState<W extends HasController>
           ThemeManager().getInputDefaultBorderRadius(variant);
 
       return InputDecoration(
-          // consistent with the theme. We need dense so user have granular control of contentPadding
-          isDense: true,
-          floatingLabelBehavior: FloatingLabelBehavior.always,
-          filled: filled,
-          fillColor: myController.fillColor,
-          // labelText: shouldShowLabel() ? myController.label : null,
-          hintText: myController.hintText,
-          prefixIcon: myController.icon == null
-              ? null
-              : framework.Icon(
-                  myController.icon!.icon,
-                  library: myController.icon!.library,
-                  size: myController.icon!.size ??
-                      ThemeManager().getInputIconSize(context),
-                  color: myController.icon!.color ??
-                      Theme.of(context).inputDecorationTheme.iconColor,
-                ),
-          contentPadding: myController.contentPadding,
+        // consistent with the theme. We need dense so user have granular control of contentPadding
+        isDense: true,
+        floatingLabelBehavior: FloatingLabelBehavior.always,
+        filled: filled,
+        fillColor: myController.fillColor,
+        // labelText: shouldShowLabel() ? myController.label : null,
+        hintText: myController.hintText,
+        prefixIcon: myController.icon == null
+            ? null
+            : framework.Icon(
+                myController.icon!.icon,
+                library: myController.icon!.library,
+                size: myController.icon!.size ??
+                    ThemeManager().getInputIconSize(context),
+                color: myController.icon!.color ??
+                    Theme.of(context).inputDecorationTheme.iconColor,
+              ),
+        contentPadding: myController.contentPadding,
 
-          // only redraw the border if necessary, as we will fallback
-          // to theme
-          border: myController.borderColor == null && !redrawAllBorders
-              ? null
-              : ThemeManager().getInputBorder(
-                  variant: variant,
-                  borderWidth: borderWidth,
-                  borderRadius: borderRadius,
-                  borderColor: myController.borderColor ??
-                      themeDecoration.border?.borderSide.color),
-          enabledBorder: myController.enabledBorderColor == null && !redrawAllBorders
-              ? null
-              : ThemeManager().getInputBorder(
-                  variant: variant,
-                  borderWidth: borderWidth,
-                  borderRadius: borderRadius,
-                  borderColor: myController.enabledBorderColor ??
-                      themeDecoration.enabledBorder?.borderSide.color ??
-                      themeDecoration.border?.borderSide.color),
-          disabledBorder: myController.disabledBorderColor == null && !redrawAllBorders
-              ? null
-              : ThemeManager().getInputBorder(
-                  variant: variant,
-                  borderWidth: borderWidth,
-                  borderRadius: borderRadius,
-                  borderColor: myController.disabledBorderColor ??
-                      themeDecoration.disabledBorder?.borderSide.color),
-          errorBorder: myController.errorBorderColor == null && !redrawAllBorders
-              ? null
-              : ThemeManager().getInputBorder(
-                  variant: variant,
-                  borderWidth: borderWidth,
-                  borderRadius: borderRadius,
-                  borderColor: myController.errorBorderColor ??
-                      themeDecoration.errorBorder?.borderSide.color),
-          focusedBorder: myController.focusedBorderColor == null && !redrawAllBorders
-              ? null
-              : ThemeManager().getInputBorder(
-                  variant: variant,
-                  borderWidth: borderWidth,
-                  borderRadius: borderRadius,
-                  borderColor: myController.focusedBorderColor ??
-                      themeDecoration.focusedBorder?.borderSide.color),
-          focusedErrorBorder:
-              myController.focusedErrorBorderColor == null && !redrawAllBorders
-                  ? null
-                  : ThemeManager().getInputBorder(
-                      variant: variant,
-                      borderWidth: borderWidth,
-                      borderRadius: borderRadius,
-                      borderColor: myController.focusedErrorBorderColor ??
-                          themeDecoration.focusedErrorBorder?.borderSide.color));
+        // only redraw the border if necessary, as we will fallback
+        // to theme
+        border: myController.borderColor == null && !redrawAllBorders
+            ? null
+            : ThemeManager().getInputBorder(
+                variant: variant,
+                borderWidth: borderWidth,
+                borderRadius: borderRadius,
+                borderColor: myController.borderColor ??
+                    themeDecoration.border?.borderSide.color),
+        enabledBorder:
+            myController.enabledBorderColor == null && !redrawAllBorders
+                ? null
+                : ThemeManager().getInputBorder(
+                    variant: variant,
+                    borderWidth: borderWidth,
+                    borderRadius: borderRadius,
+                    borderColor: myController.enabledBorderColor ??
+                        themeDecoration.enabledBorder?.borderSide.color ??
+                        themeDecoration.border?.borderSide.color),
+        disabledBorder:
+            myController.disabledBorderColor == null && !redrawAllBorders
+                ? null
+                : ThemeManager().getInputBorder(
+                    variant: variant,
+                    borderWidth: borderWidth,
+                    borderRadius: borderRadius,
+                    borderColor: myController.disabledBorderColor ??
+                        themeDecoration.disabledBorder?.borderSide.color),
+        errorBorder: myController.errorBorderColor == null && !redrawAllBorders
+            ? null
+            : ThemeManager().getInputBorder(
+                variant: variant,
+                borderWidth: borderWidth,
+                borderRadius: borderRadius,
+                borderColor: myController.errorBorderColor ??
+                    themeDecoration.errorBorder?.borderSide.color),
+        focusedBorder:
+            myController.focusedBorderColor == null && !redrawAllBorders
+                ? null
+                : ThemeManager().getInputBorder(
+                    variant: variant,
+                    borderWidth: borderWidth,
+                    borderRadius: borderRadius,
+                    borderColor: myController.focusedBorderColor ??
+                        themeDecoration.focusedBorder?.borderSide.color),
+        focusedErrorBorder:
+            myController.focusedErrorBorderColor == null && !redrawAllBorders
+                ? null
+                : ThemeManager().getInputBorder(
+                    variant: variant,
+                    borderWidth: borderWidth,
+                    borderRadius: borderRadius,
+                    borderColor: myController.focusedErrorBorderColor ??
+                        themeDecoration.focusedErrorBorder?.borderSide.color),
+        labelText: myController.labelText,
+        labelStyle: TextStyle(color: myController.enabledBorderColor),
+        floatingLabelStyle: TextStyle(
+          color: myController.focusedBorderColor,
+        ),
+      );
     }
     return const InputDecoration();
   }
