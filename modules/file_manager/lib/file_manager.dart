@@ -6,7 +6,7 @@ import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/stub/file_manager.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/screen_controller.dart';
-import 'package:ensemble_file_manager/file_extension.dart';
+import 'package:file_manager/file_extension.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 
