@@ -9,6 +9,7 @@ import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/permissions_manager.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/bottom_nav_page_group.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -157,7 +158,8 @@ class NavigateViewGroupAction extends EnsembleAction {
 
   @override
   Future<void> execute(BuildContext context, ScopeManager scopeManager) {
-    pageNotifier.updatePage(_viewIndex);
+    PageGroupWidget.getPageController(context)!.jumpToPage(_viewIndex);
+    bottomNavBarNotifier.updatePage(_viewIndex);
     return Future.value(null);
   }
 }

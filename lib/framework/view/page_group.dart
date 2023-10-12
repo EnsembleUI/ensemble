@@ -18,19 +18,6 @@ import 'package:ensemble/framework/extensions.dart';
 import '../widget/custom_view.dart';
 import 'bottom_nav_page_group.dart';
 
-class PageGroupNotifier extends ChangeNotifier {
-  int _viewIndex = 0;
-
-  int get viewIndex => _viewIndex;
-
-  void updatePage(int index) {
-    _viewIndex = index;
-    notifyListeners();
-  }
-}
-
-final pageNotifier = PageGroupNotifier();
-
 /// a collection of pages grouped under a navigation menu
 class PageGroup extends StatefulWidget {
   const PageGroup(
@@ -56,15 +43,18 @@ class PageGroup extends StatefulWidget {
 /// We need this because the menu (i.e. drawer) is determined at the PageGroup
 /// level, but need to be injected under each child Page to render.
 class PageGroupWidget extends DataScopeWidget {
-  const PageGroupWidget(
-      {super.key,
-      required super.scopeManager,
-      required super.child,
-      this.navigationDrawer,
-      this.navigationEndDrawer});
+  const PageGroupWidget({
+    super.key,
+    required super.scopeManager,
+    required super.child,
+    this.navigationDrawer,
+    this.navigationEndDrawer,
+    this.pageController,
+  });
 
   final Drawer? navigationDrawer;
   final Drawer? navigationEndDrawer;
+  final PageController? pageController;
 
   static Drawer? getNavigationDrawer(BuildContext context) => context
       .dependOnInheritedWidgetOfExactType<PageGroupWidget>()
@@ -73,6 +63,10 @@ class PageGroupWidget extends DataScopeWidget {
   static Drawer? getNavigationEndDrawer(BuildContext context) => context
       .dependOnInheritedWidgetOfExactType<PageGroupWidget>()
       ?.navigationEndDrawer;
+
+  static PageController? getPageController(BuildContext context) => context
+      .dependOnInheritedWidgetOfExactType<PageGroupWidget>()
+      ?.pageController;
 
   /// return the ScopeManager which includes the dataContext
   /// TODO: have to repeat this function in DataScopeWidget?
@@ -126,14 +120,6 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: pageNotifier,
-      builder: (context, _) => buildPageGroupChild(),
-    );
-  }
-
-  Widget buildPageGroupChild() {
-    final selectedPage = pageNotifier.viewIndex;
     // skip rendering the menu if only 1 menu item, just the content itself
     if (widget.menu.menuItems.length == 1) {
       return pageWidgets[0];
@@ -146,19 +132,16 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
         Drawer? drawer = _buildDrawer(context, widget.menu);
         bool atStart = (widget.menu as DrawerMenu).atStart;
         return PageGroupWidget(
-            key: UniqueKey(),
             scopeManager: _scopeManager,
             navigationDrawer: atStart ? drawer : null,
             navigationEndDrawer: !atStart ? drawer : null,
             child: pageWidgets[selectedPage]);
       } else if (widget.menu is SidebarMenu) {
         return PageGroupWidget(
-            key: UniqueKey(),
             scopeManager: _scopeManager,
             child: buildSidebarNavigation(context, widget.menu as SidebarMenu));
       } else if (widget.menu is BottomNavBarMenu) {
         return BottomNavPageGroup(
-          key: UniqueKey(),
           scopeManager: _scopeManager,
           selectedPage: selectedPage,
           menu: widget.menu,
