@@ -763,4 +763,13 @@ class Utils {
       return dataContext.containsKey(key) ? dataContext[key]! : match.group(0)!;
     });
   }
+
+  static BoxShape? getBoxShape(data) {
+    if (data == 'circle') {
+      return BoxShape.circle;
+    } else if (data == 'rectangle') {
+      return BoxShape.rectangle;
+    }
+    return null;
+  }
 }

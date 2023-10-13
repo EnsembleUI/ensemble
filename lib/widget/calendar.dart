@@ -38,6 +38,7 @@ class EnsembleCalendar extends StatefulWidget
       'disableCell': () => _controller.disableDays.value.toList(),
       'rangeStart': () => _controller.rangeStart,
       'rangeEnd': () => _controller.rangeEnd,
+      'range': () => _controller.range,
     };
   }
 
@@ -45,7 +46,7 @@ class EnsembleCalendar extends StatefulWidget
   Map<String, Function> methods() {
     return {
       'selectCell': (value) => _selectCell(value),
-      'markCell': (value) => _markCell(value),
+      'markCell': (singleDate) => _markCell(singleDate),
       'disableCell': (value) => _disableCell(value),
       'previous': (value) => _controller.pageController?.previousPage(
           duration: const Duration(milliseconds: 300), curve: Curves.easeOut),
@@ -60,7 +61,7 @@ class EnsembleCalendar extends StatefulWidget
       'rowHeight': (value) =>
           _controller.rowHeight = Utils.getDouble(value, fallback: 52.0),
       'cell': (value) => setCellData(value, _controller.cell),
-      'selectedCell': (value) => setCellData(value, _controller.selectedCell),
+      'selectCell': (value) => setCellData(value, _controller.selectCell),
       'todayCell': (value) => setCellData(value, _controller.todayCell),
       'markCell': (value) => setCellData(value, _controller.markCell),
       'disableCell': (value) => setCellData(value, _controller.disableCell),
@@ -68,50 +69,101 @@ class EnsembleCalendar extends StatefulWidget
     };
   }
 
-  DateTime? _getDate(dynamic value) {
+  List<DateTime>? _getDate(dynamic value) {
     if (value is DateTime) {
-      return value;
+      return [value.toDate()];
+    } else if (value is List<DateTime>) {
+      return value.map((e) => e.toDate()).toList();
+    } else if (value is String) {
+      DateTime? parsedData = Utils.getDate(value);
+      if (parsedData != null) {
+        return [parsedData.toDate()];
+      } else {
+        return null;
+      }
+    } else if (value is List) {
+      List<DateTime> dateTimes = [];
+
+      for (var date in value) {
+        DateTime? parsedDate = Utils.getDate(date);
+        if (parsedDate != null) {
+          dateTimes.add(parsedDate.toDate());
+        } else {
+          return null;
+        }
+      }
+      return dateTimes;
+    } else if (value is DateTimeRange) {
+      List<DateTime> rangeDates = [];
+      for (int days = 0;
+          days <= value.start.difference(value.end).inDays.abs();
+          days++) {
+        rangeDates.add(value.start.add(Duration(days: days)));
+      }
+      return rangeDates;
     }
-    return Utils.getDate(value);
+
+    return null;
   }
 
   void _disableCell(dynamic value) {
     final rawDate = _getDate(value);
     if (rawDate == null) return;
-    final date = rawDate.toDate();
 
-    if (_controller.disableDays.value.contains(date)) {
-      _controller.disableDays.value = {..._controller.disableDays.value}
-        ..remove(date);
-    } else {
-      _controller.disableDays.value = {..._controller.disableDays.value}
-        ..add(date);
+    HashSet<DateTime> updatedDisabledDays =
+        HashSet<DateTime>.from(_controller.disableDays.value);
+
+    for (var date in rawDate) {
+      if (updatedDisabledDays.contains(date)) {
+        updatedDisabledDays.remove(date);
+      } else {
+        updatedDisabledDays.add(date);
+      }
     }
+
+    _controller.disableDays.value = updatedDisabledDays;
   }
 
   void _selectCell(dynamic value) {
     final rawDate = _getDate(value);
     if (rawDate == null) return;
-    final date = rawDate.toDate();
 
-    if (_controller.selectedDays.value.contains(date)) {
-      _controller.selectedDays.value = {..._controller.selectedDays.value}
-        ..remove(date);
-    } else {
-      _controller.selectedDays.value = {..._controller.selectedDays.value}
-        ..add(date);
+    HashSet<DateTime> updatedDisabledDays =
+        HashSet<DateTime>.from(_controller.selectedDays.value);
+
+    for (var date in rawDate) {
+      if (updatedDisabledDays.contains(date)) {
+        updatedDisabledDays.remove(date);
+      } else {
+        updatedDisabledDays.add(date);
+      }
     }
 
-    // _focusedDay.value = focusedDay;
-    _controller.rangeStart = null;
-    _controller.rangeEnd = null;
+    _controller.selectedDays.value = updatedDisabledDays;
+    // _controller.rangeStart = null;
+    // _controller.rangeEnd = null;
   }
 
   void _markCell(dynamic value) {
     final rawDate = _getDate(value);
     if (rawDate == null) return;
-    final date = rawDate.toDate();
-    _controller.markedDays.value = {..._controller.markedDays.value}..add(date);
+
+    HashSet<DateTime> updatedMarkDays =
+        HashSet<DateTime>.from(_controller.markedDays.value);
+    HashSet<DateTime> updatedSelectedDays =
+        HashSet<DateTime>.from(_controller.selectedDays.value);
+
+    for (var date in rawDate) {
+      if (updatedMarkDays.contains(date)) {
+        updatedMarkDays.remove(date);
+      } else {
+        updatedMarkDays.add(date);
+      }
+      updatedSelectedDays.remove(date);
+    }
+
+    _controller.markedDays.value = updatedMarkDays;
+    _controller.selectedDays.value = updatedSelectedDays;
   }
 
   void setRangeData(dynamic data) {
@@ -139,6 +191,7 @@ class EnsembleCalendar extends StatefulWidget
             margin: Utils.getInsets(data['config']?['margin']),
             textStyle: Utils.getTextStyle(data['config']?['textStylek']),
             alignment: Utils.getAlignment(data['config']?['alignment']),
+            shape: Utils.getBoxShape(data['config']?['shape']),
             borderRadius:
                 Utils.getBorderRadius(data['config']?['borderRadius']));
       }
@@ -153,6 +206,7 @@ class CellConfig {
   TextStyle? textStyle;
   Alignment? alignment;
   EBorderRadius? borderRadius;
+  BoxShape? shape;
 
   CellConfig({
     this.backgroundColor,
@@ -161,6 +215,7 @@ class CellConfig {
     this.textStyle,
     this.alignment,
     this.borderRadius,
+    this.shape,
   });
 }
 
@@ -177,7 +232,7 @@ class Cell {
 class CalendarController extends WidgetController {
   double rowHeight = 52.0;
   Cell cell = Cell();
-  Cell selectedCell = Cell();
+  Cell selectCell = Cell();
   Cell todayCell = Cell();
   Cell markCell = Cell();
   Cell disableCell = Cell();
@@ -190,6 +245,7 @@ class CalendarController extends WidgetController {
   PageController? pageController;
   DateTime? rangeStart;
   DateTime? rangeEnd;
+  DateTimeRange? range;
   RangeSelectionMode rangeSelectionMode = RangeSelectionMode.toggledOff;
   EnsembleAction? onRangeComplete;
   EnsembleAction? onRangeStart;
@@ -233,6 +289,10 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
       setState(() {});
     });
 
+    widget._controller.disableDays.addListener(() {
+      setState(() {});
+    });
+
     super.initState();
   }
 
@@ -262,9 +322,9 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
       _focusedDay.value = focusedDay;
       widget._controller.rangeStart = start;
       widget._controller.rangeEnd = end;
-      widget._controller.selectedDays.value.clear();
     });
     if (end != null && widget._controller.onRangeComplete != null) {
+      widget._controller.range = DateTimeRange(start: start!, end: end);
       ScreenController().executeAction(
         context,
         widget._controller.onRangeComplete!,
@@ -319,13 +379,33 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
             },
             rangeHighlightBuilder: (context, day, isWithinRange) {
               if (isWithinRange) {
-                return Center(
-                  child: Container(
-                    height: widget._controller.rowHeight,
-                    color: widget._controller.highlightColor ??
-                        const Color(0x5D7FC2F8),
-                  ),
-                );
+                return LayoutBuilder(builder: (context, constraints) {
+                  final shorterSide =
+                      constraints.maxHeight > constraints.maxWidth
+                          ? constraints.maxWidth
+                          : constraints.maxHeight;
+
+                  final isRangeStart =
+                      isSameDay(day, widget._controller.rangeStart);
+                  final isRangeEnd =
+                      isSameDay(day, widget._controller.rangeEnd);
+
+                  return Center(
+                    child: Container(
+                      height: (shorterSide - 12),
+                      margin: EdgeInsetsDirectional.only(
+                        start: isRangeStart ? constraints.maxWidth * 0.5 : 0.0,
+                        end: isRangeEnd ? constraints.maxWidth * 0.5 : 0.0,
+                      ),
+                      decoration: BoxDecoration(
+                        color: widget._controller.highlightColor ??
+                            Theme.of(context).primaryColor.withOpacity(0.4),
+                        shape: widget._controller.markCell.config?.shape ??
+                            BoxShape.rectangle,
+                      ),
+                    ),
+                  );
+                });
               }
               return null;
             },
@@ -357,9 +437,6 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
                             ._controller.markCell.config?.borderRadius
                             ?.getValue(),
                       ),
-                      alignment: widget._controller.markCell.config?.alignment,
-                      child: Text("${day.day}",
-                          style: widget._controller.markCell.config?.textStyle),
                     );
               }
               return null;
@@ -374,7 +451,7 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
             },
             selectedBuilder: (context, day, focusedDay) {
               return cellBuilder(
-                  context, day, focusedDay, widget._controller.selectedCell);
+                  context, day, focusedDay, widget._controller.selectCell);
             },
           ),
         ),
@@ -424,8 +501,9 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
           decoration: BoxDecoration(
             color: cell.config?.backgroundColor,
             borderRadius: cell.config?.borderRadius?.getValue(),
+            shape: cell.config?.shape ?? BoxShape.rectangle,
           ),
-          alignment: cell.config?.alignment,
+          alignment: cell.config?.alignment ?? Alignment.center,
           child: Text(
             text,
             style: cell.config?.textStyle,
