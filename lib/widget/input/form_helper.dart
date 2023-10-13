@@ -20,7 +20,7 @@ class FormFieldController extends WidgetController {
   bool? enabled;
   bool required = false;
   String? hintText;
-  String? labelText;
+  String? floatingLabelText;
   IconModel? icon;
   int? fontSize;
   int? maxWidth;
@@ -55,6 +55,8 @@ class FormFieldController extends WidgetController {
       'enabled': (value) => enabled = Utils.optionalBool(value),
       'required': (value) => required = Utils.getBool(value, fallback: false),
       'hintText': (value) => hintText = Utils.optionalString(value),
+      'floatingLabelText': (value) =>
+          floatingLabelText = Utils.optionalString(value),
       'icon': (value) => icon = Utils.getIcon(value),
       'fontSize': (value) => fontSize = Utils.optionalInt(value),
       'maxWidth': (value) =>
@@ -243,7 +245,7 @@ abstract class FormFieldWidgetState<W extends HasController>
                     borderRadius: borderRadius,
                     borderColor: myController.focusedErrorBorderColor ??
                         themeDecoration.focusedErrorBorder?.borderSide.color),
-        labelText: myController.labelText,
+        labelText: myController.floatingLabelText,
         labelStyle: TextStyle(color: myController.enabledBorderColor),
         floatingLabelStyle: TextStyle(
           color: myController.focusedBorderColor,
