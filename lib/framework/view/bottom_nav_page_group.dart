@@ -190,7 +190,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
     );
   }
 
-  Widget? _buildBottomNavBar() {
+  EnsembleBottomAppBar? _buildBottomNavBar() {
     List<FABBottomAppBarItem> navItems = [];
 
     final unselectedColor = Utils.getColor(widget.menu.styles?['color']) ??
@@ -198,8 +198,6 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
     final selectedColor =
         Utils.getColor(widget.menu.styles?['selectedColor']) ??
             Theme.of(context).primaryColor;
-    final borderRadius =
-        Utils.getBorderRadius(widget.menu.styles?['borderRadius'])?.getValue();
 
     // final menu = widget.menu;
     for (int i = 0; i < menuItems.length; i++) {
@@ -234,24 +232,22 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
       );
     }
 
-    return ClipRRect(
-      borderRadius: borderRadius ?? BorderRadius.zero,
-      child: EnsembleBottomAppBar(
-        selectedIndex: widget.selectedPage,
-        backgroundColor:
-            Utils.getColor(widget.menu.styles?['backgroundColor']) ??
-                Colors.white,
-        height: Utils.optionalDouble(widget.menu.styles?['height'] ?? 60),
-        padding: widget.menu.styles?['padding'],
-        color: unselectedColor,
-        selectedColor: selectedColor,
-        notchedShape: const CircularNotchedRectangle(),
-        onTabSelected: controller.jumpToPage,
-        items: navItems,
-        isFloating: fabMenuItem != null,
-        floatingAlignment: floatingAlignment,
-        floatingMargin: floatingMargin,
-      ),
+    return EnsembleBottomAppBar(
+      selectedIndex: widget.selectedPage,
+      backgroundColor: Utils.getColor(widget.menu.styles?['backgroundColor']) ??
+          Colors.white,
+      height: Utils.optionalDouble(widget.menu.styles?['height'] ?? 60),
+      padding: widget.menu.styles?['padding'],
+      borderRadius: Utils.getBorderRadius(widget.menu.styles?['borderRadius'])
+          ?.getValue(),
+      color: unselectedColor,
+      selectedColor: selectedColor,
+      notchedShape: const CircularNotchedRectangle(),
+      onTabSelected: controller.jumpToPage,
+      items: navItems,
+      isFloating: fabMenuItem != null,
+      floatingAlignment: floatingAlignment,
+      floatingMargin: floatingMargin,
     );
   }
 
@@ -271,6 +267,7 @@ class EnsembleBottomAppBar extends StatefulWidget {
     required this.selectedIndex,
     this.height,
     this.padding,
+    this.borderRadius,
     this.iconSize = 24.0,
     required this.backgroundColor,
     required this.color,
@@ -296,6 +293,7 @@ class EnsembleBottomAppBar extends StatefulWidget {
   final bool isFloating;
   final FloatingAlignment floatingAlignment;
   final NotchedShape notchedShape;
+  final BorderRadius? borderRadius;
   final VoidCallback? onFabTapped;
   final ValueChanged<int> onTabSelected;
 
@@ -367,17 +365,20 @@ class EnsembleBottomAppBarState extends State<EnsembleBottomAppBar> {
 
     return Theme(
       data: ThemeData(useMaterial3: false),
-      child: BottomAppBar(
-        padding: const EdgeInsets.all(0),
-        shape: widget.notchedShape,
-        color: widget.backgroundColor,
-        notchMargin: _defaultFloatingNotch,
-        child: Padding(
-          padding: Utils.optionalInsets(widget.padding) ?? EdgeInsets.zero,
-          child: Row(
-            mainAxisSize: MainAxisSize.max,
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: items,
+      child: ClipRRect(
+        borderRadius: widget.borderRadius ?? BorderRadius.zero,
+        child: BottomAppBar(
+          padding: const EdgeInsets.all(0),
+          shape: widget.notchedShape,
+          color: widget.backgroundColor,
+          notchMargin: _defaultFloatingNotch,
+          child: Padding(
+            padding: Utils.optionalInsets(widget.padding) ?? EdgeInsets.zero,
+            child: Row(
+              mainAxisSize: MainAxisSize.max,
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: items,
+            ),
           ),
         ),
       ),
