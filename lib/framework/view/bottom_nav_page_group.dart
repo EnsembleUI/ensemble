@@ -190,7 +190,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
     );
   }
 
-  EnsembleBottomAppBar? _buildBottomNavBar() {
+  Widget? _buildBottomNavBar() {
     List<FABBottomAppBarItem> navItems = [];
 
     final unselectedColor = Utils.getColor(widget.menu.styles?['color']) ??
@@ -198,6 +198,8 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
     final selectedColor =
         Utils.getColor(widget.menu.styles?['selectedColor']) ??
             Theme.of(context).primaryColor;
+    final borderRadius =
+        Utils.getBorderRadius(widget.menu.styles?['borderRadius'])?.getValue();
 
     // final menu = widget.menu;
     for (int i = 0; i < menuItems.length; i++) {
@@ -232,20 +234,24 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
       );
     }
 
-    return EnsembleBottomAppBar(
-      selectedIndex: widget.selectedPage,
-      backgroundColor: Utils.getColor(widget.menu.styles?['backgroundColor']) ??
-          Colors.white,
-      height: Utils.optionalDouble(widget.menu.styles?['height'] ?? 60),
-      padding: widget.menu.styles?['padding'],
-      color: unselectedColor,
-      selectedColor: selectedColor,
-      notchedShape: const CircularNotchedRectangle(),
-      onTabSelected: controller.jumpToPage,
-      items: navItems,
-      isFloating: fabMenuItem != null,
-      floatingAlignment: floatingAlignment,
-      floatingMargin: floatingMargin,
+    return ClipRRect(
+      borderRadius: borderRadius ?? BorderRadius.zero,
+      child: EnsembleBottomAppBar(
+        selectedIndex: widget.selectedPage,
+        backgroundColor:
+            Utils.getColor(widget.menu.styles?['backgroundColor']) ??
+                Colors.white,
+        height: Utils.optionalDouble(widget.menu.styles?['height'] ?? 60),
+        padding: widget.menu.styles?['padding'],
+        color: unselectedColor,
+        selectedColor: selectedColor,
+        notchedShape: const CircularNotchedRectangle(),
+        onTabSelected: controller.jumpToPage,
+        items: navItems,
+        isFloating: fabMenuItem != null,
+        floatingAlignment: floatingAlignment,
+        floatingMargin: floatingMargin,
+      ),
     );
   }
 
