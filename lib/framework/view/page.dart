@@ -101,7 +101,8 @@ class PageState extends State<Page>
     // the App has to pause (go to background) before we respect resume.
     if (state == AppLifecycleState.resumed &&
         widget._pageModel.viewBehavior.onResume != null &&
-        (appLastPaused != null && DateTime.now().difference(appLastPaused!).inMinutes > 5)) {
+        (appLastPaused != null &&
+            DateTime.now().difference(appLastPaused!).inMinutes > 5)) {
       // reset inactive time
       appLastPaused = null;
 

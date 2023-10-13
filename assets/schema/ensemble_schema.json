@@ -4347,39 +4347,52 @@
       "type": "object",
       "oneOf": [
         {
-          "widget": {
-            "$ref": "#/$defs/Widget"
+          "title": "widget",
+          "required": [
+            "widget"
+          ],
+          "properties": {
+            "widget": {
+              "description": "Use the bottom navigation bar",
+              "$ref": "#/$defs/Widget"
+            }
           }
         },
         {
-          "config": {
-            "type": "object",
-            "properties": {
-              "backgroundColor": {
-                "$ref": "#/$defs/typeColors",
-                "description": "Background color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
-              },
-              "padding": {
-                "$ref": "#/$defs/Padding-payload"
-              },
-              "margin": {
-                "$ref": "#/$defs/Margin-payload"
-              },
-              "textStyle": {
-                "$ref": "#/$defs/TextStyle"
-              },
-              "alignment": {
-                "$ref": "#/$defs/alignment"
-              },
-              "borderRadius": {
-                "$ref": "#/$defs/borderRadius"
-              },
-              "shape": {
-                "type": "string",
-                "enum": [
-                  "circle",
-                  "rectangle"
-                ]
+          "title": "config",
+          "required": [
+            "config"
+          ],
+          "properties": {
+            "config": {
+              "type": "object",
+              "properties": {
+                "backgroundColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Background color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+                },
+                "padding": {
+                  "$ref": "#/$defs/Padding-payload"
+                },
+                "margin": {
+                  "$ref": "#/$defs/Margin-payload"
+                },
+                "textStyle": {
+                  "$ref": "#/$defs/TextStyle"
+                },
+                "alignment": {
+                  "$ref": "#/$defs/alignment"
+                },
+                "borderRadius": {
+                  "$ref": "#/$defs/borderRadius"
+                },
+                "shape": {
+                  "type": "string",
+                  "enum": [
+                    "circle",
+                    "rectangle"
+                  ]
+                }
               }
             }
           }
@@ -4392,7 +4405,7 @@
         "highlightColor": {
           "$ref": "#/$defs/typeColors",
           "description": "Range Highlight color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
-        }, 
+        },
         "onStart": {
           "$ref": "#/$defs/Action-payload",
           "description": "Call Ensemble's built-in functions or execute code when tapping on start of range"
@@ -4412,52 +4425,6 @@
         "betweenCell": {
           "$ref": "#/$defs/Cell-payload",
           "description": "Configure or create custom cell for all cells in between start and end of range"
-        }
-      }
-    },
-    "Calendar-payload": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "A unique identifier for this widget"
-        },
-        "rowHeight": {
-          "type": "integer",
-          "description": "Height of row. Default is 52.0"
-        },
-        "cell": {
-          "allOf": [
-            {
-              "onTap": {
-                "$ref": "#/$defs/Action-payload",
-                "description": "Call Ensemble's built-in functions or execute code when tapping on cell"
-              }
-            },
-            {
-              "$ref": "#/$defs/Cell-payload",
-              "description": "Configure or create custom cell for all dates"
-            }
-          ]
-        },
-        "selectCell": {
-          "$ref": "#/$defs/Cell-payload",
-          "description": "Configure or create custom cell for all selected dates"
-        },
-        "markCell": {
-          "$ref": "#/$defs/Cell-payload",
-          "description": "Configure or create custom cell for all marked dates"
-        },
-        "todayCell": {
-          "$ref": "#/$defs/Cell-payload",
-          "description": "Configure or create custom cell for today's date only"
-        },
-        "disableCell": {
-          "$ref": "#/$defs/Cell-payload",
-          "description": "Configure or create custom cell for disabled dates"
-        },
-        "range": {
-          "$ref": "#/$defs/Range-payload"
         }
       }
     },
@@ -5141,8 +5108,53 @@
           ],
           "properties": {
             "Calendar": {
-              "$ref": "#/$defs/Calendar-payload",
-              "desciption": "A calendar widget with select, mark, disable, range functionality",
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "A unique identifier for this widget"
+                },
+                "rowHeight": {
+                  "type": "integer",
+                  "description": "Height of row. Default is 52.0"
+                },
+                "cell": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Cell-payload",
+                      "description": "Cell specific"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "onTap": {
+                          "$ref": "#/$defs/Action-payload",
+                          "description": "Execute an Action when the map's bound has changed. The bound data is available using `event.data.bounds.<southwest/northeast>.<lat/lng>`."                
+                        }
+                      }
+                    }
+                  ]
+                },
+                "selectCell": {
+                  "$ref": "#/$defs/Cell-payload",
+                  "description": "Configure or create custom cell for all selected dates"
+                },
+                "markCell": {
+                  "$ref": "#/$defs/Cell-payload",
+                  "description": "Configure or create custom cell for all marked dates"
+                },
+                "todayCell": {
+                  "$ref": "#/$defs/Cell-payload",
+                  "description": "Configure or create custom cell for today's date only"
+                },
+                "disableCell": {
+                  "$ref": "#/$defs/Cell-payload",
+                  "description": "Configure or create custom cell for disabled dates"
+                },
+                "range": {
+                  "$ref": "#/$defs/Range-payload"
+                }        
+              }
             }
           }
         }

@@ -189,7 +189,7 @@ class EnsembleCalendar extends StatefulWidget
             backgroundColor: Utils.getColor(data['config']?['backgroundColor']),
             padding: Utils.getInsets(data['config']?['padding']),
             margin: Utils.getInsets(data['config']?['margin']),
-            textStyle: Utils.getTextStyle(data['config']?['textStylek']),
+            textStyle: Utils.getTextStyle(data['config']?['textStyle']),
             alignment: Utils.getAlignment(data['config']?['alignment']),
             shape: Utils.getBoxShape(data['config']?['shape']),
             borderRadius:
