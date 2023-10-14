@@ -37,16 +37,23 @@ class Ensemble {
     return _instance;
   }
 
+  Map<String, Function> externalMethods = {};
+  void setExternalMethods(Map<String, Function> methods) =>
+      externalMethods = methods;
+
+  Map<String, CustomBuilder> externalScreenWidgets = {};
+  void setExternalScreenWidgets(Map<String, CustomBuilder> widgets) {
+    externalScreenWidgets = widgets;
+  }
+
   late FirebaseApp ensembleFirebaseApp;
   static final Map<String, dynamic> externalDataContext = {};
-  Map<String, CustomBuilder> externalScreenWidgets = {};
+
 
   static final RouteObserver<PageRoute> routeObserver =
       RouteObserver<PageRoute>();
 
-  void setExternalScreenWidgets(Map<String, CustomBuilder> widgets) {
-    externalScreenWidgets = widgets;
-  }
+
 
   /// initialize all the singleton/managers. Note that this function can be
   /// called multiple times since it's being called inside a widget.
