@@ -299,19 +299,6 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
   //   );
   // }
 
-  Widget? _buildCustomIcon(MenuItem item, {bool isActive = false}) {
-    Widget? iconWidget;
-    dynamic customWidgetModel =
-        isActive ? item.customActiveWidget : item.customWidget;
-    if (customWidgetModel != null) {
-      final widget = _scopeManager.buildWidget(customWidgetModel!);
-      final dataScopeWidget = widget as DataScopeWidget;
-      final customWidget = dataScopeWidget.child as CustomView;
-      iconWidget = customWidget.childWidget;
-    }
-    return iconWidget;
-  }
-
   Drawer? _buildDrawer(BuildContext context, Menu menu) {
     List<ListTile> navItems = [];
     for (var i = 0; i < menu.menuItems.length; i++) {

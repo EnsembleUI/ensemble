@@ -3857,6 +3857,40 @@
           }
         },
         {
+          "title": "Update Badge Count",
+          "type": "object",
+          "required": [
+            "updateBadgeCount"
+          ],
+          "properties": {
+            "updateBadgeCount": {
+              "type": "object",
+              "description": "Update the app's badge count (applicable on iOS, MacOS, and some Android devices only). Notifications must also be enabled for this to work properly.",
+              "required": ["count"],
+              "properties": {
+                "count": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Update the app's badge count (applicable on iOS, MacOS, and some Android devices)"
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Clear Badge Count",
+          "type": "object",
+          "required": [
+            "clearBadgeCount"
+          ],
+          "properties": {
+            "clearBadgeCount": {
+              "type": "object",
+              "description": "Clear the app's badge count (applicable on iOS, MacOS, and some Android devices only). Notifications must also be enabled for this to work properly."
+            }
+          }
+        },
+        {
           "title": "Connect Wallet",
           "type": "object",
           "required": [
@@ -4110,6 +4144,37 @@
                   "additionalProperties": {
                     "type": "string"
                   }
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Call an External Method",
+          "type": "object",
+          "required": [
+            "callExternalMethod"
+          ],
+          "properties": {
+            "callExternalMethod": {
+              "type": "object",
+              "description": "Call an external method defined outside of Ensemble",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "The method name defined in your code"
+                },
+                "payload": {
+                  "type": "object",
+                  "description": "The key/value pairs payload to be sent as the input parameters for your method"
+                },
+                "onComplete": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Called when the method has finished its execution. Return value (if any) is available under 'event.data'"
+                },
+                "onError": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Called when there is an error while executing the method. The error reason is available under 'event.error'"
                 }
               }
             }
