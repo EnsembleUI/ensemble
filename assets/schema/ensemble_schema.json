@@ -196,8 +196,12 @@
           },
           "body": {
             "oneOf": [
-              { "type": "string" },
-              { "type": "object" }
+              {
+                "type": "string"
+              },
+              {
+                "type": "object"
+              }
             ],
             "description": "The request body to pass along with the URL",
             "additionalProperties": {
@@ -223,7 +227,7 @@
         ],
         "properties": {
           "inputs": {
-            "type": "array", 
+            "type": "array",
             "items": {
               "type": "string"
             },
@@ -232,7 +236,7 @@
           "uri": {
             "type": "string",
             "description": "The URL of this socket"
-          }, 
+          },
           "onSuccess": {
             "$ref": "#/$defs/Action-payload",
             "description": "Execute this callback upon a successful connection of socket with server"
@@ -254,7 +258,7 @@
             "description": "Execute this callback upon a message from socket is received. Use socketName.data to access the"
           },
           "options": {
-            "type": "object", 
+            "type": "object",
             "properties": {
               "disconnectOnPageClose": {
                 "type": "boolean",
@@ -407,7 +411,9 @@
     },
     "BaseIcon-payload": {
       "type": "object",
-      "required": ["name"],
+      "required": [
+        "name"
+      ],
       "properties": {
         "name": {
           "type": "string",
@@ -469,7 +475,6 @@
             }
           }
         }
-
       ]
     },
     "Image-payload": {
@@ -1387,7 +1392,7 @@
               "description": "Initial value where the slider thumb will start"
             },
             "min": {
-              "type": "integer", 
+              "type": "integer",
               "description": "Minimum value the user can pick"
             },
             "max": {
@@ -1530,7 +1535,12 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["square", "rectangle", "circle", "oval"]
+          "enum": [
+            "square",
+            "rectangle",
+            "circle",
+            "oval"
+          ]
         },
         "styles": {
           "properties": {
@@ -1596,7 +1606,11 @@
                 "buttonStyle": {
                   "type": "string",
                   "description": "Select an Apple's pre-defined button style (default whiteOutlined)",
-                  "enum": [ "black", "white", "whiteOutlined" ]
+                  "enum": [
+                    "black",
+                    "white",
+                    "whiteOutlined"
+                  ]
                 }
               }
             }
@@ -1638,7 +1652,10 @@
             "iconAlignment": {
               "type": "string",
               "description": "Align the Apple icon to the left or center of the button (Note that the text will always be centered). Default: center",
-              "enum": [ "center", "left" ]
+              "enum": [
+                "center",
+                "left"
+              ]
             },
             "borderRadius": {
               "$ref": "#/$defs/borderRadius"
@@ -2053,7 +2070,10 @@
             "refreshIndicatorType": {
               "type": "string",
               "description": "The refresh indicator type if onPullToRefresh is specified. Default is 'material'.",
-              "enum": [ "material", "cupertino" ]
+              "enum": [
+                "material",
+                "cupertino"
+              ]
             }
           }
         }
@@ -3807,7 +3827,9 @@
             "share": {
               "type": "object",
               "description": "Open each platform's share sheet",
-              "required": ["text"],
+              "required": [
+                "text"
+              ],
               "properties": {
                 "text": {
                   "type": "string",
@@ -4016,7 +4038,9 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["notification"]
+                  "enum": [
+                    "notification"
+                  ]
                 },
                 "onAuthorized": {
                   "$ref": "#/$defs/Action-payload",
@@ -4062,11 +4086,11 @@
                 },
                 "onSuccess": {
                   "$ref": "#/$defs/Action-payload",
-                  "description": "Execute this callback upon a successful connection of socket with server."  
+                  "description": "Execute this callback upon a successful connection of socket with server."
                 },
                 "onError": {
                   "$ref": "#/$defs/Action-payload",
-                  "description": "Execute this callback upon a encountering error while trying to do socket connection."  
+                  "description": "Execute this callback upon a encountering error while trying to do socket connection."
                 }
               }
             }
@@ -4104,7 +4128,7 @@
             "messageSocket": {
               "type": "object",
               "description": "Send a message to a given socket name.",
-              "required" : [
+              "required": [
                 "name",
                 "message"
               ],
@@ -4253,7 +4277,7 @@
             "floatingIconColor": {
               "$ref": "#/$defs/typeColors",
               "description": "Floating item icon color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
-            }   
+            }
           }
         },
         "items": {
@@ -4292,7 +4316,7 @@
               },
               "floatingAlignment": {
                 "$ref": "#/$defs/alignment",
-                "description":"How to align the floating in the BottomNavBar. The values are left, center, right and none"
+                "description": "How to align the floating in the BottomNavBar. The values are left, center, right and none"
               },
               "onTap": {
                 "$ref": "#/$defs/Action-payload",
@@ -4383,6 +4407,91 @@
           }
         }
       ]
+    },
+    "Cell-payload": {
+      "type": "object",
+      "oneOf": [
+        {
+          "title": "widget",
+          "required": [
+            "widget"
+          ],
+          "properties": {
+            "widget": {
+              "description": "Use the bottom navigation bar",
+              "$ref": "#/$defs/Widget"
+            }
+          }
+        },
+        {
+          "title": "config",
+          "required": [
+            "config"
+          ],
+          "properties": {
+            "config": {
+              "type": "object",
+              "properties": {
+                "backgroundColor": {
+                  "$ref": "#/$defs/typeColors",
+                  "description": "Background color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+                },
+                "padding": {
+                  "$ref": "#/$defs/Padding-payload"
+                },
+                "margin": {
+                  "$ref": "#/$defs/Margin-payload"
+                },
+                "textStyle": {
+                  "$ref": "#/$defs/TextStyle"
+                },
+                "alignment": {
+                  "$ref": "#/$defs/alignment"
+                },
+                "borderRadius": {
+                  "$ref": "#/$defs/borderRadius"
+                },
+                "shape": {
+                  "type": "string",
+                  "enum": [
+                    "circle",
+                    "rectangle"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Range-payload": {
+      "type": "object",
+      "properties": {
+        "highlightColor": {
+          "$ref": "#/$defs/typeColors",
+          "description": "Range Highlight color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+        },
+        "onStart": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Call Ensemble's built-in functions or execute code when tapping on start of range"
+        },
+        "onComplete": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Call Ensemble's built-in functions or execute code when tapping on complete of range"
+        },
+        "startCell": {
+          "$ref": "#/$defs/Cell-payload",
+          "description": "Configure or create custom cell where the range begin"
+        },
+        "endCell": {
+          "$ref": "#/$defs/Cell-payload",
+          "description": "Configure or create custom cell where the range end"
+        },
+        "betweenCell": {
+          "$ref": "#/$defs/Cell-payload",
+          "description": "Configure or create custom cell for all cells in between start and end of range"
+        }
+      }
     },
     "Widgets": {
       "type": "array",
@@ -5053,6 +5162,63 @@
                     ]
                   }
                 }
+              }
+            }
+          }
+        },
+        {
+          "title": "Calendar",
+          "required": [
+            "Calendar"
+          ],
+          "properties": {
+            "Calendar": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "A unique identifier for this widget"
+                },
+                "rowHeight": {
+                  "type": "integer",
+                  "description": "Height of row. Default is 52.0"
+                },
+                "cell": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Cell-payload",
+                      "description": "Cell specific"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "onTap": {
+                          "$ref": "#/$defs/Action-payload",
+                          "description": "Execute an Action when the map's bound has changed. The bound data is available using `event.data.bounds.<southwest/northeast>.<lat/lng>`."                
+                        }
+                      }
+                    }
+                  ]
+                },
+                "selectCell": {
+                  "$ref": "#/$defs/Cell-payload",
+                  "description": "Configure or create custom cell for all selected dates"
+                },
+                "markCell": {
+                  "$ref": "#/$defs/Cell-payload",
+                  "description": "Configure or create custom cell for all marked dates"
+                },
+                "todayCell": {
+                  "$ref": "#/$defs/Cell-payload",
+                  "description": "Configure or create custom cell for today's date only"
+                },
+                "disableCell": {
+                  "$ref": "#/$defs/Cell-payload",
+                  "description": "Configure or create custom cell for disabled dates"
+                },
+                "range": {
+                  "$ref": "#/$defs/Range-payload"
+                }        
               }
             }
           }
@@ -6422,7 +6588,10 @@
             "indicatorType": {
               "type": "string",
               "description": "Indicate the refresh indicator look-and-feel if onPullToRefresh is specified. Default is 'material'.",
-              "enum": [ "material", "cupertino" ]
+              "enum": [
+                "material",
+                "cupertino"
+              ]
             },
             "indicatorMinDuration": {
               "type": "integer",
