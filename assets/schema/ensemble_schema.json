@@ -2779,10 +2779,6 @@
           "type": "string",
           "description": "Hint text explaining your widget"
         },
-        "floatingLabelText": {
-          "type": "string",
-          "description": "Floating Label text appears on top of the TextInput Field"
-        },
         "required": {
           "type": "boolean"
         },
