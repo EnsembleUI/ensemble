@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/framework/widget/icon.dart' as framework;
 import 'package:ensemble/framework/action.dart';
@@ -131,6 +132,7 @@ abstract class BaseTextInput extends StatefulWidget
       'maxLines': (value) => _controller.maxLines =
           Utils.getInt(value, min: 1, fallback: _controller.maxLines),
       'textStyle': (style) => _controller.textStyle = Utils.getTextStyle(style),
+      'labelStyle': (style) => _controller.labelStyle = LabelStyle(style),
       'hintStyle': (style) => _controller.hintStyle = Utils.getTextStyle(style),
     };
   }
@@ -199,7 +201,21 @@ class TextInputController extends FormFieldController {
   String? mask;
   int maxLines = 1;
   TextStyle? textStyle;
+  LabelStyle? labelStyle;
   TextStyle? hintStyle;
+}
+
+enum LabelPosition { outline, inline }
+
+class LabelStyle extends TextStyle {
+  TextStyle? textStyle;
+  LabelPosition position = LabelPosition.outline;
+
+  LabelStyle(dynamic styles) {
+    textStyle = Utils.getTextStyle(styles);
+    position =
+        LabelPosition.values.from(styles['position']) ?? LabelPosition.outline;
+  }
 }
 
 class TextInputState extends FormFieldWidgetState<BaseTextInput>
@@ -293,6 +309,16 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
     InputDecoration decoration = inputDecoration.copyWith(
       hintStyle: widget._controller.hintStyle,
     );
+
+    final showInlineLabel = widget._controller.labelStyle != null &&
+        widget._controller.label != null &&
+        widget._controller.labelStyle?.position == LabelPosition.inline;
+    if (showInlineLabel) {
+      decoration = decoration.copyWith(
+        labelText: widget._controller.label,
+        labelStyle: widget._controller.labelStyle?.textStyle,
+      );
+    }
 
     if ((widget.isPassword() || widget._controller.obscureText == true) &&
         widget._controller.obscureToggle == true) {
@@ -415,6 +441,10 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
                   color: Theme.of(context).disabledColor,
                 ),
           decoration: decoration,
+          // decoration: InputDecoration(
+          //   labelText: 'Flutter',
+          //   labelStyle: TextStyle(color: Colors.green, fontSize: 40),
+          // ),
         ));
   }
 
