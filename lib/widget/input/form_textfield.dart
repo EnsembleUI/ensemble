@@ -205,16 +205,16 @@ class TextInputController extends FormFieldController {
   TextStyle? hintStyle;
 }
 
-enum LabelPosition { outline, inline }
+enum LabelPosition { outside, inline }
 
 class LabelStyle extends TextStyle {
   TextStyle? textStyle;
-  LabelPosition position = LabelPosition.outline;
+  LabelPosition position = LabelPosition.outside;
 
   LabelStyle(dynamic styles) {
     textStyle = Utils.getTextStyle(styles);
     position =
-        LabelPosition.values.from(styles['position']) ?? LabelPosition.outline;
+        LabelPosition.values.from(styles['position']) ?? LabelPosition.outside;
   }
 }
 
