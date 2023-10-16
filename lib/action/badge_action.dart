@@ -12,7 +12,8 @@ class UpdateBadgeCount extends EnsembleAction {
   factory UpdateBadgeCount.from({Map? payload}) {
     dynamic count = payload?['count'];
     if (count == null) {
-      throw LanguageError("${ActionType.updateBadgeCount.name} requires a count");
+      throw LanguageError(
+          "${ActionType.updateBadgeCount.name} requires a count");
     }
     return UpdateBadgeCount(count);
   }
@@ -26,7 +27,6 @@ class UpdateBadgeCount extends EnsembleAction {
     return Future.value(null);
   }
 }
-
 
 class ClearBadgeCount extends EnsembleAction {
   @override

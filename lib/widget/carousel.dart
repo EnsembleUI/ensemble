@@ -273,7 +273,6 @@ class CarouselState extends WidgetState<Carousel>
   }
 
   List<Widget> buildItems() {
-
     // children will be rendered before templated children
     List<Widget> children = [];
 
