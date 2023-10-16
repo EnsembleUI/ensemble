@@ -4,9 +4,25 @@ import 'package:app_links/app_links.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 
+class DeepLinkNavigator {
+  /// navigate to screen if the deep link specifies a screenId param
+  void navigateToScreen(Uri uri) {
+    String? screenId =
+        (uri.queryParameters['screenId'] ?? uri.queryParameters['screenid'])
+            ?.toString();
+    String? screenName =
+        (uri.queryParameters['screenName'] ?? uri.queryParameters['screenName'])
+            ?.toString();
+    if (screenId != null || screenName != null) {
+      ScreenController().navigateToScreen(Utils.globalAppKey.currentContext!,
+          screenId: screenId, screenName: screenName);
+    }
+  }
+}
+
 /// managing deep linking into our app. Navigate to the screen if the custom
 /// scheme passes in the screenId
-class DeepLinkManager {
+class DeepLinkManager extends DeepLinkNavigator {
   static final DeepLinkManager _instance = DeepLinkManager._internal();
 
   DeepLinkManager._internal();
@@ -20,7 +36,7 @@ class DeepLinkManager {
   void init() {
     _appLinks = AppLinks();
     //_checkInitialLink();
-    _appLinks!.uriLinkStream.listen((uri) => _navigateToScreen(uri),
+    _appLinks!.uriLinkStream.listen((uri) => navigateToScreen(uri),
         onError: (err) {
       log("Error listening to incoming links");
     });
@@ -32,21 +48,10 @@ class DeepLinkManager {
     try {
       Uri? initialUri = await _appLinks!.getInitialAppLink();
       if (initialUri != null) {
-        _navigateToScreen(initialUri);
+        navigateToScreen(initialUri);
       }
     } catch (e) {
       log(e.toString());
-    }
-  }
-
-  /// navigate to screen if the deep link specifies a screenId param
-  void _navigateToScreen(Uri uri) {
-    String? screenId =
-        (uri.queryParameters['screenId'] ?? uri.queryParameters['screenid'])
-            ?.toString();
-    if (screenId != null) {
-      ScreenController().navigateToScreen(Utils.globalAppKey.currentContext!,
-          screenId: screenId);
     }
   }
 }

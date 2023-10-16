@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:ui';
 import 'dart:async';
 
@@ -12,6 +13,7 @@ import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/widget/error_screen.dart';
 import 'package:ensemble/framework/widget/screen.dart';
+import 'package:ensemble/ios_deep_link_manager.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
@@ -85,12 +87,14 @@ class EnsembleApp extends StatefulWidget {
       {super.key,
       this.screenPayload,
       this.ensembleConfig,
+      this.externalMethods,
       this.isPreview = false,
       this.placeholderBackgroundColor});
 
   final ScreenPayload? screenPayload;
   final EnsembleConfig? ensembleConfig;
   final bool isPreview;
+  final Map<String, Function>? externalMethods;
 
   /// use this as the placeholder background while Ensemble is loading
   final Color? placeholderBackgroundColor;
@@ -106,7 +110,12 @@ class EnsembleAppState extends State<EnsembleApp> {
   void initState() {
     super.initState();
     config = initApp();
+    // if (Platform.isIOS) {
+    //   IOSDeepLinkManager().init();
+    // } else {
     DeepLinkManager().init();
+    // }
+
     if (!kIsWeb) {
       Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
     }
@@ -117,6 +126,10 @@ class EnsembleAppState extends State<EnsembleApp> {
   Future<EnsembleConfig> initApp() async {
     await Ensemble().initManagers();
     StorageManager().setIsPreview(widget.isPreview);
+
+    if (widget.externalMethods != null) {
+      Ensemble().setExternalMethods(widget.externalMethods!);
+    }
 
     // use the config if passed in
     if (widget.ensembleConfig != null) {
