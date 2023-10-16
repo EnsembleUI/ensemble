@@ -372,7 +372,11 @@ class DataGridState extends WidgetState<DataGrid>
       }
       List<DataCell> cells = [];
       if (child.children != null) {
-        buildChildren(child.children!).asMap().forEach((index, Widget c) {
+        buildChildren(child.children!,
+                // scope comes from the rowScope (item-template) or the widget scope (children)
+                preferredScopeManager: rowScope?.scopeManager ?? scopeManager)
+            .asMap()
+            .forEach((index, Widget c) {
           // for templated row only, wrap each cell widget in a DataScopeWidget, and simply use the row's datascope
           if (rowScope != null) {
             Widget scopeWidget =

@@ -1,7 +1,9 @@
 import 'dart:io';
 
 import 'package:app_settings/app_settings.dart';
+import 'package:ensemble/action/badge_action.dart';
 import 'package:ensemble/action/bottom_modal_action.dart';
+import 'package:ensemble/action/call_external_method.dart';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -863,6 +865,9 @@ enum ActionType {
   connectSocket,
   disconnectSocket,
   messageSocket,
+  updateBadgeCount,
+  clearBadgeCount,
+  callExternalMethod,
 }
 
 enum ToastType { success, error, warning, info }
@@ -985,6 +990,12 @@ abstract class EnsembleAction {
       return DisconnectSocketAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.messageSocket) {
       return MessageSocketAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.updateBadgeCount) {
+      return UpdateBadgeCount.from(payload: payload);
+    } else if (actionType == ActionType.clearBadgeCount) {
+      return ClearBadgeCount();
+    } else if (actionType == ActionType.callExternalMethod) {
+      return CallExternalMethod.from(payload: payload);
     }
     throw LanguageError("Invalid action.",
         recovery: "Make sure to use one of Ensemble-provided actions.");

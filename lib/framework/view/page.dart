@@ -49,6 +49,9 @@ class PageState extends State<Page>
   late Widget rootWidget;
   late ScopeManager _scopeManager;
 
+  /// the last time the screen went to the background
+  DateTime? appLastPaused;
+
   // a menu can include other pages, keep track of what is selected
   int selectedPage = 0;
 
@@ -90,8 +93,19 @@ class PageState extends State<Page>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
+    log(state.toString());
+    // make a note of when the app was paused
+    if (state == AppLifecycleState.paused) {
+      appLastPaused = DateTime.now();
+    }
+    // the App has to pause (go to background) before we respect resume.
     if (state == AppLifecycleState.resumed &&
-        widget._pageModel.viewBehavior.onResume != null) {
+        widget._pageModel.viewBehavior.onResume != null &&
+        (appLastPaused != null &&
+            DateTime.now().difference(appLastPaused!).inMinutes > 5)) {
+      // reset inactive time
+      appLastPaused = null;
+
       // if we our screen is the currently active route
       var route = ModalRoute.of(context);
       if (route != null && route.isCurrent) {
@@ -635,7 +649,7 @@ class PageState extends State<Page>
       final widget = _scopeManager.buildWidget(customWidgetModel!);
       final dataScopeWidget = widget as DataScopeWidget;
       final customWidget = dataScopeWidget.child as CustomView;
-      iconWidget = customWidget.childWidget;
+      iconWidget = _scopeManager.buildWidget(customWidget.body);
     }
     return iconWidget;
   }
