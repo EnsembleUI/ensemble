@@ -649,7 +649,7 @@ class PageState extends State<Page>
       final widget = _scopeManager.buildWidget(customWidgetModel!);
       final dataScopeWidget = widget as DataScopeWidget;
       final customWidget = dataScopeWidget.child as CustomView;
-      iconWidget = customWidget.childWidget;
+      iconWidget = _scopeManager.buildWidget(customWidget.body);
     }
     return iconWidget;
   }
