@@ -2861,6 +2861,23 @@
                 "focusedErrorBorderColor": {
                   "$ref": "#/$defs/typeColors",
                   "description": "The border color of this input field when it is receiving focus in its error state. This property can be defined in the theme to apply to all Input widgets."
+                },
+                "labelStyle": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/TextStyle"
+                    },
+                    {
+                      "position": {
+                        "type": "string",
+                        "description": "Set the label text position of the TextInput",
+                        "enum": [
+                          "outline",
+                          "inline"
+                        ]
+                      }
+                    }
+                  ]
                 }
               }
             }
