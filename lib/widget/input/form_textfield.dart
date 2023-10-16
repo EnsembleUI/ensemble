@@ -441,10 +441,6 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
                   color: Theme.of(context).disabledColor,
                 ),
           decoration: decoration,
-          // decoration: InputDecoration(
-          //   labelText: 'Flutter',
-          //   labelStyle: TextStyle(color: Colors.green, fontSize: 40),
-          // ),
         ));
   }
 
