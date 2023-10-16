@@ -87,12 +87,14 @@ class EnsembleApp extends StatefulWidget {
       {super.key,
       this.screenPayload,
       this.ensembleConfig,
+      this.externalMethods,
       this.isPreview = false,
       this.placeholderBackgroundColor});
 
   final ScreenPayload? screenPayload;
   final EnsembleConfig? ensembleConfig;
   final bool isPreview;
+  final Map<String, Function>? externalMethods;
 
   /// use this as the placeholder background while Ensemble is loading
   final Color? placeholderBackgroundColor;
@@ -124,6 +126,10 @@ class EnsembleAppState extends State<EnsembleApp> {
   Future<EnsembleConfig> initApp() async {
     await Ensemble().initManagers();
     StorageManager().setIsPreview(widget.isPreview);
+
+    if (widget.externalMethods != null) {
+      Ensemble().setExternalMethods(widget.externalMethods!);
+    }
 
     // use the config if passed in
     if (widget.ensembleConfig != null) {

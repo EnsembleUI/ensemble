@@ -12,6 +12,7 @@ import 'package:ensemble/layout/grid_view.dart';
 import 'package:ensemble/layout/toggle_container.dart';
 import 'package:ensemble/widget/Toggle.dart';
 import 'package:ensemble/widget/address.dart';
+import 'package:ensemble/widget/calendar.dart';
 import 'package:ensemble/widget/shape.dart';
 import 'package:ensemble/widget/conditional.dart';
 import 'package:ensemble/widget/confirmation_input.dart';
@@ -98,6 +99,7 @@ class WidgetRegistry {
         SignInWithAuth0.type: () => GetIt.instance<SignInWithAuth0>(),
         EnsembleChat.type: () => GetIt.instance<EnsembleChat>(),
         PopupMenu.type: () => PopupMenu(),
+        EnsembleCalendar.type: () => EnsembleCalendar(),
 
         // form fields
         EnsembleForm.type: () => EnsembleForm(),
