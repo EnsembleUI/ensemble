@@ -240,11 +240,6 @@ abstract class FormFieldWidgetState<W extends HasController>
                     borderRadius: borderRadius,
                     borderColor: myController.focusedErrorBorderColor ??
                         themeDecoration.focusedErrorBorder?.borderSide.color),
-        labelText: myController.label,
-        labelStyle: TextStyle(color: myController.enabledBorderColor),
-        floatingLabelStyle: TextStyle(
-          color: myController.focusedBorderColor,
-        ),
       );
     }
     return const InputDecoration();
