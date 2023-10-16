@@ -2872,7 +2872,7 @@
                         "type": "string",
                         "description": "Set the label text position of the TextInput",
                         "enum": [
-                          "outline",
+                          "outside",
                           "inline"
                         ]
                       }
