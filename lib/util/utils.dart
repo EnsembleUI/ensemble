@@ -428,7 +428,7 @@ class Utils {
           fontStyle: Utils.optionalBool(style['isItalic']) == true
               ? FontStyle.italic
               : FontStyle.normal,
-          color: Utils.getColor(style['color']),
+          color: Utils.getColor(style['color']) ?? Colors.black,
           backgroundColor: Utils.getColor(style['backgroundColor']),
           decoration: getDecoration(style['decoration']),
           decorationStyle:
