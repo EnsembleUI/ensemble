@@ -5,6 +5,8 @@ import 'dart:io' as io;
 import 'dart:ui';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/all_countries.dart';
+import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -321,6 +323,7 @@ class NativeInvokable with Invokable {
       'storage': () => EnsembleStorage(_buildContext),
       'user': () => UserInfo(),
       'formatter': () => Formatter(_buildContext),
+      'utils': () => EnsembleUtils(),
     };
   }
 
@@ -540,6 +543,96 @@ class EnsembleStorage with Invokable {
   @override
   Map<String, Function> setters() {
     throw UnimplementedError();
+  }
+}
+
+/// singleton handling utils
+class EnsembleUtils with Invokable {
+  static final EnsembleUtils _obj = EnsembleUtils._();
+  EnsembleUtils._();
+  factory EnsembleUtils() => _obj;
+
+  @override
+  Map<String, Function> getters() => {'getCountries': () => allCountries};
+
+  @override
+  Map<String, Function> methods() => {
+        'getCountries': (value) {
+          String val = Utils.getString(value, fallback: "");
+          return CountryManager().getCountryData(val);
+        },
+      };
+
+  @override
+  Map<String, Function> setters() => {};
+}
+
+class CountryManager {
+  static final CountryManager _instance = CountryManager._();
+  CountryManager._();
+  factory CountryManager() => _instance;
+
+  List<Map<String, dynamic>> getCountryData(String userInput) {
+    Set<Map<String, dynamic>> result = {};
+    List<Map<String, dynamic>> alpha2List = [];
+    List<Map<String, dynamic>> alpha3List = [];
+    List<Map<String, dynamic>> nameList = [];
+    switch (userInput.length) {
+      case 2:
+        alpha2List = _countryList(input: userInput, iso: "alpha-2");
+      case 3:
+        alpha3List = _countryList(input: userInput, iso: "alpha-3");
+        break;
+    }
+    nameList = _countryList(input: userInput);
+    userInput = userInput.toLowerCase();
+    for (var name in nameList) {
+      result.add(name);
+    }
+    for (var alpha2 in alpha2List) {
+      result.add(alpha2);
+    }
+    for (var alpha3 in alpha3List) {
+      result.add(alpha3);
+    }
+
+    List<Map<String, dynamic>> output =
+        List<Map<String, dynamic>>.from(result.map((e) => e));
+    return output;
+  }
+
+  List<Map<String, dynamic>> _countryList(
+      {required String input, String? iso}) {
+    input = input.toLowerCase();
+    List<Map<String, dynamic>> list = [];
+    String code;
+    switch (iso) {
+      case "alpha-2":
+        code = 'alpha-2';
+      case "alpha-3":
+        code = 'alpha-3';
+        break;
+      default:
+        code = "";
+    }
+    if (code.isEmpty) {
+      for (var i in allCountries) {
+        String countryCode = i['name'];
+        countryCode = countryCode.toLowerCase();
+        if (countryCode.startsWith(input)) {
+          list.add(i);
+        }
+      }
+    } else {
+      for (var i in allCountries) {
+        String countryCode = i['iso'][code];
+        countryCode = countryCode.toLowerCase();
+        if (countryCode.startsWith(input)) {
+          list.add(i);
+        }
+      }
+    }
+    return list;
   }
 }
 
