@@ -16,6 +16,7 @@ import 'package:flutter/material.dart';
 /// Controls attributes applicable for all Form Field widgets.
 class FormFieldController extends WidgetController {
   bool? enabled;
+  bool? floatLabel;
   bool required = false;
   String? hintText;
   IconModel? icon;
@@ -34,6 +35,7 @@ class FormFieldController extends WidgetController {
   Color? errorBorderColor;
   Color? focusedBorderColor;
   Color? focusedErrorBorderColor;
+  TextStyle? labelStyle;
 
   @override
   Map<String, Function> getBaseGetters() {
@@ -50,6 +52,8 @@ class FormFieldController extends WidgetController {
     Map<String, Function> setters = super.getBaseSetters();
     setters.addAll({
       'enabled': (value) => enabled = Utils.optionalBool(value),
+      'floatLabel': (value) =>
+          floatLabel = Utils.getBool(value, fallback: false),
       'required': (value) => required = Utils.getBool(value, fallback: false),
       'hintText': (value) => hintText = Utils.optionalString(value),
       'icon': (value) => icon = Utils.getIcon(value),
@@ -72,6 +76,7 @@ class FormFieldController extends WidgetController {
           focusedBorderColor = Utils.getColor(color),
       'focusedErrorBorderColor': (color) =>
           focusedErrorBorderColor = Utils.getColor(color),
+      'labelStyle': (style) => labelStyle = Utils.getTextStyle(style),
     });
     return setters;
   }

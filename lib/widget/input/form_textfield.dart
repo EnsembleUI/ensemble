@@ -132,7 +132,6 @@ abstract class BaseTextInput extends StatefulWidget
       'maxLines': (value) => _controller.maxLines =
           Utils.getInt(value, min: 1, fallback: _controller.maxLines),
       'textStyle': (style) => _controller.textStyle = Utils.getTextStyle(style),
-      'labelStyle': (style) => _controller.labelStyle = LabelStyle(style),
       'hintStyle': (style) => _controller.hintStyle = Utils.getTextStyle(style),
     };
   }
@@ -201,21 +200,7 @@ class TextInputController extends FormFieldController {
   String? mask;
   int maxLines = 1;
   TextStyle? textStyle;
-  LabelStyle? labelStyle;
   TextStyle? hintStyle;
-}
-
-enum LabelPosition { outside, inline }
-
-class LabelStyle extends TextStyle {
-  TextStyle? textStyle;
-  LabelPosition position = LabelPosition.outside;
-
-  LabelStyle(dynamic styles) {
-    textStyle = Utils.getTextStyle(styles);
-    position =
-        LabelPosition.values.from(styles['position']) ?? LabelPosition.outside;
-  }
 }
 
 class TextInputState extends FormFieldWidgetState<BaseTextInput>
@@ -312,11 +297,11 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
 
     final showInlineLabel = widget._controller.labelStyle != null &&
         widget._controller.label != null &&
-        widget._controller.labelStyle?.position == LabelPosition.inline;
+        widget._controller.floatLabel == true;
     if (showInlineLabel) {
       decoration = decoration.copyWith(
         labelText: widget._controller.label,
-        labelStyle: widget._controller.labelStyle?.textStyle,
+        labelStyle: widget._controller.labelStyle,
       );
     }
 
