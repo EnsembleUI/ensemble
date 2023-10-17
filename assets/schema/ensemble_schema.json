@@ -5183,6 +5183,18 @@
                   "type": "integer",
                   "description": "Height of row. Default is 52.0"
                 },
+                "firstDay": {
+                  "type": "string",
+                  "description": "First day from where calendar begin. Default is CurrentDate - 12 months"
+                },
+                "lastDay": {
+                  "type": "string",
+                  "description": "Last day where calendar end. Default is CurrentDate + 12 months"
+                },
+                "headerVisible": {
+                  "type": "boolean",
+                  "description": "Set visibility of calendar header. Default true."
+                },
                 "cell": {
                   "allOf": [
                     {
