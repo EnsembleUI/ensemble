@@ -577,15 +577,14 @@ class CountryManager {
     List<Map<String, dynamic>> alpha2List = [];
     List<Map<String, dynamic>> alpha3List = [];
     List<Map<String, dynamic>> nameList = [];
+    userInput = userInput.toLowerCase().trim();
     switch (userInput.length) {
       case 2:
         alpha2List = _countryList(input: userInput, iso: "alpha-2");
       case 3:
         alpha3List = _countryList(input: userInput, iso: "alpha-3");
-        break;
     }
     nameList = _countryList(input: userInput);
-    userInput = userInput.toLowerCase();
     for (var name in nameList) {
       result.add(name);
     }
@@ -603,7 +602,6 @@ class CountryManager {
 
   List<Map<String, dynamic>> _countryList(
       {required String input, String? iso}) {
-    input = input.toLowerCase();
     List<Map<String, dynamic>> list = [];
     String code;
     switch (iso) {
@@ -611,7 +609,6 @@ class CountryManager {
         code = 'alpha-2';
       case "alpha-3":
         code = 'alpha-3';
-        break;
       default:
         code = "";
     }
