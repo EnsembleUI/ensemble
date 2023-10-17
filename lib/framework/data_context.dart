@@ -546,33 +546,40 @@ class EnsembleStorage with Invokable {
   }
 }
 
-/// singleton handling utils
 class EnsembleUtils with Invokable {
-  static final EnsembleUtils _obj = EnsembleUtils._();
-  EnsembleUtils._();
-  factory EnsembleUtils() => _obj;
-
   @override
-  Map<String, Function> getters() => {'getCountries': () => allCountries};
+  Map<String, Function> getters() => {};
 
   @override
   Map<String, Function> methods() => {
-        'getCountries': (value) {
+        'getCountries': () => allCountries,
+        'getCountry': (value) {
           String val = Utils.getString(value, fallback: "");
-          return CountryManager().getCountryData(val);
+          return getCountry(val);
         },
+        'findCountry': (value) {
+          String val = Utils.getString(value, fallback: "");
+          return findCountry(val);
+        }
       };
 
   @override
   Map<String, Function> setters() => {};
-}
 
-class CountryManager {
-  static final CountryManager _instance = CountryManager._();
-  CountryManager._();
-  factory CountryManager() => _instance;
+  List<Map<String, dynamic>> getCountry(String val) {
+    String input = val.toLowerCase().trim();
+    List<Map<String, dynamic>> alpha2List = [];
+    for (var i in allCountries) {
+      String countryCode = i['iso']['alpha-2'];
+      countryCode = countryCode.toLowerCase();
+      if (countryCode == input) {
+        alpha2List.add(i);
+      }
+    }
+    return alpha2List;
+  }
 
-  List<Map<String, dynamic>> getCountryData(String userInput) {
+  List<Map<String, dynamic>> findCountry(String userInput) {
     Set<Map<String, dynamic>> result = {};
     List<Map<String, dynamic>> alpha2List = [];
     List<Map<String, dynamic>> alpha3List = [];
@@ -580,11 +587,11 @@ class CountryManager {
     userInput = userInput.toLowerCase().trim();
     switch (userInput.length) {
       case 2:
-        alpha2List = _countryList(input: userInput, iso: "alpha-2");
+        alpha2List = _findCountry(input: userInput, iso: "alpha-2");
       case 3:
-        alpha3List = _countryList(input: userInput, iso: "alpha-3");
+        alpha3List = _findCountry(input: userInput, iso: "alpha-3");
     }
-    nameList = _countryList(input: userInput);
+    nameList = _findCountry(input: userInput);
     for (var name in nameList) {
       result.add(name);
     }
@@ -600,7 +607,7 @@ class CountryManager {
     return output;
   }
 
-  List<Map<String, dynamic>> _countryList(
+  List<Map<String, dynamic>> _findCountry(
       {required String input, String? iso}) {
     List<Map<String, dynamic>> list = [];
     String code;
@@ -614,9 +621,9 @@ class CountryManager {
     }
     if (code.isEmpty) {
       for (var i in allCountries) {
-        String countryCode = i['name'];
-        countryCode = countryCode.toLowerCase();
-        if (countryCode.startsWith(input)) {
+        String countryName = i['name'];
+        countryName = countryName.toLowerCase();
+        if (countryName.contains(input)) {
           list.add(i);
         }
       }
@@ -624,7 +631,7 @@ class CountryManager {
       for (var i in allCountries) {
         String countryCode = i['iso'][code];
         countryCode = countryCode.toLowerCase();
-        if (countryCode.startsWith(input)) {
+        if (countryCode.contains(input)) {
           list.add(i);
         }
       }
