@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/framework/widget/icon.dart' as framework;
 import 'package:ensemble/framework/action.dart';
@@ -299,6 +300,16 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
     InputDecoration decoration = inputDecoration.copyWith(
       hintStyle: widget._controller.hintStyle,
     );
+
+    final showInlineLabel = widget._controller.labelStyle != null &&
+        widget._controller.label != null &&
+        widget._controller.floatLabel == true;
+    if (showInlineLabel) {
+      decoration = decoration.copyWith(
+        labelText: widget._controller.label,
+        labelStyle: widget._controller.labelStyle,
+      );
+    }
 
     if ((widget.isPassword() || widget._controller.obscureText == true) &&
         widget._controller.obscureToggle == true) {
