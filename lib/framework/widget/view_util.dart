@@ -195,12 +195,8 @@ class ViewUtil {
     ScopeNode customScopeNode = ScopeNode(customScope);
     scopeNode.addChild(customScopeNode);
 
-    // build the root child widget
-    Widget rootWidget =
-        buildBareWidget(customScopeNode, customModel.getModel(), modelMap);
-
     Widget customWidget = CustomView(
-        childWidget: rootWidget,
+        body: customModel.getModel(),
         parameters: customModel.parameters,
         scopeManager: customScope,
         viewBehavior: customModel.getViewBehavior());
