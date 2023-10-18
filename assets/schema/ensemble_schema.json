@@ -2789,10 +2789,6 @@
         "enabled": {
           "type": "boolean"
         },
-        "floatLabel": {
-          "type": "boolean",
-          "description": "Moves the label on top of the Input Field. Default (False)."
-        },
         "icon": {
           "$ref": "#/$defs/HasIcon",
           "description": "The icon to show before the Input field"
@@ -2870,7 +2866,10 @@
                   "$ref": "#/$defs/typeColors",
                   "description": "The border color of this input field when it is receiving focus in its error state. This property can be defined in the theme to apply to all Input widgets."
                 },
-
+                "floatLabel": {
+                  "type": "boolean",
+                  "description": "Moves the label on top of the Input Field. Default (False)."
+                },
                 "labelStyle": {
                   "$ref": "#/$defs/TextStyle"
                 }
