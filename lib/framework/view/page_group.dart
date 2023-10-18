@@ -149,8 +149,9 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
   Widget buildSidebarNavigation(BuildContext context, SidebarMenu menu) {
     Widget sidebar = _buildSidebar(context, menu);
     Widget? separator = _buildSidebarSeparator(menu);
-    Widget content = Expanded(child: pageWidgets[selectedPage]);
-
+    Widget content = Expanded(
+      child: IndexedStack(index: selectedPage, children: pageWidgets),
+    );
     // figuring out the direction to lay things out
     bool rtlLocale = Directionality.of(context) == TextDirection.rtl;
     // standard layout is the sidebar menu then content
@@ -297,19 +298,6 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
   //     currentIndex: selectedPage,
   //   );
   // }
-
-  Widget? _buildCustomIcon(MenuItem item, {bool isActive = false}) {
-    Widget? iconWidget;
-    dynamic customWidgetModel =
-        isActive ? item.customActiveWidget : item.customWidget;
-    if (customWidgetModel != null) {
-      final widget = _scopeManager.buildWidget(customWidgetModel!);
-      final dataScopeWidget = widget as DataScopeWidget;
-      final customWidget = dataScopeWidget.child as CustomView;
-      iconWidget = customWidget.childWidget;
-    }
-    return iconWidget;
-  }
 
   Drawer? _buildDrawer(BuildContext context, Menu menu) {
     List<ListTile> navItems = [];

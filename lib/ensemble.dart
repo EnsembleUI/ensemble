@@ -37,16 +37,20 @@ class Ensemble {
     return _instance;
   }
 
-  late FirebaseApp ensembleFirebaseApp;
-  static final Map<String, dynamic> externalDataContext = {};
+  Map<String, Function> externalMethods = {};
+  void setExternalMethods(Map<String, Function> methods) =>
+      externalMethods = methods;
+
   Map<String, CustomBuilder> externalScreenWidgets = {};
-
-  static final RouteObserver<PageRoute> routeObserver =
-      RouteObserver<PageRoute>();
-
   void setExternalScreenWidgets(Map<String, CustomBuilder> widgets) {
     externalScreenWidgets = widgets;
   }
+
+  late FirebaseApp ensembleFirebaseApp;
+  static final Map<String, dynamic> externalDataContext = {};
+
+  static final RouteObserver<PageRoute> routeObserver =
+      RouteObserver<PageRoute>();
 
   /// initialize all the singleton/managers. Note that this function can be
   /// called multiple times since it's being called inside a widget.
@@ -340,6 +344,14 @@ class EnsembleConfig {
   Future<EnsembleConfig> updateAppBundle({bool bypassCache = false}) async {
     appBundle = await definitionProvider.getAppBundle(bypassCache: bypassCache);
     return this;
+  }
+
+  /// update Env Variables at any later time wil override the values we
+  /// got from our config file
+  void updateEnvOverrides(Map<String, dynamic> updatedMap) {
+    if (updatedMap.isNotEmpty) {
+      (envOverrides ??= {}).addAll(updatedMap);
+    }
   }
 
   /// pass our custom theme from the appBundle and build the App Theme

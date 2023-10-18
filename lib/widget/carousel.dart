@@ -273,12 +273,6 @@ class CarouselState extends WidgetState<Carousel>
   }
 
   List<Widget> buildItems() {
-    ViewUtil.checkValidWidget(
-        widget._controller.children != null
-            ? buildChildren(widget._controller.children!)
-            : null,
-        widget._controller.itemTemplate);
-
     // children will be rendered before templated children
     List<Widget> children = [];
 
