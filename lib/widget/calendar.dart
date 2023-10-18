@@ -78,6 +78,7 @@ class EnsembleCalendar extends StatefulWidget
           _controller.headerVisible = Utils.getBool(value, fallback: true),
       'firstDay': (value) => _controller.firstDay = Utils.getDate(value),
       'lastDay': (value) => _controller.lastDay = Utils.getDate(value),
+      'rowSpan': (value) => setRowSpan(value),
     };
   }
 
@@ -185,6 +186,18 @@ class EnsembleCalendar extends StatefulWidget
     _controller.selectedDays.value = updatedSelectedDays;
   }
 
+  void setRowSpan(dynamic data) {
+    if (data is YamlMap) {
+      final rowSpan = RowSpanConfig(
+        startDay: Utils.getDate(data['startDay']),
+        endDay: Utils.getDate(data['endDay']),
+        backgroundColor: Utils.getColor(data['backgroundColor']),
+        widget: data['child'],
+      );
+      _controller.rowSpanConfig = rowSpan;
+    }
+  }
+
   void setRangeData(dynamic data) {
     if (data is YamlMap) {
       _controller.highlightColor = Utils.getColor(data['highlightColor']);
@@ -216,6 +229,22 @@ class EnsembleCalendar extends StatefulWidget
       }
     }
   }
+}
+
+class RowSpanConfig {
+  DateTime? startDay;
+  DateTime? endDay;
+  dynamic widget;
+  Color? backgroundColor;
+
+  RowSpanConfig({
+    this.startDay,
+    this.endDay,
+    this.widget,
+    this.backgroundColor,
+  });
+
+  bool get isValid => startDay != null && endDay != null;
 }
 
 class CellConfig {
@@ -274,6 +303,7 @@ class CalendarController extends WidgetController {
   DateTime? firstDay;
   DateTime? lastDay;
   final ValueNotifier<DateTime> focusedDay = ValueNotifier(DateTime.now());
+  RowSpanConfig? rowSpanConfig;
 
   final ValueNotifier<Set<DateTime>> markedDays = ValueNotifier(
     LinkedHashSet<DateTime>(
@@ -467,8 +497,6 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
                       decoration: BoxDecoration(
                         color: widget._controller.highlightColor ??
                             Theme.of(context).primaryColor.withOpacity(0.4),
-                        shape: widget._controller.markCell.config?.shape ??
-                            BoxShape.rectangle,
                       ),
                     ),
                   );
