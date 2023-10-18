@@ -3,7 +3,8 @@ import 'package:flutter/services.dart';
 
 class IOSDeepLinkManager extends DeepLinkNavigator {
   static final IOSDeepLinkManager _instance = IOSDeepLinkManager._internal();
-  static const MethodChannel _platform = MethodChannel('com.ensemble.platform');
+  static const MethodChannel _platform =
+      MethodChannel('com.ensembleui.host.platform');
 
   // This method is invoked from the Host(iOS) Platform AppDelegate.swift
   static const String _deepLinkMethod = 'urlOpened';
