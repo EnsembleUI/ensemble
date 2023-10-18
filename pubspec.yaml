@@ -110,6 +110,8 @@ dependencies:
   app_links: ^3.4.3
   share_plus: ^6.2.0
   rate_my_app: ^2.0.0
+  table_calendar: ^3.0.9
+  flutter_app_badger: ^1.5.0
 
 dev_dependencies:
   flutter_test:

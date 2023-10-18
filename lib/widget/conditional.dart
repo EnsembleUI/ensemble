@@ -112,7 +112,7 @@ class ConditionalState extends WidgetState<Conditional> {
       return _buildWidget(scopeManager, conditions.first);
     }
 
-    for (var i = 1; i < conditions.length - 1; i++) {
+    for (var i = 1; i <= conditions.length - 1; i++) {
       final condition = conditions[i];
 
       if (condition.containsKey('elseif') &&
