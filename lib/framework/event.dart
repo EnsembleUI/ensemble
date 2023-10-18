@@ -3,11 +3,12 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 
 class EnsembleEvent extends Object with Invokable {
   final Invokable? source;
-  Map<String, dynamic>? data;
-  EnsembleEvent(this.source, {this.data = const {}});
+  dynamic data;
+  dynamic error;
+  EnsembleEvent(this.source, {this.data = const {}, this.error});
   @override
   Map<String, Function> getters() {
-    return {'data': () => data, 'source': () => source};
+    return {'data': () => data, 'error': () => error, 'source': () => source};
   }
 
   @override
