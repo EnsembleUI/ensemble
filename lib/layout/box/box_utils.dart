@@ -47,7 +47,10 @@ class BoxUtils {
       if (view.child is CustomView) {
         // Custom Widgets
         final CustomView customView = view.child as CustomView;
-        view = customView.childWidget;
+        // TODO: this logic is hosed since body is now just the model.
+        // TODO: But then we shouldn't be reaching in like this anyway
+        // view = customView.body;
+        return true;
       } else {
         // Native Widgets like Button, Text
         view = view.child;
