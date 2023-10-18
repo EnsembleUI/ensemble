@@ -12,7 +12,6 @@ import 'package:ensemble/layout/grid_view.dart';
 import 'package:ensemble/layout/toggle_container.dart';
 import 'package:ensemble/widget/Toggle.dart';
 import 'package:ensemble/widget/address.dart';
-import 'package:ensemble/widget/ensemble_player.dart';
 import 'package:ensemble/widget/shape.dart';
 import 'package:ensemble/widget/conditional.dart';
 import 'package:ensemble/widget/confirmation_input.dart';
@@ -55,6 +54,7 @@ import 'package:ensemble/widget/visualization/barchart.dart';
 import 'package:ensemble/widget/visualization/chart_js.dart';
 import 'package:ensemble/widget/visualization/line_area_chart.dart';
 import 'package:ensemble/widget/webview/webview.dart';
+import 'package:ensemble/widget/ensemble_player.dart';
 import 'package:get_it/get_it.dart';
 
 import 'fintech/tabapayconnect.dart';
