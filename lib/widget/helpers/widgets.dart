@@ -138,12 +138,17 @@ class InputWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isFloatLabel =
+        controller.floatLabel != null && controller.floatLabel == true;
+
     Widget rtn = controller.maxWidth == null
         ? Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (shouldShowLabel(context) && controller.label != null)
+              if (shouldShowLabel(context) &&
+                  controller.label != null &&
+                  !isFloatLabel)
                 Container(
                   margin: const EdgeInsets.only(bottom: 8.0),
                   child: Text(
