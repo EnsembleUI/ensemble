@@ -4882,6 +4882,19 @@
           }
         },
         {
+          "title": "YoutubePlayer",
+          "required": [
+            "YoutubePlayer"
+          ],
+          "properties": {
+            "YoutubePlayer" : {
+              "$ref" : "#/$defs/YoutubePlayer-payload"
+            }
+          }
+        },
+
+
+        {
           "title": "WebView",
           "required": [
             "WebView"
@@ -5379,6 +5392,27 @@
         "source": {
           "type": "string",
           "description": "The URL source to the media file"
+        }
+      }
+    },
+    "YoutubePlayer-payload":{
+      "type" : "object",
+      "properties" : {
+        "id" : {
+          "type" : "string",
+          "description": "The unique identifier for this widget"
+        },
+        "link" : {
+          "type": "string",
+          "description": "The URL source to the youtube video"
+        },
+        "aspectRatio" : {
+          "type": "double",
+          "description" : "Video aspect ratio"
+        },
+        "autoStart": {
+          "type" : "bool",
+          "description" : "If false, the video will not instantly start as the app is loaded"
         }
       }
     },

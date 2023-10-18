@@ -12,6 +12,7 @@ import 'package:ensemble/layout/grid_view.dart';
 import 'package:ensemble/layout/toggle_container.dart';
 import 'package:ensemble/widget/Toggle.dart';
 import 'package:ensemble/widget/address.dart';
+import 'package:ensemble/widget/ensemble_player.dart';
 import 'package:ensemble/widget/shape.dart';
 import 'package:ensemble/widget/conditional.dart';
 import 'package:ensemble/widget/confirmation_input.dart';
@@ -87,6 +88,7 @@ class WidgetRegistry {
         EnsembleMap.type: () => EnsembleMap(), // legacy maps
         Carousel.type: () => Carousel(),
         Video.type: () => Video(),
+        EnsemblePlayer.type: () => EnsemblePlayer(),
         EnsembleLottie.type: () => EnsembleLottie(),
         EnsembleSignature.type: () => EnsembleSignature(),
         WeeklyScheduler.type: () => WeeklyScheduler(),
