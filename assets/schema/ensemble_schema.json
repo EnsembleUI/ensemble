@@ -2983,6 +2983,36 @@
           }
         },
         {
+          "title": "Navigate External Screen",
+          "type": "object",
+          "required": [
+            "navigateExternalScreen"
+          ],
+          "properties": {
+            "navigateExternalScreen": {
+              "type": "object",
+              "description": "Navigating to a native screen outside of Ensemble (only iOS screens are currently supported - additional integration is required)",
+              "required": [
+                "name"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "The name of the screen."
+                },
+                "inputs": {
+                  "type": "object",
+                  "description": "Specify the key/value pairs to pass into the Screen",
+                  "properties": {},
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
           "title": "Navigate Modal Screen",
           "type": "object",
           "required": [
