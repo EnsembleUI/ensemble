@@ -77,7 +77,7 @@ class PageGroupWidget extends DataScopeWidget {
 
 class PageGroupState extends State<PageGroup> with MediaQueryCapability {
   late ScopeManager _scopeManager;
-  late PageController sidebarPageController;
+  PageController? sidebarPageController;
 
   // managing the list of pages
   List<Widget> pageWidgets = [];
@@ -111,7 +111,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
       }
     }
 
-    if (widget.menu is SidebarMenu) {
+    if (widget.menu is SidebarMenu && widget.menu.reloadView == false) {
       sidebarPageController = PageController(initialPage: 0);
     }
   }
@@ -155,10 +155,12 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     Widget sidebar = _buildSidebar(context, menu);
     Widget? separator = _buildSidebarSeparator(menu);
     Widget content = Expanded(
-      child: PageView(
-        controller: sidebarPageController,
-        children: pageWidgets,
-      ),
+      child: menu.reloadView == true
+          ? IndexedStack(index: selectedPage, children: pageWidgets)
+          : PageView(
+              controller: sidebarPageController,
+              children: pageWidgets,
+            ),
     );
     // figuring out the direction to lay things out
     bool rtlLocale = Directionality.of(context) == TextDirection.rtl;
@@ -253,7 +255,9 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
         setState(() {
           selectedPage = index;
         });
-        sidebarPageController.jumpToPage(index);
+        if (widget.menu.reloadView == false) {
+          sidebarPageController?.jumpToPage(index);
+        }
       },
     );
   }
