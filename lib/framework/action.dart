@@ -832,6 +832,7 @@ class CheckPermission extends EnsembleAction {
 enum ActionType {
   invokeAPI,
   navigateScreen,
+  navigateExternalScreen,
   navigateModalScreen,
   showBottomModal,
   dismissBottomModal,
@@ -914,6 +915,9 @@ abstract class EnsembleAction {
       {Invokable? initiator, YamlMap? payload}) {
     if (actionType == ActionType.navigateScreen) {
       return NavigateScreenAction.fromYaml(
+          initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.navigateExternalScreen) {
+      return NavigateExternalScreen.from(
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.navigateModalScreen) {
       return NavigateModalScreenAction.fromYaml(
