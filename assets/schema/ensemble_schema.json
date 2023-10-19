@@ -2870,6 +2870,9 @@
                   "type": "boolean",
                   "description": "Moves the label on top of the Input Field. Default (False)."
                 },
+                "floatingLabelStyle": {
+                  "$ref": "#/$defs/TextStyle"
+                },
                 "labelStyle": {
                   "$ref": "#/$defs/TextStyle"
                 }
