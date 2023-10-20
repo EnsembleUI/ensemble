@@ -1,5 +1,6 @@
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/theme/default_theme.dart';
+import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -144,12 +145,13 @@ mixin ThemeLoader {
   }
 
   TextTheme _buildTextTheme([YamlMap? textTheme]) {
+    final defaultThemeColor = ThemeManager().defaultTextColor();
     TextStyle defaultStyle =
-        Utils.getTextStyle(textTheme)?.copyWith(color: Colors.black) ??
-            const TextStyle(
+        Utils.getTextStyle(textTheme)?.copyWith(color: defaultThemeColor) ??
+            TextStyle(
                 fontFamily: 'Inter',
                 fontWeight: FontWeight.w400,
-                color: Colors.black);
+                color: defaultThemeColor);
 
     return ThemeData.light()
         .textTheme
