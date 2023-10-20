@@ -75,6 +75,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
     with RouteAware {
   late List<MenuItem> menuItems;
   late PageController controller;
+  late int selectedPage;
   FloatingAlignment floatingAlignment = FloatingAlignment.center;
   int? floatingMargin;
   MenuItem? fabMenuItem;
@@ -82,7 +83,11 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
   @override
   void initState() {
     super.initState();
-    controller = PageController();
+    if (widget.menu.reloadView == true) {
+      selectedPage = widget.selectedPage;
+    } else {
+      controller = PageController(initialPage: widget.selectedPage);
+    }
     menuItems = widget.menu.menuItems
         .where((element) => element.floating != true)
         .toList();
@@ -114,7 +119,9 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
 
   @override
   void dispose() {
-    controller.dispose();
+    if (widget.menu.reloadView == false) {
+      controller.dispose();
+    }
     Ensemble.routeObserver.unsubscribe(this);
     super.dispose();
   }
@@ -182,10 +189,12 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
       floatingActionButton: _buildFloatingButton(),
       body: PageGroupWidget(
         scopeManager: widget.scopeManager,
-        child: BottomNavPageView(
-          controller: controller,
-          children: widget.children,
-        ),
+        child: widget.menu.reloadView == true
+            ? widget.children[selectedPage]
+            : BottomNavPageView(
+                controller: controller,
+                children: widget.children,
+              ),
       ),
     );
   }
@@ -244,7 +253,15 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
       color: unselectedColor,
       selectedColor: selectedColor,
       notchedShape: const CircularNotchedRectangle(),
-      onTabSelected: controller.jumpToPage,
+      onTabSelected: (index) {
+        if (widget.menu.reloadView == true) {
+          setState(() {
+            selectedPage = index;
+          });
+        } else {
+          controller.jumpToPage(index);
+        }
+      },
       items: navItems,
       isFloating: fabMenuItem != null,
       floatingAlignment: floatingAlignment,
