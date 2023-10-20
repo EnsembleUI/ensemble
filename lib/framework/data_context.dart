@@ -3,6 +3,9 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:io' as io;
 import 'dart:ui';
+import 'package:ensemble/action/action_invokable.dart';
+import 'package:ensemble/action/call_external_method.dart';
+import 'package:ensemble/action/invoke_api_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/config.dart';
@@ -310,25 +313,25 @@ class DataContext {
 }
 
 /// built-in helpers/utils accessible to all DataContext
-class NativeInvokable with Invokable {
-  final BuildContext _buildContext;
-
-  NativeInvokable(this._buildContext);
+class NativeInvokable extends ActionInvokable {
+  NativeInvokable(super.buildContext);
 
   @override
   Map<String, Function> getters() {
     return {
-      'storage': () => EnsembleStorage(_buildContext),
+      'storage': () => EnsembleStorage(buildContext),
       'user': () => UserInfo(),
-      'formatter': () => Formatter(_buildContext),
+      'formatter': () => Formatter(buildContext),
     };
   }
 
   @override
   Map<String, Function> methods() {
-    return {
+    // see super method for Actions already exposed there
+    Map<String, Function> methods = super.methods();
+    methods.addAll({
       ActionType.navigateScreen.name: (inputs) => ScreenController()
-          .executeAction(_buildContext, NavigateScreenAction.fromMap(inputs)),
+          .executeAction(buildContext, NavigateScreenAction.fromMap(inputs)),
       ActionType.navigateModalScreen.name: navigateToModalScreen,
       ActionType.showDialog.name: showDialog,
       ActionType.invokeAPI.name: invokeAPI,
@@ -337,14 +340,11 @@ class NativeInvokable with Invokable {
       ActionType.openCamera.name: showCamera,
       ActionType.navigateBack.name: navigateBack,
       ActionType.showToast.name: (inputs) => ScreenController()
-          .executeAction(_buildContext, ShowToastAction.fromMap(inputs)),
+          .executeAction(buildContext, ShowToastAction.fromMap(inputs)),
       ActionType.startTimer.name: (inputs) => ScreenController()
-          .executeAction(_buildContext, StartTimerAction.fromMap(inputs)),
+          .executeAction(buildContext, StartTimerAction.fromMap(inputs)),
       ActionType.uploadFiles.name: uploadFiles,
       'debug': (value) => debugPrint('Debug: $value'),
-      'copyToClipboard': (value) =>
-          Clipboard.setData(ClipboardData(text: value)),
-      ActionType.share.name: (payload) => ShareAction.from(payload: payload),
       'initNotification': () => notificationUtils.initNotifications(),
       'updateSystemAuthorizationToken': (token) =>
           GetIt.instance<TokenManager>()
@@ -353,17 +353,18 @@ class NativeInvokable with Invokable {
           saveToKeychain(key, value),
       ActionType.clearKeychain.name: (key) => clearKeychain(key),
       'connectSocket': (String socketName, Map<dynamic, dynamic>? inputs) {
-        connectSocket(_buildContext, socketName, inputs: inputs);
+        connectSocket(buildContext, socketName, inputs: inputs);
       },
       'disconnectSocket': (String socketName) {
         disconnectSocket(socketName);
       },
       'messageSocket': (String socketName, dynamic message) {
-        final scope = ScreenController().getScopeManager(_buildContext);
+        final scope = ScreenController().getScopeManager(buildContext);
         final evalMessage = scope?.dataContext.eval(message);
         messageSocket(socketName, evalMessage);
       },
-    };
+    });
+    return methods;
   }
 
   @override
@@ -422,47 +423,47 @@ class NativeInvokable with Invokable {
     Map<String, dynamic>? inputMap = Utils.getMap(inputs);
     if (inputMap == null) throw LanguageError('UploadFiles need inputs');
     ScreenController().executeAction(
-      _buildContext,
+      buildContext,
       FileUploadAction.fromYaml(payload: YamlMap.wrap(inputMap)),
     );
   }
 
   void navigateToModalScreen(String screenName, [dynamic inputs]) {
     Map<String, dynamic>? inputMap = Utils.getMap(inputs);
-    ScreenController().navigateToScreen(_buildContext,
+    ScreenController().navigateToScreen(buildContext,
         screenName: screenName, pageArgs: inputMap, asModal: true);
     // how do we handle onModalDismiss in Typescript?
   }
 
   void showDialog(dynamic widget) {
     ScreenController()
-        .executeAction(_buildContext, ShowDialogAction(widget: widget));
+        .executeAction(buildContext, ShowDialogAction(widget: widget));
   }
 
   void openUrl([dynamic inputs]) {
     Map<String, dynamic>? inputMap = Utils.getMap(inputs);
     inputMap ??= {};
     ScreenController()
-        .executeAction(_buildContext, OpenUrlAction.fromMap(inputMap));
+        .executeAction(buildContext, OpenUrlAction.fromMap(inputMap));
   }
 
   void invokeAPI(String apiName, [dynamic inputs]) {
     Map<String, dynamic>? inputMap = Utils.getMap(inputs);
     ScreenController().executeAction(
-        _buildContext, InvokeAPIAction(apiName: apiName, inputs: inputMap));
+        buildContext, InvokeAPIAction(apiName: apiName, inputs: inputMap));
   }
 
   void stopTimer(String timerId) {
-    ScreenController().executeAction(_buildContext, StopTimerAction(timerId));
+    ScreenController().executeAction(buildContext, StopTimerAction(timerId));
   }
 
   void showCamera() {
-    ScreenController().executeAction(_buildContext, ShowCameraAction());
+    ScreenController().executeAction(buildContext, ShowCameraAction());
   }
 
   void navigateBack([dynamic payload]) {
     ScreenController().executeAction(
-        _buildContext, NavigateBackAction.from(payload: payload));
+        buildContext, NavigateBackAction.from(payload: payload));
   }
 }
 
