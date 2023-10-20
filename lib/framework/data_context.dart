@@ -569,74 +569,41 @@ class EnsembleUtils with Invokable {
   List<Map<String, dynamic>> getCountry(String val) {
     String input = val.toLowerCase().trim();
     List<Map<String, dynamic>> alpha2List = [];
-    for (var i in allCountries) {
-      String countryCode = i['iso']['alpha-2'];
-      countryCode = countryCode.toLowerCase();
-      if (countryCode == input) {
-        alpha2List.add(i);
+    if (input.length == 2) {
+      for (var i in allCountries) {
+        String countryCode = i['iso']['alpha-2'];
+        countryCode = countryCode.toLowerCase();
+        if (countryCode == input) {
+          alpha2List.add(i);
+        }
       }
     }
     return alpha2List;
   }
 
   List<Map<String, dynamic>> findCountry(String userInput) {
-    Set<Map<String, dynamic>> result = {};
-    List<Map<String, dynamic>> alpha2List = [];
-    List<Map<String, dynamic>> alpha3List = [];
-    List<Map<String, dynamic>> nameList = [];
+    List<Map<String, dynamic>> result = [];
     userInput = userInput.toLowerCase().trim();
-    switch (userInput.length) {
-      case 2:
-        alpha2List = _findCountry(input: userInput, iso: "alpha-2");
-      case 3:
-        alpha3List = _findCountry(input: userInput, iso: "alpha-3");
-    }
-    nameList = _findCountry(input: userInput);
-    for (var name in nameList) {
-      result.add(name);
-    }
-    for (var alpha2 in alpha2List) {
-      result.add(alpha2);
-    }
-    for (var alpha3 in alpha3List) {
-      result.add(alpha3);
-    }
-
-    List<Map<String, dynamic>> output =
-        List<Map<String, dynamic>>.from(result.map((e) => e));
-    return output;
-  }
-
-  List<Map<String, dynamic>> _findCountry(
-      {required String input, String? iso}) {
-    List<Map<String, dynamic>> list = [];
-    String code;
-    switch (iso) {
-      case "alpha-2":
-        code = 'alpha-2';
-      case "alpha-3":
-        code = 'alpha-3';
-      default:
-        code = "";
-    }
-    if (code.isEmpty) {
-      for (var i in allCountries) {
-        String countryName = i['name'];
-        countryName = countryName.toLowerCase();
-        if (countryName.contains(input)) {
-          list.add(i);
+    for (var i in allCountries) {
+      String countryName = i['name'] as String..toLowerCase();
+      countryName = countryName.toLowerCase();
+      if (countryName.contains(userInput, 0)) {
+        result.add(i);
+      } else if (userInput.length == 2) {
+        String alpha2Code = i['iso']['alpha-2'];
+        alpha2Code = alpha2Code.toLowerCase();
+        if (alpha2Code == userInput) {
+          result.add(i);
         }
-      }
-    } else {
-      for (var i in allCountries) {
-        String countryCode = i['iso'][code];
-        countryCode = countryCode.toLowerCase();
-        if (countryCode.contains(input)) {
-          list.add(i);
+      } else if (userInput.length == 3) {
+        String alpha3code = i['iso']['alpha-3'];
+        alpha3code = alpha3code.toLowerCase();
+        if (alpha3code == userInput) {
+          result.add(i);
         }
       }
     }
-    return list;
+    return result;
   }
 }
 
