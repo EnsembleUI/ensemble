@@ -454,7 +454,7 @@ class NativeInvokable extends ActionInvokable {
   }
 
   void stopTimer(String timerId) {
-    ScreenController().executeAction(buildContext, StopTimerAction(timerId));
+    ScreenController().executeAction(buildContext, StopTimerAction(id: timerId));
   }
 
   void showCamera() {

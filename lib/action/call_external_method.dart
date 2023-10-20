@@ -12,7 +12,7 @@ import 'package:flutter/cupertino.dart';
 /// Call an external methods (defined in Flutter) from inside Ensemble
 class CallExternalMethod extends EnsembleAction {
   CallExternalMethod(this._name, this._payload,
-      {this.onComplete, this.onError});
+      {super.id, this.onComplete, this.onError});
 
   final dynamic _name;
   final Map? _payload;
@@ -27,6 +27,7 @@ class CallExternalMethod extends EnsembleAction {
     }
     return CallExternalMethod(
         name, payload?['payload'] is Map ? payload!['payload'] : null,
+        id: payload?['id'],
         onComplete: EnsembleAction.fromYaml(payload?['onComplete']),
         onError: EnsembleAction.fromYaml(payload?['onError']));
   }
@@ -53,7 +54,7 @@ class CallExternalMethod extends EnsembleAction {
         // dispatch onComplete
         if (onComplete != null) {
           ScreenController().executeAction(context, onComplete!,
-              event: EnsembleEvent(null, data: rtnValue));
+              event: EnsembleEvent(initiator, data: rtnValue), parentAction: this);
         }
         return rtnValue;
       } catch (e) {
@@ -63,8 +64,8 @@ class CallExternalMethod extends EnsembleAction {
 
     if (onError != null) {
       ScreenController().executeAction(context, onError!,
-          event: EnsembleEvent(null,
-              error: errorReason ?? 'Error executing method'));
+          event: EnsembleEvent(initiator,
+              error: errorReason ?? 'Error executing method'), parentAction: this);
     }
     return Future.value(null);
   }

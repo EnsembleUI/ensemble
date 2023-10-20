@@ -95,11 +95,11 @@ class ScreenController {
 
   /// handle Action e.g invokeAPI
   Future<void> executeAction(BuildContext context, EnsembleAction action,
-      {EnsembleEvent? event}) {
+      {EnsembleEvent? event, EnsembleAction? parentAction}) {
     ScopeManager? scopeManager = getScopeManager(context);
     if (scopeManager != null) {
       return executeActionWithScope(context, scopeManager, action,
-          event: event);
+          event: event, parentAction: parentAction);
     } else {
       throw Exception('Cannot find ScopeManager to execute action');
     }
@@ -107,10 +107,10 @@ class ScreenController {
 
   Future<void> executeActionWithScope(
       BuildContext context, ScopeManager scopeManager, EnsembleAction action,
-      {EnsembleEvent? event}) {
+      {EnsembleEvent? event, EnsembleAction? parentAction}) {
     return nowExecuteAction(context, scopeManager.dataContext, action,
         scopeManager.pageData.apiMap, scopeManager,
-        event: event);
+        event: event, parentAction: parentAction);
   }
 
   /// internally execute an Action
@@ -120,7 +120,7 @@ class ScreenController {
       EnsembleAction action,
       Map<String, YamlMap>? apiMap,
       ScopeManager? scopeManager,
-      {EnsembleEvent? event}) async {
+      {EnsembleEvent? event, EnsembleAction? parentAction}) async {
     /// Actions are short-live so we don't need a childScope, simply create a localized context from the given context
     /// Note that scopeManager may starts out without Invokable IDs (as widgets may yet to render), but at the time
     /// of API returns, they will be populated. For this reason, always rebuild data context from scope manager.
@@ -145,6 +145,11 @@ class ScreenController {
     }
     if (event != null) {
       dataContext.addInvokableContext('event', event);
+    }
+    if (parentAction?.id != null) {
+      dataContext.addDataContextById(parentAction!.id!, {
+        'event': event
+      });
     }
 
     if (action is NavigateExternalScreen) {
@@ -426,9 +431,9 @@ class ScreenController {
         });
       }
     } else if (action is StopTimerAction) {
-      if (scopeManager != null) {
+      if (scopeManager != null && action.id != null) {
         try {
-          scopeManager.removeTimer(action.id);
+          scopeManager.removeTimer(action.id!);
         } catch (e) {
           debugPrint(
               'error when trying to stop timer with name ${action.id}. Error: ${e.toString()}');

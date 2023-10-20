@@ -301,16 +301,14 @@ class StartTimerAction extends EnsembleAction {
 }
 
 class StopTimerAction extends EnsembleAction {
-  StopTimerAction(this.id);
-
-  String id;
+  StopTimerAction({super.id});
 
   factory StopTimerAction.fromYaml({Map? payload}) {
     if (payload?['id'] == null) {
       throw LanguageError(
           "${ActionType.stopTimer.name} requires a timer Id to stop.");
     }
-    return StopTimerAction(payload!['id'].toString());
+    return StopTimerAction(id: payload!['id'].toString());
   }
 }
 
@@ -426,7 +424,7 @@ class GetLocationAction extends EnsembleAction {
 
 class FilePickerAction extends EnsembleAction {
   FilePickerAction({
-    required this.id,
+    super.id,
     this.allowedExtensions,
     this.allowMultiple,
     this.allowCompression,
@@ -434,7 +432,6 @@ class FilePickerAction extends EnsembleAction {
     this.onError,
   });
 
-  String id;
   List<String>? allowedExtensions;
   bool? allowMultiple;
   bool? allowCompression;
@@ -757,7 +754,12 @@ enum ToastType { success, error, warning, info }
 
 /// payload representing an Action to do (navigateToScreen, InvokeAPI, ..)
 abstract class EnsembleAction {
-  EnsembleAction({this.initiator, this.inputs});
+  EnsembleAction({this.id, this.initiator, this.inputs});
+
+  // Action id enables us to scope the event by using its prefix. This is
+  // helpful when we chain Actions and the inner Action wants to access the
+  // outer Action's event. e.g. ancestorId.event.data
+  String? id;
 
   // initiator is an Invokable so we can scope to *this* variable
   Invokable? initiator;
