@@ -4323,6 +4323,19 @@
             "floatingIconColor": {
               "$ref": "#/$defs/typeColors",
               "description": "Floating item icon color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+            },
+            "height": {
+              "type": "integer",
+              "description": "Set the height of the BottomNavBar."
+            },
+            "padding": {
+              "$ref": "#/$defs/Padding-payload"
+            },
+            "margin": {
+              "$ref": "#/$defs/Margin-payload"
+            },
+            "borderRadius": {
+              "$ref": "#/$defs/borderRadius"
             }
           }
         },
