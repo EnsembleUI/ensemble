@@ -301,13 +301,9 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
       hintStyle: widget._controller.hintStyle,
     );
 
-    final showInlineLabel = widget._controller.labelStyle != null &&
-        widget._controller.label != null &&
-        widget._controller.floatLabel == true;
-    if (showInlineLabel) {
+    if (widget._controller.floatLabel == true) {
       decoration = decoration.copyWith(
         labelText: widget._controller.label,
-        labelStyle: widget._controller.labelStyle,
       );
     }
 
