@@ -474,49 +474,6 @@ class ScreenController {
           scopeManager: scopeManager);
     } else if (action is FilePickerAction) {
       GetIt.I<FileManager>().pickFiles(context, action, scopeManager);
-    } else if (action is CopyToClipboardAction) {
-      if (action.value != null) {
-        String? clipboardValue = action.getValue(dataContext);
-        if (clipboardValue != null) {
-          Clipboard.setData(ClipboardData(text: clipboardValue)).then((value) {
-            if (action.onSuccess != null) {
-              executeAction(context, action.onSuccess!);
-            }
-          }).catchError((_) {
-            if (action.onFailure != null) {
-              executeAction(context, action.onFailure!);
-            }
-          });
-        }
-      } else {
-        if (action.onFailure != null) executeAction(context, action.onFailure!);
-      }
-    } else if (action is ShareAction) {
-      Share.share(action.getText(dataContext),
-          subject: action.getTitle(dataContext));
-    } else if (action is GetDeviceTokenAction) {
-      String? deviceToken;
-      try {
-        await FirebaseMessaging.instance.requestPermission(
-          alert: true,
-          badge: true,
-          sound: true,
-        );
-        // need to get APNS first
-        await FirebaseMessaging.instance.getAPNSToken();
-        // then get device token
-        deviceToken = await FirebaseMessaging.instance.getToken();
-        if (deviceToken != null && action.onSuccess != null) {
-          return ScreenController().executeAction(context, action.onSuccess!,
-              event: EnsembleEvent(null, data: {'token': deviceToken}));
-        }
-      } on Exception catch (e) {
-        log(e.toString());
-        log('Error getting device token');
-      }
-      if (deviceToken == null && action.onError != null) {
-        return ScreenController().executeAction(context, action.onError!);
-      }
     } else if (action is WalletConnectAction) {
       //  TODO store session:  WalletConnectSession? session = await sessionStorage.getSession();
 

@@ -19,7 +19,7 @@ class UpdateBadgeCount extends EnsembleAction {
   }
 
   @override
-  Future<void> execute(BuildContext context, ScopeManager scopeManager) {
+  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
     int? count = Utils.optionalInt(scopeManager.dataContext.eval(_count));
     if (count != null) {
       return FlutterAppBadger.updateBadgeCount(count);
@@ -30,7 +30,7 @@ class UpdateBadgeCount extends EnsembleAction {
 
 class ClearBadgeCount extends EnsembleAction {
   @override
-  Future<void> execute(BuildContext context, ScopeManager scopeManager) {
+  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
     return FlutterAppBadger.removeBadge();
   }
 }
