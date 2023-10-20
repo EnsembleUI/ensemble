@@ -32,7 +32,7 @@ class CallExternalMethod extends EnsembleAction {
   }
 
   @override
-  Future<void> execute(BuildContext context, ScopeManager scopeManager) {
+  Future<void> execute(BuildContext context, ScopeManager scopeManager) async {
     String? name = Utils.optionalString(scopeManager.dataContext.eval(_name));
 
     String? errorReason;
@@ -46,16 +46,16 @@ class CallExternalMethod extends EnsembleAction {
         _payload?.forEach((key, value) {
           (payload ??= {})[Symbol(key)] = scopeManager.dataContext.eval(value);
         });
-        // execute the external function
-        dynamic rtnValue =
-            Function.apply(Ensemble().externalMethods[name]!, null, payload);
+        // execute the external function. Always await in case it's async
+        dynamic rtnValue = await Function.apply(
+            Ensemble().externalMethods[name]!, null, payload);
 
         // dispatch onComplete
         if (onComplete != null) {
           ScreenController().executeAction(context, onComplete!,
               event: EnsembleEvent(null, data: rtnValue));
         }
-        return Future.value(null);
+        return rtnValue;
       } catch (e) {
         errorReason = e.toString();
       }

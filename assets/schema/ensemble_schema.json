@@ -2865,6 +2865,18 @@
                 "focusedErrorBorderColor": {
                   "$ref": "#/$defs/typeColors",
                   "description": "The border color of this input field when it is receiving focus in its error state. This property can be defined in the theme to apply to all Input widgets."
+                },
+                "floatLabel": {
+                  "type": "boolean",
+                  "description": "Moves the label on top of the Input Field. Default (False)."
+                },
+                "floatingLabelStyle": {
+                  "$ref": "#/$defs/TextStyle",
+                  "description": "Set the label's styles when it is in floating mode"
+                },
+                "labelStyle": {
+                  "$ref": "#/$defs/TextStyle",
+                  "description": "Set the label's styles"
                 }
               }
             }
@@ -2969,6 +2981,36 @@
                 "onNavigateBack": {
                   "$ref": "#/$defs/Action-payload",
                   "description": "Invoke an Action when navigating back to this screen. The data (if specified by the removed screen) can be accessed with ${event.data})"
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Navigate External Screen",
+          "type": "object",
+          "required": [
+            "navigateExternalScreen"
+          ],
+          "properties": {
+            "navigateExternalScreen": {
+              "type": "object",
+              "description": "Navigating to a native screen outside of Ensemble (only iOS screens are currently supported - additional integration is required)",
+              "required": [
+                "name"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "The name of the screen."
+                },
+                "inputs": {
+                  "type": "object",
+                  "description": "Specify the key/value pairs to pass into the Screen",
+                  "properties": {},
+                  "additionalProperties": {
+                    "type": "string"
+                  }
                 }
               }
             }
@@ -4281,6 +4323,19 @@
             "floatingIconColor": {
               "$ref": "#/$defs/typeColors",
               "description": "Floating item icon color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+            },
+            "height": {
+              "type": "integer",
+              "description": "Set the height of the BottomNavBar."
+            },
+            "padding": {
+              "$ref": "#/$defs/Padding-payload"
+            },
+            "margin": {
+              "$ref": "#/$defs/Margin-payload"
+            },
+            "borderRadius": {
+              "$ref": "#/$defs/borderRadius"
             }
           }
         },
@@ -5186,6 +5241,18 @@
                 "rowHeight": {
                   "type": "integer",
                   "description": "Height of row. Default is 52.0"
+                },
+                "firstDay": {
+                  "type": "string",
+                  "description": "First day from where calendar begin. Default is CurrentDate - 12 months"
+                },
+                "lastDay": {
+                  "type": "string",
+                  "description": "Last day where calendar end. Default is CurrentDate + 12 months"
+                },
+                "headerVisible": {
+                  "type": "boolean",
+                  "description": "Set visibility of calendar header. Default true."
                 },
                 "cell": {
                   "allOf": [

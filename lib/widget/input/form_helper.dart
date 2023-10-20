@@ -1,5 +1,3 @@
-import 'package:ensemble/ensemble_theme.dart';
-import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
@@ -18,6 +16,7 @@ import 'package:flutter/material.dart';
 /// Controls attributes applicable for all Form Field widgets.
 class FormFieldController extends WidgetController {
   bool? enabled;
+  bool? floatLabel;
   bool required = false;
   String? hintText;
   IconModel? icon;
@@ -36,6 +35,8 @@ class FormFieldController extends WidgetController {
   Color? errorBorderColor;
   Color? focusedBorderColor;
   Color? focusedErrorBorderColor;
+  TextStyle? labelStyle;
+  TextStyle? floatingLabelStyle;
 
   @override
   Map<String, Function> getBaseGetters() {
@@ -52,6 +53,8 @@ class FormFieldController extends WidgetController {
     Map<String, Function> setters = super.getBaseSetters();
     setters.addAll({
       'enabled': (value) => enabled = Utils.optionalBool(value),
+      'floatLabel': (value) =>
+          floatLabel = Utils.getBool(value, fallback: false),
       'required': (value) => required = Utils.getBool(value, fallback: false),
       'hintText': (value) => hintText = Utils.optionalString(value),
       'icon': (value) => icon = Utils.getIcon(value),
@@ -74,6 +77,9 @@ class FormFieldController extends WidgetController {
           focusedBorderColor = Utils.getColor(color),
       'focusedErrorBorderColor': (color) =>
           focusedErrorBorderColor = Utils.getColor(color),
+      'labelStyle': (style) => labelStyle = Utils.getTextStyle(style),
+      'floatingLabelStyle': (style) =>
+          floatingLabelStyle = Utils.getTextStyle(style),
     });
     return setters;
   }
@@ -170,7 +176,6 @@ abstract class FormFieldWidgetState<W extends HasController>
       return InputDecoration(
           // consistent with the theme. We need dense so user have granular control of contentPadding
           isDense: true,
-          floatingLabelBehavior: FloatingLabelBehavior.always,
           filled: filled,
           fillColor: myController.fillColor,
           // labelText: shouldShowLabel() ? myController.label : null,
@@ -238,7 +243,9 @@ abstract class FormFieldWidgetState<W extends HasController>
                       borderWidth: borderWidth,
                       borderRadius: borderRadius,
                       borderColor: myController.focusedErrorBorderColor ??
-                          themeDecoration.focusedErrorBorder?.borderSide.color));
+                          themeDecoration.focusedErrorBorder?.borderSide.color),
+          labelStyle: myController.labelStyle,
+          floatingLabelStyle: myController.floatingLabelStyle);
     }
     return const InputDecoration();
   }
