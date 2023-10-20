@@ -147,10 +147,7 @@ class ScreenController {
       dataContext.addInvokableContext('event', event);
     }
 
-    if (action is InvokeAPIAction) {
-      await InvokeAPIController()
-          .execute(action, context, dataContext, scopeManager, apiMap);
-    } else if (action is NavigateExternalScreen) {
+    if (action is NavigateExternalScreen) {
       return action.execute(context, scopeManager!);
     } else if (action is BaseNavigateScreenAction) {
       // process input parameters
