@@ -4260,6 +4260,10 @@
         "items"
       ],
       "properties": {
+        "reloadView": {
+          "type": "boolean",
+          "description": "It will reload the page each time when clicking the menu item"
+        },
         "items": {
           "type": "array",
           "description": "List of menu items (minimum 2)",
@@ -4338,6 +4342,10 @@
               "$ref": "#/$defs/borderRadius"
             }
           }
+        },
+        "reloadView": {
+          "type": "boolean",
+          "description": "It will reload the page each time when clicking the menu item"
         },
         "items": {
           "type": "array",
@@ -4428,6 +4436,10 @@
         },
         {
           "properties": {
+            "reloadView": {
+              "type": "boolean",
+              "description": "It will reload the page each time when clicking the menu item"
+            },
             "styles": {
               "properties": {
                 "borderColor": {
