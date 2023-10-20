@@ -373,7 +373,7 @@ class EnsembleBottomAppBarState extends State<EnsembleBottomAppBar> {
         decoration: BoxDecoration(
           borderRadius: widget.borderRadius ?? BorderRadius.zero,
         ),
-        clipBehavior: Clip.hardEdge,
+        clipBehavior: widget.borderRadius != null ? Clip.hardEdge : Clip.none,
         child: BottomAppBar(
           padding: Utils.optionalInsets(widget.padding) ?? EdgeInsets.zero,
           shape: widget.notchedShape,
