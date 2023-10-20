@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math';
 import 'dart:ui';
+import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:ensemble/framework/error_handling.dart';
@@ -428,7 +429,8 @@ class Utils {
           fontStyle: Utils.optionalBool(style['isItalic']) == true
               ? FontStyle.italic
               : FontStyle.normal,
-          color: Utils.getColor(style['color']) ?? Colors.black,
+          color: Utils.getColor(style['color']) ??
+              ThemeManager().defaultTextColor(),
           backgroundColor: Utils.getColor(style['backgroundColor']),
           decoration: getDecoration(style['decoration']),
           decorationStyle:
