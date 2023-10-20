@@ -15,7 +15,9 @@ class DeepLinkNavigator {
             ?.toString();
     if (screenId != null || screenName != null) {
       ScreenController().navigateToScreen(Utils.globalAppKey.currentContext!,
-          screenId: screenId, screenName: screenName, pageArgs: uri.queryParameters);
+          screenId: screenId,
+          screenName: screenName,
+          pageArgs: uri.queryParameters);
     }
   }
 }
