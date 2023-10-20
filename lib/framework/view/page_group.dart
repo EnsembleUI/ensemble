@@ -130,10 +130,16 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
         Drawer? drawer = _buildDrawer(context, widget.menu);
         bool atStart = (widget.menu as DrawerMenu).atStart;
         return PageGroupWidget(
-            scopeManager: _scopeManager,
-            navigationDrawer: atStart ? drawer : null,
-            navigationEndDrawer: !atStart ? drawer : null,
-            child: pageWidgets[selectedPage]);
+          scopeManager: _scopeManager,
+          navigationDrawer: atStart ? drawer : null,
+          navigationEndDrawer: !atStart ? drawer : null,
+          child: widget.menu.reloadView == true
+              ? pageWidgets[selectedPage]
+              : IndexedStack(
+                  index: selectedPage,
+                  children: pageWidgets,
+                ),
+        );
       } else if (widget.menu is SidebarMenu) {
         return PageGroupWidget(
             scopeManager: _scopeManager,
