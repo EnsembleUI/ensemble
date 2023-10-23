@@ -2,8 +2,10 @@
 import 'dart:developer';
 
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/notification_manager.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -30,28 +32,16 @@ class GetDeviceTokenAction extends EnsembleAction {
   }
 
   @override
-  Future execute(BuildContext context, ScopeManager scopeManager) async {
-    String? deviceToken;
-    try {
-      await FirebaseMessaging.instance.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
-      // need to get APNS first
-      await FirebaseMessaging.instance.getAPNSToken();
-      // then get device token
-      deviceToken = await FirebaseMessaging.instance.getToken();
-      if (deviceToken != null && onSuccess != null) {
-        return ScreenController().executeAction(context, onSuccess!,
-            event: EnsembleEvent(initiator, data: {'token': deviceToken}));
-      }
-    } on Exception catch (e) {
-      log(e.toString());
-      log('Error getting device token');
+  Future execute(BuildContext context, ScopeManager scopeManager,
+      {DataContext? dataContext}) async {
+    String? deviceToken = await NotificationManager().getDeviceToken();
+    if (deviceToken != null && onSuccess != null) {
+      return ScreenController().executeAction(context, onSuccess!,
+          event: EnsembleEvent(initiator, data: {'token': deviceToken}));
     }
     if (deviceToken == null && onError != null) {
-      return ScreenController().executeAction(context, onError!);
+      return ScreenController().executeAction(context, onError!,
+          event: EnsembleEvent(initiator));
     }
   }
 }

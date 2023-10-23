@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/util/utils.dart';
@@ -19,7 +20,8 @@ class UpdateBadgeCount extends EnsembleAction {
   }
 
   @override
-  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
+  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager,
+      {DataContext? dataContext}) {
     int? count = Utils.optionalInt(scopeManager.dataContext.eval(_count));
     if (count != null) {
       return FlutterAppBadger.updateBadgeCount(count);
@@ -30,7 +32,8 @@ class UpdateBadgeCount extends EnsembleAction {
 
 class ClearBadgeCount extends EnsembleAction {
   @override
-  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
+  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager,
+      {DataContext? dataContext}) {
     return FlutterAppBadger.removeBadge();
   }
 }

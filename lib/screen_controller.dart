@@ -630,7 +630,7 @@ class ScreenController {
     }
     // catch-all. All Actions should just be using this
     else {
-      action.execute(context, scopeManager!);
+      action.execute(context, scopeManager!, dataContext: dataContext);
     }
   }
 
