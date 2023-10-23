@@ -55,7 +55,7 @@ import 'package:ensemble/widget/visualization/barchart.dart';
 import 'package:ensemble/widget/visualization/chart_js.dart';
 import 'package:ensemble/widget/visualization/line_area_chart.dart';
 import 'package:ensemble/widget/webview/webview.dart';
-import 'package:ensemble/widget/ensemble_player.dart';
+import 'package:ensemble/widget/youtube.dart';
 import 'package:get_it/get_it.dart';
 
 import 'fintech/tabapayconnect.dart';
@@ -89,7 +89,7 @@ class WidgetRegistry {
         EnsembleMap.type: () => EnsembleMap(), // legacy maps
         Carousel.type: () => Carousel(),
         Video.type: () => Video(),
-        EnsemblePlayer.type: () => EnsemblePlayer(),
+        Youtube.type: () => Youtube(),
         EnsembleLottie.type: () => EnsembleLottie(),
         EnsembleSignature.type: () => EnsembleSignature(),
         WeeklyScheduler.type: () => WeeklyScheduler(),
