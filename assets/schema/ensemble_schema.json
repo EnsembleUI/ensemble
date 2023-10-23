@@ -2870,8 +2870,13 @@
                   "type": "boolean",
                   "description": "Moves the label on top of the Input Field. Default (False)."
                 },
+                "floatingLabelStyle": {
+                  "$ref": "#/$defs/TextStyle",
+                  "description": "Set the label's styles when it is in floating mode"
+                },
                 "labelStyle": {
-                  "$ref": "#/$defs/TextStyle"
+                  "$ref": "#/$defs/TextStyle",
+                  "description": "Set the label's styles"
                 }
               }
             }
@@ -4255,6 +4260,10 @@
         "items"
       ],
       "properties": {
+        "reloadView": {
+          "type": "boolean",
+          "description": "It will reload the page each time when clicking the menu item"
+        },
         "items": {
           "type": "array",
           "description": "List of menu items (minimum 2)",
@@ -4318,8 +4327,25 @@
             "floatingIconColor": {
               "$ref": "#/$defs/typeColors",
               "description": "Floating item icon color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+            },
+            "height": {
+              "type": "integer",
+              "description": "Set the height of the BottomNavBar."
+            },
+            "padding": {
+              "$ref": "#/$defs/Padding-payload"
+            },
+            "margin": {
+              "$ref": "#/$defs/Margin-payload"
+            },
+            "borderRadius": {
+              "$ref": "#/$defs/borderRadius"
             }
           }
+        },
+        "reloadView": {
+          "type": "boolean",
+          "description": "It will reload the page each time when clicking the menu item"
         },
         "items": {
           "type": "array",
@@ -4410,6 +4436,10 @@
         },
         {
           "properties": {
+            "reloadView": {
+              "type": "boolean",
+              "description": "It will reload the page each time when clicking the menu item"
+            },
             "styles": {
               "properties": {
                 "borderColor": {
@@ -5236,6 +5266,18 @@
                 "rowHeight": {
                   "type": "integer",
                   "description": "Height of row. Default is 52.0"
+                },
+                "firstDay": {
+                  "type": "string",
+                  "description": "First day from where calendar begin. Default is CurrentDate - 12 months"
+                },
+                "lastDay": {
+                  "type": "string",
+                  "description": "Last day where calendar end. Default is CurrentDate + 12 months"
+                },
+                "headerVisible": {
+                  "type": "boolean",
+                  "description": "Set visibility of calendar header. Default true."
                 },
                 "cell": {
                   "allOf": [
