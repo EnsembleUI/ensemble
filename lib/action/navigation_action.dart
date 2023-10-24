@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/host_platform_manager.dart';
@@ -25,7 +26,8 @@ class NavigateExternalScreen extends BaseNavigateScreenAction {
   }
 
   @override
-  Future<void> execute(BuildContext context, ScopeManager scopeManager) {
+  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager,
+      {DataContext? dataContext}) {
     // payload
     Map<String, dynamic>? payload;
     if (inputs != null) {
@@ -58,7 +60,8 @@ class NavigateBackAction extends EnsembleAction {
       NavigateBackAction(payload: payload?['payload'] ?? payload?['data']);
 
   @override
-  Future<void> execute(BuildContext context, ScopeManager scopeManager) {
+  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager,
+      {DataContext? dataContext}) {
     return Navigator.of(context)
         .maybePop(scopeManager.dataContext.eval(payload));
   }
