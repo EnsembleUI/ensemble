@@ -3912,7 +3912,9 @@
             "updateBadgeCount": {
               "type": "object",
               "description": "Update the app's badge count (applicable on iOS, MacOS, and some Android devices only). Notifications must also be enabled for this to work properly.",
-              "required": ["count"],
+              "required": [
+                "count"
+              ],
               "properties": {
                 "count": {
                   "type": "integer",
@@ -5266,6 +5268,37 @@
                   "type": "boolean",
                   "description": "Set visibility of calendar header. Default true."
                 },
+                "rowSpans": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "span": {
+                        "type": "object",
+                        "properties": {
+                          "start": {
+                            "type": "string",
+                            "description": "date in ISO format."
+                          },
+                          "end": {
+                            "type": "string",
+                            "description": "date in ISO format."
+                          },
+                          "widget": {
+                            "$ref": "#/$defs/Widget"
+                          }
+                        },
+                        "required": ["start", "end", "widget"]
+                      }
+                    },
+                    "required": ["span"]
+                  }
+                },
+                "headerTextStyle": {
+                  "type": "object",
+                  "description": "Styling the header text.",
+                  "$ref": "#/$defs/TextStyle"
+                },
                 "cell": {
                   "allOf": [
                     {
@@ -5277,7 +5310,7 @@
                       "properties": {
                         "onTap": {
                           "$ref": "#/$defs/Action-payload",
-                          "description": "Execute an Action when the map's bound has changed. The bound data is available using `event.data.bounds.<southwest/northeast>.<lat/lng>`."                
+                          "description": "Execute an Action when the map's bound has changed. The bound data is available using `event.data.bounds.<southwest/northeast>.<lat/lng>`."
                         }
                       }
                     }
@@ -5301,7 +5334,7 @@
                 },
                 "range": {
                   "$ref": "#/$defs/Range-payload"
-                }        
+                }
               }
             }
           }

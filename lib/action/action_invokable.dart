@@ -29,8 +29,8 @@ abstract class ActionInvokable with Invokable {
         if (payload != null && payload is! Map) {
           throw LanguageError("${actionType.name} has an invalid payload.");
         }
-        EnsembleAction? action = EnsembleAction.fromActionType(
-            actionType, payload: payload);
+        EnsembleAction? action =
+            EnsembleAction.fromActionType(actionType, payload: payload);
         return action?.execute(buildContext, _getScopeManager(buildContext));
       };
     }

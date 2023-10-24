@@ -78,7 +78,17 @@ class EnsembleCalendar extends StatefulWidget
           _controller.headerVisible = Utils.getBool(value, fallback: true),
       'firstDay': (value) => _controller.firstDay = Utils.getDate(value),
       'lastDay': (value) => _controller.lastDay = Utils.getDate(value),
-      'rowSpan': (value) => setRowSpan(value),
+      'rowSpans': (value) {
+        if (value is List) {
+          for (var data in value) {
+            setRowSpan(data['span']);
+          }
+        } else {
+          setRowSpan(value);
+        }
+      },
+      'headerTextStyle': (value) =>
+          _controller.headerTextStyle = Utils.getTextStyle(value),
     };
   }
 
@@ -189,12 +199,11 @@ class EnsembleCalendar extends StatefulWidget
   void setRowSpan(dynamic data) {
     if (data is YamlMap) {
       final rowSpan = RowSpanConfig(
-        startDay: Utils.getDate(data['startDay']),
-        endDay: Utils.getDate(data['endDay']),
-        backgroundColor: Utils.getColor(data['backgroundColor']),
-        widget: data['child'],
+        startDay: Utils.getDate(data['start']),
+        endDay: Utils.getDate(data['end']),
+        widget: data['widget'],
       );
-      _controller.rowSpanConfig = rowSpan;
+      _controller.rowSpans.add(rowSpan);
     }
   }
 
@@ -303,7 +312,8 @@ class CalendarController extends WidgetController {
   DateTime? firstDay;
   DateTime? lastDay;
   final ValueNotifier<DateTime> focusedDay = ValueNotifier(DateTime.now());
-  RowSpanConfig? rowSpanConfig;
+  List<RowSpanConfig> rowSpans = [];
+  TextStyle? headerTextStyle;
 
   final ValueNotifier<Set<DateTime>> markedDays = ValueNotifier(
     LinkedHashSet<DateTime>(
@@ -420,6 +430,7 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
             builder: (context, value, _) {
               return _CalendarHeader(
                 focusedDay: value,
+                headerStyle: widget._controller.headerTextStyle,
                 onLeftArrowTap: () {
                   widget._controller.pageController?.previousPage(
                     duration: const Duration(milliseconds: 300),
@@ -457,7 +468,24 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
               widget._controller.focusedDay.value = focusedDay,
           rowHeight: widget._controller.rowHeight,
           daysOfWeekVisible: true,
+          overlayRanges: getOverlayRange(),
           calendarBuilders: CalendarBuilders(
+            overlayBuilder: widget._controller.rowSpans.isEmpty
+                ? null
+                : (context, range) {
+                    final spans = widget._controller.rowSpans;
+                    for (var span in spans) {
+                      if (span.startDay == null || span.endDay == null) {
+                        return const SizedBox.shrink();
+                      }
+                      if (DateTimeRange(
+                              start: span.startDay!, end: span.endDay!) ==
+                          range) {
+                        return widgetBuilder(context, span.widget, {});
+                      }
+                    }
+                    return const SizedBox.shrink();
+                  },
             disabledBuilder: (context, day, focusedDay) {
               return cellBuilder(
                   context, day, focusedDay, widget._controller.disableCell);
@@ -537,6 +565,17 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
               return null;
             },
             todayBuilder: (context, day, focusedDay) {
+              if (widget._controller.rangeSelectionMode ==
+                  RangeSelectionMode.toggledOn) {
+                final isWithinRange = widget._controller.rangeStart != null &&
+                    widget._controller.rangeEnd != null &&
+                    _isWithinRange(day, widget._controller.rangeStart!,
+                        widget._controller.rangeEnd!);
+                if (isWithinRange) {
+                  return cellBuilder(context, day, focusedDay,
+                      widget._controller.rangeBetweenCell);
+                }
+              }
               return cellBuilder(
                   context, day, focusedDay, widget._controller.todayCell);
             },
@@ -552,6 +591,29 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
         ),
       ],
     );
+  }
+
+  List<DateTimeRange> getOverlayRange() {
+    final overlayRange = <DateTimeRange>[];
+    for (var span in widget._controller.rowSpans) {
+      if (span.endDay != null && span.startDay != null) {
+        overlayRange
+            .add(DateTimeRange(start: span.startDay!, end: span.endDay!));
+      }
+    }
+    return overlayRange;
+  }
+
+  bool _isWithinRange(DateTime day, DateTime start, DateTime end) {
+    if (isSameDay(day, start) || isSameDay(day, end)) {
+      return true;
+    }
+
+    if (day.isAfter(start) && day.isBefore(end)) {
+      return true;
+    }
+
+    return false;
   }
 
   Widget? widgetBuilder(
@@ -607,6 +669,7 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
 }
 
 class _CalendarHeader extends StatelessWidget {
+  final TextStyle? headerStyle;
   final DateTime focusedDay;
   final VoidCallback onLeftArrowTap;
   final VoidCallback onRightArrowTap;
@@ -616,6 +679,7 @@ class _CalendarHeader extends StatelessWidget {
     required this.focusedDay,
     required this.onLeftArrowTap,
     required this.onRightArrowTap,
+    this.headerStyle,
   }) : super(key: key);
 
   @override
@@ -629,7 +693,7 @@ class _CalendarHeader extends StatelessWidget {
           const SizedBox(width: 16.0),
           Text(
             headerText,
-            style: const TextStyle(fontSize: 26.0),
+            style: headerStyle ?? const TextStyle(fontSize: 26.0),
           ),
           const Spacer(),
           IconButton(
