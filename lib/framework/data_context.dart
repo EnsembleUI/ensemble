@@ -567,19 +567,27 @@ class EnsembleUtils with Invokable {
   @override
   Map<String, Function> setters() => {};
 
-  List<Map<String, dynamic>> getCountry(String val) {
+  Map<String, dynamic>? getCountry(String val) {
     String input = val.toLowerCase().trim();
-    List<Map<String, dynamic>> alpha2List = [];
+
     if (input.length == 2) {
       for (var i in allCountries) {
         String countryCode = i['iso']['alpha-2'];
         countryCode = countryCode.toLowerCase();
         if (countryCode == input) {
-          alpha2List.add(i);
+          return i;
+        }
+      }
+    } else if (input.length == 3) {
+      for (var i in allCountries) {
+        String countryCode = i['iso']['alpha-3'];
+        countryCode = countryCode.toLowerCase();
+        if (countryCode == input) {
+          return i;
         }
       }
     }
-    return alpha2List;
+    return null;
   }
 
   List<Map<String, dynamic>> findCountry(String userInput) {
