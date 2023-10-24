@@ -1,4 +1,3 @@
-
 import 'dart:developer';
 
 import 'package:ensemble/framework/action.dart';
@@ -12,7 +11,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 
 class GetDeviceTokenAction extends EnsembleAction {
-  GetDeviceTokenAction({super.initiator, required this.onSuccess, this.onError});
+  GetDeviceTokenAction(
+      {super.initiator, required this.onSuccess, this.onError});
 
   EnsembleAction? onSuccess;
   EnsembleAction? onError;
@@ -20,7 +20,7 @@ class GetDeviceTokenAction extends EnsembleAction {
   factory GetDeviceTokenAction.fromMap({dynamic payload}) {
     if (payload is Map) {
       EnsembleAction? successAction =
-      EnsembleAction.fromYaml(payload['onSuccess']);
+          EnsembleAction.fromYaml(payload['onSuccess']);
       if (successAction == null) {
         throw LanguageError("onSuccess() is required for Get Token Action");
       }
@@ -41,7 +41,8 @@ class GetDeviceTokenAction extends EnsembleAction {
     }
     if (deviceToken == null && onError != null) {
       return ScreenController().executeAction(context, onError!,
-          event: EnsembleEvent(initiator));
+          event: EnsembleEvent(initiator,
+              error: 'Unable to get the device token.'));
     }
   }
 }
