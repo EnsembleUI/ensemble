@@ -346,6 +346,14 @@ class EnsembleConfig {
     return this;
   }
 
+  /// update Env Variables at any later time wil override the values we
+  /// got from our config file
+  void updateEnvOverrides(Map<String, dynamic> updatedMap) {
+    if (updatedMap.isNotEmpty) {
+      (envOverrides ??= {}).addAll(updatedMap);
+    }
+  }
+
   /// pass our custom theme from the appBundle and build the App Theme
   ThemeData getAppTheme() {
     return ThemeManager().getAppTheme(appBundle?.theme);

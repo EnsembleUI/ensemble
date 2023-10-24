@@ -13,6 +13,52 @@ import 'package:flutter/cupertino.dart';
 import 'package:yaml/yaml.dart';
 import 'package:http/http.dart' as http;
 
+class InvokeAPIAction extends EnsembleAction {
+  InvokeAPIAction(
+      {Invokable? initiator,
+        required this.apiName,
+        this.id,
+        Map<String, dynamic>? inputs,
+        this.onResponse,
+        this.onError})
+      : super(initiator: initiator, inputs: inputs);
+
+  String? id;
+  final String apiName;
+  EnsembleAction? onResponse;
+  EnsembleAction? onError;
+
+  factory InvokeAPIAction.fromYaml({Invokable? initiator, Map? payload}) {
+    if (payload == null || payload['name'] == null) {
+      throw LanguageError(
+          "${ActionType.invokeAPI.name} requires the 'name' of the API.");
+    }
+
+    return InvokeAPIAction(
+        initiator: initiator,
+        apiName: payload['name'],
+        id: Utils.optionalString(payload['id']),
+        inputs: Utils.getMap(payload['inputs']),
+        onResponse: EnsembleAction.fromYaml(payload['onResponse'],
+            initiator: initiator),
+        onError:
+        EnsembleAction.fromYaml(payload['onError'], initiator: initiator));
+  }
+
+  @override
+  Future execute(BuildContext context, ScopeManager scopeManager,
+      {DataContext? dataContext}) {
+    DataContext realDataContext = dataContext ?? scopeManager.dataContext;
+    var evalApiName = realDataContext.eval(apiName);
+    var cloneAction = InvokeAPIAction(apiName: evalApiName, initiator: initiator, id: id, inputs: inputs, onResponse: onResponse, onError: onError);
+    return InvokeAPIController()
+        .execute(cloneAction, context, realDataContext, scopeManager,
+          scopeManager.pageData.apiMap);
+  }
+}
+
+
+
 class InvokeAPIController {
   Future<Response?> executeWithContext(
       BuildContext context, InvokeAPIAction action,

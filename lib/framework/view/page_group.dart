@@ -77,6 +77,7 @@ class PageGroupWidget extends DataScopeWidget {
 
 class PageGroupState extends State<PageGroup> with MediaQueryCapability {
   late ScopeManager _scopeManager;
+  PageController? sidebarPageController;
 
   // managing the list of pages
   List<Widget> pageWidgets = [];
@@ -109,6 +110,10 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
         selectedPage = i;
       }
     }
+
+    if (widget.menu is SidebarMenu && widget.menu.reloadView == false) {
+      sidebarPageController = PageController(initialPage: 0);
+    }
   }
 
   @override
@@ -125,10 +130,16 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
         Drawer? drawer = _buildDrawer(context, widget.menu);
         bool atStart = (widget.menu as DrawerMenu).atStart;
         return PageGroupWidget(
-            scopeManager: _scopeManager,
-            navigationDrawer: atStart ? drawer : null,
-            navigationEndDrawer: !atStart ? drawer : null,
-            child: pageWidgets[selectedPage]);
+          scopeManager: _scopeManager,
+          navigationDrawer: atStart ? drawer : null,
+          navigationEndDrawer: !atStart ? drawer : null,
+          child: widget.menu.reloadView == true
+              ? pageWidgets[selectedPage]
+              : IndexedStack(
+                  index: selectedPage,
+                  children: pageWidgets,
+                ),
+        );
       } else if (widget.menu is SidebarMenu) {
         return PageGroupWidget(
             scopeManager: _scopeManager,
@@ -150,7 +161,12 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     Widget sidebar = _buildSidebar(context, menu);
     Widget? separator = _buildSidebarSeparator(menu);
     Widget content = Expanded(
-      child: IndexedStack(index: selectedPage, children: pageWidgets),
+      child: menu.reloadView == true
+          ? IndexedStack(index: selectedPage, children: pageWidgets)
+          : PageView(
+              controller: sidebarPageController,
+              children: pageWidgets,
+            ),
     );
     // figuring out the direction to lay things out
     bool rtlLocale = Directionality.of(context) == TextDirection.rtl;
@@ -245,6 +261,9 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
         setState(() {
           selectedPage = index;
         });
+        if (widget.menu.reloadView == false) {
+          sidebarPageController?.jumpToPage(index);
+        }
       },
     );
   }
