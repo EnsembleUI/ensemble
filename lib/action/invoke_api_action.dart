@@ -16,11 +16,11 @@ import 'package:http/http.dart' as http;
 class InvokeAPIAction extends EnsembleAction {
   InvokeAPIAction(
       {Invokable? initiator,
-        required this.apiName,
-        this.id,
-        Map<String, dynamic>? inputs,
-        this.onResponse,
-        this.onError})
+      required this.apiName,
+      this.id,
+      Map<String, dynamic>? inputs,
+      this.onResponse,
+      this.onError})
       : super(initiator: initiator, inputs: inputs);
 
   String? id;
@@ -42,7 +42,7 @@ class InvokeAPIAction extends EnsembleAction {
         onResponse: EnsembleAction.fromYaml(payload['onResponse'],
             initiator: initiator),
         onError:
-        EnsembleAction.fromYaml(payload['onError'], initiator: initiator));
+            EnsembleAction.fromYaml(payload['onError'], initiator: initiator));
   }
 
   @override
@@ -50,14 +50,17 @@ class InvokeAPIAction extends EnsembleAction {
       {DataContext? dataContext}) {
     DataContext realDataContext = dataContext ?? scopeManager.dataContext;
     var evalApiName = realDataContext.eval(apiName);
-    var cloneAction = InvokeAPIAction(apiName: evalApiName, initiator: initiator, id: id, inputs: inputs, onResponse: onResponse, onError: onError);
-    return InvokeAPIController()
-        .execute(cloneAction, context, realDataContext, scopeManager,
-          scopeManager.pageData.apiMap);
+    var cloneAction = InvokeAPIAction(
+        apiName: evalApiName,
+        initiator: initiator,
+        id: id,
+        inputs: inputs,
+        onResponse: onResponse,
+        onError: onError);
+    return InvokeAPIController().execute(cloneAction, context, realDataContext,
+        scopeManager, scopeManager.pageData.apiMap);
   }
 }
-
-
 
 class InvokeAPIController {
   Future<Response?> executeWithContext(
@@ -103,16 +106,23 @@ class InvokeAPIController {
       }
 
       try {
-        // Setting Loading
+        final APIResponse? oldResponse =
+            dataContext.getContextById(action.apiName);
+        final Response? responseObj = oldResponse?.getAPIResponse();
+        responseObj?.apiState = APIState.loading;
+
+        final isSameAPIRequest = action.apiName == responseObj?.apiName;
+        final responseToDispatch = (isSameAPIRequest && responseObj != null)
+            ? responseObj
+            : Response.updateState(apiState: APIState.loading);
         dispatchAPIChanges(
           scopeManager,
           action,
-          APIResponse(
-              response: Response.updateState(apiState: APIState.loading)),
+          APIResponse(response: responseToDispatch),
         );
 
-        Response response =
-            await HttpUtils.invokeApi(context, apiDefinition, dataContext);
+        Response response = await HttpUtils.invokeApi(
+            context, apiDefinition, dataContext, action.apiName);
         if (response.isOkay) {
           _onAPIComplete(context, dataContext, action, apiDefinition, response,
               apiMap, scopeManager);
@@ -217,7 +227,9 @@ class InvokeAPIController {
       dispatchAPIChanges(
         scopeManager,
         action,
-        APIResponse(response: Response(errorResponse, APIState.error)),
+        APIResponse(
+            response: Response(errorResponse, APIState.error,
+                apiName: action.apiName)),
       );
     }
 
@@ -250,6 +262,7 @@ class InvokeAPIController {
       }
       Response? _response = apiResponse.getAPIResponse();
       if (_response != null) {
+        _response.apiName = action.apiName;
         // for convenience, the result of the API contain the API response
         // so it can be referenced from anywhere.
         // Here we set the response and dispatch changes
