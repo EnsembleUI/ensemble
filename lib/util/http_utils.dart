@@ -17,8 +17,8 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' as foundation;
 
 class HttpUtils {
-  static Future<Response> invokeApi(
-      BuildContext context, YamlMap api, DataContext eContext) async {
+  static Future<Response> invokeApi(BuildContext context, YamlMap api,
+      DataContext eContext, String apiName) async {
     // headers
     Map<String, String> headers = {};
 
@@ -128,7 +128,8 @@ class HttpUtils {
     }
     final isOkay = response.statusCode >= 200 && response.statusCode <= 299;
     log('Response: ${response.statusCode}');
-    return Response(response, isOkay ? APIState.success : APIState.error);
+    return Response(response, isOkay ? APIState.success : APIState.error,
+        apiName: apiName);
   }
 
   /// evaluate the URL, which can be prefix with ${app.baseUrl}
@@ -210,6 +211,7 @@ class Response {
   Map<String, dynamic>? headers;
   int? statusCode;
   String? reasonPhrase;
+  String apiName = '';
 
   // APIState get apiState => _apiState;
 
@@ -217,7 +219,7 @@ class Response {
 
   Response.updateState({required this.apiState});
 
-  Response(http.Response response, APIState apiState) {
+  Response(http.Response response, APIState apiState, {String apiName = ''}) {
     try {
       body = json.decode(response.body);
     } on FormatException catch (_, e) {
@@ -227,6 +229,7 @@ class Response {
     headers = response.headers;
     statusCode = response.statusCode;
     reasonPhrase = response.reasonPhrase;
+    apiName = apiName;
   }
 
   bool get isOkay =>
