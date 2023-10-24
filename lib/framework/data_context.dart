@@ -465,8 +465,8 @@ class NativeInvokable extends ActionInvokable {
   }
 
   void navigateBack([dynamic payload]) {
-    ScreenController().executeAction(
-        buildContext, NavigateBackAction.from(payload: payload));
+    ScreenController()
+        .executeAction(buildContext, NavigateBackAction.from(payload: payload));
   }
 }
 
