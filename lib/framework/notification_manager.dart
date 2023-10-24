@@ -37,7 +37,8 @@ class NotificationManager {
     String? deviceToken;
     try {
       // request permission
-      NotificationSettings settings = await FirebaseMessaging.instance.requestPermission(
+      NotificationSettings settings =
+          await FirebaseMessaging.instance.requestPermission(
         alert: true,
         badge: true,
         sound: true,
@@ -53,8 +54,6 @@ class NotificationManager {
         deviceToken = await FirebaseMessaging.instance.getToken();
         return deviceToken;
       }
-
-
     } on Exception catch (e) {
       log('Error getting device token: ${e.toString()}');
     }
@@ -88,44 +87,38 @@ class NotificationManager {
     });
 
     // TODO We need to handle the notification when the app was terminated
-
   }
 
   void _handleNotification() {
     Map<String, dynamic>? messageData = Ensemble.externalDataContext['data'];
     if (messageData?['screenId'] != null ||
         messageData?['screenName'] != null) {
-      ScreenController().navigateToScreen(
-          Utils.globalAppKey.currentContext!,
+      ScreenController().navigateToScreen(Utils.globalAppKey.currentContext!,
           screenId: messageData!['screenId'],
           screenName: messageData!['screenName'],
           pageArgs: messageData);
     } else {
-      log(
-          'No screenId nor screenName provided on the notification. Ignoring ...');
+      log('No screenId nor screenName provided on the notification. Ignoring ...');
     }
   }
-
-
 }
-
 
 /// abstract to just the absolute must need Firebase options
 class FirebasePayload {
-  FirebasePayload({required this.apiKey, required this.projectId,
-    required this.messagingSenderId, required this.appId});
+  FirebasePayload(
+      {required this.apiKey,
+      required this.projectId,
+      required this.messagingSenderId,
+      required this.appId});
 
   String apiKey;
   String projectId;
   String messagingSenderId;
   String appId;
 
-  FirebaseOptions getFirebaseOptions() =>
-      FirebaseOptions(
-          apiKey: apiKey,
-          appId: appId,
-          messagingSenderId: messagingSenderId,
-          projectId: projectId);
-
-
+  FirebaseOptions getFirebaseOptions() => FirebaseOptions(
+      apiKey: apiKey,
+      appId: appId,
+      messagingSenderId: messagingSenderId,
+      projectId: projectId);
 }

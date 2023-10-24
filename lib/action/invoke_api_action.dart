@@ -16,11 +16,11 @@ import 'package:http/http.dart' as http;
 class InvokeAPIAction extends EnsembleAction {
   InvokeAPIAction(
       {Invokable? initiator,
-        required this.apiName,
-        this.id,
-        Map<String, dynamic>? inputs,
-        this.onResponse,
-        this.onError})
+      required this.apiName,
+      this.id,
+      Map<String, dynamic>? inputs,
+      this.onResponse,
+      this.onError})
       : super(initiator: initiator, inputs: inputs);
 
   String? id;
@@ -42,7 +42,7 @@ class InvokeAPIAction extends EnsembleAction {
         onResponse: EnsembleAction.fromYaml(payload['onResponse'],
             initiator: initiator),
         onError:
-        EnsembleAction.fromYaml(payload['onError'], initiator: initiator));
+            EnsembleAction.fromYaml(payload['onError'], initiator: initiator));
   }
 
   @override
@@ -50,14 +50,17 @@ class InvokeAPIAction extends EnsembleAction {
       {DataContext? dataContext}) {
     DataContext realDataContext = dataContext ?? scopeManager.dataContext;
     var evalApiName = realDataContext.eval(apiName);
-    var cloneAction = InvokeAPIAction(apiName: evalApiName, initiator: initiator, id: id, inputs: inputs, onResponse: onResponse, onError: onError);
-    return InvokeAPIController()
-        .execute(cloneAction, context, realDataContext, scopeManager,
-          scopeManager.pageData.apiMap);
+    var cloneAction = InvokeAPIAction(
+        apiName: evalApiName,
+        initiator: initiator,
+        id: id,
+        inputs: inputs,
+        onResponse: onResponse,
+        onError: onError);
+    return InvokeAPIController().execute(cloneAction, context, realDataContext,
+        scopeManager, scopeManager.pageData.apiMap);
   }
 }
-
-
 
 class InvokeAPIController {
   Future<Response?> executeWithContext(
