@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
@@ -59,7 +60,8 @@ class ShowBottomModalAction extends EnsembleAction {
   }
 
   @override
-  Future<void> execute(BuildContext context, ScopeManager scopeManager) {
+  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager,
+      {DataContext? dataContext}) {
     Widget? widget;
     if (body != null) {
       widget = scopeManager.buildWidgetFromDefinition(body);
@@ -96,7 +98,8 @@ class DismissBottomModalAction extends EnsembleAction {
       DismissBottomModalAction(payload: payload?['payload']);
 
   @override
-  Future<void> execute(BuildContext context, ScopeManager scopeManager) {
+  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager,
+      {DataContext? dataContext}) {
     BuildContext? bottomModalContext =
         ContextScopeWidget.getRootContext(context);
     if (bottomModalContext != null) {
