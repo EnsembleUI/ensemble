@@ -1,10 +1,12 @@
 import 'dart:developer';
+import 'dart:io' show Platform;
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 
 /// Firebase Push Notification handler
 class NotificationManager {
@@ -35,18 +37,24 @@ class NotificationManager {
     String? deviceToken;
     try {
       // request permission
-      await FirebaseMessaging.instance.requestPermission(
+      NotificationSettings settings = await FirebaseMessaging.instance.requestPermission(
         alert: true,
         badge: true,
         sound: true,
       );
 
-      // need to get APNS token first
-      await FirebaseMessaging.instance.getAPNSToken();
+      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+        // on iOS we need to get APNS token first
+        if (!kIsWeb && Platform.isIOS) {
+          await FirebaseMessaging.instance.getAPNSToken();
+        }
 
-      // then get device token
-      deviceToken = await FirebaseMessaging.instance.getToken();
-      return deviceToken;
+        // get device token
+        deviceToken = await FirebaseMessaging.instance.getToken();
+        return deviceToken;
+      }
+
+
     } on Exception catch (e) {
       log('Error getting device token: ${e.toString()}');
     }
