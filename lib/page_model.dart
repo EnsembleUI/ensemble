@@ -142,7 +142,7 @@ class SinglePageModel extends PageModel {
   _processModel(YamlMap docMap) {
     super._processModel(docMap);
 
-    YamlMap viewMap = docMap['View'];
+    YamlMap viewMap = docMap['View'] ?? docMap;
 
     if (viewMap['options'] is YamlMap) {
       PageType pageType = viewMap['options']['type'] == PageType.modal.name
@@ -237,9 +237,11 @@ class SinglePageModel extends PageModel {
               'Root widget type should only be Row, Column, Flex or Stack.');
         }
         return rootModel;
+      } else {
+        return ViewUtil.buildModel(
+            YamlMap.wrap({"EmptyWidget": null}), customViewDefinitions);
       }
     }
-    throw LanguageError("View requires a child widget !");
   }
 
   WidgetModel? getRootModel(

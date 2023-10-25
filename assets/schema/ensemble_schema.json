@@ -12,9 +12,6 @@
     "View": {
       "type": "object",
       "description": "This is your root View. It requires a body widget.",
-      "required": [
-        "body"
-      ],
       "properties": {
         "header": {
           "type": "object",
@@ -5288,10 +5285,16 @@
                             "$ref": "#/$defs/Widget"
                           }
                         },
-                        "required": ["start", "end", "widget"]
+                        "required": [
+                          "start",
+                          "end",
+                          "widget"
+                        ]
                       }
                     },
-                    "required": ["span"]
+                    "required": [
+                      "span"
+                    ]
                   }
                 },
                 "headerTextStyle": {
