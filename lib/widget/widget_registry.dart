@@ -13,6 +13,7 @@ import 'package:ensemble/layout/toggle_container.dart';
 import 'package:ensemble/widget/Toggle.dart';
 import 'package:ensemble/widget/address.dart';
 import 'package:ensemble/widget/calendar.dart';
+import 'package:ensemble/widget/empty_widget.dart';
 import 'package:ensemble/widget/shape.dart';
 import 'package:ensemble/widget/conditional.dart';
 import 'package:ensemble/widget/confirmation_input.dart';
@@ -136,6 +137,7 @@ class WidgetRegistry {
         AppScroller.type: () => AppScroller(),
         LoadingContainer.type: () => LoadingContainer(),
         Shape.type: () => Shape(),
+        EmptyWidget.type: () => const EmptyWidget(),
 
         // charts
         Highcharts.type: () => Highcharts(),
