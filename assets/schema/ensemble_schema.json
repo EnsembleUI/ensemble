@@ -2865,6 +2865,18 @@
                 "focusedErrorBorderColor": {
                   "$ref": "#/$defs/typeColors",
                   "description": "The border color of this input field when it is receiving focus in its error state. This property can be defined in the theme to apply to all Input widgets."
+                },
+                "floatLabel": {
+                  "type": "boolean",
+                  "description": "Moves the label on top of the Input Field. Default (False)."
+                },
+                "floatingLabelStyle": {
+                  "$ref": "#/$defs/TextStyle",
+                  "description": "Set the label's styles when it is in floating mode"
+                },
+                "labelStyle": {
+                  "$ref": "#/$defs/TextStyle",
+                  "description": "Set the label's styles"
                 }
               }
             }
@@ -3900,7 +3912,9 @@
             "updateBadgeCount": {
               "type": "object",
               "description": "Update the app's badge count (applicable on iOS, MacOS, and some Android devices only). Notifications must also be enabled for this to work properly.",
-              "required": ["count"],
+              "required": [
+                "count"
+              ],
               "properties": {
                 "count": {
                   "type": "integer",
@@ -4248,6 +4262,10 @@
         "items"
       ],
       "properties": {
+        "reloadView": {
+          "type": "boolean",
+          "description": "It will reload the page each time when clicking the menu item"
+        },
         "items": {
           "type": "array",
           "description": "List of menu items (minimum 2)",
@@ -4311,8 +4329,25 @@
             "floatingIconColor": {
               "$ref": "#/$defs/typeColors",
               "description": "Floating item icon color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+            },
+            "height": {
+              "type": "integer",
+              "description": "Set the height of the BottomNavBar."
+            },
+            "padding": {
+              "$ref": "#/$defs/Padding-payload"
+            },
+            "margin": {
+              "$ref": "#/$defs/Margin-payload"
+            },
+            "borderRadius": {
+              "$ref": "#/$defs/borderRadius"
             }
           }
+        },
+        "reloadView": {
+          "type": "boolean",
+          "description": "It will reload the page each time when clicking the menu item"
         },
         "items": {
           "type": "array",
@@ -4403,6 +4438,10 @@
         },
         {
           "properties": {
+            "reloadView": {
+              "type": "boolean",
+              "description": "It will reload the page each time when clicking the menu item"
+            },
             "styles": {
               "properties": {
                 "borderColor": {
@@ -5217,6 +5256,49 @@
                   "type": "integer",
                   "description": "Height of row. Default is 52.0"
                 },
+                "firstDay": {
+                  "type": "string",
+                  "description": "First day from where calendar begin. Default is CurrentDate - 12 months"
+                },
+                "lastDay": {
+                  "type": "string",
+                  "description": "Last day where calendar end. Default is CurrentDate + 12 months"
+                },
+                "headerVisible": {
+                  "type": "boolean",
+                  "description": "Set visibility of calendar header. Default true."
+                },
+                "rowSpans": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "span": {
+                        "type": "object",
+                        "properties": {
+                          "start": {
+                            "type": "string",
+                            "description": "date in ISO format."
+                          },
+                          "end": {
+                            "type": "string",
+                            "description": "date in ISO format."
+                          },
+                          "widget": {
+                            "$ref": "#/$defs/Widget"
+                          }
+                        },
+                        "required": ["start", "end", "widget"]
+                      }
+                    },
+                    "required": ["span"]
+                  }
+                },
+                "headerTextStyle": {
+                  "type": "object",
+                  "description": "Styling the header text.",
+                  "$ref": "#/$defs/TextStyle"
+                },
                 "cell": {
                   "allOf": [
                     {
@@ -5228,7 +5310,7 @@
                       "properties": {
                         "onTap": {
                           "$ref": "#/$defs/Action-payload",
-                          "description": "Execute an Action when the map's bound has changed. The bound data is available using `event.data.bounds.<southwest/northeast>.<lat/lng>`."                
+                          "description": "Execute an Action when the map's bound has changed. The bound data is available using `event.data.bounds.<southwest/northeast>.<lat/lng>`."
                         }
                       }
                     }
@@ -5252,7 +5334,7 @@
                 },
                 "range": {
                   "$ref": "#/$defs/Range-payload"
-                }        
+                }
               }
             }
           }
