@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math';
 import 'dart:ui';
+import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:ensemble/framework/error_handling.dart';
@@ -428,7 +429,8 @@ class Utils {
           fontStyle: Utils.optionalBool(style['isItalic']) == true
               ? FontStyle.italic
               : FontStyle.normal,
-          color: Utils.getColor(style['color']),
+          color: Utils.getColor(style['color']) ??
+              ThemeManager().defaultTextColor(),
           backgroundColor: Utils.getColor(style['backgroundColor']),
           decoration: getDecoration(style['decoration']),
           decorationStyle:
@@ -762,5 +764,14 @@ class Utils {
       String key = match.group(1)!;
       return dataContext.containsKey(key) ? dataContext[key]! : match.group(0)!;
     });
+  }
+
+  static BoxShape? getBoxShape(data) {
+    if (data == 'circle') {
+      return BoxShape.circle;
+    } else if (data == 'rectangle') {
+      return BoxShape.rectangle;
+    }
+    return null;
   }
 }

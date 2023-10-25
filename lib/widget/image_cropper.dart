@@ -125,7 +125,7 @@ class EnsembleImageCropperController extends BoxController {
       final file = io.File(filePath);
       final byteData = image.bytes.buffer.asUint8List();
       file.createSync();
-      file.writeAsBytes(byteData.toList());
+      await file.writeAsBytes(byteData.toList());
       return file.path;
     }
     return null;

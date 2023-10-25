@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/widget/button.dart';
+import 'package:ensemble/widget/conditional.dart';
 import 'package:ensemble/widget/input/dropdown.dart';
 import 'package:ensemble/widget/input/form_textfield.dart';
 import 'package:ensemble/widget/text.dart';
@@ -205,6 +206,55 @@ void main() {
       await tester.pumpAndSettle();
       // verified value 'six' is selected
       expect(find.text('six'), findsOneWidget);
+    });
+
+    testWidgets('Conditional', (tester) async {
+      await TestHelper.loadScreen(screenName: 'Conditional', config: config);
+      await tester.pumpAndSettle();
+
+      Finder textInputFinder = find.byType(TextInput);
+      expect(textInputFinder, findsOneWidget);
+
+      // one Conditional widget on the screen
+      Finder conditionalFinder = find.byType(Conditional);
+      expect(conditionalFinder, findsOneWidget);
+
+      Finder textFinder = find.byType(EnsembleText);
+      expect(textFinder, findsOneWidget);
+
+      // Initial Statement when textfield is empty
+      EnsembleText textWidget = tester.firstWidget(textFinder);
+      expect(textWidget.controller.text, 'Else Statement');
+
+      // If Statement
+      await tester.enterText(textInputFinder, 'If');
+      await tester.pumpAndSettle();
+      textWidget = tester.widget(textFinder);
+      expect(textWidget.controller.text, 'If Statement');
+
+      // Else If First Statement
+      await tester.enterText(textInputFinder, 'ElseIf1');
+      await tester.pumpAndSettle();
+      textWidget = tester.widget(textFinder);
+      expect(textWidget.controller.text, 'Else If Statement - 1');
+
+      // Else If Second Statement
+      await tester.enterText(textInputFinder, 'ElseIf2');
+      await tester.pumpAndSettle();
+      textWidget = tester.widget(textFinder);
+      expect(textWidget.controller.text, 'Else If Statement - 2');
+
+      // Else If Third Statement
+      await tester.enterText(textInputFinder, 'ElseIf3');
+      await tester.pumpAndSettle();
+      textWidget = tester.widget(textFinder);
+      expect(textWidget.controller.text, 'Else If Statement - 3');
+
+      // Else Statement
+      await tester.enterText(textInputFinder, 'Other');
+      await tester.pumpAndSettle();
+      textWidget = tester.widget(textFinder);
+      expect(textWidget.controller.text, 'Else Statement');
     });
   });
 }
