@@ -5268,6 +5268,9 @@
                   "type": "boolean",
                   "description": "Set visibility of calendar header. Default true."
                 },
+                "header": {
+                  "$ref": "#/$defs/Widget"
+                },
                 "rowSpans": {
                   "type": "array",
                   "items": {
@@ -5288,10 +5291,16 @@
                             "$ref": "#/$defs/Widget"
                           }
                         },
-                        "required": ["start", "end", "widget"]
+                        "required": [
+                          "start",
+                          "end",
+                          "widget"
+                        ]
                       }
                     },
-                    "required": ["span"]
+                    "required": [
+                      "span"
+                    ]
                   }
                 },
                 "headerTextStyle": {
