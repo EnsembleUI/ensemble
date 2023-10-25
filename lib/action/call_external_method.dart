@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
@@ -32,7 +33,8 @@ class CallExternalMethod extends EnsembleAction {
   }
 
   @override
-  Future<void> execute(BuildContext context, ScopeManager scopeManager) async {
+  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager,
+      {DataContext? dataContext}) async {
     String? name = Utils.optionalString(scopeManager.dataContext.eval(_name));
 
     String? errorReason;
@@ -46,14 +48,9 @@ class CallExternalMethod extends EnsembleAction {
         _payload?.forEach((key, value) {
           (payload ??= {})[Symbol(key)] = scopeManager.dataContext.eval(value);
         });
-        // execute the external function
-        dynamic rtnValue;
-        var method = Ensemble().externalMethods[name]!;
-        if (method is Future Function()) {
-          rtnValue = await Function.apply(method, null, payload);
-        } else {
-          rtnValue = Function.apply(method, null, payload);
-        }
+        // execute the external function. Always await in case it's async
+        dynamic rtnValue = await Function.apply(
+            Ensemble().externalMethods[name]!, null, payload);
 
         // dispatch onComplete
         if (onComplete != null) {
