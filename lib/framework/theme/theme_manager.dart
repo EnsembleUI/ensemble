@@ -38,6 +38,10 @@ class ThemeManager with ThemeLoader {
         : const Color(0xffffffff);
   }
 
+  Color defaultTextColor() {
+    return Colors.black;
+  }
+
   getShadowRadius(BuildContext context) {
     return 0;
   }

@@ -88,6 +88,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
     with RouteAware {
   late List<MenuItem> menuItems;
   late PageController controller;
+  late int selectedPage;
   FloatingAlignment floatingAlignment = FloatingAlignment.center;
   int? floatingMargin;
   MenuItem? fabMenuItem;
@@ -95,7 +96,11 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
   @override
   void initState() {
     super.initState();
-    controller = PageController();
+    if (widget.menu.reloadView == true) {
+      selectedPage = widget.selectedPage;
+    } else {
+      controller = PageController(initialPage: widget.selectedPage);
+    }
     menuItems = widget.menu.menuItems
         .where((element) => element.floating != true)
         .toList();
@@ -131,7 +136,9 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
 
   @override
   void dispose() {
-    controller.dispose();
+    if (widget.menu.reloadView == false) {
+      controller.dispose();
+    }
     Ensemble.routeObserver.unsubscribe(this);
     super.dispose();
   }
@@ -269,12 +276,23 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
               Utils.getColor(widget.menu.styles?['backgroundColor']) ??
                   Colors.white,
           height: Utils.optionalDouble(widget.menu.styles?['height'] ?? 60),
+          margin: widget.menu.styles?['margin'],
           padding: widget.menu.styles?['padding'],
+          borderRadius:
+              Utils.getBorderRadius(widget.menu.styles?['borderRadius'])
+                  ?.getValue(),
           color: unselectedColor,
           selectedColor: selectedColor,
           notchedShape: const CircularNotchedRectangle(),
-          onTabSelected: (index) =>
-              PageGroupWidget.getPageController(context)?.jumpToPage(index),
+          onTabSelected: (index) {
+            if (widget.menu.reloadView == true) {
+              setState(() {
+                selectedPage = index;
+              });
+            } else {
+              PageGroupWidget.getPageController(context)?.jumpToPage(index);
+            }
+          },
           items: navItems,
           isFloating: fabMenuItem != null,
           floatingAlignment: floatingAlignment,
@@ -299,7 +317,9 @@ class EnsembleBottomAppBar extends StatefulWidget {
     required this.items,
     required this.selectedIndex,
     this.height,
+    this.margin,
     this.padding,
+    this.borderRadius,
     this.iconSize = 24.0,
     required this.backgroundColor,
     required this.color,
@@ -316,6 +336,7 @@ class EnsembleBottomAppBar extends StatefulWidget {
   final List<FABBottomAppBarItem> items;
   final int selectedIndex;
   final double? height;
+  final dynamic margin;
   final dynamic padding;
   final double iconSize;
   final int? floatingMargin;
@@ -325,6 +346,7 @@ class EnsembleBottomAppBar extends StatefulWidget {
   final bool isFloating;
   final FloatingAlignment floatingAlignment;
   final NotchedShape notchedShape;
+  final BorderRadius? borderRadius;
   final VoidCallback? onFabTapped;
   final ValueChanged<int> onTabSelected;
 
@@ -396,13 +418,17 @@ class EnsembleBottomAppBarState extends State<EnsembleBottomAppBar> {
 
     return Theme(
       data: ThemeData(useMaterial3: false),
-      child: BottomAppBar(
-        padding: const EdgeInsets.all(0),
-        shape: widget.notchedShape,
-        color: widget.backgroundColor,
-        notchMargin: _defaultFloatingNotch,
-        child: Padding(
+      child: Container(
+        margin: Utils.optionalInsets(widget.margin) ?? EdgeInsets.zero,
+        decoration: BoxDecoration(
+          borderRadius: widget.borderRadius ?? BorderRadius.zero,
+        ),
+        clipBehavior: widget.borderRadius != null ? Clip.hardEdge : Clip.none,
+        child: BottomAppBar(
           padding: Utils.optionalInsets(widget.padding) ?? EdgeInsets.zero,
+          shape: widget.notchedShape,
+          color: widget.backgroundColor,
+          notchMargin: _defaultFloatingNotch,
           child: Row(
             mainAxisSize: MainAxisSize.max,
             mainAxisAlignment: MainAxisAlignment.spaceAround,

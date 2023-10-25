@@ -1,8 +1,13 @@
 import 'dart:io';
 
 import 'package:app_settings/app_settings.dart';
+import 'package:ensemble/action/badge_action.dart';
 import 'package:ensemble/action/bottom_modal_action.dart';
+import 'package:ensemble/action/call_external_method.dart';
+import 'package:ensemble/action/invoke_api_action.dart';
+import 'package:ensemble/action/misc_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
+import 'package:ensemble/action/notification_action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
@@ -18,41 +23,9 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:rate_my_app/rate_my_app.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:source_span/source_span.dart';
 import 'package:yaml/yaml.dart';
-
-class InvokeAPIAction extends EnsembleAction {
-  InvokeAPIAction(
-      {Invokable? initiator,
-      required this.apiName,
-      this.id,
-      Map<String, dynamic>? inputs,
-      this.onResponse,
-      this.onError})
-      : super(initiator: initiator, inputs: inputs);
-
-  String? id;
-  final String apiName;
-  EnsembleAction? onResponse;
-  EnsembleAction? onError;
-
-  factory InvokeAPIAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
-    if (payload == null || payload['name'] == null) {
-      throw LanguageError(
-          "${ActionType.invokeAPI.name} requires the 'name' of the API.");
-    }
-
-    return InvokeAPIAction(
-        initiator: initiator,
-        apiName: payload['name'],
-        id: Utils.optionalString(payload['id']),
-        inputs: Utils.getMap(payload['inputs']),
-        onResponse: EnsembleAction.fromYaml(payload['onResponse'],
-            initiator: initiator),
-        onError:
-            EnsembleAction.fromYaml(payload['onError'], initiator: initiator));
-  }
-}
 
 class ShowCameraAction extends EnsembleAction {
   ShowCameraAction({
@@ -69,7 +42,7 @@ class ShowCameraAction extends EnsembleAction {
   EnsembleAction? onClose;
   EnsembleAction? onCapture;
 
-  factory ShowCameraAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
+  factory ShowCameraAction.fromYaml({Invokable? initiator, Map? payload}) {
     return ShowCameraAction(
       initiator: initiator,
       options: Utils.getMap(payload?['options']),
@@ -95,7 +68,7 @@ class ShowDialogAction extends EnsembleAction {
   final Map<String, dynamic>? options;
   final EnsembleAction? onDialogDismiss;
 
-  factory ShowDialogAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
+  factory ShowDialogAction.fromYaml({Invokable? initiator, Map? payload}) {
     if (payload == null || payload['widget'] == null) {
       throw LanguageError(
           "${ActionType.showDialog.name} requires the 'widget' for the Dialog's content.");
@@ -121,8 +94,7 @@ class NavigateScreenAction extends BaseNavigateScreenAction {
       : super(asModal: false);
   EnsembleAction? onNavigateBack;
 
-  factory NavigateScreenAction.fromYaml(
-      {Invokable? initiator, YamlMap? payload}) {
+  factory NavigateScreenAction.fromYaml({Invokable? initiator, Map? payload}) {
     if (payload == null || payload['name'] == null) {
       throw LanguageError(
           "${ActionType.navigateScreen.name} requires the 'name' of the screen to navigate to.");
@@ -157,7 +129,8 @@ class NavigateViewGroupAction extends EnsembleAction {
   }
 
   @override
-  Future<void> execute(BuildContext context, ScopeManager scopeManager) {
+  Future execute(BuildContext context, ScopeManager scopeManager,
+      {DataContext? dataContext}) {
     PageGroupWidget.getPageController(context)!.jumpToPage(_viewIndex);
     bottomNavBarNotifier.updatePage(_viewIndex);
     return Future.value(null);
@@ -174,7 +147,7 @@ class NavigateModalScreenAction extends BaseNavigateScreenAction {
   EnsembleAction? onModalDismiss;
 
   factory NavigateModalScreenAction.fromYaml(
-      {Invokable? initiator, YamlMap? payload}) {
+      {Invokable? initiator, Map? payload}) {
     if (payload == null || payload['name'] == null) {
       throw LanguageError(
           "${ActionType.navigateModalScreen.name} requires the 'name' of the screen to navigate to.");
@@ -221,7 +194,7 @@ class PlaidLinkAction extends EnsembleAction {
   String getLinkToken(dataContext) =>
       Utils.getString(dataContext.eval(linkToken), fallback: '');
 
-  factory PlaidLinkAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
+  factory PlaidLinkAction.fromYaml({Invokable? initiator, Map? payload}) {
     if (payload == null || payload['linkToken'] == null) {
       throw LanguageError(
           "${ActionType.openPlaidLink.name} action requires the plaid's link_token");
@@ -249,7 +222,7 @@ class AppSettingAction extends EnsembleAction {
       AppSettingsType.values.from(dataContext.eval(target)) ??
       AppSettingsType.settings;
 
-  factory AppSettingAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
+  factory AppSettingAction.fromYaml({Invokable? initiator, Map? payload}) {
     return AppSettingAction(
       initiator: initiator,
       target: Utils.getString(payload?['target'], fallback: 'settings'),
@@ -275,8 +248,7 @@ class PhoneContactAction extends EnsembleAction {
   EnsembleAction? getOnError(DataContext dataContext) =>
       dataContext.eval(onError);
 
-  factory PhoneContactAction.fromYaml(
-      {Invokable? initiator, YamlMap? payload}) {
+  factory PhoneContactAction.fromYaml({Invokable? initiator, Map? payload}) {
     if (payload == null) {
       throw LanguageError(
           "${ActionType.getPhoneContacts.name} action requires payload");
@@ -325,7 +297,7 @@ class StartTimerAction extends EnsembleAction {
   bool? isGlobal(dataContext) =>
       Utils.optionalBool(dataContext.eval(_options?['isGlobal']));
 
-  factory StartTimerAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
+  factory StartTimerAction.fromYaml({Invokable? initiator, Map? payload}) {
     EnsembleAction? onTimer =
         EnsembleAction.fromYaml(payload?['onTimer'], initiator: initiator);
     if (payload == null || onTimer == null) {
@@ -353,7 +325,7 @@ class StopTimerAction extends EnsembleAction {
 
   String id;
 
-  factory StopTimerAction.fromYaml({YamlMap? payload}) {
+  factory StopTimerAction.fromYaml({Map? payload}) {
     if (payload?['id'] == null) {
       throw LanguageError(
           "${ActionType.stopTimer.name} requires a timer Id to stop.");
@@ -377,7 +349,7 @@ class ExecuteCodeAction extends EnsembleAction {
   EnsembleAction? onComplete;
   SourceSpan codeBlockSpan;
 
-  factory ExecuteCodeAction.fromYaml({Invokable? initiator, YamlMap? payload}) {
+  factory ExecuteCodeAction.fromYaml({Invokable? initiator, Map? payload}) {
     if (payload == null || payload['body'] == null) {
       throw LanguageError(
           "${ActionType.executeCode.name} requires a 'body' code block.");
@@ -388,7 +360,8 @@ class ExecuteCodeAction extends EnsembleAction {
         codeBlock: payload['body'].toString(),
         onComplete: EnsembleAction.fromYaml(payload['onComplete'],
             initiator: initiator),
-        codeBlockSpan: ViewUtil.optDefinition(payload.nodes['body']));
+        codeBlockSpan:
+            ViewUtil.optDefinition((payload as YamlMap).nodes['body']));
   }
 }
 
@@ -398,7 +371,7 @@ class OpenUrlAction extends EnsembleAction {
   String url;
   bool openInExternalApp;
 
-  factory OpenUrlAction.fromYaml({YamlMap? payload}) {
+  factory OpenUrlAction.fromYaml({Map? payload}) {
     if (payload == null || payload['url'] == null) {
       throw LanguageError("${ActionType.openUrl.name} requires the 'url'.");
     }
@@ -436,7 +409,7 @@ class ShowToastAction extends EnsembleAction {
   final int? duration; // the during in seconds before toast is dismissed
   final Map<String, dynamic>? styles;
 
-  factory ShowToastAction.fromYaml({YamlMap? payload}) {
+  factory ShowToastAction.fromYaml({Map? payload}) {
     if (payload == null ||
         (payload['message'] == null && payload['widget'] == null)) {
       throw LanguageError(
@@ -488,7 +461,7 @@ class FilePickerAction extends EnsembleAction {
   EnsembleAction? onComplete;
   EnsembleAction? onError;
 
-  factory FilePickerAction.fromYaml({YamlMap? payload}) {
+  factory FilePickerAction.fromYaml({Map? payload}) {
     if (payload == null || payload['id'] == null) {
       throw LanguageError("${ActionType.pickFiles.name} requires 'id'.");
     }
@@ -535,7 +508,7 @@ class FileUploadAction extends EnsembleAction {
   bool? requiresBatteryNotLow;
   bool showNotification;
 
-  factory FileUploadAction.fromYaml({YamlMap? payload}) {
+  factory FileUploadAction.fromYaml({Map? payload}) {
     if (payload == null || payload['uploadApi'] == null) {
       throw LanguageError("${ActionType.uploadFiles.name} requires '  '.");
     }
@@ -564,74 +537,6 @@ class FileUploadAction extends EnsembleAction {
   }
 }
 
-class CopyToClipboardAction extends EnsembleAction {
-  CopyToClipboardAction({
-    this.value,
-    this.onSuccess,
-    this.onFailure,
-  });
-
-  dynamic value;
-  EnsembleAction? onSuccess;
-  EnsembleAction? onFailure;
-
-  String? getValue(DataContext dataContext) =>
-      Utils.optionalString(dataContext.eval(value));
-
-  factory CopyToClipboardAction.fromYaml({YamlMap? payload}) {
-    if (payload == null || payload['value'] == null) {
-      throw LanguageError(
-          '${ActionType.copyToClipboard.name} requires the value.');
-    }
-    return CopyToClipboardAction(
-      value: payload['value'],
-      onSuccess: EnsembleAction.fromYaml(payload['onSuccess']),
-      onFailure: EnsembleAction.fromYaml(payload['onFailure']),
-    );
-  }
-}
-
-class ShareAction extends EnsembleAction {
-  ShareAction(this._text, {String? title}) : _title = title;
-  String? _title;
-  dynamic _text;
-
-  dynamic getText(DataContext dataContext) => dataContext.eval(_text);
-
-  String? getTitle(DataContext datContext) =>
-      Utils.optionalString(datContext.eval(_title));
-
-  factory ShareAction.from({Map? payload}) {
-    if (payload == null || payload['text'] == null) {
-      throw LanguageError("${ActionType.share.name} requires 'text'");
-    }
-    return ShareAction(payload['text'], title: payload['title']?.toString());
-  }
-}
-
-class RateAppAction extends EnsembleAction {
-  RateAppAction({dynamic title, dynamic message})
-      : _title = title,
-        _message = message;
-  final dynamic _title;
-  final dynamic _message;
-
-  factory RateAppAction.from({Map? payload}) {
-    return RateAppAction(
-        title: payload?['title'], message: payload?['message']);
-  }
-
-  @override
-  Future<void> execute(BuildContext context, ScopeManager scopeManager) {
-    // what a mess of options on Android. TODO: add them
-    if (Platform.isIOS) {
-      RateMyApp rateMyApp = RateMyApp(minDays: 0, minLaunches: 0);
-      rateMyApp.init().then((_) => rateMyApp.showStarRateDialog(context));
-    }
-    return Future.value(null);
-  }
-}
-
 class WalletConnectAction extends EnsembleAction {
   WalletConnectAction({
     this.id,
@@ -653,7 +558,7 @@ class WalletConnectAction extends EnsembleAction {
   EnsembleAction? onComplete;
   EnsembleAction? onError;
 
-  factory WalletConnectAction.fromYaml({YamlMap? payload}) {
+  factory WalletConnectAction.fromYaml({Map? payload}) {
     if (payload == null ||
         (payload['wcProjectId'] == null ||
             payload['appMetaData']?['name'] == null)) {
@@ -682,7 +587,7 @@ class AuthorizeOAuthAction extends EnsembleAction {
   EnsembleAction? onResponse;
   EnsembleAction? onError;
 
-  factory AuthorizeOAuthAction.fromYaml({YamlMap? payload}) {
+  factory AuthorizeOAuthAction.fromYaml({Map? payload}) {
     if (payload == null || payload['id'] == null) {
       throw LanguageError(
           '${ActionType.authorizeOAuthService.name} requires the service ID.');
@@ -701,33 +606,11 @@ class NotificationAction extends EnsembleAction {
   EnsembleAction? onTap;
   EnsembleAction? onReceive;
 
-  factory NotificationAction.fromYaml(
-      {Invokable? initiator, YamlMap? payload}) {
+  factory NotificationAction.fromYaml({Invokable? initiator, Map? payload}) {
     return NotificationAction(
       onTap: EnsembleAction.fromYaml(payload?['onTap']),
       onReceive: EnsembleAction.fromYaml(payload?['onReceive']),
     );
-  }
-}
-
-class GetDeviceTokenAction extends EnsembleAction {
-  GetDeviceTokenAction({required this.onSuccess, this.onError});
-
-  EnsembleAction? onSuccess;
-  EnsembleAction? onError;
-
-  factory GetDeviceTokenAction.fromMap({dynamic payload}) {
-    if (payload is Map) {
-      EnsembleAction? successAction =
-          EnsembleAction.fromYaml(payload['onSuccess']);
-      if (successAction == null) {
-        throw LanguageError("onSuccess() is required for Get Token Action");
-      }
-      return GetDeviceTokenAction(
-          onSuccess: successAction,
-          onError: EnsembleAction.fromYaml(payload['onError']));
-    }
-    throw LanguageError("Missing inputs for getDeviceToken.}");
   }
 }
 
@@ -738,7 +621,7 @@ class RequestNotificationAction extends EnsembleAction {
   RequestNotificationAction({this.onAccept, this.onReject});
 
   factory RequestNotificationAction.fromYaml(
-      {Invokable? initiator, YamlMap? payload}) {
+      {Invokable? initiator, Map? payload}) {
     return RequestNotificationAction(
       onAccept: EnsembleAction.fromYaml(payload?['onAccept']),
       onReject: EnsembleAction.fromYaml(payload?['onReject']),
@@ -752,7 +635,7 @@ class ShowNotificationAction extends EnsembleAction {
 
   ShowNotificationAction({this.title = '', this.body = ''});
 
-  factory ShowNotificationAction.fromYaml({YamlMap? payload}) {
+  factory ShowNotificationAction.fromYaml({Map? payload}) {
     return ShowNotificationAction(
       title: Utils.getString(payload?['title'], fallback: ''),
       body: Utils.getString(payload?['body'], fallback: ''),
@@ -772,7 +655,7 @@ class ConnectSocketAction extends EnsembleAction {
     Map<String, dynamic>? inputs,
   }) : super(inputs: inputs);
 
-  factory ConnectSocketAction.fromYaml({YamlMap? payload}) {
+  factory ConnectSocketAction.fromYaml({Map? payload}) {
     if (payload == null || payload['name'] == null) {
       throw ConfigError('connectSocket requires a name');
     }
@@ -790,7 +673,7 @@ class DisconnectSocketAction extends EnsembleAction {
 
   DisconnectSocketAction({required this.name});
 
-  factory DisconnectSocketAction.fromYaml({YamlMap? payload}) {
+  factory DisconnectSocketAction.fromYaml({Map? payload}) {
     if (payload == null || payload['name'] == null) {
       throw ConfigError('disconnectSocket requires a name');
     }
@@ -806,7 +689,7 @@ class MessageSocketAction extends EnsembleAction {
 
   MessageSocketAction({required this.name, required this.message});
 
-  factory MessageSocketAction.fromYaml({YamlMap? payload}) {
+  factory MessageSocketAction.fromYaml({Map? payload}) {
     if (payload == null || payload['name'] == null) {
       throw ConfigError('messageSocket requires a name');
     }
@@ -833,7 +716,7 @@ class CheckPermission extends EnsembleAction {
   Permission? getType(DataContext dataContext) =>
       Permission.values.from(dataContext.eval(_type));
 
-  factory CheckPermission.fromYaml({YamlMap? payload}) {
+  factory CheckPermission.fromYaml({Map? payload}) {
     if (payload == null || payload['type'] == null) {
       throw ConfigError('checkPermission requires a type.');
     }
@@ -850,6 +733,7 @@ enum ActionType {
   invokeAPI,
   navigateScreen,
   navigateViewGroup,
+  navigateExternalScreen,
   navigateModalScreen,
   showBottomModal,
   dismissBottomModal,
@@ -883,6 +767,9 @@ enum ActionType {
   connectSocket,
   disconnectSocket,
   messageSocket,
+  updateBadgeCount,
+  clearBadgeCount,
+  callExternalMethod,
 }
 
 enum ToastType { success, error, warning, info }
@@ -896,7 +783,11 @@ abstract class EnsembleAction {
   Map<String, dynamic>? inputs;
 
   /// TODO: each Action does all the execution in here
-  Future<void> execute(BuildContext context, ScopeManager scopeManager) {
+  /// use DataContext to eval properties. ScopeManager should be refactored
+  /// so it contains the update data context (its DataContext might not have
+  /// the latest data)
+  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager,
+      {DataContext? dataContext}) {
     // placeholder until all Actions are implemented
     return Future.value(null);
   }
@@ -926,9 +817,12 @@ abstract class EnsembleAction {
   }
 
   static EnsembleAction? fromActionType(ActionType actionType,
-      {Invokable? initiator, YamlMap? payload}) {
+      {Invokable? initiator, Map? payload}) {
     if (actionType == ActionType.navigateScreen) {
       return NavigateScreenAction.fromYaml(
+          initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.navigateExternalScreen) {
+      return NavigateExternalScreen.from(
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.navigateViewGroup) {
       return NavigateViewGroupAction.from(payload: payload);
@@ -985,7 +879,7 @@ abstract class EnsembleAction {
     } else if (actionType == ActionType.requestNotificationAccess) {
       return RequestNotificationAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.copyToClipboard) {
-      return CopyToClipboardAction.fromYaml(payload: payload);
+      return CopyToClipboardAction.from(payload: payload);
     } else if (actionType == ActionType.share) {
       return ShareAction.from(payload: payload);
     } else if (actionType == ActionType.rateApp) {
@@ -1007,6 +901,12 @@ abstract class EnsembleAction {
       return DisconnectSocketAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.messageSocket) {
       return MessageSocketAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.updateBadgeCount) {
+      return UpdateBadgeCount.from(payload: payload);
+    } else if (actionType == ActionType.clearBadgeCount) {
+      return ClearBadgeCount();
+    } else if (actionType == ActionType.callExternalMethod) {
+      return CallExternalMethod.from(payload: payload);
     }
     throw LanguageError("Invalid action.",
         recovery: "Make sure to use one of Ensemble-provided actions.");

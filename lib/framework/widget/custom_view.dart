@@ -9,13 +9,13 @@ import 'package:flutter/cupertino.dart';
 class CustomView extends StatelessWidget with Invokable {
   CustomView(
       {super.key,
-      required this.childWidget,
+      required this.body,
       this.parameters,
       required this.scopeManager,
       required this.viewBehavior});
 
   final List<String>? parameters;
-  final Widget childWidget;
+  final WidgetModel body;
   final ScopeManager scopeManager;
   final ViewBehavior viewBehavior;
   bool onLoadExecuted = false;
@@ -29,7 +29,7 @@ class CustomView extends StatelessWidget with Invokable {
         ScreenController().executeAction(context, viewBehavior.onLoad!);
       });
     }
-    return childWidget;
+    return scopeManager.buildWidget(body);
   }
 
   /// override to control setting input parameters
