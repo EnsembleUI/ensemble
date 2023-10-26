@@ -260,9 +260,9 @@ class Utils {
     return optionalDouble(value, min: min, max: max) ?? fallback;
   }
 
-  static List<dynamic>? getList(dynamic value) {
+  static List<T>? getList<T>(dynamic value) {
     if (value is YamlList) {
-      List<dynamic> results = [];
+      List<T> results = [];
       for (var item in value) {
         results.add(item);
       }
@@ -450,6 +450,18 @@ class Utils {
       } catch (_) {
         return TextStyle(fontFamily: fontFamily);
       }
+    }
+    return null;
+  }
+
+  // TODO(snehmehta): expose all attribute
+  static BoxDecoration? getBoxDecoration(dynamic decoration) {
+    if (decoration is Map || decoration is YamlMap) {
+      return BoxDecoration(
+        color: getColor(decoration['backgroundColor']),
+        borderRadius: getBorderRadius(decoration['borderRadius'])?.getValue(),
+        shape: getBoxShape(decoration['shape']) ?? BoxShape.rectangle,
+      );
     }
     return null;
   }

@@ -73,6 +73,10 @@ class GridView extends StatefulWidget
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'reverse': (value) =>
           _controller.reverse = Utils.getBool(value, fallback: false),
+      'scrollController': (value) {
+        if (value is! ScrollController) return null;
+        return _controller.scrollController = value;
+      },
     };
   }
 
@@ -95,6 +99,7 @@ class GridViewController extends BoxController with HasPullToRefresh {
   int selectedItemIndex = -1;
   EnsembleAction? onScrollEnd;
   bool reverse = false;
+  ScrollController? scrollController;
 
   // single number, 3 numbers (small, medium, large), or 5 numbers (xSmall, small, medium, large, xLarge)
   // min 1, max 5
@@ -195,6 +200,7 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
 
     Widget myGridView = LayoutBuilder(
       builder: (context, constraints) => flutter.GridView.builder(
+        controller: widget._controller.scrollController,
         physics: widget._controller.onPullToRefresh != null
             ? const AlwaysScrollableScrollPhysics()
             : null,

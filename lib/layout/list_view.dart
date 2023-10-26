@@ -55,6 +55,10 @@ class ListView extends StatefulWidget
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'reverse': (value) =>
           _controller.reverse = Utils.getBool(value, fallback: false),
+      'controller': (value) {
+        if (value is! ScrollController) return null;
+        return _controller.scrollController = value;
+      },
     };
   }
 
@@ -82,6 +86,7 @@ class ListViewController extends BoxLayoutController {
   EdgeInsets? separatorPadding;
   EnsembleAction? onScrollEnd;
   bool reverse = false;
+  ScrollController? scrollController;
 }
 
 class ListViewState extends WidgetState<ListView>
@@ -116,6 +121,7 @@ class ListViewState extends WidgetState<ListView>
     }
 
     Widget listView = flutter.ListView.separated(
+        controller: widget._controller.scrollController,
         padding: widget._controller.padding ?? const EdgeInsets.all(0),
         scrollDirection: Axis.vertical,
         physics: widget._controller.onPullToRefresh != null

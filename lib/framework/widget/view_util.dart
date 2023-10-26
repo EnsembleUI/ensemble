@@ -219,8 +219,7 @@ class ViewUtil {
       EnsembleController? previousController;
       String? id = model.props['id']?.toString();
       if (id != null) {
-        dynamic controller =
-            scopeNode.scope.dataContext.getContextById(id);
+        dynamic controller = scopeNode.scope.dataContext.getContextById(id);
         if (controller is EnsembleController) {
           previousController = controller;
         }
