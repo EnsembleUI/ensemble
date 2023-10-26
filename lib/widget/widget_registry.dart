@@ -13,6 +13,7 @@ import 'package:ensemble/layout/toggle_container.dart';
 import 'package:ensemble/widget/Toggle.dart';
 import 'package:ensemble/widget/address.dart';
 import 'package:ensemble/widget/calendar.dart';
+import 'package:ensemble/widget/countdown.dart';
 import 'package:ensemble/widget/shape.dart';
 import 'package:ensemble/widget/conditional.dart';
 import 'package:ensemble/widget/confirmation_input.dart';
@@ -100,6 +101,7 @@ class WidgetRegistry {
         EnsembleChat.type: () => GetIt.instance<EnsembleChat>(),
         PopupMenu.type: () => PopupMenu(),
         EnsembleCalendar.type: () => EnsembleCalendar(),
+        Countdown.type: () => Countdown(),
 
         // form fields
         EnsembleForm.type: () => EnsembleForm(),
