@@ -8,6 +8,7 @@ import 'package:ensemble/action/call_external_method.dart';
 import 'package:ensemble/action/invoke_api_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -397,7 +398,7 @@ class NativeInvokable extends ActionInvokable {
     try {
       final data = jsonEncode(value);
       final json = {'key': key, 'data': data};
-      const platform = MethodChannel('com.ensembleui.dev/safari-extension');
+      const platform = MethodChannel(ensembleMethodChannelName);
       final _ =
           await platform.invokeMethod(ActionType.saveToKeychain.name, json);
     } on PlatformException catch (e) {
@@ -411,7 +412,7 @@ class NativeInvokable extends ActionInvokable {
       return;
     }
     try {
-      const platform = MethodChannel('com.ensembleui.dev/safari-extension');
+      const platform = MethodChannel(ensembleMethodChannelName);
       final _ = await platform.invokeMethod(ActionType.clearKeychain.name, key);
     } on PlatformException catch (e) {
       throw LanguageError(
