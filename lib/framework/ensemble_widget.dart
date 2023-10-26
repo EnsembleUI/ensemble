@@ -1,16 +1,15 @@
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 
-abstract class EnsembleWidget<C extends EnsembleController> extends StatefulWidget {
+abstract class EnsembleWidget<C extends EnsembleController>
+    extends StatefulWidget {
   const EnsembleWidget(this.controller, {super.key});
   final C controller;
 }
 
 abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
   void _update() {
-    setState(() {
-
-    });
+    setState(() {});
   }
 
   @override
@@ -32,4 +31,3 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
     super.dispose();
   }
 }
-

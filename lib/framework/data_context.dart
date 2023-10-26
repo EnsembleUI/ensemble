@@ -566,11 +566,6 @@ class Formatter with Invokable {
       'prettyDuration': (input) =>
           InvokablePrimitive.prettyDuration(input, locale: locale),
       'pluralize': pluralize,
-      'formatDate': (formatter, input) {
-        final date = DateTime.tryParse(input);
-        if (date == null || formatter == null) return null;
-        return DateFormat(formatter).format(date);
-      },
     };
   }
 
