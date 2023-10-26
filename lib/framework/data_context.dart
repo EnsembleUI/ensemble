@@ -350,9 +350,9 @@ class NativeInvokable extends ActionInvokable {
       'updateSystemAuthorizationToken': (token) =>
           GetIt.instance<TokenManager>()
               .updateServiceTokens(OAuthService.system, token),
-      ActionType.saveToKeychain.name: (key, value) =>
+      ActionType.saveKeychain.name: (key, value) =>
           KeychainManager().saveToKeychain(key, value),
-      ActionType.saveToKeychainWithGroupId.name: (key, value, groupId) =>
+      ActionType.saveKeychainWithGroupId.name: (key, value, groupId) =>
           KeychainManager().saveToKeychain(key, value, groupId: groupId),
       ActionType.clearKeychain.name: (key) =>
           KeychainManager().clearKeychain(key),
