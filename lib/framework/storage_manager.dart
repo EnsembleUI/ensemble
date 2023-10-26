@@ -77,7 +77,7 @@ mixin SecureStorage {
   Future<void> writeSecurely({required String key, required String value}) =>
       secureStorage.write(key: key, value: value);
 
-  /// read from secure storage
+  /// remove from secure storage
   Future<void> remove(String key) => secureStorage.delete(key: key);
 
   /// read from secure storage
