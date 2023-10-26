@@ -20,9 +20,11 @@ class BottomNavBarNotifier extends ChangeNotifier {
 
   int get viewIndex => _viewIndex;
 
-  void updatePage(int index) {
+  void updatePage(int index, {bool isReload = true}) {
     _viewIndex = index;
-    notifyListeners();
+    if (isReload) {
+      notifyListeners();
+    }
   }
 }
 
@@ -118,9 +120,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
           FloatingAlignment.values.byName(fabMenuItem!.floatingAlignment);
     }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      bottomNavBarNotifier.updatePage(widget.selectedPage);
-    });
+    bottomNavBarNotifier.updatePage(widget.selectedPage, isReload: false);
   }
 
   @override
