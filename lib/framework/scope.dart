@@ -254,7 +254,8 @@ mixin ViewBuilder on IsScopeManager {
             if (model.inputs![param] != null) {
               // set the Custom Widget's inputs from parent scope
               evalPropertyAndRegisterBinding(
-                  scopeManager._parent!, // widget inputs are set in the parent's scope
+                  scopeManager
+                      ._parent!, // widget inputs are set in the parent's scope
                   payload.widget as Invokable,
                   param,
                   model.inputs![param]);
@@ -276,7 +277,8 @@ mixin ViewBuilder on IsScopeManager {
         // set props and styles on the widget. At this stage the widget
         // has not been attached, so no worries about ValueNotifier
         for (String key in model.props.keys) {
-          if (InvokableController.getSettableProperties(invokable).contains(key)) {
+          if (InvokableController.getSettableProperties(invokable)
+              .contains(key)) {
             if (_isPassthroughProperty(key, invokable)) {
               InvokableController.setProperty(invokable, key, model.props[key]);
             } else {
@@ -286,9 +288,11 @@ mixin ViewBuilder on IsScopeManager {
           }
         }
         for (String key in model.styles.keys) {
-          if (InvokableController.getSettableProperties(invokable).contains(key)) {
+          if (InvokableController.getSettableProperties(invokable)
+              .contains(key)) {
             if (_isPassthroughProperty(key, invokable)) {
-              InvokableController.setProperty(invokable, key, model.styles[key]);
+              InvokableController.setProperty(
+                  invokable, key, model.styles[key]);
             } else {
               evalPropertyAndRegisterBinding(
                   scopeManager, invokable, key, model.styles[key]);

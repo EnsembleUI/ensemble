@@ -19,6 +19,7 @@ import 'package:ensemble/widget/chart_highcharts_builder.dart';
 import 'package:ensemble/widget/conditional.dart';
 import 'package:ensemble/widget/confirmation_input.dart';
 import 'package:ensemble/widget/divider.dart';
+import 'package:ensemble/widget/draggable_sheet.dart';
 import 'package:ensemble/widget/ensemble_icon.dart';
 import 'package:ensemble/widget/fintech/finicityconnect/finicityconnect.dart';
 import 'package:ensemble/widget/form_daterange.dart';
@@ -67,7 +68,7 @@ class WidgetRegistry {
   /// all statically-known widgets should be registered here.
   /// widgets can be dynamically registered (or overridden) by calling registerWidget()
   final Map<String, Function> _registeredWidgets = {
-      // TextWidget.type: TextWidget.build,
+    // TextWidget.type: TextWidget.build,
   };
 
   /// register or override a widget
@@ -77,10 +78,8 @@ class WidgetRegistry {
 
   Map<String, Function> get widgetMap => _registeredWidgets;
 
-
   /// Legacy: To be moved to _registeredWidgets;
-  static Map<String, Function> get legacyWidgetMap =>
-      <String, Function>{
+  static Map<String, Function> get legacyWidgetMap => <String, Function>{
         EnsembleText.type: () => EnsembleText(),
         Markdown.type: () => Markdown(),
         EnsembleHtml.type: () => EnsembleHtml(),
@@ -113,6 +112,7 @@ class WidgetRegistry {
         EnsembleChat.type: () => GetIt.instance<EnsembleChat>(),
         PopupMenu.type: () => PopupMenu(),
         EnsembleCalendar.type: () => EnsembleCalendar(),
+        DraggableSheet.type: () => DraggableSheet(),
 
         // form fields
         EnsembleForm.type: () => EnsembleForm(),
