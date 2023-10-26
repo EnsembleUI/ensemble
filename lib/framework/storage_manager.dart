@@ -74,26 +74,12 @@ mixin SecureStorage {
   static const secureStorage = FlutterSecureStorage();
 
   /// write to secure storage
-  Future<void> writeSecurely(
-          {required String key,
-          required String value,
-          IOSOptions? iosOptions,
-          AndroidOptions? androidOptions}) =>
-      secureStorage.write(
-          key: key,
-          value: value,
-          iOptions: iosOptions,
-          aOptions: androidOptions);
+  Future<void> writeSecurely({required String key, required String value}) =>
+      secureStorage.write(key: key, value: value);
 
   /// read from secure storage
-  Future<void> remove(String key,
-          {IOSOptions? iosOptions, AndroidOptions? androidOptions}) =>
-      secureStorage.delete(
-          key: key, iOptions: iosOptions, aOptions: androidOptions);
+  Future<void> remove(String key) => secureStorage.delete(key: key);
 
   /// read from secure storage
-  Future<String?> readSecurely(String key,
-          {IOSOptions? iosOptions, AndroidOptions? androidOptions}) =>
-      secureStorage.read(
-          key: key, iOptions: iosOptions, aOptions: androidOptions);
+  Future<String?> readSecurely(String key) => secureStorage.read(key: key);
 }
