@@ -67,7 +67,7 @@ class WidgetRegistry {
   /// all statically-known widgets should be registered here.
   /// widgets can be dynamically registered (or overridden) by calling registerWidget()
   final Map<String, Function> _registeredWidgets = {
-      // TextWidget.type: TextWidget.build,
+    // TextWidget.type: TextWidget.build,
   };
 
   /// register or override a widget
@@ -77,10 +77,8 @@ class WidgetRegistry {
 
   Map<String, Function> get widgetMap => _registeredWidgets;
 
-
   /// Legacy: To be moved to _registeredWidgets;
-  static Map<String, Function> get legacyWidgetMap =>
-      <String, Function>{
+  static Map<String, Function> get legacyWidgetMap => <String, Function>{
         EnsembleText.type: () => EnsembleText(),
         Markdown.type: () => Markdown(),
         EnsembleHtml.type: () => EnsembleHtml(),
