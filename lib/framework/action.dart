@@ -714,13 +714,11 @@ class SaveKeychain extends EnsembleAction {
   SaveKeychain({
     required this.key,
     this.value,
-    this.groupId,
     this.onComplete,
     this.onError,
   });
   final String key;
   final dynamic value;
-  final String? groupId;
   final EnsembleAction? onComplete;
   final EnsembleAction? onError;
 
@@ -731,7 +729,6 @@ class SaveKeychain extends EnsembleAction {
     return SaveKeychain(
       key: payload['key'],
       value: payload['value'],
-      groupId: payload['groupId'],
       onComplete: EnsembleAction.fromYaml(payload['onComplete']),
       onError: EnsembleAction.fromYaml(payload['onError']),
     );
@@ -747,7 +744,7 @@ class SaveKeychain extends EnsembleAction {
     if (storageKey != null) {
       try {
         await KeychainManager()
-            .saveToKeychain(storageKey, value, groupId: groupId);
+            .saveToKeychain(storageKey, value, inputs: inputs);
         // dispatch onComplete
         if (onComplete != null) {
           ScreenController().executeAction(context, onComplete!);
@@ -770,12 +767,10 @@ class SaveKeychain extends EnsembleAction {
 class ClearKeychain extends EnsembleAction {
   ClearKeychain({
     required this.key,
-    this.groupId,
     this.onComplete,
     this.onError,
   });
   final String key;
-  final String? groupId;
   final EnsembleAction? onComplete;
   final EnsembleAction? onError;
 
@@ -785,7 +780,6 @@ class ClearKeychain extends EnsembleAction {
     }
     return ClearKeychain(
       key: payload['key'],
-      groupId: payload['groupId'],
       onComplete: EnsembleAction.fromYaml(payload['onComplete']),
       onError: EnsembleAction.fromYaml(payload['onError']),
     );
@@ -800,7 +794,7 @@ class ClearKeychain extends EnsembleAction {
 
     if (storageKey != null) {
       try {
-        await KeychainManager().clearKeychain(storageKey, groupId: groupId);
+        await KeychainManager().clearKeychain(storageKey, inputs: inputs);
         // dispatch onComplete
         if (onComplete != null) {
           ScreenController().executeAction(context, onComplete!);
@@ -852,9 +846,7 @@ enum ActionType {
   getPhoneContacts,
   checkPermission,
   saveKeychain,
-  saveKeychainWithGroupId,
   clearKeychain,
-  clearKeychainWithGroupId,
   getDeviceToken,
   connectSocket,
   disconnectSocket,

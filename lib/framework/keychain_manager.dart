@@ -12,8 +12,9 @@ class KeychainManager {
   }
 
   Future<void> saveToKeychain(String key, dynamic value,
-      {String? groupId}) async {
+      {Map<dynamic, dynamic>? inputs}) async {
     try {
+      final groupId = inputs?['groupId'] as String?;
       final iOSOptions = groupId != null ? IOSOptions(groupId: groupId) : null;
       await StorageManager().writeSecurely(
           key: key, value: value.toString(), iosOptions: iOSOptions);
@@ -22,8 +23,10 @@ class KeychainManager {
     }
   }
 
-  Future<void> clearKeychain(String key, {String? groupId}) async {
+  Future<void> clearKeychain(String key,
+      {Map<dynamic, dynamic>? inputs}) async {
     try {
+      final groupId = inputs?['groupId'] as String?;
       final iOSOptions = groupId != null ? IOSOptions(groupId: groupId) : null;
       await StorageManager().remove(key, iosOptions: iOSOptions);
     } catch (e) {
