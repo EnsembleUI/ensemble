@@ -350,12 +350,10 @@ class NativeInvokable extends ActionInvokable {
       'updateSystemAuthorizationToken': (token) =>
           GetIt.instance<TokenManager>()
               .updateServiceTokens(OAuthService.system, token),
-      ActionType.saveKeychain.name:
-          (String key, dynamic value, Map<dynamic, dynamic>? inputs) =>
-              KeychainManager().saveToKeychain(key, value, inputs: inputs),
-      ActionType.clearKeychain.name:
-          (String key, Map<dynamic, dynamic>? inputs) =>
-              KeychainManager().clearKeychain(key, inputs: inputs),
+      ActionType.saveKeychain.name: (dynamic inputs) =>
+          KeychainManager().saveToKeychain(inputs),
+      ActionType.clearKeychain.name: (dynamic inputs) =>
+          KeychainManager().clearKeychain(inputs),
       'connectSocket': (String socketName, Map<dynamic, dynamic>? inputs) {
         connectSocket(buildContext, socketName, inputs: inputs);
       },

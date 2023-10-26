@@ -717,6 +717,7 @@ class SaveKeychain extends EnsembleAction {
     this.onComplete,
     this.onError,
   });
+
   final String key;
   final dynamic value;
   final EnsembleAction? onComplete;
@@ -743,8 +744,8 @@ class SaveKeychain extends EnsembleAction {
 
     if (storageKey != null) {
       try {
-        await KeychainManager()
-            .saveToKeychain(storageKey, value, inputs: inputs);
+        final datas = {'key': key, 'value': value};
+        await KeychainManager().saveToKeychain(datas);
         // dispatch onComplete
         if (onComplete != null) {
           ScreenController().executeAction(context, onComplete!);
@@ -770,6 +771,7 @@ class ClearKeychain extends EnsembleAction {
     this.onComplete,
     this.onError,
   });
+
   final String key;
   final EnsembleAction? onComplete;
   final EnsembleAction? onError;
@@ -794,7 +796,8 @@ class ClearKeychain extends EnsembleAction {
 
     if (storageKey != null) {
       try {
-        await KeychainManager().clearKeychain(storageKey, inputs: inputs);
+        final datas = {'key': key};
+        await KeychainManager().clearKeychain(datas);
         // dispatch onComplete
         if (onComplete != null) {
           ScreenController().executeAction(context, onComplete!);
