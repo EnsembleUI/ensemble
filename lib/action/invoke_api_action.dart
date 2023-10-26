@@ -4,6 +4,7 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/http_utils.dart';
@@ -174,8 +175,12 @@ class InvokeAPIController {
         ? ModifiableAPIResponse(response: response)
         : APIResponse(response: response);
 
+    // add the response to data context
     DataContext localizedContext = dataContext.clone();
     localizedContext.addInvokableContext('response', apiResponse);
+    localizedContext.addInvokableContext(
+        'event', EnsembleEvent(action?.initiator, data: apiResponse));
+
     ScreenController().nowExecuteAction(
         context, localizedContext, onResponseAction, apiMap, scopeManager);
 
@@ -197,29 +202,35 @@ class InvokeAPIController {
     //log("Error: $error");
 
     DataContext localizedContext = dataContext.clone();
+
+    String? errorStr;
+    dynamic data;
     if (errorResponse is Response) {
-      localizedContext.addInvokableContext(
-          'response', APIResponse(response: errorResponse));
+      APIResponse apiResponse = APIResponse(response: errorResponse);
+      localizedContext.addInvokableContext('response', apiResponse);
+      errorStr = errorResponse.reasonPhrase;
+      data = apiResponse;
 
       // dispatch the changes to the response
       dispatchAPIChanges(
           scopeManager, action, APIResponse(response: errorResponse));
     } else {
-      // exception, how do we want to expose to the user?
+      errorStr = errorResponse is Error ? errorResponse.toString() : null;
     }
+    var apiEvent = EnsembleEvent(action.initiator,
+        error: errorStr ?? 'API Error', data: data);
 
     EnsembleAction? onErrorAction =
         EnsembleAction.fromYaml(apiDefinition['onError']);
     if (onErrorAction != null) {
-      // probably want to include the error?
       ScreenController().nowExecuteAction(
-          context, localizedContext, onErrorAction, apiMap, scopeManager);
+          context, localizedContext, onErrorAction, apiMap, scopeManager, event: apiEvent);
     }
 
     // if our Action has onError, invoke that next
     if (action.onError != null) {
       ScreenController().nowExecuteAction(
-          context, localizedContext, action.onError!, apiMap, scopeManager);
+          context, localizedContext, action.onError!, apiMap, scopeManager, event: apiEvent);
     }
 
     // silently fail if error handle is not defined? or should we alert user?
