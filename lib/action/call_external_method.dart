@@ -33,8 +33,7 @@ class CallExternalMethod extends EnsembleAction {
   }
 
   @override
-  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager,
-      {DataContext? dataContext}) async {
+  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) async {
     String? name = Utils.optionalString(scopeManager.dataContext.eval(_name));
 
     String? errorReason;
