@@ -4,6 +4,7 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/http_utils.dart';
@@ -16,11 +17,11 @@ import 'package:http/http.dart' as http;
 class InvokeAPIAction extends EnsembleAction {
   InvokeAPIAction(
       {Invokable? initiator,
-        required this.apiName,
-        this.id,
-        Map<String, dynamic>? inputs,
-        this.onResponse,
-        this.onError})
+      required this.apiName,
+      this.id,
+      Map<String, dynamic>? inputs,
+      this.onResponse,
+      this.onError})
       : super(initiator: initiator, inputs: inputs);
 
   String? id;
@@ -42,20 +43,25 @@ class InvokeAPIAction extends EnsembleAction {
         onResponse: EnsembleAction.fromYaml(payload['onResponse'],
             initiator: initiator),
         onError:
-        EnsembleAction.fromYaml(payload['onError'], initiator: initiator));
+            EnsembleAction.fromYaml(payload['onError'], initiator: initiator));
   }
 
   @override
-  Future execute(BuildContext context, ScopeManager scopeManager) {
-    var evalApiName = scopeManager.dataContext.eval(apiName);
-    var cloneAction = InvokeAPIAction(apiName: evalApiName, initiator: initiator, id: id, inputs: inputs, onResponse: onResponse, onError: onError);
-    return InvokeAPIController()
-        .execute(cloneAction, context, scopeManager.dataContext, scopeManager,
-          scopeManager.pageData.apiMap);
+  Future execute(BuildContext context, ScopeManager scopeManager,
+      {DataContext? dataContext}) {
+    DataContext realDataContext = dataContext ?? scopeManager.dataContext;
+    var evalApiName = realDataContext.eval(apiName);
+    var cloneAction = InvokeAPIAction(
+        apiName: evalApiName,
+        initiator: initiator,
+        id: id,
+        inputs: inputs,
+        onResponse: onResponse,
+        onError: onError);
+    return InvokeAPIController().execute(cloneAction, context, realDataContext,
+        scopeManager, scopeManager.pageData.apiMap);
   }
 }
-
-
 
 class InvokeAPIController {
   Future<Response?> executeWithContext(
@@ -169,8 +175,12 @@ class InvokeAPIController {
         ? ModifiableAPIResponse(response: response)
         : APIResponse(response: response);
 
+    // add the response to data context
     DataContext localizedContext = dataContext.clone();
     localizedContext.addInvokableContext('response', apiResponse);
+    localizedContext.addInvokableContext(
+        'event', EnsembleEvent(action?.initiator, data: apiResponse));
+
     ScreenController().nowExecuteAction(
         context, localizedContext, onResponseAction, apiMap, scopeManager);
 
@@ -192,29 +202,37 @@ class InvokeAPIController {
     //log("Error: $error");
 
     DataContext localizedContext = dataContext.clone();
+
+    String? errorStr;
+    dynamic data;
     if (errorResponse is Response) {
-      localizedContext.addInvokableContext(
-          'response', APIResponse(response: errorResponse));
+      APIResponse apiResponse = APIResponse(response: errorResponse);
+      localizedContext.addInvokableContext('response', apiResponse);
+      errorStr = errorResponse.reasonPhrase;
+      data = apiResponse;
 
       // dispatch the changes to the response
       dispatchAPIChanges(
           scopeManager, action, APIResponse(response: errorResponse));
     } else {
-      // exception, how do we want to expose to the user?
+      errorStr = errorResponse is Error ? errorResponse.toString() : null;
     }
+    var apiEvent = EnsembleEvent(action.initiator,
+        error: errorStr ?? 'API Error', data: data);
 
     EnsembleAction? onErrorAction =
         EnsembleAction.fromYaml(apiDefinition['onError']);
     if (onErrorAction != null) {
-      // probably want to include the error?
       ScreenController().nowExecuteAction(
-          context, localizedContext, onErrorAction, apiMap, scopeManager);
+          context, localizedContext, onErrorAction, apiMap, scopeManager,
+          event: apiEvent);
     }
 
     // if our Action has onError, invoke that next
     if (action.onError != null) {
       ScreenController().nowExecuteAction(
-          context, localizedContext, action.onError!, apiMap, scopeManager);
+          context, localizedContext, action.onError!, apiMap, scopeManager,
+          event: apiEvent);
     }
 
     // silently fail if error handle is not defined? or should we alert user?

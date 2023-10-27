@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
@@ -32,7 +33,8 @@ class CallExternalMethod extends EnsembleAction {
   }
 
   @override
-  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) async {
+  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager,
+      {DataContext? dataContext}) async {
     String? name = Utils.optionalString(scopeManager.dataContext.eval(_name));
 
     String? errorReason;

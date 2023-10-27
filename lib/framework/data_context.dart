@@ -462,8 +462,8 @@ class NativeInvokable extends ActionInvokable {
   }
 
   void navigateBack([dynamic payload]) {
-    ScreenController().executeAction(
-        buildContext, NavigateBackAction.from(payload: payload));
+    ScreenController()
+        .executeAction(buildContext, NavigateBackAction.from(payload: payload));
   }
 }
 
@@ -565,7 +565,7 @@ class Formatter with Invokable {
       'prettyCurrency': (input) => InvokablePrimitive.prettyCurrency(input),
       'prettyDuration': (input) =>
           InvokablePrimitive.prettyDuration(input, locale: locale),
-      'pluralize': pluralize
+      'pluralize': pluralize,
     };
   }
 
