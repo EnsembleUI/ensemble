@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
@@ -32,7 +33,8 @@ class CopyToClipboardAction extends EnsembleAction {
   }
 
   @override
-  Future execute(BuildContext context, ScopeManager scopeManager) {
+  Future execute(BuildContext context, ScopeManager scopeManager,
+      {DataContext? dataContext}) {
     String? value = Utils.optionalString(scopeManager.dataContext.eval(_value));
     if (value != null) {
       Clipboard.setData(ClipboardData(text: value)).then((_) {
@@ -70,7 +72,8 @@ class ShareAction extends EnsembleAction {
   }
 
   @override
-  Future execute(BuildContext context, ScopeManager scopeManager) {
+  Future execute(BuildContext context, ScopeManager scopeManager,
+      {DataContext? dataContext}) {
     Share.share(scopeManager.dataContext.eval(_text),
         subject: Utils.optionalString(scopeManager.dataContext.eval(_title)));
     return Future.value(null);
@@ -93,7 +96,8 @@ class RateAppAction extends EnsembleAction {
   }
 
   @override
-  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
+  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager,
+      {DataContext? dataContext}) {
     // what a mess of options on Android. TODO: add them
     if (Platform.isIOS) {
       RateMyApp rateMyApp = RateMyApp(minDays: 0, minLaunches: 0);

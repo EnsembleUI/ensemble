@@ -517,8 +517,6 @@ class FileUploadAction extends EnsembleAction {
   }
 }
 
-
-
 class WalletConnectAction extends EnsembleAction {
   WalletConnectAction({
     this.id,
@@ -764,7 +762,11 @@ abstract class EnsembleAction {
   Map<String, dynamic>? inputs;
 
   /// TODO: each Action does all the execution in here
-  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
+  /// use DataContext to eval properties. ScopeManager should be refactored
+  /// so it contains the update data context (its DataContext might not have
+  /// the latest data)
+  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager,
+      {DataContext? dataContext}) {
     // placeholder until all Actions are implemented
     return Future.value(null);
   }
