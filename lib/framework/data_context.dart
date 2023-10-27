@@ -565,7 +565,7 @@ class Formatter with Invokable {
       'prettyCurrency': (input) => InvokablePrimitive.prettyCurrency(input),
       'prettyDuration': (input) =>
           InvokablePrimitive.prettyDuration(input, locale: locale),
-      'pluralize': pluralize
+      'pluralize': pluralize,
     };
   }
 

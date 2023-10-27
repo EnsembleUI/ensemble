@@ -5265,6 +5265,9 @@
                   "type": "boolean",
                   "description": "Set visibility of calendar header. Default true."
                 },
+                "header": {
+                  "$ref": "#/$defs/Widget"
+                },
                 "rowSpans": {
                   "type": "array",
                   "items": {
