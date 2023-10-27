@@ -194,7 +194,8 @@ class InvokeAPIController {
 
     if (modifiableAPIResponse == true) {
       // should be on Action's callback instead
-      apiChangeHandler?.call(scopeManager, action, apiResponse);
+      // Note that we use the original apiScopeManager here
+      apiChangeHandler?.call(apiScopeManager, action, apiResponse);
     }
   }
 
