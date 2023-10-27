@@ -8,6 +8,8 @@ import 'package:ensemble/action/call_external_method.dart';
 import 'package:ensemble/action/invoke_api_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/all_countries.dart';
+import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -322,6 +324,7 @@ class NativeInvokable extends ActionInvokable {
       'storage': () => EnsembleStorage(buildContext),
       'user': () => UserInfo(),
       'formatter': () => Formatter(buildContext),
+      'utils': () => EnsembleUtils(),
     };
   }
 
@@ -544,6 +547,75 @@ class EnsembleStorage with Invokable {
   }
 }
 
+class EnsembleUtils with Invokable {
+  @override
+  Map<String, Function> getters() => {};
+
+  @override
+  Map<String, Function> methods() => {
+        'getCountries': () => allCountries,
+        'getCountry': (value) {
+          String val = Utils.getString(value, fallback: "");
+          return getCountry(val);
+        },
+        'findCountry': (value) {
+          String val = Utils.getString(value, fallback: "");
+          return findCountry(val);
+        }
+      };
+
+  @override
+  Map<String, Function> setters() => {};
+
+  Map<String, dynamic>? getCountry(String val) {
+    String input = val.toLowerCase().trim();
+
+    if (input.length == 2) {
+      for (var i in allCountries) {
+        String countryCode = i['iso']['alpha-2'];
+        countryCode = countryCode.toLowerCase();
+        if (countryCode == input) {
+          return i;
+        }
+      }
+    } else if (input.length == 3) {
+      for (var i in allCountries) {
+        String countryCode = i['iso']['alpha-3'];
+        countryCode = countryCode.toLowerCase();
+        if (countryCode == input) {
+          return i;
+        }
+      }
+    }
+    return null;
+  }
+
+  List<Map<String, dynamic>> findCountry(String userInput) {
+    List<Map<String, dynamic>> result = [];
+    userInput = userInput.toLowerCase().trim();
+    for (var i in allCountries) {
+      String countryName = i['name'] as String..toLowerCase();
+      countryName = countryName.toLowerCase();
+      if (countryName.contains(userInput, 0)) {
+        result.add(i);
+      } else if (userInput.length == 2) {
+        String alpha2Code = i['iso']['alpha-2'];
+        alpha2Code = alpha2Code.toLowerCase();
+        if (alpha2Code == userInput) {
+          result.add(i);
+        }
+      } else if (userInput.length == 3) {
+        String alpha3code = i['iso']['alpha-3'];
+        alpha3code = alpha3code.toLowerCase();
+        if (alpha3code == userInput) {
+          result.add(i);
+        }
+      }
+    }
+    return result;
+  }
+}
+
 class Formatter with Invokable {
   final BuildContext _buildContext;
 
@@ -565,7 +637,7 @@ class Formatter with Invokable {
       'prettyCurrency': (input) => InvokablePrimitive.prettyCurrency(input),
       'prettyDuration': (input) =>
           InvokablePrimitive.prettyDuration(input, locale: locale),
-      'pluralize': pluralize
+      'pluralize': pluralize,
     };
   }
 
