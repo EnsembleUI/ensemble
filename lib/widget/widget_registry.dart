@@ -19,7 +19,6 @@ import 'package:ensemble/widget/chart_highcharts_builder.dart';
 import 'package:ensemble/widget/conditional.dart';
 import 'package:ensemble/widget/confirmation_input.dart';
 import 'package:ensemble/widget/divider.dart';
-import 'package:ensemble/widget/draggable_sheet.dart';
 import 'package:ensemble/widget/ensemble_icon.dart';
 import 'package:ensemble/widget/fintech/finicityconnect/finicityconnect.dart';
 import 'package:ensemble/widget/form_daterange.dart';
@@ -112,7 +111,6 @@ class WidgetRegistry {
         EnsembleChat.type: () => GetIt.instance<EnsembleChat>(),
         PopupMenu.type: () => PopupMenu(),
         EnsembleCalendar.type: () => EnsembleCalendar(),
-        DraggableSheet.type: () => DraggableSheet(),
 
         // form fields
         EnsembleForm.type: () => EnsembleForm(),

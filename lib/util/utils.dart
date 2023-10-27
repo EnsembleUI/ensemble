@@ -454,18 +454,6 @@ class Utils {
     return null;
   }
 
-  // TODO(snehmehta): expose all attribute
-  static BoxDecoration? getBoxDecoration(dynamic decoration) {
-    if (decoration is Map || decoration is YamlMap) {
-      return BoxDecoration(
-        color: getColor(decoration['backgroundColor']),
-        borderRadius: getBorderRadius(decoration['borderRadius'])?.getValue(),
-        shape: getBoxShape(decoration['shape']) ?? BoxShape.rectangle,
-      );
-    }
-    return null;
-  }
-
   static TextDecoration? getDecoration(dynamic decoration) {
     if (decoration is String) {
       switch (decoration) {

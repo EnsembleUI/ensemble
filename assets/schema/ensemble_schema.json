@@ -2914,25 +2914,6 @@
         }
       ]
     },
-    "BoxDecoration-payload": {
-      "type": "object",
-      "properties": {
-        "backgroundColor": {
-          "$ref": "#/$defs/typeColors",
-          "description": "Color of the box background"
-        },
-        "borderRadius": {
-          "$ref": "#/$defs/borderRadius",
-          "description": "The box border radius"
-        },
-        "shape": {
-          "type": "string",
-          "description": "The shape of the box",
-          "enum": ["circle", "rectangle"],
-          "default": "rectangle"
-        }
-      }
-    },
     "Action-payload": {
       "oneOf": [
         {
@@ -5253,56 +5234,6 @@
                       }
                     ]
                   }
-                }
-              }
-            }
-          }
-        },
-        {
-          "title": "DraggableSheet",
-          "type": "object",
-          "required": ["DraggableSheet"],
-          "properties": {
-            "DraggableSheet": {
-              "type": "object",
-              "required": ["id", "widget"],
-              "properties": {
-                "id": {
-                  "type": "string",
-                  "description": "A unique identifier for this widget"
-                },
-                "initialSize": {
-                  "type": "number",
-                  "description": "The fraction of the parent container the draggable sheet should initially fill"
-                },
-                "minSize": {
-                  "type": "number",
-                  "description": "The smallest fraction of the parent container the draggable sheet can fill"
-                },
-                "maxSize": {
-                  "type": "number",
-                  "description": "The largest fraction of the parent container the draggable sheet can fill"
-                },
-                "span": {
-                  "type": "boolean",
-                  "description": "The draggable sheet can move beyond the limits defined by minSize and maxSize"
-                },
-                "expand": {
-                  "type": "boolean",
-                  "description": "Whether the draggable sheet should expand to fill its viewport"
-                },
-                "spanSizes": {
-                  "type": "array",
-                  "items": {"type": "number"},
-                  "description": "The list of sizes the draggable sheet will span through when it is dragged"
-                },
-                "decoration": {
-                  "$ref": "#/$defs/BoxDecoration-payload",
-                  "description": "The decoration to show behind the DraggableSheet"
-                },
-                "widget": {
-                  "$ref": "#/$defs/Widget",
-                  "description": "The widget to show inside the DraggableSheet"
                 }
               }
             }
