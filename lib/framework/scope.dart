@@ -28,11 +28,13 @@ import 'package:yaml/yaml.dart';
 ///  - ViewBuilder: helper class with building widgets
 ///  - PageBindingManager: managing event bindings at the page level
 class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
-  ScopeManager(this._dataContext, this.pageData);
+  ScopeManager(this._dataContext, this.pageData, {this.ephemeral = false});
 
+  bool ephemeral;
   final DataContext _dataContext;
   final PageData pageData;
   ScopeManager? _parent;
+
   // TODO: have proper root scope
   RootScope rootScope = Ensemble().rootScope();
 
@@ -148,8 +150,9 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
 
   /// create a copy of the parent's data scope
   @override
-  ScopeManager createChildScope() {
-    ScopeManager childScope = ScopeManager(dataContext.clone(), pageData);
+  ScopeManager createChildScope({bool ephemeral = false}) {
+    ScopeManager childScope =
+        ScopeManager(dataContext.clone(), pageData, ephemeral: ephemeral);
     childScope._parent = this;
     return childScope;
   }
@@ -160,12 +163,19 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
 
 abstract class IsScopeManager {
   DataContext get dataContext;
+
   Map<String, dynamic>? get customViewDefinitions;
+
   EventBus get eventBus;
+
   Map<Invokable, Map<int, StreamSubscription>> get listenerMap;
+
   void removeTimerByWidget(Invokable widget);
+
   List<BuildContext> get openedDialogs;
+
   ScopeManager createChildScope();
+
   ScopeManager get me;
 }
 
@@ -254,8 +264,8 @@ mixin ViewBuilder on IsScopeManager {
             if (model.inputs![param] != null) {
               // set the Custom Widget's inputs from parent scope
               evalPropertyAndRegisterBinding(
-                  scopeManager
-                      ._parent!, // widget inputs are set in the parent's scope
+                  // widget inputs are set in the parent's scope
+                  scopeManager._parent!,
                   payload.widget as Invokable,
                   param,
                   model.inputs![param]);
@@ -569,7 +579,7 @@ class PageData {
   Map<String, EnsembleSocket>? socketData;
 
   /// everytime we call this, we make sure any populated API result will have its updated values here
-  /*DataContext getEnsembleContext() {
+/*DataContext getEnsembleContext() {
     for (var element in datasourceMap.values) {
       if (element._resultData != null) {
         _eContext.addDataContext(element._resultData!);
@@ -590,6 +600,7 @@ class DataExpression {
   // or it can be a List [${first} ${last}, 4, ${anotherVar}]
   // or it can be 1-level Map
   dynamic rawExpression;
+
   // each expression in a list e.g [person.first_name, person.last_name]
   List<String> expressions;
 }
@@ -598,6 +609,7 @@ class DataExpression {
 /// We use this to manage Timers
 class EnsembleTimer {
   EnsembleTimer(this.timer, {this.id});
+
   Timer timer;
   String? id;
 
@@ -680,6 +692,7 @@ class SocketService {
   SocketService._internal();
 
   static final SocketService _instance = SocketService._internal();
+
   factory SocketService() {
     return _instance;
   }

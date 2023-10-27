@@ -60,8 +60,7 @@ class ShowBottomModalAction extends EnsembleAction {
   }
 
   @override
-  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager,
-      {DataContext? dataContext}) {
+  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
     Widget? widget;
     if (body != null) {
       widget = scopeManager.buildWidgetFromDefinition(body);
@@ -92,6 +91,7 @@ class ShowBottomModalAction extends EnsembleAction {
 /// Dismiss the Bottom Modal (if the context is a descendant, no-op otherwise)
 class DismissBottomModalAction extends EnsembleAction {
   DismissBottomModalAction({this.payload});
+
   Map? payload;
 
   factory DismissBottomModalAction.from({Map? payload}) =>
