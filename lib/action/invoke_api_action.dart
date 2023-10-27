@@ -224,13 +224,15 @@ class InvokeAPIController {
         EnsembleAction.fromYaml(apiDefinition['onError']);
     if (onErrorAction != null) {
       ScreenController().nowExecuteAction(
-          context, localizedContext, onErrorAction, apiMap, scopeManager, event: apiEvent);
+          context, localizedContext, onErrorAction, apiMap, scopeManager,
+          event: apiEvent);
     }
 
     // if our Action has onError, invoke that next
     if (action.onError != null) {
       ScreenController().nowExecuteAction(
-          context, localizedContext, action.onError!, apiMap, scopeManager, event: apiEvent);
+          context, localizedContext, action.onError!, apiMap, scopeManager,
+          event: apiEvent);
     }
 
     // silently fail if error handle is not defined? or should we alert user?
