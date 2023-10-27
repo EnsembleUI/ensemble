@@ -245,7 +245,7 @@ class SinglePageModel extends PageModel {
   WidgetModel? getRootModel(
       YamlMap rootTree, Map<String, dynamic>? customViewDefinitions) {
     for (MapEntry<dynamic, dynamic> entry in rootTree.entries) {
-      if (WidgetRegistry.widgetMap[entry.key] != null ||
+      if (WidgetRegistry.legacyWidgetMap[entry.key] != null ||
           customViewDefinitions?[entry.key] != null) {
         return ViewUtil.buildModel(entry, customViewDefinitions);
       }

@@ -61,8 +61,6 @@ import 'framework/widget/wallet_connect_modal.dart';
 /// Singleton that holds the page model definition
 /// and operations for the current screen
 class ScreenController {
-  final WidgetRegistry registry = WidgetRegistry.instance;
-
   // Singleton
   static final ScreenController _instance = ScreenController._internal();
 

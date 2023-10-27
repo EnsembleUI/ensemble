@@ -6,6 +6,7 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page.dart';
@@ -266,27 +267,35 @@ mixin ViewBuilder on IsScopeManager {
 
       //WidgetModel model = inputModel is CustomWidgetModel ? inputModel.getModel() : inputModel;
 
-      if (payload.widget is Invokable) {
-        Invokable widget = payload.widget as Invokable;
+      Invokable? invokable;
+      if (payload.widget is EnsembleWidget) {
+        invokable = (payload.widget as EnsembleWidget).controller;
+      } else if (payload.widget is Invokable) {
+        invokable = payload.widget as Invokable;
+      }
+      if (invokable != null) {
         // set props and styles on the widget. At this stage the widget
         // has not been attached, so no worries about ValueNotifier
         for (String key in model.props.keys) {
-          if (InvokableController.getSettableProperties(widget).contains(key)) {
-            if (_isPassthroughProperty(key, widget)) {
-              InvokableController.setProperty(widget, key, model.props[key]);
+          if (InvokableController.getSettableProperties(invokable)
+              .contains(key)) {
+            if (_isPassthroughProperty(key, invokable)) {
+              InvokableController.setProperty(invokable, key, model.props[key]);
             } else {
               evalPropertyAndRegisterBinding(
-                  scopeManager, widget, key, model.props[key]);
+                  scopeManager, invokable, key, model.props[key]);
             }
           }
         }
         for (String key in model.styles.keys) {
-          if (InvokableController.getSettableProperties(widget).contains(key)) {
-            if (_isPassthroughProperty(key, widget)) {
-              InvokableController.setProperty(widget, key, model.styles[key]);
+          if (InvokableController.getSettableProperties(invokable)
+              .contains(key)) {
+            if (_isPassthroughProperty(key, invokable)) {
+              InvokableController.setProperty(
+                  invokable, key, model.styles[key]);
             } else {
               evalPropertyAndRegisterBinding(
-                  scopeManager, widget, key, model.styles[key]);
+                  scopeManager, invokable, key, model.styles[key]);
             }
           }
         }
