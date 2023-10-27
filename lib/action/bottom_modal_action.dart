@@ -60,8 +60,7 @@ class ShowBottomModalAction extends EnsembleAction {
   }
 
   @override
-  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager,
-      {DataContext? dataContext}) {
+  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
     Widget? widget;
     if (body != null) {
       widget = scopeManager.buildWidgetFromDefinition(body);

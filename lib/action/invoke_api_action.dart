@@ -47,8 +47,7 @@ class InvokeAPIAction extends EnsembleAction {
   }
 
   @override
-  Future execute(BuildContext context, ScopeManager scopeManager,
-      {DataContext? dataContext}) {
+  Future execute(BuildContext context, ScopeManager scopeManager) {
     var evalApiName = scopeManager.dataContext.eval(apiName);
     var cloneAction = InvokeAPIAction(
         apiName: evalApiName,

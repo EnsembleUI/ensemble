@@ -26,8 +26,7 @@ class NavigateExternalScreen extends BaseNavigateScreenAction {
   }
 
   @override
-  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager,
-      {DataContext? dataContext}) {
+  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
     // payload
     Map<String, dynamic>? payload;
     if (inputs != null) {
@@ -60,8 +59,7 @@ class NavigateBackAction extends EnsembleAction {
       NavigateBackAction(payload: payload?['payload'] ?? payload?['data']);
 
   @override
-  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager,
-      {DataContext? dataContext}) {
+  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
     return Navigator.of(context)
         .maybePop(scopeManager.dataContext.eval(payload));
   }
