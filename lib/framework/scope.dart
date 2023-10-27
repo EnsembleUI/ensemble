@@ -264,8 +264,8 @@ mixin ViewBuilder on IsScopeManager {
             if (model.inputs![param] != null) {
               // set the Custom Widget's inputs from parent scope
               evalPropertyAndRegisterBinding(
-                  scopeManager._parent!,
                   // widget inputs are set in the parent's scope
+                  scopeManager._parent!,
                   payload.widget as Invokable,
                   param,
                   model.inputs![param]);
