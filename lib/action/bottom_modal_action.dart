@@ -91,6 +91,7 @@ class ShowBottomModalAction extends EnsembleAction {
 /// Dismiss the Bottom Modal (if the context is a descendant, no-op otherwise)
 class DismissBottomModalAction extends EnsembleAction {
   DismissBottomModalAction({this.payload});
+
   Map? payload;
 
   factory DismissBottomModalAction.from({Map? payload}) =>
