@@ -27,6 +27,7 @@ class EnsembleLottie extends StatefulWidget
   @override
   Map<String, Function> methods() {
     return {
+      // Method to start animation in forward direction
       'forward': () {
         if (_controller.repeat) {
           _controller.lottieController!.repeat();
@@ -34,8 +35,11 @@ class EnsembleLottie extends StatefulWidget
           _controller.lottieController!.repeat();
         }
       },
+      // Method to run animation in reverse direction
       'reverse': () => _controller.lottieController!.reverse(),
+      // Method to reset animation to initial position
       'reset': () => _controller.lottieController!.reset(),
+      // Method to stop animation at current position
       'stop': () => _controller.lottieController!.stop(),
     };
   }
@@ -50,12 +54,13 @@ class EnsembleLottie extends StatefulWidget
             value,
             fallback: true,
           ),
+      'onTap': (funcDefinition) => _controller.onTap =
+          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      // It defines whether animation would start at the time of rendering or not
       'autoPlay': (value) => _controller.autoPlay = Utils.getBool(
             value,
             fallback: true,
           ),
-      'onTap': (funcDefinition) => _controller.onTap =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
       // Callback method for onForward
       'onForward': (definition) => _controller.onForward =
           EnsembleAction.fromYaml(definition, initiator: this),
