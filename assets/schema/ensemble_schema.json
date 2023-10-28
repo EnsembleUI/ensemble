@@ -1181,7 +1181,15 @@
               "type": "object",
               "description": "Styling the hint text. Default to theme's bodyMedium styling",
               "$ref": "#/$defs/TextStyle"
-            }
+            },
+            "multiline": {
+              "type": "boolean",
+              "description": "whether to allow multiple lines or not. Default: false"
+            },
+            "maxLines": {
+              "type": "integer",
+              "description": "if multiline is true, this specifies the max number of lines. "
+            }            
           }
         }
       ]
@@ -5268,6 +5276,9 @@
                   "type": "boolean",
                   "description": "Set visibility of calendar header. Default true."
                 },
+                "header": {
+                  "$ref": "#/$defs/Widget"
+                },
                 "rowSpans": {
                   "type": "array",
                   "items": {
@@ -5288,10 +5299,16 @@
                             "$ref": "#/$defs/Widget"
                           }
                         },
-                        "required": ["start", "end", "widget"]
+                        "required": [
+                          "start",
+                          "end",
+                          "widget"
+                        ]
                       }
                     },
-                    "required": ["span"]
+                    "required": [
+                      "span"
+                    ]
                   }
                 },
                 "headerTextStyle": {
