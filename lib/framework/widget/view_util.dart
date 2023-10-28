@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
@@ -8,6 +9,7 @@ import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/gesture_detector.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
@@ -161,7 +163,7 @@ class ViewUtil {
       // backward compatible - find the first widget model
       else {
         // if a regular widget or custom widget
-        if (WidgetRegistry.widgetMap[entry.key] != null ||
+        if (WidgetRegistry.legacyWidgetMap[entry.key] != null ||
             customWidgetMap[entry.key] != null) {
           widgetModel = ViewUtil.buildModel(entry, customWidgetMap);
 
@@ -211,20 +213,42 @@ class ViewUtil {
       return buildBareCustomWidget(scopeNode, model, modelMap);
     }
 
-    Function? widgetInstance = WidgetRegistry.widgetMap[model.type];
+    Widget? w;
+    Function? widgetInstance = WidgetRegistry().widgetMap[model.type];
     if (widgetInstance != null) {
-      Widget w = widgetInstance.call();
-      ScopeManager currentScope = scopeNode.scope;
+      EnsembleController? previousController;
+      String? id = model.props['id']?.toString();
+      if (id != null) {
+        dynamic controller = scopeNode.scope.dataContext.getContextById(id);
+        if (controller is EnsembleController) {
+          previousController = controller;
+        }
+      }
+      w = Function.apply(widgetInstance, [previousController]);
+    } else {
+      widgetInstance = WidgetRegistry.legacyWidgetMap[model.type];
+      if (widgetInstance != null) {
+        w = widgetInstance.call();
+      }
+    }
 
+    if (w != null) {
+      ScopeManager currentScope = scopeNode.scope;
       modelMap[model] = ModelPayload(w, currentScope);
 
-      // If our widget has an ID, add it to our data context
-      String? id = model.props['id']?.toString();
-      if (w is Invokable) {
-        (w as Invokable).definition = model.definition;
+      Invokable? invokable;
+      if (w is EnsembleWidget) {
+        invokable = w.controller;
+      } else if (w is Invokable) {
+        invokable = w as Invokable;
+      }
+      if (invokable != null) {
+        invokable.definition = model.definition;
+        // If our widget has an ID, add it to our data context
+        String? id = model.props['id']?.toString();
         if (id != null) {
-          (w as Invokable).id = id;
-          currentScope.dataContext.addInvokableContext(id, (w as Invokable));
+          invokable.id = id;
+          currentScope.dataContext.addInvokableContext(id, invokable);
         }
       }
 
