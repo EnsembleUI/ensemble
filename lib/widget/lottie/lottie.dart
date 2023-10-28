@@ -1,10 +1,8 @@
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/widget/widget.dart';
-import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/lottie/lottiestate.dart';
-import 'package:ensemble/widget/widget_util.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -28,7 +26,18 @@ class EnsembleLottie extends StatefulWidget
 
   @override
   Map<String, Function> methods() {
-    return {};
+    return {
+      'forward': () {
+        if (_controller.repeat) {
+          _controller.lottieController!.repeat();
+        } else {
+          _controller.lottieController!.repeat();
+        }
+      },
+      'reverse': () => _controller.lottieController!.reverse(),
+      'reset': () => _controller.lottieController!.reset(),
+      'stop': () => _controller.lottieController!.stop(),
+    };
   }
 
   @override
@@ -37,16 +46,43 @@ class EnsembleLottie extends StatefulWidget
       'source': (value) =>
           _controller.source = Utils.getString(value, fallback: ''),
       'fit': (value) => _controller.fit = Utils.optionalString(value),
-      'repeat': (value) => _controller.repeat = Utils.optionalBool(value),
+      'repeat': (value) => _controller.repeat = Utils.getBool(
+            value,
+            fallback: true,
+          ),
+      'autoPlay': (value) => _controller.autoPlay = Utils.getBool(
+            value,
+            fallback: true,
+          ),
       'onTap': (funcDefinition) => _controller.onTap =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      // Callback method for onForward
+      'onForward': (definition) => _controller.onForward =
+          EnsembleAction.fromYaml(definition, initiator: this),
+      // Callback method for onReverse
+      'onReverse': (definition) => _controller.onReverse =
+          EnsembleAction.fromYaml(definition, initiator: this),
+      // Callback method for onComplete
+      'onComplete': (definition) => _controller.onComplete =
+          EnsembleAction.fromYaml(definition, initiator: this),
+      // Callback method for onStop
+      'onStop': (definition) => _controller.onStop =
+          EnsembleAction.fromYaml(definition, initiator: this),
     };
   }
 }
 
 class LottieController extends BoxController {
   String source = '';
-  bool? repeat;
   String? fit;
   EnsembleAction? onTap;
+  bool repeat = true;
+  bool autoPlay = true;
+
+  AnimationController? lottieController;
+
+  EnsembleAction? onForward;
+  EnsembleAction? onReverse;
+  EnsembleAction? onComplete;
+  EnsembleAction? onStop;
 }
