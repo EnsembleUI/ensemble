@@ -70,29 +70,26 @@ class LottieState extends WidgetState<EnsembleLottie>
       // the image will throw exception. We have to use a permanent placeholder
       // until the binding engages
       return JsWidget(
-        id: _id,
-        createHtmlTag: () => tag,
-        data: source,
-        listener: (String msg) {
-          if (widget.controller.onTap != null) {
-            ScreenController().executeAction(
-              context,
-              widget.controller.onTap!,
-              event: EnsembleEvent(widget),
-            );
-          }
-        },
-        scriptToInstantiate: (String c) {
-          String script =
-              'bodymovin.loadAnimation({container: document.getElementById("$_id"),renderer: "svg",loop: $repeat,autoplay: true,path: "$c"});';
-          if (widget.controller.onTap != null) {
-            script +=
-                'document.getElementById("$_id").addEventListener("click",() => handleMessage("$_id",""));';
-          }
-          return script;
-        },
-        size: Size(width, height),
-      );
+          id: _id,
+          createHtmlTag: () => tag,
+          data: source,
+          listener: (String msg) {
+            if (widget.controller.onTap != null) {
+              ScreenController().executeAction(
+                  context, widget.controller.onTap!,
+                  event: EnsembleEvent(widget));
+            }
+          },
+          scriptToInstantiate: (String c) {
+            String script =
+                'bodymovin.loadAnimation({container: document.getElementById("$_id"),renderer: "svg",loop: $repeat,autoplay: true,path: "$c"});';
+            if (widget.controller.onTap != null) {
+              script +=
+                  'document.getElementById("$_id").addEventListener("click",() => handleMessage("$_id",""));';
+            }
+            return script;
+          },
+          size: Size(width, height));
     }
     return blankPlaceholder();
   }
@@ -115,9 +112,7 @@ class LottieState extends WidgetState<EnsembleLottie>
           height: widget.controller.height?.toDouble(),
           repeat: widget.controller.repeat,
           fit: fit,
-          errorBuilder: (context, error, stacktrace) {
-            return placeholderImage();
-          },
+          errorBuilder: (context, error, stacktrace) => placeholderImage(),
         );
       }
       // else attempt local asset
@@ -144,10 +139,8 @@ class LottieState extends WidgetState<EnsembleLottie>
             package: 'ensemble'));
   }
 
-  Widget blankPlaceholder() {
-    return SizedBox(
-      width: widget.controller.width?.toDouble(),
-      height: widget.controller.height?.toDouble(),
-    );
-  }
+  Widget blankPlaceholder() => SizedBox(
+        width: widget.controller.width?.toDouble(),
+        height: widget.controller.height?.toDouble(),
+      );
 }
