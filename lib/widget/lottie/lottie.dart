@@ -33,9 +33,9 @@ class EnsembleLottie extends StatefulWidget
       // Method to start animation in forward direction
       'forward': () {
         if (_controller.repeat) {
-          _controller.lottieController!.forward();
-        } else {
           _controller.lottieController!.repeat();
+        } else {
+          _controller.lottieController!.forward();
         }
       },
       // Method to run animation in reverse direction
