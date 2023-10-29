@@ -1,7 +1,7 @@
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/action.dart' as framework;
 import 'package:ensemble/framework/event.dart';
-import 'package:ensemble/framework/widget/icon.dart' as icon_framework;
+import 'package:ensemble/framework/widget/icon.dart' as iconframework;
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
@@ -369,14 +369,14 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             option.icon != null
-                                ? icon_framework.Icon.fromModel(option.icon!)
+                                ? iconframework.Icon.fromModel(option.icon!)
                                 : SizedBox(
                                     width: widget._controller.gap.toDouble(),
                                   ),
                             SizedBox(
                               width: option.icon != null
                                   ? option.isIcon && option.icon!.size == null
-                                      ? paddingIfIconSizeNull()
+                                      ? paddingifIconSizeNull()
                                       : option.icon!.size != null
                                           ? option.icon!.size ==
                                                   widget._controller.gap
@@ -408,18 +408,17 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
         item.isIcon == true
             ? results.add(
                 DropdownMenuItem(
-                  value: item.value,
                   child: Row(
                     children: [
                       item.icon != null
-                          ? icon_framework.Icon.fromModel(item.icon!)
+                          ? iconframework.Icon.fromModel(item.icon!)
                           : SizedBox(
                               width: widget._controller.gap.toDouble(),
                             ),
                       SizedBox(
                         width: item.icon != null
                             ? item.isIcon && item.icon!.size == null
-                                ? paddingIfIconSizeNull()
+                                ? paddingifIconSizeNull()
                                 : item.icon!.size != null
                                     ? item.icon!.size == widget._controller.gap
                                         ? 10
@@ -432,6 +431,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                       ),
                     ],
                   ),
+                  value: item.value,
                 ),
               )
             : results.add(
@@ -451,7 +451,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
   }
 
   // -------------- Returns the padding if icon size is not defined in YAML it will give space between [Icons] and [Text] -----------------
-  double paddingIfIconSizeNull() {
+  double paddingifIconSizeNull() {
     int i = widget._controller.gap - 23;
     if (i < 0) {
       return (i.abs() - 10).abs().toDouble();
