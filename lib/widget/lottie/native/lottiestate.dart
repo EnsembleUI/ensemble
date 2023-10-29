@@ -1,4 +1,3 @@
-import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -15,27 +14,9 @@ class LottieState extends WidgetState<EnsembleLottie>
   void initState() {
     super.initState();
 
-    final controller = widget.controller;
-    controller.lottieController = AnimationController(vsync: this);
-
-    final animationStatusActionMap = <AnimationStatus, EnsembleAction?>{
-      AnimationStatus.forward: controller.onForward,
-      AnimationStatus.reverse: controller.onReverse,
-      AnimationStatus.dismissed: controller.onStop,
-      AnimationStatus.completed: controller.onComplete,
-    };
-
-    controller.lottieController!.addStatusListener(
-      (status) {
-        if (animationStatusActionMap[status] != null) {
-          ScreenController().executeAction(
-            context,
-            animationStatusActionMap[status]!,
-            event: EnsembleEvent(widget),
-          );
-        }
-      },
-    );
+    widget.controller
+      ..lottieController = AnimationController(vsync: this)
+      ..addStatusListener(context, widget);
   }
 
   @override
@@ -45,84 +26,69 @@ class LottieState extends WidgetState<EnsembleLottie>
     BoxFit? fit = WidgetUtils.getBoxFit(widget.controller.fit);
 
     Widget rtn = BoxWrapper(
-      widget: buildLottie(fit, controller),
-      boxController: controller,
-      ignoresMargin: true,
-      ignoresDimension: true,
-    );
-
-    if (controller.onTap != null) {
+        widget: buildLottie(fit),
+        boxController: controller,
+        ignoresMargin: true,
+        ignoresDimension: true);
+    if (widget.controller.onTap != null) {
       rtn = GestureDetector(
-        child: rtn,
-        onTap: () => ScreenController().executeAction(
-          context,
-          controller.onTap!,
-          event: EnsembleEvent(widget),
-        ),
-      );
+          child: rtn,
+          onTap: () => ScreenController().executeAction(
+              context, widget.controller.onTap!,
+              event: EnsembleEvent(widget)));
     }
 
-    if (controller.margin != null) {
-      rtn = Padding(padding: controller.margin!, child: rtn);
+    if (widget.controller.margin != null) {
+      rtn = Padding(padding: widget.controller.margin!, child: rtn);
     }
     return rtn;
   }
 
-  Widget buildLottie(BoxFit? fit, LottieController controller) {
-    String source = controller.source.trim();
+  Widget buildLottie(BoxFit? fit) {
+    String source = widget.controller.source.trim();
 
     if (source.isNotEmpty) {
       // if is URL
       if (source.startsWith('https://') || source.startsWith('http://')) {
         return Lottie.network(
-          controller.source,
-          controller: controller.lottieController!,
+          widget.controller.source,
+          controller: widget.controller.lottieController!,
           onLoaded: (composition) {
-            initializeLottieController(
-              composition: composition,
-              controller: controller,
-            );
+            initializeLottieController(composition);
           },
-          width: controller.width?.toDouble(),
-          height: controller.height?.toDouble(),
-          repeat: controller.repeat,
+          width: widget.controller.width?.toDouble(),
+          height: widget.controller.height?.toDouble(),
+          repeat: widget.controller.repeat,
           fit: fit,
-          errorBuilder: (context, error, stacktrace) {
-            return placeholderImage(controller);
-          },
+          errorBuilder: (context, error, stacktrace) => placeholderImage(),
         );
       }
       // else attempt local asset
       else {
         return Lottie.asset(
-          Utils.getLocalAssetFullPath(controller.source),
-          controller: controller.lottieController!,
+          Utils.getLocalAssetFullPath(widget.controller.source),
+          controller: widget.controller.lottieController!,
           onLoaded: (composition) {
-            initializeLottieController(
-              composition: composition,
-              controller: controller,
-            );
+            initializeLottieController(composition);
           },
-          width: controller.width?.toDouble(),
-          height: controller.height?.toDouble(),
-          repeat: controller.repeat,
+          width: widget.controller.width?.toDouble(),
+          height: widget.controller.height?.toDouble(),
+          repeat: widget.controller.repeat,
           fit: fit,
-          errorBuilder: (context, error, stacktrace) {
-            return placeholderImage(controller);
-          },
+          errorBuilder: (context, error, stacktrace) => placeholderImage(),
         );
       }
     }
     return SizedBox(
-      width: controller.width?.toDouble(),
-      height: controller.height?.toDouble(),
+      width: widget.controller.width?.toDouble(),
+      height: widget.controller.height?.toDouble(),
     );
   }
 
-  Widget placeholderImage(LottieController controller) {
+  Widget placeholderImage() {
     return SizedBox(
-      width: controller.width?.toDouble(),
-      height: controller.height?.toDouble(),
+      width: widget.controller.width?.toDouble(),
+      height: widget.controller.height?.toDouble(),
       child: Image.asset(
         'assets/images/img_placeholder.png',
         package: 'ensemble',
@@ -130,17 +96,14 @@ class LottieState extends WidgetState<EnsembleLottie>
     );
   }
 
-  void initializeLottieController({
-    required LottieComposition composition,
-    required LottieController controller,
-  }) {
-    controller.lottieController!.duration = composition.duration;
+  void initializeLottieController(LottieComposition composition) {
+    widget.controller.lottieController!.duration = composition.duration;
 
-    if (controller.autoPlay) {
-      if (controller.repeat) {
-        controller.lottieController!.repeat();
+    if (widget.controller.autoPlay) {
+      if (widget.controller.repeat) {
+        widget.controller.lottieController!.repeat();
       } else {
-        controller.lottieController!.forward();
+        widget.controller.lottieController!.forward();
       }
     }
   }

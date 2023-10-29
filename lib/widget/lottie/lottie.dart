@@ -1,5 +1,7 @@
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/lottie/lottiestate.dart';
@@ -30,7 +32,7 @@ class EnsembleLottie extends StatefulWidget
       // Method to start animation in forward direction
       'forward': () {
         if (_controller.repeat) {
-          _controller.lottieController!.repeat();
+          _controller.lottieController!.forward();
         } else {
           _controller.lottieController!.repeat();
         }
@@ -90,4 +92,25 @@ class LottieController extends BoxController {
   EnsembleAction? onReverse;
   EnsembleAction? onComplete;
   EnsembleAction? onStop;
+
+  void addStatusListener(BuildContext context, EnsembleLottie widget) {
+    final animationStatusActionMap = <AnimationStatus, EnsembleAction?>{
+      AnimationStatus.forward: onForward,
+      AnimationStatus.reverse: onReverse,
+      AnimationStatus.dismissed: onStop,
+      AnimationStatus.completed: onComplete,
+    };
+
+    lottieController!.addStatusListener(
+      (status) {
+        if (animationStatusActionMap[status] != null) {
+          ScreenController().executeAction(
+            context,
+            animationStatusActionMap[status]!,
+            event: EnsembleEvent(widget),
+          );
+        }
+      },
+    );
+  }
 }
