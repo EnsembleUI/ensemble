@@ -8,6 +8,7 @@ import 'package:ensemble/widget/lottie/lottiestate.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 
 class EnsembleLottie extends StatefulWidget
     with Invokable, HasController<LottieController, LottieState> {
@@ -92,6 +93,18 @@ class LottieController extends BoxController {
   EnsembleAction? onReverse;
   EnsembleAction? onComplete;
   EnsembleAction? onStop;
+
+  void initializeLottieController(LottieComposition composition) {
+    lottieController!.duration = composition.duration;
+
+    if (autoPlay) {
+      if (repeat) {
+        lottieController!.repeat();
+      } else {
+        lottieController!.forward();
+      }
+    }
+  }
 
   void addStatusListener(BuildContext context, EnsembleLottie widget) {
     final animationStatusActionMap = <AnimationStatus, EnsembleAction?>{
