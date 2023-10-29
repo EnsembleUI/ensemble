@@ -1,5 +1,3 @@
-// ignore_for_file: avoid_web_libraries_in_flutter
-
 import 'dart:math';
 
 import 'package:ensemble/framework/error_handling.dart';
@@ -33,18 +31,13 @@ class LottieState extends WidgetState<EnsembleLottie>
   @override
   Widget buildWidget(BuildContext context) {
     final isCanvasKit = js.context['flutterCanvasKit'] != null;
-    final controller = widget.controller;
 
     BoxFit? fit = WidgetUtils.getBoxFit(widget.controller.fit);
     Widget rtn = BoxWrapper(
-      widget: isCanvasKit
-          ? buildLottieCanvas(fit, controller)
-          : buildLottieHtml(fit, controller),
-      boxController: controller,
-      ignoresMargin: true,
-      ignoresDimension: true,
-    );
-
+        widget: isCanvasKit ? buildLottieCanvas(fit) : buildLottieHtml(fit),
+        boxController: widget.controller,
+        ignoresMargin: true,
+        ignoresDimension: true);
     if (widget.controller.onTap != null) {
       rtn = GestureDetector(
           child: rtn,
@@ -52,7 +45,6 @@ class LottieState extends WidgetState<EnsembleLottie>
               context, widget.controller.onTap!,
               event: EnsembleEvent(widget)));
     }
-
     if (widget.controller.margin != null) {
       rtn = Padding(padding: widget.controller.margin!, child: rtn);
     }
@@ -60,7 +52,7 @@ class LottieState extends WidgetState<EnsembleLottie>
     return rtn;
   }
 
-  Widget buildLottieHtml(BoxFit? fit, LottieController controller) {
+  Widget buildLottieHtml(BoxFit? fit) {
     String source = widget.controller.source.trim();
     double width = widget.controller.width?.toDouble() ?? 250;
     double height = widget.controller.height?.toDouble() ?? 250;
@@ -92,23 +84,20 @@ class LottieState extends WidgetState<EnsembleLottie>
         },
         scriptToInstantiate: (String c) {
           String script =
-              'bodymovin.loadAnimation({container: document.getElementById("$id"),renderer: "svg",loop: $repeat,autoplay: true,path: "$c"});';
-
+              'bodymovin.loadAnimation({container: document.getElementById("$_id"),renderer: "svg",loop: $repeat,autoplay: true,path: "$c"});';
           if (widget.controller.onTap != null) {
             script +=
-                'document.getElementById("$id").addEventListener("click",() => handleMessage("$id",""));';
+                'document.getElementById("$_id").addEventListener("click",() => handleMessage("$_id",""));';
           }
-
           return script;
         },
         size: Size(width, height),
       );
     }
-
     return blankPlaceholder();
   }
 
-  Widget buildLottieCanvas(BoxFit? fit, LottieController controller) {
+  Widget buildLottieCanvas(BoxFit? fit) {
     String source = widget.controller.source.trim();
     if (source.isNotEmpty) {
       // if is URL
@@ -120,7 +109,7 @@ class LottieState extends WidgetState<EnsembleLottie>
           widget.controller.source,
           controller: widget.controller.lottieController!,
           onLoaded: (composition) {
-            initializeLottieController(composition);
+            widget.controller.initializeLottieController(composition);
           },
           width: widget.controller.width?.toDouble(),
           height: widget.controller.height?.toDouble(),
@@ -133,34 +122,26 @@ class LottieState extends WidgetState<EnsembleLottie>
       }
       // else attempt local asset
 
-      return Lottie.asset(
-        Utils.getLocalAssetFullPath(widget.controller.source),
-        controller: widget.controller.lottieController!,
-        onLoaded: (LottieComposition composition) {
-          initializeLottieController(composition);
-        },
-        width: widget.controller.width?.toDouble(),
-        height: widget.controller.height?.toDouble(),
-        repeat: widget.controller.repeat,
-        fit: fit,
-        errorBuilder: (context, error, stacktrace) {
-          return placeholderImage();
-        },
-      );
+      return Lottie.asset(Utils.getLocalAssetFullPath(widget.controller.source),
+          controller: widget.controller.lottieController!,
+          onLoaded: (LottieComposition composition) {
+            widget.controller.initializeLottieController(composition);
+          },
+          width: widget.controller.width?.toDouble(),
+          height: widget.controller.height?.toDouble(),
+          repeat: widget.controller.repeat,
+          fit: fit,
+          errorBuilder: (context, error, stacktrace) => placeholderImage());
     }
-
     return blankPlaceholder();
   }
 
   Widget placeholderImage() {
     return SizedBox(
-      width: widget.controller.width?.toDouble(),
-      height: widget.controller.height?.toDouble(),
-      child: Image.asset(
-        'assets/images/img_placeholder.png',
-        package: 'ensemble',
-      ),
-    );
+        width: widget.controller.width?.toDouble(),
+        height: widget.controller.height?.toDouble(),
+        child: Image.asset('assets/images/img_placeholder.png',
+            package: 'ensemble'));
   }
 
   Widget blankPlaceholder() {
@@ -168,17 +149,5 @@ class LottieState extends WidgetState<EnsembleLottie>
       width: widget.controller.width?.toDouble(),
       height: widget.controller.height?.toDouble(),
     );
-  }
-
-  void initializeLottieController(LottieComposition composition) {
-    widget.controller.lottieController!.duration = composition.duration;
-
-    if (widget.controller.autoPlay) {
-      if (widget.controller.repeat) {
-        widget.controller.lottieController!.repeat();
-      } else {
-        widget.controller.lottieController!.forward();
-      }
-    }
   }
 }

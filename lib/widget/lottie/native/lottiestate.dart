@@ -21,13 +21,11 @@ class LottieState extends WidgetState<EnsembleLottie>
 
   @override
   Widget buildWidget(BuildContext context) {
-    final controller = widget.controller;
-
     BoxFit? fit = WidgetUtils.getBoxFit(widget.controller.fit);
 
     Widget rtn = BoxWrapper(
         widget: buildLottie(fit),
-        boxController: controller,
+        boxController: widget.controller,
         ignoresMargin: true,
         ignoresDimension: true);
     if (widget.controller.onTap != null) {
@@ -37,7 +35,6 @@ class LottieState extends WidgetState<EnsembleLottie>
               context, widget.controller.onTap!,
               event: EnsembleEvent(widget)));
     }
-
     if (widget.controller.margin != null) {
       rtn = Padding(padding: widget.controller.margin!, child: rtn);
     }
@@ -46,22 +43,19 @@ class LottieState extends WidgetState<EnsembleLottie>
 
   Widget buildLottie(BoxFit? fit) {
     String source = widget.controller.source.trim();
-
     if (source.isNotEmpty) {
       // if is URL
       if (source.startsWith('https://') || source.startsWith('http://')) {
-        return Lottie.network(
-          widget.controller.source,
-          controller: widget.controller.lottieController!,
-          onLoaded: (composition) {
-            initializeLottieController(composition);
-          },
-          width: widget.controller.width?.toDouble(),
-          height: widget.controller.height?.toDouble(),
-          repeat: widget.controller.repeat,
-          fit: fit,
-          errorBuilder: (context, error, stacktrace) => placeholderImage(),
-        );
+        return Lottie.network(widget.controller.source,
+            controller: widget.controller.lottieController!,
+            onLoaded: (composition) {
+              widget.controller.initializeLottieController(composition);
+            },
+            width: widget.controller.width?.toDouble(),
+            height: widget.controller.height?.toDouble(),
+            repeat: widget.controller.repeat,
+            fit: fit,
+            errorBuilder: (context, error, stacktrace) => placeholderImage());
       }
       // else attempt local asset
       else {
@@ -69,7 +63,7 @@ class LottieState extends WidgetState<EnsembleLottie>
           Utils.getLocalAssetFullPath(widget.controller.source),
           controller: widget.controller.lottieController!,
           onLoaded: (composition) {
-            initializeLottieController(composition);
+            widget.controller.initializeLottieController(composition);
           },
           width: widget.controller.width?.toDouble(),
           height: widget.controller.height?.toDouble(),
@@ -87,24 +81,9 @@ class LottieState extends WidgetState<EnsembleLottie>
 
   Widget placeholderImage() {
     return SizedBox(
-      width: widget.controller.width?.toDouble(),
-      height: widget.controller.height?.toDouble(),
-      child: Image.asset(
-        'assets/images/img_placeholder.png',
-        package: 'ensemble',
-      ),
-    );
-  }
-
-  void initializeLottieController(LottieComposition composition) {
-    widget.controller.lottieController!.duration = composition.duration;
-
-    if (widget.controller.autoPlay) {
-      if (widget.controller.repeat) {
-        widget.controller.lottieController!.repeat();
-      } else {
-        widget.controller.lottieController!.forward();
-      }
-    }
+        width: widget.controller.width?.toDouble(),
+        height: widget.controller.height?.toDouble(),
+        child: Image.asset('assets/images/img_placeholder.png',
+            package: 'ensemble'));
   }
 }
