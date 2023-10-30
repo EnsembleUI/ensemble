@@ -142,41 +142,50 @@ class SinglePageModel extends PageModel {
   _processModel(YamlMap docMap) {
     super._processModel(docMap);
 
-    YamlMap viewMap = docMap['View'] ?? docMap;
+    if (docMap.containsKey("View")) {
+      if (docMap['View'] == null) {
+        rootWidgetModel = ViewUtil.buildModel(
+            YamlMap.wrap({"EmptyWidget": null}), customViewDefinitions);
+      } else {
+        YamlMap viewMap = docMap['View'];
+        if (viewMap['options'] is YamlMap) {
+          PageType pageType = viewMap['options']['type'] == PageType.modal.name
+              ? PageType.modal
+              : PageType.regular;
+          screenOptions = ScreenOptions(pageType: pageType);
+        }
 
-    if (viewMap['options'] is YamlMap) {
-      PageType pageType = viewMap['options']['type'] == PageType.modal.name
-          ? PageType.modal
-          : PageType.regular;
-      screenOptions = ScreenOptions(pageType: pageType);
+        // set the view behavior
+        viewBehavior.onLoad = EnsembleAction.fromYaml(viewMap['onLoad']);
+        viewBehavior.onResume = EnsembleAction.fromYaml(viewMap['onResume']);
+
+        processHeader(viewMap['header'], viewMap['title']);
+
+        if (viewMap['menu'] != null) {
+          menu = Menu.fromYaml(viewMap['menu'], customViewDefinitions);
+        }
+
+        if (viewMap['styles'] is YamlMap) {
+          pageStyles = {};
+          (viewMap['styles'] as YamlMap).forEach((key, value) {
+            pageStyles![key] = value;
+          });
+        }
+
+        if (viewMap['footer'] != null &&
+            viewMap['footer']['children'] != null) {
+          footer = Footer(
+            ViewUtil.buildModels(
+                viewMap['footer']['children'], customViewDefinitions),
+            Utils.getMap(viewMap['footer']['styles']),
+          );
+        }
+
+        rootWidgetModel = buildRootModel(viewMap, customViewDefinitions);
+      }
+    } else {
+      throw (LanguageError("Please add View"));
     }
-
-    // set the view behavior
-    viewBehavior.onLoad = EnsembleAction.fromYaml(viewMap['onLoad']);
-    viewBehavior.onResume = EnsembleAction.fromYaml(viewMap['onResume']);
-
-    processHeader(viewMap['header'], viewMap['title']);
-
-    if (viewMap['menu'] != null) {
-      menu = Menu.fromYaml(viewMap['menu'], customViewDefinitions);
-    }
-
-    if (viewMap['styles'] is YamlMap) {
-      pageStyles = {};
-      (viewMap['styles'] as YamlMap).forEach((key, value) {
-        pageStyles![key] = value;
-      });
-    }
-
-    if (viewMap['footer'] != null && viewMap['footer']['children'] != null) {
-      footer = Footer(
-        ViewUtil.buildModels(
-            viewMap['footer']['children'], customViewDefinitions),
-        Utils.getMap(viewMap['footer']['styles']),
-      );
-    }
-
-    rootWidgetModel = buildRootModel(viewMap, customViewDefinitions);
   }
 
   void processHeader(YamlMap? headerData, String? legacyTitle) {
