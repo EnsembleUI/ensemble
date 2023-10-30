@@ -130,10 +130,10 @@ class YoutubeState extends WidgetState<Youtube> with YoutubeMethods {
       return const SizedBox.shrink();
     }
     return YoutubePlayerScaffold(
-      gestureRecognizers: <Factory<VerticalDragGestureRecognizer>>{}..add(
-          Factory<VerticalDragGestureRecognizer>(
-              () => VerticalDragGestureRecognizer()),
+      gestureRecognizers: <Factory<EagerGestureRecognizer>>{}..add(
+          Factory<EagerGestureRecognizer>(() => EagerGestureRecognizer()),
         ),
+      enableFullScreenOnVerticalDrag: false,
       autoFullScreen: false,
       aspectRatio: playerController.aspectRatio ?? 16 / 9,
       controller: player
