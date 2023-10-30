@@ -1,4 +1,5 @@
 /// This class contains helper controllers for our widgets.
+import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/util/utils.dart';
@@ -194,9 +195,17 @@ class BoxController extends WidgetController {
   LinearGradient? backgroundGradient;
   LinearGradient? borderGradient;
 
-  Color? borderColor;
-  int? borderWidth;
   EBorderRadius? borderRadius;
+  Color? borderColor;
+  Color? topBorderColor;
+  Color? bottomBorderColor;
+  Color? leftBorderColor;
+  Color? rightBorderColor;
+  int? borderWidth;
+  int? topBorderWidth;
+  int? bottomBorderWidth;
+  int? leftBorderWidth;
+  int? rightBorderWidth;
 
   Color? shadowColor;
   Offset? shadowOffset;
@@ -225,9 +234,21 @@ class BoxController extends WidgetController {
       'borderGradient': (value) =>
           borderGradient = Utils.getBackgroundGradient(value),
 
-      'borderColor': (value) => borderColor = Utils.getColor(value),
-      'borderWidth': (value) => borderWidth = Utils.optionalInt(value),
       'borderRadius': (value) => borderRadius = Utils.getBorderRadius(value),
+      'borderColor': (value) => parseBorderColor(value),
+      'topBorderColor': (value) => topBorderColor = Utils.getColor(value),
+      'bottomBorderColor': (value) => bottomBorderColor = Utils.getColor(value),
+      'leftBorderColor': (value) => leftBorderColor = Utils.getColor(value),
+      'rightBorderColor': (value) => rightBorderColor = Utils.getColor(value),
+      'borderWidth': (value) => parseBorderWidth(value),
+      'topBorderWidth': (value) => //
+          topBorderWidth = Utils.optionalInt(value),
+      'bottomBorderWidth': (value) => //
+          bottomBorderWidth = Utils.optionalInt(value),
+      'leftBorderWidth': (value) => //
+          leftBorderWidth = Utils.optionalInt(value),
+      'rightBorderWidth': (value) => //
+          rightBorderWidth = Utils.optionalInt(value),
 
       'shadowColor': (value) => shadowColor = Utils.getColor(value),
       'shadowOffset': (list) => shadowOffset = Utils.getOffset(list),
@@ -237,6 +258,92 @@ class BoxController extends WidgetController {
       'clipContent': (value) => clipContent = Utils.optionalBool(value)
     });
     return setters;
+  }
+
+  void parseBorderColor(value) {
+    final parsedValue = Utils.optionalString(value);
+
+    if (parsedValue == null) return;
+
+    final individualBorderColorData = parsedValue.trim().split(' ');
+
+    if (individualBorderColorData.length == 1) {
+      borderColor = convertStringToColor(individualBorderColorData[0]);
+
+      topBorderColor = borderColor;
+      bottomBorderColor = borderColor;
+      leftBorderColor = borderColor;
+      rightBorderColor = borderColor;
+    } else if (individualBorderColorData.length == 2) {
+      topBorderColor = convertStringToColor(individualBorderColorData[0]);
+      bottomBorderColor = convertStringToColor(individualBorderColorData[0]);
+
+      leftBorderColor = convertStringToColor(individualBorderColorData[1]);
+      rightBorderColor = convertStringToColor(individualBorderColorData[1]);
+    } else if (individualBorderColorData.length == 3) {
+      topBorderColor = convertStringToColor(individualBorderColorData[0]);
+
+      leftBorderColor = convertStringToColor(individualBorderColorData[1]);
+      rightBorderColor = convertStringToColor(individualBorderColorData[1]);
+
+      bottomBorderColor = convertStringToColor(individualBorderColorData[2]);
+    } else if (individualBorderColorData.length == 4) {
+      topBorderColor = convertStringToColor(individualBorderColorData[0]);
+      rightBorderColor = convertStringToColor(individualBorderColorData[1]);
+      bottomBorderColor = convertStringToColor(individualBorderColorData[2]);
+      leftBorderColor = convertStringToColor(individualBorderColorData[3]);
+    } else {
+      throw RuntimeError(
+        "Error: No. of parameters for borderColor cannot be greater than 4",
+      );
+    }
+  }
+
+  Color? convertStringToColor(String value) {
+    final intValue = int.tryParse(value.trim());
+
+    if (intValue == null) return Utils.getColor(value);
+
+    return Utils.getColor(intValue);
+  }
+
+  void parseBorderWidth(value) {
+    final parsedValue = Utils.optionalString(value);
+
+    if (parsedValue == null) return;
+
+    final individualBorderWidthData = parsedValue.trim().split(' ');
+
+    if (individualBorderWidthData.length == 1) {
+      borderWidth = int.parse(individualBorderWidthData[0]);
+
+      topBorderWidth = borderWidth;
+      bottomBorderWidth = borderWidth;
+      leftBorderWidth = borderWidth;
+      rightBorderWidth = borderWidth;
+    } else if (individualBorderWidthData.length == 2) {
+      topBorderWidth = int.parse(individualBorderWidthData[0]);
+      bottomBorderWidth = int.parse(individualBorderWidthData[0]);
+
+      leftBorderWidth = int.parse(individualBorderWidthData[1]);
+      rightBorderWidth = int.parse(individualBorderWidthData[1]);
+    } else if (individualBorderWidthData.length == 3) {
+      topBorderWidth = int.parse(individualBorderWidthData[0]);
+
+      leftBorderWidth = int.parse(individualBorderWidthData[1]);
+      rightBorderWidth = int.parse(individualBorderWidthData[1]);
+
+      bottomBorderWidth = int.parse(individualBorderWidthData[2]);
+    } else if (individualBorderWidthData.length == 4) {
+      topBorderWidth = int.parse(individualBorderWidthData[0]);
+      rightBorderWidth = int.parse(individualBorderWidthData[1]);
+      bottomBorderWidth = int.parse(individualBorderWidthData[2]);
+      leftBorderWidth = int.parse(individualBorderWidthData[3]);
+    } else {
+      throw RuntimeError(
+        "Error: No. of parameters for borderWidth cannot be greater than 4",
+      );
+    }
   }
 
   /// optimization. This is important to review if more properties are added
@@ -260,7 +367,17 @@ class BoxController extends WidgetController {
       backgroundGradient != null;
 
   bool hasBorder() =>
-      borderGradient != null || borderColor != null || borderWidth != null;
+      borderGradient != null ||
+      borderColor != null ||
+      borderWidth != null ||
+      topBorderColor != null ||
+      bottomBorderColor != null ||
+      leftBorderColor != null ||
+      rightBorderColor != null ||
+      topBorderWidth != null ||
+      bottomBorderWidth != null ||
+      leftBorderWidth != null ||
+      rightBorderWidth != null;
 
   bool hasBoxShadow() =>
       shadowColor != null ||
