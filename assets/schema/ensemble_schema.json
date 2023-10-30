@@ -1178,7 +1178,15 @@
               "type": "object",
               "description": "Styling the hint text. Default to theme's bodyMedium styling",
               "$ref": "#/$defs/TextStyle"
-            }
+            },
+            "multiline": {
+              "type": "boolean",
+              "description": "whether to allow multiple lines or not. Default: false"
+            },
+            "maxLines": {
+              "type": "integer",
+              "description": "if multiline is true, this specifies the max number of lines. "
+            }            
           }
         }
       ]
