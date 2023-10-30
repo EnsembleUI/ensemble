@@ -33,8 +33,7 @@ class CopyToClipboardAction extends EnsembleAction {
   }
 
   @override
-  Future execute(BuildContext context, ScopeManager scopeManager,
-      {DataContext? dataContext}) {
+  Future execute(BuildContext context, ScopeManager scopeManager) {
     String? value = Utils.optionalString(scopeManager.dataContext.eval(_value));
     if (value != null) {
       Clipboard.setData(ClipboardData(text: value)).then((_) {
@@ -72,8 +71,7 @@ class ShareAction extends EnsembleAction {
   }
 
   @override
-  Future execute(BuildContext context, ScopeManager scopeManager,
-      {DataContext? dataContext}) {
+  Future execute(BuildContext context, ScopeManager scopeManager) {
     Share.share(scopeManager.dataContext.eval(_text),
         subject: Utils.optionalString(scopeManager.dataContext.eval(_title)));
     return Future.value(null);
@@ -96,8 +94,7 @@ class RateAppAction extends EnsembleAction {
   }
 
   @override
-  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager,
-      {DataContext? dataContext}) {
+  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
     // what a mess of options on Android. TODO: add them
     if (Platform.isIOS) {
       RateMyApp rateMyApp = RateMyApp(minDays: 0, minLaunches: 0);

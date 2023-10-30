@@ -32,8 +32,7 @@ class GetDeviceTokenAction extends EnsembleAction {
   }
 
   @override
-  Future execute(BuildContext context, ScopeManager scopeManager,
-      {DataContext? dataContext}) async {
+  Future execute(BuildContext context, ScopeManager scopeManager) async {
     String? deviceToken = await NotificationManager().getDeviceToken();
     if (deviceToken != null && onSuccess != null) {
       return ScreenController().executeAction(context, onSuccess!,
