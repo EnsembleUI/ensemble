@@ -75,11 +75,33 @@ class BoxWrapper extends StatelessWidget {
                           gradient: boxController.borderGradient!,
                           width: boxController.borderWidth?.toDouble() ??
                               ThemeManager().getBorderThickness(context))
-                      : Border.all(
-                          color: boxController.borderColor ??
-                              ThemeManager().getBorderColor(context),
-                          width: boxController.borderWidth?.toDouble() ??
-                              ThemeManager().getBorderThickness(context)),
+                      : Border(
+                          top: BorderSide(
+                            width: boxController.topBorderWidth?.toDouble() ??
+                                ThemeManager().getBorderThickness(context),
+                            color: boxController.topBorderColor ??
+                                ThemeManager().getBorderColor(context),
+                          ),
+                          bottom: BorderSide(
+                            width:
+                                boxController.bottomBorderWidth?.toDouble() ??
+                                    ThemeManager().getBorderThickness(context),
+                            color: boxController.bottomBorderColor ??
+                                ThemeManager().getBorderColor(context),
+                          ),
+                          left: BorderSide(
+                            width: boxController.leftBorderWidth?.toDouble() ??
+                                ThemeManager().getBorderThickness(context),
+                            color: boxController.leftBorderColor ??
+                                ThemeManager().getBorderColor(context),
+                          ),
+                          right: BorderSide(
+                            width: boxController.rightBorderWidth?.toDouble() ??
+                                ThemeManager().getBorderThickness(context),
+                            color: boxController.rightBorderColor ??
+                                ThemeManager().getBorderColor(context),
+                          ),
+                        ),
               borderRadius: boxController.borderRadius?.getValue(),
               boxShadow: !boxController.hasBoxShadow()
                   ? null
