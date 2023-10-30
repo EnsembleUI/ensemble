@@ -145,7 +145,10 @@ class SinglePageModel extends PageModel {
     if (docMap.containsKey("View")) {
       if (docMap['View'] == null) {
         rootWidgetModel = ViewUtil.buildModel(
-            YamlMap.wrap({"EmptyWidget": null}), customViewDefinitions);
+            YamlMap.wrap({
+              "Shape": {'height': 0, 'width': 0}
+            }),
+            customViewDefinitions);
       } else {
         YamlMap viewMap = docMap['View'];
         if (viewMap['options'] is YamlMap) {
@@ -248,7 +251,10 @@ class SinglePageModel extends PageModel {
         return rootModel;
       } else {
         return ViewUtil.buildModel(
-            YamlMap.wrap({"EmptyWidget": null}), customViewDefinitions);
+            YamlMap.wrap({
+              "Shape": {'height': 0, 'width': 0}
+            }),
+            customViewDefinitions);
       }
     }
   }

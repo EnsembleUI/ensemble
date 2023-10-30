@@ -14,7 +14,6 @@ import 'package:ensemble/widget/Toggle.dart';
 import 'package:ensemble/widget/address.dart';
 import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/calendar.dart';
-import 'package:ensemble/widget/empty_widget.dart';
 import 'package:ensemble/widget/carousel.dart';
 import 'package:ensemble/widget/chart_highcharts_builder.dart';
 import 'package:ensemble/widget/conditional.dart';
@@ -148,7 +147,6 @@ class WidgetRegistry {
         AppScroller.type: () => AppScroller(),
         LoadingContainer.type: () => LoadingContainer(),
         Shape.type: () => Shape(),
-        EmptyWidget.type: () => const EmptyWidget(),
 
         // charts
         Highcharts.type: () => Highcharts(),
