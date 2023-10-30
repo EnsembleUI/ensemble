@@ -105,6 +105,7 @@ dependencies:
   app_settings: ^5.0.0
   firebase_messaging: ^14.6.5
   custom_refresh_indicator: ^2.2.1
+  youtube_player_iframe: ^4.0.4
   web_socket_client: ^0.1.0
   app_links: ^3.4.3
   share_plus: ^6.2.0
