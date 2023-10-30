@@ -134,6 +134,7 @@ class ScreenController {
           routeOption = RouteOption.replaceCurrentScreen;
         }
       }
+
       /// TODO: if the initiator widget has been re-build or removed
       /// (e.g visible=false), the context is no longer valid. See if
       /// all Actions need the context or just navigateScreen and refactor
