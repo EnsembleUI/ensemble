@@ -5137,13 +5137,13 @@
           }
         },
         {
-          "title": "YoutubePlayer",
+          "title": "Youtube",
           "required": [
-            "YoutubePlayer"
+            "Youtube"
           ],
           "properties": {
-            "YoutubePlayer" : {
-              "$ref" : "#/$defs/YoutubePlayer-payload"
+            "Youtube" : {
+              "$ref" : "#/$defs/Youtube-payload"
             }
           }
         },
@@ -5809,6 +5809,10 @@
         "enableCaptions" : {
           "type": "bool",
           "description" : "To enable any captions in the video(default language of caption is English)"
+        },
+        "volume": {
+          "type": "integer",
+          "description" : "Changes the volume. (max = 100, min = 0)"
         }
       }
     },

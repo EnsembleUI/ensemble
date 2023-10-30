@@ -53,12 +53,20 @@ class Youtube extends StatefulWidget
             Utils.getBool(value, fallback: true),
         "videoList": (value) =>
             _controller.getVideoIdList(Utils.getListOfStrings(value)!),
-        "playbackRate": (value) => _controller.youtubeMethods
-            ?.setPlaybackRate(Utils.getDouble(value, fallback: 1.0)),
+        "playbackRate": (value) {
+          _controller.youtubeMethods
+              ?.setPlaybackRate(Utils.getDouble(value, fallback: 1.0));
+          _controller.playbackRate = Utils.optionalDouble(value);
+        },
         "showFullScreenButton": (value) => _controller.showFullScreenButton =
             Utils.getBool(value, fallback: false),
         "enableCaptions": (value) =>
             _controller.enableCaptions = Utils.getBool(value, fallback: true),
+        "volume": (value) {
+          _controller.youtubeMethods
+              ?.setVolume(Utils.getInt(value, fallback: 100, max: 100, min: 0));
+          _controller.volume = Utils.optionalInt(value, max: 100, min: 0);
+        }
       };
 }
 
@@ -71,6 +79,7 @@ mixin YoutubeMethods on WidgetState<Youtube> {
   void mute();
   void unMute();
   void setPlaybackRate(double rate);
+  void setVolume(int volume);
 }
 
 class YoutubeState extends WidgetState<Youtube> with YoutubeMethods {
@@ -113,6 +122,10 @@ class YoutubeState extends WidgetState<Youtube> with YoutubeMethods {
   @override
   void didChangeDependencies() {
     widget._controller.youtubeMethods = this;
+    widget._controller.youtubeMethods!
+        .setPlaybackRate(widget.controller.playbackRate ?? 1);
+    widget._controller.youtubeMethods!
+        .setVolume(widget.controller.volume ?? 100);
     super.didChangeDependencies();
   }
 
@@ -177,6 +190,9 @@ class YoutubeState extends WidgetState<Youtube> with YoutubeMethods {
 
   @override
   void setPlaybackRate(double rate) => player.setPlaybackRate(rate);
+
+  @override
+  void setVolume(int volume) => player.setVolume(volume);
 }
 
 class PlayerController extends WidgetController {
@@ -191,6 +207,8 @@ class PlayerController extends WidgetController {
   double? startSeconds;
   double? endSeconds;
   bool enableCaptions = true;
+  double? playbackRate;
+  int? volume;
 
   List<String> videoList = [];
 
