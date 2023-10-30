@@ -14,6 +14,8 @@ import 'package:ensemble/widget/Toggle.dart';
 import 'package:ensemble/widget/address.dart';
 import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/calendar.dart';
+import 'package:ensemble/widget/countdown.dart';
+import 'package:ensemble/widget/shape.dart';
 import 'package:ensemble/widget/carousel.dart';
 import 'package:ensemble/widget/chart_highcharts_builder.dart';
 import 'package:ensemble/widget/conditional.dart';
@@ -111,6 +113,7 @@ class WidgetRegistry {
         EnsembleChat.type: () => GetIt.instance<EnsembleChat>(),
         PopupMenu.type: () => PopupMenu(),
         EnsembleCalendar.type: () => EnsembleCalendar(),
+        Countdown.type: () => Countdown(),
 
         // form fields
         EnsembleForm.type: () => EnsembleForm(),
