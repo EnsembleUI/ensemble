@@ -122,6 +122,9 @@ class Countdown extends StatefulWidget
       // Callback method for onStop
       'onStop': (definition) => _controller.onStop =
           EnsembleAction.fromYaml(definition, initiator: this),
+      // Callback method for onReset
+      'onReset': (definition) => _controller.onReset =
+          EnsembleAction.fromYaml(definition, initiator: this),
     };
   }
 }
@@ -137,6 +140,7 @@ class CountdownController extends WidgetController {
   EnsembleAction? onStart;
   EnsembleAction? onComplete;
   EnsembleAction? onStop;
+  EnsembleAction? onReset;
 
   CountdownAction? countdownAction;
 
@@ -215,7 +219,7 @@ class CountdownState extends WidgetState<Countdown> with CountdownAction {
       ScreenController().executeAction(
         context,
         widget._controller.onStop!,
-        event: EnsembleEvent(widget),
+        event: EnsembleEvent(widget, data: _duration.inSeconds),
       );
     }
 
@@ -224,6 +228,14 @@ class CountdownState extends WidgetState<Countdown> with CountdownAction {
 
   @override
   void resetTimer() {
+    if (widget._controller.onReset != null) {
+      ScreenController().executeAction(
+        context,
+        widget._controller.onReset!,
+        event: EnsembleEvent(widget),
+      );
+    }
+
     stopTimer();
     setState(
       () => _duration = widget._controller.date!.difference(_startingTime),
