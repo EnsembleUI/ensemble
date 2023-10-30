@@ -2,15 +2,11 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:developer';
-import 'dart:io';
 import 'dart:isolate';
 import 'dart:math' show Random;
 import 'dart:ui';
 
 import 'package:app_settings/app_settings.dart';
-import 'package:ensemble/action/invoke_api_action.dart';
-import 'package:ensemble/action/bottom_modal_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_app.dart';
@@ -21,15 +17,14 @@ import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/permissions_manager.dart';
+import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/stub/camera_manager.dart';
 import 'package:ensemble/framework/stub/contacts_manager.dart';
 import 'package:ensemble/framework/stub/file_manager.dart';
-import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/stub/plaid_link_manager.dart';
-import 'package:ensemble/framework/view/context_scope_widget.dart';
+import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
-import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/modal_screen.dart';
 import 'package:ensemble/framework/widget/screen.dart';
@@ -41,20 +36,16 @@ import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/widget_registry.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:share_plus/share_plus.dart';
+import 'package:get_it/get_it.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:walletconnect_dart/walletconnect_dart.dart';
 import 'package:web_socket_client/web_socket_client.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:yaml/yaml.dart';
-import 'package:get_it/get_it.dart';
 
 import 'framework/widget/wallet_connect_modal.dart';
 
@@ -106,52 +97,33 @@ class ScreenController {
   Future<void> executeActionWithScope(
       BuildContext context, ScopeManager scopeManager, EnsembleAction action,
       {EnsembleEvent? event}) {
-    return nowExecuteAction(context, scopeManager.dataContext, action,
-        scopeManager.pageData.apiMap, scopeManager,
+    return nowExecuteAction(
+        context, action, scopeManager.pageData.apiMap, scopeManager,
         event: event);
   }
 
   /// internally execute an Action
-  Future<void> nowExecuteAction(
-      BuildContext context,
-      DataContext providedDataContext,
-      EnsembleAction action,
-      Map<String, YamlMap>? apiMap,
-      ScopeManager? scopeManager,
+  Future<void> nowExecuteAction(BuildContext context, EnsembleAction action,
+      Map<String, YamlMap>? apiMap, ScopeManager providedScopeManager,
       {EnsembleEvent? event}) async {
-    /// Actions are short-live so we don't need a childScope, simply create a localized context from the given context
-    /// Note that scopeManager may starts out without Invokable IDs (as widgets may yet to render), but at the time
-    /// of API returns, they will be populated. For this reason, always rebuild data context from scope manager.
-    /// For now we are OK as we don't send off the API until the screen has rendered.
-    DataContext dataContext =
-        providedDataContext.clone(newBuildContext: context);
-    /*DataContext dataContext;
-    if (scopeManager != null) {
-      // start with data context from scope manager but overwrite with provided data context
-      dataContext = scopeManager.dataContext.clone(newBuildContext: context);
-      dataContext.copy(providedDataContext, replaced: true);
-    } else {
-      dataContext = providedDataContext.clone(newBuildContext: context);
-    }*/
-
-    /// TODO: ScopeManager should be non-null. Should be refactored to be clear
-    /// For now, we'll do scopeManager!
-
-    // scope the initiator to *this* variable
+    // create new scope to append data.
+    ScopeManager scopeManager =
+        providedScopeManager.createChildScope(ephemeral: true);
     if (action.initiator != null) {
-      dataContext.addInvokableContext('this', action.initiator!);
+      scopeManager.dataContext.addInvokableContext('this', action.initiator!);
     }
     if (event != null) {
-      dataContext.addInvokableContext('event', event);
+      scopeManager.dataContext.addInvokableContext('event', event);
     }
 
+    /// TODO: The below Actions should be move to their execute() functions
     if (action is NavigateExternalScreen) {
-      return action.execute(context, scopeManager!);
+      return action.execute(context, scopeManager);
     } else if (action is BaseNavigateScreenAction) {
       // process input parameters
       Map<String, dynamic>? nextArgs = {};
       action.inputs?.forEach((key, value) {
-        nextArgs[key] = dataContext.eval(value);
+        nextArgs[key] = scopeManager.dataContext.eval(value);
       });
 
       RouteOption? routeOption;
@@ -162,10 +134,16 @@ class ScreenController {
           routeOption = RouteOption.replaceCurrentScreen;
         }
       }
+      /// TODO: if the initiator widget has been re-build or removed
+      /// (e.g visible=false), the context is no longer valid. See if
+      /// all Actions need the context or just navigateScreen and refactor
+      if (!context.mounted) {
+        context = scopeManager.dataContext.buildContext;
+      }
 
       PageRouteBuilder routeBuilder = navigateToScreen(
-        providedDataContext.buildContext,
-        screenName: dataContext.eval(action.screenName),
+        context,
+        screenName: scopeManager.dataContext.eval(action.screenName),
         asModal: action.asModal,
         routeOption: routeOption,
         pageArgs: nextArgs,
@@ -173,10 +151,6 @@ class ScreenController {
         isExternal: action.isExternal,
       );
 
-      // listen for data returned on popped
-      if (scopeManager == null) {
-        return;
-      }
       if (action is NavigateScreenAction && action.onNavigateBack != null) {
         routeBuilder.popped.then((data) {
           // animating transition while executing this Action causes stutter
@@ -196,97 +170,91 @@ class ScreenController {
         });
       }
     } else if (action is ShowDialogAction) {
-      if (scopeManager != null) {
-        Widget widget = scopeManager.buildWidgetFromDefinition(action.widget);
+      Widget widget = scopeManager.buildWidgetFromDefinition(action.widget);
 
-        // get styles. TODO: make bindable
-        Map<String, dynamic> dialogStyles = {};
-        action.options?.forEach((key, value) {
-          dialogStyles[key] = dataContext.eval(value);
-        });
+      // get styles. TODO: make bindable
+      Map<String, dynamic> dialogStyles = {};
+      action.options?.forEach((key, value) {
+        dialogStyles[key] = scopeManager.dataContext.eval(value);
+      });
 
-        bool useDefaultStyle = dialogStyles['style'] != 'none';
-        BuildContext? dialogContext;
+      bool useDefaultStyle = dialogStyles['style'] != 'none';
+      BuildContext? dialogContext;
 
-        showGeneralDialog(
-            useRootNavigator: false,
-            // use inner-most MaterialApp (our App) as root so theming is ours
-            context: context,
-            barrierDismissible: true,
-            barrierLabel: "Barrier",
-            barrierColor: Colors.black54,
-            // this has some transparency so the bottom shown through
+      showGeneralDialog(
+          useRootNavigator: false,
+          // use inner-most MaterialApp (our App) as root so theming is ours
+          context: context,
+          barrierDismissible: true,
+          barrierLabel: "Barrier",
+          barrierColor: Colors.black54,
+          // this has some transparency so the bottom shown through
 
-            pageBuilder: (context, animation, secondaryAnimation) {
-              // save a reference to the builder's context so we can close it programmatically
-              dialogContext = context;
-              scopeManager.openedDialogs.add(dialogContext!);
+          pageBuilder: (context, animation, secondaryAnimation) {
+            // save a reference to the builder's context so we can close it programmatically
+            dialogContext = context;
+            scopeManager.openedDialogs.add(dialogContext!);
 
-              return Align(
-                  alignment: Alignment(
-                      Utils.getDouble(dialogStyles['horizontalOffset'],
-                          min: -1, max: 1, fallback: 0),
-                      Utils.getDouble(dialogStyles['verticalOffset'],
-                          min: -1, max: 1, fallback: 0)),
-                  child: Material(
-                      color: Colors.transparent,
-                      child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                              minWidth: Utils.getDouble(
-                                  dialogStyles['minWidth'],
-                                  fallback: 0),
-                              maxWidth: Utils.getDouble(
-                                  dialogStyles['maxWidth'],
-                                  fallback: double.infinity),
-                              minHeight: Utils.getDouble(
-                                  dialogStyles['minHeight'],
-                                  fallback: 0),
-                              maxHeight: Utils.getDouble(
-                                  dialogStyles['maxHeight'],
-                                  fallback: double.infinity)),
-                          child: Container(
-                              decoration: useDefaultStyle
-                                  ? const BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius:
-                                          BorderRadius.all(Radius.circular(5)),
-                                      boxShadow: <BoxShadow>[
-                                          BoxShadow(
-                                            color: Colors.white38,
-                                            blurRadius: 5,
-                                            offset: Offset(0, 0),
-                                          )
-                                        ])
-                                  : null,
-                              margin: useDefaultStyle
-                                  ? const EdgeInsets.all(20)
-                                  : null,
-                              padding: useDefaultStyle
-                                  ? const EdgeInsets.all(20)
-                                  : null,
-                              child: SingleChildScrollView(
-                                child: widget,
-                              )))));
-            }).then((value) {
-          // remove the dialog context since we are closing them
-          scopeManager.openedDialogs.remove(dialogContext);
+            return Align(
+                alignment: Alignment(
+                    Utils.getDouble(dialogStyles['horizontalOffset'],
+                        min: -1, max: 1, fallback: 0),
+                    Utils.getDouble(dialogStyles['verticalOffset'],
+                        min: -1, max: 1, fallback: 0)),
+                child: Material(
+                    color: Colors.transparent,
+                    child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                            minWidth: Utils.getDouble(dialogStyles['minWidth'],
+                                fallback: 0),
+                            maxWidth: Utils.getDouble(dialogStyles['maxWidth'],
+                                fallback: double.infinity),
+                            minHeight: Utils.getDouble(
+                                dialogStyles['minHeight'],
+                                fallback: 0),
+                            maxHeight: Utils.getDouble(
+                                dialogStyles['maxHeight'],
+                                fallback: double.infinity)),
+                        child: Container(
+                            decoration: useDefaultStyle
+                                ? const BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius:
+                                        BorderRadius.all(Radius.circular(5)),
+                                    boxShadow: <BoxShadow>[
+                                        BoxShadow(
+                                          color: Colors.white38,
+                                          blurRadius: 5,
+                                          offset: Offset(0, 0),
+                                        )
+                                      ])
+                                : null,
+                            margin: useDefaultStyle
+                                ? const EdgeInsets.all(20)
+                                : null,
+                            padding: useDefaultStyle
+                                ? const EdgeInsets.all(20)
+                                : null,
+                            child: SingleChildScrollView(
+                              child: widget,
+                            )))));
+          }).then((value) {
+        // remove the dialog context since we are closing them
+        scopeManager.openedDialogs.remove(dialogContext);
 
-          // callback when dialog is dismissed
-          if (action.onDialogDismiss != null) {
-            executeActionWithScope(
-                context, scopeManager, action.onDialogDismiss!);
-          }
-        });
-      }
-    } else if (action is CloseAllDialogsAction) {
-      if (scopeManager != null) {
-        for (var dialogContext in scopeManager.openedDialogs) {
-          Navigator.pop(dialogContext);
+        // callback when dialog is dismissed
+        if (action.onDialogDismiss != null) {
+          executeActionWithScope(
+              context, scopeManager, action.onDialogDismiss!);
         }
-        scopeManager.openedDialogs.clear();
+      });
+    } else if (action is CloseAllDialogsAction) {
+      for (var dialogContext in scopeManager.openedDialogs) {
+        Navigator.pop(dialogContext);
       }
+      scopeManager.openedDialogs.clear();
     } else if (action is PlaidLinkAction) {
-      final linkToken = action.getLinkToken(dataContext).trim();
+      final linkToken = action.getLinkToken(scopeManager.dataContext).trim();
       if (linkToken.isNotEmpty) {
         GetIt.I<PlaidLinkManager>().openPlaidLink(
           linkToken,
@@ -294,7 +262,7 @@ class ScreenController {
             if (action.onSuccess != null) {
               executeActionWithScope(
                 context,
-                scopeManager!,
+                scopeManager,
                 action.onSuccess!,
                 event: EnsembleEvent(
                   action.initiator,
@@ -307,7 +275,7 @@ class ScreenController {
             if (action.onEvent != null) {
               executeActionWithScope(
                 context,
-                scopeManager!,
+                scopeManager,
                 action.onEvent!,
                 event: EnsembleEvent(
                   action.initiator,
@@ -320,7 +288,7 @@ class ScreenController {
             if (action.onExit != null) {
               executeActionWithScope(
                 context,
-                scopeManager!,
+                scopeManager,
                 action.onExit!,
                 event: EnsembleEvent(
                   action.initiator,
@@ -335,18 +303,18 @@ class ScreenController {
             "openPlaidLink action requires the plaid's link_token.");
       }
     } else if (action is AppSettingAction) {
-      final settingType = action.getTarget(dataContext);
+      final settingType = action.getTarget(scopeManager.dataContext);
       AppSettings.openAppSettings(type: settingType);
     } else if (action is PhoneContactAction) {
       GetIt.I<ContactManager>().getPhoneContacts((contacts) {
-        if (action.getOnSuccess(dataContext) != null) {
+        if (action.getOnSuccess(scopeManager.dataContext) != null) {
           final contactsData =
               contacts.map((contact) => contact.toJson()).toList();
 
           executeActionWithScope(
             context,
-            scopeManager!,
-            action.getOnSuccess(dataContext)!,
+            scopeManager,
+            action.getOnSuccess(scopeManager.dataContext)!,
             event: EnsembleEvent(
               action.initiator,
               data: {'contacts': contactsData},
@@ -354,11 +322,11 @@ class ScreenController {
           );
         }
       }, (error) {
-        if (action.getOnError(dataContext) != null) {
+        if (action.getOnError(scopeManager.dataContext) != null) {
           executeActionWithScope(
             context,
-            scopeManager!,
-            action.getOnError(dataContext)!,
+            scopeManager,
+            action.getOnError(scopeManager.dataContext)!,
             event: EnsembleEvent(action.initiator!, data: {'error': error}),
           );
         }
@@ -366,95 +334,91 @@ class ScreenController {
     } else if (action is ShowCameraAction) {
       GetIt.I<CameraManager>().openCamera(context, action, scopeManager);
     } else if (action is StartTimerAction) {
-      // what happened if ScopeManager is null?
-      if (scopeManager != null) {
-        // validate
-        bool isRepeat = action.isRepeat(dataContext);
-        int? repeatInterval = action.getRepeatInterval(dataContext);
-        if (isRepeat && repeatInterval == null) {
-          throw LanguageError(
-              "${ActionType.startTimer.name}'s repeatInterval needs a value when repeat is on");
-        }
+      // validate
+      bool isRepeat = action.isRepeat(scopeManager.dataContext);
+      int? repeatInterval = action.getRepeatInterval(scopeManager.dataContext);
+      if (isRepeat && repeatInterval == null) {
+        throw LanguageError(
+            "${ActionType.startTimer.name}'s repeatInterval needs a value when repeat is on");
+      }
 
-        int delay = action.getStartAfter(dataContext) ??
-            (isRepeat ? repeatInterval! : 0);
+      int delay = action.getStartAfter(scopeManager.dataContext) ??
+          (isRepeat ? repeatInterval! : 0);
 
-        // we always execute at least once, delayed by startAfter and fallback to repeatInterval (or immediate if startAfter is 0)
-        Timer(Duration(seconds: delay), () {
-          // execute the action
-          executeActionWithScope(context, scopeManager, action.onTimer);
+      // we always execute at least once, delayed by startAfter and fallback to repeatInterval (or immediate if startAfter is 0)
+      Timer(Duration(seconds: delay), () {
+        // execute the action
+        executeActionWithScope(context, scopeManager, action.onTimer);
 
-          // if no repeat, execute onTimerComplete
-          if (!isRepeat) {
-            if (action.onTimerComplete != null) {
-              executeActionWithScope(
-                  context, scopeManager, action.onTimerComplete!);
-            }
+        // if no repeat, execute onTimerComplete
+        if (!isRepeat) {
+          if (action.onTimerComplete != null) {
+            executeActionWithScope(
+                context, scopeManager, action.onTimerComplete!);
           }
-          // else repeating timer
-          else if (repeatInterval != null) {
-            int? maxTimes = action.getMaxTimes(dataContext);
+        }
+        // else repeating timer
+        else if (repeatInterval != null) {
+          int? maxTimes = action.getMaxTimes(scopeManager.dataContext);
 
-            /// repeatCount value of null means forever by default
-            int? repeatCount = maxTimes != null ? maxTimes - 1 : null;
-            if (repeatCount != 0) {
-              int counter = 0;
-              final timer =
-                  Timer.periodic(Duration(seconds: repeatInterval), (timer) {
-                // execute the action
-                executeActionWithScope(context, scopeManager, action.onTimer);
+          /// repeatCount value of null means forever by default
+          int? repeatCount = maxTimes != null ? maxTimes - 1 : null;
+          if (repeatCount != 0) {
+            int counter = 0;
+            final timer =
+                Timer.periodic(Duration(seconds: repeatInterval), (timer) {
+              // execute the action
+              executeActionWithScope(context, scopeManager, action.onTimer);
 
-                // automatically cancel timer when repeatCount is reached
-                if (repeatCount != null && ++counter == repeatCount) {
-                  timer.cancel();
+              // automatically cancel timer when repeatCount is reached
+              if (repeatCount != null && ++counter == repeatCount) {
+                timer.cancel();
 
-                  // timer terminates, call onTimerComplete
-                  if (action.onTimerComplete != null) {
-                    executeActionWithScope(
-                        context, scopeManager, action.onTimerComplete!);
-                  }
+                // timer terminates, call onTimerComplete
+                if (action.onTimerComplete != null) {
+                  executeActionWithScope(
+                      context, scopeManager, action.onTimerComplete!);
                 }
-              });
+              }
+            });
 
-              // save our timer to our PageData since user may want to cancel at anytime
-              // and also when we navigate away from the page
-              scopeManager.addTimer(action, timer);
-            }
+            // save our timer to our PageData since user may want to cancel at anytime
+            // and also when we navigate away from the page
+            scopeManager.addTimer(action, timer);
           }
-        });
-      }
-    } else if (action is StopTimerAction) {
-      if (scopeManager != null) {
-        try {
-          scopeManager.removeTimer(action.id);
-        } catch (e) {
-          debugPrint(
-              'error when trying to stop timer with name ${action.id}. Error: ${e.toString()}');
-        }
-      }
-    } else if (action is GetLocationAction) {
-      executeGetLocationAction(scopeManager!, dataContext, context, action);
-    } else if (action is ExecuteCodeAction) {
-      action.inputs?.forEach((key, value) {
-        dynamic val = dataContext.eval(value);
-        if (val != null) {
-          dataContext.addDataContextById(key, val);
         }
       });
-      dataContext.evalCode(action.codeBlock, action.codeBlockSpan);
+    } else if (action is StopTimerAction) {
+      try {
+        scopeManager.removeTimer(action.id);
+      } catch (e) {
+        debugPrint(
+            'error when trying to stop timer with name ${action.id}. Error: ${e.toString()}');
+      }
+    } else if (action is GetLocationAction) {
+      executeGetLocationAction(
+          scopeManager, scopeManager.dataContext, context, action);
+    } else if (action is ExecuteCodeAction) {
+      action.inputs?.forEach((key, value) {
+        dynamic val = scopeManager.dataContext.eval(value);
+        if (val != null) {
+          scopeManager.dataContext.addDataContextById(key, val);
+        }
+      });
+      scopeManager.dataContext.evalCode(action.codeBlock, action.codeBlockSpan);
 
-      if (action.onComplete != null && scopeManager != null) {
+      if (action.onComplete != null) {
         executeActionWithScope(context, scopeManager, action.onComplete!);
       }
     } else if (action is ShowToastAction) {
       Widget? customToastBody;
-      if (scopeManager != null && action.widget != null) {
+      if (action.widget != null) {
         customToastBody = scopeManager.buildWidgetFromDefinition(action.widget);
       }
       ToastController().showToast(context, action, customToastBody,
-          dataContext: dataContext);
+          dataContext: scopeManager.dataContext);
     } else if (action is OpenUrlAction) {
-      dynamic value = dataContext.eval(action.url);
+      dynamic value = scopeManager.dataContext.eval(action.url);
       value ??= '';
       launchUrl(Uri.parse(value),
           mode: (action.openInExternalApp)
@@ -464,7 +428,7 @@ class ScreenController {
       await uploadFiles(
           action: action,
           context: context,
-          dataContext: dataContext,
+          dataContext: scopeManager.dataContext,
           apiMap: apiMap,
           scopeManager: scopeManager);
     } else if (action is FilePickerAction) {
@@ -485,7 +449,7 @@ class ScreenController {
         ),
       );
 
-      if (action.id != null && scopeManager != null) {
+      if (action.id != null) {
         scopeManager.dataContext
             .addDataContextById(action.id!, WalletData(walletConnect));
       }
@@ -534,10 +498,10 @@ class ScreenController {
       notificationUtils.onRemoteNotification = action.onReceive;
       notificationUtils.onRemoteNotificationOpened = action.onTap;
     } else if (action is ShowNotificationAction) {
-      dataContext.addDataContext(Ensemble.externalDataContext);
+      scopeManager.dataContext.addDataContext(Ensemble.externalDataContext);
       notificationUtils.showNotification(
-        dataContext.eval(action.title),
-        dataContext.eval(action.body),
+        scopeManager.dataContext.eval(action.title),
+        scopeManager.dataContext.eval(action.body),
       );
     } else if (action is RequestNotificationAction) {
       final isEnabled = await notificationUtils.initNotifications() ?? false;
@@ -552,7 +516,7 @@ class ScreenController {
     } else if (action is AuthorizeOAuthAction) {
       // TODO
     } else if (action is CheckPermission) {
-      Permission? type = action.getType(dataContext);
+      Permission? type = action.getType(scopeManager.dataContext);
       if (type == null) {
         throw RuntimeError('checkPermission requires a type.');
       }
@@ -572,13 +536,13 @@ class ScreenController {
       }
     } else if (action is ConnectSocketAction) {
       dynamic resolveURI(String uri) {
-        final result = dataContext.eval(uri);
+        final result = scopeManager.dataContext.eval(uri);
         return Uri.tryParse(result);
       }
 
       for (var element in action.inputs?.entries ?? const Iterable.empty()) {
-        dynamic value = dataContext.eval(element.value);
-        dataContext.addDataContextById(element.key, value);
+        dynamic value = scopeManager.dataContext.eval(element.value);
+        scopeManager.dataContext.addDataContextById(element.key, value);
       }
       final socketName = action.name;
       final socketService = SocketService();
@@ -610,9 +574,9 @@ class ScreenController {
       final subscription = socket.messages.listen((message) {
         if (data.onReceive == null) return;
 
-        scopeManager?.dataContext
+        scopeManager.dataContext
             .addInvokableContext(socketName, EnsembleSocketInvokable(message));
-        scopeManager?.dispatch(
+        scopeManager.dispatch(
             ModelChangeEvent(SimpleBindingSource(socketName), message));
         ScreenController().executeAction(context, data.onReceive!);
       });
@@ -623,12 +587,12 @@ class ScreenController {
       await socketService.disconnect(action.name);
     } else if (action is MessageSocketAction) {
       final socketService = SocketService();
-      final message = dataContext.eval(action.message);
+      final message = scopeManager.dataContext.eval(action.message);
       socketService.message(action.name, message);
     }
     // catch-all. All Actions should just be using this
     else {
-      action.execute(context, scopeManager!, dataContext: dataContext);
+      action.execute(context, scopeManager);
     }
   }
 
@@ -1041,7 +1005,7 @@ class ScreenController {
               } else if (action.onError != null) {
                 DataContext localizedContext = dataContext.clone();
                 localizedContext.addDataContextById('reason', 'unknown');
-                nowExecuteAction(context, localizedContext, action.onError!,
+                nowExecuteAction(context, action.onError!,
                     scopeManager.pageData.apiMap, scopeManager);
               }
             });
@@ -1055,7 +1019,7 @@ class ScreenController {
         } else if (action.onError != null) {
           DataContext localizedContext = dataContext.clone();
           localizedContext.addDataContextById('reason', status.name);
-          nowExecuteAction(context, localizedContext, action.onError!,
+          nowExecuteAction(context, action.onError!,
               scopeManager.pageData.apiMap, scopeManager);
         }
       });
@@ -1071,8 +1035,8 @@ class ScreenController {
     DataContext localizedContext = dataContext.clone();
     localizedContext.addDataContextById('latitude', location.latitude);
     localizedContext.addDataContextById('longitude', location.longitude);
-    nowExecuteAction(context, localizedContext, onLocationReceived,
-        scopeManager.pageData.apiMap, scopeManager);
+    nowExecuteAction(context, onLocationReceived, scopeManager.pageData.apiMap,
+        scopeManager);
   }
 
   /// return a wrapper for the screen widget
