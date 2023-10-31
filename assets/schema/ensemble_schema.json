@@ -1181,7 +1181,15 @@
               "type": "object",
               "description": "Styling the hint text. Default to theme's bodyMedium styling",
               "$ref": "#/$defs/TextStyle"
-            }
+            },
+            "multiline": {
+              "type": "boolean",
+              "description": "whether to allow multiple lines or not. Default: false"
+            },
+            "maxLines": {
+              "type": "integer",
+              "description": "if multiline is true, this specifies the max number of lines. "
+            }            
           }
         }
       ]
@@ -5167,6 +5175,19 @@
           }
         },
         {
+          "title": "Youtube",
+          "required": [
+            "Youtube"
+          ],
+          "properties": {
+            "Youtube" : {
+              "$ref" : "#/$defs/Youtube-payload"
+            }
+          }
+        },
+
+
+        {
           "title": "WebView",
           "required": [
             "WebView"
@@ -5305,6 +5326,9 @@
                 "headerVisible": {
                   "type": "boolean",
                   "description": "Set visibility of calendar header. Default true."
+                },
+                "header": {
+                  "$ref": "#/$defs/Widget"
                 },
                 "rowSpans": {
                   "type": "array",
@@ -5770,6 +5794,63 @@
         "source": {
           "type": "string",
           "description": "The URL source to the media file"
+        }
+      }
+    },
+    "Youtube-payload":{
+      "type" : "object",
+      "properties" : {
+        "id" : {
+          "type" : "string",
+          "description": "The unique identifier for this widget"
+        },
+        "url" : {
+          "type": "string",
+          "description": "The URL source to the youtube video"
+        },
+        "aspectRatio" : {
+          "type": "double",
+          "description" : "Video aspect ratio"
+        },
+        "autoplay": {
+          "type" : "bool",
+          "description" : "Automatically start the video when player is loaded. (default False)"
+        },
+        "videoList" : {
+          "type" : "array",
+          "description" : "List of videos to be played within a single player."
+        },
+        "startSeconds": {
+          "type" : "double",
+          "description" : "specifies the time from which the first video in the list(or single video) should start playing"
+        },
+        "endSeconds": {
+          "type": "double",
+          "description": "Ends the video after the certain number of seconds (works with Single video)"
+        },
+        "showAnnotations" : {
+          "type" : "bool",
+          "description" : "Showing the annotations of the video"
+        },            
+        "playbackRate" : {
+          "type": "double",
+          "description": "For changing the speed at which the video is displayed"
+        },
+        "showControls": {
+          "type" : "bool",
+          "description" : "For showing the controls on the video within the player(Like in youtube)"
+        },
+        "showFullScreenButton": {
+          "type" : "bool",
+          "description" : "To show the fullscreen button of the video"
+        },
+        "enableCaptions" : {
+          "type": "bool",
+          "description" : "To enable any captions in the video(default language of caption is English)"
+        },
+        "volume": {
+          "type": "integer",
+          "description" : "Changes the volume. (max = 100, min = 0)"
         }
       }
     },

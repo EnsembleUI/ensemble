@@ -1,5 +1,6 @@
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/studio_debugger.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/box/base_box_layout.dart';
@@ -21,9 +22,11 @@ class ListView extends StatefulWidget
         Invokable,
         HasController<ListViewController, BoxLayoutState> {
   static const type = 'ListView';
+
   ListView({Key? key}) : super(key: key);
 
   final ListViewController _controller = ListViewController();
+
   @override
   ListViewController get controller => _controller;
 
@@ -166,6 +169,11 @@ class ListViewState extends WidgetState<ListView>
                         thickness:
                             widget._controller.separatorWidth?.toDouble()))
                 : const SizedBox.shrink());
+
+    if (StudioDebugger().debugMode) {
+      listView = StudioDebugger()
+          .assertScrollableHasBoundedHeightWrapper(listView, ListView.type);
+    }
 
     if (widget._controller.onPullToRefresh != null) {
       listView = PullToRefreshContainer(

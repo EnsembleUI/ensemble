@@ -40,13 +40,13 @@ class EnsembleCalendar extends StatefulWidget
       'markedCell': () => _controller.markedDays.value
           .map((e) => e.toIso8601DateString())
           .toList(),
-      'disableCell': () => _controller.disableDays.value
+      'disabledCell': () => _controller.disableDays.value
           .map((e) => e.toIso8601DateString())
           .toList(),
       'rangeStart': () => _controller.rangeStart?.toIso8601DateString(),
       'rangeEnd': () => _controller.rangeEnd?.toIso8601DateString(),
       'range': () => _controller.range,
-      'focusDay': () => _controller.focusedDay.value,
+      'focusDate': () => _controller.focusedDay.value,
     };
   }
 
@@ -54,12 +54,20 @@ class EnsembleCalendar extends StatefulWidget
   Map<String, Function> methods() {
     return {
       'selectCell': (value) => _selectCell(value),
+      'toggleSelectCell': (value) => _toggleSelectedCell(value),
+      'unSelectCell': (value) => _unSelectCell(value),
       'markCell': (singleDate) => _markCell(singleDate),
+      'unMarkCell': (singleDate) => _unMarkCell(singleDate),
+      'toggleMarkCell': (singleDate) => _toggleMarkCell(singleDate),
       'disableCell': (value) => _disableCell(value),
+      'enableCell': (value) => _enableCell(value),
+      'toggleDisableCell': (value) => _toggleDisableCell(value),
       'previous': (value) => _controller.pageController?.previousPage(
           duration: const Duration(milliseconds: 300), curve: Curves.easeOut),
       'next': (value) => _controller.pageController?.nextPage(
-          duration: const Duration(milliseconds: 300), curve: Curves.easeOut)
+          duration: const Duration(milliseconds: 300), curve: Curves.easeOut),
+      'addRowSpan': (value) => setRowSpan(value),
+      'header': (value) => _controller.header,
     };
   }
 
@@ -137,6 +145,40 @@ class EnsembleCalendar extends StatefulWidget
         HashSet<DateTime>.from(_controller.disableDays.value);
 
     for (var date in rawDate) {
+      updatedDisabledDays.add(date);
+    }
+
+    _controller.rangeStart = null;
+    _controller.rangeEnd = null;
+    _controller.range = null;
+    _controller.disableDays.value = updatedDisabledDays;
+  }
+
+  void _enableCell(dynamic value) {
+    final rawDate = _getDate(value);
+    if (rawDate == null) return;
+
+    HashSet<DateTime> updatedDisabledDays =
+        HashSet<DateTime>.from(_controller.disableDays.value);
+
+    for (var date in rawDate) {
+      updatedDisabledDays.remove(date);
+    }
+
+    _controller.rangeStart = null;
+    _controller.rangeEnd = null;
+    _controller.range = null;
+    _controller.disableDays.value = updatedDisabledDays;
+  }
+
+  void _toggleDisableCell(dynamic value) {
+    final rawDate = _getDate(value);
+    if (rawDate == null) return;
+
+    HashSet<DateTime> updatedDisabledDays =
+        HashSet<DateTime>.from(_controller.disableDays.value);
+
+    for (var date in rawDate) {
       if (updatedDisabledDays.contains(date)) {
         updatedDisabledDays.remove(date);
       } else {
@@ -158,6 +200,40 @@ class EnsembleCalendar extends StatefulWidget
         HashSet<DateTime>.from(_controller.selectedDays.value);
 
     for (var date in rawDate) {
+      updatedDisabledDays.add(date);
+    }
+
+    _controller.rangeStart = null;
+    _controller.rangeEnd = null;
+    _controller.range = null;
+    _controller.selectedDays.value = updatedDisabledDays;
+  }
+
+  void _unSelectCell(dynamic value) {
+    final rawDate = _getDate(value);
+    if (rawDate == null) return;
+
+    HashSet<DateTime> updatedDisabledDays =
+        HashSet<DateTime>.from(_controller.selectedDays.value);
+
+    for (var date in rawDate) {
+      updatedDisabledDays.remove(date);
+    }
+
+    _controller.rangeStart = null;
+    _controller.rangeEnd = null;
+    _controller.range = null;
+    _controller.selectedDays.value = updatedDisabledDays;
+  }
+
+  void _toggleSelectedCell(dynamic value) {
+    final rawDate = _getDate(value);
+    if (rawDate == null) return;
+
+    HashSet<DateTime> updatedDisabledDays =
+        HashSet<DateTime>.from(_controller.selectedDays.value);
+
+    for (var date in rawDate) {
       if (updatedDisabledDays.contains(date)) {
         updatedDisabledDays.remove(date);
       } else {
@@ -171,7 +247,49 @@ class EnsembleCalendar extends StatefulWidget
     _controller.selectedDays.value = updatedDisabledDays;
   }
 
+  void _unMarkCell(dynamic value) {
+    final rawDate = _getDate(value);
+    if (rawDate == null) return;
+
+    HashSet<DateTime> updatedMarkDays =
+        HashSet<DateTime>.from(_controller.markedDays.value);
+    HashSet<DateTime> updatedSelectedDays =
+        HashSet<DateTime>.from(_controller.selectedDays.value);
+
+    for (var date in rawDate) {
+      updatedMarkDays.remove(date);
+      updatedSelectedDays.remove(date);
+    }
+
+    _controller.rangeStart = null;
+    _controller.rangeEnd = null;
+    _controller.range = null;
+    _controller.markedDays.value = updatedMarkDays;
+    _controller.selectedDays.value = updatedSelectedDays;
+  }
+
   void _markCell(dynamic value) {
+    final rawDate = _getDate(value);
+    if (rawDate == null) return;
+
+    HashSet<DateTime> updatedMarkDays =
+        HashSet<DateTime>.from(_controller.markedDays.value);
+    HashSet<DateTime> updatedSelectedDays =
+        HashSet<DateTime>.from(_controller.selectedDays.value);
+
+    for (var date in rawDate) {
+      updatedMarkDays.add(date);
+      updatedSelectedDays.remove(date);
+    }
+
+    _controller.rangeStart = null;
+    _controller.rangeEnd = null;
+    _controller.range = null;
+    _controller.markedDays.value = updatedMarkDays;
+    _controller.selectedDays.value = updatedSelectedDays;
+  }
+
+  void _toggleMarkCell(dynamic value) {
     final rawDate = _getDate(value);
     if (rawDate == null) return;
 
@@ -197,14 +315,17 @@ class EnsembleCalendar extends StatefulWidget
   }
 
   void setRowSpan(dynamic data) {
-    if (data is YamlMap) {
+    final List<RowSpanConfig> spans = List.from(_controller.rowSpans.value);
+    if (data is YamlMap || data is Map) {
       final rowSpan = RowSpanConfig(
         startDay: Utils.getDate(data['start']),
         endDay: Utils.getDate(data['end']),
         widget: data['widget'],
+        inputs: data['inputs'],
       );
-      _controller.rowSpans.add(rowSpan);
+      spans.add(rowSpan);
     }
+    _controller.rowSpans.value = spans;
   }
 
   void setRangeData(dynamic data) {
@@ -244,13 +365,13 @@ class RowSpanConfig {
   DateTime? startDay;
   DateTime? endDay;
   dynamic widget;
-  Color? backgroundColor;
+  Map? inputs;
 
   RowSpanConfig({
     this.startDay,
     this.endDay,
     this.widget,
-    this.backgroundColor,
+    this.inputs,
   });
 
   bool get isValid => startDay != null && endDay != null;
@@ -309,10 +430,11 @@ class CalendarController extends WidgetController {
   EnsembleAction? onRangeStart;
   Color? highlightColor;
   bool headerVisible = true;
+  dynamic header;
   DateTime? firstDay;
   DateTime? lastDay;
   final ValueNotifier<DateTime> focusedDay = ValueNotifier(DateTime.now());
-  List<RowSpanConfig> rowSpans = [];
+  ValueNotifier<List<RowSpanConfig>> rowSpans = ValueNotifier([]);
   TextStyle? headerTextStyle;
 
   final ValueNotifier<Set<DateTime>> markedDays = ValueNotifier(
@@ -353,6 +475,10 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
     });
 
     widget._controller.disableDays.addListener(() {
+      setState(() {});
+    });
+
+    widget._controller.rowSpans.addListener(() {
       setState(() {});
     });
 
@@ -428,22 +554,29 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
           ValueListenableBuilder<DateTime>(
             valueListenable: widget._controller.focusedDay,
             builder: (context, value, _) {
-              return _CalendarHeader(
-                focusedDay: value,
-                headerStyle: widget._controller.headerTextStyle,
-                onLeftArrowTap: () {
-                  widget._controller.pageController?.previousPage(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeOut,
+              Widget? header;
+
+              if (widget._controller.header != null) {
+                header = widgetBuilder(context, widget._controller.header, {});
+              }
+
+              return header ??
+                  _CalendarHeader(
+                    focusedDay: value,
+                    headerStyle: widget._controller.headerTextStyle,
+                    onLeftArrowTap: () {
+                      widget._controller.pageController?.previousPage(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOut,
+                      );
+                    },
+                    onRightArrowTap: () {
+                      widget._controller.pageController?.nextPage(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOut,
+                      );
+                    },
                   );
-                },
-                onRightArrowTap: () {
-                  widget._controller.pageController?.nextPage(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeOut,
-                  );
-                },
-              );
             },
           ),
         TableCalendar(
@@ -470,18 +603,22 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
           daysOfWeekVisible: true,
           overlayRanges: getOverlayRange(),
           calendarBuilders: CalendarBuilders(
-            overlayBuilder: widget._controller.rowSpans.isEmpty
+            overlayBuilder: widget._controller.rowSpans.value.isEmpty
                 ? null
                 : (context, range) {
                     final spans = widget._controller.rowSpans;
-                    for (var span in spans) {
+                    for (var span in spans.value) {
                       if (span.startDay == null || span.endDay == null) {
                         return const SizedBox.shrink();
                       }
                       if (DateTimeRange(
                               start: span.startDay!, end: span.endDay!) ==
                           range) {
-                        return widgetBuilder(context, span.widget, {});
+                        return widgetBuilder(
+                          context,
+                          span.widget,
+                          span.inputs?.cast<String, dynamic>() ?? {},
+                        );
                       }
                     }
                     return const SizedBox.shrink();
@@ -595,7 +732,7 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
 
   List<DateTimeRange> getOverlayRange() {
     final overlayRange = <DateTimeRange>[];
-    for (var span in widget._controller.rowSpans) {
+    for (var span in widget._controller.rowSpans.value) {
       if (span.endDay != null && span.startDay != null) {
         overlayRange
             .add(DateTimeRange(start: span.startDay!, end: span.endDay!));
