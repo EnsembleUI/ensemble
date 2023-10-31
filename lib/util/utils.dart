@@ -260,9 +260,9 @@ class Utils {
     return optionalDouble(value, min: min, max: max) ?? fallback;
   }
 
-  static List<dynamic>? getList(dynamic value) {
+  static List<T>? getList<T>(dynamic value) {
     if (value is YamlList) {
-      List<dynamic> results = [];
+      List<T> results = [];
       for (var item in value) {
         results.add(item);
       }
