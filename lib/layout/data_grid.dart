@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -16,6 +18,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble/framework/view/page.dart';
+import 'package:json_path/json_path.dart';
 
 enum DataColumnSortType { ascending, descending }
 
@@ -461,17 +464,62 @@ class DataGridState extends WidgetState<DataGrid>
       if (sortable != null && sortable) {
         bool isAscendingOrder = sortOrder == DataColumnSortType.ascending.name;
 
-        if (isAscendingOrder) {
-          dataList.sort((a, b) => (a[sortKey]).compareTo(b[sortKey]));
-        } else {
-          dataList.sort((a, b) => (b[sortKey]).compareTo(a[sortKey]));
-        }
+        // handleList(dataList);
+        customSort(dataList, sortKey, isAscendingOrder);
       }
     }
 
     templatedChildren =
         buildWidgetsFromTemplate(context, dataList, widget.itemTemplate!);
     setState(() {});
+  }
+
+  void customSort(List dataList, String? sortKey, bool isAscendingOrder) {
+    if (sortKey == null) return;
+    final lists = JsonPath(sortKey).read(dataList).toList();
+    if (lists.length >= 2) {
+      dataList.asMap().forEach((index, value) {
+        if (index < dataList.length - 1) {
+          final firstItem = lists[index].value.toString();
+          final secondItem = lists[index + 1].value.toString();
+          final val = firstItem.compareTo(secondItem);
+          print('Status: $val');
+          if (isAscendingOrder) {
+            dataList.sort((_, __) => (firstItem).compareTo(secondItem));
+          } else {
+            dataList.sort((_, __) => (secondItem).compareTo(firstItem));
+          }
+        }
+      });
+    }
+  }
+
+  void handleMap(Map map, [String? key]) {
+    map.forEach((key, value) {
+      if (value is Map) {
+        handleMap(value, key);
+      } else if (value is List) {
+        handleList(value, key);
+      } else {
+        handleValue(value, key);
+      }
+    });
+  }
+
+  void handleList(List list, [String? key]) {
+    list.forEach((entry) {
+      if (entry is Map) {
+        handleMap(entry);
+      } else if (entry is List) {
+        handleList(entry);
+      } else {
+        handleValue(entry);
+      }
+    });
+  }
+
+  void handleValue(dynamic value, [String? key]) {
+    print('Key: $key and Value: $value');
   }
 
   // Change ascending to descending and vice versa in dataColumnSort object
