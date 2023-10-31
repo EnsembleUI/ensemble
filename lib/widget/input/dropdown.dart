@@ -228,10 +228,18 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
   }
 
   void onSelectionChanged(dynamic value) {
-    widget.onSelectionChanged(value);
-    if (widget._controller.onChange != null) {
-      ScreenController().executeAction(context, widget._controller.onChange!,
-          event: EnsembleEvent(widget));
+    final oldValue = widget._controller.maybeValue;
+
+    if (oldValue != value) {
+      widget.onSelectionChanged(value);
+
+      if (widget._controller.onChange != null) {
+        ScreenController().executeAction(
+          context,
+          widget._controller.onChange!,
+          event: EnsembleEvent(widget),
+        );
+      }
     }
   }
 
