@@ -106,15 +106,28 @@ class ScreenController {
   Future<void> nowExecuteAction(BuildContext context, EnsembleAction action,
       Map<String, YamlMap>? apiMap, ScopeManager providedScopeManager,
       {EnsembleEvent? event}) async {
-    // create new scope to append data.
-    ScopeManager scopeManager =
-        providedScopeManager.createChildScope(ephemeral: true);
+    // create a new ephemeral scope to append common data.
+    // ScopeManager scopeManager =
+    //     providedScopeManager.createChildScope(ephemeral: true);
+    // if (action.initiator != null) {
+    //   scopeManager.dataContext.addInvokableContext('this', action.initiator!);
+    // }
+    // if (event != null) {
+    //   scopeManager.dataContext.addInvokableContext('event', event);
+    // }
+
+    // temporary until a proper fix. Overwrite the original scope itself
+    // since action requires the original scope to update the data.
+    // The below will cause "this" and "event" to permanently attach to the
+    // context
+    ScopeManager scopeManager = providedScopeManager;
     if (action.initiator != null) {
       scopeManager.dataContext.addInvokableContext('this', action.initiator!);
     }
     if (event != null) {
       scopeManager.dataContext.addInvokableContext('event', event);
     }
+
 
     /// TODO: The below Actions should be move to their execute() functions
     if (action is NavigateExternalScreen) {
