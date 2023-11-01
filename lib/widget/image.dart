@@ -231,6 +231,8 @@ class ImageState extends WidgetState<EnsembleImage> {
   Widget getPlaceholder() {
     // container without child will get the size of its parent
     return Container(
+        width: widget._controller.width?.toDouble(),
+        height: widget._controller.height?.toDouble(),
         decoration: BoxDecoration(
             color: widget._controller.placeholderColor ??
                 Color(placeholderColors[
