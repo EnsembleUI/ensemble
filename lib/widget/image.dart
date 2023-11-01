@@ -16,6 +16,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:mime/mime.dart';
 
 class EnsembleImage extends StatefulWidget
     with Invokable, HasController<ImageController, ImageState> {
@@ -193,8 +194,8 @@ class ImageState extends WidgetState<EnsembleImage> {
   }
 
   bool isSvg() {
-    String imgSrc = Utils.stripQueryParamsFromAsset(widget._controller.source);
-    return imgSrc.endsWith('svg');
+    final mimeType = lookupMimeType(widget._controller.source);
+    return mimeType?.contains('svg') == true;
   }
 
   /// display if the image cannot be loaded
