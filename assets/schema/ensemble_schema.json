@@ -1182,13 +1182,9 @@
               "description": "Styling the hint text. Default to theme's bodyMedium styling",
               "$ref": "common_schema.json#/$defs/TextStyle"
             },
-            "multiline": {
-              "type": "boolean",
-              "description": "whether to allow multiple lines or not. Default: false"
-            },
             "maxLines": {
               "type": "integer",
-              "description": "if multiline is true, this specifies the max number of lines. "
+              "description": "max number of lines allowed in a textinput"
             }            
           }
         }
@@ -5862,7 +5858,16 @@
           "description": "The unique identifier for this widget"
         },
         "url": {
-          "type": "string"
+          "type": "string",
+          "description": "The URl that will be loaded in the webview"
+        },
+        "cookies": {
+          "type": "array",
+          "description": "takes cookies in an array of maps"
+        },
+        "cookieHeader" : {
+          "type" : "string",
+          "description" : "Creates a cookie by parsing a header value from a 'set-cookie' header according to the rules in RFC 6265"
         },
         "styles": {
           "allOf": [
