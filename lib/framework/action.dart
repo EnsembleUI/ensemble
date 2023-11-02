@@ -2,6 +2,7 @@ import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/action/badge_action.dart';
 import 'package:ensemble/action/bottom_modal_action.dart';
 import 'package:ensemble/action/call_external_method.dart';
+import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/action/invoke_api_action.dart';
 import 'package:ensemble/action/misc_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
@@ -852,6 +853,11 @@ enum ActionType {
   updateBadgeCount,
   clearBadgeCount,
   callExternalMethod,
+  heavyImpactHaptic,
+  mediumImpactHaptic,
+  lightImpactHaptic,
+  selectionClickHaptic,
+  vibrateHaptic,
 }
 
 enum ToastType { success, error, warning, info }
@@ -990,7 +996,18 @@ abstract class EnsembleAction {
       return SaveKeychain.fromYaml(payload: payload);
     } else if (actionType == ActionType.clearKeychain) {
       return ClearKeychain.fromYaml(payload: payload);
+    } else if (actionType == ActionType.heavyImpactHaptic) {
+      return HeavyImpactHaptic();
+    } else if (actionType == ActionType.mediumImpactHaptic) {
+      return MediumImpactHaptic();
+    } else if (actionType == ActionType.lightImpactHaptic) {
+      return LightImpactHaptic();
+    } else if (actionType == ActionType.selectionClickHaptic) {
+      return SelectionClickHaptic();
+    } else if (actionType == ActionType.vibrateHaptic) {
+      return VibrateHaptic();
     }
+
     throw LanguageError("Invalid action.",
         recovery: "Make sure to use one of Ensemble-provided actions.");
   }
