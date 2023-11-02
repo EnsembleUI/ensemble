@@ -128,7 +128,6 @@ class ScreenController {
       scopeManager.dataContext.addInvokableContext('event', event);
     }
 
-
     /// TODO: The below Actions should be move to their execute() functions
     if (action is NavigateExternalScreen) {
       return action.execute(context, scopeManager);

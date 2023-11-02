@@ -743,7 +743,8 @@ class Utils {
     } else if (Platform.isAndroid) {
       return path.startsWith('/data/user/0/');
     } else if (Platform.isIOS) {
-      return path.startsWith('/var/mobile/');
+      return (path.startsWith('/var/mobile/') ||
+          path.startsWith('/private/var/mobile'));
     } else if (Platform.isMacOS) {
       return path.startsWith('/Users/');
     } else if (Platform.isLinux) {
