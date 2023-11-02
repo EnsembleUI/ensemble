@@ -116,6 +116,8 @@ dependencies:
       ref: master
   
   flutter_app_badger: ^1.5.0
+  webview_flutter_wkwebview: ^3.9.2
+  webview_flutter_android: ^3.12.0
 
 dev_dependencies:
   flutter_test:
