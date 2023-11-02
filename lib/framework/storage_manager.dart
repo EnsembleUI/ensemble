@@ -1,8 +1,3 @@
-import 'package:ensemble/ensemble.dart';
-import 'package:ensemble/framework/extensions.dart';
-import 'package:ensemble/screen_controller.dart';
-import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_storage/get_storage.dart';
 
@@ -81,6 +76,9 @@ mixin SecureStorage {
   /// write to secure storage
   Future<void> writeSecurely({required String key, required String value}) =>
       secureStorage.write(key: key, value: value);
+
+  /// remove from secure storage
+  Future<void> remove(String key) => secureStorage.delete(key: key);
 
   /// read from secure storage
   Future<String?> readSecurely(String key) => secureStorage.read(key: key);
