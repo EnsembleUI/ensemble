@@ -1182,13 +1182,9 @@
               "description": "Styling the hint text. Default to theme's bodyMedium styling",
               "$ref": "#/$defs/TextStyle"
             },
-            "multiline": {
-              "type": "boolean",
-              "description": "whether to allow multiple lines or not. Default: false"
-            },
             "maxLines": {
               "type": "integer",
-              "description": "if multiline is true, this specifies the max number of lines. "
+              "description": "max number of lines allowed in a textinput"
             }            
           }
         }
@@ -4432,8 +4428,46 @@
               "description": "The header widget for the menu"
             },
             "footer": {
-              "$ref": "#/$defs/Widget",
-              "description": "The footer widget for the menu"
+              "type": "object",
+              "properties": {
+                "style": {
+                  "$ref": "#/$defs/boxStyles"
+                },
+                "dragOptions": {
+                  "type": "object",
+                  "properties": {
+                    "enable": {
+                      "type": "boolean"
+                    },
+                    "initialSize": {
+                      "type": "number",
+                      "description": "Default it 0.5 i.e 50% of screen"
+                    },
+                    "minSize": {
+                      "type": "number",
+                      "description": "Minimum size of till sheet can go. Default is 0.25 i.e 25% of screen."
+                    },
+                    "maxSize": {
+                      "type": "number",
+                      "description": "Maximum size of till sheet can go. Default is 1 i.e 100% of screen."
+                    },
+                    "span": {
+                      "type": "boolean",
+                      "description": "Whether the widget should snap between [snapSizes] when the user lifts their finger during a drag."
+                    },
+                    "spanSizes": {
+                      "type": "array",
+                      "description": "The list of number each ranging from minSize to maxSize.",
+                      "items": {
+                        "type": "number"
+                      }
+                    }
+                  }
+                },
+                "children": {
+                  "$ref": "#/$defs/Widgets"
+                }
+              }
             }
           }
         }
