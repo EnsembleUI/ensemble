@@ -252,6 +252,8 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
           ?.getValue(),
       color: unselectedColor,
       selectedColor: selectedColor,
+      shadowColor: Utils.getColor(widget.menu.styles?['shadowColor']),
+      shadowRadius: Utils.optionalDouble(widget.menu.styles?['shadowRadius']),
       notchedShape: const CircularNotchedRectangle(),
       onTabSelected: (index) {
         if (widget.menu.reloadView == true) {
@@ -287,6 +289,8 @@ class EnsembleBottomAppBar extends StatefulWidget {
     this.margin,
     this.padding,
     this.borderRadius,
+    this.shadowColor,
+    this.shadowRadius,
     this.iconSize = 24.0,
     required this.backgroundColor,
     required this.color,
@@ -310,6 +314,8 @@ class EnsembleBottomAppBar extends StatefulWidget {
   final Color backgroundColor;
   final Color color;
   final Color selectedColor;
+  final Color? shadowColor;
+  final double? shadowRadius;
   final bool isFloating;
   final FloatingAlignment floatingAlignment;
   final NotchedShape notchedShape;
@@ -389,6 +395,15 @@ class EnsembleBottomAppBarState extends State<EnsembleBottomAppBar> {
         margin: Utils.optionalInsets(widget.margin) ?? EdgeInsets.zero,
         decoration: BoxDecoration(
           borderRadius: widget.borderRadius ?? BorderRadius.zero,
+          color: Colors.transparent,
+          boxShadow: widget.shadowColor != null
+              ? [
+                  BoxShadow(
+                    color: widget.shadowColor!,
+                    spreadRadius: widget.shadowRadius ?? 0.0,
+                  ),
+                ]
+              : [],
         ),
         clipBehavior: widget.borderRadius != null ? Clip.hardEdge : Clip.none,
         child: BottomAppBar(
