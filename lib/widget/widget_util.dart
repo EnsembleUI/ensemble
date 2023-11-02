@@ -24,8 +24,8 @@ class WidgetUtils {
             border: !boxController.hasBorder()
                 ? null
                 : Border.all(
-                    color: boxController.borderColor ?? Colors.black26,
-                    width: (boxController.borderWidth ?? 1).toDouble()),
+                    color: boxController.allBorderColor ?? Colors.black26,
+                    width: (boxController.allBorderWidth ?? 1).toDouble()),
             borderRadius: borderRadius),
         padding: boxController.padding,
         child: realWidget);
