@@ -172,7 +172,10 @@ class SinglePageModel extends PageModel {
       footer = Footer(
         ViewUtil.buildModels(
             viewMap['footer']['children'], customViewDefinitions),
-        Utils.getMap(viewMap['footer']['styles']),
+        Utils.getMap(
+          viewMap['footer']['styles'],
+        ),
+        Utils.getMap(viewMap['footer']['dragOptions']),
       );
     }
 
@@ -345,7 +348,8 @@ class HeaderModel {
 class Footer {
   final List<WidgetModel> children;
   final Map<String, dynamic>? styles;
-  Footer(this.children, this.styles);
+  final Map<String, dynamic>? dragOptions;
+  Footer(this.children, this.styles, this.dragOptions);
 }
 
 enum PageType { regular, modal }

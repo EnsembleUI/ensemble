@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/action/badge_action.dart';
 import 'package:ensemble/action/bottom_modal_action.dart';
@@ -10,19 +8,14 @@ import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/action/notification_action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
-import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/keychain_manager.dart';
 import 'package:ensemble/framework/permissions_manager.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
-import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:rate_my_app/rate_my_app.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:source_span/source_span.dart';
 import 'package:yaml/yaml.dart';
 
@@ -873,8 +866,7 @@ abstract class EnsembleAction {
   /// use DataContext to eval properties. ScopeManager should be refactored
   /// so it contains the update data context (its DataContext might not have
   /// the latest data)
-  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager,
-      {DataContext? dataContext}) {
+  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
     // placeholder until all Actions are implemented
     return Future.value(null);
   }
