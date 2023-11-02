@@ -1181,7 +1181,11 @@
               "type": "object",
               "description": "Styling the hint text. Default to theme's bodyMedium styling",
               "$ref": "#/$defs/TextStyle"
-            }
+            },
+            "maxLines": {
+              "type": "integer",
+              "description": "max number of lines allowed in a textinput"
+            }            
           }
         }
       ]
@@ -4424,8 +4428,46 @@
               "description": "The header widget for the menu"
             },
             "footer": {
-              "$ref": "#/$defs/Widget",
-              "description": "The footer widget for the menu"
+              "type": "object",
+              "properties": {
+                "style": {
+                  "$ref": "#/$defs/boxStyles"
+                },
+                "dragOptions": {
+                  "type": "object",
+                  "properties": {
+                    "enable": {
+                      "type": "boolean"
+                    },
+                    "initialSize": {
+                      "type": "number",
+                      "description": "Default it 0.5 i.e 50% of screen"
+                    },
+                    "minSize": {
+                      "type": "number",
+                      "description": "Minimum size of till sheet can go. Default is 0.25 i.e 25% of screen."
+                    },
+                    "maxSize": {
+                      "type": "number",
+                      "description": "Maximum size of till sheet can go. Default is 1 i.e 100% of screen."
+                    },
+                    "span": {
+                      "type": "boolean",
+                      "description": "Whether the widget should snap between [snapSizes] when the user lifts their finger during a drag."
+                    },
+                    "spanSizes": {
+                      "type": "array",
+                      "description": "The list of number each ranging from minSize to maxSize.",
+                      "items": {
+                        "type": "number"
+                      }
+                    }
+                  }
+                },
+                "children": {
+                  "$ref": "#/$defs/Widgets"
+                }
+              }
             }
           }
         }
@@ -5129,6 +5171,19 @@
           }
         },
         {
+          "title": "Youtube",
+          "required": [
+            "Youtube"
+          ],
+          "properties": {
+            "Youtube" : {
+              "$ref" : "#/$defs/Youtube-payload"
+            }
+          }
+        },
+
+
+        {
           "title": "WebView",
           "required": [
             "WebView"
@@ -5268,6 +5323,9 @@
                   "type": "boolean",
                   "description": "Set visibility of calendar header. Default true."
                 },
+                "header": {
+                  "$ref": "#/$defs/Widget"
+                },
                 "rowSpans": {
                   "type": "array",
                   "items": {
@@ -5288,10 +5346,16 @@
                             "$ref": "#/$defs/Widget"
                           }
                         },
-                        "required": ["start", "end", "widget"]
+                        "required": [
+                          "start",
+                          "end",
+                          "widget"
+                        ]
                       }
                     },
-                    "required": ["span"]
+                    "required": [
+                      "span"
+                    ]
                   }
                 },
                 "headerTextStyle": {
@@ -5729,6 +5793,63 @@
         }
       }
     },
+    "Youtube-payload":{
+      "type" : "object",
+      "properties" : {
+        "id" : {
+          "type" : "string",
+          "description": "The unique identifier for this widget"
+        },
+        "url" : {
+          "type": "string",
+          "description": "The URL source to the youtube video"
+        },
+        "aspectRatio" : {
+          "type": "double",
+          "description" : "Video aspect ratio"
+        },
+        "autoplay": {
+          "type" : "bool",
+          "description" : "Automatically start the video when player is loaded. (default False)"
+        },
+        "videoList" : {
+          "type" : "array",
+          "description" : "List of videos to be played within a single player."
+        },
+        "startSeconds": {
+          "type" : "double",
+          "description" : "specifies the time from which the first video in the list(or single video) should start playing"
+        },
+        "endSeconds": {
+          "type": "double",
+          "description": "Ends the video after the certain number of seconds (works with Single video)"
+        },
+        "showAnnotations" : {
+          "type" : "bool",
+          "description" : "Showing the annotations of the video"
+        },            
+        "playbackRate" : {
+          "type": "double",
+          "description": "For changing the speed at which the video is displayed"
+        },
+        "showControls": {
+          "type" : "bool",
+          "description" : "For showing the controls on the video within the player(Like in youtube)"
+        },
+        "showFullScreenButton": {
+          "type" : "bool",
+          "description" : "To show the fullscreen button of the video"
+        },
+        "enableCaptions" : {
+          "type": "bool",
+          "description" : "To enable any captions in the video(default language of caption is English)"
+        },
+        "volume": {
+          "type": "integer",
+          "description" : "Changes the volume. (max = 100, min = 0)"
+        }
+      }
+    },
     "WebView-payload": {
       "type": "object",
       "properties": {
@@ -5737,7 +5858,16 @@
           "description": "The unique identifier for this widget"
         },
         "url": {
-          "type": "string"
+          "type": "string",
+          "description": "The URl that will be loaded in the webview"
+        },
+        "cookies": {
+          "type": "array",
+          "description": "takes cookies in an array of maps"
+        },
+        "cookieHeader" : {
+          "type" : "string",
+          "description" : "Creates a cookie by parsing a header value from a 'set-cookie' header according to the rules in RFC 6265"
         },
         "styles": {
           "allOf": [

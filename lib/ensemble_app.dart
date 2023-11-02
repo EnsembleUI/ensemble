@@ -111,14 +111,15 @@ class EnsembleAppState extends State<EnsembleApp> {
   void initState() {
     super.initState();
     config = initApp();
-    if (Platform.isIOS) {
-      IOSDeepLinkManager().init();
-    } else {
-      DeepLinkManager().init();
-    }
 
+    // Initialize native features.
     if (!kIsWeb) {
       Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
+      if (Platform.isIOS) {
+        IOSDeepLinkManager().init();
+      } else {
+        DeepLinkManager().init();
+      }
     }
   }
 
