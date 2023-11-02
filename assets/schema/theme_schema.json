@@ -12,21 +12,21 @@
       "type": "object",
       "properties": {
         "fontFamily": { "type": "string" },
-        "displayLarge": { "$ref":  "#/$defs/TextStyle" },
-        "displayMedium": { "$ref":  "#/$defs/TextStyle" },
-        "displaySmall": { "$ref":  "#/$defs/TextStyle" },
-        "headlineLarge": { "$ref":  "#/$defs/TextStyle" },
-        "headlineMedium": { "$ref":  "#/$defs/TextStyle" },
-        "headlineSmall": { "$ref":  "#/$defs/TextStyle" },
-        "titleLarge": { "$ref":  "#/$defs/TextStyle" },
-        "titleMedium": { "$ref":  "#/$defs/TextStyle" },
-        "titleSmall": { "$ref":  "#/$defs/TextStyle" },
-        "bodyLarge": { "$ref":  "#/$defs/TextStyle" },
-        "bodyMedium": { "$ref":  "#/$defs/TextStyle" },
-        "bodySmall": { "$ref":  "#/$defs/TextStyle" },
-        "labelLarge": { "$ref":  "#/$defs/TextStyle" },
-        "labelMedium": { "$ref":  "#/$defs/TextStyle" },
-        "labelSmall": { "$ref":  "#/$defs/TextStyle" }
+        "displayLarge": { "$ref":  "common_schema.json#/$defs/TextStyle" },
+        "displayMedium": { "$ref":  "common_schema.json#/$defs/TextStyle" },
+        "displaySmall": { "$ref":  "common_schema.json#/$defs/TextStyle" },
+        "headlineLarge": { "$ref":  "common_schema.json#/$defs/TextStyle" },
+        "headlineMedium": { "$ref":  "common_schema.json#/$defs/TextStyle" },
+        "headlineSmall": { "$ref":  "common_schema.json#/$defs/TextStyle" },
+        "titleLarge": { "$ref":  "common_schema.json#/$defs/TextStyle" },
+        "titleMedium": { "$ref":  "common_schema.json#/$defs/TextStyle" },
+        "titleSmall": { "$ref":  "common_schema.json#/$defs/TextStyle" },
+        "bodyLarge": { "$ref":  "common_schema.json#/$defs/TextStyle" },
+        "bodyMedium": { "$ref":  "common_schema.json#/$defs/TextStyle" },
+        "bodySmall": { "$ref":  "common_schema.json#/$defs/TextStyle" },
+        "labelLarge": { "$ref":  "common_schema.json#/$defs/TextStyle" },
+        "labelMedium": { "$ref":  "common_schema.json#/$defs/TextStyle" },
+        "labelSmall": { "$ref":  "common_schema.json#/$defs/TextStyle" }
       }
     },
     "Colors": {
@@ -55,15 +55,42 @@
         "disabled": {
           "$ref": "#/$defs/Color",
           "description": "Color when a widget is disabled"
+        }
+      }
+    },
+    "Screen": {
+      "type": "object",
+      "properties": {
+        "backgroundColor": {
+          "$ref": "#/$defs/Color",
+          "description": "The default background color for all the screens"
         },
-        "loadingScreenBackgroundColor": {
+        "loadingBackgroundColor": {
           "$ref": "#/$defs/Color",
           "description": "The background color while a screen is loading"
         },
-        "loadingScreenIndicatorColor": {
-          "$ref": "#/$defs/Color",
-          "description": "The progress indicator color while a screen is loading"
+        "Header": {
+          "type": "object",
+          "properties": {
+            "color": {
+              "$ref": "#/$defs/Color",
+              "description": "The default color for the header's title and icons"
+            },
+            "backgroundColor": {
+              "$ref": "#/$defs/Color",
+              "description": "The default background color for all the screens' headers"
+            },
+            "surfaceTintColor": {
+              "$ref": "#/$defs/Color",
+              "description": "Apply a colored tint overlay to all the screens' headers when elevation is set or in scrolled state"
+            },
+            "titleTextStyle": {
+              "$ref":  "common_schema.json#/$defs/TextStyle",
+              "description": "Update the styling for the header's title text"
+            }
+          }
         }
+
       }
     },
     "Widgets": {
@@ -108,17 +135,6 @@
     }
   },
   "$defs": {
-    "TextStyle": {
-      "type": "object",
-      "properties": {
-        "fontSize": {
-          "type": "integer"
-        },
-        "color": {
-          "$ref": "#/$defs/Color"
-        }
-      }
-    },
     "Color": {
       "anyOf": [
         {
@@ -186,7 +202,7 @@
           "description": "The border color of the input field when it is receiving focus in its error state."
         },
         "hintStyle": {
-          "$ref": "#/$defs/TextStyle"
+          "$ref": "common_schema.json#/$defs/TextStyle"
         }
       }
     },
