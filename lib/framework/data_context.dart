@@ -8,11 +8,13 @@ import 'package:ensemble/action/call_external_method.dart';
 import 'package:ensemble/action/invoke_api_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/framework/all_countries.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/keychain_manager.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble/framework/stub/auth_context_manager.dart';
@@ -23,7 +25,6 @@ import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
-import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 
 import 'package:ensemble/framework/action.dart';
@@ -352,9 +353,10 @@ class NativeInvokable extends ActionInvokable {
       'updateSystemAuthorizationToken': (token) =>
           GetIt.instance<TokenManager>()
               .updateServiceTokens(OAuthService.system, token),
-      ActionType.saveToKeychain.name: (key, value) =>
-          saveToKeychain(key, value),
-      ActionType.clearKeychain.name: (key) => clearKeychain(key),
+      ActionType.saveKeychain.name: (dynamic inputs) =>
+          KeychainManager().saveToKeychain(inputs),
+      ActionType.clearKeychain.name: (dynamic inputs) =>
+          KeychainManager().clearKeychain(inputs),
       'connectSocket': (String socketName, Map<dynamic, dynamic>? inputs) {
         connectSocket(buildContext, socketName, inputs: inputs);
       },
@@ -391,35 +393,6 @@ class NativeInvokable extends ActionInvokable {
   void messageSocket(String socketName, dynamic message) {
     final socketService = SocketService();
     socketService.message(socketName, message);
-  }
-
-  Future<void> saveToKeychain(String key, dynamic value) async {
-    if (defaultTargetPlatform != TargetPlatform.iOS) {
-      return;
-    }
-    try {
-      final data = jsonEncode(value);
-      final json = {'key': key, 'data': data};
-      const platform = MethodChannel('com.ensembleui.dev/safari-extension');
-      final _ =
-          await platform.invokeMethod(ActionType.saveToKeychain.name, json);
-    } on PlatformException catch (e) {
-      throw LanguageError(
-          'Failed to invoke ensemble.saveToKeychain. Reason: ${e.toString()}');
-    }
-  }
-
-  Future<void> clearKeychain(String key) async {
-    if (defaultTargetPlatform != TargetPlatform.iOS) {
-      return;
-    }
-    try {
-      const platform = MethodChannel('com.ensembleui.dev/safari-extension');
-      final _ = await platform.invokeMethod(ActionType.clearKeychain.name, key);
-    } on PlatformException catch (e) {
-      throw LanguageError(
-          'Failed to invoke ensemble.clearKeychain. Reason: ${e.toString()}');
-    }
   }
 
   void uploadFiles(dynamic inputs) {
