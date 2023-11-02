@@ -673,8 +673,8 @@ class PageState extends State<Page>
             Utils.getBackgroundGradient(footerStyles?['backgroundGradient'])
         ..shadowColor = Utils.getColor(footerStyles?['shadowColor'])
         ..borderRadius = Utils.getBorderRadius(footerStyles?['borderRadius'])
-        ..borderColor = Utils.getColor(footerStyles?['borderColor'])
-        ..borderWidth = Utils.optionalInt(footerStyles?['borderWidth']);
+        ..allBorderColor = Utils.getColor(footerStyles?['borderColor'])
+        ..allBorderWidth = Utils.optionalInt(footerStyles?['borderWidth']);
 
       return AnimatedOpacity(
         opacity: 1.0,

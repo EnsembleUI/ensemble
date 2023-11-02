@@ -48,7 +48,8 @@ class EnsembleToggleButton extends StatefulWidget
           _controller.backgroundColor = Utils.getColor(value),
       'selectedBackgroundColor': (value) =>
           _controller.selectedBackgroundColor = Utils.getColor(value),
-      'borderColor': (value) => _controller.borderColor = Utils.getColor(value),
+      'borderColor': (value) =>
+          _controller.allBorderColor = Utils.getColor(value),
       'selectedBorderColor': (value) =>
           _controller.selectedBorderColor = Utils.getColor(value),
       'shadowColor': (value) => _controller.shadowColor = Utils.getColor(value),
@@ -170,7 +171,7 @@ class EnsembleToggleButtonState extends WidgetState<EnsembleToggleButton> {
       fillColor: controller.selectedBackgroundColor,
       unselectedFillColor: controller.backgroundColor,
       shadowColor: controller.shadowColor,
-      borderColor: controller.borderColor,
+      borderColor: controller.allBorderColor,
       selectedBorderColor: controller.selectedBorderColor,
       spacing: widget.controller.spacing?.toDouble() ?? 0,
       runSpacing: widget.controller.runSpacing?.toDouble() ?? 0,

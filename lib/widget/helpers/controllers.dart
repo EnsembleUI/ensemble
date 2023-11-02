@@ -196,16 +196,12 @@ class BoxController extends WidgetController {
   LinearGradient? borderGradient;
 
   EBorderRadius? borderRadius;
-  Color? borderColor;
-  Color? topBorderColor;
-  Color? bottomBorderColor;
-  Color? leftBorderColor;
-  Color? rightBorderColor;
-  int? borderWidth;
-  int? topBorderWidth;
-  int? bottomBorderWidth;
-  int? leftBorderWidth;
-  int? rightBorderWidth;
+  // Keeping old variables so that other things wont break, as they are used other places also
+  Color? allBorderColor;
+  int? allBorderWidth;
+  // Defined new models for BorderWidth and BorderColor
+  EBorderWidth? borderWidth = EBorderWidth.create();
+  EBorderColor borderColor = EBorderColor.create();
 
   Color? shadowColor;
   Offset? shadowOffset;
@@ -235,20 +231,42 @@ class BoxController extends WidgetController {
           borderGradient = Utils.getBackgroundGradient(value),
 
       'borderRadius': (value) => borderRadius = Utils.getBorderRadius(value),
-      'borderColor': (value) => parseBorderColor(value),
-      'topBorderColor': (value) => topBorderColor = Utils.getColor(value),
-      'bottomBorderColor': (value) => bottomBorderColor = Utils.getColor(value),
-      'leftBorderColor': (value) => leftBorderColor = Utils.getColor(value),
-      'rightBorderColor': (value) => rightBorderColor = Utils.getColor(value),
-      'borderWidth': (value) => parseBorderWidth(value),
+      'borderColor': (value) {
+        borderColor = Utils.parseBorderColor(
+          value,
+          (val) {
+            allBorderColor = val;
+          },
+        );
+      },
+      'topBorderColor': (value) => borderColor.update(top: value),
+      'bottomBorderColor': (value) => borderColor.update(bottom: value),
+      'leftBorderColor': (value) => borderColor.update(left: value),
+      'rightBorderColor': (value) => borderColor.update(right: value),
+      'borderWidth': (value) {
+        borderWidth = Utils.parseBorderWidth(
+          value,
+          (val) {
+            allBorderWidth = val?.toInt();
+          },
+        );
+      },
       'topBorderWidth': (value) => //
-          topBorderWidth = Utils.optionalInt(value),
+          borderWidth?.update(
+            top: Utils.optionalDouble(value),
+          ),
       'bottomBorderWidth': (value) => //
-          bottomBorderWidth = Utils.optionalInt(value),
+          borderWidth?.update(
+            bottom: Utils.optionalDouble(value),
+          ),
       'leftBorderWidth': (value) => //
-          leftBorderWidth = Utils.optionalInt(value),
+          borderWidth?.update(
+            left: Utils.optionalDouble(value),
+          ),
       'rightBorderWidth': (value) => //
-          rightBorderWidth = Utils.optionalInt(value),
+          borderWidth?.update(
+            right: Utils.optionalDouble(value),
+          ),
 
       'shadowColor': (value) => shadowColor = Utils.getColor(value),
       'shadowOffset': (list) => shadowOffset = Utils.getOffset(list),
@@ -257,47 +275,48 @@ class BoxController extends WidgetController {
 
       'clipContent': (value) => clipContent = Utils.optionalBool(value)
     });
+
     return setters;
   }
 
-  void parseBorderColor(value) {
-    final parsedValue = Utils.optionalString(value);
+  // void parseBorderColor(value) {
+  //   final parsedValue = Utils.optionalString(value);
 
-    if (parsedValue == null) return;
+  //   if (parsedValue == null) return;
 
-    final individualBorderColorData = parsedValue.trim().split(' ');
+  //   final individualBorderColorData = parsedValue.trim().split(' ');
 
-    if (individualBorderColorData.length == 1) {
-      borderColor = convertStringToColor(individualBorderColorData[0]);
+  //   if (individualBorderColorData.length == 1) {
+  //     allBorderColor = convertStringToColor(individualBorderColorData[0]);
 
-      topBorderColor = borderColor;
-      bottomBorderColor = borderColor;
-      leftBorderColor = borderColor;
-      rightBorderColor = borderColor;
-    } else if (individualBorderColorData.length == 2) {
-      topBorderColor = convertStringToColor(individualBorderColorData[0]);
-      bottomBorderColor = convertStringToColor(individualBorderColorData[0]);
+  //     topBorderColor = allBorderColor;
+  //     bottomBorderColor = allBorderColor;
+  //     leftBorderColor = allBorderColor;
+  //     rightBorderColor = allBorderColor;
+  //   } else if (individualBorderColorData.length == 2) {
+  //     topBorderColor = convertStringToColor(individualBorderColorData[0]);
+  //     bottomBorderColor = convertStringToColor(individualBorderColorData[0]);
 
-      leftBorderColor = convertStringToColor(individualBorderColorData[1]);
-      rightBorderColor = convertStringToColor(individualBorderColorData[1]);
-    } else if (individualBorderColorData.length == 3) {
-      topBorderColor = convertStringToColor(individualBorderColorData[0]);
+  //     leftBorderColor = convertStringToColor(individualBorderColorData[1]);
+  //     rightBorderColor = convertStringToColor(individualBorderColorData[1]);
+  //   } else if (individualBorderColorData.length == 3) {
+  //     topBorderColor = convertStringToColor(individualBorderColorData[0]);
 
-      leftBorderColor = convertStringToColor(individualBorderColorData[1]);
-      rightBorderColor = convertStringToColor(individualBorderColorData[1]);
+  //     leftBorderColor = convertStringToColor(individualBorderColorData[1]);
+  //     rightBorderColor = convertStringToColor(individualBorderColorData[1]);
 
-      bottomBorderColor = convertStringToColor(individualBorderColorData[2]);
-    } else if (individualBorderColorData.length == 4) {
-      topBorderColor = convertStringToColor(individualBorderColorData[0]);
-      rightBorderColor = convertStringToColor(individualBorderColorData[1]);
-      bottomBorderColor = convertStringToColor(individualBorderColorData[2]);
-      leftBorderColor = convertStringToColor(individualBorderColorData[3]);
-    } else {
-      throw RuntimeError(
-        "Error: No. of parameters for borderColor cannot be greater than 4",
-      );
-    }
-  }
+  //     bottomBorderColor = convertStringToColor(individualBorderColorData[2]);
+  //   } else if (individualBorderColorData.length == 4) {
+  //     topBorderColor = convertStringToColor(individualBorderColorData[0]);
+  //     rightBorderColor = convertStringToColor(individualBorderColorData[1]);
+  //     bottomBorderColor = convertStringToColor(individualBorderColorData[2]);
+  //     leftBorderColor = convertStringToColor(individualBorderColorData[3]);
+  //   } else {
+  //     throw RuntimeError(
+  //       "Error: No. of parameters for borderColor cannot be greater than 4",
+  //     );
+  //   }
+  // }
 
   Color? convertStringToColor(String value) {
     final intValue = int.tryParse(value.trim());
@@ -307,44 +326,44 @@ class BoxController extends WidgetController {
     return Utils.getColor(intValue);
   }
 
-  void parseBorderWidth(value) {
-    final parsedValue = Utils.optionalString(value);
+  // void parseBorderWidth(value) {
+  //   final parsedValue = Utils.optionalString(value);
 
-    if (parsedValue == null) return;
+  //   if (parsedValue == null) return;
 
-    final individualBorderWidthData = parsedValue.trim().split(' ');
+  //   final individualBorderWidthData = parsedValue.trim().split(' ');
 
-    if (individualBorderWidthData.length == 1) {
-      borderWidth = int.parse(individualBorderWidthData[0]);
+  //   if (individualBorderWidthData.length == 1) {
+  //     oldBorderWidth = int.parse(individualBorderWidthData[0]);
 
-      topBorderWidth = borderWidth;
-      bottomBorderWidth = borderWidth;
-      leftBorderWidth = borderWidth;
-      rightBorderWidth = borderWidth;
-    } else if (individualBorderWidthData.length == 2) {
-      topBorderWidth = int.parse(individualBorderWidthData[0]);
-      bottomBorderWidth = int.parse(individualBorderWidthData[0]);
+  //     topBorderWidth = oldBorderWidth;
+  //     bottomBorderWidth = oldBorderWidth;
+  //     leftBorderWidth = oldBorderWidth;
+  //     rightBorderWidth = oldBorderWidth;
+  //   } else if (individualBorderWidthData.length == 2) {
+  //     topBorderWidth = int.parse(individualBorderWidthData[0]);
+  //     bottomBorderWidth = int.parse(individualBorderWidthData[0]);
 
-      leftBorderWidth = int.parse(individualBorderWidthData[1]);
-      rightBorderWidth = int.parse(individualBorderWidthData[1]);
-    } else if (individualBorderWidthData.length == 3) {
-      topBorderWidth = int.parse(individualBorderWidthData[0]);
+  //     leftBorderWidth = int.parse(individualBorderWidthData[1]);
+  //     rightBorderWidth = int.parse(individualBorderWidthData[1]);
+  //   } else if (individualBorderWidthData.length == 3) {
+  //     topBorderWidth = int.parse(individualBorderWidthData[0]);
 
-      leftBorderWidth = int.parse(individualBorderWidthData[1]);
-      rightBorderWidth = int.parse(individualBorderWidthData[1]);
+  //     leftBorderWidth = int.parse(individualBorderWidthData[1]);
+  //     rightBorderWidth = int.parse(individualBorderWidthData[1]);
 
-      bottomBorderWidth = int.parse(individualBorderWidthData[2]);
-    } else if (individualBorderWidthData.length == 4) {
-      topBorderWidth = int.parse(individualBorderWidthData[0]);
-      rightBorderWidth = int.parse(individualBorderWidthData[1]);
-      bottomBorderWidth = int.parse(individualBorderWidthData[2]);
-      leftBorderWidth = int.parse(individualBorderWidthData[3]);
-    } else {
-      throw RuntimeError(
-        "Error: No. of parameters for borderWidth cannot be greater than 4",
-      );
-    }
-  }
+  //     bottomBorderWidth = int.parse(individualBorderWidthData[2]);
+  //   } else if (individualBorderWidthData.length == 4) {
+  //     topBorderWidth = int.parse(individualBorderWidthData[0]);
+  //     rightBorderWidth = int.parse(individualBorderWidthData[1]);
+  //     bottomBorderWidth = int.parse(individualBorderWidthData[2]);
+  //     leftBorderWidth = int.parse(individualBorderWidthData[3]);
+  //   } else {
+  //     throw RuntimeError(
+  //       "Error: No. of parameters for borderWidth cannot be greater than 4",
+  //     );
+  //   }
+  // }
 
   /// optimization. This is important to review if more properties are added
   bool requiresBox(
@@ -368,16 +387,17 @@ class BoxController extends WidgetController {
 
   bool hasBorder() =>
       borderGradient != null ||
-      borderColor != null ||
+      allBorderColor != null ||
+      allBorderWidth != null ||
+      borderColor.top != null ||
+      borderColor.bottom != null ||
+      borderColor.left != null ||
+      borderColor.right != null ||
       borderWidth != null ||
-      topBorderColor != null ||
-      bottomBorderColor != null ||
-      leftBorderColor != null ||
-      rightBorderColor != null ||
-      topBorderWidth != null ||
-      bottomBorderWidth != null ||
-      leftBorderWidth != null ||
-      rightBorderWidth != null;
+      borderWidth?.top != null ||
+      borderWidth?.bottom != null ||
+      borderWidth?.left != null ||
+      borderWidth?.right != null;
 
   bool hasBoxShadow() =>
       shadowColor != null ||

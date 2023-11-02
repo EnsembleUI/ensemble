@@ -181,6 +181,7 @@ class Utils {
       case 'spaceEvenly':
         return WrapAlignment.spaceEvenly;
     }
+    return null;
   }
 
   static InputValidator? getValidator(dynamic value) {
@@ -527,6 +528,84 @@ class Utils {
     return null;
   }
 
+  static EBorderWidth? parseBorderWidth(
+    dynamic value,
+    Function(double? value) updateBorderWidth,
+  ) {
+    final parsedValue = Utils.optionalString(value);
+
+    if (parsedValue == null) return null;
+
+    final individualData = parsedValue.trim().split(' ');
+
+    if (individualData.length == 1) {
+      updateBorderWidth(optionalDouble(individualData[0]));
+
+      return EBorderWidth.all(optionalDouble(individualData[0]));
+    } else if (individualData.length == 2) {
+      return EBorderWidth.two(
+        optionalDouble(individualData[0]),
+        optionalDouble(individualData[1]),
+      );
+    } else if (individualData.length == 3) {
+      return EBorderWidth.three(
+        optionalDouble(individualData[0]),
+        optionalDouble(individualData[1]),
+        optionalDouble(individualData[2]),
+      );
+    } else if (individualData.length == 4) {
+      return EBorderWidth.only(
+        optionalDouble(individualData[0]),
+        optionalDouble(individualData[1]),
+        optionalDouble(individualData[2]),
+        optionalDouble(individualData[3]),
+      );
+    } else {
+      throw RuntimeError(
+        "Error: No. of parameters for borderWidth cannot be greater than 4",
+      );
+    }
+  }
+
+  static EBorderColor parseBorderColor(
+    dynamic value,
+    Function(Color? value) updateBorderColor,
+  ) {
+    final parsedValue = Utils.getString(value, fallback: '');
+
+    // if (parsedValue == null) return null;
+
+    final individualData = parsedValue.trim().split(' ');
+
+    if (individualData.length == 1) {
+      updateBorderColor(getColor(individualData[0]));
+
+      return EBorderColor.all(individualData[0]);
+    } else if (individualData.length == 2) {
+      return EBorderColor.two(
+        individualData[0],
+        individualData[1],
+      );
+    } else if (individualData.length == 3) {
+      return EBorderColor.three(
+        individualData[0],
+        individualData[1],
+        individualData[2],
+      );
+    } else if (individualData.length == 4) {
+      return EBorderColor.only(
+        individualData[0],
+        individualData[1],
+        individualData[2],
+        individualData[3],
+      );
+    } else {
+      throw RuntimeError(
+        "Error: No. of parameters for borderWidth cannot be greater than 4",
+      );
+    }
+  }
+
   static Offset? getOffset(dynamic offset) {
     if (offset is YamlList) {
       List<dynamic> list = offset.toList();
@@ -593,9 +672,7 @@ class Utils {
   //expect r@mystring or r@myapp.myscreen.mystring as long as r@ is there. If r@ is not there, returns the string as-is
   static String translate(String val, BuildContext? ctx) {
     BuildContext? context;
-    if (WidgetsBinding.instance != null) {
-      context = globalAppKey.currentContext;
-    }
+    context = globalAppKey.currentContext;
     context ??= ctx;
     String rtn = val;
     if (val.trim().isNotEmpty && context != null) {
@@ -604,20 +681,18 @@ class Utils {
             match.input.substring(match.start, match.end); //get rid of the @
         String strToAppend = '';
         if (str.length > 2) {
-          String _s = str.substring(2);
-          if (_s.endsWith(']')) {
-            _s = _s.substring(0, _s.length - 1);
+          String s = str.substring(2);
+          if (s.endsWith(']')) {
+            s = s.substring(0, s.length - 1);
             strToAppend = ']';
           }
           try {
-            str = FlutterI18n.translate(context!, _s);
+            str = FlutterI18n.translate(context!, s);
           } catch (e) {
             //if resource is not defined
             //log it
-            debugPrint('unable to get translated string for the ' +
-                str +
-                '; exception=' +
-                e.toString());
+            debugPrint(
+                'unable to get translated string for the $str; exception=$e');
           }
         }
         return str + strToAppend;

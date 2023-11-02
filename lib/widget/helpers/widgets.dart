@@ -74,33 +74,28 @@ class BoxWrapper extends StatelessWidget {
                   : boxController.borderGradient != null
                       ? GradientBoxBorder(
                           gradient: boxController.borderGradient!,
-                          width: boxController.borderWidth?.toDouble() ??
+                          width: boxController.allBorderWidth?.toDouble() ??
                               ThemeManager().getBorderThickness(context))
                       : Border(
-                          top: BorderSide(
-                            width: boxController.topBorderWidth?.toDouble() ??
-                                ThemeManager().getBorderThickness(context),
-                            color: boxController.topBorderColor ??
-                                ThemeManager().getBorderColor(context),
+                          top: getBorderSide(
+                            context,
+                            boxController.borderWidth?.top,
+                            boxController.borderColor?.top,
                           ),
-                          bottom: BorderSide(
-                            width:
-                                boxController.bottomBorderWidth?.toDouble() ??
-                                    ThemeManager().getBorderThickness(context),
-                            color: boxController.bottomBorderColor ??
-                                ThemeManager().getBorderColor(context),
+                          bottom: getBorderSide(
+                            context,
+                            boxController.borderWidth?.bottom,
+                            boxController.borderColor?.bottom,
                           ),
-                          left: BorderSide(
-                            width: boxController.leftBorderWidth?.toDouble() ??
-                                ThemeManager().getBorderThickness(context),
-                            color: boxController.leftBorderColor ??
-                                ThemeManager().getBorderColor(context),
+                          left: getBorderSide(
+                            context,
+                            boxController.borderWidth?.left,
+                            boxController.borderColor?.left,
                           ),
-                          right: BorderSide(
-                            width: boxController.rightBorderWidth?.toDouble() ??
-                                ThemeManager().getBorderThickness(context),
-                            color: boxController.rightBorderColor ??
-                                ThemeManager().getBorderColor(context),
+                          right: getBorderSide(
+                            context,
+                            boxController.borderWidth?.right,
+                            boxController.borderColor?.right,
                           ),
                         ),
               borderRadius: boxController.borderRadius?.getValue(),
@@ -126,6 +121,15 @@ class BoxWrapper extends StatelessWidget {
               ],
             )
           : _getWidget(),
+    );
+  }
+
+  BorderSide getBorderSide(BuildContext context, double? value, Color? color) {
+    if (value == null) return BorderSide.none;
+
+    return BorderSide(
+      width: value,
+      color: color ?? ThemeManager().getBorderColor(context),
     );
   }
 
@@ -220,11 +224,21 @@ class InputWrapper extends StatelessWidget {
         context.dependOnInheritedWidgetOfExactType<
             RequiresChildWithIntrinsicDimension>();
     if (requiresChildWithIntrinsicDimension == null) {
-      // InputWidget takes the parent width, so if the parent is a Row
-      // it'll caused an error. Assert against this in Studio's debugMode
-      if (StudioDebugger().debugMode) {
-        return StudioDebugger().assertHasBoundedWidthWrapper(rtn, type);
-      }
+      return LayoutBuilder(builder: (context, constraints) {
+        // inside a e.g. Row but not wrapping inside Expanded.
+        // This is the error condition we need to advise the user
+        if (!constraints.hasBoundedWidth && !controller.expanded) {
+          // throw Error when input widgets (which stretch to their parent) are
+          // inside a Row (which allow its child to have as much space as it wants)
+          // without using expanded flag.
+          throw LanguageError(
+              "$type widget requires a width when used inside a parent with infinite width.",
+              recovery:
+                  "If the parent is a Row, consider using 'expanded: true' on the $type to fill the parent's available width.\n"
+                  "If the parent is a Stack, use stackPosition's attributes to constraint the width.");
+        }
+        return rtn;
+      });
     }
     return rtn;
   }
