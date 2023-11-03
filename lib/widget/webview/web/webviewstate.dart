@@ -5,14 +5,14 @@ import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/widget/webview/webview.dart';
 import 'package:flutter/material.dart';
 
-class ControllerImpl extends ViewController {
-  final IFrameElement _iframeElement;
-  ControllerImpl(this._iframeElement);
-  @override
-  void loadUrl(String url) {
-    _iframeElement.src = url;
-  }
-}
+// class ControllerImpl extends ViewController {
+//   final IFrameElement _iframeElement;
+//   ControllerImpl(this._iframeElement);
+//   @override
+//   void loadUrl(String url) {
+//     _iframeElement.src = url;
+//   }
+// }
 
 class WebViewState extends WidgetState<EnsembleWebView> {
   final IFrameElement _iframeElement = IFrameElement();
@@ -22,7 +22,7 @@ class WebViewState extends WidgetState<EnsembleWebView> {
   void initState() {
     super.initState();
     htmlView = buildIFrameWidget();
-    widget.controller.webViewController = ControllerImpl(_iframeElement);
+    // widget.controller.webViewController = ControllerImpl(_iframeElement);
   }
 
   HtmlElementView buildIFrameWidget() {
