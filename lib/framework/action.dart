@@ -2,6 +2,7 @@ import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/action/badge_action.dart';
 import 'package:ensemble/action/bottom_modal_action.dart';
 import 'package:ensemble/action/call_external_method.dart';
+import 'package:ensemble/action/call_native_method.dart';
 import 'package:ensemble/action/invoke_api_action.dart';
 import 'package:ensemble/action/misc_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
@@ -852,6 +853,7 @@ enum ActionType {
   updateBadgeCount,
   clearBadgeCount,
   callExternalMethod,
+  callNativeMethod,
 }
 
 enum ToastType { success, error, warning, info }
@@ -986,6 +988,8 @@ abstract class EnsembleAction {
       return ClearBadgeCount();
     } else if (actionType == ActionType.callExternalMethod) {
       return CallExternalMethod.from(payload: payload);
+    } else if (actionType == ActionType.callNativeMethod) {
+      return CallNativeMethod.from(payload: payload);
     } else if (actionType == ActionType.saveKeychain) {
       return SaveKeychain.fromYaml(payload: payload);
     } else if (actionType == ActionType.clearKeychain) {
