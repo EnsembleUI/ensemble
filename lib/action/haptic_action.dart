@@ -1,6 +1,7 @@
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 
@@ -16,6 +17,9 @@ class HapticAction extends EnsembleAction {
   HapticAction(this.type);
 
   final HapticTypes type;
+
+  factory HapticAction.fromMap(dynamic inputs) =>
+      HapticAction.fromYaml(payload: Utils.getYamlMap(inputs));
 
   factory HapticAction.fromYaml({Map? payload}) {
     if (payload == null || payload['type'] == null) {

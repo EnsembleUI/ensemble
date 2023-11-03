@@ -5,6 +5,7 @@ import 'dart:io' as io;
 import 'dart:ui';
 import 'package:ensemble/action/action_invokable.dart';
 import 'package:ensemble/action/call_external_method.dart';
+import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/action/invoke_api_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/ensemble.dart';
@@ -348,6 +349,8 @@ class NativeInvokable extends ActionInvokable {
       ActionType.startTimer.name: (inputs) => ScreenController()
           .executeAction(buildContext, StartTimerAction.fromMap(inputs)),
       ActionType.uploadFiles.name: uploadFiles,
+      ActionType.haptic.name: (inputs) => ScreenController()
+          .executeAction(buildContext, HapticAction.fromMap(inputs)),
       'debug': (value) => debugPrint('Debug: $value'),
       'initNotification': () => notificationUtils.initNotifications(),
       'updateSystemAuthorizationToken': (token) =>
