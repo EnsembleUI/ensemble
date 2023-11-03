@@ -102,8 +102,6 @@ class TextStyleComposite extends WidgetCompositeProperty {
   }
 }
 
-
-
 /// TODO: Legacy, transition to new widget/controller
 /// base Controller class for your Ensemble widget
 abstract class WidgetController extends Controller {
