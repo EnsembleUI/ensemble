@@ -1,39 +1,42 @@
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 
-class HeavyImpactHaptic extends EnsembleAction {
-  @override
-  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
-    return HapticFeedback.heavyImpact();
-  }
+enum HapticTypes {
+  heavyImpact,
+  mediumImpact,
+  lightImpact,
+  selectionClick,
+  vibrate
 }
 
-class MediumImpactHaptic extends EnsembleAction {
-  @override
-  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
-    return HapticFeedback.mediumImpact();
-  }
-}
+class HapticAction extends EnsembleAction {
+  HapticAction(this.type);
 
-class LightImpactHaptic extends EnsembleAction {
-  @override
-  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
-    return HapticFeedback.lightImpact();
-  }
-}
+  final HapticTypes type;
 
-class SelectionClickHaptic extends EnsembleAction {
-  @override
-  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
-    return HapticFeedback.selectionClick();
-  }
-}
+  factory HapticAction.fromYaml({Map? payload}) {
+    if (payload == null || payload['type'] == null) {
+      throw LanguageError("${ActionType.share.name} requires 'type'");
+    }
 
-class VibrateHaptic extends EnsembleAction {
+    final hapticType = HapticTypes //
+        .values
+        .byName(payload['type']);
+
+    return HapticAction(hapticType);
+  }
+
   @override
   Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
-    return HapticFeedback.vibrate();
+    return switch (type) {
+      HapticTypes.heavyImpact => HapticFeedback.heavyImpact(),
+      HapticTypes.mediumImpact => HapticFeedback.mediumImpact(),
+      HapticTypes.lightImpact => HapticFeedback.lightImpact(),
+      HapticTypes.selectionClick => HapticFeedback.selectionClick(),
+      HapticTypes.vibrate => HapticFeedback.vibrate(),
+    };
   }
 }
