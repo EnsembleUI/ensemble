@@ -16,6 +16,14 @@ class LanguageError extends EnsembleError {
   String toString() => 'Language Error: $error\n$recovery';
 }
 
+/// Layout error will show on Studio
+class LayoutError extends EnsembleError {
+  LayoutError(super.error, {super.recovery, super.detailError});
+
+  @override
+  String toString() => 'Layout Error: $error\n$recovery';
+}
+
 class CodeError extends EnsembleError {
   CodeError(JSException exception, SourceLocation yamlLocation)
       : super(exception.message,
@@ -38,6 +46,7 @@ class RuntimeError extends EnsembleError {
 
 abstract class EnsembleError extends Error {
   EnsembleError(this.error, {this.line, this.recovery, this.detailError});
+
   int? line;
   int? column;
   String error;
@@ -51,6 +60,7 @@ abstract class EnsembleError extends Error {
 /// All Exceptions will be written to a running log of some sort
 class RuntimeException implements Exception {
   RuntimeException(this.message);
+
   String message;
 
   @override

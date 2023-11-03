@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/studio_debugger.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/model/pull_to_refresh.dart';
@@ -73,6 +74,10 @@ class GridView extends StatefulWidget
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'reverse': (value) =>
           _controller.reverse = Utils.getBool(value, fallback: false),
+      'scrollController': (value) {
+        if (value is! ScrollController) return null;
+        return _controller.scrollController = value;
+      },
     };
   }
 
@@ -95,6 +100,7 @@ class GridViewController extends BoxController with HasPullToRefresh {
   int selectedItemIndex = -1;
   EnsembleAction? onScrollEnd;
   bool reverse = false;
+  ScrollController? scrollController;
 
   // single number, 3 numbers (small, medium, large), or 5 numbers (xSmall, small, medium, large, xLarge)
   // min 1, max 5
@@ -193,29 +199,34 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
       return const SizedBox.shrink();
     }
 
-    Widget myGridView = LayoutBuilder(
-      builder: (context, constraints) => flutter.GridView.builder(
-        physics: widget._controller.onPullToRefresh != null
-            ? const AlwaysScrollableScrollPhysics()
-            : null,
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: _getTileCount(constraints),
-          crossAxisSpacing: widget._controller.horizontalGap?.toDouble() ?? gap,
-          mainAxisSpacing: widget._controller.verticalGap?.toDouble() ?? gap,
+    Widget myGridView = LayoutBuilder(builder: (context, constraints) {
+      if (StudioDebugger().debugMode) {
+        StudioDebugger()
+            .assertScrollableHasBoundedHeight(constraints, GridView.type);
+      }
 
-          // itemHeight take precedent, then itemAspectRatio
-          mainAxisExtent: widget._controller.itemHeight?.toDouble(),
-          childAspectRatio:
-              widget._controller.itemAspectRatio?.toDouble() ?? 1.0,
-        ),
-        itemCount: _items.length,
-        reverse: widget._controller.reverse,
-        scrollDirection: Axis.vertical,
-        cacheExtent: cachedPixels,
-        padding: widget._controller.padding,
-        itemBuilder: (context, index) => _buildItem(index),
-      ),
-    );
+      return flutter.GridView.builder(
+          physics: widget._controller.onPullToRefresh != null
+              ? const AlwaysScrollableScrollPhysics()
+              : null,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: _getTileCount(constraints),
+            crossAxisSpacing:
+                widget._controller.horizontalGap?.toDouble() ?? gap,
+            mainAxisSpacing: widget._controller.verticalGap?.toDouble() ?? gap,
+
+            // itemHeight take precedent, then itemAspectRatio
+            mainAxisExtent: widget._controller.itemHeight?.toDouble(),
+            childAspectRatio:
+                widget._controller.itemAspectRatio?.toDouble() ?? 1.0,
+          ),
+          itemCount: _items.length,
+          reverse: widget._controller.reverse,
+          scrollDirection: Axis.vertical,
+          cacheExtent: cachedPixels,
+          padding: widget._controller.padding,
+          itemBuilder: (context, index) => _buildItem(index));
+    });
 
     // wrapping view inside
 
