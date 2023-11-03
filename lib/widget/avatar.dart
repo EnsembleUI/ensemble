@@ -53,13 +53,12 @@ class AvatarState extends EnsembleWidgetState<Avatar> {
       width: widget.controller.width?.toDouble(),
       height: widget.controller.height?.toDouble(),
       clipBehavior: Clip.hardEdge,
-      decoration: BoxDecoration(borderRadius: BorderRadius.all(Radius.circular(10))),
+      decoration:
+          BoxDecoration(borderRadius: BorderRadius.all(Radius.circular(10))),
       child: framework.Image(
           source: 'https://mui.com/static/images/avatar/1.jpg',
           width: widget.controller.width?.toDouble(),
-          height: widget.controller.height?.toDouble()
-
-      ),
+          height: widget.controller.height?.toDouble()),
     );
   }
 }
