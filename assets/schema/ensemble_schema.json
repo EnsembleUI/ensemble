@@ -4281,6 +4281,37 @@
               }
             }
           }
+        },
+        {
+          "title": "Call a native method defined inside the Host Platform",
+          "type": "object",
+          "required": [
+            "callNativeMethod"
+          ],
+          "properties": {
+            "callNativeMethod": {
+              "type": "object",
+              "description": "Call a native method defined in the Host Platform",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "The method channel name defined in your host platform"
+                },
+                "payload": {
+                  "type": "object",
+                  "description": "The key/value pairs payload to be sent as the input parameters for your method"
+                },
+                "onComplete": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Called when the method has finished its execution"
+                },
+                "onError": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Called when there is an error while executing the method. The error reason is available under 'event.error'"
+                }
+              }
+            }
+          }
         }
       ]
     },
