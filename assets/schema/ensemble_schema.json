@@ -3928,34 +3928,6 @@
               }
             }
           }
-        },{
-          "title": "Haptics",
-          "type": "object",
-          "required": [
-            "Haptic"
-          ],
-          "properties": {
-            "haptics": {
-              "type": "object",
-              "description": "Play a given haptic on mobile.",
-              "required": [
-                "type"
-              ],
-              "properties": {
-                "type": {
-                  "type": "integer",
-                  "description": "The different types of haptic to play. The enums are in the decreasing order of intensity from highest intensity being of heavyImpact and lowest of selectionClick.",
-                  "enum": [
-                    "heavyImpact", 
-                    "mediumImpact", 
-                    "lightImpactHaptic", 
-                    "selectionClickHaptic", 
-                    "vibrateHaptic"
-                  ]
-                }
-              }
-            }
-          }
         },
         {
           "title": "Update Badge Count",
