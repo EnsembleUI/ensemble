@@ -30,47 +30,6 @@ class WidgetUtils {
         padding: boxController.padding,
         child: realWidget);
   }
-
-  static BoxFit? getBoxFit(String? inputFit) {
-    BoxFit? fit;
-    switch (inputFit) {
-      case 'fill':
-        fit = BoxFit.fill;
-        break;
-      case 'contain':
-        fit = BoxFit.contain;
-        break;
-      case 'cover':
-        fit = BoxFit.cover;
-        break;
-      case 'fitWidth':
-        fit = BoxFit.fitWidth;
-        break;
-      case 'fitHeight':
-        fit = BoxFit.fitHeight;
-        break;
-      case 'none':
-        fit = BoxFit.none;
-        break;
-      case 'scaleDown':
-        fit = BoxFit.scaleDown;
-        break;
-    }
-    return fit;
-  }
-
-  static BoxShape? getBoxShape(String? inputShape) {
-    BoxShape? shape;
-    switch (inputShape) {
-      case 'circle':
-        shape = BoxShape.circle;
-        break;
-      case 'rectangle':
-        shape = BoxShape.rectangle;
-        break;
-    }
-    return shape;
-  }
 }
 
 class GenericTextController extends BoxController {
@@ -239,6 +198,7 @@ class TextUtils {
 
 class TextOverflow {
   TextOverflow(this.overflow, this.maxLine, this.softWrap);
+
   flutter.TextOverflow? overflow;
   int? maxLine = 1;
   bool? softWrap = false;
