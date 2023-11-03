@@ -117,6 +117,7 @@ class InvokeAPIController {
         errorResponse = response;
       } catch (error) {
         errorResponse = error;
+        throw error.toString();
       }
       _onAPIError(
           context, action, apiDefinition, errorResponse, apiMap, scopeManager);
