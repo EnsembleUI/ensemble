@@ -80,6 +80,56 @@
             }
           }
         },
+        "footer": {
+          "type": "object",
+          "properties": {
+            "style": {
+              "$ref": "#/$defs/boxStyles"
+            },
+            "dragOptions": {
+              "type": "object",
+              "properties": {
+                "enable": {
+                  "type": "boolean"
+                },
+                "initialSize": {
+                  "type": "number",
+                  "description": "Default it 0.5 i.e 50% of screen"
+                },
+                "minSize": {
+                  "type": "number",
+                  "description": "Minimum size of till sheet can go. Default is 0.25 i.e 25% of screen."
+                },
+                "maxSize": {
+                  "type": "number",
+                  "description": "Maximum size of till sheet can go. Default is 1 i.e 100% of screen."
+                },
+                "span": {
+                  "type": "boolean",
+                  "description": "Whether the widget should snap between [snapSizes] when the user lifts their finger during a drag."
+                },
+                "spanSizes": {
+                  "type": "array",
+                  "description": "The list of number each ranging from minSize to maxSize.",
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                "onMinSize": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action when the drag hits minimum size"
+                },
+                "onMaxSize": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action when the drag hits maximum size"        
+                }
+              }
+            },
+            "children": {
+              "$ref": "#/$defs/Widgets"
+            }
+          }
+        },
         "body": {
           "$ref": "#/$defs/Widget"
         },
@@ -6903,12 +6953,5 @@
         "bottomRight"
       ]
     }
-    
-    
-    
-    
-    
-    
-    
   }
 }
