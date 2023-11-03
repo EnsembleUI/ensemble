@@ -13,8 +13,7 @@ class KeychainManager {
   Future<void> saveToKeychain(dynamic inputs) async {
     try {
       final key = inputs?['key'] as String;
-      final value = inputs?['value'];
-      await StorageManager().writeSecurely(key: key, value: value.toString());
+      await StorageManager().writeSecurely(key: key, value: inputs?['value']);
     } catch (e) {
       throw LanguageError('Failed to store value. Reason: ${e.toString()}');
     }
