@@ -67,7 +67,11 @@ mixin _OutboundManager on IsHostPlatformManager {
   }
 
   Future<void> callNativeMethod(String name, dynamic payload) async {
-    getChannel().invokeMethod(name, payload);
+    try {
+      await getChannel().invokeMethod(name, payload);
+    } catch (_) {
+      rethrow;
+    }
   }
 }
 
