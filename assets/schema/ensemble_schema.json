@@ -5378,35 +5378,48 @@
                   "$ref": "#/$defs/Widget"
                 },
                 "rowSpans": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "span": {
+                  "type": "object",
+                  "properties": {
+                    "spanPerRow": {
+                      "type": "integer",
+                      "description": "Limit the number of spans per row"
+                    },
+                    "overflowWidget": {
+                      "$ref": "#/$defs/Widget",
+                      "description": "If spans per row overflow based on spanPerRow than overflowWidget will render"
+                    },
+                    "children": {
+                      "type": "array",
+                      "items": {
                         "type": "object",
                         "properties": {
-                          "start": {
-                            "type": "string",
-                            "description": "date in ISO format."
-                          },
-                          "end": {
-                            "type": "string",
-                            "description": "date in ISO format."
-                          },
-                          "widget": {
-                            "$ref": "#/$defs/Widget"
+                          "span": {
+                            "type": "object",
+                            "properties": {
+                              "start": {
+                                "type": "string",
+                                "description": "date in ISO format."
+                              },
+                              "end": {
+                                "type": "string",
+                                "description": "date in ISO format."
+                              },
+                              "widget": {
+                                "$ref": "#/$defs/Widget"
+                              }
+                            },
+                            "required": [
+                              "start",
+                              "end",
+                              "widget"
+                            ]
                           }
                         },
                         "required": [
-                          "start",
-                          "end",
-                          "widget"
+                          "span"
                         ]
                       }
-                    },
-                    "required": [
-                      "span"
-                    ]
+                    }
                   }
                 },
                 "headerTextStyle": {
