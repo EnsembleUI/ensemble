@@ -6,6 +6,7 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/framework/action.dart' as ensemble;
+import 'package:webview_flutter/webview_flutter.dart';
 
 class EnsembleWebView extends StatefulWidget
     with Invokable, HasController<EnsembleWebViewController, WebViewState> {
@@ -26,12 +27,15 @@ class EnsembleWebView extends StatefulWidget
 
   @override
   Map<String, Function> methods() {
-    return {};
+    return {"clearCookie": () => _controller.cookieMethods?.clearCookie()};
   }
 
   @override
   Map<String, Function> setters() {
     return {
+      'cookieHeader': (value) =>
+          _controller.singleCookie = Utils.optionalString(value),
+      'cookies': (value) => _controller.cookies = getListOfMap(value),
       'url': (value) => _controller.url = Utils.getUrl(value),
       'height': (value) => _controller.height = Utils.optionalDouble(value),
       'width': (value) => _controller.width = Utils.optionalDouble(value),
@@ -50,8 +54,9 @@ class EnsembleWebView extends StatefulWidget
   }
 }
 
-abstract class ViewController {
-  void loadUrl(String url);
+mixin CookieMethods on WidgetState<EnsembleWebView> {
+  void clearCookie();
+  void inputCookie(String? value);
 }
 
 class EnsembleWebViewController extends WidgetController {
@@ -59,22 +64,37 @@ class EnsembleWebViewController extends WidgetController {
   int? loadingPercent = 0;
   String? error;
 
-  ViewController? webViewController;
+  WebViewController? webViewController;
+  WebViewCookieManager? cookieManager;
+
+  CookieMethods? cookieMethods;
+
   ensemble.EnsembleAction? onPageStart,
       onPageFinished,
       onNavigationRequest,
       onWebResourceError;
+
   String? _url;
   String? get url => _url;
   set url(String? url) {
     _url = url;
-
     error = null;
-    if (url != null) {
-      webViewController?.loadUrl(url);
-    }
   }
 
+  List<Map<String, dynamic>> cookies = [];
+  String? singleCookie;
   double? height;
   double? width;
+}
+
+List<Map<String, dynamic>> getListOfMap(list) {
+  List<Map<String, dynamic>> result = <Map<String, dynamic>>[];
+  if (list is List) {
+    for (var i in list) {
+      Map<String, dynamic> map = Utils.getMap(i) ?? {};
+      result.add(map);
+    }
+    return result;
+  }
+  return [];
 }
