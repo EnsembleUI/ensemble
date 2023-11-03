@@ -1,8 +1,5 @@
-import 'package:ensemble/ensemble.dart';
-import 'package:ensemble/framework/extensions.dart';
-import 'package:ensemble/screen_controller.dart';
-import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:flutter/material.dart';
+import 'dart:convert';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_storage/get_storage.dart';
 
@@ -12,10 +9,13 @@ import 'package:get_storage/get_storage.dart';
 /// 3. public storage (public storage for AppDevs)
 class StorageManager with SystemStorage, PublicStorage, SecureStorage {
   static final StorageManager _instance = StorageManager._internal();
+
   StorageManager._internal();
+
   factory StorageManager() {
     return _instance;
   }
+
   bool initialized = false;
 
   /// initialize storage
@@ -52,7 +52,9 @@ mixin SystemStorage {
 
   // for Preview mode or regular
   static const systemPreviewKey = 'system.preview';
+
   bool? isPreview() => _systemStorage.read<bool?>(systemPreviewKey);
+
   void setIsPreview(bool value) =>
       _systemStorage.write(systemPreviewKey, value);
 }
@@ -75,13 +77,36 @@ mixin PublicStorage {
 
 /// secure storage. These are async so really only use-able
 /// at the system-level (all our Javascript are synchronous)
+/// Note that secure storage operates on String, but we automatically
+/// encode/decode to support different types
 mixin SecureStorage {
   static const secureStorage = FlutterSecureStorage();
 
   /// write to secure storage
-  Future<void> writeSecurely({required String key, required String value}) =>
-      secureStorage.write(key: key, value: value);
+  Future<void> writeSecurely({required String key, required dynamic value}) {
+    String actualValue = value is Map ? json.encode(value) : value.toString();
+    return secureStorage.write(key: key, value: actualValue);
+  }
+
+  /// remove from secure storage
+  Future<void> remove(String key) => secureStorage.delete(key: key);
 
   /// read from secure storage
-  Future<String?> readSecurely(String key) => secureStorage.read(key: key);
+  Future<dynamic> readSecurely(String key) async {
+    String? value = await secureStorage.read(key: key);
+    return value != null ? _decode(value) : null;
+  }
+
+  dynamic _decode(String value) {
+    // decode json
+    if ((value.startsWith('{') && value.endsWith('}')) ||
+        (value.startsWith('[')) && value.endsWith(']')) {
+      try {
+        return json.decode(value);
+      } catch (e) {
+        // do nothing
+      }
+    }
+    return value;
+  }
 }
