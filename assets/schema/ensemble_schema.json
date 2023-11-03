@@ -3907,28 +3907,6 @@
           }
         },
         {
-          "title": "Update Badge Count",
-          "type": "object",
-          "required": [
-            "updateBadgeCount"
-          ],
-          "properties": {
-            "updateBadgeCount": {
-              "type": "object",
-              "description": "Update the app's badge count (applicable on iOS, MacOS, and some Android devices only). Notifications must also be enabled for this to work properly.",
-              "required": [
-                "count"
-              ],
-              "properties": {
-                "count": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "description": "Update the app's badge count (applicable on iOS, MacOS, and some Android devices)"
-                }
-              }
-            }
-          }
-        },{
           "title": "Haptics",
           "type": "object",
           "required": [
@@ -5378,48 +5356,35 @@
                   "$ref": "#/$defs/Widget"
                 },
                 "rowSpans": {
-                  "type": "object",
-                  "properties": {
-                    "spanPerRow": {
-                      "type": "integer",
-                      "description": "Limit the number of spans per row"
-                    },
-                    "overflowWidget": {
-                      "$ref": "#/$defs/Widget",
-                      "description": "If spans per row overflow based on spanPerRow than overflowWidget will render"
-                    },
-                    "children": {
-                      "type": "array",
-                      "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "span": {
                         "type": "object",
                         "properties": {
-                          "span": {
-                            "type": "object",
-                            "properties": {
-                              "start": {
-                                "type": "string",
-                                "description": "date in ISO format."
-                              },
-                              "end": {
-                                "type": "string",
-                                "description": "date in ISO format."
-                              },
-                              "widget": {
-                                "$ref": "#/$defs/Widget"
-                              }
-                            },
-                            "required": [
-                              "start",
-                              "end",
-                              "widget"
-                            ]
+                          "start": {
+                            "type": "string",
+                            "description": "date in ISO format."
+                          },
+                          "end": {
+                            "type": "string",
+                            "description": "date in ISO format."
+                          },
+                          "widget": {
+                            "$ref": "#/$defs/Widget"
                           }
                         },
                         "required": [
-                          "span"
+                          "start",
+                          "end",
+                          "widget"
                         ]
                       }
-                    }
+                    },
+                    "required": [
+                      "span"
+                    ]
                   }
                 },
                 "headerTextStyle": {
