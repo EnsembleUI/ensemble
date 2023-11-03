@@ -853,11 +853,7 @@ enum ActionType {
   updateBadgeCount,
   clearBadgeCount,
   callExternalMethod,
-  heavyImpactHaptic,
-  mediumImpactHaptic,
-  lightImpactHaptic,
-  selectionClickHaptic,
-  vibrateHaptic,
+  haptic,
 }
 
 enum ToastType { success, error, warning, info }
@@ -996,16 +992,8 @@ abstract class EnsembleAction {
       return SaveKeychain.fromYaml(payload: payload);
     } else if (actionType == ActionType.clearKeychain) {
       return ClearKeychain.fromYaml(payload: payload);
-    } else if (actionType == ActionType.heavyImpactHaptic) {
-      return HeavyImpactHaptic();
-    } else if (actionType == ActionType.mediumImpactHaptic) {
-      return MediumImpactHaptic();
-    } else if (actionType == ActionType.lightImpactHaptic) {
-      return LightImpactHaptic();
-    } else if (actionType == ActionType.selectionClickHaptic) {
-      return SelectionClickHaptic();
-    } else if (actionType == ActionType.vibrateHaptic) {
-      return VibrateHaptic();
+    } else if (actionType == ActionType.haptic) {
+      return HapticAction.fromYaml(payload: payload);
     }
 
     throw LanguageError("Invalid action.",
