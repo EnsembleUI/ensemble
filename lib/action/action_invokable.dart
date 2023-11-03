@@ -16,6 +16,7 @@ abstract class ActionInvokable with Invokable {
   Map<String, Function> methods() {
     return _generateFromActionTypes([
       ActionType.callExternalMethod,
+      ActionType.callNativeMethod,
       ActionType.share,
       ActionType.rateApp,
       ActionType.copyToClipboard,
