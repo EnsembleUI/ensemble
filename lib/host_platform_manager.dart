@@ -65,6 +65,14 @@ mixin _OutboundManager on IsHostPlatformManager {
   void sendData(dynamic payload) {
     getChannel().invokeMethod(Method.fromEnsembleToHost.name, payload);
   }
+
+  Future<void> callNativeMethod(String name, dynamic payload) async {
+    try {
+      await getChannel().invokeMethod(name, payload);
+    } catch (_) {
+      rethrow;
+    }
+  }
 }
 
 enum Method {
