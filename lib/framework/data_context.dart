@@ -22,6 +22,7 @@ import 'package:ensemble/framework/stub/oauth_controller.dart';
 import 'package:ensemble/framework/stub/token_manager.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
+import 'package:ensemble/host_platform_manager.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
@@ -357,6 +358,10 @@ class NativeInvokable extends ActionInvokable {
           KeychainManager().saveToKeychain(inputs),
       ActionType.clearKeychain.name: (dynamic inputs) =>
           KeychainManager().clearKeychain(inputs),
+      ActionType.callNativeMethod.name: (dynamic inputs) {
+        final scope = ScreenController().getScopeManager(buildContext);
+        callNativeMethod(buildContext, scope, inputs);
+      },
       'connectSocket': (String socketName, Map<dynamic, dynamic>? inputs) {
         connectSocket(buildContext, socketName, inputs: inputs);
       },
@@ -375,6 +380,34 @@ class NativeInvokable extends ActionInvokable {
   @override
   Map<String, Function> setters() {
     return {};
+  }
+
+  void callNativeMethod(
+      BuildContext context, ScopeManager? scopeManager, dynamic inputs) async {
+    if (scopeManager == null) return;
+
+    String? name =
+        Utils.optionalString(scopeManager.dataContext.eval(inputs?['name']));
+    Map<String, dynamic>? inputMap = Utils.getMap(inputs?['payload']);
+    if (name == null) {
+      print('Invalid method name');
+      return;
+    }
+
+    try {
+      Map<String, dynamic>? payload;
+      inputMap?.forEach((key, value) {
+        (payload ??= {})[key] = scopeManager.dataContext.eval(value);
+      });
+      // execute the external function. Always await in case it's async
+      HostPlatformManager().callNativeMethod(name, payload).then((_) {
+        print('Succesfully called');
+      }).catchError((error) {
+        print('Failed to call method. Reason: $error');
+      });
+    } catch (e) {
+      print('Failed to call method. Reason: $e');
+    }
   }
 
   Future<void> connectSocket(BuildContext context, String socketName,
