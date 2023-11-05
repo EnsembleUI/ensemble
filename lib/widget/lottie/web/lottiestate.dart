@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 import 'dart:ui_web' as ui;
 
@@ -24,6 +25,8 @@ class LottieState extends WidgetState<EnsembleLottie>
   String id = 'lottie_${Random().nextInt(900000) + 100000}';
 
   late String divId;
+
+  int lastEventId = -1;
 
   @override
   void initState() {
@@ -115,6 +118,8 @@ class LottieState extends WidgetState<EnsembleLottie>
       let direction = 1;
       let player_$divId = document.getElementById("$divId");
 
+      let counter = 0;
+
       function getEpochTime() {
         var d = new Date();
 
@@ -144,7 +149,9 @@ class LottieState extends WidgetState<EnsembleLottie>
 
         if (data == "stop_$divId") {
           player_$divId.pause();
-          // window.parent.postMessage("onStop_\${getEpochTime()}", "*");
+          window.parent.postMessage('{"data": "onStop", "id": ' + counter + ', "tag": "$divId"}', "*");
+
+          counter++;
         }
 
         if (data == "reset_$divId") {
@@ -153,19 +160,27 @@ class LottieState extends WidgetState<EnsembleLottie>
       }
 
       player_$divId.addEventListener("play", () => {
-        if (direction == 1) window.parent.postMessage("onForward_" + getEpochTime(), "*");
-        else window.parent.postMessage("onReverse_\${getEpochTime()}", "*");
+        if (direction == 1) window.parent.postMessage('{"data": "onForward", "id": ' + counter + ', "tag": "$divId"}', "*");
+        else window.parent.postMessage('{"data": "onReverse", "id": ' + counter + ', "tag": "$divId"}', "*");
+
+        counter++;
       });
 
       player_$divId.addEventListener("complete", () => {
-        window.parent.postMessage("onComplete_\${getEpochTime()}", "*");
+        window.parent.postMessage('{"data": "onComplete", "id": ' + counter + ', "tag": "$divId"}', "*");
+
+        counter++;
       });
 
       player_$divId.addEventListener("pause", () => {
-        window.parent.postMessage("onStop_\${getEpochTime()}", "*");
+        window.parent.postMessage('{"data": "onStop", "id": ' + counter + ', "tag": "$divId"}', "*");
+
+        counter++;
       });
       player_$divId.addEventListener("stop", () => {
-        window.parent.postMessage("onStop_\${getEpochTime()}", "*");
+        window.parent.postMessage('{"data": "onStop", "id": ' + counter + ', "tag": "$divId"}', "*");
+
+        counter++;
       });
     </script>
   </body>
@@ -182,36 +197,50 @@ class LottieState extends WidgetState<EnsembleLottie>
       html.window.onMessage.listen((event) {
         final String data = event.data;
 
-        if (data == "onForward" && widget.controller.onForward != null) {
-          ScreenController().executeAction(
-            context,
-            widget.controller.onForward!,
-            event: EnsembleEvent(widget),
-          );
-        }
+        if (data.contains('{')) {
+          final json = jsonDecode(data);
 
-        if (data == "onComplete" && widget.controller.onComplete != null) {
-          ScreenController().executeAction(
-            context,
-            widget.controller.onComplete!,
-            event: EnsembleEvent(widget),
-          );
-        }
+          if (lastEventId != json['id']) {
+            lastEventId = json['id'];
 
-        if (data == "onStop" && widget.controller.onStop != null) {
-          ScreenController().executeAction(
-            context,
-            widget.controller.onStop!,
-            event: EnsembleEvent(widget),
-          );
-        }
+            print(lastEventId);
+            print(json['id']);
 
-        if (data == "onReverse" && widget.controller.onReverse != null) {
-          ScreenController().executeAction(
-            context,
-            widget.controller.onReverse!,
-            event: EnsembleEvent(widget),
-          );
+            if (json['data'] == "onForward" &&
+                widget.controller.onForward != null) {
+              ScreenController().executeAction(
+                context,
+                widget.controller.onForward!,
+                event: EnsembleEvent(widget),
+              );
+            }
+
+            if (json['data'] == "onComplete" &&
+                widget.controller.onComplete != null) {
+              ScreenController().executeAction(
+                context,
+                widget.controller.onComplete!,
+                event: EnsembleEvent(widget),
+              );
+            }
+
+            if (json['data'] == "onStop" && widget.controller.onStop != null) {
+              ScreenController().executeAction(
+                context,
+                widget.controller.onStop!,
+                event: EnsembleEvent(widget),
+              );
+            }
+
+            if (json['data'] == "onReverse" &&
+                widget.controller.onReverse != null) {
+              ScreenController().executeAction(
+                context,
+                widget.controller.onReverse!,
+                event: EnsembleEvent(widget),
+              );
+            }
+          }
         }
       });
 
