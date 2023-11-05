@@ -7,8 +7,10 @@ import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/lottie/lottiestate.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
+import 'dart:js' as js;
 
 class EnsembleLottie extends StatefulWidget
     with Invokable, HasController<LottieController, LottieState> {
@@ -29,6 +31,23 @@ class EnsembleLottie extends StatefulWidget
 
   @override
   Map<String, Function> methods() {
+    if (kIsWeb) {
+      final isHTML = js.context['flutterCanvasKit'] == null;
+
+      if (isHTML) {
+        return {
+          // Method to start animation in forward direction
+          'forward': () => _controller.lottieAction!.forward(),
+          // Method to run animation in reverse direction
+          'reverse': () => _controller.lottieAction!.reverse(),
+          // Method to reset animation to initial position
+          'reset': () => _controller.lottieAction!.reset(),
+          // Method to stop animation at current position
+          'stop': () => _controller.lottieAction!.stop(),
+        };
+      }
+    }
+
     return {
       // Method to start animation in forward direction
       'forward': () {
@@ -80,6 +99,13 @@ class EnsembleLottie extends StatefulWidget
   }
 }
 
+mixin LottieAction on WidgetState<EnsembleLottie> {
+  void forward();
+  void reverse();
+  void reset();
+  void stop();
+}
+
 class LottieController extends BoxController {
   String source = '';
   String? fit;
@@ -93,6 +119,8 @@ class LottieController extends BoxController {
   EnsembleAction? onReverse;
   EnsembleAction? onComplete;
   EnsembleAction? onStop;
+
+  LottieAction? lottieAction;
 
   void initializeLottieController(LottieComposition composition) {
     lottieController!.duration = composition.duration;
