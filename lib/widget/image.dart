@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/widget/colored_box_placeholder.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -50,7 +51,7 @@ class EnsembleImage extends StatefulWidget
     return {
       'source': (value) =>
           _controller.source = Utils.getString(value, fallback: ''),
-      'fit': (value) => _controller.fit = Utils.optionalString(value),
+      'fit': (value) => _controller.fit = Utils.getBoxFit(value),
       'resizedWidth': (width) => _controller.resizedWidth =
           Utils.optionalInt(width, min: 0, max: 2000),
       'resizedHeight': (height) => _controller.resizedHeight =
@@ -71,7 +72,7 @@ class ImageController extends BoxController {
     clipContent = true;
   }
   String source = '';
-  String? fit;
+  BoxFit? fit;
   Color? placeholderColor;
   EnsembleAction? onTap;
 
@@ -83,28 +84,20 @@ class ImageController extends BoxController {
 }
 
 class ImageState extends WidgetState<EnsembleImage> {
-  late Widget placeholder;
-
-  @override
-  void initState() {
-    super.initState();
-    placeholder = getPlaceholder();
-  }
 
   @override
   Widget buildWidget(BuildContext context) {
     String source = widget._controller.source.trim();
     // use the placeholder for the initial state before binding kicks in
     if (source.isEmpty) {
-      return placeholder;
+      return const ColoredBoxPlaceholder();
     }
 
-    BoxFit? fit = WidgetUtils.getBoxFit(widget._controller.fit);
     Widget image;
     if (isSvg()) {
-      image = buildSvgImage(source, fit);
+      image = buildSvgImage(source, widget._controller.fit);
     } else {
-      image = buildNonSvgImage(source, fit);
+      image = buildNonSvgImage(source, widget._controller.fit);
     }
 
     Widget rtn = BoxWrapper(
@@ -150,7 +143,7 @@ class ImageState extends WidgetState<EnsembleImage> {
           memCacheHeight: cachedHeight,
           cacheManager: EnsembleImageCacheManager.instance,
           errorWidget: (context, error, stacktrace) => errorFallback(),
-          placeholder: (context, url) => placeholder);
+          placeholder: (context, url) => const ColoredBoxPlaceholder());
     } else if (Utils.isMemoryPath(widget._controller.source)) {
       return kIsWeb
           ? Image.network(widget._controller.source,
@@ -182,7 +175,7 @@ class ImageState extends WidgetState<EnsembleImage> {
           width: widget._controller.width?.toDouble(),
           height: widget._controller.height?.toDouble(),
           fit: fit ?? BoxFit.contain,
-          placeholderBuilder: (_) => placeholder);
+          placeholderBuilder: (_) => const ColoredBoxPlaceholder());
     }
     // attempt local assets
     return SvgPicture.asset(
@@ -219,23 +212,6 @@ class ImageState extends WidgetState<EnsembleImage> {
     return fallbackWidget;
   }
 
-  // use modern colors as background placeholder while images are being loaded
-  final placeholderColors = [
-    0xffD9E3E5,
-    0xffBBCBD2,
-    0xffA79490,
-    0xffD7BFA8,
-    0xffEAD9C9,
-    0xffEEEAE7
-  ];
-  Widget getPlaceholder() {
-    // container without child will get the size of its parent
-    return Container(
-        decoration: BoxDecoration(
-            color: widget._controller.placeholderColor ??
-                Color(placeholderColors[
-                    Random().nextInt(placeholderColors.length)])));
-  }
 }
 
 class EnsembleImageCacheManager {

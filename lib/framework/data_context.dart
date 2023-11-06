@@ -8,9 +8,13 @@ import 'package:ensemble/action/call_external_method.dart';
 import 'package:ensemble/action/invoke_api_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/ensemble_app.dart';
+import 'package:ensemble/framework/all_countries.dart';
+import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/keychain_manager.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble/framework/stub/auth_context_manager.dart';
@@ -18,10 +22,10 @@ import 'package:ensemble/framework/stub/oauth_controller.dart';
 import 'package:ensemble/framework/stub/token_manager.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
+import 'package:ensemble/host_platform_manager.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
-import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 
 import 'package:ensemble/framework/action.dart';
@@ -322,6 +326,7 @@ class NativeInvokable extends ActionInvokable {
       'storage': () => EnsembleStorage(buildContext),
       'user': () => UserInfo(),
       'formatter': () => Formatter(buildContext),
+      'utils': () => EnsembleUtils(),
     };
   }
 
@@ -349,9 +354,14 @@ class NativeInvokable extends ActionInvokable {
       'updateSystemAuthorizationToken': (token) =>
           GetIt.instance<TokenManager>()
               .updateServiceTokens(OAuthService.system, token),
-      ActionType.saveToKeychain.name: (key, value) =>
-          saveToKeychain(key, value),
-      ActionType.clearKeychain.name: (key) => clearKeychain(key),
+      ActionType.saveKeychain.name: (dynamic inputs) =>
+          KeychainManager().saveToKeychain(inputs),
+      ActionType.clearKeychain.name: (dynamic inputs) =>
+          KeychainManager().clearKeychain(inputs),
+      ActionType.callNativeMethod.name: (dynamic inputs) {
+        final scope = ScreenController().getScopeManager(buildContext);
+        callNativeMethod(buildContext, scope, inputs);
+      },
       'connectSocket': (String socketName, Map<dynamic, dynamic>? inputs) {
         connectSocket(buildContext, socketName, inputs: inputs);
       },
@@ -372,6 +382,34 @@ class NativeInvokable extends ActionInvokable {
     return {};
   }
 
+  void callNativeMethod(
+      BuildContext context, ScopeManager? scopeManager, dynamic inputs) async {
+    if (scopeManager == null) return;
+
+    String? name =
+        Utils.optionalString(scopeManager.dataContext.eval(inputs?['name']));
+    Map<String, dynamic>? inputMap = Utils.getMap(inputs?['payload']);
+    if (name == null) {
+      print('Invalid method name');
+      return;
+    }
+
+    try {
+      Map<String, dynamic>? payload;
+      inputMap?.forEach((key, value) {
+        (payload ??= {})[key] = scopeManager.dataContext.eval(value);
+      });
+      // execute the external function. Always await in case it's async
+      HostPlatformManager().callNativeMethod(name, payload).then((_) {
+        print('Succesfully called');
+      }).catchError((error) {
+        print('Failed to call method. Reason: $error');
+      });
+    } catch (e) {
+      print('Failed to call method. Reason: $e');
+    }
+  }
+
   Future<void> connectSocket(BuildContext context, String socketName,
       {Map<dynamic, dynamic>? inputs}) async {
     ScreenController().executeAction(
@@ -388,35 +426,6 @@ class NativeInvokable extends ActionInvokable {
   void messageSocket(String socketName, dynamic message) {
     final socketService = SocketService();
     socketService.message(socketName, message);
-  }
-
-  Future<void> saveToKeychain(String key, dynamic value) async {
-    if (defaultTargetPlatform != TargetPlatform.iOS) {
-      return;
-    }
-    try {
-      final data = jsonEncode(value);
-      final json = {'key': key, 'data': data};
-      const platform = MethodChannel('com.ensembleui.dev/safari-extension');
-      final _ =
-          await platform.invokeMethod(ActionType.saveToKeychain.name, json);
-    } on PlatformException catch (e) {
-      throw LanguageError(
-          'Failed to invoke ensemble.saveToKeychain. Reason: ${e.toString()}');
-    }
-  }
-
-  Future<void> clearKeychain(String key) async {
-    if (defaultTargetPlatform != TargetPlatform.iOS) {
-      return;
-    }
-    try {
-      const platform = MethodChannel('com.ensembleui.dev/safari-extension');
-      final _ = await platform.invokeMethod(ActionType.clearKeychain.name, key);
-    } on PlatformException catch (e) {
-      throw LanguageError(
-          'Failed to invoke ensemble.clearKeychain. Reason: ${e.toString()}');
-    }
   }
 
   void uploadFiles(dynamic inputs) {
@@ -544,6 +553,75 @@ class EnsembleStorage with Invokable {
   }
 }
 
+class EnsembleUtils with Invokable {
+  @override
+  Map<String, Function> getters() => {};
+
+  @override
+  Map<String, Function> methods() => {
+        'getCountries': () => allCountries,
+        'getCountry': (value) {
+          String val = Utils.getString(value, fallback: "");
+          return getCountry(val);
+        },
+        'findCountry': (value) {
+          String val = Utils.getString(value, fallback: "");
+          return findCountry(val);
+        }
+      };
+
+  @override
+  Map<String, Function> setters() => {};
+
+  Map<String, dynamic>? getCountry(String val) {
+    String input = val.toLowerCase().trim();
+
+    if (input.length == 2) {
+      for (var i in allCountries) {
+        String countryCode = i['iso']['alpha-2'];
+        countryCode = countryCode.toLowerCase();
+        if (countryCode == input) {
+          return i;
+        }
+      }
+    } else if (input.length == 3) {
+      for (var i in allCountries) {
+        String countryCode = i['iso']['alpha-3'];
+        countryCode = countryCode.toLowerCase();
+        if (countryCode == input) {
+          return i;
+        }
+      }
+    }
+    return null;
+  }
+
+  List<Map<String, dynamic>> findCountry(String userInput) {
+    List<Map<String, dynamic>> result = [];
+    userInput = userInput.toLowerCase().trim();
+    for (var i in allCountries) {
+      String countryName = i['name'] as String..toLowerCase();
+      countryName = countryName.toLowerCase();
+      if (countryName.contains(userInput, 0)) {
+        result.add(i);
+      } else if (userInput.length == 2) {
+        String alpha2Code = i['iso']['alpha-2'];
+        alpha2Code = alpha2Code.toLowerCase();
+        if (alpha2Code == userInput) {
+          result.add(i);
+        }
+      } else if (userInput.length == 3) {
+        String alpha3code = i['iso']['alpha-3'];
+        alpha3code = alpha3code.toLowerCase();
+        if (alpha3code == userInput) {
+          result.add(i);
+        }
+      }
+    }
+    return result;
+  }
+}
+
 class Formatter with Invokable {
   final BuildContext _buildContext;
 
@@ -565,7 +643,7 @@ class Formatter with Invokable {
       'prettyCurrency': (input) => InvokablePrimitive.prettyCurrency(input),
       'prettyDuration': (input) =>
           InvokablePrimitive.prettyDuration(input, locale: locale),
-      'pluralize': pluralize
+      'pluralize': pluralize,
     };
   }
 

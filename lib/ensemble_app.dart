@@ -25,6 +25,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:workmanager/workmanager.dart';
 
 const String backgroundUploadTask = 'backgroundUploadTask';
+const String ensembleMethodChannelName = 'com.ensembleui.host.platform';
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
@@ -110,14 +111,15 @@ class EnsembleAppState extends State<EnsembleApp> {
   void initState() {
     super.initState();
     config = initApp();
-    // if (Platform.isIOS) {
-    //   IOSDeepLinkManager().init();
-    // } else {
-    DeepLinkManager().init();
-    // }
 
+    // Initialize native features.
     if (!kIsWeb) {
       Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
+      if (Platform.isIOS) {
+        IOSDeepLinkManager().init();
+      } else {
+        DeepLinkManager().init();
+      }
     }
   }
 
