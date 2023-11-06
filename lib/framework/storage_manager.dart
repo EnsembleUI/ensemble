@@ -89,7 +89,7 @@ mixin SecureStorage {
   }
 
   /// remove from secure storage
-  Future<void> remove(String key) => secureStorage.delete(key: key);
+  Future<void> removeSecurely(String key) => secureStorage.delete(key: key);
 
   /// read from secure storage
   Future<dynamic> readSecurely(String key) async {

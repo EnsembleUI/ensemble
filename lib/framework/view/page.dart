@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/menu.dart';
@@ -687,18 +688,36 @@ class PageState extends State<Page>
 
       final isDraggable =
           Utils.getBool(dragOptions?['enable'], fallback: false);
+      DraggableScrollableController dragController =
+          DraggableScrollableController();
+
+      final maxSize = Utils.getDouble(dragOptions?['maxSize'], fallback: 1.0);
+      final minSize = Utils.getDouble(dragOptions?['minSize'], fallback: 0.25);
+
+      final onMaxSize = EnsembleAction.fromYaml(dragOptions?['onMaxSize']);
+      final onMinSize = EnsembleAction.fromYaml(dragOptions?['onMinSize']);
+
+      dragController.addListener(
+        () {
+          if (dragController.size == maxSize && onMaxSize != null) {
+            ScreenController().executeAction(context, onMaxSize);
+          }
+          if (dragController.size == minSize && onMinSize != null) {
+            ScreenController().executeAction(context, onMinSize);
+          }
+        },
+      );
 
       return AnimatedOpacity(
         opacity: 1.0,
         duration: const Duration(milliseconds: 500),
         child: isDraggable
             ? DraggableScrollableSheet(
+                controller: dragController,
                 initialChildSize:
                     Utils.getDouble(dragOptions?['initialSize'], fallback: 0.5),
-                minChildSize:
-                    Utils.getDouble(dragOptions?['minSize'], fallback: 0.25),
-                maxChildSize:
-                    Utils.getDouble(dragOptions?['maxSize'], fallback: 1),
+                minChildSize: minSize,
+                maxChildSize: maxSize,
                 expand: Utils.getBool(dragOptions?['expand'], fallback: false),
                 snap: Utils.getBool(dragOptions?['span'], fallback: false),
                 snapSizes: Utils.getList<double>(dragOptions?['snapSizes']),
