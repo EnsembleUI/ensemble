@@ -48,7 +48,7 @@ List<Map<String, dynamic>> allCountries = [
     "region": "Americas",
     "timezones": {"America/Anguilla": "-04:00"},
     "iso": {"alpha-2": "AI", "alpha-3": "AIA", "numeric": "660"},
-    "phone": ["+1-264"],
+    "phone": ["+1"],
     "emoji": "🇦🇮",
     "image":
         "https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/AI.svg",
@@ -103,7 +103,7 @@ List<Map<String, dynamic>> allCountries = [
       "Antarctica/Vostok": "+06:00"
     },
     "iso": {"alpha-2": "AQ", "alpha-3": "ATA", "numeric": "010"},
-    "phone": ["+"],
+    "phone": ["+672"],
     "emoji": "🇦🇶",
     "image":
         "https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/AQ.svg",
@@ -138,7 +138,7 @@ List<Map<String, dynamic>> allCountries = [
     "region": "Oceania",
     "timezones": {"Pacific/Pago_Pago": "-11:00"},
     "iso": {"alpha-2": "AS", "alpha-3": "ASM", "numeric": "016"},
-    "phone": ["+1-684"],
+    "phone": ["+1"],
     "emoji": "🇦🇸",
     "image":
         "https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/AS.svg",
@@ -191,11 +191,11 @@ List<Map<String, dynamic>> allCountries = [
     "phoneLength": 7
   },
   {
-    "name": "Åland Islands",
+    "name": "Aland Islands",
     "region": "Europe",
     "timezones": {"Europe/Mariehamn": "+03:00"},
     "iso": {"alpha-2": "AX", "alpha-3": "ALA", "numeric": "248"},
-    "phone": ["+358-18"],
+    "phone": ["+358"],
     "emoji": "🇦🇽",
     "image":
         "https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/AX.svg"
@@ -326,7 +326,7 @@ List<Map<String, dynamic>> allCountries = [
     "region": "Americas",
     "timezones": {"Atlantic/Bermuda": "-03:00"},
     "iso": {"alpha-2": "BM", "alpha-3": "BMU", "numeric": "060"},
-    "phone": ["+1-441"],
+    "phone": ["+1"],
     "emoji": "🇧🇲",
     "image":
         "https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/BM.svg",
@@ -387,7 +387,7 @@ List<Map<String, dynamic>> allCountries = [
     "region": "Americas",
     "timezones": {"America/Nassau": "-04:00"},
     "iso": {"alpha-2": "BS", "alpha-3": "BHS", "numeric": "044"},
-    "phone": ["+1-242"],
+    "phone": ["+1"],
     "emoji": "🇧🇸",
     "image":
         "https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/BS.svg",
@@ -404,7 +404,6 @@ List<Map<String, dynamic>> allCountries = [
         "https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/BT.svg",
     "phoneLength": 7
   },
-  // {"phoneLength": 10},
   {
     "name": "Botswana",
     "region": "Africa",
@@ -529,7 +528,7 @@ List<Map<String, dynamic>> allCountries = [
     "phoneLength": 9
   },
   {
-    "name": "Côte d'Ivoire",
+    "name": "Cote d Ivoire",
     "region": "Africa",
     "timezones": {"Africa/Abidjan": "+00:00"},
     "iso": {"alpha-2": "CI", "alpha-3": "CIV", "numeric": "384"},
@@ -632,7 +631,7 @@ List<Map<String, dynamic>> allCountries = [
     "phoneLength": 7
   },
   {
-    "name": "Curaçao",
+    "name": "Curacao",
     "region": "Americas",
     "timezones": {"America/Curacao": "-04:00"},
     "iso": {"alpha-2": "CW", "alpha-3": "CUW", "numeric": "531"},
@@ -724,7 +723,7 @@ List<Map<String, dynamic>> allCountries = [
     "region": "Americas",
     "timezones": {"America/Santo_Domingo": "-04:00"},
     "iso": {"alpha-2": "DO", "alpha-3": "DOM", "numeric": "214"},
-    "phone": ["+1-809", "+1-829"],
+    "phone": ["+1"],
     "emoji": "🇩🇴",
     "image":
         "https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/DO.svg",
@@ -774,7 +773,6 @@ List<Map<String, dynamic>> allCountries = [
         "https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/EG.svg",
     "phoneLength": 10
   },
-  // {"phoneLength": 9},
   {
     "name": "Eritrea",
     "region": "Africa",
@@ -908,7 +906,7 @@ List<Map<String, dynamic>> allCountries = [
     "region": "Americas",
     "timezones": {"America/Grenada": "-04:00"},
     "iso": {"alpha-2": "GD", "alpha-3": "GRD", "numeric": "308"},
-    "phone": ["+1-473"],
+    "phone": ["+1"],
     "emoji": "🇬🇩",
     "image":
         "https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/GD.svg",
@@ -941,7 +939,7 @@ List<Map<String, dynamic>> allCountries = [
     "region": "Europe",
     "timezones": {"Europe/Guernsey": "+01:00"},
     "iso": {"alpha-2": "GG", "alpha-3": "GGY", "numeric": "831"},
-    "phone": ["+44-1481"],
+    "phone": ["+44"],
     "emoji": "🇬🇬",
     "image":
         "https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/GG.svg",
@@ -1045,7 +1043,7 @@ List<Map<String, dynamic>> allCountries = [
     "region": "Americas",
     "timezones": {"Atlantic/South_Georgia": "-02:00"},
     "iso": {"alpha-2": "GS", "alpha-3": "SGS", "numeric": "239"},
-    "phone": ["+"],
+    "phone": ["+500"],
     "emoji": "🇬🇸",
     "image":
         "https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/GS.svg",
@@ -1067,7 +1065,7 @@ List<Map<String, dynamic>> allCountries = [
     "region": "Oceania",
     "timezones": {"Pacific/Guam": "+10:00"},
     "iso": {"alpha-2": "GU", "alpha-3": "GUM", "numeric": "316"},
-    "phone": ["+1-671"],
+    "phone": ["+1"],
     "emoji": "🇬🇺",
     "image":
         "https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/GU.svg",
@@ -1106,7 +1104,6 @@ List<Map<String, dynamic>> allCountries = [
         "https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/HK.svg",
     "phoneLength": 8
   },
-  // {"phoneLength": 10},
   {
     "name": "Honduras",
     "region": "Americas",
@@ -1194,7 +1191,7 @@ List<Map<String, dynamic>> allCountries = [
     "region": "Europe",
     "timezones": {"Europe/Isle_of_Man": "+01:00"},
     "iso": {"alpha-2": "IM", "alpha-3": "IMN", "numeric": "833"},
-    "phone": ["+44-1624"],
+    "phone": ["+44"],
     "emoji": "🇮🇲",
     "image":
         "https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/IM.svg",
@@ -1271,7 +1268,7 @@ List<Map<String, dynamic>> allCountries = [
     "region": "Europe",
     "timezones": {"Europe/Jersey": "+01:00"},
     "iso": {"alpha-2": "JE", "alpha-3": "JEY", "numeric": "832"},
-    "phone": ["+44-1534"],
+    "phone": ["+44"],
     "emoji": "🇯🇪",
     "image":
         "https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/JE.svg",
@@ -1282,7 +1279,7 @@ List<Map<String, dynamic>> allCountries = [
     "region": "Americas",
     "timezones": {"America/Jamaica": "-05:00"},
     "iso": {"alpha-2": "JM", "alpha-3": "JAM", "numeric": "388"},
-    "phone": ["+1-876"],
+    "phone": ["+1"],
     "emoji": "🇯🇲",
     "image":
         "https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/JM.svg",
@@ -1373,25 +1370,25 @@ List<Map<String, dynamic>> allCountries = [
     "region": "Americas",
     "timezones": {"America/St_Kitts": "-04:00"},
     "iso": {"alpha-2": "KN", "alpha-3": "KNA", "numeric": "659"},
-    "phone": ["+1-869"],
+    "phone": ["+1"],
     "emoji": "🇰🇳",
     "image":
         "https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/KN.svg",
     "phoneLength": 10
   },
   {
-    "name": "Korea, Democratic People's Republic of",
+    "name": "North Korea",
     "region": "Asia",
     "timezones": {"Asia/Pyongyang": "+09:00"},
     "iso": {"alpha-2": "KP", "alpha-3": "PRK", "numeric": "408"},
-    "phone": ["+850"],
+    "phone": ["+852"],
     "emoji": "🇰🇵",
     "image":
         "https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/KP.svg",
     "phoneLength": [4, 6, 7, 13]
   },
   {
-    "name": "Korea, Republic of",
+    "name": "South Korea",
     "region": "Asia",
     "timezones": {"Asia/Seoul": "+09:00"},
     "iso": {"alpha-2": "KR", "alpha-3": "KOR", "numeric": "410"},
@@ -1417,7 +1414,7 @@ List<Map<String, dynamic>> allCountries = [
     "region": "Americas",
     "timezones": {"America/Cayman": "-05:00"},
     "iso": {"alpha-2": "KY", "alpha-3": "CYM", "numeric": "136"},
-    "phone": ["+1-345"],
+    "phone": ["+1"],
     "emoji": "🇰🇾",
     "image":
         "https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/KY.svg",
@@ -1703,7 +1700,7 @@ List<Map<String, dynamic>> allCountries = [
     "region": "Oceania",
     "timezones": {"Pacific/Saipan": "+10:00"},
     "iso": {"alpha-2": "MP", "alpha-3": "MNP", "numeric": "580"},
-    "phone": ["+1-670"],
+    "phone": ["+1"],
     "emoji": "🇲🇵",
     "image":
         "https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/MP.svg",
@@ -1736,7 +1733,7 @@ List<Map<String, dynamic>> allCountries = [
     "region": "Americas",
     "timezones": {"America/Montserrat": "-04:00"},
     "iso": {"alpha-2": "MS", "alpha-3": "MSR", "numeric": "500"},
-    "phone": ["+1-664"],
+    "phone": ["+1"],
     "emoji": "🇲🇸",
     "image":
         "https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/MS.svg",
@@ -2093,7 +2090,7 @@ List<Map<String, dynamic>> allCountries = [
     "phoneLength": 10
   },
   {
-    "name": "Palestine, State of",
+    "name": "Palestine",
     "region": "Asia",
     "timezones": {"Asia/Gaza": "+02:00", "Asia/Hebron": "+02:00"},
     "iso": {"alpha-2": "PS", "alpha-3": "PSE", "numeric": "275"},
@@ -2487,17 +2484,6 @@ List<Map<String, dynamic>> allCountries = [
     "phoneLength": 6
   },
   {
-    "name": "French Southern Territories",
-    "region": "Africa",
-    "timezones": {"Indian/Kerguelen": "+05:00"},
-    "iso": {"alpha-2": "TF", "alpha-3": "ATF", "numeric": "260"},
-    "phone": ["+"],
-    "emoji": "🇹🇫",
-    "image":
-        "https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/TF.svg",
-    "phoneLength": 10
-  },
-  {
     "name": "Togo",
     "region": "Africa",
     "timezones": {"Africa/Lome": "+00:00"},
@@ -2601,7 +2587,7 @@ List<Map<String, dynamic>> allCountries = [
     "region": "Americas",
     "timezones": {"America/Port_of_Spain": "-04:00"},
     "iso": {"alpha-2": "TT", "alpha-3": "TTO", "numeric": "780"},
-    "phone": ["+1-868"],
+    "phone": ["+1"],
     "emoji": "🇹🇹",
     "image":
         "https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/TT.svg",
@@ -2741,7 +2727,7 @@ List<Map<String, dynamic>> allCountries = [
     "region": "Americas",
     "timezones": {"America/St_Vincent": "-04:00"},
     "iso": {"alpha-2": "VC", "alpha-3": "VCT", "numeric": "670"},
-    "phone": ["+1-784"],
+    "phone": ["+1"],
     "emoji": "🇻🇨",
     "image":
         "https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/VC.svg",
@@ -2763,7 +2749,7 @@ List<Map<String, dynamic>> allCountries = [
     "region": "Americas",
     "timezones": {"America/Tortola": "-04:00"},
     "iso": {"alpha-2": "VG", "alpha-3": "VGB", "numeric": "092"},
-    "phone": ["+1-284"],
+    "phone": ["+1"],
     "emoji": "🇻🇬",
     "image":
         "https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/VG.svg",
@@ -2774,7 +2760,7 @@ List<Map<String, dynamic>> allCountries = [
     "region": "Americas",
     "timezones": {"America/St_Thomas": "-04:00"},
     "iso": {"alpha-2": "VI", "alpha-3": "VIR", "numeric": "850"},
-    "phone": ["+1-340"],
+    "phone": ["+1"],
     "emoji": "🇻🇮",
     "image":
         "https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/VI.svg",
@@ -2824,7 +2810,6 @@ List<Map<String, dynamic>> allCountries = [
         "https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/WS.svg",
     "phoneLength": [5, 6, 7]
   },
-  // {"phoneLength": 8},
   {
     "name": "Yemen",
     "region": "Asia",
