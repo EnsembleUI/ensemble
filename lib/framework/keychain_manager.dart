@@ -22,7 +22,7 @@ class KeychainManager {
   Future<void> clearKeychain(dynamic inputs) async {
     try {
       final key = inputs?['key'] as String;
-      await StorageManager().remove(key);
+      await StorageManager().removeSecurely(key);
     } catch (e) {
       throw LanguageError(
           'Failed to remove value with the key - ${inputs['key']}. Reason: ${e.toString()}');

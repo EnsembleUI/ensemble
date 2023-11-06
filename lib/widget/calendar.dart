@@ -87,12 +87,13 @@ class EnsembleCalendar extends StatefulWidget
       'firstDay': (value) => _controller.firstDay = Utils.getDate(value),
       'lastDay': (value) => _controller.lastDay = Utils.getDate(value),
       'rowSpans': (value) {
-        if (value is List) {
-          for (var data in value) {
-            setRowSpan(data['span']);
+        _controller.rowSpanLimit =
+            Utils.getInt(value['spanPerRow'], fallback: -1);
+        _controller.overlapOverflowBuilder = value['overflowWidget'];
+        if (value['children'] is List) {
+          for (var span in value['children']) {
+            setRowSpan(span['span']);
           }
-        } else {
-          setRowSpan(value);
         }
       },
       'headerTextStyle': (value) =>
@@ -418,6 +419,9 @@ class CalendarController extends WidgetController {
   Cell rangeEndCell = Cell();
   Cell rangeBetweenCell = Cell();
 
+  int rowSpanLimit = -1;
+  dynamic overlapOverflowBuilder;
+
   DateTime? selectedDate;
   DateTime? disabledDate;
 
@@ -586,8 +590,11 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
           headerVisible: false,
           selectedDayPredicate: (day) =>
               widget._controller.selectedDays.value.contains(day.toDate()),
+          markedDayPredicate: (day) =>
+              widget._controller.markedDays.value.contains(day.toDate()),
           enabledDayPredicate: (day) =>
               !(widget._controller.disableDays.value.contains(day.toDate())),
+          rowSpanLimit: widget._controller.rowSpanLimit,
           rangeStartDay: widget._controller.rangeStart,
           rangeEndDay: widget._controller.rangeEnd,
           calendarFormat: _calendarFormat,
@@ -603,6 +610,13 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
           daysOfWeekVisible: true,
           overlayRanges: getOverlayRange(),
           calendarBuilders: CalendarBuilders(
+            overlayDefaultBuilder: (context) {
+              if (widget._controller.overlapOverflowBuilder == null) {
+                return null;
+              }
+              return widgetBuilder(
+                  context, widget._controller.overlapOverflowBuilder, {});
+            },
             overlayBuilder: widget._controller.rowSpans.value.isEmpty
                 ? null
                 : (context, range) {
