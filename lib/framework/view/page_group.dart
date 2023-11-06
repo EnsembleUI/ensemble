@@ -43,15 +43,18 @@ class PageGroup extends StatefulWidget {
 /// We need this because the menu (i.e. drawer) is determined at the PageGroup
 /// level, but need to be injected under each child Page to render.
 class PageGroupWidget extends DataScopeWidget {
-  const PageGroupWidget(
-      {super.key,
-      required super.scopeManager,
-      required super.child,
-      this.navigationDrawer,
-      this.navigationEndDrawer});
+  const PageGroupWidget({
+    super.key,
+    required super.scopeManager,
+    required super.child,
+    this.navigationDrawer,
+    this.navigationEndDrawer,
+    this.pageController,
+  });
 
   final Drawer? navigationDrawer;
   final Drawer? navigationEndDrawer;
+  final PageController? pageController;
 
   static Drawer? getNavigationDrawer(BuildContext context) => context
       .dependOnInheritedWidgetOfExactType<PageGroupWidget>()
@@ -60,6 +63,10 @@ class PageGroupWidget extends DataScopeWidget {
   static Drawer? getNavigationEndDrawer(BuildContext context) => context
       .dependOnInheritedWidgetOfExactType<PageGroupWidget>()
       ?.navigationEndDrawer;
+
+  static PageController? getPageController(BuildContext context) => context
+      .dependOnInheritedWidgetOfExactType<PageGroupWidget>()
+      ?.pageController;
 
   /// return the ScopeManager which includes the dataContext
   /// TODO: have to repeat this function in DataScopeWidget?
