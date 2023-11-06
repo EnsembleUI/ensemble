@@ -3149,6 +3149,28 @@
           }
         },
         {
+          "title": "Navigate View Group",
+          "type": "object",
+          "required": [
+            "navigateViewGroup"
+          ],
+          "properties": {
+            "navigateViewGroup": {
+              "type": "object",
+              "description": "Navigate between the screens in the view group. It is applicable only when inside a ViewGroup",
+              "required": [
+                "viewIndex"
+              ],
+              "properties": {
+                "viewIndex": {
+                  "type": "integer",
+                  "description": "Enter the index of the screen to navigate"
+                }
+              }
+            }
+          }
+        },
+        {
           "title": "Navigate Modal Screen",
           "type": "object",
           "required": [
