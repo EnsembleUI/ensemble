@@ -129,7 +129,7 @@ class NavigateViewGroupAction extends EnsembleAction {
   Future execute(BuildContext context, ScopeManager scopeManager,
       {DataContext? dataContext}) {
     PageGroupWidget.getPageController(context)?.jumpToPage(_viewIndex);
-    bottomNavBarNotifier.updatePage(_viewIndex);
+    viewGroupNotifier.updatePage(_viewIndex);
     return Future.value(null);
   }
 }

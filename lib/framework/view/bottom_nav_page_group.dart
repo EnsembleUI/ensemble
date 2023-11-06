@@ -15,21 +15,6 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:flutter/material.dart';
 
-class BottomNavBarNotifier extends ChangeNotifier {
-  int _viewIndex = 0;
-
-  int get viewIndex => _viewIndex;
-
-  void updatePage(int index, {bool isReload = true}) {
-    _viewIndex = index;
-    if (isReload) {
-      notifyListeners();
-    }
-  }
-}
-
-final bottomNavBarNotifier = BottomNavBarNotifier();
-
 class FABBottomAppBarItem {
   FABBottomAppBarItem({
     required this.icon,
@@ -86,7 +71,7 @@ class PageGroupWidgetWrapper extends StatelessWidget {
       return PageGroupWidget(
         scopeManager: scopeManager,
         pageController:
-            PageController(initialPage: bottomNavBarNotifier.viewIndex),
+            PageController(initialPage: viewGroupNotifier.viewIndex),
         child: child,
       );
     }
@@ -126,7 +111,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
     if (widget.menu.reloadView == false) {
       controller = PageController(initialPage: widget.selectedPage);
     }
-    bottomNavBarNotifier.updatePage(widget.selectedPage, isReload: false);
+    viewGroupNotifier.updatePage(widget.selectedPage, isReload: false);
     menuItems = widget.menu.menuItems
         .where((element) => element.floating != true)
         .toList();
@@ -232,9 +217,9 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
         floatingActionButton: _buildFloatingButton(),
         body: widget.menu.reloadView == true
             ? ListenableBuilder(
-                listenable: bottomNavBarNotifier,
+                listenable: viewGroupNotifier,
                 builder: (_, __) =>
-                    widget.children[bottomNavBarNotifier.viewIndex])
+                    widget.children[viewGroupNotifier.viewIndex])
             : Builder(
                 builder: (context) {
                   final controller = PageGroupWidget.getPageController(context);
@@ -292,9 +277,9 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
     }
 
     return ListenableBuilder(
-      listenable: bottomNavBarNotifier,
+      listenable: viewGroupNotifier,
       builder: (context, _) {
-        final viewIndex = bottomNavBarNotifier.viewIndex;
+        final viewIndex = viewGroupNotifier.viewIndex;
 
         return EnsembleBottomAppBar(
           key: UniqueKey(),
@@ -313,10 +298,10 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
           notchedShape: const CircularNotchedRectangle(),
           onTabSelected: (index) {
             if (widget.menu.reloadView == true) {
-              bottomNavBarNotifier.updatePage(index);
+              viewGroupNotifier.updatePage(index);
             } else {
               PageGroupWidget.getPageController(context)!.jumpToPage(index);
-              bottomNavBarNotifier.updatePage(index);
+              viewGroupNotifier.updatePage(index);
             }
           },
           items: navItems,
