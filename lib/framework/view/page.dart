@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/menu.dart';
@@ -10,6 +11,8 @@ import 'package:ensemble/framework/view/bottom_nav_page_view.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
+import 'package:ensemble/layout/list_view.dart' as ensemblelist;
+import 'package:ensemble/layout/grid_view.dart' as ensembleGrid;
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -676,13 +679,64 @@ class PageState extends State<Page>
         ..borderColor = Utils.getColor(footerStyles?['borderColor'])
         ..borderWidth = Utils.optionalInt(footerStyles?['borderWidth']);
 
+      final dragOptions = pageModel.footer?.dragOptions;
+
+      final isDraggable =
+          Utils.getBool(dragOptions?['enable'], fallback: false);
+      DraggableScrollableController dragController =
+          DraggableScrollableController();
+
+      final maxSize = Utils.getDouble(dragOptions?['maxSize'], fallback: 1.0);
+      final minSize = Utils.getDouble(dragOptions?['minSize'], fallback: 0.25);
+
+      final onMaxSize = EnsembleAction.fromYaml(dragOptions?['onMaxSize']);
+      final onMinSize = EnsembleAction.fromYaml(dragOptions?['onMinSize']);
+
+      dragController.addListener(
+        () {
+          if (dragController.size == maxSize && onMaxSize != null) {
+            ScreenController().executeAction(context, onMaxSize);
+          }
+          if (dragController.size == minSize && onMinSize != null) {
+            ScreenController().executeAction(context, onMinSize);
+          }
+        },
+      );
+
       return AnimatedOpacity(
         opacity: 1.0,
         duration: const Duration(milliseconds: 500),
-        child: BoxWrapper(
-          boxController: boxController,
-          widget: scopeManager.buildWidget(pageModel.footer!.children.first),
-        ),
+        child: isDraggable
+            ? DraggableScrollableSheet(
+                controller: dragController,
+                initialChildSize:
+                    Utils.getDouble(dragOptions?['initialSize'], fallback: 0.5),
+                minChildSize: minSize,
+                maxChildSize: maxSize,
+                expand: Utils.getBool(dragOptions?['expand'], fallback: false),
+                snap: Utils.getBool(dragOptions?['span'], fallback: false),
+                snapSizes: Utils.getList<double>(dragOptions?['snapSizes']),
+                builder:
+                    (BuildContext context, ScrollController scrollController) {
+                  dynamic child = scopeManager
+                      .buildWidget(pageModel.footer!.children.first);
+
+                  if (child is ensemblelist.ListView ||
+                      child is ensembleGrid.GridView) {
+                    child.setProperty("controller", scrollController);
+                  }
+
+                  return BoxWrapper(
+                    widget: child,
+                    boxController: boxController,
+                  );
+                },
+              )
+            : BoxWrapper(
+                boxController: boxController,
+                widget:
+                    scopeManager.buildWidget(pageModel.footer!.children.first),
+              ),
       );
     }
     return null;
