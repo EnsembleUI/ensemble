@@ -87,7 +87,6 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
 
   // managing the list of pages
   List<Widget> pageWidgets = [];
-  int selectedPage = 0;
 
   @override
   void initState() {
@@ -113,8 +112,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
       ));
       dynamic selected = _scopeManager.dataContext.eval(menuItem.selected);
       if (selected == true || selected == 'true') {
-        selectedPage = i;
-        viewGroupNotifier.updatePage(selectedPage, isReload: false);
+        viewGroupNotifier.updatePage(i, isReload: false);
       }
     }
   }
@@ -132,23 +130,26 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
       if (widget.menu is DrawerMenu) {
         Drawer? drawer = _buildDrawer(context, widget.menu);
         bool atStart = (widget.menu as DrawerMenu).atStart;
-        return PageGroupWidget(
-          scopeManager: _scopeManager,
-          navigationDrawer: atStart ? drawer : null,
-          navigationEndDrawer: !atStart ? drawer : null,
-          child: widget.menu.reloadView == true
-              ? pageWidgets[selectedPage]
-              : IndexedStack(
-                  index: selectedPage,
-                  children: pageWidgets,
-                ),
+        return ListenableBuilder(
+          listenable: viewGroupNotifier,
+          builder: (context, _) => PageGroupWidget(
+            scopeManager: _scopeManager,
+            navigationDrawer: atStart ? drawer : null,
+            navigationEndDrawer: !atStart ? drawer : null,
+            child: widget.menu.reloadView == true
+                ? pageWidgets[viewGroupNotifier.viewIndex]
+                : IndexedStack(
+                    index: viewGroupNotifier.viewIndex,
+                    children: pageWidgets,
+                  ),
+          ),
         );
       } else if (widget.menu is SidebarMenu) {
         return buildSidebarNavigation(context, widget.menu as SidebarMenu);
       } else if (widget.menu is BottomNavBarMenu) {
         return BottomNavPageGroup(
           scopeManager: _scopeManager,
-          selectedPage: selectedPage,
+          selectedPage: viewGroupNotifier.viewIndex,
           menu: widget.menu,
           children: pageWidgets,
         );
@@ -319,22 +320,25 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
   // }
 
   Drawer? _buildDrawer(BuildContext context, Menu menu) {
-    List<ListTile> navItems = [];
+    List<ListenableBuilder> navItems = [];
     for (var i = 0; i < menu.menuItems.length; i++) {
       MenuItem item = menu.menuItems[i];
-      navItems.add(ListTile(
-        selected: i == selectedPage,
-        title: Text(Utils.translate(item.label ?? '', context)),
-        leading: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
-        horizontalTitleGap: 0,
-        onTap: () {
-          setState(() {
-            //close the drawer
-            Navigator.maybePop(context);
-            selectedPage = i;
-          });
-        },
-      ));
+      navItems.add(ListenableBuilder(
+          listenable: viewGroupNotifier,
+          builder: (context, _) {
+            return ListTile(
+              selected: i == viewGroupNotifier.viewIndex,
+              title: Text(Utils.translate(item.label ?? '', context)),
+              leading:
+                  ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
+              horizontalTitleGap: 0,
+              onTap: () {
+                //close the drawer
+                Navigator.maybePop(context);
+                viewGroupNotifier.updatePage(i);
+              },
+            );
+          }));
     }
     return Drawer(
       backgroundColor: Utils.getColor(menu.styles?['backgroundColor']),
