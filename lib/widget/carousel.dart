@@ -149,7 +149,7 @@ class MyController extends BoxController {
   // for multi view this dispatch when clicking on a card
   EnsembleAction? onItemTap;
   EnsembleAction? onItemChange;
-  int selectedItemIndex = -1;
+  int selectedItemIndex = 0;
 
   final CarouselController _carouselController = CarouselController();
 }
