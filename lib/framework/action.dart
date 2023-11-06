@@ -2,16 +2,20 @@ import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/action/badge_action.dart';
 import 'package:ensemble/action/bottom_modal_action.dart';
 import 'package:ensemble/action/call_external_method.dart';
+import 'package:ensemble/action/call_native_method.dart';
 import 'package:ensemble/action/invoke_api_action.dart';
 import 'package:ensemble/action/misc_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/action/notification_action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/keychain_manager.dart';
 import 'package:ensemble/framework/permissions_manager.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
@@ -702,6 +706,113 @@ class CheckPermission extends EnsembleAction {
   }
 }
 
+class SaveKeychain extends EnsembleAction {
+  SaveKeychain({
+    required this.key,
+    this.value,
+    this.onComplete,
+    this.onError,
+  });
+
+  final String key;
+  final dynamic value;
+  final EnsembleAction? onComplete;
+  final EnsembleAction? onError;
+
+  factory SaveKeychain.fromYaml({Map? payload}) {
+    if (payload == null || payload['key'] == null) {
+      throw ConfigError('${ActionType.saveKeychain} requires a key.');
+    }
+    return SaveKeychain(
+      key: payload['key'],
+      value: payload['value'],
+      onComplete: EnsembleAction.fromYaml(payload['onComplete']),
+      onError: EnsembleAction.fromYaml(payload['onError']),
+    );
+  }
+
+  @override
+  Future execute(BuildContext context, ScopeManager scopeManager,
+      {DataContext? dataContext}) async {
+    String? storageKey =
+        Utils.optionalString(scopeManager.dataContext.eval(key));
+    String? errorReason;
+
+    if (storageKey != null) {
+      try {
+        final datas = {'key': key, 'value': value};
+        await KeychainManager().saveToKeychain(datas);
+        // dispatch onComplete
+        if (onComplete != null) {
+          ScreenController().executeAction(context, onComplete!);
+        }
+      } catch (e) {
+        errorReason = e.toString();
+      }
+    } else {
+      errorReason = '${ActionType.saveKeychain} requires a key.';
+    }
+
+    if (onError != null && errorReason != null) {
+      ScreenController().executeAction(context, onError!,
+          event: EnsembleEvent(null, error: errorReason));
+    }
+    return Future.value(null);
+  }
+}
+
+class ClearKeychain extends EnsembleAction {
+  ClearKeychain({
+    required this.key,
+    this.onComplete,
+    this.onError,
+  });
+
+  final String key;
+  final EnsembleAction? onComplete;
+  final EnsembleAction? onError;
+
+  factory ClearKeychain.fromYaml({Map? payload}) {
+    if (payload == null || payload['key'] == null) {
+      throw ConfigError('${ActionType.clearKeychain} requires a key.');
+    }
+    return ClearKeychain(
+      key: payload['key'],
+      onComplete: EnsembleAction.fromYaml(payload['onComplete']),
+      onError: EnsembleAction.fromYaml(payload['onError']),
+    );
+  }
+
+  @override
+  Future execute(BuildContext context, ScopeManager scopeManager,
+      {DataContext? dataContext}) async {
+    String? storageKey =
+        Utils.optionalString(scopeManager.dataContext.eval(key));
+    String? errorReason;
+
+    if (storageKey != null) {
+      try {
+        final datas = {'key': key};
+        await KeychainManager().clearKeychain(datas);
+        // dispatch onComplete
+        if (onComplete != null) {
+          ScreenController().executeAction(context, onComplete!);
+        }
+      } catch (e) {
+        errorReason = e.toString();
+      }
+    } else {
+      errorReason = '${ActionType.clearKeychain} requires a key.';
+    }
+
+    if (onError != null && errorReason != null) {
+      ScreenController().executeAction(context, onError!,
+          event: EnsembleEvent(null, error: errorReason));
+    }
+    return Future.value(null);
+  }
+}
+
 enum ActionType {
   invokeAPI,
   navigateScreen,
@@ -733,7 +844,7 @@ enum ActionType {
   openAppSettings,
   getPhoneContacts,
   checkPermission,
-  saveToKeychain,
+  saveKeychain,
   clearKeychain,
   getDeviceToken,
   connectSocket,
@@ -742,6 +853,7 @@ enum ActionType {
   updateBadgeCount,
   clearBadgeCount,
   callExternalMethod,
+  callNativeMethod,
 }
 
 enum ToastType { success, error, warning, info }
@@ -876,6 +988,12 @@ abstract class EnsembleAction {
       return ClearBadgeCount();
     } else if (actionType == ActionType.callExternalMethod) {
       return CallExternalMethod.from(payload: payload);
+    } else if (actionType == ActionType.callNativeMethod) {
+      return CallNativeMethod.from(payload: payload);
+    } else if (actionType == ActionType.saveKeychain) {
+      return SaveKeychain.fromYaml(payload: payload);
+    } else if (actionType == ActionType.clearKeychain) {
+      return ClearKeychain.fromYaml(payload: payload);
     }
     throw LanguageError("Invalid action.",
         recovery: "Make sure to use one of Ensemble-provided actions.");
