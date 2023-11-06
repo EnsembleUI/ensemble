@@ -76,7 +76,7 @@ class LottieState extends WidgetState<EnsembleLottie>
   Widget buildWidget(BuildContext context) {
     final isCanvasKit = js.context['flutterCanvasKit'] != null;
 
-    BoxFit? fit = WidgetUtils.getBoxFit(widget.controller.fit);
+    BoxFit? fit = Utils.getBoxFit(widget.controller.fit);
     Widget rtn = BoxWrapper(
         widget: isCanvasKit ? buildLottieCanvas(fit) : buildLottieHtml(fit),
         boxController: widget.controller,
