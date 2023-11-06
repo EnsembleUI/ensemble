@@ -15,6 +15,21 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:flutter/material.dart';
 
+class BottomNavBarNotifier extends ChangeNotifier {
+  int _viewIndex = 0;
+
+  int get viewIndex => _viewIndex;
+
+  void updatePage(int index, {bool isReload = true}) {
+    _viewIndex = index;
+    if (isReload) {
+      notifyListeners();
+    }
+  }
+}
+
+final bottomNavBarNotifier = BottomNavBarNotifier();
+
 class FABBottomAppBarItem {
   FABBottomAppBarItem({
     required this.icon,
@@ -53,6 +68,32 @@ extension EnumActionExtension on FloatingAlignment {
   }
 }
 
+class PageGroupWidgetWrapper extends StatelessWidget {
+  const PageGroupWidgetWrapper({
+    super.key,
+    required this.scopeManager,
+    required this.reloadView,
+    required this.child,
+  });
+
+  final ScopeManager scopeManager;
+  final bool? reloadView;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (reloadView == false) {
+      return PageGroupWidget(
+        scopeManager: scopeManager,
+        pageController:
+            PageController(initialPage: bottomNavBarNotifier.viewIndex),
+        child: child,
+      );
+    }
+    return child;
+  }
+}
+
 class BottomNavPageGroup extends StatefulWidget {
   const BottomNavPageGroup({
     super.key,
@@ -75,7 +116,6 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
     with RouteAware {
   late List<MenuItem> menuItems;
   late PageController controller;
-  late int selectedPage;
   FloatingAlignment floatingAlignment = FloatingAlignment.center;
   int? floatingMargin;
   MenuItem? fabMenuItem;
@@ -83,11 +123,10 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
   @override
   void initState() {
     super.initState();
-    if (widget.menu.reloadView == true) {
-      selectedPage = widget.selectedPage;
-    } else {
+    if (widget.menu.reloadView == false) {
       controller = PageController(initialPage: widget.selectedPage);
     }
+    bottomNavBarNotifier.updatePage(widget.selectedPage, isReload: false);
     menuItems = widget.menu.menuItems
         .where((element) => element.floating != true)
         .toList();
@@ -179,27 +218,38 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
     final notchColor = Utils.getColor(widget.menu.styles?['notchColor']) ??
         Theme.of(context).scaffoldBackgroundColor;
 
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      backgroundColor: notchColor,
-      bottomNavigationBar: _buildBottomNavBar(),
-      floatingActionButtonLocation: floatingAlignment == FloatingAlignment.none
-          ? null
-          : floatingAlignment.location,
-      floatingActionButton: _buildFloatingButton(),
-      body: PageGroupWidget(
-        scopeManager: widget.scopeManager,
-        child: widget.menu.reloadView == true
-            ? widget.children[selectedPage]
-            : BottomNavPageView(
-                controller: controller,
-                children: widget.children,
+    return PageGroupWidgetWrapper(
+      reloadView: widget.menu.reloadView,
+      scopeManager: widget.scopeManager,
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        backgroundColor: notchColor,
+        bottomNavigationBar: _buildBottomNavBar(),
+        floatingActionButtonLocation:
+            floatingAlignment == FloatingAlignment.none
+                ? null
+                : floatingAlignment.location,
+        floatingActionButton: _buildFloatingButton(),
+        body: widget.menu.reloadView == true
+            ? ListenableBuilder(
+                listenable: bottomNavBarNotifier,
+                builder: (_, __) =>
+                    widget.children[bottomNavBarNotifier.viewIndex])
+            : Builder(
+                builder: (context) {
+                  final controller = PageGroupWidget.getPageController(context);
+
+                  return BottomNavPageView(
+                    controller: controller ?? PageController(),
+                    children: widget.children,
+                  );
+                },
               ),
       ),
     );
   }
 
-  EnsembleBottomAppBar? _buildBottomNavBar() {
+  Widget? _buildBottomNavBar() {
     List<FABBottomAppBarItem> navItems = [];
 
     final unselectedColor = Utils.getColor(widget.menu.styles?['color']) ??
@@ -241,31 +291,40 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
       );
     }
 
-    return EnsembleBottomAppBar(
-      selectedIndex: widget.selectedPage,
-      backgroundColor: Utils.getColor(widget.menu.styles?['backgroundColor']) ??
-          Colors.white,
-      height: Utils.optionalDouble(widget.menu.styles?['height'] ?? 60),
-      margin: widget.menu.styles?['margin'],
-      padding: widget.menu.styles?['padding'],
-      borderRadius: Utils.getBorderRadius(widget.menu.styles?['borderRadius'])
-          ?.getValue(),
-      color: unselectedColor,
-      selectedColor: selectedColor,
-      notchedShape: const CircularNotchedRectangle(),
-      onTabSelected: (index) {
-        if (widget.menu.reloadView == true) {
-          setState(() {
-            selectedPage = index;
-          });
-        } else {
-          controller.jumpToPage(index);
-        }
+    return ListenableBuilder(
+      listenable: bottomNavBarNotifier,
+      builder: (context, _) {
+        final viewIndex = bottomNavBarNotifier.viewIndex;
+
+        return EnsembleBottomAppBar(
+          key: UniqueKey(),
+          selectedIndex: viewIndex,
+          backgroundColor:
+              Utils.getColor(widget.menu.styles?['backgroundColor']) ??
+                  Colors.white,
+          height: Utils.optionalDouble(widget.menu.styles?['height'] ?? 60),
+          margin: widget.menu.styles?['margin'],
+          padding: widget.menu.styles?['padding'],
+          borderRadius:
+              Utils.getBorderRadius(widget.menu.styles?['borderRadius'])
+                  ?.getValue(),
+          color: unselectedColor,
+          selectedColor: selectedColor,
+          notchedShape: const CircularNotchedRectangle(),
+          onTabSelected: (index) {
+            if (widget.menu.reloadView == true) {
+              bottomNavBarNotifier.updatePage(index);
+            } else {
+              PageGroupWidget.getPageController(context)!.jumpToPage(index);
+              bottomNavBarNotifier.updatePage(index);
+            }
+          },
+          items: navItems,
+          isFloating: fabMenuItem != null,
+          floatingAlignment: floatingAlignment,
+          floatingMargin: floatingMargin,
+        );
       },
-      items: navItems,
-      isFloating: fabMenuItem != null,
-      floatingAlignment: floatingAlignment,
-      floatingMargin: floatingMargin,
     );
   }
 
@@ -359,7 +418,7 @@ class EnsembleBottomAppBarState extends State<EnsembleBottomAppBar> {
     super.initState();
     _selectedIndex = widget.selectedIndex;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _updateIndex(_selectedIndex);
+      // _updateIndex(_selectedIndex);
     });
   }
 
