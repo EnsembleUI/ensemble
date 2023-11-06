@@ -84,7 +84,6 @@ class PageGroupWidget extends DataScopeWidget {
 
 class PageGroupState extends State<PageGroup> with MediaQueryCapability {
   late ScopeManager _scopeManager;
-  PageController? sidebarPageController;
 
   // managing the list of pages
   List<Widget> pageWidgets = [];
@@ -117,10 +116,6 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
         selectedPage = i;
         viewGroupNotifier.updatePage(selectedPage, isReload: false);
       }
-    }
-
-    if (widget.menu is SidebarMenu && widget.menu.reloadView == false) {
-      sidebarPageController = PageController(initialPage: 0);
     }
   }
 
@@ -167,19 +162,13 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     Widget sidebar = _buildSidebar(context, menu);
     Widget? separator = _buildSidebarSeparator(menu);
     Widget content = Expanded(
-      child: menu.reloadView == true
-          ? ListenableBuilder(
-              listenable: viewGroupNotifier,
-              builder: (context, _) => pageWidgets[viewGroupNotifier.viewIndex],
-            )
-          : PageGroupWidget(
-              scopeManager: _scopeManager,
-              pageController: sidebarPageController,
-              child: PageView(
-                controller: sidebarPageController,
-                children: pageWidgets,
-              ),
-            ),
+      child: ListenableBuilder(
+        listenable: viewGroupNotifier,
+        builder: (context, _) => menu.reloadView == true
+            ? pageWidgets[viewGroupNotifier.viewIndex]
+            : IndexedStack(
+                index: viewGroupNotifier.viewIndex, children: pageWidgets),
+      ),
     );
     // figuring out the direction to lay things out
     bool rtlLocale = Directionality.of(context) == TextDirection.rtl;
@@ -273,12 +262,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
           destinations: navItems,
           trailing: menuFooter,
           selectedIndex: viewGroupNotifier.viewIndex,
-          onDestinationSelected: (index) {
-            viewGroupNotifier.updatePage(index);
-            if (widget.menu.reloadView == false) {
-              sidebarPageController?.jumpToPage(index);
-            }
-          },
+          onDestinationSelected: viewGroupNotifier.updatePage,
         );
       },
     );
