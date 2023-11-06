@@ -115,6 +115,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
       dynamic selected = _scopeManager.dataContext.eval(menuItem.selected);
       if (selected == true || selected == 'true') {
         selectedPage = i;
+        viewGroupNotifier.updatePage(selectedPage, isReload: false);
       }
     }
 
@@ -148,9 +149,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
                 ),
         );
       } else if (widget.menu is SidebarMenu) {
-        return PageGroupWidget(
-            scopeManager: _scopeManager,
-            child: buildSidebarNavigation(context, widget.menu as SidebarMenu));
+        return buildSidebarNavigation(context, widget.menu as SidebarMenu);
       } else if (widget.menu is BottomNavBarMenu) {
         return BottomNavPageGroup(
           scopeManager: _scopeManager,
@@ -169,10 +168,17 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     Widget? separator = _buildSidebarSeparator(menu);
     Widget content = Expanded(
       child: menu.reloadView == true
-          ? IndexedStack(index: selectedPage, children: pageWidgets)
-          : PageView(
-              controller: sidebarPageController,
-              children: pageWidgets,
+          ? ListenableBuilder(
+              listenable: viewGroupNotifier,
+              builder: (context, _) => pageWidgets[viewGroupNotifier.viewIndex],
+            )
+          : PageGroupWidget(
+              scopeManager: _scopeManager,
+              pageController: sidebarPageController,
+              child: PageView(
+                controller: sidebarPageController,
+                children: pageWidgets,
+              ),
             ),
     );
     // figuring out the direction to lay things out
@@ -251,26 +257,29 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     int minWidth =
         Utils.optionalInt(menu.styles?['minWidth'], min: minGap) ?? 200;
 
-    return NavigationRail(
-      extended: itemDisplay == MenuItemDisplay.sideBySide ? true : false,
-      minExtendedWidth: minWidth.toDouble(),
-      minWidth: minGap.toDouble(),
-      // this is important for optimal default item spacing
-      labelType: itemDisplay != MenuItemDisplay.sideBySide
-          ? NavigationRailLabelType.all
-          : null,
-      backgroundColor: menuBackground,
-      leading: menuHeader,
-      destinations: navItems,
-      trailing: menuFooter,
-      selectedIndex: selectedPage,
-      onDestinationSelected: (index) {
-        setState(() {
-          selectedPage = index;
-        });
-        if (widget.menu.reloadView == false) {
-          sidebarPageController?.jumpToPage(index);
-        }
+    return ListenableBuilder(
+      listenable: viewGroupNotifier,
+      builder: (context, _) {
+        return NavigationRail(
+          extended: itemDisplay == MenuItemDisplay.sideBySide ? true : false,
+          minExtendedWidth: minWidth.toDouble(),
+          minWidth: minGap.toDouble(),
+          // this is important for optimal default item spacing
+          labelType: itemDisplay != MenuItemDisplay.sideBySide
+              ? NavigationRailLabelType.all
+              : null,
+          backgroundColor: menuBackground,
+          leading: menuHeader,
+          destinations: navItems,
+          trailing: menuFooter,
+          selectedIndex: viewGroupNotifier.viewIndex,
+          onDestinationSelected: (index) {
+            viewGroupNotifier.updatePage(index);
+            if (widget.menu.reloadView == false) {
+              sidebarPageController?.jumpToPage(index);
+            }
+          },
+        );
       },
     );
   }
@@ -369,3 +378,18 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
   //   return display;
   // }
 }
+
+class ViewGroupNotifier extends ChangeNotifier {
+  int _viewIndex = 0;
+
+  int get viewIndex => _viewIndex;
+
+  void updatePage(int index, {bool isReload = true}) {
+    _viewIndex = index;
+    if (isReload) {
+      notifyListeners();
+    }
+  }
+}
+
+final viewGroupNotifier = ViewGroupNotifier();
