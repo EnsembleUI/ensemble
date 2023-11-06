@@ -190,7 +190,7 @@ class EnsembleImageCropperState extends WidgetState<EnsembleImageCropper>
       return placeholder;
     }
 
-    BoxFit? fit = WidgetUtils.getBoxFit(widget._controller.fit);
+    BoxFit? fit = Utils.getBoxFit(widget._controller.fit);
     final cropShape = _getCropShape();
 
     Widget rtn;

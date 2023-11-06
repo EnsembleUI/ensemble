@@ -80,6 +80,56 @@
             }
           }
         },
+        "footer": {
+          "type": "object",
+          "properties": {
+            "style": {
+              "$ref": "#/$defs/boxStyles"
+            },
+            "dragOptions": {
+              "type": "object",
+              "properties": {
+                "enable": {
+                  "type": "boolean"
+                },
+                "initialSize": {
+                  "type": "number",
+                  "description": "Default it 0.5 i.e 50% of screen"
+                },
+                "minSize": {
+                  "type": "number",
+                  "description": "Minimum size of till sheet can go. Default is 0.25 i.e 25% of screen."
+                },
+                "maxSize": {
+                  "type": "number",
+                  "description": "Maximum size of till sheet can go. Default is 1 i.e 100% of screen."
+                },
+                "span": {
+                  "type": "boolean",
+                  "description": "Whether the widget should snap between [snapSizes] when the user lifts their finger during a drag."
+                },
+                "spanSizes": {
+                  "type": "array",
+                  "description": "The list of number each ranging from minSize to maxSize.",
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                "onMinSize": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action when the drag hits minimum size"
+                },
+                "onMaxSize": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action when the drag hits maximum size"        
+                }
+              }
+            },
+            "children": {
+              "$ref": "#/$defs/Widgets"
+            }
+          }
+        },
         "body": {
           "$ref": "#/$defs/Widget"
         },
@@ -559,6 +609,84 @@
                   "minimum": 0,
                   "maximum": 2000,
                   "description": "Images will be automatically resized (default to 800 width with no height set) before rendering. If you know the rough image height, set this number to be the same or a slightly larger height to optimize the loading time. To maintain the original aspect ratio, set either resizedWidth or resizedHeight, but not both. This setting is not supported on Web."
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "Avatar-payload": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
+        "source": {
+          "type": "string",
+          "description": "URL to or asset name of the image. If the URL is used, it is highly recommended that the dimensions is set (either with width/height or other means) to prevent the UI jerkiness while loading."
+        },
+        "name": {
+          "type": "string",
+          "description": "If the image source is not specified or failed to load, this name's initials will be displayed"
+        },
+        "nameTextStyle": {
+          "description": "Adjust the text styling for the name",
+          "$ref": "#/$defs/TextStyle"
+        },
+        "onTap": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Call Ensemble's built-in functions or execute code"
+        },
+        "styles": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
+            },
+            {
+              "$ref": "#/$defs/boxStyles"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "placeholderColor": {
+                  "$ref": "#/$defs/type-color",
+                  "description": "The placeholder color while the image is loading."
+                },
+                "fit": {
+                  "type": "string",
+                  "description": "How to fit the image within our width/height or our parent (if dimension is not specified)",
+                  "oneOf": [
+                    {
+                      "const": "fill",
+                      "description": "Stretch our image to fill the dimension, and distorting the aspect ratio if needed"
+                    },
+                    {
+                      "const": "contain",
+                      "description": "Scale the image such that the entire image is contained within our dimension"
+                    },
+                    {
+                      "const": "cover",
+                      "description": "Scale the image to fill our dimension, clipping the image as needed"
+                    },
+                    {
+                      "const": "fitWidth",
+                      "description": "Scale the image to fit the width, and clipping the height if needed"
+                    },
+                    {
+                      "const": "fitHeight",
+                      "description": "Scale the image to fit the height, and clipping the width if needed"
+                    },
+                    {
+                      "const": "none",
+                      "description": "Center-Align the original image size, clipping the content if needed"
+                    },
+                    {
+                      "const": "scaleDown",
+                      "description": "Center-Align the image and only scale down to fit. Image will not be scaled up to bigger dimension."
+                    }
+                  ]
                 }
               }
             }
@@ -3021,6 +3149,28 @@
           }
         },
         {
+          "title": "Navigate View Group",
+          "type": "object",
+          "required": [
+            "navigateViewGroup"
+          ],
+          "properties": {
+            "navigateViewGroup": {
+              "type": "object",
+              "description": "Navigate between the screens in the view group. It is applicable only when inside a ViewGroup",
+              "required": [
+                "viewIndex"
+              ],
+              "properties": {
+                "viewIndex": {
+                  "type": "integer",
+                  "description": "Enter the index of the screen to navigate"
+                }
+              }
+            }
+          }
+        },
+        {
           "title": "Navigate Modal Screen",
           "type": "object",
           "required": [
@@ -4231,6 +4381,37 @@
               }
             }
           }
+        },
+        {
+          "title": "Call a native method defined inside the Host Platform",
+          "type": "object",
+          "required": [
+            "callNativeMethod"
+          ],
+          "properties": {
+            "callNativeMethod": {
+              "type": "object",
+              "description": "Call a native method defined in the Host Platform",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "The method channel name defined in your host platform"
+                },
+                "payload": {
+                  "type": "object",
+                  "description": "The key/value pairs payload to be sent as the input parameters for your method"
+                },
+                "onComplete": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Called when the method has finished its execution"
+                },
+                "onError": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Called when there is an error while executing the method. The error reason is available under 'event.error'"
+                }
+              }
+            }
+          }
         }
       ]
     },
@@ -4674,6 +4855,18 @@
             "Image": {
               "$ref": "#/$defs/Image-payload",
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/7c7a3ffe-68ef-4e99-b9d1-4b5cee166233#"
+            }
+          }
+        },
+        {
+          "title": "Avatar",
+          "required": [
+            "Avatar"
+          ],
+          "properties": {
+            "Avatar": {
+              "$ref": "#/$defs/Avatar-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/kJ9eqI5BPL30IwjnEDdJ"
             }
           }
         },
@@ -5327,35 +5520,48 @@
                   "$ref": "#/$defs/Widget"
                 },
                 "rowSpans": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "span": {
+                  "type": "object",
+                  "properties": {
+                    "spanPerRow": {
+                      "type": "integer",
+                      "description": "Limit the number of spans per row"
+                    },
+                    "overflowWidget": {
+                      "$ref": "#/$defs/Widget",
+                      "description": "If spans per row overflow based on spanPerRow than overflowWidget will render"
+                    },
+                    "children": {
+                      "type": "array",
+                      "items": {
                         "type": "object",
                         "properties": {
-                          "start": {
-                            "type": "string",
-                            "description": "date in ISO format."
-                          },
-                          "end": {
-                            "type": "string",
-                            "description": "date in ISO format."
-                          },
-                          "widget": {
-                            "$ref": "#/$defs/Widget"
+                          "span": {
+                            "type": "object",
+                            "properties": {
+                              "start": {
+                                "type": "string",
+                                "description": "date in ISO format."
+                              },
+                              "end": {
+                                "type": "string",
+                                "description": "date in ISO format."
+                              },
+                              "widget": {
+                                "$ref": "#/$defs/Widget"
+                              }
+                            },
+                            "required": [
+                              "start",
+                              "end",
+                              "widget"
+                            ]
                           }
                         },
                         "required": [
-                          "start",
-                          "end",
-                          "widget"
+                          "span"
                         ]
                       }
-                    },
-                    "required": [
-                      "span"
-                    ]
+                    }
                   }
                 },
                 "headerTextStyle": {
@@ -6867,12 +7073,5 @@
         "bottomRight"
       ]
     }
-    
-    
-    
-    
-    
-    
-    
   }
 }
