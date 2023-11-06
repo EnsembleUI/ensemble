@@ -7,7 +7,7 @@ View:
       children:
         - TextInput:
             id: textInputId
-            onDelayedKeyPress: |
+            onKeyPress: |
               //@code
               textInputId.value = textInputId.value;
 
