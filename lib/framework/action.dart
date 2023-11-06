@@ -14,6 +14,8 @@ import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/keychain_manager.dart';
 import 'package:ensemble/framework/permissions_manager.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/bottom_nav_page_group.dart';
+import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -111,6 +113,24 @@ class NavigateScreenAction extends BaseNavigateScreenAction {
       return NavigateScreenAction(screenName: inputs);
     }
     return NavigateScreenAction.fromYaml(payload: Utils.getYamlMap(inputs));
+  }
+}
+
+class NavigateViewGroupAction extends EnsembleAction {
+  NavigateViewGroupAction({dynamic viewIndex}) : _viewIndex = viewIndex;
+
+  final dynamic _viewIndex;
+
+  factory NavigateViewGroupAction.from({Map? payload}) {
+    return NavigateViewGroupAction(viewIndex: payload?['viewIndex']);
+  }
+
+  @override
+  Future execute(BuildContext context, ScopeManager scopeManager,
+      {DataContext? dataContext}) {
+    PageGroupWidget.getPageController(context)!.jumpToPage(_viewIndex);
+    bottomNavBarNotifier.updatePage(_viewIndex);
+    return Future.value(null);
   }
 }
 
@@ -816,6 +836,7 @@ class ClearKeychain extends EnsembleAction {
 enum ActionType {
   invokeAPI,
   navigateScreen,
+  navigateViewGroup,
   navigateExternalScreen,
   navigateModalScreen,
   showBottomModal,
@@ -907,6 +928,8 @@ abstract class EnsembleAction {
     } else if (actionType == ActionType.navigateExternalScreen) {
       return NavigateExternalScreen.from(
           initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.navigateViewGroup) {
+      return NavigateViewGroupAction.from(payload: payload);
     } else if (actionType == ActionType.navigateModalScreen) {
       return NavigateModalScreenAction.fromYaml(
           initiator: initiator, payload: payload);
