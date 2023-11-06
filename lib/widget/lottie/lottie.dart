@@ -10,7 +10,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import 'dart:js' as js;
 
 class EnsembleLottie extends StatefulWidget
     with Invokable, HasController<LottieController, LottieState> {
@@ -32,20 +31,47 @@ class EnsembleLottie extends StatefulWidget
   @override
   Map<String, Function> methods() {
     if (kIsWeb) {
-      final isHTML = js.context['flutterCanvasKit'] == null;
+      // A little hacky way to check if html renderer is used as only html render would have the lottieController null.
+      final bool isHtml = _controller.lottieController != null;
 
-      if (isHTML) {
-        return {
-          // Method to start animation in forward direction
-          'forward': () => _controller.lottieAction!.forward(),
-          // Method to run animation in reverse direction
-          'reverse': () => _controller.lottieAction!.reverse(),
-          // Method to reset animation to initial position
-          'reset': () => _controller.lottieAction!.reset(),
-          // Method to stop animation at current position
-          'stop': () => _controller.lottieAction!.stop(),
-        };
-      }
+      return {
+        // Method to start animation in forward direction
+        'forward': () {
+          if (isHtml) {
+            if (_controller.repeat) {
+              _controller.lottieController!.repeat();
+            } else {
+              _controller.lottieController!.forward();
+            }
+          } else {
+            _controller.lottieAction!.forward();
+          }
+        },
+        // Method to run animation in reverse direction
+        'reverse': () {
+          if (isHtml) {
+            _controller.lottieController!.reverse();
+          } else {
+            _controller.lottieAction!.reverse();
+          }
+        },
+        // Method to reset animation to initial position
+        'reset': () {
+          if (isHtml) {
+            _controller.lottieController!.reset();
+          } else {
+            _controller.lottieAction!.reset();
+          }
+        },
+        // Method to stop animation at current position
+        'stop': () {
+          if (isHtml) {
+            _controller.lottieController!.stop();
+          } else {
+            _controller.lottieAction!.stop();
+          }
+        },
+      };
     }
 
     return {
