@@ -66,6 +66,13 @@ class LottieState extends WidgetState<EnsembleLottie>
   void stop() => html.window.postMessage('stop_$divId', "*");
 
   @override
+  void dispose() {
+    html.window.close();
+
+    super.dispose();
+  }
+
+  @override
   Widget buildWidget(BuildContext context) {
     final isCanvasKit = js.context['flutterCanvasKit'] != null;
 
@@ -194,55 +201,55 @@ class LottieState extends WidgetState<EnsembleLottie>
         ..style.border = 'none'
         ..onLoad;
 
-      html.window.onMessage.listen((event) {
-        final String data = event.data;
+      html.window.onMessage.listen(
+        (event) async {
+          final String data = event.data;
 
-        if (data.contains('{')) {
-          final json = jsonDecode(data);
+          if (data.contains('{')) {
+            final json = jsonDecode(data);
 
-          if (lastEventId != json['id']) {
-            lastEventId = json['id'];
+            if (lastEventId != json['id'] && divId == json['tag']) {
+              lastEventId = json['id'];
 
-            print(lastEventId);
-            print(json['id']);
+              if (json['data'] == "onForward" &&
+                  widget.controller.onForward != null) {
+                ScreenController().executeAction(
+                  context,
+                  widget.controller.onForward!,
+                  event: EnsembleEvent(widget),
+                );
+              }
 
-            if (json['data'] == "onForward" &&
-                widget.controller.onForward != null) {
-              ScreenController().executeAction(
-                context,
-                widget.controller.onForward!,
-                event: EnsembleEvent(widget),
-              );
-            }
+              if (json['data'] == "onComplete" &&
+                  widget.controller.onComplete != null) {
+                ScreenController().executeAction(
+                  context,
+                  widget.controller.onComplete!,
+                  event: EnsembleEvent(widget),
+                );
+              }
 
-            if (json['data'] == "onComplete" &&
-                widget.controller.onComplete != null) {
-              ScreenController().executeAction(
-                context,
-                widget.controller.onComplete!,
-                event: EnsembleEvent(widget),
-              );
-            }
+              if (json['data'] == "onStop" &&
+                  widget.controller.onStop != null) {
+                ScreenController().executeAction(
+                  context,
+                  widget.controller.onStop!,
+                  event: EnsembleEvent(widget),
+                );
+              }
 
-            if (json['data'] == "onStop" && widget.controller.onStop != null) {
-              ScreenController().executeAction(
-                context,
-                widget.controller.onStop!,
-                event: EnsembleEvent(widget),
-              );
-            }
-
-            if (json['data'] == "onReverse" &&
-                widget.controller.onReverse != null) {
-              ScreenController().executeAction(
-                context,
-                widget.controller.onReverse!,
-                event: EnsembleEvent(widget),
-              );
+              if (json['data'] == "onReverse" &&
+                  widget.controller.onReverse != null) {
+                ScreenController().executeAction(
+                  context,
+                  widget.controller.onReverse!,
+                  event: EnsembleEvent(widget),
+                );
+              }
             }
           }
-        }
-      });
+        },
+      );
 
       ui.platformViewRegistry.registerViewFactory(
         divId,
@@ -255,70 +262,6 @@ class LottieState extends WidgetState<EnsembleLottie>
         height: height + 16,
         child: HtmlElementView(viewType: divId),
       );
-
-//       return JsWidget(
-//         id: _id,
-//         createHtmlTag: () => tag,
-//         data: source,
-//         listener: (String msg) {
-//           if (msg == "Clicked") {
-//             if (widget.controller.onTap != null) {
-//               ScreenController().executeAction(
-//                   context, widget.controller.onTap!,
-//                   event: EnsembleEvent(widget));
-//             }
-//           }
-
-//           if (msg == "Completed") {
-//             if (widget.controller.onComplete != null) {
-//               ScreenController().executeAction(
-//                 context,
-//                 widget.controller.onComplete!,
-//                 event: EnsembleEvent(widget),
-//               );
-//             }
-//           }
-
-//           if (msg == "Forwarded") {
-//             if (widget.controller.onForward != null) {
-//               ScreenController().executeAction(
-//                 context,
-//                 widget.controller.onForward!,
-//                 event: EnsembleEvent(widget),
-//               );
-//             }
-//           }
-//         },
-//         scriptToInstantiate: (String c) {
-//           String script = '''
-// var animData = {
-//   container: document.getElementById("$id"),
-//   renderer: "svg",
-//   loop: $repeat,
-//   autoplay: ${widget.controller.autoPlay},
-//   path: "$c"
-// };
-
-// var anim = bodymovin.loadAnimation(animData);
-
-// anim.addEventListener(
-//   'complete',
-//   () => { handleMessage("$_id","Completed"); }
-// );
-// anim.addEventListener(
-//   'DOMLoaded',
-//   (e) => { if (${widget.controller.autoPlay}) handleMessage("$_id","Forwarded"); }
-// );
-// ''';
-
-//           if (widget.controller.onTap != null) {
-//             script +=
-//                 'document.getElementById("$_id").addEventListener("click",() => handleMessage("$_id","Clicked"));';
-//           }
-//           return script;
-//         },
-//         size: Size(width, height),
-//       );
     }
     return blankPlaceholder();
   }
