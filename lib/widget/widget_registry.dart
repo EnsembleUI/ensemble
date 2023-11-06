@@ -12,6 +12,7 @@ import 'package:ensemble/layout/tab_bar.dart';
 import 'package:ensemble/layout/toggle_container.dart';
 import 'package:ensemble/widget/Toggle.dart';
 import 'package:ensemble/widget/address.dart';
+import 'package:ensemble/widget/avatar.dart';
 import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/calendar.dart';
 import 'package:ensemble/widget/countdown.dart';
@@ -56,6 +57,7 @@ import 'package:ensemble/widget/visualization/chart_js.dart';
 import 'package:ensemble/widget/visualization/line_area_chart.dart';
 import 'package:ensemble/widget/visualization/topology_chart.dart';
 import 'package:ensemble/widget/webview/webview.dart';
+import 'package:ensemble/widget/youtube.dart';
 import 'package:ensemble/widget/weeklyscheduler.dart';
 import 'package:get_it/get_it.dart';
 
@@ -69,7 +71,7 @@ class WidgetRegistry {
   /// all statically-known widgets should be registered here.
   /// widgets can be dynamically registered (or overridden) by calling registerWidget()
   final Map<String, Function> _registeredWidgets = {
-    // TextWidget.type: TextWidget.build,
+    Avatar.type: Avatar.build,
   };
 
   /// register or override a widget
@@ -101,6 +103,7 @@ class WidgetRegistry {
         EnsembleMap.type: () => EnsembleMap(), // legacy maps
         Carousel.type: () => Carousel(),
         Video.type: () => Video(),
+        Youtube.type: () => Youtube(),
         EnsembleLottie.type: () => EnsembleLottie(),
         EnsembleSignature.type: () => EnsembleSignature(),
         WeeklyScheduler.type: () => WeeklyScheduler(),
