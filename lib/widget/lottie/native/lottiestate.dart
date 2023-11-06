@@ -21,7 +21,7 @@ class LottieState extends WidgetState<EnsembleLottie>
 
   @override
   Widget buildWidget(BuildContext context) {
-    BoxFit? fit = WidgetUtils.getBoxFit(widget.controller.fit);
+    BoxFit? fit = Utils.getBoxFit(widget.controller.fit);
 
     Widget rtn = BoxWrapper(
         widget: buildLottie(fit),
