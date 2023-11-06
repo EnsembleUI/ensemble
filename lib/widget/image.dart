@@ -84,7 +84,6 @@ class ImageController extends BoxController {
 }
 
 class ImageState extends WidgetState<EnsembleImage> {
-
   @override
   Widget buildWidget(BuildContext context) {
     String source = widget._controller.source.trim();
@@ -211,7 +210,6 @@ class ImageState extends WidgetState<EnsembleImage> {
     }
     return fallbackWidget;
   }
-
 }
 
 class EnsembleImageCacheManager {
