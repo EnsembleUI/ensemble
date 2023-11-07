@@ -6,10 +6,7 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/menu.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/bottom_nav_page_view.dart';
-import 'package:ensemble/framework/view/data_scope_widget.dart';
-import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/framework/view/page_group.dart';
-import 'package:ensemble/framework/widget/custom_view.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
@@ -75,6 +72,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
     with RouteAware {
   late List<MenuItem> menuItems;
   late PageController controller;
+  late int selectedPage;
   FloatingAlignment floatingAlignment = FloatingAlignment.center;
   int? floatingMargin;
   MenuItem? fabMenuItem;
@@ -82,7 +80,11 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
   @override
   void initState() {
     super.initState();
-    controller = PageController();
+    if (widget.menu.reloadView == true) {
+      selectedPage = widget.selectedPage;
+    } else {
+      controller = PageController(initialPage: widget.selectedPage);
+    }
     menuItems = widget.menu.menuItems
         .where((element) => element.floating != true)
         .toList();
@@ -114,7 +116,9 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
 
   @override
   void dispose() {
-    controller.dispose();
+    if (widget.menu.reloadView == false) {
+      controller.dispose();
+    }
     Ensemble.routeObserver.unsubscribe(this);
     super.dispose();
   }
@@ -182,10 +186,12 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
       floatingActionButton: _buildFloatingButton(),
       body: PageGroupWidget(
         scopeManager: widget.scopeManager,
-        child: BottomNavPageView(
-          controller: controller,
-          children: widget.children,
-        ),
+        child: widget.menu.reloadView == true
+            ? widget.children[selectedPage]
+            : BottomNavPageView(
+                controller: controller,
+                children: widget.children,
+              ),
       ),
     );
   }
@@ -237,11 +243,27 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
       backgroundColor: Utils.getColor(widget.menu.styles?['backgroundColor']) ??
           Colors.white,
       height: Utils.optionalDouble(widget.menu.styles?['height'] ?? 60),
+      margin: widget.menu.styles?['margin'],
       padding: widget.menu.styles?['padding'],
+      borderRadius: Utils.getBorderRadius(widget.menu.styles?['borderRadius'])
+          ?.getValue(),
       color: unselectedColor,
       selectedColor: selectedColor,
+      shadowColor: Utils.getColor(widget.menu.styles?['shadowColor']),
+      shadowRadius: Utils.optionalDouble(widget.menu.styles?['shadowRadius']),
+      shadowBlurRadius:
+          Utils.optionalDouble(widget.menu.styles?['shadowBlurRadius']),
+      shadowStyle: Utils.getShadowBlurStyle(widget.menu.styles?['shadowStyle']),
       notchedShape: const CircularNotchedRectangle(),
-      onTabSelected: controller.jumpToPage,
+      onTabSelected: (index) {
+        if (widget.menu.reloadView == true) {
+          setState(() {
+            selectedPage = index;
+          });
+        } else {
+          controller.jumpToPage(index);
+        }
+      },
       items: navItems,
       isFloating: fabMenuItem != null,
       floatingAlignment: floatingAlignment,
@@ -264,7 +286,13 @@ class EnsembleBottomAppBar extends StatefulWidget {
     required this.items,
     required this.selectedIndex,
     this.height,
+    this.margin,
     this.padding,
+    this.borderRadius,
+    this.shadowColor,
+    this.shadowRadius,
+    this.shadowBlurRadius,
+    this.shadowStyle,
     this.iconSize = 24.0,
     required this.backgroundColor,
     required this.color,
@@ -281,15 +309,21 @@ class EnsembleBottomAppBar extends StatefulWidget {
   final List<FABBottomAppBarItem> items;
   final int selectedIndex;
   final double? height;
+  final dynamic margin;
   final dynamic padding;
   final double iconSize;
   final int? floatingMargin;
   final Color backgroundColor;
   final Color color;
   final Color selectedColor;
+  final Color? shadowColor;
+  final double? shadowRadius;
+  final double? shadowBlurRadius;
+  final BlurStyle? shadowStyle;
   final bool isFloating;
   final FloatingAlignment floatingAlignment;
   final NotchedShape notchedShape;
+  final BorderRadius? borderRadius;
   final VoidCallback? onFabTapped;
   final ValueChanged<int> onTabSelected;
 
@@ -361,13 +395,27 @@ class EnsembleBottomAppBarState extends State<EnsembleBottomAppBar> {
 
     return Theme(
       data: ThemeData(useMaterial3: false),
-      child: BottomAppBar(
-        padding: const EdgeInsets.all(0),
-        shape: widget.notchedShape,
-        color: widget.backgroundColor,
-        notchMargin: _defaultFloatingNotch,
-        child: Padding(
+      child: Container(
+        margin: Utils.optionalInsets(widget.margin) ?? EdgeInsets.zero,
+        decoration: BoxDecoration(
+          borderRadius: widget.borderRadius ?? BorderRadius.zero,
+          boxShadow: widget.shadowColor != null
+              ? [
+                  BoxShadow(
+                    color: widget.shadowColor!,
+                    spreadRadius: widget.shadowRadius ?? 0.0,
+                    blurRadius: widget.shadowBlurRadius ?? 0.0,
+                    blurStyle: widget.shadowStyle ?? BlurStyle.normal,
+                  ),
+                ]
+              : [],
+        ),
+        clipBehavior: widget.borderRadius != null ? Clip.hardEdge : Clip.none,
+        child: BottomAppBar(
           padding: Utils.optionalInsets(widget.padding) ?? EdgeInsets.zero,
+          shape: widget.notchedShape,
+          color: widget.backgroundColor,
+          notchMargin: _defaultFloatingNotch,
           child: Row(
             mainAxisSize: MainAxisSize.max,
             mainAxisAlignment: MainAxisAlignment.spaceAround,

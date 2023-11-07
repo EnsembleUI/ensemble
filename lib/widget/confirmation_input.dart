@@ -35,6 +35,8 @@ class ConfirmationInput extends StatefulWidget
       'inputType': (type) => _controller.inputType = Utils.optionalString(type),
       'autoComplete': (newValue) =>
           _controller.autoComplete = Utils.getBool(newValue, fallback: true),
+      'spaceEvenly': (newValue) =>
+          _controller.spaceEvenly = Utils.getBool(newValue, fallback: true),
       'enableCursor': (newValue) =>
           _controller.enableCursor = Utils.getBool(newValue, fallback: true),
       'length': (newValue) =>
@@ -108,6 +110,7 @@ class ConfirmationInputController extends BoxController {
   String? text;
   late int length;
   bool? autoComplete;
+  bool? spaceEvenly;
   bool? enableCursor;
   String? fieldType;
   String? inputType;
@@ -190,6 +193,7 @@ class ConfirmationInputState extends framework.WidgetState<ConfirmationInput>
           OtpPinFieldDecoration.defaultPinBoxDecoration,
       cursorColor: controller.cursorColor,
       autoComplete: controller.autoComplete ?? true,
+      spaceEvenly: controller.spaceEvenly ?? true,
       onChange: _onChange,
       onSubmit: _onComplete,
     );

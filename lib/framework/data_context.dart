@@ -3,11 +3,18 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:io' as io;
 import 'dart:ui';
+import 'package:ensemble/action/action_invokable.dart';
+import 'package:ensemble/action/call_external_method.dart';
+import 'package:ensemble/action/invoke_api_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/ensemble_app.dart';
+import 'package:ensemble/framework/all_countries.dart';
+import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/keychain_manager.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble/framework/stub/auth_context_manager.dart';
@@ -15,10 +22,10 @@ import 'package:ensemble/framework/stub/oauth_controller.dart';
 import 'package:ensemble/framework/stub/token_manager.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
+import 'package:ensemble/host_platform_manager.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
-import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 
 import 'package:ensemble/framework/action.dart';
@@ -310,25 +317,26 @@ class DataContext {
 }
 
 /// built-in helpers/utils accessible to all DataContext
-class NativeInvokable with Invokable {
-  final BuildContext _buildContext;
-
-  NativeInvokable(this._buildContext);
+class NativeInvokable extends ActionInvokable {
+  NativeInvokable(super.buildContext);
 
   @override
   Map<String, Function> getters() {
     return {
-      'storage': () => EnsembleStorage(_buildContext),
+      'storage': () => EnsembleStorage(buildContext),
       'user': () => UserInfo(),
-      'formatter': () => Formatter(_buildContext),
+      'formatter': () => Formatter(buildContext),
+      'utils': () => EnsembleUtils(),
     };
   }
 
   @override
   Map<String, Function> methods() {
-    return {
+    // see super method for Actions already exposed there
+    Map<String, Function> methods = super.methods();
+    methods.addAll({
       ActionType.navigateScreen.name: (inputs) => ScreenController()
-          .executeAction(_buildContext, NavigateScreenAction.fromMap(inputs)),
+          .executeAction(buildContext, NavigateScreenAction.fromMap(inputs)),
       ActionType.navigateModalScreen.name: navigateToModalScreen,
       ActionType.showDialog.name: showDialog,
       ActionType.invokeAPI.name: invokeAPI,
@@ -337,38 +345,69 @@ class NativeInvokable with Invokable {
       ActionType.openCamera.name: showCamera,
       ActionType.navigateBack.name: navigateBack,
       ActionType.showToast.name: (inputs) => ScreenController()
-          .executeAction(_buildContext, ShowToastAction.fromMap(inputs)),
+          .executeAction(buildContext, ShowToastAction.fromMap(inputs)),
       ActionType.startTimer.name: (inputs) => ScreenController()
-          .executeAction(_buildContext, StartTimerAction.fromMap(inputs)),
+          .executeAction(buildContext, StartTimerAction.fromMap(inputs)),
       ActionType.uploadFiles.name: uploadFiles,
       'debug': (value) => debugPrint('Debug: $value'),
-      'copyToClipboard': (value) =>
-          Clipboard.setData(ClipboardData(text: value)),
-      ActionType.share.name: (payload) => ShareAction.from(payload: payload),
       'initNotification': () => notificationUtils.initNotifications(),
       'updateSystemAuthorizationToken': (token) =>
           GetIt.instance<TokenManager>()
               .updateServiceTokens(OAuthService.system, token),
-      ActionType.saveToKeychain.name: (key, value) =>
-          saveToKeychain(key, value),
-      ActionType.clearKeychain.name: (key) => clearKeychain(key),
+      ActionType.saveKeychain.name: (dynamic inputs) =>
+          KeychainManager().saveToKeychain(inputs),
+      ActionType.clearKeychain.name: (dynamic inputs) =>
+          KeychainManager().clearKeychain(inputs),
+      ActionType.callNativeMethod.name: (dynamic inputs) {
+        final scope = ScreenController().getScopeManager(buildContext);
+        callNativeMethod(buildContext, scope, inputs);
+      },
       'connectSocket': (String socketName, Map<dynamic, dynamic>? inputs) {
-        connectSocket(_buildContext, socketName, inputs: inputs);
+        connectSocket(buildContext, socketName, inputs: inputs);
       },
       'disconnectSocket': (String socketName) {
         disconnectSocket(socketName);
       },
       'messageSocket': (String socketName, dynamic message) {
-        final scope = ScreenController().getScopeManager(_buildContext);
+        final scope = ScreenController().getScopeManager(buildContext);
         final evalMessage = scope?.dataContext.eval(message);
         messageSocket(socketName, evalMessage);
       },
-    };
+    });
+    return methods;
   }
 
   @override
   Map<String, Function> setters() {
     return {};
+  }
+
+  void callNativeMethod(
+      BuildContext context, ScopeManager? scopeManager, dynamic inputs) async {
+    if (scopeManager == null) return;
+
+    String? name =
+        Utils.optionalString(scopeManager.dataContext.eval(inputs?['name']));
+    Map<String, dynamic>? inputMap = Utils.getMap(inputs?['payload']);
+    if (name == null) {
+      print('Invalid method name');
+      return;
+    }
+
+    try {
+      Map<String, dynamic>? payload;
+      inputMap?.forEach((key, value) {
+        (payload ??= {})[key] = scopeManager.dataContext.eval(value);
+      });
+      // execute the external function. Always await in case it's async
+      HostPlatformManager().callNativeMethod(name, payload).then((_) {
+        print('Succesfully called');
+      }).catchError((error) {
+        print('Failed to call method. Reason: $error');
+      });
+    } catch (e) {
+      print('Failed to call method. Reason: $e');
+    }
   }
 
   Future<void> connectSocket(BuildContext context, String socketName,
@@ -389,80 +428,51 @@ class NativeInvokable with Invokable {
     socketService.message(socketName, message);
   }
 
-  Future<void> saveToKeychain(String key, dynamic value) async {
-    if (defaultTargetPlatform != TargetPlatform.iOS) {
-      return;
-    }
-    try {
-      final data = jsonEncode(value);
-      final json = {'key': key, 'data': data};
-      const platform = MethodChannel('com.ensembleui.dev/safari-extension');
-      final _ =
-          await platform.invokeMethod(ActionType.saveToKeychain.name, json);
-    } on PlatformException catch (e) {
-      throw LanguageError(
-          'Failed to invoke ensemble.saveToKeychain. Reason: ${e.toString()}');
-    }
-  }
-
-  Future<void> clearKeychain(String key) async {
-    if (defaultTargetPlatform != TargetPlatform.iOS) {
-      return;
-    }
-    try {
-      const platform = MethodChannel('com.ensembleui.dev/safari-extension');
-      final _ = await platform.invokeMethod(ActionType.clearKeychain.name, key);
-    } on PlatformException catch (e) {
-      throw LanguageError(
-          'Failed to invoke ensemble.clearKeychain. Reason: ${e.toString()}');
-    }
-  }
-
   void uploadFiles(dynamic inputs) {
     Map<String, dynamic>? inputMap = Utils.getMap(inputs);
     if (inputMap == null) throw LanguageError('UploadFiles need inputs');
     ScreenController().executeAction(
-      _buildContext,
+      buildContext,
       FileUploadAction.fromYaml(payload: YamlMap.wrap(inputMap)),
     );
   }
 
   void navigateToModalScreen(String screenName, [dynamic inputs]) {
     Map<String, dynamic>? inputMap = Utils.getMap(inputs);
-    ScreenController().navigateToScreen(_buildContext,
+    ScreenController().navigateToScreen(buildContext,
         screenName: screenName, pageArgs: inputMap, asModal: true);
     // how do we handle onModalDismiss in Typescript?
   }
 
   void showDialog(dynamic widget) {
     ScreenController()
-        .executeAction(_buildContext, ShowDialogAction(widget: widget));
+        .executeAction(buildContext, ShowDialogAction(widget: widget));
   }
 
   void openUrl([dynamic inputs]) {
     Map<String, dynamic>? inputMap = Utils.getMap(inputs);
     inputMap ??= {};
     ScreenController()
-        .executeAction(_buildContext, OpenUrlAction.fromMap(inputMap));
+        .executeAction(buildContext, OpenUrlAction.fromMap(inputMap));
   }
 
   void invokeAPI(String apiName, [dynamic inputs]) {
     Map<String, dynamic>? inputMap = Utils.getMap(inputs);
     ScreenController().executeAction(
-        _buildContext, InvokeAPIAction(apiName: apiName, inputs: inputMap));
+        buildContext, InvokeAPIAction(apiName: apiName, inputs: inputMap));
   }
 
   void stopTimer(String timerId) {
-    ScreenController().executeAction(_buildContext, StopTimerAction(timerId));
+    ScreenController().executeAction(buildContext, StopTimerAction(timerId));
   }
 
   void showCamera() {
-    ScreenController().executeAction(_buildContext, ShowCameraAction());
+    ScreenController().executeAction(buildContext, ShowCameraAction());
   }
 
   void navigateBack([dynamic payload]) {
-    ScreenController().executeAction(
-        _buildContext, NavigateBackAction.from(payload: payload));
+    ScreenController()
+        .executeAction(buildContext, NavigateBackAction.from(payload: payload));
   }
 }
 
@@ -543,6 +553,75 @@ class EnsembleStorage with Invokable {
   }
 }
 
+class EnsembleUtils with Invokable {
+  @override
+  Map<String, Function> getters() => {};
+
+  @override
+  Map<String, Function> methods() => {
+        'getCountries': () => allCountries,
+        'getCountry': (value) {
+          String val = Utils.getString(value, fallback: "");
+          return getCountry(val);
+        },
+        'findCountry': (value) {
+          String val = Utils.getString(value, fallback: "");
+          return findCountry(val);
+        }
+      };
+
+  @override
+  Map<String, Function> setters() => {};
+
+  Map<String, dynamic>? getCountry(String val) {
+    String input = val.toLowerCase().trim();
+
+    if (input.length == 2) {
+      for (var i in allCountries) {
+        String countryCode = i['iso']['alpha-2'];
+        countryCode = countryCode.toLowerCase();
+        if (countryCode == input) {
+          return i;
+        }
+      }
+    } else if (input.length == 3) {
+      for (var i in allCountries) {
+        String countryCode = i['iso']['alpha-3'];
+        countryCode = countryCode.toLowerCase();
+        if (countryCode == input) {
+          return i;
+        }
+      }
+    }
+    return null;
+  }
+
+  List<Map<String, dynamic>> findCountry(String userInput) {
+    List<Map<String, dynamic>> result = [];
+    userInput = userInput.toLowerCase().trim();
+    for (var i in allCountries) {
+      String countryName = i['name'] as String..toLowerCase();
+      countryName = countryName.toLowerCase();
+      if (countryName.contains(userInput, 0)) {
+        result.add(i);
+      } else if (userInput.length == 2) {
+        String alpha2Code = i['iso']['alpha-2'];
+        alpha2Code = alpha2Code.toLowerCase();
+        if (alpha2Code == userInput) {
+          result.add(i);
+        }
+      } else if (userInput.length == 3) {
+        String alpha3code = i['iso']['alpha-3'];
+        alpha3code = alpha3code.toLowerCase();
+        if (alpha3code == userInput) {
+          result.add(i);
+        }
+      }
+    }
+    return result;
+  }
+}
+
 class Formatter with Invokable {
   final BuildContext _buildContext;
 
@@ -564,7 +643,7 @@ class Formatter with Invokable {
       'prettyCurrency': (input) => InvokablePrimitive.prettyCurrency(input),
       'prettyDuration': (input) =>
           InvokablePrimitive.prettyDuration(input, locale: locale),
-      'pluralize': pluralize
+      'pluralize': pluralize,
     };
   }
 

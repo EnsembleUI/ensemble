@@ -39,15 +39,15 @@
               "type": "object",
               "properties": {
                 "backgroundColor": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "By default the background color uses the theme's 'primary' color. You can override the header's background color here."
                 },
                 "surfaceTintColor": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "By default the background color will be generate based on 'primary' color. You can override the header's background color when scrolled over here."
                 },
                 "color": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "By default the navigation icon, title, and action icons uses the theme's 'onPrimary' color. You can override their colors here."
                 },
                 "elevation": {
@@ -56,7 +56,7 @@
                   "minimum": 0
                 },
                 "shadowColor": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "If elevation is non-zero, this will override the drop shadow color of the header's bottom edge."
                 },
                 "centerTitle": {
@@ -77,6 +77,56 @@
                   "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's max height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). This attribute will be ignored if smaller than the flexibleMinHeight"
                 }
               }
+            }
+          }
+        },
+        "footer": {
+          "type": "object",
+          "properties": {
+            "style": {
+              "$ref": "#/$defs/boxStyles"
+            },
+            "dragOptions": {
+              "type": "object",
+              "properties": {
+                "enable": {
+                  "type": "boolean"
+                },
+                "initialSize": {
+                  "type": "number",
+                  "description": "Default it 0.5 i.e 50% of screen"
+                },
+                "minSize": {
+                  "type": "number",
+                  "description": "Minimum size of till sheet can go. Default is 0.25 i.e 25% of screen."
+                },
+                "maxSize": {
+                  "type": "number",
+                  "description": "Maximum size of till sheet can go. Default is 1 i.e 100% of screen."
+                },
+                "span": {
+                  "type": "boolean",
+                  "description": "Whether the widget should snap between [snapSizes] when the user lifts their finger during a drag."
+                },
+                "spanSizes": {
+                  "type": "array",
+                  "description": "The list of number each ranging from minSize to maxSize.",
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                "onMinSize": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action when the drag hits minimum size"
+                },
+                "onMaxSize": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action when the drag hits maximum size"        
+                }
+              }
+            },
+            "children": {
+              "$ref": "#/$defs/Widgets"
             }
           }
         },
@@ -196,8 +246,12 @@
           },
           "body": {
             "oneOf": [
-              { "type": "string" },
-              { "type": "object" }
+              {
+                "type": "string"
+              },
+              {
+                "type": "object"
+              }
             ],
             "description": "The request body to pass along with the URL",
             "additionalProperties": {
@@ -223,7 +277,7 @@
         ],
         "properties": {
           "inputs": {
-            "type": "array", 
+            "type": "array",
             "items": {
               "type": "string"
             },
@@ -232,7 +286,7 @@
           "uri": {
             "type": "string",
             "description": "The URL of this socket"
-          }, 
+          },
           "onSuccess": {
             "$ref": "#/$defs/Action-payload",
             "description": "Execute this callback upon a successful connection of socket with server"
@@ -254,7 +308,7 @@
             "description": "Execute this callback upon a message from socket is received. Use socketName.data to access the"
           },
           "options": {
-            "type": "object", 
+            "type": "object",
             "properties": {
               "disconnectOnPageClose": {
                 "type": "boolean",
@@ -407,7 +461,9 @@
     },
     "BaseIcon-payload": {
       "type": "object",
-      "required": ["name"],
+      "required": [
+        "name"
+      ],
       "properties": {
         "name": {
           "type": "string",
@@ -426,7 +482,7 @@
             "type": "integer"
           },
           "color": {
-            "$ref": "#/$defs/typeColors",
+            "$ref": "#/$defs/type-color",
             "description": "The color of the icon"
           }
         }
@@ -460,7 +516,7 @@
                   "type": "object",
                   "properties": {
                     "splashColor": {
-                      "$ref": "#/$defs/typeColors",
+                      "$ref": "#/$defs/type-color",
                       "description": "If onTap is defined, this color will show up as a splash effect upon tapping the icon. Note that the effect only happens if backgroundColor is not set."
                     }
                   }
@@ -469,7 +525,6 @@
             }
           }
         }
-
       ]
     },
     "Image-payload": {
@@ -506,7 +561,7 @@
               "type": "object",
               "properties": {
                 "placeholderColor": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "The placeholder color while the image is loading."
                 },
                 "fit": {
@@ -561,6 +616,89 @@
         }
       }
     },
+    "Avatar-payload": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique identifier for this widget"
+        },
+        "source": {
+          "type": "string",
+          "description": "URL to or asset name of the image. If the URL is used, it is highly recommended that the dimensions is set (either with width/height or other means) to prevent the UI jerkiness while loading."
+        },
+        "variant": {
+          "type": "string",
+          "description": "Specify the Avatar's shape: circle (default), square, or rounded.",
+          "enum": ["circle", "square", "rounded"]
+        },
+        "name": {
+          "type": "string",
+          "description": "If the image source is not specified or failed to load, this name's initials will be displayed"
+        },
+        "nameTextStyle": {
+          "description": "Adjust the text styling for the name",
+          "$ref": "#/$defs/TextStyle"
+        },
+        "onTap": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Call Ensemble's built-in functions or execute code"
+        },
+        "styles": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
+            },
+            {
+              "$ref": "#/$defs/boxStyles"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "placeholderColor": {
+                  "$ref": "#/$defs/type-color",
+                  "description": "The placeholder color while the image is loading."
+                },
+                "fit": {
+                  "type": "string",
+                  "description": "How to fit the image within our width/height or our parent (if dimension is not specified)",
+                  "oneOf": [
+                    {
+                      "const": "fill",
+                      "description": "Stretch our image to fill the dimension, and distorting the aspect ratio if needed"
+                    },
+                    {
+                      "const": "contain",
+                      "description": "Scale the image such that the entire image is contained within our dimension"
+                    },
+                    {
+                      "const": "cover",
+                      "description": "Scale the image to fill our dimension, clipping the image as needed"
+                    },
+                    {
+                      "const": "fitWidth",
+                      "description": "Scale the image to fit the width, and clipping the height if needed"
+                    },
+                    {
+                      "const": "fitHeight",
+                      "description": "Scale the image to fit the height, and clipping the width if needed"
+                    },
+                    {
+                      "const": "none",
+                      "description": "Center-Align the original image size, clipping the content if needed"
+                    },
+                    {
+                      "const": "scaleDown",
+                      "description": "Center-Align the image and only scale down to fit. Image will not be scaled up to bigger dimension."
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
     "ImageCropper-payload": {
       "type": "object",
       "required": [
@@ -595,7 +733,7 @@
               "type": "object",
               "properties": {
                 "placeholderColor": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "The placeholder color while the image is loading."
                 },
                 "fit": {
@@ -651,7 +789,7 @@
                   "description": "The stroke width of the dotted path."
                 },
                 "strokeColor": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "The stroke color of the dotted path."
                 },
                 "isRotate": {
@@ -795,7 +933,7 @@
                   "description": "Specify the width/height of the QR Code. Default: 160"
                 },
                 "color": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "Set the color for the QR code drawing"
                 }
               }
@@ -849,7 +987,7 @@
                   "description": "Specifies the thickness of the indicator (for progress bar this is the height)"
                 },
                 "color": {
-                  "$ref": "#/$defs/typeColors"
+                  "$ref": "#/$defs/type-color"
                 }
               }
             }
@@ -1028,11 +1166,11 @@
           "description": "a shining animation to designate that the content is loading. The animation can be over a defaults shimmer or the loadingWidget if specified."
         },
         "baseColor": {
-          "$ref": "#/$defs/typeColors",
+          "$ref": "#/$defs/type-color",
           "description": "The base color of the Shimmer."
         },
         "highlightColor": {
-          "$ref": "#/$defs/typeColors",
+          "$ref": "#/$defs/type-color",
           "description": "The highlight color of the Shimmer."
         },
         "widget": {
@@ -1145,6 +1283,10 @@
               "type": "boolean",
               "description": "enable the toggling between plain and obscure text."
             },
+            "enableClearText": {
+              "type": "boolean",
+              "description": "It enables the default suffix clear icon button for the text input field to clear the values. Default (false)"
+            },
             "onDelayedKeyPress": {
               "$ref": "#/$defs/Action-payload",
               "description": "Execute an Action after a brief delay specified by delayedKeyPressDuration (default: 300 ms). Consecutive calls within this delay will reset the timer, useful for minimizing server calls for type-ahead scenarios."
@@ -1172,7 +1314,11 @@
               "type": "object",
               "description": "Styling the hint text. Default to theme's bodyMedium styling",
               "$ref": "#/$defs/TextStyle"
-            }
+            },
+            "maxLines": {
+              "type": "integer",
+              "description": "max number of lines allowed in a textinput"
+            }            
           }
         }
       ]
@@ -1289,36 +1435,40 @@
                   "type": "boolean",
                   "description": "If it is True, then it will trigger onComplete when the user specified length and has typed the full length, False will trigger onComplete when the user hit Enter. Defaults (True)"
                 },
+                "spaceEvenly": {
+                  "type": "boolean",
+                  "description": "If it is True, then it will arrange all the textfields eqaully based on the remaining space in the horizontal axis. Defaults (True)"
+                },
                 "enableCursor": {
                   "type": "boolean",
                   "description": "If the button is inside a Form and upon on tap, it will execute the form's onSubmit action if this property is TRUE"
                 },
                 "defaultFieldBorderColor": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "Set the border color for inactive/unfocused state of text field"
                 },
                 "activeFieldBorderColor": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "Set the border color for active/focused state of text field"
                 },
                 "filledFieldBorderColor": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "Set the border color for filled state of text field"
                 },
                 "defaultFieldBackgroundColor": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "Set the background Color for inactive/unfocused state of text field"
                 },
                 "activeFieldBackgroundColor": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "Set the ackground Color for active/focused state of text field"
                 },
                 "filledFieldBackgroundColor": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "Set the ackground Color for filled field state of text field"
                 },
                 "cursorColor": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "Set the color for the cursor"
                 }
               }
@@ -1383,7 +1533,7 @@
               "description": "Initial value where the slider thumb will start"
             },
             "min": {
-              "type": "integer", 
+              "type": "integer",
               "description": "Minimum value the user can pick"
             },
             "max": {
@@ -1526,24 +1676,35 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["square", "rectangle", "circle", "oval"]
+          "enum": [
+            "square",
+            "rectangle",
+            "circle",
+            "oval"
+          ]
         },
         "styles": {
-          "properties": {
-            "width": {
-              "type": "integer"
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
             },
-            "height": {
-              "type": "integer"
+            {
+              "$ref": "#/$defs/HasBorder"
             },
-            "borderRadius": {
-              "$ref": "#/$defs/borderRadius",
-              "description": "Applicable only for square/rectangle shape"
-            },
-            "backgroundColor": {
-              "$ref": "#/$defs/typeColors"
+            {
+              "properties": {
+                "width": {
+                  "type": "integer"
+                },
+                "height": {
+                  "type": "integer"
+                },
+                "backgroundColor": {
+                  "$ref": "#/$defs/type-color"
+                }
+              }
             }
-          }
+          ]
         }
       }
     },
@@ -1592,7 +1753,11 @@
                 "buttonStyle": {
                   "type": "string",
                   "description": "Select an Apple's pre-defined button style (default whiteOutlined)",
-                  "enum": [ "black", "white", "whiteOutlined" ]
+                  "enum": [
+                    "black",
+                    "white",
+                    "whiteOutlined"
+                  ]
                 }
               }
             }
@@ -1634,7 +1799,10 @@
             "iconAlignment": {
               "type": "string",
               "description": "Align the Apple icon to the left or center of the button (Note that the text will always be centered). Default: center",
-              "enum": [ "center", "left" ]
+              "enum": [
+                "center",
+                "left"
+              ]
             },
             "borderRadius": {
               "$ref": "#/$defs/borderRadius"
@@ -1892,31 +2060,31 @@
                   "minimum": 0
                 },
                 "color": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "Set the color for the toggle button label starting with '0xFF' for full opacity"
                 },
                 "selectedColor": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "Set the color for the selected toggle button label"
                 },
                 "backgroundColor": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "Set the background color for the toggle button"
                 },
                 "selectedBackgroundColor": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "Set the background color for the selected toggle button"
                 },
                 "borderColor": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "Set the border color for the toggle button, starting with '0xFF' for full opacity"
                 },
                 "selectedBorderColor": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "Set the border color for the selected toggle button, starting with '0xFF' for full opacity"
                 },
                 "shadowColor": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "Set the shadow color for the toggle button"
                 }
               }
@@ -2049,7 +2217,10 @@
             "refreshIndicatorType": {
               "type": "string",
               "description": "The refresh indicator type if onPullToRefresh is specified. Default is 'material'.",
-              "enum": [ "material", "cupertino" ]
+              "enum": [
+                "material",
+                "cupertino"
+              ]
             }
           }
         }
@@ -2238,7 +2409,7 @@
                               "$ref": "#/$defs/type-fontWeight"
                             },
                             "color": {
-                              "$ref": "#/$defs/typeColors"
+                              "$ref": "#/$defs/type-color"
                             },
                             "lineHeight": {
                               "oneOf": [
@@ -2295,7 +2466,7 @@
                               "$ref": "#/$defs/type-fontWeight"
                             },
                             "color": {
-                              "$ref": "#/$defs/typeColors"
+                              "$ref": "#/$defs/type-color"
                             },
                             "lineHeight": {
                               "oneOf": [
@@ -2472,7 +2643,7 @@
           "type": "object",
           "properties": {
             "alignChildren": {
-              "$ref": "#/$defs/alignment",
+              "$ref": "#/$defs/type-alignment",
               "description": "How to align the children within the stack such that their alignment points will be the same (default is topStart). Each child can override this with alignment property."
             }
           }
@@ -2528,7 +2699,7 @@
                       "description": "Show a separator between the items (default is true)."
                     },
                     "separatorColor": {
-                      "$ref": "#/$defs/typeColors",
+                      "$ref": "#/$defs/type-color",
                       "description": "Set the color for the separator between items"
                     },
                     "separatorWidth": {
@@ -2655,9 +2826,13 @@
                       "type": "boolean",
                       "description": "If true, Enables autoplay, sliding one page at a time. Default (false)"
                     },
-                    "enableInfiniteScroll": {
+                    "enableLoop": {
                       "type": "boolean",
                       "description": "Determines if carousel should loop infinitely or be limited to item length. Default (false)"
+                    },
+                    "selectedItemIndex": {
+                      "type": "integer",
+                      "description": "The initial page to show when first creating the Carousel. Default (0)"
                     },
                     "autoplayInterval": {
                       "type": "integer",
@@ -2801,7 +2976,7 @@
                   "description": "Padding around your input content with CSS-style notation e.g. margin: 5 20 5"
                 },
                 "fillColor": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "The fill color for this input fields. This property can be defined in the theme to apply to all Input widgets."
                 },
                 "borderRadius": {
@@ -2815,24 +2990,36 @@
                   "description": "The border width for this Input widget. This property can be defined in the theme to apply to all Input widgets."
                 },
                 "borderColor": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "The base border color for this input widget. This border color determines the look and feel of your input, while the other colors are overrides for different states. This property can be defined in the theme to apply to all Input widgets."
                 },
                 "disabledBorderColor": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "The border color when this input field is disabled. This property can be defined in the theme to apply to all Input widgets."
                 },
                 "errorBorderColor": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "The border color when there are errors on this input field. This property can be defined in the theme to apply to all Input widgets."
                 },
                 "focusedBorderColor": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "The border color when this input field is receiving focus. This property can be defined in the theme to apply to all Input widgets."
                 },
                 "focusedErrorBorderColor": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "The border color of this input field when it is receiving focus in its error state. This property can be defined in the theme to apply to all Input widgets."
+                },
+                "floatLabel": {
+                  "type": "boolean",
+                  "description": "Moves the label on top of the Input Field. Default (False)."
+                },
+                "floatingLabelStyle": {
+                  "$ref": "#/$defs/TextStyle",
+                  "description": "Set the label's styles when it is in floating mode"
+                },
+                "labelStyle": {
+                  "$ref": "#/$defs/TextStyle",
+                  "description": "Set the label's styles"
                 }
               }
             }
@@ -2909,6 +3096,10 @@
                   "type": "string",
                   "description": "Enter the Name or ID of your Screen"
                 },
+                "external": {
+                  "type": "boolean",
+                  "description": "(Default false) Specify if screen is externally provided or not. If set true the screen is expected from external source."
+                },
                 "inputs": {
                   "type": "object",
                   "description": "Specify the key/value pairs to pass into the next Screen",
@@ -2933,6 +3124,58 @@
                 "onNavigateBack": {
                   "$ref": "#/$defs/Action-payload",
                   "description": "Invoke an Action when navigating back to this screen. The data (if specified by the removed screen) can be accessed with ${event.data})"
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Navigate External Screen",
+          "type": "object",
+          "required": [
+            "navigateExternalScreen"
+          ],
+          "properties": {
+            "navigateExternalScreen": {
+              "type": "object",
+              "description": "Navigating to a native screen outside of Ensemble (only iOS screens are currently supported - additional integration is required)",
+              "required": [
+                "name"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "The name of the screen."
+                },
+                "inputs": {
+                  "type": "object",
+                  "description": "Specify the key/value pairs to pass into the Screen",
+                  "properties": {},
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Navigate View Group",
+          "type": "object",
+          "required": [
+            "navigateViewGroup"
+          ],
+          "properties": {
+            "navigateViewGroup": {
+              "type": "object",
+              "description": "Navigate between the screens in the view group. It is applicable only when inside a ViewGroup",
+              "required": [
+                "viewIndex"
+              ],
+              "properties": {
+                "viewIndex": {
+                  "type": "integer",
+                  "description": "Enter the index of the screen to navigate"
                 }
               }
             }
@@ -3011,11 +3254,11 @@
                   "type": "object",
                   "properties": {
                     "backgroundColor": {
-                      "$ref": "#/$defs/typeColors",
+                      "$ref": "#/$defs/type-color",
                       "description": "By default the background color uses the theme's 'bottomSheetTheme.backgroundColor'. You can override the bottom modal sheet's background color here."
                     },
                     "barrierColor": {
-                      "$ref": "#/$defs/typeColors",
+                      "$ref": "#/$defs/type-color",
                       "description": "By default the barrierColor color use theme's 'bottomSheetTheme.modalBarrierColor' . You can override the bottom modal sheet's barrierColor color here."
                     }
                   }
@@ -3517,7 +3760,7 @@
                       "description": "Whether to show a dismiss button (default is True)"
                     },
                     "alignment": {
-                      "$ref": "#/$defs/alignment"
+                      "$ref": "#/$defs/type-alignment"
                     },
                     "duration": {
                       "type": "integer",
@@ -3795,7 +4038,9 @@
             "share": {
               "type": "object",
               "description": "Open each platform's share sheet",
-              "required": ["text"],
+              "required": [
+                "text"
+              ],
               "properties": {
                 "text": {
                   "type": "string",
@@ -3819,6 +4064,42 @@
             "rateApp": {
               "type": "object",
               "description": "(iOS only) Prompt the user to rate this App"
+            }
+          }
+        },
+        {
+          "title": "Update Badge Count",
+          "type": "object",
+          "required": [
+            "updateBadgeCount"
+          ],
+          "properties": {
+            "updateBadgeCount": {
+              "type": "object",
+              "description": "Update the app's badge count (applicable on iOS, MacOS, and some Android devices only). Notifications must also be enabled for this to work properly.",
+              "required": [
+                "count"
+              ],
+              "properties": {
+                "count": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Update the app's badge count (applicable on iOS, MacOS, and some Android devices)"
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Clear Badge Count",
+          "type": "object",
+          "required": [
+            "clearBadgeCount"
+          ],
+          "properties": {
+            "clearBadgeCount": {
+              "type": "object",
+              "description": "Clear the app's badge count (applicable on iOS, MacOS, and some Android devices only). Notifications must also be enabled for this to work properly."
             }
           }
         },
@@ -3970,7 +4251,9 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["notification"]
+                  "enum": [
+                    "notification"
+                  ]
                 },
                 "onAuthorized": {
                   "$ref": "#/$defs/Action-payload",
@@ -4016,11 +4299,11 @@
                 },
                 "onSuccess": {
                   "$ref": "#/$defs/Action-payload",
-                  "description": "Execute this callback upon a successful connection of socket with server."  
+                  "description": "Execute this callback upon a successful connection of socket with server."
                 },
                 "onError": {
                   "$ref": "#/$defs/Action-payload",
-                  "description": "Execute this callback upon a encountering error while trying to do socket connection."  
+                  "description": "Execute this callback upon a encountering error while trying to do socket connection."
                 }
               }
             }
@@ -4058,7 +4341,7 @@
             "messageSocket": {
               "type": "object",
               "description": "Send a message to a given socket name.",
-              "required" : [
+              "required": [
                 "name",
                 "message"
               ],
@@ -4074,6 +4357,68 @@
                   "additionalProperties": {
                     "type": "string"
                   }
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Call an External Method",
+          "type": "object",
+          "required": [
+            "callExternalMethod"
+          ],
+          "properties": {
+            "callExternalMethod": {
+              "type": "object",
+              "description": "Call an external method defined outside of Ensemble",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "The method name defined in your code"
+                },
+                "payload": {
+                  "type": "object",
+                  "description": "The key/value pairs payload to be sent as the input parameters for your method"
+                },
+                "onComplete": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Called when the method has finished its execution. Return value (if any) is available under 'event.data'"
+                },
+                "onError": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Called when there is an error while executing the method. The error reason is available under 'event.error'"
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Call a native method defined inside the Host Platform",
+          "type": "object",
+          "required": [
+            "callNativeMethod"
+          ],
+          "properties": {
+            "callNativeMethod": {
+              "type": "object",
+              "description": "Call a native method defined in the Host Platform",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "The method channel name defined in your host platform"
+                },
+                "payload": {
+                  "type": "object",
+                  "description": "The key/value pairs payload to be sent as the input parameters for your method"
+                },
+                "onComplete": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Called when the method has finished its execution"
+                },
+                "onError": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Called when there is an error while executing the method. The error reason is available under 'event.error'"
                 }
               }
             }
@@ -4113,6 +4458,10 @@
         "items"
       ],
       "properties": {
+        "reloadView": {
+          "type": "boolean",
+          "description": "It will reload the page each time when clicking the menu item"
+        },
         "items": {
           "type": "array",
           "description": "List of menu items (minimum 2)",
@@ -4155,29 +4504,53 @@
     "BottomNavBarMenuItems-Payload": {
       "properties": {
         "styles": {
-          "type": "object",
-          "properties": {
-            "color": {
-              "$ref": "#/$defs/typeColors",
-              "description": "Unselected icon color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+          "allOf": [
+            {
+              "$ref": "#/$defs/HasShadow"
             },
-            "selectedColor": {
-              "$ref": "#/$defs/typeColors",
-              "description": "Selected icon color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
-            },
-            "backgroundColor": {
-              "$ref": "#/$defs/typeColors",
-              "description": "Background color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
-            },
-            "floatingBackgroundColor": {
-              "$ref": "#/$defs/typeColors",
-              "description": "Floating item background color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
-            },
-            "floatingIconColor": {
-              "$ref": "#/$defs/typeColors",
-              "description": "Floating item icon color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
-            }   
-          }
+            {
+              "type": "object",
+              "properties": {
+                "color": {
+                  "$ref": "#/$defs/type-color",
+                  "description": "Unselected icon color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+                },
+                "selectedColor": {
+                  "$ref": "#/$defs/type-color",
+                  "description": "Selected icon color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+                },
+                "backgroundColor": {
+                  "$ref": "#/$defs/type-color",
+                  "description": "Background color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+                },
+                "floatingBackgroundColor": {
+                  "$ref": "#/$defs/type-color",
+                  "description": "Floating item background color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+                },
+                "floatingIconColor": {
+                  "$ref": "#/$defs/type-color",
+                  "description": "Floating item icon color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+                },
+                "height": {
+                  "type": "integer",
+                  "description": "Set the height of the BottomNavBar."
+                },
+                "padding": {
+                  "$ref": "#/$defs/Padding-payload"
+                },
+                "margin": {
+                  "$ref": "#/$defs/Margin-payload"
+                },
+                "borderRadius": {
+                  "$ref": "#/$defs/borderRadius"
+                }
+              }
+            }
+          ]
+        },
+        "reloadView": {
+          "type": "boolean",
+          "description": "It will reload the page each time when clicking the menu item"
         },
         "items": {
           "type": "array",
@@ -4214,8 +4587,8 @@
                 "description": "The margin around the floating."
               },
               "floatingAlignment": {
-                "$ref": "#/$defs/alignment",
-                "description":"How to align the floating in the BottomNavBar. The values are left, center, right and none"
+                "$ref": "#/$defs/type-alignment",
+                "description": "How to align the floating in the BottomNavBar. The values are left, center, right and none"
               },
               "onTap": {
                 "$ref": "#/$defs/Action-payload",
@@ -4254,8 +4627,46 @@
               "description": "The header widget for the menu"
             },
             "footer": {
-              "$ref": "#/$defs/Widget",
-              "description": "The footer widget for the menu"
+              "type": "object",
+              "properties": {
+                "style": {
+                  "$ref": "#/$defs/boxStyles"
+                },
+                "dragOptions": {
+                  "type": "object",
+                  "properties": {
+                    "enable": {
+                      "type": "boolean"
+                    },
+                    "initialSize": {
+                      "type": "number",
+                      "description": "Default it 0.5 i.e 50% of screen"
+                    },
+                    "minSize": {
+                      "type": "number",
+                      "description": "Minimum size of till sheet can go. Default is 0.25 i.e 25% of screen."
+                    },
+                    "maxSize": {
+                      "type": "number",
+                      "description": "Maximum size of till sheet can go. Default is 1 i.e 100% of screen."
+                    },
+                    "span": {
+                      "type": "boolean",
+                      "description": "Whether the widget should snap between [snapSizes] when the user lifts their finger during a drag."
+                    },
+                    "spanSizes": {
+                      "type": "array",
+                      "description": "The list of number each ranging from minSize to maxSize.",
+                      "items": {
+                        "type": "number"
+                      }
+                    }
+                  }
+                },
+                "children": {
+                  "$ref": "#/$defs/Widgets"
+                }
+              }
             }
           }
         }
@@ -4268,10 +4679,14 @@
         },
         {
           "properties": {
+            "reloadView": {
+              "type": "boolean",
+              "description": "It will reload the page each time when clicking the menu item"
+            },
             "styles": {
               "properties": {
                 "borderColor": {
-                  "$ref": "#/$defs/typeColors"
+                  "$ref": "#/$defs/type-color"
                 },
                 "borderWidth": {
                   "type": "integer"
@@ -4306,6 +4721,91 @@
           }
         }
       ]
+    },
+    "Cell-payload": {
+      "type": "object",
+      "oneOf": [
+        {
+          "title": "widget",
+          "required": [
+            "widget"
+          ],
+          "properties": {
+            "widget": {
+              "description": "Use the bottom navigation bar",
+              "$ref": "#/$defs/Widget"
+            }
+          }
+        },
+        {
+          "title": "config",
+          "required": [
+            "config"
+          ],
+          "properties": {
+            "config": {
+              "type": "object",
+              "properties": {
+                "backgroundColor": {
+                  "$ref": "#/$defs/type-color",
+                  "description": "Background color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+                },
+                "padding": {
+                  "$ref": "#/$defs/Padding-payload"
+                },
+                "margin": {
+                  "$ref": "#/$defs/Margin-payload"
+                },
+                "textStyle": {
+                  "$ref": "#/$defs/TextStyle"
+                },
+                "alignment": {
+                  "$ref": "#/$defs/type-alignment"
+                },
+                "borderRadius": {
+                  "$ref": "#/$defs/borderRadius"
+                },
+                "shape": {
+                  "type": "string",
+                  "enum": [
+                    "circle",
+                    "rectangle"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Range-payload": {
+      "type": "object",
+      "properties": {
+        "highlightColor": {
+          "$ref": "#/$defs/type-color",
+          "description": "Range Highlight color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+        },
+        "onStart": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Call Ensemble's built-in functions or execute code when tapping on start of range"
+        },
+        "onComplete": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Call Ensemble's built-in functions or execute code when tapping on complete of range"
+        },
+        "startCell": {
+          "$ref": "#/$defs/Cell-payload",
+          "description": "Configure or create custom cell where the range begin"
+        },
+        "endCell": {
+          "$ref": "#/$defs/Cell-payload",
+          "description": "Configure or create custom cell where the range end"
+        },
+        "betweenCell": {
+          "$ref": "#/$defs/Cell-payload",
+          "description": "Configure or create custom cell for all cells in between start and end of range"
+        }
+      }
     },
     "Widgets": {
       "type": "array",
@@ -4373,6 +4873,18 @@
             "Image": {
               "$ref": "#/$defs/Image-payload",
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/7c7a3ffe-68ef-4e99-b9d1-4b5cee166233#"
+            }
+          }
+        },
+        {
+          "title": "Avatar",
+          "required": [
+            "Avatar"
+          ],
+          "properties": {
+            "Avatar": {
+              "$ref": "#/$defs/Avatar-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/kJ9eqI5BPL30IwjnEDdJ"
             }
           }
         },
@@ -4870,6 +5382,19 @@
           }
         },
         {
+          "title": "Youtube",
+          "required": [
+            "Youtube"
+          ],
+          "properties": {
+            "Youtube" : {
+              "$ref" : "#/$defs/Youtube-payload"
+            }
+          }
+        },
+
+
+        {
           "title": "WebView",
           "required": [
             "WebView"
@@ -4975,6 +5500,128 @@
                       }
                     ]
                   }
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Calendar",
+          "required": [
+            "Calendar"
+          ],
+          "properties": {
+            "Calendar": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "A unique identifier for this widget"
+                },
+                "rowHeight": {
+                  "type": "integer",
+                  "description": "Height of row. Default is 52.0"
+                },
+                "firstDay": {
+                  "type": "string",
+                  "description": "First day from where calendar begin. Default is CurrentDate - 12 months"
+                },
+                "lastDay": {
+                  "type": "string",
+                  "description": "Last day where calendar end. Default is CurrentDate + 12 months"
+                },
+                "headerVisible": {
+                  "type": "boolean",
+                  "description": "Set visibility of calendar header. Default true."
+                },
+                "header": {
+                  "$ref": "#/$defs/Widget"
+                },
+                "rowSpans": {
+                  "type": "object",
+                  "properties": {
+                    "spanPerRow": {
+                      "type": "integer",
+                      "description": "Limit the number of spans per row"
+                    },
+                    "overflowWidget": {
+                      "$ref": "#/$defs/Widget",
+                      "description": "If spans per row overflow based on spanPerRow than overflowWidget will render"
+                    },
+                    "children": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "span": {
+                            "type": "object",
+                            "properties": {
+                              "start": {
+                                "type": "string",
+                                "description": "date in ISO format."
+                              },
+                              "end": {
+                                "type": "string",
+                                "description": "date in ISO format."
+                              },
+                              "widget": {
+                                "$ref": "#/$defs/Widget"
+                              }
+                            },
+                            "required": [
+                              "start",
+                              "end",
+                              "widget"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "span"
+                        ]
+                      }
+                    }
+                  }
+                },
+                "headerTextStyle": {
+                  "type": "object",
+                  "description": "Styling the header text.",
+                  "$ref": "#/$defs/TextStyle"
+                },
+                "cell": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Cell-payload",
+                      "description": "Cell specific"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "onTap": {
+                          "$ref": "#/$defs/Action-payload",
+                          "description": "Execute an Action when the map's bound has changed. The bound data is available using `event.data.bounds.<southwest/northeast>.<lat/lng>`."
+                        }
+                      }
+                    }
+                  ]
+                },
+                "selectCell": {
+                  "$ref": "#/$defs/Cell-payload",
+                  "description": "Configure or create custom cell for all selected dates"
+                },
+                "markCell": {
+                  "$ref": "#/$defs/Cell-payload",
+                  "description": "Configure or create custom cell for all marked dates"
+                },
+                "todayCell": {
+                  "$ref": "#/$defs/Cell-payload",
+                  "description": "Configure or create custom cell for today's date only"
+                },
+                "disableCell": {
+                  "$ref": "#/$defs/Cell-payload",
+                  "description": "Configure or create custom cell for disabled dates"
+                },
+                "range": {
+                  "$ref": "#/$defs/Range-payload"
                 }
               }
             }
@@ -5098,27 +5745,27 @@
                   "description": "Font weight for the tab text"
                 },
                 "tabBackgroundColor": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "The background color of the tab's navigation bar"
                 },
                 "activeTabColor": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "The color of the selected tab's text"
                 },
                 "dividerColor": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "The color of the tabbar divider color"
                 },
                 "inactiveTabColor": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "The color of the un-selected tabs' text"
                 },
                 "indicatorColor": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "The color of the selected tab's indicator"
                 },
                 "activeTabBackgroundColor": {
-                  "$ref": "#/$defs/typeColors",
+                  "$ref": "#/$defs/type-color",
                   "description": "The background color of the selected tab"
                 },
                 "indicatorThickness": {
@@ -5234,7 +5881,7 @@
                   "description": "The margin around the toolbar. (default 10 on all sides)"
                 },
                 "toolbarAlignment": {
-                  "$ref": "#/$defs/alignment",
+                  "$ref": "#/$defs/type-alignment",
                   "description": "How to align the toolbar within the map. (default bottom right). If both positioning (top/bottom/left/right) and alignment are used, positions will be applied first, then alignment within the available constraint."
                 },
                 "toolbarTop": {
@@ -5370,6 +6017,63 @@
         }
       }
     },
+    "Youtube-payload":{
+      "type" : "object",
+      "properties" : {
+        "id" : {
+          "type" : "string",
+          "description": "The unique identifier for this widget"
+        },
+        "url" : {
+          "type": "string",
+          "description": "The URL source to the youtube video"
+        },
+        "aspectRatio" : {
+          "type": "double",
+          "description" : "Video aspect ratio"
+        },
+        "autoplay": {
+          "type" : "bool",
+          "description" : "Automatically start the video when player is loaded. (default False)"
+        },
+        "videoList" : {
+          "type" : "array",
+          "description" : "List of videos to be played within a single player."
+        },
+        "startSeconds": {
+          "type" : "double",
+          "description" : "specifies the time from which the first video in the list(or single video) should start playing"
+        },
+        "endSeconds": {
+          "type": "double",
+          "description": "Ends the video after the certain number of seconds (works with Single video)"
+        },
+        "showAnnotations" : {
+          "type" : "bool",
+          "description" : "Showing the annotations of the video"
+        },            
+        "playbackRate" : {
+          "type": "double",
+          "description": "For changing the speed at which the video is displayed"
+        },
+        "showControls": {
+          "type" : "bool",
+          "description" : "For showing the controls on the video within the player(Like in youtube)"
+        },
+        "showFullScreenButton": {
+          "type" : "bool",
+          "description" : "To show the fullscreen button of the video"
+        },
+        "enableCaptions" : {
+          "type": "bool",
+          "description" : "To enable any captions in the video(default language of caption is English)"
+        },
+        "volume": {
+          "type": "integer",
+          "description" : "Changes the volume. (max = 100, min = 0)"
+        }
+      }
+    },
     "WebView-payload": {
       "type": "object",
       "properties": {
@@ -5378,7 +6082,16 @@
           "description": "The unique identifier for this widget"
         },
         "url": {
-          "type": "string"
+          "type": "string",
+          "description": "The URl that will be loaded in the webview"
+        },
+        "cookies": {
+          "type": "array",
+          "description": "takes cookies in an array of maps"
+        },
+        "cookieHeader" : {
+          "type" : "string",
+          "description" : "Creates a cookie by parsing a header value from a 'set-cookie' header according to the rules in RFC 6265"
         },
         "styles": {
           "allOf": [
@@ -5482,7 +6195,7 @@
           "maximum": 24
         },
         "elevationShadowColor": {
-          "$ref": "#/$defs/typeColors",
+          "$ref": "#/$defs/type-color",
           "description": "The shadow color for the elevation"
         },
         "elevationBorderRadius": {
@@ -5490,7 +6203,7 @@
           "description": "If the widget has a borderRadius, this should be changed to have the same value."
         },
         "alignment": {
-          "$ref": "#/$defs/alignment",
+          "$ref": "#/$defs/type-alignment",
           "description": "Align this widget relative to its parent"
         },
         "stackPositionTop": {
@@ -5549,60 +6262,6 @@
           "description": "Border Radius with CSS-like notation (1 to 4 integers)"
         }
       }
-    },
-    "typeColors": {
-      "oneOf": [
-        {
-          "title": "number",
-          "type": "integer"
-        },
-        {
-          "title": "name",
-          "type": "string",
-          "additionalProperties": true,
-          "enum": [
-            "transparent",
-            "black",
-            "blue",
-            "white",
-            "red",
-            "grey",
-            "teal",
-            "amber",
-            "pink",
-            "purple",
-            "yellow",
-            "green",
-            "brown",
-            "cyan",
-            "indigo",
-            "lime",
-            "orange"
-          ]
-        },
-        {
-          "title": "hexadecimal",
-          "type": "string",
-          "pattern": "^0x"
-        }
-      ]
-    },
-    "type-fontWeight": {
-      "type": "string",
-      "enum": [
-        "light",
-        "normal",
-        "bold",
-        "w100",
-        "w200",
-        "w300",
-        "w400",
-        "w500",
-        "w600",
-        "w700",
-        "w800",
-        "w900"
-      ]
     },
     "boxStyles": {
       "allOf": [
@@ -5952,7 +6611,7 @@
       "type": "object",
       "properties": {
         "backgroundColor": {
-          "$ref": "#/$defs/typeColors",
+          "$ref": "#/$defs/type-color",
           "description": "Background color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
         }
       }
@@ -5967,7 +6626,7 @@
               "type": "array",
               "description": "The list of colors used for the gradient",
               "items": {
-                "$ref": "#/$defs/typeColors"
+                "$ref": "#/$defs/type-color"
               }
             },
             "stops": {
@@ -5981,11 +6640,11 @@
             },
             "start": {
               "description": "The starting position of the gradient",
-              "$ref": "#/$defs/alignment"
+              "$ref": "#/$defs/type-alignment"
             },
             "end": {
               "description": "The ending position of the gradient",
-              "$ref": "#/$defs/alignment"
+              "$ref": "#/$defs/type-alignment"
             }
           }
         }
@@ -6040,25 +6699,11 @@
               ]
             },
             "alignment": {
-              "$ref": "#/$defs/alignment"
+              "$ref": "#/$defs/type-alignment"
             }
           }
         }
       }
-    },
-    "alignment": {
-      "type": "string",
-      "enum": [
-        "topLeft",
-        "topCenter",
-        "topRight",
-        "centerLeft",
-        "center",
-        "centerRight",
-        "bottomLeft",
-        "bottomCenter",
-        "bottomRight"
-      ]
     },
     "inputValidator": {
       "type": "object",
@@ -6088,100 +6733,6 @@
         }
       }
     },
-    "TextStyle": {
-      "type": "object",
-      "properties": {
-        "fontFamily": {
-          "type": "string"
-        },
-        "fontSize": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 1000
-        },
-        "lineHeightMultiple": {
-          "type": "number",
-          "description": "A multiple of the fontSize to determine the line height. (e.g. 2.0 means the line height is double the height the font size occupies). Default null. (note that 1.0 is not the default depending on the font)"
-        },
-        "fontWeight": {
-          "$ref": "#/$defs/type-fontWeight"
-        },
-        "isItalic": {
-          "type": "boolean"
-        },
-        "color": {
-          "$ref": "#/$defs/typeColors"
-        },
-        "backgroundColor": {
-          "$ref": "#/$defs/typeColors"
-        },
-        "gradient": {
-          "type": "object",
-          "properties": {
-            "colors": {
-              "type": "array",
-              "description": "The list of colors used for the gradient",
-              "items": {
-                "$ref": "#/$defs/typeColors"
-              }
-            },
-            "stops": {
-              "type": "array",
-              "description": "The list of color stops, each is a number between 0.0 (where the gradient starts) and 1.0 (where the gradient ends). The number of stops should match the number of colors.",
-              "items": {
-                "type": "number",
-                "minimum": 0.0,
-                "maximum": 1.0
-              }
-            },
-            "start": {
-              "description": "The starting position of the gradient",
-              "$ref": "#/$defs/alignment"
-            },
-            "end": {
-              "description": "The ending position of the gradient",
-              "$ref": "#/$defs/alignment"
-            }
-          }
-        },
-        "decoration": {
-          "type": "string",
-          "enum": [
-            "none",
-            "lineThrough",
-            "underline",
-            "overline"
-          ]
-        },
-        "decorationStyle": {
-          "type": "string",
-          "enum": [
-            "solid",
-            "double",
-            "dotted",
-            "dashed",
-            "wavy"
-          ],
-          "description": "The style of the decoration (ignored if decoration=none)"
-        },
-        "overflow": {
-          "type": "string",
-          "description": "Set treatment of text longer than available space",
-          "enum": [
-            "clip",
-            "fade",
-            "ellipsis",
-            "visible"
-          ]
-        },
-        "letterSpacing": {
-          "type": "integer"
-        },
-        "wordSpacing": {
-          "type": "integer"
-        }
-      }
-    },
     "OldTextStyle": {
       "type": "object",
       "properties": {
@@ -6189,7 +6740,7 @@
           "type": "integer"
         },
         "color": {
-          "$ref": "#/$defs/typeColors"
+          "$ref": "#/$defs/type-color"
         },
         "decoration": {
           "type": "string",
@@ -6224,7 +6775,7 @@
           "type": "object",
           "properties": {
             "borderColor": {
-              "$ref": "#/$defs/typeColors",
+              "$ref": "#/$defs/type-color",
               "description": "Border color, starting with '0xFF' for full opacity"
             },
             "borderWidth": {
@@ -6259,6 +6810,10 @@
           }
         },
         "shadowRadius": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "shadowBlurRadius": {
           "type": "integer",
           "minimum": 0
         },
@@ -6325,7 +6880,7 @@
           ]
         },
         "color": {
-          "$ref": "#/$defs/typeColors"
+          "$ref": "#/$defs/type-color"
         },
         "size": {
           "type": "integer",
@@ -6345,7 +6900,10 @@
             "indicatorType": {
               "type": "string",
               "description": "Indicate the refresh indicator look-and-feel if onPullToRefresh is specified. Default is 'material'.",
-              "enum": [ "material", "cupertino" ]
+              "enum": [
+                "material",
+                "cupertino"
+              ]
             },
             "indicatorMinDuration": {
               "type": "integer",
@@ -6367,6 +6925,175 @@
           "description": "Call Ensemble's built-in functions"
         }
       }
+    },
+
+    
+    
+    
+    
+    
+    
+    "TextStyle": {
+      "type": "object",
+      "properties": {
+        "fontFamily": {
+          "type": "string"
+        },
+        "fontSize": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "lineHeightMultiple": {
+          "type": "number",
+          "description": "A multiple of the fontSize to determine the line height. (e.g. 2.0 means the line height is double the height the font size occupies). Default null. (note that 1.0 is not the default depending on the font)"
+        },
+        "fontWeight": {
+          "$ref": "#/$defs/type-fontWeight"
+        },
+        "isItalic": {
+          "type": "boolean"
+        },
+        "color": {
+          "$ref": "#/$defs/type-color"
+        },
+        "backgroundColor": {
+          "$ref": "#/$defs/type-color"
+        },
+        "gradient": {
+          "type": "object",
+          "properties": {
+            "colors": {
+              "type": "array",
+              "description": "The list of colors used for the gradient",
+              "items": {
+                "$ref": "#/$defs/type-color"
+              }
+            },
+            "stops": {
+              "type": "array",
+              "description": "The list of color stops, each is a number between 0.0 (where the gradient starts) and 1.0 (where the gradient ends). The number of stops should match the number of colors.",
+              "items": {
+                "type": "number",
+                "minimum": 0.0,
+                "maximum": 1.0
+              }
+            },
+            "start": {
+              "description": "The starting position of the gradient",
+              "$ref": "#/$defs/type-alignment"
+            },
+            "end": {
+              "description": "The ending position of the gradient",
+              "$ref": "#/$defs/type-alignment"
+            }
+          }
+        },
+        "decoration": {
+          "type": "string",
+          "enum": [
+            "none",
+            "lineThrough",
+            "underline",
+            "overline"
+          ]
+        },
+        "decorationStyle": {
+          "type": "string",
+          "enum": [
+            "solid",
+            "double",
+            "dotted",
+            "dashed",
+            "wavy"
+          ],
+          "description": "The style of the decoration (ignored if decoration=none)"
+        },
+        "overflow": {
+          "type": "string",
+          "description": "Set treatment of text longer than available space",
+          "enum": [
+            "clip",
+            "fade",
+            "ellipsis",
+            "visible"
+          ]
+        },
+        "letterSpacing": {
+          "type": "integer"
+        },
+        "wordSpacing": {
+          "type": "integer"
+        }
+      }
+    },
+    "type-fontWeight": {
+      "type": "string",
+      "enum": [
+        "light",
+        "normal",
+        "bold",
+        "w100",
+        "w200",
+        "w300",
+        "w400",
+        "w500",
+        "w600",
+        "w700",
+        "w800",
+        "w900"
+      ]
+    },
+    "type-color": {
+      "oneOf": [
+        {
+          "title": "number",
+          "type": "integer"
+        },
+        {
+          "title": "name",
+          "type": "string",
+          "additionalProperties": true,
+          "enum": [
+            "transparent",
+            "black",
+            "blue",
+            "white",
+            "red",
+            "grey",
+            "teal",
+            "amber",
+            "pink",
+            "purple",
+            "yellow",
+            "green",
+            "brown",
+            "cyan",
+            "indigo",
+            "lime",
+            "orange"
+          ]
+        },
+        {
+          "title": "hexadecimal",
+          "type": "string",
+          "pattern": "^0x"
+        }
+      ]
+    },
+    "type-alignment": {
+      "type": "string",
+      "enum": [
+        "topLeft",
+        "topCenter",
+        "topRight",
+        "centerLeft",
+        "center",
+        "centerRight",
+        "bottomLeft",
+        "bottomCenter",
+        "bottomRight"
+      ]
     }
   }
 }

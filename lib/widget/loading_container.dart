@@ -1,24 +1,23 @@
 import 'package:ensemble/framework/error_handling.dart';
-import 'package:ensemble/framework/scope.dart';
-import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
-import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/shape.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 
-import '../framework/view/page.dart';
-
+/// A container that can display a loading indicator or shimmer
+/// while the content is being loaded
 class LoadingContainer extends StatefulWidget
     with
         Invokable,
         HasController<LoadingContainerController, LoadingContainerState> {
   static const type = 'LoadingContainer';
+
   LoadingContainer({Key? key}) : super(key: key);
 
   final LoadingContainerController _controller = LoadingContainerController();
+
   @override
   get controller => _controller;
 
@@ -66,78 +65,63 @@ class LoadingContainerController extends BoxController {
 }
 
 class LoadingContainerState extends WidgetState<LoadingContainer> {
-  Widget? loadingWidget;
-  late Widget contentWidget;
-
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
+  Widget buildWidget(BuildContext context) {
+    var loadingWidget = _buildLoadingWidget();
 
-    // only if specified, as loadingWidget is optional
-    if (widget._controller.loadingWidget != null) {
-      loadingWidget = DataScopeWidget.getScope(context)
-          ?.buildWidgetFromDefinition(widget._controller.loadingWidget);
-    }
-    // main widget
-    Widget? w = DataScopeWidget.getScope(context)
-        ?.buildWidgetFromDefinition(widget._controller.widget);
+    return AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        transitionBuilder: (child, animation) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        child: widget._controller.isLoading == true
+            ? _buildLoadingWidget()
+            : _buildContentWidget());
+  }
+
+  Widget? _buildLoadingWidget() {
+    Widget? loadingWidget = widget._controller.loadingWidget != null
+        ? scopeManager
+            ?.buildWidgetFromDefinition(widget._controller.loadingWidget)
+        : null;
+
+    return widget._controller.useShimmer == true
+        ? CustomShimmer(
+            linearGradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.centerRight,
+                colors: <Color>[
+                  widget._controller.baseColor ?? const Color(0xFFEBEBF4),
+                  widget._controller.highlightColor ??
+                      const Color(0xFFEBEBF4).withOpacity(0.3),
+                  widget._controller.baseColor ?? const Color(0xFFEBEBF4),
+                ],
+                // stops: const <double>[0.0, 0.35, 0.5, 0.65, 1.0],
+                stops: const [0.1, 0.3, 0.4],
+                tileMode: TileMode.clamp),
+            child: ShimmerLoading(
+                isLoading: true,
+                child: loadingWidget ??
+                    DefaultLoadingShape(
+                        padding: widget._controller.defaultShimmerPadding)))
+        : loadingWidget ?? const SizedBox.shrink();
+  }
+
+  Widget _buildContentWidget() {
+    Widget? w =
+        scopeManager?.buildWidgetFromDefinition(widget._controller.widget);
     if (w == null) {
       throw RuntimeError(
           "LoadingContainer requires a widget to render it's main content");
     }
-    contentWidget = w;
-  }
-
-  @override
-  Widget buildWidget(BuildContext context) {
-    return Stack(children: [
-      // loading widget
-      if (widget.controller.isLoading == true)
-        AnimatedOpacity(
-            opacity: 1,
-            duration: const Duration(milliseconds: 300),
-            child: widget._controller.useShimmer == true
-                ? CustomShimmer(
-                    linearGradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.centerRight,
-                      colors: <Color>[
-                        widget._controller.baseColor ?? const Color(0xFFEBEBF4),
-                        widget._controller.highlightColor ??
-                            const Color(0xFFEBEBF4).withOpacity(0.3),
-                        widget._controller.baseColor ?? const Color(0xFFEBEBF4),
-                      ],
-                      // stops: const <double>[0.0, 0.35, 0.5, 0.65, 1.0],
-                      stops: const [0.1, 0.3, 0.4],
-                      tileMode: TileMode.clamp,
-                    ),
-                    child: ShimmerLoading(
-                      isLoading: true,
-                      child: loadingWidget ??
-                          DefaultLoadingShape(
-                              padding:
-                                  widget._controller.defaultShimmerPadding),
-                    ),
-                  )
-                : loadingWidget ?? const SizedBox.shrink()),
-
-      // TODO: fade in content causes problem when the State is being
-      // recreated constantly. Fix this so we can put back the animation
-      Visibility(
-          visible: widget._controller.isLoading != true, child: contentWidget)
-
-      // fade in main content
-      // AnimatedOpacity(
-      //     opacity: widget._controller.isLoading == true ? 0 : 1,
-      //     duration: const Duration(milliseconds: 300),
-      //     child: contentWidget)
-    ]);
+    return w;
   }
 }
 
 /// the default loading used for shimmer
 class DefaultLoadingShape extends StatelessWidget {
   const DefaultLoadingShape({super.key, this.padding});
+
   final EdgeInsets? padding;
 
   @override
@@ -168,7 +152,7 @@ class ListDetailShape extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           InternalShape(
-              type: ShapeType.square,
+              type: ShapeVariant.square,
               width: 50,
               borderRadius: BorderRadius.all(Radius.circular(10)),
               backgroundColor: Colors.white),
@@ -176,14 +160,14 @@ class ListDetailShape extends StatelessWidget {
           Column(
             children: [
               InternalShape(
-                  type: ShapeType.rectangle,
+                  type: ShapeVariant.rectangle,
                   width: 200,
                   height: 10,
                   borderRadius: BorderRadius.all(Radius.circular(5)),
                   backgroundColor: Colors.white),
               SizedBox(height: 10),
               InternalShape(
-                  type: ShapeType.rectangle,
+                  type: ShapeVariant.rectangle,
                   width: 200,
                   height: 5,
                   borderRadius: BorderRadius.all(Radius.circular(5)),

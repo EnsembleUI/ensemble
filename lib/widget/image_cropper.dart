@@ -125,7 +125,7 @@ class EnsembleImageCropperController extends BoxController {
       final file = io.File(filePath);
       final byteData = image.bytes.buffer.asUint8List();
       file.createSync();
-      file.writeAsBytes(byteData.toList());
+      await file.writeAsBytes(byteData.toList());
       return file.path;
     }
     return null;
@@ -190,7 +190,7 @@ class EnsembleImageCropperState extends WidgetState<EnsembleImageCropper>
       return placeholder;
     }
 
-    BoxFit? fit = WidgetUtils.getBoxFit(widget._controller.fit);
+    BoxFit? fit = Utils.getBoxFit(widget._controller.fit);
     final cropShape = _getCropShape();
 
     Widget rtn;
