@@ -18,6 +18,7 @@ mixin UpdatableContainer<T extends Widget> {
   void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate});
 }
 
+/// Deprecated. Use EnsembleWidgetState
 /// base class for widgets that want to participate in Ensemble layout
 abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
   ScopeManager? scopeManager;
