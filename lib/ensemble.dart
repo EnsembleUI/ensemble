@@ -26,12 +26,24 @@ import 'html_shim.dart' if (dart.library.html) 'dart:html' show window;
 import 'framework/theme/theme_loader.dart';
 import 'layout/ensemble_page_route.dart';
 
+typedef CustomBuilder = Widget Function(
+    BuildContext context, Map<String, dynamic>? args);
+
 /// Singleton Controller
 class Ensemble {
   static final Ensemble _instance = Ensemble._internal();
   Ensemble._internal();
   factory Ensemble() {
     return _instance;
+  }
+
+  Map<String, Function> externalMethods = {};
+  void setExternalMethods(Map<String, Function> methods) =>
+      externalMethods = methods;
+
+  Map<String, CustomBuilder> externalScreenWidgets = {};
+  void setExternalScreenWidgets(Map<String, CustomBuilder> widgets) {
+    externalScreenWidgets = widgets;
   }
 
   late FirebaseApp ensembleFirebaseApp;
@@ -243,6 +255,7 @@ class Ensemble {
     String? screenName,
     bool? asModal,
     Map<String, dynamic>? pageArgs,
+    bool isExternal = false,
   }) {
     PageType pageType = asModal == true ? PageType.modal : PageType.regular;
 
@@ -251,7 +264,8 @@ class Ensemble {
             screenId: screenId,
             screenName: screenName,
             pageType: pageType,
-            arguments: pageArgs));
+            arguments: pageArgs,
+            isExternal: isExternal));
 
     Map<String, dynamic>? transition =
         Theme.of(context).extension<EnsembleThemeExtension>()?.transitions;
@@ -330,6 +344,14 @@ class EnsembleConfig {
   Future<EnsembleConfig> updateAppBundle({bool bypassCache = false}) async {
     appBundle = await definitionProvider.getAppBundle(bypassCache: bypassCache);
     return this;
+  }
+
+  /// update Env Variables at any later time wil override the values we
+  /// got from our config file
+  void updateEnvOverrides(Map<String, dynamic> updatedMap) {
+    if (updatedMap.isNotEmpty) {
+      (envOverrides ??= {}).addAll(updatedMap);
+    }
   }
 
   /// pass our custom theme from the appBundle and build the App Theme

@@ -1,0 +1,30 @@
+View:
+  title: Conditional
+
+  body:
+    Column:
+      styles: { gap: 16, padding: 24 }
+      children:
+        - TextInput:
+            id: textInputId
+            onKeyPress: |
+              //@code
+              textInputId.value = textInputId.value;
+
+        - Conditional:
+            conditions:
+              - if: ${textInputId.value == 'If'}
+                Text:
+                  text: If Statement
+              - elseif: ${textInputId.value == 'ElseIf1'}
+                Text:
+                  text: Else If Statement - 1
+              - elseif: ${textInputId.value == 'ElseIf2'}
+                Text:
+                  text: Else If Statement - 2
+              - elseif: ${textInputId.value == 'ElseIf3'}
+                Text:
+                  text: Else If Statement - 3
+              - else:
+                Text:
+                  text: Else Statement

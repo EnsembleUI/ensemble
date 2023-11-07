@@ -45,8 +45,8 @@ class Carousel extends StatefulWidget
       'autoLayoutBreakpoint': (value) =>
           _controller.autoLayoutBreakpoint = Utils.optionalInt(value, min: 0),
       'autoplay': (value) => _controller.autoplay = Utils.optionalBool(value),
-      'enableInfiniteScroll': (value) =>
-          _controller.enableInfiniteScroll = Utils.optionalBool(value),
+      'enableLoop': (value) =>
+          _controller.enableLoop = Utils.optionalBool(value),
       'autoplayInterval': (value) =>
           _controller.autoplayInterval = Utils.optionalInt(value, min: 1),
       'height': (height) => _controller.height = Utils.optionalInt(height),
@@ -138,7 +138,7 @@ class MyController extends BoxController {
   double? indicatorOffset;
   Color? indicatorColor;
   bool? autoplay;
-  bool? enableInfiniteScroll;
+  bool? enableLoop;
   int? autoplayInterval;
 
   // Custom Widget
@@ -273,12 +273,6 @@ class CarouselState extends WidgetState<Carousel>
   }
 
   List<Widget> buildItems() {
-    ViewUtil.checkValidWidget(
-        widget._controller.children != null
-            ? buildChildren(widget._controller.children!)
-            : null,
-        widget._controller.itemTemplate);
-
     // children will be rendered before templated children
     List<Widget> children = [];
 
@@ -362,7 +356,7 @@ class CarouselState extends WidgetState<Carousel>
     return CarouselOptions(
       height: widget._controller.height?.toDouble(),
       initialPage: widget._controller.selectedItemIndex,
-      enableInfiniteScroll: widget._controller.enableInfiniteScroll ?? false,
+      enableInfiniteScroll: widget._controller.enableLoop ?? false,
       autoPlay: widget._controller.autoplay ?? false,
       autoPlayInterval:
           Duration(seconds: widget._controller.autoplayInterval ?? 4),

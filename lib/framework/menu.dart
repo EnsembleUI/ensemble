@@ -7,12 +7,14 @@ import 'package:ensemble/util/utils.dart';
 import 'package:yaml/yaml.dart';
 
 abstract class Menu {
-  Menu(this.menuItems, {this.styles, this.headerModel, this.footerModel});
+  Menu(this.menuItems,
+      {this.styles, this.headerModel, this.footerModel, this.reloadView});
 
   List<MenuItem> menuItems;
   Map<String, dynamic>? styles;
   WidgetModel? headerModel;
   WidgetModel? footerModel;
+  bool? reloadView = true;
 
   static Menu fromYaml(
       dynamic menu, Map<String, dynamic>? customViewDefinitions) {
@@ -70,6 +72,7 @@ abstract class Menu {
                   Utils.optionalString(item['floatingAlignment']) ?? 'center',
               floatingMargin: Utils.optionalInt(item['floatingMargin']),
               onTap: item['onTap'],
+              isExternal: Utils.getBool(item['isExternal'], fallback: false),
             ),
           );
           customIconModel = null; // Resetting custom icon model
@@ -93,8 +96,10 @@ abstract class Menu {
       }
 
       Map<String, dynamic>? styles = Utils.getMap(payload['styles']);
+      final isReloadView = payload['reloadView'] as bool? ?? true;
       if (menuType == MenuDisplay.BottomNavBar) {
-        return BottomNavBarMenu.fromYaml(menuItems: menuItems, styles: styles);
+        return BottomNavBarMenu.fromYaml(
+            menuItems: menuItems, styles: styles, reloadView: isReloadView);
       } else if (menuType == MenuDisplay.Drawer ||
           menuType == MenuDisplay.EndDrawer) {
         return DrawerMenu.fromYaml(
@@ -102,7 +107,8 @@ abstract class Menu {
             styles: styles,
             atStart: menuType != MenuDisplay.EndDrawer,
             headerModel: menuHeaderModel,
-            footerModel: menuFooterModel);
+            footerModel: menuFooterModel,
+            reloadView: isReloadView);
       } else if (menuType == MenuDisplay.Sidebar ||
           menuType == MenuDisplay.EndSidebar) {
         return SidebarMenu.fromYaml(
@@ -110,7 +116,8 @@ abstract class Menu {
             styles: styles,
             atStart: menuType != MenuDisplay.EndSidebar,
             headerModel: menuHeaderModel,
-            footerModel: menuFooterModel);
+            footerModel: menuFooterModel,
+            reloadView: isReloadView);
       }
     }
     throw LanguageError("Invalid Menu type.",
@@ -119,17 +126,20 @@ abstract class Menu {
 }
 
 class BottomNavBarMenu extends Menu {
-  BottomNavBarMenu._(super.menuItems, {super.styles});
+  BottomNavBarMenu._(super.menuItems, {super.styles, super.reloadView});
 
   factory BottomNavBarMenu.fromYaml(
-      {required List<MenuItem> menuItems, Map<String, dynamic>? styles}) {
-    return BottomNavBarMenu._(menuItems, styles: styles);
+      {required List<MenuItem> menuItems,
+      Map<String, dynamic>? styles,
+      bool? reloadView}) {
+    return BottomNavBarMenu._(menuItems,
+        styles: styles, reloadView: reloadView);
   }
 }
 
 class DrawerMenu extends Menu {
   DrawerMenu._(super.menuItems, this.atStart,
-      {super.styles, super.headerModel, super.footerModel});
+      {super.styles, super.headerModel, super.footerModel, super.reloadView});
   // show the drawer at start (left for LTR languages) or at the end
   bool atStart = true;
 
@@ -138,15 +148,19 @@ class DrawerMenu extends Menu {
       required bool atStart,
       Map<String, dynamic>? styles,
       WidgetModel? headerModel,
-      WidgetModel? footerModel}) {
+      WidgetModel? footerModel,
+      bool? reloadView}) {
     return DrawerMenu._(menuItems, atStart,
-        styles: styles, headerModel: headerModel, footerModel: footerModel);
+        styles: styles,
+        headerModel: headerModel,
+        footerModel: footerModel,
+        reloadView: reloadView);
   }
 }
 
 class SidebarMenu extends Menu {
   SidebarMenu._(super.menuItems, this.atStart,
-      {super.styles, super.headerModel, super.footerModel});
+      {super.styles, super.headerModel, super.footerModel, super.reloadView});
   // show the sidebar at start (left for LTR languages) or at the end
   bool atStart = true;
 
@@ -155,9 +169,13 @@ class SidebarMenu extends Menu {
       required bool atStart,
       Map<String, dynamic>? styles,
       WidgetModel? headerModel,
-      WidgetModel? footerModel}) {
+      WidgetModel? footerModel,
+      bool? reloadView}) {
     return SidebarMenu._(menuItems, atStart,
-        styles: styles, headerModel: headerModel, footerModel: footerModel);
+        styles: styles,
+        headerModel: headerModel,
+        footerModel: footerModel,
+        reloadView: reloadView);
   }
 }
 
@@ -191,6 +209,7 @@ class MenuItem {
     this.floatingAlignment = 'center',
     this.floatingMargin,
     this.onTap,
+    required this.isExternal,
   });
 
   final String? label;
@@ -205,4 +224,5 @@ class MenuItem {
   final String floatingAlignment;
   final int? floatingMargin;
   final dynamic onTap;
+  final bool isExternal;
 }

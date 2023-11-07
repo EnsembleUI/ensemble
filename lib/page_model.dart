@@ -172,7 +172,10 @@ class SinglePageModel extends PageModel {
       footer = Footer(
         ViewUtil.buildModels(
             viewMap['footer']['children'], customViewDefinitions),
-        Utils.getMap(viewMap['footer']['styles']),
+        Utils.getMap(
+          viewMap['footer']['styles'],
+        ),
+        Utils.getMap(viewMap['footer']['dragOptions']),
       );
     }
 
@@ -245,7 +248,7 @@ class SinglePageModel extends PageModel {
   WidgetModel? getRootModel(
       YamlMap rootTree, Map<String, dynamic>? customViewDefinitions) {
     for (MapEntry<dynamic, dynamic> entry in rootTree.entries) {
-      if (WidgetRegistry.widgetMap[entry.key] != null ||
+      if (WidgetRegistry.legacyWidgetMap[entry.key] != null ||
           customViewDefinitions?[entry.key] != null) {
         return ViewUtil.buildModel(entry, customViewDefinitions);
       }
@@ -345,7 +348,8 @@ class HeaderModel {
 class Footer {
   final List<WidgetModel> children;
   final Map<String, dynamic>? styles;
-  Footer(this.children, this.styles);
+  final Map<String, dynamic>? dragOptions;
+  Footer(this.children, this.styles, this.dragOptions);
 }
 
 enum PageType { regular, modal }
@@ -364,7 +368,11 @@ class AppProvider {
 /// payload to pass to the Screen
 class ScreenPayload {
   ScreenPayload(
-      {this.screenId, this.screenName, this.arguments, this.pageType});
+      {this.screenId,
+      this.screenName,
+      this.arguments,
+      this.pageType,
+      this.isExternal = false});
 
   // screen ID is optional as the App always have a default screen
   String? screenId;
@@ -375,6 +383,9 @@ class ScreenPayload {
   Map<String, dynamic>? arguments;
 
   PageType? pageType;
+
+  // check if screen is externally provided. i.e not ensemble screen.
+  bool isExternal;
 }
 
 /// rendering options for the screenc
