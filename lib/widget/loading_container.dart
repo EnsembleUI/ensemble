@@ -152,7 +152,7 @@ class ListDetailShape extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           InternalShape(
-              type: ShapeType.square,
+              type: ShapeVariant.square,
               width: 50,
               borderRadius: BorderRadius.all(Radius.circular(10)),
               backgroundColor: Colors.white),
@@ -160,14 +160,14 @@ class ListDetailShape extends StatelessWidget {
           Column(
             children: [
               InternalShape(
-                  type: ShapeType.rectangle,
+                  type: ShapeVariant.rectangle,
                   width: 200,
                   height: 10,
                   borderRadius: BorderRadius.all(Radius.circular(5)),
                   backgroundColor: Colors.white),
               SizedBox(height: 10),
               InternalShape(
-                  type: ShapeType.rectangle,
+                  type: ShapeVariant.rectangle,
                   width: 200,
                   height: 5,
                   borderRadius: BorderRadius.all(Radius.circular(5)),
