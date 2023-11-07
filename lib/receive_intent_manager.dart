@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -22,34 +20,36 @@ class ReceiveIntentManager {
   EnsembleAction? onReceive;
   EnsembleAction? onError;
 
-  late StreamSubscription _intentDataStreamSubscription;
   List<SharedMediaFile>? _sharedFiles;
   String? sharedText;
 
-  void init() {
-    // receiveMediaWhenInMemory();
-    receiveMediaWhenClosed();
-    // receiveTextUrlWhenInMemory();
-    receiveTextUrlWhenClosed();
-  }
+  void init(BuildContext context, Invokable? invokable,
+      EnsembleAction? onReceive, EnsembleAction? onError) {
+    this.context = context;
+    this.invokable = invokable;
+    this.onReceive = onReceive;
+    this.onError = onError;
 
-  void deinit() {
-    _intentDataStreamSubscription.cancel();
+    receiveMediaWhenInMemory();
+    receiveMediaWhenClosed();
+    receiveTextUrlWhenInMemory();
+    receiveTextUrlWhenClosed();
   }
 
   /// For sharing images coming from outside the app while the app is in the memory
   void receiveMediaWhenInMemory() {
-    _intentDataStreamSubscription = ReceiveSharingIntent.getMediaStream()
-        .listen((List<SharedMediaFile> value) {
+    ReceiveSharingIntent.getMediaStream().listen((List<SharedMediaFile> value) {
       _sharedFiles = value;
       final filePath = (_sharedFiles?.map((f) => f.path).join(",") ?? "");
       if (context != null && onReceive != null) {
-        print("Shared Media: InMemory - $filePath");
         ScreenController().executeAction(context!, onReceive!,
             event: EnsembleEvent(invokable, data: {'file': filePath}));
       }
     }, onError: (err) {
-      print("getIntentDataStream error: $err");
+      if (context != null && onError != null) {
+        ScreenController().executeAction(context!, onError!,
+            event: EnsembleEvent(invokable, data: {'error': err}));
+      }
     });
   }
 
@@ -62,25 +62,30 @@ class ReceiveIntentManager {
           onReceive != null &&
           _sharedFiles != null &&
           _sharedFiles!.isNotEmpty) {
-        print("Shared Media: Closed - $filePath");
         ScreenController().executeAction(context!, onReceive!,
             event: EnsembleEvent(invokable, data: {'file': filePath}));
+      }
+    }, onError: (err) {
+      if (context != null && onError != null) {
+        ScreenController().executeAction(context!, onError!,
+            event: EnsembleEvent(invokable, data: {'error': err}));
       }
     });
   }
 
   /// For sharing or opening urls/text coming from outside the app while the app is in the memory
   void receiveTextUrlWhenInMemory() {
-    _intentDataStreamSubscription =
-        ReceiveSharingIntent.getTextStream().listen((String value) {
+    ReceiveSharingIntent.getTextStream().listen((String value) {
       sharedText = value;
       if (context != null && onReceive != null && value.isNotEmpty) {
-        print("Shared Text - In Memory: $sharedText");
         ScreenController().executeAction(context!, onReceive!,
             event: EnsembleEvent(invokable, data: {'text': sharedText}));
       }
     }, onError: (err) {
-      print("getLinkStream error: $err");
+      if (context != null && onError != null) {
+        ScreenController().executeAction(context!, onError!,
+            event: EnsembleEvent(invokable, data: {'error': err}));
+      }
     });
   }
 
@@ -89,10 +94,13 @@ class ReceiveIntentManager {
     ReceiveSharingIntent.getInitialText().then((String? value) {
       sharedText = value;
       if (context != null && onReceive != null && value != null) {
-        print("Shared Text - Closed: $sharedText");
         ScreenController().executeAction(context!, onReceive!,
-            event: EnsembleEvent(invokable,
-                data: {'text': sharedText ?? 'Not Found'}));
+            event: EnsembleEvent(invokable, data: {'text': sharedText}));
+      }
+    }, onError: (err) {
+      if (context != null && onError != null) {
+        ScreenController().executeAction(context!, onError!,
+            event: EnsembleEvent(invokable, data: {'error': err}));
       }
     });
   }
