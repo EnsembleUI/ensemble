@@ -414,9 +414,6 @@ class EnsembleBottomAppBarState extends State<EnsembleBottomAppBar> {
   void initState() {
     super.initState();
     _selectedIndex = widget.selectedIndex;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // _updateIndex(_selectedIndex);
-    });
   }
 
   @override
