@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
+import 'package:webview_flutter_platform_interface/src/webview_platform.dart';
+import 'package:youtube_player_iframe_web/src/web_youtube_player_iframe_platform.dart';
 
 class Youtube extends StatefulWidget
     with Invokable, HasController<PlayerController, YoutubeState> {
@@ -86,6 +88,11 @@ class YoutubeState extends WidgetState<Youtube> with YoutubeMethods {
   late YoutubePlayerController player;
   @override
   void initState() {
+    // known issue with the youtube package. Without this
+    // Web renderer intermittently fails to load
+    // https://github.com/sarbagyastha/youtube_player_flutter/issues/819
+    WebViewPlatform.instance = WebYoutubePlayerIframePlatform();
+    
     PlayerController playerController = widget._controller;
     player = YoutubePlayerController(
         params: YoutubePlayerParams(
