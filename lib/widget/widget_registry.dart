@@ -65,13 +65,16 @@ import 'fintech/tabapayconnect.dart';
 
 class WidgetRegistry {
   static final WidgetRegistry _instance = WidgetRegistry._();
+
   WidgetRegistry._();
+
   factory WidgetRegistry() => _instance;
 
   /// all statically-known widgets should be registered here.
   /// widgets can be dynamically registered (or overridden) by calling registerWidget()
   final Map<String, Function> _registeredWidgets = {
     Avatar.type: Avatar.build,
+    Shape.type: Shape.build
   };
 
   /// register or override a widget
@@ -152,7 +155,6 @@ class WidgetRegistry {
         TabBarContainer.type: () => TabBarContainer(),
         AppScroller.type: () => AppScroller(),
         LoadingContainer.type: () => LoadingContainer(),
-        Shape.type: () => Shape(),
 
         // charts
         Highcharts.type: () => Highcharts(),
