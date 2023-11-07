@@ -6011,48 +6011,52 @@
           "description": "The URL source to the youtube video"
         },
         "aspectRatio" : {
-          "type": "double",
+          "type": "number",
           "description" : "Video aspect ratio"
         },
         "autoplay": {
-          "type" : "bool",
+          "type" : "boolean",
           "description" : "Automatically start the video when player is loaded. (default False)"
         },
         "videoList" : {
-          "type" : "array",
+          "type" : "object",
           "description" : "List of videos to be played within a single player."
         },
         "startSeconds": {
-          "type" : "double",
+          "type" : "number",
           "description" : "specifies the time from which the first video in the list(or single video) should start playing"
         },
         "endSeconds": {
-          "type": "double",
+          "type": "number",
           "description": "Ends the video after the certain number of seconds (works with Single video)"
         },
         "showAnnotations" : {
-          "type" : "bool",
+          "type" : "boolean",
           "description" : "Showing the annotations of the video"
         },            
         "playbackRate" : {
-          "type": "double",
+          "type": "number",
           "description": "For changing the speed at which the video is displayed"
         },
         "showControls": {
-          "type" : "bool",
+          "type" : "boolean",
           "description" : "For showing the controls on the video within the player(Like in youtube)"
         },
         "showFullScreenButton": {
-          "type" : "bool",
+          "type" : "boolean",
           "description" : "To show the fullscreen button of the video"
         },
         "enableCaptions" : {
-          "type": "bool",
+          "type": "boolean",
           "description" : "To enable any captions in the video(default language of caption is English)"
         },
         "volume": {
           "type": "integer",
           "description" : "Changes the volume. (max = 100, min = 0)"
+        },
+        "videoPosition": {
+          "type": "boolean",
+          "description": "To add an indicator for the amount of video that is completed"
         }
       }
     },

@@ -66,7 +66,9 @@ class Youtube extends StatefulWidget
           _controller.youtubeMethods
               ?.setVolume(Utils.getInt(value, fallback: 100, max: 100, min: 0));
           _controller.volume = Utils.optionalInt(value, max: 100, min: 0);
-        }
+        },
+        'videoPosition': (value) =>
+            _controller.videoPosition = Utils.getBool(value, fallback: false)
       };
 }
 
@@ -132,6 +134,10 @@ class YoutubeState extends WidgetState<Youtube> with YoutubeMethods {
   @override
   void didUpdateWidget(covariant Youtube oldWidget) {
     widget._controller.youtubeMethods = this;
+    widget._controller.youtubeMethods!
+        .setPlaybackRate(oldWidget.controller.playbackRate ?? 1);
+    widget._controller.youtubeMethods!
+        .setVolume(oldWidget.controller.volume ?? 100);
     super.didUpdateWidget(oldWidget);
   }
 
@@ -163,7 +169,30 @@ class YoutubeState extends WidgetState<Youtube> with YoutubeMethods {
             player.seekTo(seconds: currentTime, allowSeekAhead: true);
           }
         }),
-      builder: (context, player) => player,
+      builder: (context, youtube) {
+        if (playerController.videoPosition) {
+          return YoutubeValueBuilder(
+              builder: (context, youtubeValue) => Column(
+                    children: [
+                      youtube,
+                      StreamBuilder<YoutubeVideoState>(
+                          stream: player.videoStateStream,
+                          builder: (context, snapshot) {
+                            final int position =
+                                snapshot.data?.position.inMilliseconds ?? 0;
+                            final int duration =
+                                youtubeValue.metaData.duration.inMilliseconds;
+                            return LinearProgressIndicator(
+                              value: duration == 0 ? 0 : position / duration,
+                              minHeight: 3,
+                            );
+                          })
+                    ],
+                  ));
+        } else {
+          return youtube;
+        }
+      },
     );
   }
 
@@ -209,6 +238,7 @@ class PlayerController extends WidgetController {
   bool enableCaptions = true;
   double? playbackRate;
   int? volume;
+  bool videoPosition = false;
 
   List<String> videoList = [];
 
