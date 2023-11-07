@@ -627,6 +627,11 @@
           "type": "string",
           "description": "URL to or asset name of the image. If the URL is used, it is highly recommended that the dimensions is set (either with width/height or other means) to prevent the UI jerkiness while loading."
         },
+        "variant": {
+          "type": "string",
+          "description": "Specify the Avatar's shape: circle (default), square, or rounded.",
+          "enum": ["circle", "square", "rounded"]
+        },
         "name": {
           "type": "string",
           "description": "If the image source is not specified or failed to load, this name's initials will be displayed"
@@ -1679,21 +1684,27 @@
           ]
         },
         "styles": {
-          "properties": {
-            "width": {
-              "type": "integer"
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
             },
-            "height": {
-              "type": "integer"
+            {
+              "$ref": "#/$defs/HasBorder"
             },
-            "borderRadius": {
-              "$ref": "#/$defs/borderRadius",
-              "description": "Applicable only for square/rectangle shape"
-            },
-            "backgroundColor": {
-              "$ref": "#/$defs/type-color"
+            {
+              "properties": {
+                "width": {
+                  "type": "integer"
+                },
+                "height": {
+                  "type": "integer"
+                },
+                "backgroundColor": {
+                  "$ref": "#/$defs/type-color"
+                }
+              }
             }
-          }
+          ]
         }
       }
     },
@@ -4493,42 +4504,49 @@
     "BottomNavBarMenuItems-Payload": {
       "properties": {
         "styles": {
-          "type": "object",
-          "properties": {
-            "color": {
-              "$ref": "#/$defs/type-color",
-              "description": "Unselected icon color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+          "allOf": [
+            {
+              "$ref": "#/$defs/HasShadow"
             },
-            "selectedColor": {
-              "$ref": "#/$defs/type-color",
-              "description": "Selected icon color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
-            },
-            "backgroundColor": {
-              "$ref": "#/$defs/type-color",
-              "description": "Background color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
-            },
-            "floatingBackgroundColor": {
-              "$ref": "#/$defs/type-color",
-              "description": "Floating item background color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
-            },
-            "floatingIconColor": {
-              "$ref": "#/$defs/type-color",
-              "description": "Floating item icon color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
-            },
-            "height": {
-              "type": "integer",
-              "description": "Set the height of the BottomNavBar."
-            },
-            "padding": {
-              "$ref": "#/$defs/Padding-payload"
-            },
-            "margin": {
-              "$ref": "#/$defs/Margin-payload"
-            },
-            "borderRadius": {
-              "$ref": "#/$defs/borderRadius"
+            {
+              "type": "object",
+              "properties": {
+                "color": {
+                  "$ref": "#/$defs/type-color",
+                  "description": "Unselected icon color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+                },
+                "selectedColor": {
+                  "$ref": "#/$defs/type-color",
+                  "description": "Selected icon color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+                },
+                "backgroundColor": {
+                  "$ref": "#/$defs/type-color",
+                  "description": "Background color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+                },
+                "floatingBackgroundColor": {
+                  "$ref": "#/$defs/type-color",
+                  "description": "Floating item background color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+                },
+                "floatingIconColor": {
+                  "$ref": "#/$defs/type-color",
+                  "description": "Floating item icon color, starting with '0xFF' for full opacity e.g 0xFFCCCCCC"
+                },
+                "height": {
+                  "type": "integer",
+                  "description": "Set the height of the BottomNavBar."
+                },
+                "padding": {
+                  "$ref": "#/$defs/Padding-payload"
+                },
+                "margin": {
+                  "$ref": "#/$defs/Margin-payload"
+                },
+                "borderRadius": {
+                  "$ref": "#/$defs/borderRadius"
+                }
+              }
             }
-          }
+          ]
         },
         "reloadView": {
           "type": "boolean",
@@ -6796,6 +6814,10 @@
           }
         },
         "shadowRadius": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "shadowBlurRadius": {
           "type": "integer",
           "minimum": 0
         },
