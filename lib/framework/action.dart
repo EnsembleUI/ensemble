@@ -15,6 +15,7 @@ import 'package:ensemble/framework/keychain_manager.dart';
 import 'package:ensemble/framework/permissions_manager.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
+import 'package:ensemble/receive_intent_manager.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -206,8 +207,7 @@ class ReceiveIntentAction extends EnsembleAction {
   EnsembleAction? getOnError(DataContext dataContext) =>
       dataContext.eval(onError);
 
-  factory ReceiveIntentAction.fromYaml(
-      {Invokable? initiator, YamlMap? payload}) {
+  factory ReceiveIntentAction.fromYaml({Invokable? initiator, Map? payload}) {
     return ReceiveIntentAction(
       initiator: initiator,
       options: Utils.getMap(payload?['options']),
@@ -215,6 +215,16 @@ class ReceiveIntentAction extends EnsembleAction {
       onReceive: EnsembleAction.fromYaml(payload?['onReceive']),
       onError: EnsembleAction.fromYaml(payload?['onError']),
     );
+  }
+
+  @override
+  Future execute(BuildContext context, ScopeManager scopeManager) {
+    ReceiveIntentManager().init(
+        context,
+        initiator,
+        getOnReceive(scopeManager.dataContext),
+        getOnError(scopeManager.dataContext));
+    return Future.value(null);
   }
 }
 
