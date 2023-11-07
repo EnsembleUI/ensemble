@@ -104,23 +104,41 @@ class EnsembleApp extends StatefulWidget {
   State<StatefulWidget> createState() => EnsembleAppState();
 }
 
-class EnsembleAppState extends State<EnsembleApp> {
+class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
   late Future<EnsembleConfig> config;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     config = initApp();
-
     // Initialize native features.
     if (!kIsWeb) {
       Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
+      initDeepLink(AppLifecycleState.resumed);
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    initDeepLink(state);
+  }
+
+  void initDeepLink(AppLifecycleState state) {
+    if (!kIsWeb) {
       if (Platform.isIOS) {
-        IOSDeepLinkManager().init();
+        IOSDeepLinkManager().init(state);
       } else {
         DeepLinkManager().init();
       }
     }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   /// initialize our App with the the passed in config or
