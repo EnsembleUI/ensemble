@@ -6,10 +6,7 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/menu.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/bottom_nav_page_view.dart';
-import 'package:ensemble/framework/view/data_scope_widget.dart';
-import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/framework/view/page_group.dart';
-import 'package:ensemble/framework/widget/custom_view.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
@@ -295,6 +292,13 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
                   ?.getValue(),
           color: unselectedColor,
           selectedColor: selectedColor,
+          shadowColor: Utils.getColor(widget.menu.styles?['shadowColor']),
+          shadowRadius:
+              Utils.optionalDouble(widget.menu.styles?['shadowRadius']),
+          shadowBlurRadius:
+              Utils.optionalDouble(widget.menu.styles?['shadowBlurRadius']),
+          shadowStyle:
+              Utils.getShadowBlurStyle(widget.menu.styles?['shadowStyle']),
           notchedShape: const CircularNotchedRectangle(),
           onTabSelected: (index) {
             if (widget.menu.reloadView == true) {
@@ -331,6 +335,10 @@ class EnsembleBottomAppBar extends StatefulWidget {
     this.margin,
     this.padding,
     this.borderRadius,
+    this.shadowColor,
+    this.shadowRadius,
+    this.shadowBlurRadius,
+    this.shadowStyle,
     this.iconSize = 24.0,
     required this.backgroundColor,
     required this.color,
@@ -354,6 +362,10 @@ class EnsembleBottomAppBar extends StatefulWidget {
   final Color backgroundColor;
   final Color color;
   final Color selectedColor;
+  final Color? shadowColor;
+  final double? shadowRadius;
+  final double? shadowBlurRadius;
+  final BlurStyle? shadowStyle;
   final bool isFloating;
   final FloatingAlignment floatingAlignment;
   final NotchedShape notchedShape;
@@ -433,6 +445,16 @@ class EnsembleBottomAppBarState extends State<EnsembleBottomAppBar> {
         margin: Utils.optionalInsets(widget.margin) ?? EdgeInsets.zero,
         decoration: BoxDecoration(
           borderRadius: widget.borderRadius ?? BorderRadius.zero,
+          boxShadow: widget.shadowColor != null
+              ? [
+                  BoxShadow(
+                    color: widget.shadowColor!,
+                    spreadRadius: widget.shadowRadius ?? 0.0,
+                    blurRadius: widget.shadowBlurRadius ?? 0.0,
+                    blurStyle: widget.shadowStyle ?? BlurStyle.normal,
+                  ),
+                ]
+              : [],
         ),
         clipBehavior: widget.borderRadius != null ? Clip.hardEdge : Clip.none,
         child: BottomAppBar(
