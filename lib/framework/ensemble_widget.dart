@@ -42,7 +42,8 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
   @override
   Widget build(BuildContext context) {
     if (widget.controller is EnsembleWidgetController) {
-      EnsembleWidgetController widgetController = widget.controller as EnsembleWidgetController;
+      EnsembleWidgetController widgetController =
+          widget.controller as EnsembleWidgetController;
 
       // if there is not visible transition, we rather not show the widget
       if (!widgetController.visible &&

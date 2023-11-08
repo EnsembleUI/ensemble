@@ -22,7 +22,7 @@ class Avatar extends EnsembleWidget<AvatarController> {
   const Avatar._(super.controller, {super.key});
 
   factory Avatar.build(dynamic controller) => Avatar._(
-        controller is AvatarController ? controller : AvatarController());
+      controller is AvatarController ? controller : AvatarController());
 
   @override
   State<StatefulWidget> createState() => AvatarState();
