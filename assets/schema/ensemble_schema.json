@@ -5382,13 +5382,13 @@
           }
         },
         {
-          "title": "Youtube",
+          "title": "YouTube",
           "required": [
-            "Youtube"
+            "YouTube"
           ],
           "properties": {
-            "Youtube" : {
-              "$ref" : "#/$defs/Youtube-payload"
+            "YouTube" : {
+              "$ref" : "#/$defs/YouTube-payload"
             }
           }
         },
@@ -6017,7 +6017,7 @@
         }
       }
     },
-    "Youtube-payload":{
+    "YouTube-payload":{
       "type" : "object",
       "properties" : {
         "id" : {
@@ -6026,7 +6026,7 @@
         },
         "url" : {
           "type": "string",
-          "description": "The URL source to the youtube video"
+          "description": "The URL source to the youTube video"
         },
         "aspectRatio" : {
           "type": "number",
