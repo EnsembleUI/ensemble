@@ -16,6 +16,10 @@
         "body"
       ],
       "properties": {
+        "inputs": {
+          "type": "array",
+          "description": "List of all the inputs user can send to a given View."
+        },
         "header": {
           "type": "object",
           "description": "Configure the application header",
