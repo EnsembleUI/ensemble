@@ -1,6 +1,7 @@
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:ensemble/widget/youtube/youtubestate.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -11,7 +12,7 @@ class Youtube extends StatefulWidget
     with Invokable, HasController<PlayerController, YoutubeState> {
   Youtube({super.key});
 
-  static const String type = "Youtube";
+  static const String type = "YouTube";
 
   final PlayerController _controller = PlayerController();
 
@@ -88,6 +89,7 @@ class YoutubeState extends WidgetState<Youtube> with YoutubeMethods {
   late YoutubePlayerController player;
   @override
   void initState() {
+    YoutubeWeb().createWebInstance();
     PlayerController playerController = widget._controller;
     player = YoutubePlayerController(
         params: YoutubePlayerParams(
