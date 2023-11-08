@@ -17,6 +17,7 @@ import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/bottom_nav_page_group.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
+import 'package:ensemble/receive_intent_manager.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -204,6 +205,46 @@ class PlaidLinkAction extends EnsembleAction {
       onEvent: EnsembleAction.fromYaml(payload['onEvent']),
       onExit: EnsembleAction.fromYaml(payload['onExit']),
     );
+  }
+}
+
+class ReceiveIntentAction extends EnsembleAction {
+  ReceiveIntentAction({
+    Invokable? initiator,
+    this.options,
+    this.id,
+    this.onReceive,
+    this.onError,
+  }) : super(initiator: initiator);
+  final Map<String, dynamic>? options;
+  String? id;
+  EnsembleAction? onReceive;
+  EnsembleAction? onError;
+
+  EnsembleAction? getOnReceive(DataContext dataContext) =>
+      dataContext.eval(onReceive);
+
+  EnsembleAction? getOnError(DataContext dataContext) =>
+      dataContext.eval(onError);
+
+  factory ReceiveIntentAction.fromYaml({Invokable? initiator, Map? payload}) {
+    return ReceiveIntentAction(
+      initiator: initiator,
+      options: Utils.getMap(payload?['options']),
+      id: Utils.optionalString(payload?['id']),
+      onReceive: EnsembleAction.fromYaml(payload?['onReceive']),
+      onError: EnsembleAction.fromYaml(payload?['onError']),
+    );
+  }
+
+  @override
+  Future execute(BuildContext context, ScopeManager scopeManager) {
+    ReceiveIntentManager().init(
+        context,
+        initiator,
+        getOnReceive(scopeManager.dataContext),
+        getOnError(scopeManager.dataContext));
+    return Future.value(null);
   }
 }
 
@@ -868,6 +909,7 @@ enum ActionType {
   saveKeychain,
   clearKeychain,
   getDeviceToken,
+  receiveIntent,
   connectSocket,
   disconnectSocket,
   messageSocket,
@@ -999,6 +1041,9 @@ abstract class EnsembleAction {
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.checkPermission) {
       return CheckPermission.fromYaml(payload: payload);
+    } else if (actionType == ActionType.receiveIntent) {
+      return ReceiveIntentAction.fromYaml(
+          initiator: initiator, payload: payload);
     } else if (actionType == ActionType.connectSocket) {
       return ConnectSocketAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.disconnectSocket) {
