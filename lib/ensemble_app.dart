@@ -25,6 +25,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:workmanager/workmanager.dart';
 
 const String backgroundUploadTask = 'backgroundUploadTask';
+const String ensembleMethodChannelName = 'com.ensembleui.host.platform';
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {

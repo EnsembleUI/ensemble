@@ -6,10 +6,7 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/menu.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/bottom_nav_page_view.dart';
-import 'package:ensemble/framework/view/data_scope_widget.dart';
-import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/framework/view/page_group.dart';
-import 'package:ensemble/framework/widget/custom_view.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
@@ -53,6 +50,32 @@ extension EnumActionExtension on FloatingAlignment {
   }
 }
 
+class PageGroupWidgetWrapper extends StatelessWidget {
+  const PageGroupWidgetWrapper({
+    super.key,
+    required this.scopeManager,
+    required this.reloadView,
+    required this.child,
+  });
+
+  final ScopeManager scopeManager;
+  final bool? reloadView;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (reloadView == false) {
+      return PageGroupWidget(
+        scopeManager: scopeManager,
+        pageController:
+            PageController(initialPage: viewGroupNotifier.viewIndex),
+        child: child,
+      );
+    }
+    return child;
+  }
+}
+
 class BottomNavPageGroup extends StatefulWidget {
   const BottomNavPageGroup({
     super.key,
@@ -75,7 +98,6 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
     with RouteAware {
   late List<MenuItem> menuItems;
   late PageController controller;
-  late int selectedPage;
   FloatingAlignment floatingAlignment = FloatingAlignment.center;
   int? floatingMargin;
   MenuItem? fabMenuItem;
@@ -83,11 +105,10 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
   @override
   void initState() {
     super.initState();
-    if (widget.menu.reloadView == true) {
-      selectedPage = widget.selectedPage;
-    } else {
+    if (widget.menu.reloadView == false) {
       controller = PageController(initialPage: widget.selectedPage);
     }
+    viewGroupNotifier.updatePage(widget.selectedPage, isReload: false);
     menuItems = widget.menu.menuItems
         .where((element) => element.floating != true)
         .toList();
@@ -179,27 +200,38 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
     final notchColor = Utils.getColor(widget.menu.styles?['notchColor']) ??
         Theme.of(context).scaffoldBackgroundColor;
 
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      backgroundColor: notchColor,
-      bottomNavigationBar: _buildBottomNavBar(),
-      floatingActionButtonLocation: floatingAlignment == FloatingAlignment.none
-          ? null
-          : floatingAlignment.location,
-      floatingActionButton: _buildFloatingButton(),
-      body: PageGroupWidget(
-        scopeManager: widget.scopeManager,
-        child: widget.menu.reloadView == true
-            ? widget.children[selectedPage]
-            : BottomNavPageView(
-                controller: controller,
-                children: widget.children,
+    return PageGroupWidgetWrapper(
+      reloadView: widget.menu.reloadView,
+      scopeManager: widget.scopeManager,
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        backgroundColor: notchColor,
+        bottomNavigationBar: _buildBottomNavBar(),
+        floatingActionButtonLocation:
+            floatingAlignment == FloatingAlignment.none
+                ? null
+                : floatingAlignment.location,
+        floatingActionButton: _buildFloatingButton(),
+        body: widget.menu.reloadView == true
+            ? ListenableBuilder(
+                listenable: viewGroupNotifier,
+                builder: (_, __) =>
+                    widget.children[viewGroupNotifier.viewIndex])
+            : Builder(
+                builder: (context) {
+                  final controller = PageGroupWidget.getPageController(context);
+
+                  return BottomNavPageView(
+                    controller: controller ?? PageController(),
+                    children: widget.children,
+                  );
+                },
               ),
       ),
     );
   }
 
-  EnsembleBottomAppBar? _buildBottomNavBar() {
+  Widget? _buildBottomNavBar() {
     List<FABBottomAppBarItem> navItems = [];
 
     final unselectedColor = Utils.getColor(widget.menu.styles?['color']) ??
@@ -241,31 +273,47 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
       );
     }
 
-    return EnsembleBottomAppBar(
-      selectedIndex: widget.selectedPage,
-      backgroundColor: Utils.getColor(widget.menu.styles?['backgroundColor']) ??
-          Colors.white,
-      height: Utils.optionalDouble(widget.menu.styles?['height'] ?? 60),
-      margin: widget.menu.styles?['margin'],
-      padding: widget.menu.styles?['padding'],
-      borderRadius: Utils.getBorderRadius(widget.menu.styles?['borderRadius'])
-          ?.getValue(),
-      color: unselectedColor,
-      selectedColor: selectedColor,
-      notchedShape: const CircularNotchedRectangle(),
-      onTabSelected: (index) {
-        if (widget.menu.reloadView == true) {
-          setState(() {
-            selectedPage = index;
-          });
-        } else {
-          controller.jumpToPage(index);
-        }
+    return ListenableBuilder(
+      listenable: viewGroupNotifier,
+      builder: (context, _) {
+        final viewIndex = viewGroupNotifier.viewIndex;
+
+        return EnsembleBottomAppBar(
+          key: UniqueKey(),
+          selectedIndex: viewIndex,
+          backgroundColor:
+              Utils.getColor(widget.menu.styles?['backgroundColor']) ??
+                  Colors.white,
+          height: Utils.optionalDouble(widget.menu.styles?['height'] ?? 60),
+          margin: widget.menu.styles?['margin'],
+          padding: widget.menu.styles?['padding'],
+          borderRadius:
+              Utils.getBorderRadius(widget.menu.styles?['borderRadius'])
+                  ?.getValue(),
+          color: unselectedColor,
+          selectedColor: selectedColor,
+          shadowColor: Utils.getColor(widget.menu.styles?['shadowColor']),
+          shadowRadius:
+              Utils.optionalDouble(widget.menu.styles?['shadowRadius']),
+          shadowBlurRadius:
+              Utils.optionalDouble(widget.menu.styles?['shadowBlurRadius']),
+          shadowStyle:
+              Utils.getShadowBlurStyle(widget.menu.styles?['shadowStyle']),
+          notchedShape: const CircularNotchedRectangle(),
+          onTabSelected: (index) {
+            if (widget.menu.reloadView == true) {
+              viewGroupNotifier.updatePage(index);
+            } else {
+              PageGroupWidget.getPageController(context)!.jumpToPage(index);
+              viewGroupNotifier.updatePage(index);
+            }
+          },
+          items: navItems,
+          isFloating: fabMenuItem != null,
+          floatingAlignment: floatingAlignment,
+          floatingMargin: floatingMargin,
+        );
       },
-      items: navItems,
-      isFloating: fabMenuItem != null,
-      floatingAlignment: floatingAlignment,
-      floatingMargin: floatingMargin,
     );
   }
 
@@ -287,6 +335,10 @@ class EnsembleBottomAppBar extends StatefulWidget {
     this.margin,
     this.padding,
     this.borderRadius,
+    this.shadowColor,
+    this.shadowRadius,
+    this.shadowBlurRadius,
+    this.shadowStyle,
     this.iconSize = 24.0,
     required this.backgroundColor,
     required this.color,
@@ -310,6 +362,10 @@ class EnsembleBottomAppBar extends StatefulWidget {
   final Color backgroundColor;
   final Color color;
   final Color selectedColor;
+  final Color? shadowColor;
+  final double? shadowRadius;
+  final double? shadowBlurRadius;
+  final BlurStyle? shadowStyle;
   final bool isFloating;
   final FloatingAlignment floatingAlignment;
   final NotchedShape notchedShape;
@@ -358,9 +414,6 @@ class EnsembleBottomAppBarState extends State<EnsembleBottomAppBar> {
   void initState() {
     super.initState();
     _selectedIndex = widget.selectedIndex;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _updateIndex(_selectedIndex);
-    });
   }
 
   @override
@@ -389,6 +442,16 @@ class EnsembleBottomAppBarState extends State<EnsembleBottomAppBar> {
         margin: Utils.optionalInsets(widget.margin) ?? EdgeInsets.zero,
         decoration: BoxDecoration(
           borderRadius: widget.borderRadius ?? BorderRadius.zero,
+          boxShadow: widget.shadowColor != null
+              ? [
+                  BoxShadow(
+                    color: widget.shadowColor!,
+                    spreadRadius: widget.shadowRadius ?? 0.0,
+                    blurRadius: widget.shadowBlurRadius ?? 0.0,
+                    blurStyle: widget.shadowStyle ?? BlurStyle.normal,
+                  ),
+                ]
+              : [],
         ),
         clipBehavior: widget.borderRadius != null ? Clip.hardEdge : Clip.none,
         child: BottomAppBar(

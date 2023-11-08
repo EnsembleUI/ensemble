@@ -1,5 +1,6 @@
 /// This class contains helper controllers for our widgets.
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/controller/controller_mixins.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/util/utils.dart';
@@ -11,6 +12,7 @@ import 'package:flutter/cupertino.dart';
 /// as this allows any setters on the nested properties to trigger changes
 abstract class WidgetCompositeProperty with Invokable {
   WidgetCompositeProperty(this.widgetController);
+
   WidgetController widgetController;
 
   @override
@@ -103,6 +105,7 @@ class TextStyleComposite extends WidgetCompositeProperty {
   }
 }
 
+/// TODO: Legacy, transition to EnsembleWidgetController
 /// base Controller class for your Ensemble widget
 abstract class WidgetController extends Controller {
   // Note: we manage these here so the user doesn't need to do in their widgets
@@ -181,6 +184,7 @@ abstract class WidgetController extends Controller {
   }
 }
 
+/// TODO: Legacy - move to EnsembleBoxController
 /// Controller for anything with a Box around it (border, padding, shadow,...)
 /// This may be a widget itself (e.g Image), not necessary an actual Container with children
 class BoxController extends WidgetController {
@@ -398,6 +402,150 @@ class BoxController extends WidgetController {
       borderWidth?.bottom != null ||
       borderWidth?.left != null ||
       borderWidth?.right != null;
+
+  bool hasBoxShadow() =>
+      shadowColor != null ||
+      shadowOffset != null ||
+      shadowRadius != null ||
+      shadowStyle != null;
+}
+
+/// Base Widget Controller
+abstract class EnsembleWidgetController extends EnsembleController {
+  // Note: we manage these here so the user doesn't need to do in their widgets
+  // base properties applicable to all widgets
+  bool expanded = false;
+
+  bool visible = true;
+  Duration? visibilityTransitionDuration; // in seconds
+
+  int? elevation;
+  Color? elevationShadowColor;
+  EBorderRadius? elevationBorderRadius;
+
+  String? id; // do we need this?
+
+  // wrap widget inside an Align widget
+  Alignment? alignment;
+
+  int? stackPositionTop;
+  int? stackPositionBottom;
+  int? stackPositionLeft;
+  int? stackPositionRight;
+
+  // https://pub.dev/packages/pointer_interceptor
+  bool? captureWebPointer;
+
+  // optional label/labelHint for use in Forms
+  String? label;
+  String? description;
+  String? labelHint;
+
+  @override
+  Map<String, Function> getters() {
+    return {
+      'expanded': () => expanded,
+      'visible': () => visible,
+    };
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {
+      'expanded': (value) => expanded = Utils.getBool(value, fallback: false),
+      'visible': (value) => visible = Utils.getBool(value, fallback: true),
+      'visibilityTransitionDuration': (value) =>
+          visibilityTransitionDuration = Utils.getDuration(value),
+      'elevation': (value) =>
+          elevation = Utils.optionalInt(value, min: 0, max: 24),
+      'elevationShadowColor': (value) =>
+          elevationShadowColor = Utils.getColor(value),
+      'elevationBorderRadius': (value) =>
+          elevationBorderRadius = Utils.getBorderRadius(value),
+      'alignment': (value) => alignment = Utils.getAlignment(value),
+      'stackPositionTop': (value) =>
+          stackPositionTop = Utils.optionalInt(value),
+      'stackPositionBottom': (value) =>
+          stackPositionBottom = Utils.optionalInt(value),
+      'stackPositionLeft': (value) =>
+          stackPositionLeft = Utils.optionalInt(value),
+      'stackPositionRight': (value) =>
+          stackPositionRight = Utils.optionalInt(value),
+      'captureWebPointer': (value) =>
+          captureWebPointer = Utils.optionalBool(value),
+      'label': (value) => label = Utils.optionalString(value),
+      'description': (value) => description = Utils.optionalString(value),
+      'labelHint': (value) => labelHint = Utils.optionalString(value),
+    };
+  }
+
+  bool hasPositions() {
+    return (stackPositionTop ??
+            stackPositionBottom ??
+            stackPositionLeft ??
+            stackPositionRight) !=
+        null;
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {};
+  }
+}
+
+/// for Controllers that need Box properties
+class EnsembleBoxController extends EnsembleWidgetController
+    with HasBackgroundController, HasBorderController {
+  EdgeInsets? margin;
+  EdgeInsets? padding;
+
+  int? width;
+  int? height;
+
+  Color? shadowColor;
+  Offset? shadowOffset;
+  int? shadowRadius;
+  BlurStyle? shadowStyle;
+
+  // some children like Image don't get clipped properly with Box's clipBehavior
+  bool? clipContent;
+
+  @override
+  Map<String, Function> setters() {
+    return Map<String, Function>.from(super.setters())
+      ..addAll(hasBackgroundSetters())
+      ..addAll(hasBorderSetters())
+      ..addAll({
+        // support short-hand notation margin: 10 5 10
+        'margin': (value) => margin = Utils.optionalInsets(value),
+        'padding': (value) => padding = Utils.optionalInsets(value),
+
+        'width': (value) => width = Utils.optionalInt(value),
+        'height': (value) => height = Utils.optionalInt(value),
+
+        'shadowColor': (value) => shadowColor = Utils.getColor(value),
+        'shadowOffset': (list) => shadowOffset = Utils.getOffset(list),
+        'shadowRadius': (value) => shadowRadius = Utils.optionalInt(value),
+        'shadowStyle': (value) => shadowStyle = Utils.getShadowBlurStyle(value),
+
+        'clipContent': (value) => clipContent = Utils.optionalBool(value)
+      });
+  }
+
+  /// optimization. This is important to review if more properties are added
+  bool requiresBox(
+          {required bool ignoresMargin,
+          required bool ignoresPadding,
+          required bool ignoresDimension}) =>
+      (!ignoresDimension && hasDimension()) ||
+      (!ignoresMargin && margin != null) ||
+      (!ignoresPadding && padding != null) ||
+      hasBoxDecoration();
+
+  bool hasDimension() => width != null || height != null;
+
+  bool hasBoxDecoration() =>
+      hasBackground() || hasBorder() || borderRadius != null || hasBoxShadow();
 
   bool hasBoxShadow() =>
       shadowColor != null ||

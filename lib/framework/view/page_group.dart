@@ -43,15 +43,18 @@ class PageGroup extends StatefulWidget {
 /// We need this because the menu (i.e. drawer) is determined at the PageGroup
 /// level, but need to be injected under each child Page to render.
 class PageGroupWidget extends DataScopeWidget {
-  const PageGroupWidget(
-      {super.key,
-      required super.scopeManager,
-      required super.child,
-      this.navigationDrawer,
-      this.navigationEndDrawer});
+  const PageGroupWidget({
+    super.key,
+    required super.scopeManager,
+    required super.child,
+    this.navigationDrawer,
+    this.navigationEndDrawer,
+    this.pageController,
+  });
 
   final Drawer? navigationDrawer;
   final Drawer? navigationEndDrawer;
+  final PageController? pageController;
 
   static Drawer? getNavigationDrawer(BuildContext context) => context
       .dependOnInheritedWidgetOfExactType<PageGroupWidget>()
@@ -60,6 +63,10 @@ class PageGroupWidget extends DataScopeWidget {
   static Drawer? getNavigationEndDrawer(BuildContext context) => context
       .dependOnInheritedWidgetOfExactType<PageGroupWidget>()
       ?.navigationEndDrawer;
+
+  static PageController? getPageController(BuildContext context) => context
+      .dependOnInheritedWidgetOfExactType<PageGroupWidget>()
+      ?.pageController;
 
   /// return the ScopeManager which includes the dataContext
   /// TODO: have to repeat this function in DataScopeWidget?
@@ -77,11 +84,9 @@ class PageGroupWidget extends DataScopeWidget {
 
 class PageGroupState extends State<PageGroup> with MediaQueryCapability {
   late ScopeManager _scopeManager;
-  PageController? sidebarPageController;
 
   // managing the list of pages
   List<Widget> pageWidgets = [];
-  int selectedPage = 0;
 
   @override
   void initState() {
@@ -107,12 +112,8 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
       ));
       dynamic selected = _scopeManager.dataContext.eval(menuItem.selected);
       if (selected == true || selected == 'true') {
-        selectedPage = i;
+        viewGroupNotifier.updatePage(i, isReload: false);
       }
-    }
-
-    if (widget.menu is SidebarMenu && widget.menu.reloadView == false) {
-      sidebarPageController = PageController(initialPage: 0);
     }
   }
 
@@ -129,25 +130,26 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
       if (widget.menu is DrawerMenu) {
         Drawer? drawer = _buildDrawer(context, widget.menu);
         bool atStart = (widget.menu as DrawerMenu).atStart;
-        return PageGroupWidget(
-          scopeManager: _scopeManager,
-          navigationDrawer: atStart ? drawer : null,
-          navigationEndDrawer: !atStart ? drawer : null,
-          child: widget.menu.reloadView == true
-              ? pageWidgets[selectedPage]
-              : IndexedStack(
-                  index: selectedPage,
-                  children: pageWidgets,
-                ),
+        return ListenableBuilder(
+          listenable: viewGroupNotifier,
+          builder: (context, _) => PageGroupWidget(
+            scopeManager: _scopeManager,
+            navigationDrawer: atStart ? drawer : null,
+            navigationEndDrawer: !atStart ? drawer : null,
+            child: widget.menu.reloadView == true
+                ? pageWidgets[viewGroupNotifier.viewIndex]
+                : IndexedStack(
+                    index: viewGroupNotifier.viewIndex,
+                    children: pageWidgets,
+                  ),
+          ),
         );
       } else if (widget.menu is SidebarMenu) {
-        return PageGroupWidget(
-            scopeManager: _scopeManager,
-            child: buildSidebarNavigation(context, widget.menu as SidebarMenu));
+        return buildSidebarNavigation(context, widget.menu as SidebarMenu);
       } else if (widget.menu is BottomNavBarMenu) {
         return BottomNavPageGroup(
           scopeManager: _scopeManager,
-          selectedPage: selectedPage,
+          selectedPage: viewGroupNotifier.viewIndex,
           menu: widget.menu,
           children: pageWidgets,
         );
@@ -161,12 +163,13 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     Widget sidebar = _buildSidebar(context, menu);
     Widget? separator = _buildSidebarSeparator(menu);
     Widget content = Expanded(
-      child: menu.reloadView == true
-          ? IndexedStack(index: selectedPage, children: pageWidgets)
-          : PageView(
-              controller: sidebarPageController,
-              children: pageWidgets,
-            ),
+      child: ListenableBuilder(
+        listenable: viewGroupNotifier,
+        builder: (context, _) => menu.reloadView == true
+            ? pageWidgets[viewGroupNotifier.viewIndex]
+            : IndexedStack(
+                index: viewGroupNotifier.viewIndex, children: pageWidgets),
+      ),
     );
     // figuring out the direction to lay things out
     bool rtlLocale = Directionality.of(context) == TextDirection.rtl;
@@ -244,26 +247,24 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     int minWidth =
         Utils.optionalInt(menu.styles?['minWidth'], min: minGap) ?? 200;
 
-    return NavigationRail(
-      extended: itemDisplay == MenuItemDisplay.sideBySide ? true : false,
-      minExtendedWidth: minWidth.toDouble(),
-      minWidth: minGap.toDouble(),
-      // this is important for optimal default item spacing
-      labelType: itemDisplay != MenuItemDisplay.sideBySide
-          ? NavigationRailLabelType.all
-          : null,
-      backgroundColor: menuBackground,
-      leading: menuHeader,
-      destinations: navItems,
-      trailing: menuFooter,
-      selectedIndex: selectedPage,
-      onDestinationSelected: (index) {
-        setState(() {
-          selectedPage = index;
-        });
-        if (widget.menu.reloadView == false) {
-          sidebarPageController?.jumpToPage(index);
-        }
+    return ListenableBuilder(
+      listenable: viewGroupNotifier,
+      builder: (context, _) {
+        return NavigationRail(
+          extended: itemDisplay == MenuItemDisplay.sideBySide ? true : false,
+          minExtendedWidth: minWidth.toDouble(),
+          minWidth: minGap.toDouble(),
+          // this is important for optimal default item spacing
+          labelType: itemDisplay != MenuItemDisplay.sideBySide
+              ? NavigationRailLabelType.all
+              : null,
+          backgroundColor: menuBackground,
+          leading: menuHeader,
+          destinations: navItems,
+          trailing: menuFooter,
+          selectedIndex: viewGroupNotifier.viewIndex,
+          onDestinationSelected: viewGroupNotifier.updatePage,
+        );
       },
     );
   }
@@ -319,22 +320,25 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
   // }
 
   Drawer? _buildDrawer(BuildContext context, Menu menu) {
-    List<ListTile> navItems = [];
+    List<ListenableBuilder> navItems = [];
     for (var i = 0; i < menu.menuItems.length; i++) {
       MenuItem item = menu.menuItems[i];
-      navItems.add(ListTile(
-        selected: i == selectedPage,
-        title: Text(Utils.translate(item.label ?? '', context)),
-        leading: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
-        horizontalTitleGap: 0,
-        onTap: () {
-          setState(() {
-            //close the drawer
-            Navigator.maybePop(context);
-            selectedPage = i;
-          });
-        },
-      ));
+      navItems.add(ListenableBuilder(
+          listenable: viewGroupNotifier,
+          builder: (context, _) {
+            return ListTile(
+              selected: i == viewGroupNotifier.viewIndex,
+              title: Text(Utils.translate(item.label ?? '', context)),
+              leading:
+                  ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
+              horizontalTitleGap: 0,
+              onTap: () {
+                //close the drawer
+                Navigator.maybePop(context);
+                viewGroupNotifier.updatePage(i);
+              },
+            );
+          }));
     }
     return Drawer(
       backgroundColor: Utils.getColor(menu.styles?['backgroundColor']),
@@ -362,3 +366,18 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
   //   return display;
   // }
 }
+
+class ViewGroupNotifier extends ChangeNotifier {
+  int _viewIndex = 0;
+
+  int get viewIndex => _viewIndex;
+
+  void updatePage(int index, {bool isReload = true}) {
+    _viewIndex = index;
+    if (isReload) {
+      notifyListeners();
+    }
+  }
+}
+
+final viewGroupNotifier = ViewGroupNotifier();
