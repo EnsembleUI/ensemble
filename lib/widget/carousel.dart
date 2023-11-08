@@ -72,7 +72,7 @@ class Carousel extends StatefulWidget
       'indicatorColor': (value) =>
           _controller.indicatorColor = Utils.getColor(value),
       'selectedItemIndex': (value) =>
-          _controller.selectedItemIndex = Utils.getInt(value, fallback: 0),
+          _controller.selectedItemIndex = Utils.getInt(value, fallback: -1),
       'onItemChange': (action) => _controller.onItemChange =
           EnsembleAction.fromYaml(action, initiator: this),
       'onItemTap': (funcDefinition) => _controller.onItemTap =
@@ -149,7 +149,7 @@ class MyController extends BoxController {
   // for multi view this dispatch when clicking on a card
   EnsembleAction? onItemTap;
   EnsembleAction? onItemChange;
-  int selectedItemIndex = 0;
+  int selectedItemIndex = -1;
 
   final CarouselController _carouselController = CarouselController();
 }
@@ -167,7 +167,9 @@ class CarouselState extends WidgetState<Carousel>
   @override
   void initState() {
     super.initState();
-    focusIndex = widget._controller.selectedItemIndex;
+    if (widget._controller.selectedItemIndex != -1) {
+      focusIndex = widget._controller.selectedItemIndex;
+    }
   }
 
   @override
@@ -227,7 +229,7 @@ class CarouselState extends WidgetState<Carousel>
       // Carousel requires a fixed height, so to make sure the indicators don't shift the UI, we'll make
       // sure there's at least 1 invisible indicator that takes up the space
       if (indicators.isEmpty) {
-        indicators.add(Opacity(child: getIndicator(false), opacity: 0));
+        indicators.add(Opacity(opacity: 0, child: getIndicator(false)));
       }
 
       final double indicatorOffset = widget._controller.indicatorOffset ?? 0;
@@ -316,7 +318,7 @@ class CarouselState extends WidgetState<Carousel>
     }
   }
 
-  _onItemChange(int index) {
+  void _onItemChange(int index) {
     if (index != widget._controller.selectedItemIndex &&
         widget._controller.onItemChange != null) {
       widget._controller.selectedItemIndex = index;
@@ -334,6 +336,7 @@ class CarouselState extends WidgetState<Carousel>
         _onItemChange(index);
         setState(() {
           focusIndex = index;
+          widget._controller.selectedItemIndex = index;
         });
       },
     );
@@ -348,6 +351,7 @@ class CarouselState extends WidgetState<Carousel>
         onPageChanged: (index, _) {
           setState(() {
             focusIndex = index;
+            widget._controller.selectedItemIndex = index;
           });
         });
   }
@@ -355,7 +359,7 @@ class CarouselState extends WidgetState<Carousel>
   CarouselOptions _getBaseCarouselOptions() {
     return CarouselOptions(
       height: widget._controller.height?.toDouble(),
-      initialPage: widget._controller.selectedItemIndex,
+      initialPage: focusIndex,
       enableInfiniteScroll: widget._controller.enableLoop ?? false,
       autoPlay: widget._controller.autoplay ?? false,
       autoPlayInterval:
@@ -391,7 +395,7 @@ class CarouselState extends WidgetState<Carousel>
         widget._controller.indicatorWidth ??
         8;
 
-    final Color? indicatorColor = widget._controller.indicatorColor ??
+    final Color indicatorColor = widget._controller.indicatorColor ??
         (Theme.of(context).brightness == Brightness.dark
             ? Colors.white
             : Colors.black);
@@ -405,7 +409,7 @@ class CarouselState extends WidgetState<Carousel>
         shape: widget._controller.indicatorType == IndicatorType.rectangle
             ? BoxShape.rectangle
             : BoxShape.circle,
-        color: indicatorColor?.withOpacity(selected ? 0.9 : 0.4),
+        color: indicatorColor.withOpacity(selected ? 0.9 : 0.4),
       ),
     );
   }
