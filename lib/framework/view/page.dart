@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/menu.dart';
@@ -10,6 +11,8 @@ import 'package:ensemble/framework/view/bottom_nav_page_view.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
+import 'package:ensemble/layout/list_view.dart' as ensemblelist;
+import 'package:ensemble/layout/grid_view.dart' as ensembleGrid;
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -245,27 +248,29 @@ class PageState extends State<Page>
           _scopeManager.buildWidget(headerModel.flexibleBackground!);
     }
 
+    final evaluatedHeader = _scopeManager.dataContext.eval(headerModel.styles);
+
     bool centerTitle =
-        Utils.getBool(headerModel.styles?['centerTitle'], fallback: true);
+        Utils.getBool(evaluatedHeader?['centerTitle'], fallback: true);
     Color? backgroundColor =
-        Utils.getColor(headerModel.styles?['backgroundColor']);
+        Utils.getColor(evaluatedHeader?['backgroundColor']);
     Color? surfaceTintColor =
-        Utils.getColor(headerModel.styles?['surfaceTintColor']);
-    Color? color = Utils.getColor(headerModel.styles?['color']);
-    Color? shadowColor = Utils.getColor(headerModel.styles?['shadowColor']);
+        Utils.getColor(evaluatedHeader?['surfaceTintColor']);
+    Color? color = Utils.getColor(evaluatedHeader?['color']);
+    Color? shadowColor = Utils.getColor(evaluatedHeader?['shadowColor']);
     double? elevation =
-        Utils.optionalInt(headerModel.styles?['elevation'], min: 0)?.toDouble();
+        Utils.optionalInt(evaluatedHeader?['elevation'], min: 0)?.toDouble();
 
     final titleBarHeight =
-        Utils.optionalInt(headerModel.styles?['titleBarHeight'], min: 0)
+        Utils.optionalInt(evaluatedHeader?['titleBarHeight'], min: 0)
                 ?.toDouble() ??
             kToolbarHeight;
 
     // applicable only to Sliver scrolling
     double? flexibleMaxHeight =
-        Utils.optionalInt(headerModel.styles?['flexibleMaxHeight'])?.toDouble();
+        Utils.optionalInt(evaluatedHeader?['flexibleMaxHeight'])?.toDouble();
     double? flexibleMinHeight =
-        Utils.optionalInt(headerModel.styles?['flexibleMinHeight'])?.toDouble();
+        Utils.optionalInt(evaluatedHeader?['flexibleMinHeight'])?.toDouble();
     // collapsed height if specified needs to be bigger than titleBar height
     if (flexibleMinHeight != null && flexibleMinHeight < titleBarHeight) {
       flexibleMinHeight = null;
@@ -376,7 +381,7 @@ class PageState extends State<Page>
       fixedAppBar = buildFixedAppBar(widget._pageModel, hasDrawer);
     }
 
-    // whether we have a header and if the close button is already there
+    // whether we have a header and if the close button is already there-
     bool hasHeader = widget._pageModel.headerModel != null || hasDrawer;
     bool? showNavigationIcon =
         widget._pageModel.pageStyles?['showNavigationIcon'];
@@ -662,27 +667,81 @@ class PageState extends State<Page>
   Widget? _buildFooter(ScopeManager scopeManager, SinglePageModel pageModel) {
     // Footer can only take 1 child by our design. Ignore the rest
     if (pageModel.footer != null && pageModel.footer!.children.isNotEmpty) {
-      final footerStyles = pageModel.footer?.styles;
+      final evaluatedFooter = _scopeManager.dataContext.eval(
+        pageModel.footer?.styles,
+      );
+
       final boxController = BoxController()
-        ..padding = Utils.getInsets(footerStyles?['padding'])
-        ..margin = Utils.optionalInsets(footerStyles?['margin'])
-        ..width = Utils.optionalInt(footerStyles?['width'])
-        ..height = Utils.optionalInt(footerStyles?['height'])
-        ..backgroundColor = Utils.getColor(footerStyles?['backgroundColor'])
+        ..padding = Utils.getInsets(evaluatedFooter?['padding'])
+        ..margin = Utils.optionalInsets(evaluatedFooter?['margin'])
+        ..width = Utils.optionalInt(evaluatedFooter?['width'])
+        ..height = Utils.optionalInt(evaluatedFooter?['height'])
+        ..backgroundColor = Utils.getColor(evaluatedFooter?['backgroundColor'])
         ..backgroundGradient =
-            Utils.getBackgroundGradient(footerStyles?['backgroundGradient'])
-        ..shadowColor = Utils.getColor(footerStyles?['shadowColor'])
-        ..borderRadius = Utils.getBorderRadius(footerStyles?['borderRadius'])
-        ..borderColor = Utils.getColor(footerStyles?['borderColor'])
-        ..borderWidth = Utils.optionalInt(footerStyles?['borderWidth']);
+            Utils.getBackgroundGradient(evaluatedFooter?['backgroundGradient'])
+        ..shadowColor = Utils.getColor(evaluatedFooter?['shadowColor'])
+        ..borderRadius = Utils.getBorderRadius(evaluatedFooter?['borderRadius'])
+        ..borderColor = Utils.getColor(evaluatedFooter?['borderColor'])
+        ..borderWidth = Utils.optionalInt(evaluatedFooter?['borderWidth']);
+
+      final dragOptions = pageModel.footer?.dragOptions;
+
+      final isDraggable =
+          Utils.getBool(dragOptions?['enable'], fallback: false);
+      DraggableScrollableController dragController =
+          DraggableScrollableController();
+
+      final maxSize = Utils.getDouble(dragOptions?['maxSize'], fallback: 1.0);
+      final minSize = Utils.getDouble(dragOptions?['minSize'], fallback: 0.25);
+
+      final onMaxSize = EnsembleAction.fromYaml(dragOptions?['onMaxSize']);
+      final onMinSize = EnsembleAction.fromYaml(dragOptions?['onMinSize']);
+
+      dragController.addListener(
+        () {
+          if (dragController.size == maxSize && onMaxSize != null) {
+            ScreenController().executeAction(context, onMaxSize);
+          }
+          if (dragController.size == minSize && onMinSize != null) {
+            ScreenController().executeAction(context, onMinSize);
+          }
+        },
+      );
 
       return AnimatedOpacity(
         opacity: 1.0,
         duration: const Duration(milliseconds: 500),
-        child: BoxWrapper(
-          boxController: boxController,
-          widget: scopeManager.buildWidget(pageModel.footer!.children.first),
-        ),
+        child: isDraggable
+            ? DraggableScrollableSheet(
+                controller: dragController,
+                initialChildSize:
+                    Utils.getDouble(dragOptions?['initialSize'], fallback: 0.5),
+                minChildSize: minSize,
+                maxChildSize: maxSize,
+                expand: Utils.getBool(dragOptions?['expand'], fallback: false),
+                snap: Utils.getBool(dragOptions?['span'], fallback: false),
+                snapSizes: Utils.getList<double>(dragOptions?['snapSizes']),
+                builder:
+                    (BuildContext context, ScrollController scrollController) {
+                  dynamic child = scopeManager
+                      .buildWidget(pageModel.footer!.children.first);
+
+                  if (child is ensemblelist.ListView ||
+                      child is ensembleGrid.GridView) {
+                    child.setProperty("controller", scrollController);
+                  }
+
+                  return BoxWrapper(
+                    widget: child,
+                    boxController: boxController,
+                  );
+                },
+              )
+            : BoxWrapper(
+                boxController: boxController,
+                widget:
+                    scopeManager.buildWidget(pageModel.footer!.children.first),
+              ),
       );
     }
     return null;

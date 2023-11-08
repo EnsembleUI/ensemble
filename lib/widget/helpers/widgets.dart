@@ -1,7 +1,9 @@
 /// This class contains common widgets for use with Ensemble widgets.
 
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/studio_debugger.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/form.dart' as ensemble;
@@ -11,6 +13,139 @@ import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+/// Wrap around a widget to give it box property.
+class EnsembleBoxWrapper extends StatelessWidget {
+  const EnsembleBoxWrapper(
+      {super.key,
+      required this.widget,
+      required this.boxController,
+
+      // internal widget may want to handle padding itself (e.g. ListView so
+      // its scrollbar lays on top of the padding and not the content)
+      this.ignoresPadding = false,
+
+      // sometimes our widget may register a gesture. Such gesture should not
+      // include the margin. This allows it to handle the margin on its own.
+      this.ignoresMargin = false,
+
+      // width/height maybe applied at the child, or not applicable
+      this.ignoresDimension = false,
+      this.fallbackWidth,
+      this.fallbackHeight,
+      this.fallbackBorderRadius});
+
+  final Widget widget;
+  final EnsembleBoxController boxController;
+
+  // child widget may want to control these themselves
+  final bool ignoresPadding;
+  final bool ignoresMargin;
+  final bool ignoresDimension;
+  final double? fallbackWidth;
+  final double? fallbackHeight;
+  final EBorderRadius? fallbackBorderRadius;
+
+  bool _requiresBox() =>
+      boxController.requiresBox(
+          ignoresMargin: ignoresMargin,
+          ignoresPadding: ignoresPadding,
+          ignoresDimension: ignoresDimension) ||
+      (!ignoresDimension &&
+          (fallbackWidth != null || fallbackHeight != null)) ||
+      fallbackBorderRadius != null;
+
+  bool _hasBoxDecoration() =>
+      boxController.hasBoxDecoration() || fallbackBorderRadius != null;
+
+  EBorderRadius? get _borderRadius =>
+      boxController.borderRadius ?? fallbackBorderRadius;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_requiresBox()) {
+      return widget;
+    }
+    // when we have a border radius, we need to clip the decoration.
+    // Note that this clip only apply to the background decoration.
+    // Some children (i.e. Images) might need an additional ClipRRect
+    Clip clip = Clip.none;
+    if (_hasBoxDecoration()) {
+      clip = Clip.hardEdge;
+    }
+    ScopeManager? scopeManager = DataScopeWidget.getScope(context);
+    final Widget? backgroundImage =
+        boxController.backgroundImage?.getImageAsWidget(scopeManager);
+
+    return Container(
+      width: ignoresDimension
+          ? null
+          : boxController.width?.toDouble() ?? fallbackWidth,
+      height: ignoresDimension
+          ? null
+          : boxController.height?.toDouble() ?? fallbackHeight,
+      margin: ignoresMargin ? null : boxController.margin,
+      padding: ignoresPadding ? null : boxController.padding,
+      clipBehavior: clip,
+      decoration: !_hasBoxDecoration()
+          ? null
+          : BoxDecoration(
+              color: boxController.backgroundColor,
+              gradient: boxController.backgroundGradient,
+              border: !boxController.hasBorder()
+                  ? null
+                  : boxController.borderGradient != null
+                      ? GradientBoxBorder(
+                          gradient: boxController.borderGradient!,
+                          width: boxController.borderWidth?.toDouble() ??
+                              ThemeManager().getBorderThickness(context))
+                      : Border.all(
+                          color: boxController.borderColor ??
+                              ThemeManager().getBorderColor(context),
+                          width: boxController.borderWidth?.toDouble() ??
+                              ThemeManager().getBorderThickness(context)),
+              borderRadius: _borderRadius?.getValue(),
+              boxShadow: !boxController.hasBoxShadow()
+                  ? null
+                  : <BoxShadow>[
+                      BoxShadow(
+                          color: boxController.shadowColor ??
+                              ThemeManager().getShadowColor(context),
+                          blurRadius: boxController.shadowRadius?.toDouble() ??
+                              ThemeManager().getShadowRadius(context),
+                          offset: boxController.shadowOffset ??
+                              ThemeManager().getShadowOffset(context),
+                          blurStyle: boxController.shadowStyle ??
+                              ThemeManager().getShadowStyle(context))
+                    ],
+            ),
+      child: backgroundImage != null
+          ? Stack(
+              children: [
+                Positioned.fill(child: backgroundImage),
+                _getWidget(),
+              ],
+            )
+          : _getWidget(),
+    );
+  }
+
+  /// The child widget need to clip separately from the Container's decoration
+  Widget _getWidget() {
+    // some widget (i.e. Image) will not respect the Container's boundary
+    // even if clipBehavior is enabled. In these case we need to apply
+    // an explicit ClipRRect around it. Note also that apply it around
+    // another Container may cause clipping at the borderRadius's corners.
+    // Also note that clipping is not necessary unless borderRadius is set
+    return _borderRadius != null && boxController.clipContent == true
+        ? ClipRRect(
+            borderRadius: _borderRadius!.getValue(),
+            clipBehavior: Clip.hardEdge,
+            child: widget)
+        : widget;
+  }
+}
+
+/// TODO: Legacy - move to EnsembleBoxWrapper
 /// wraps around a widget and gives it common box attributes
 class BoxWrapper extends StatelessWidget {
   const BoxWrapper(
@@ -197,21 +332,11 @@ class InputWrapper extends StatelessWidget {
         context.dependOnInheritedWidgetOfExactType<
             RequiresChildWithIntrinsicDimension>();
     if (requiresChildWithIntrinsicDimension == null) {
-      return LayoutBuilder(builder: (context, constraints) {
-        // inside a e.g. Row but not wrapping inside Expanded.
-        // This is the error condition we need to advise the user
-        if (!constraints.hasBoundedWidth && !controller.expanded) {
-          // throw Error when input widgets (which stretch to their parent) are
-          // inside a Row (which allow its child to have as much space as it wants)
-          // without using expanded flag.
-          throw LanguageError(
-              "${type} widget requires a width when used inside a parent with infinite width.",
-              recovery:
-                  "If the parent is a Row, consider using 'expanded: true' on the ${type} to fill the parent's available width.\n" +
-                      "If the parent is a Stack, use stackPosition's attributes to constraint the width.");
-        }
-        return rtn;
-      });
+      // InputWidget takes the parent width, so if the parent is a Row
+      // it'll caused an error. Assert against this in Studio's debugMode
+      if (StudioDebugger().debugMode) {
+        return StudioDebugger().assertHasBoundedWidthWrapper(rtn, type);
+      }
     }
     return rtn;
   }

@@ -12,8 +12,11 @@ import 'package:ensemble/layout/tab_bar.dart';
 import 'package:ensemble/layout/toggle_container.dart';
 import 'package:ensemble/widget/Toggle.dart';
 import 'package:ensemble/widget/address.dart';
+import 'package:ensemble/widget/avatar.dart';
 import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/calendar.dart';
+import 'package:ensemble/widget/countdown.dart';
+import 'package:ensemble/widget/shape.dart';
 import 'package:ensemble/widget/carousel.dart';
 import 'package:ensemble/widget/chart_highcharts_builder.dart';
 import 'package:ensemble/widget/conditional.dart';
@@ -54,6 +57,7 @@ import 'package:ensemble/widget/visualization/chart_js.dart';
 import 'package:ensemble/widget/visualization/line_area_chart.dart';
 import 'package:ensemble/widget/visualization/topology_chart.dart';
 import 'package:ensemble/widget/webview/webview.dart';
+import 'package:ensemble/widget/youtube.dart';
 import 'package:ensemble/widget/weeklyscheduler.dart';
 import 'package:get_it/get_it.dart';
 
@@ -61,13 +65,16 @@ import 'fintech/tabapayconnect.dart';
 
 class WidgetRegistry {
   static final WidgetRegistry _instance = WidgetRegistry._();
+
   WidgetRegistry._();
+
   factory WidgetRegistry() => _instance;
 
   /// all statically-known widgets should be registered here.
   /// widgets can be dynamically registered (or overridden) by calling registerWidget()
   final Map<String, Function> _registeredWidgets = {
-    // TextWidget.type: TextWidget.build,
+    Avatar.type: Avatar.build,
+    Shape.type: Shape.build
   };
 
   /// register or override a widget
@@ -99,6 +106,7 @@ class WidgetRegistry {
         EnsembleMap.type: () => EnsembleMap(), // legacy maps
         Carousel.type: () => Carousel(),
         Video.type: () => Video(),
+        Youtube.type: () => Youtube(),
         EnsembleLottie.type: () => EnsembleLottie(),
         EnsembleSignature.type: () => EnsembleSignature(),
         WeeklyScheduler.type: () => WeeklyScheduler(),
@@ -111,6 +119,7 @@ class WidgetRegistry {
         EnsembleChat.type: () => GetIt.instance<EnsembleChat>(),
         PopupMenu.type: () => PopupMenu(),
         EnsembleCalendar.type: () => EnsembleCalendar(),
+        Countdown.type: () => Countdown(),
 
         // form fields
         EnsembleForm.type: () => EnsembleForm(),
@@ -146,7 +155,6 @@ class WidgetRegistry {
         TabBarContainer.type: () => TabBarContainer(),
         AppScroller.type: () => AppScroller(),
         LoadingContainer.type: () => LoadingContainer(),
-        Shape.type: () => Shape(),
 
         // charts
         Highcharts.type: () => Highcharts(),

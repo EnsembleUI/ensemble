@@ -105,6 +105,7 @@ dependencies:
   app_settings: ^5.0.0
   firebase_messaging: ^14.6.5
   custom_refresh_indicator: ^2.2.1
+  youtube_player_iframe: ^4.0.4
   web_socket_client: ^0.1.0
   app_links: ^3.4.3
   share_plus: ^6.2.0
@@ -115,6 +116,8 @@ dependencies:
       ref: master
   
   flutter_app_badger: ^1.5.0
+  webview_flutter_wkwebview: ^3.9.2
+  webview_flutter_android: ^3.12.0
 
 dev_dependencies:
   flutter_test:
