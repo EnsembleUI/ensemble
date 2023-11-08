@@ -31,6 +31,7 @@ import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/framework/widget/toast.dart';
 import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/receive_intent_manager.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/util/notification_utils.dart';

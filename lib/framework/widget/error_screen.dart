@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/studio_debugger.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -67,8 +68,7 @@ class _ErrorScreenState extends State<ErrorScreen> {
         // Create a new OverlayEntry.
         builder: (BuildContext context) {
       // Studio gets debug info even though it is compiled as release mode
-      if (!kReleaseMode ||
-          String.fromEnvironment('studio', defaultValue: 'false') == 'true') {
+      if (!kReleaseMode || StudioDebugger().debugMode) {
         return _debugErrorWidget();
       }
       return _releaseErrorWidget();

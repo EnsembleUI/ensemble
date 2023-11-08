@@ -3323,6 +3323,29 @@
           }
         },
         {
+          "title": "Receive Intent",
+          "type": "object",
+          "required": [
+            "receiveIntent"
+          ],
+          "properties": {
+            "receiveIntent": {
+              "type": "object",
+              "description": "To receive photos, videos, texts, urls or any other files which is shared from another app",
+              "properties": {
+                "onReceive": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when the data received successfully from another app"
+                },
+                "onError": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when it is failed to receive the data which is shared from another app"
+                }
+              }
+            }
+          }
+        },
+        {
           "title": "Get Phone Contacts",
           "type": "object",
           "required": [
