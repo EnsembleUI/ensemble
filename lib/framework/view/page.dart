@@ -178,8 +178,10 @@ class PageState extends State<Page>
     }
 
     // build the root widget
-    rootWidget = _scopeManager.buildRootWidget(
-        widget._pageModel.rootWidgetModel, executeGlobalCode);
+    rootWidget = (widget._pageModel.rootWidgetModel == null)
+        ? const SizedBox.shrink()
+        : _scopeManager.buildRootWidget(
+            widget._pageModel.rootWidgetModel!, executeGlobalCode);
 
     super.initState();
   }

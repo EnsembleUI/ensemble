@@ -135,7 +135,7 @@ class SinglePageModel extends PageModel {
 
   Map<String, dynamic>? pageStyles;
   ScreenOptions? screenOptions;
-  late WidgetModel rootWidgetModel;
+  WidgetModel? rootWidgetModel;
   Footer? footer;
 
   @override
@@ -144,11 +144,7 @@ class SinglePageModel extends PageModel {
 
     if (docMap.containsKey("View")) {
       if (docMap['View'] == null) {
-        rootWidgetModel = ViewUtil.buildModel(
-            YamlMap.wrap({
-              "Shape": {'height': 0, 'width': 0}
-            }),
-            customViewDefinitions);
+        rootWidgetModel = null;
       } else {
         YamlMap viewMap = docMap['View'];
         if (viewMap['options'] is YamlMap) {
@@ -232,7 +228,7 @@ class SinglePageModel extends PageModel {
   // where as the root body (e.g Column) should be more restrictive
   // (e.g the whole body shouldn't be click-enable)
   // Let's manually select what can be specified here (really just styles/item-template/children)
-  WidgetModel buildRootModel(
+  WidgetModel? buildRootModel(
       YamlMap viewMap, Map<String, dynamic>? customViewDefinitions) {
     if (viewMap['body'] != null) {
       return ViewUtil.buildModel(viewMap['body'], customViewDefinitions);
@@ -253,11 +249,7 @@ class SinglePageModel extends PageModel {
         }
         return rootModel;
       } else {
-        return ViewUtil.buildModel(
-            YamlMap.wrap({
-              "Shape": {'height': 0, 'width': 0}
-            }),
-            customViewDefinitions);
+        return null;
       }
     }
   }
