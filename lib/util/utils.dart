@@ -260,9 +260,9 @@ class Utils {
     return optionalDouble(value, min: min, max: max) ?? fallback;
   }
 
-  static List<dynamic>? getList(dynamic value) {
+  static List<T>? getList<T>(dynamic value) {
     if (value is YamlList) {
-      List<dynamic> results = [];
+      List<T> results = [];
       for (var item in value) {
         results.add(item);
       }
@@ -743,7 +743,8 @@ class Utils {
     } else if (Platform.isAndroid) {
       return path.startsWith('/data/user/0/');
     } else if (Platform.isIOS) {
-      return path.startsWith('/var/mobile/');
+      return (path.startsWith('/var/mobile/') ||
+          path.startsWith('/private/var/mobile'));
     } else if (Platform.isMacOS) {
       return path.startsWith('/Users/');
     } else if (Platform.isLinux) {
@@ -773,5 +774,33 @@ class Utils {
       return BoxShape.rectangle;
     }
     return null;
+  }
+
+  static BoxFit? getBoxFit(String? inputFit) {
+    BoxFit? fit;
+    switch (inputFit) {
+      case 'fill':
+        fit = BoxFit.fill;
+        break;
+      case 'contain':
+        fit = BoxFit.contain;
+        break;
+      case 'cover':
+        fit = BoxFit.cover;
+        break;
+      case 'fitWidth':
+        fit = BoxFit.fitWidth;
+        break;
+      case 'fitHeight':
+        fit = BoxFit.fitHeight;
+        break;
+      case 'none':
+        fit = BoxFit.none;
+        break;
+      case 'scaleDown':
+        fit = BoxFit.scaleDown;
+        break;
+    }
+    return fit;
   }
 }
