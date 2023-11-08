@@ -1,8 +1,10 @@
+import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/layout/box/base_box_layout.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:ensemble/widget/widget_util.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
@@ -30,7 +32,7 @@ class BoxUtils {
         items.add(children[i]);
 
         // then add the gap
-        final visibleChild = _checkVisibleChild(children[i]);
+        final visibleChild = WidgetUtils.isVisible(children[i]);
         if (i != children.length - 1 && visibleChild) {
           items.add(gap);
         }
@@ -39,31 +41,6 @@ class BoxUtils {
       items = children;
     }
     return items;
-  }
-
-  static bool _checkVisibleChild(Widget child) {
-    Widget view = child;
-    if (view is DataScopeWidget) {
-      if (view.child is CustomView) {
-        // Custom Widgets
-        final CustomView customView = view.child as CustomView;
-        // TODO: this logic is hosed since body is now just the model.
-        // TODO: But then we shouldn't be reaching in like this anyway
-        // view = customView.body;
-        return true;
-      } else {
-        // Native Widgets like Button, Text
-        view = view.child;
-      }
-    }
-
-    final isWidgetController =
-        view is HasController && (view.controller is WidgetController);
-    if (isWidgetController) {
-      final visibleChild = (view.controller as WidgetController).visible;
-      return visibleChild;
-    }
-    return false;
   }
 
   /// get the flex value for each child of FittedRow or FittedColumn

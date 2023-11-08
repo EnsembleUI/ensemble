@@ -12,6 +12,7 @@ import 'package:ensemble/layout/tab_bar.dart';
 import 'package:ensemble/layout/toggle_container.dart';
 import 'package:ensemble/widget/Toggle.dart';
 import 'package:ensemble/widget/address.dart';
+import 'package:ensemble/widget/avatar.dart';
 import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/calendar.dart';
 import 'package:ensemble/widget/countdown.dart';
@@ -64,13 +65,16 @@ import 'fintech/tabapayconnect.dart';
 
 class WidgetRegistry {
   static final WidgetRegistry _instance = WidgetRegistry._();
+
   WidgetRegistry._();
+
   factory WidgetRegistry() => _instance;
 
   /// all statically-known widgets should be registered here.
   /// widgets can be dynamically registered (or overridden) by calling registerWidget()
   final Map<String, Function> _registeredWidgets = {
-    // TextWidget.type: TextWidget.build,
+    Avatar.type: Avatar.build,
+    Shape.type: Shape.build
   };
 
   /// register or override a widget
@@ -151,7 +155,6 @@ class WidgetRegistry {
         TabBarContainer.type: () => TabBarContainer(),
         AppScroller.type: () => AppScroller(),
         LoadingContainer.type: () => LoadingContainer(),
-        Shape.type: () => Shape(),
 
         // charts
         Highcharts.type: () => Highcharts(),

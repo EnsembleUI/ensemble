@@ -87,7 +87,7 @@ void main() {
 
       // fetch
       await tester.tap(find.byType(Button));
-      await tester.pumpAndSettle();
+      await tester.pumpAndSettle(const Duration(seconds: 2));
 
       // data should reflected
       count = find.descendant(
@@ -98,6 +98,40 @@ void main() {
           of: find.byType(EnsembleText),
           matching: find.text('First person: Rachel'));
       expect(person, findsOneWidget);
+    });
+
+    /// test invokeApi
+    testWidgets("invokeApi Test", (tester) async {
+      await TestHelper.loadScreen(screenName: "Invoke Api", config: config);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(Button, "Call API"));
+      await tester.pumpAndSettle(const Duration(seconds: 2));
+      Finder myHeader = find.textContaining('application/json');
+      Finder status = find.text('200-OK');
+      Finder error = find.text("Error");
+      Finder body = find.text("Body: ");
+      expect(body, findsNothing);
+      expect(error, findsNothing);
+      expect(myHeader, findsNWidgets(3));
+      expect(status, findsOneWidget);
+
+      await tester
+          .tap(find.widgetWithText(Button, 'Call API with invalid URI'));
+      await tester.pumpAndSettle(const Duration(seconds: 2));
+      Finder badapiOnerror = find.text("Bad Api onResponse called");
+      Finder badApiStatus =
+          find.text("Invalid argument(s): No host specified in URI blah");
+      expect(badapiOnerror, findsNothing);
+      expect(badApiStatus, findsOneWidget);
+
+      await tester
+          .tap(find.widgetWithText(Button, 'Call API that returns error'));
+      await tester.pumpAndSettle(const Duration(seconds: 2));
+      Finder errorText = find.text("Internal Server Error");
+      Finder errorStatus = find.text("500");
+      expect(errorText, findsNWidgets(2));
+      expect(errorStatus, findsOneWidget);
     });
 
     // test nested textSTyle
