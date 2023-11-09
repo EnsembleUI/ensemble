@@ -1,16 +1,10 @@
-import 'dart:developer';
-
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/action.dart';
-import 'package:ensemble/framework/error_handling.dart';
-import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
-import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
-import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
@@ -71,8 +65,12 @@ class Carousel extends StatefulWidget
           _controller.indicatorOffset = Utils.optionalDouble(value),
       'indicatorColor': (value) =>
           _controller.indicatorColor = Utils.getColor(value),
-      'selectedItemIndex': (value) =>
-          _controller.selectedItemIndex = Utils.getInt(value, fallback: -1),
+      'currentIndex': (value) =>
+          _controller.currentIndex = Utils.getInt(value, fallback: 0),
+      'selectedIndex': (value) =>
+          _controller.selectedIndex = Utils.getInt(value, fallback: -1),
+      'indicatorMaxCount': (value) =>
+          _controller.indicatorMaxCount = Utils.optionalInt(value),
       'onItemChange': (action) => _controller.onItemChange =
           EnsembleAction.fromYaml(action, initiator: this),
       'onItemTap': (funcDefinition) => _controller.onItemTap =
@@ -86,7 +84,8 @@ class Carousel extends StatefulWidget
   @override
   Map<String, Function> getters() {
     return {
-      'selectedItemIndex': () => _controller.selectedItemIndex,
+      'currentIndex': () => _controller.currentIndex,
+      'selectedIndex': () => _controller.selectedIndex,
     };
   }
 
@@ -149,7 +148,9 @@ class MyController extends BoxController {
   // for multi view this dispatch when clicking on a card
   EnsembleAction? onItemTap;
   EnsembleAction? onItemChange;
-  int selectedItemIndex = -1;
+  int currentIndex = 0;
+  int selectedIndex = -1;
+  int? indicatorMaxCount;
 
   final CarouselController _carouselController = CarouselController();
 }
@@ -161,16 +162,7 @@ class CarouselState extends WidgetState<Carousel>
   Widget? customIndicator;
   Widget? selectedCustomIndicator;
 
-  // this is used to highlight the correct indicator index
-  int focusIndex = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget._controller.selectedItemIndex != -1) {
-      focusIndex = widget._controller.selectedItemIndex;
-    }
-  }
+  int indicatorIndex = 0;
 
   @override
   void didChangeDependencies() {
@@ -210,27 +202,7 @@ class CarouselState extends WidgetState<Carousel>
     // show indicators
     if (widget._controller.indicatorType != null &&
         widget._controller.indicatorType != IndicatorType.none) {
-      List<Widget> indicators = [];
-      for (int i = 0; i < items.length; i++) {
-        indicators.add(GestureDetector(
-          child: getIndicator(i == focusIndex),
-          onTap: () {
-            // MultiView only dispatch itemChange when explicitly clicking on the item
-            // But here since we are selecting the indicator, this should be the
-            // same as if you are selecting the item, hence dispatch the item here
-            if (!singleView) {
-              _onItemChange(i);
-            }
-
-            widget._controller._carouselController.animateToPage(i);
-          },
-        ));
-      }
-      // Carousel requires a fixed height, so to make sure the indicators don't shift the UI, we'll make
-      // sure there's at least 1 invisible indicator that takes up the space
-      if (indicators.isEmpty) {
-        indicators.add(Opacity(opacity: 0, child: getIndicator(false)));
-      }
+      List<Widget> indicators = buildIndicators(items);
 
       final double indicatorOffset = widget._controller.indicatorOffset ?? 0;
       final bool isBottom =
@@ -259,6 +231,52 @@ class CarouselState extends WidgetState<Carousel>
       ignoresPadding: true,
       ignoresDimension:
           true, // width/height shouldn't be apply in the container
+    );
+  }
+
+  List<Widget> buildIndicators(List<Widget> items) {
+    List<Widget> indicators = [];
+    if (widget._controller.indicatorMaxCount == null ||
+        widget._controller.indicatorMaxCount! > items.length) {
+      // Default
+      for (int i = 0; i < items.length; i++) {
+        indicators.add(buildIndicatorItem(
+            index: i, isSelected: i == widget._controller.currentIndex));
+      }
+    } else {
+      // Custom Indicator Logic using the indicatorMaxCount property - Indicator size is not same as item size.
+      if (widget._controller.indicatorMaxCount! < items.length) {
+        for (int i = 0; i < widget._controller.indicatorMaxCount!; i++) {
+          indicators.add(
+              buildIndicatorItem(index: i, isSelected: i == indicatorIndex));
+        }
+      }
+    }
+
+    // Carousel requires a fixed height, so to make sure the indicators don't shift the UI, we'll make
+    // sure there's at least 1 invisible indicator that takes up the space
+    if (indicators.isEmpty) {
+      indicators.add(buildIndicatorItem());
+    }
+    return indicators;
+  }
+
+  Widget buildIndicatorItem({int? index, bool? isSelected}) {
+    if (index == null || isSelected == null) {
+      return Opacity(opacity: 0, child: getIndicator(false));
+    }
+    return GestureDetector(
+      child: getIndicator(isSelected),
+      onTap: () {
+        // MultiView only dispatch itemChange when explicitly clicking on the item
+        // But here since we are selecting the indicator, this should be the
+        // same as if you are selecting the item, hence dispatch the item here
+        if (!isSingleView()) {
+          _onItemChange(index);
+        }
+
+        widget._controller._carouselController.animateToPage(index);
+      },
     );
   }
 
@@ -313,16 +331,17 @@ class CarouselState extends WidgetState<Carousel>
 
   void _onItemTap(int index) {
     if (widget.controller.onItemTap != null) {
-      widget._controller.selectedItemIndex = index;
+      widget._controller.currentIndex = index;
+      widget._controller.selectedIndex = index;
       ScreenController().executeAction(context, widget._controller.onItemTap!);
     }
   }
 
   void _onItemChange(int index) {
-    if (index != widget._controller.selectedItemIndex &&
+    if (index != widget._controller.currentIndex &&
         widget._controller.onItemChange != null) {
-      widget._controller.selectedItemIndex = index;
-      //log("Changed to index $index");
+      widget._controller.currentIndex = index;
+      updateIndicatorIndex();
       ScreenController()
           .executeAction(context, widget._controller.onItemChange!);
     }
@@ -335,8 +354,7 @@ class CarouselState extends WidgetState<Carousel>
       onPageChanged: (index, reason) {
         _onItemChange(index);
         setState(() {
-          focusIndex = index;
-          widget._controller.selectedItemIndex = index;
+          widget._controller.currentIndex = index;
         });
       },
     );
@@ -350,16 +368,34 @@ class CarouselState extends WidgetState<Carousel>
         viewportFraction: widget._controller.multipleItemWidthRatio ?? 0.6,
         onPageChanged: (index, _) {
           setState(() {
-            focusIndex = index;
-            widget._controller.selectedItemIndex = index;
+            widget._controller.currentIndex = index;
+            updateIndicatorIndex();
           });
         });
+  }
+
+  /// This method will increment the indicator based on the indicatorMaxCount property
+  /// If the indicatorMaxCount property is null, the indicatorIndex will have the currentIndex
+  /// Or else, the indicatorIndex will INCREMENT if the indicator is less than indicatorMaxCount or RESET the indicatorIndex to zero
+  void updateIndicatorIndex() {
+    final currentIndex = widget._controller.currentIndex;
+    if (widget._controller.indicatorMaxCount != null) {
+      if (indicatorIndex < widget._controller.indicatorMaxCount! - 1) {
+        // Increment the indicator index
+        indicatorIndex++;
+      } else {
+        //  Reset the indicator index
+        indicatorIndex = 0;
+      }
+    } else {
+      indicatorIndex = currentIndex;
+    }
   }
 
   CarouselOptions _getBaseCarouselOptions() {
     return CarouselOptions(
       height: widget._controller.height?.toDouble(),
-      initialPage: focusIndex,
+      initialPage: widget._controller.currentIndex,
       enableInfiniteScroll: widget._controller.enableLoop ?? false,
       autoPlay: widget._controller.autoplay ?? false,
       autoPlayInterval:
