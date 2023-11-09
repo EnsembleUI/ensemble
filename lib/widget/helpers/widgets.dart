@@ -1,6 +1,7 @@
 /// This class contains common widgets for use with Ensemble widgets.
 
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/studio_debugger.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
@@ -30,7 +31,8 @@ class EnsembleBoxWrapper extends StatelessWidget {
       // width/height maybe applied at the child, or not applicable
       this.ignoresDimension = false,
       this.fallbackWidth,
-      this.fallbackHeight});
+      this.fallbackHeight,
+      this.fallbackBorderRadius});
 
   final Widget widget;
   final EnsembleBoxController boxController;
@@ -41,21 +43,33 @@ class EnsembleBoxWrapper extends StatelessWidget {
   final bool ignoresDimension;
   final double? fallbackWidth;
   final double? fallbackHeight;
+  final EBorderRadius? fallbackBorderRadius;
+
+  bool _requiresBox() =>
+      boxController.requiresBox(
+          ignoresMargin: ignoresMargin,
+          ignoresPadding: ignoresPadding,
+          ignoresDimension: ignoresDimension) ||
+      (!ignoresDimension &&
+          (fallbackWidth != null || fallbackHeight != null)) ||
+      fallbackBorderRadius != null;
+
+  bool _hasBoxDecoration() =>
+      boxController.hasBoxDecoration() || fallbackBorderRadius != null;
+
+  EBorderRadius? get _borderRadius =>
+      boxController.borderRadius ?? fallbackBorderRadius;
 
   @override
   Widget build(BuildContext context) {
-    if (!boxController.requiresBox(
-        ignoresMargin: ignoresMargin,
-        ignoresPadding: ignoresPadding,
-        ignoresDimension: ignoresDimension)) {
+    if (!_requiresBox()) {
       return widget;
     }
     // when we have a border radius, we need to clip the decoration.
     // Note that this clip only apply to the background decoration.
     // Some children (i.e. Images) might need an additional ClipRRect
     Clip clip = Clip.none;
-    if (boxController.borderRadius != null &&
-        boxController.hasBoxDecoration()) {
+    if (_hasBoxDecoration()) {
       clip = Clip.hardEdge;
     }
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
@@ -72,7 +86,7 @@ class EnsembleBoxWrapper extends StatelessWidget {
       margin: ignoresMargin ? null : boxController.margin,
       padding: ignoresPadding ? null : boxController.padding,
       clipBehavior: clip,
-      decoration: !boxController.hasBoxDecoration()
+      decoration: !_hasBoxDecoration()
           ? null
           : BoxDecoration(
               color: boxController.backgroundColor,
@@ -89,7 +103,7 @@ class EnsembleBoxWrapper extends StatelessWidget {
                               ThemeManager().getBorderColor(context),
                           width: boxController.borderWidth?.toDouble() ??
                               ThemeManager().getBorderThickness(context)),
-              borderRadius: boxController.borderRadius?.getValue(),
+              borderRadius: _borderRadius?.getValue(),
               boxShadow: !boxController.hasBoxShadow()
                   ? null
                   : <BoxShadow>[
@@ -122,10 +136,9 @@ class EnsembleBoxWrapper extends StatelessWidget {
     // an explicit ClipRRect around it. Note also that apply it around
     // another Container may cause clipping at the borderRadius's corners.
     // Also note that clipping is not necessary unless borderRadius is set
-    return boxController.borderRadius != null &&
-            boxController.clipContent == true
+    return _borderRadius != null && boxController.clipContent == true
         ? ClipRRect(
-            borderRadius: boxController.borderRadius!.getValue(),
+            borderRadius: _borderRadius!.getValue(),
             clipBehavior: Clip.hardEdge,
             child: widget)
         : widget;
