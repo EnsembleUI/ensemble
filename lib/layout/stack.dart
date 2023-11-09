@@ -65,9 +65,11 @@ class StackState extends WidgetState<EnsembleStack>
       return const SizedBox.shrink();
     }
 
-    return Stack(
-      alignment: widget._controller.alignChildren ?? Alignment.topLeft,
-      children: buildChildren(widget._controller.children!),
+    return RequireStackWidget(
+      child: Stack(
+        alignment: widget._controller.alignChildren ?? Alignment.topLeft,
+        children: buildChildren(widget._controller.children!),
+      ),
     );
   }
 }

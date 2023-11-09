@@ -203,24 +203,30 @@ class BoxLayoutState extends WidgetState<BoxLayout>
           )
         ];
       }
-      boxWidget = flutter.Column(
-          mainAxisSize: mainAxisSize,
-          mainAxisAlignment: widget._controller.mainAxis,
-          crossAxisAlignment: widget._controller.crossAxis,
-          children: items);
+      boxWidget = RequiresRowColumnFlexWidget(
+        child: flutter.Column(
+            mainAxisSize: mainAxisSize,
+            mainAxisAlignment: widget._controller.mainAxis,
+            crossAxisAlignment: widget._controller.crossAxis,
+            children: items),
+      );
     } else if (widget is Row) {
-      boxWidget = flutter.Row(
-          mainAxisSize: mainAxisSize,
-          mainAxisAlignment: widget._controller.mainAxis,
-          crossAxisAlignment: widget._controller.crossAxis,
-          children: items);
+      boxWidget = RequiresRowColumnFlexWidget(
+        child: flutter.Row(
+            mainAxisSize: mainAxisSize,
+            mainAxisAlignment: widget._controller.mainAxis,
+            crossAxisAlignment: widget._controller.crossAxis,
+            children: items),
+      );
     } else if (widget is Flex) {
-      boxWidget = flutter.Flex(
-          direction: widget.isVertical() ? Axis.vertical : Axis.horizontal,
-          mainAxisSize: mainAxisSize,
-          mainAxisAlignment: widget._controller.mainAxis,
-          crossAxisAlignment: widget._controller.crossAxis,
-          children: items);
+      boxWidget = RequiresRowColumnFlexWidget(
+        child: flutter.Flex(
+            direction: widget.isVertical() ? Axis.vertical : Axis.horizontal,
+            mainAxisSize: mainAxisSize,
+            mainAxisAlignment: widget._controller.mainAxis,
+            crossAxisAlignment: widget._controller.crossAxis,
+            children: items),
+      );
     } else {
       throw LanguageError(
           "Invalid box widget. Column, Row, or Flex is required.");
