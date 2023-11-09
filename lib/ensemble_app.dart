@@ -119,31 +119,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      List<int?> functionIds = [];
-      final callbacks = Ensemble().getCallbacksAfterInitialization();
-      for (final Map<String, Object?> callback in callbacks) {
-        final id = callback['id'] as int?;
-        final method = callback['method'] as Function?;
-        final positionalPayloads = callback['positionalArgs'] as List<dynamic>?;
-        final namedPayloads = callback['namedArgs'] as Map<String, dynamic>?;
-        Map<Symbol, dynamic>? namedParams;
-        namedPayloads?.forEach((key, value) {
-          namedParams = {Symbol(key): value};
-        });
-
-        if (method != null) {
-          await Function.apply(method, positionalPayloads, namedParams);
-          functionIds.add(id);
-        }
-      }
-
-      // Looping function id to remove the functions in the callback object with the id
-      for (final id in functionIds) {
-        callbacks.removeWhere((element) => element['id'] == id);
-      }
-
-      // Reset to empty
-      functionIds = [];
+      executeCallbacks();
     });
   }
 
@@ -151,6 +127,37 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     super.didChangeAppLifecycleState(state);
     initDeepLink(state);
+    if (state == AppLifecycleState.resumed) {
+      executeCallbacks();
+    }
+  }
+
+  Future<void> executeCallbacks() async {
+    List<int?> functionIds = [];
+    final callbacks = Ensemble().getCallbacksAfterInitialization();
+    for (final Map<String, Object?> callback in callbacks) {
+      final id = callback['id'] as int?;
+      final method = callback['method'] as Function?;
+      final positionalPayloads = callback['positionalArgs'] as List<dynamic>?;
+      final namedPayloads = callback['namedArgs'] as Map<String, dynamic>?;
+      Map<Symbol, dynamic>? namedParams;
+      namedPayloads?.forEach((key, value) {
+        namedParams = {Symbol(key): value};
+      });
+
+      if (method != null) {
+        await Function.apply(method, positionalPayloads, namedParams);
+        functionIds.add(id);
+      }
+    }
+
+    // Looping function id to remove the functions in the callback object with the id
+    for (final id in functionIds) {
+      callbacks.removeWhere((element) => element['id'] == id);
+    }
+
+    // Reset to empty
+    functionIds = [];
   }
 
   void initDeepLink(AppLifecycleState state) {
