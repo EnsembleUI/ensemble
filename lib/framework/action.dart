@@ -854,7 +854,7 @@ enum ActionType {
   updateBadgeCount,
   clearBadgeCount,
   callExternalMethod,
-  haptic,
+  invokeHaptic,
   callNativeMethod,
 }
 
@@ -996,7 +996,7 @@ abstract class EnsembleAction {
       return SaveKeychain.fromYaml(payload: payload);
     } else if (actionType == ActionType.clearKeychain) {
       return ClearKeychain.fromYaml(payload: payload);
-    } else if (actionType == ActionType.haptic) {
+    } else if (actionType == ActionType.invokeHaptic) {
       return HapticAction.fromYaml(payload: payload);
     }
 
