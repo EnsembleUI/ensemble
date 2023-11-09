@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/studio_debugger.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart' as framework;
 import 'package:ensemble/widget/helpers/controllers.dart';
@@ -60,8 +61,15 @@ class TextController extends BoxController {
 class EnsembleTextState extends framework.WidgetState<EnsembleText> {
   @override
   Widget buildWidget(BuildContext context) {
+    Widget text = buildText(widget.controller);
+    if (StudioDebugger().debugMode) {
+      text = StudioDebugger().assertHasColumnRowFlexWrapper(
+          text, EnsembleText.type, context, widget.controller);
+      text = StudioDebugger().assertHasStackWrapper(
+          text, EnsembleText.type, context, widget.controller);
+    }
     return BoxWrapper(
-      widget: buildText(widget.controller),
+      widget: text,
       boxController: widget.controller,
     );
   }

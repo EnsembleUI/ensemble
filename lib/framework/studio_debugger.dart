@@ -1,4 +1,6 @@
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/cupertino.dart';
 
 class StudioDebugger {
@@ -50,4 +52,30 @@ class StudioDebugger {
         }
         return widget;
       });
+
+  Widget assertHasColumnRowFlexWrapper(Widget widget, String widgetName,
+      BuildContext context, WidgetController controller) {
+    RequiresRowColumnFlexWidget? requiresRowColumnFlexWidget = context
+        .dependOnInheritedWidgetOfExactType<RequiresRowColumnFlexWidget>();
+    if (requiresRowColumnFlexWidget == null && controller.expanded) {
+      throw LanguageError(
+          "$widgetName has expanded true with incorrect parent widget ",
+          recovery:
+              "Expanded widgets must be placed directly inside some form of flex widget.\n PLease place the widget under the parent of flex or column or row");
+    }
+    return widget;
+  }
+
+  Widget assertHasStackWrapper(Widget widget, String widgetName,
+      BuildContext context, WidgetController controller) {
+    RequireStackWidget? requireStackWidget =
+        context.dependOnInheritedWidgetOfExactType<RequireStackWidget>();
+    if (requireStackWidget == null && controller.hasPositions()) {
+      throw LanguageError(
+          "$widgetName has stackPosition true with incorrect parent widget ",
+          recovery:
+              "Please add Stack Widget as the parent for $widgetName to render");
+    }
+    return widget;
+  }
 }

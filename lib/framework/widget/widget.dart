@@ -132,3 +132,17 @@ class RequiresChildWithIntrinsicDimension extends InheritedWidget {
     return false;
   }
 }
+
+class RequiresRowColumnFlexWidget extends InheritedWidget {
+  const RequiresRowColumnFlexWidget({super.key, required super.child});
+
+  @override
+  bool updateShouldNotify(covariant InheritedWidget oldWidget) => false;
+}
+
+class RequireStackWidget extends InheritedWidget {
+  const RequireStackWidget({super.key, required super.child});
+
+  @override
+  bool updateShouldNotify(covariant InheritedWidget oldWidget) => false;
+}
