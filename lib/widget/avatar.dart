@@ -3,6 +3,9 @@ import 'dart:math';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/model.dart';
+import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/colored_box_placeholder.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -18,10 +21,8 @@ class Avatar extends EnsembleWidget<AvatarController> {
 
   const Avatar._(super.controller, {super.key});
 
-  factory Avatar.build(dynamic controller) {
-    return Avatar._(
-        controller is AvatarController ? controller : AvatarController());
-  }
+  factory Avatar.build(dynamic controller) => Avatar._(
+      controller is AvatarController ? controller : AvatarController());
 
   @override
   State<StatefulWidget> createState() => AvatarState();
@@ -39,6 +40,7 @@ class AvatarController extends EnsembleBoxController {
   BoxFit? fit;
   Color? placeholderColor;
 
+  AvatarVariant? variant;
   EnsembleAction? onTap;
 
   @override
@@ -59,6 +61,7 @@ class AvatarController extends EnsembleBoxController {
       'source': (value) => source = Utils.optionalString(value),
       'fit': (value) => fit = Utils.getBoxFit(value),
       'placeholderColor': (value) => placeholderColor = Utils.getColor(value),
+      'variant': (value) => variant = AvatarVariant.values.from(value),
       'onTap': (func) => onTap = EnsembleAction.fromYaml(func, initiator: this)
     });
 }
@@ -67,7 +70,11 @@ class AvatarState extends EnsembleWidgetState<Avatar> {
   static const defaultSize = 40.0;
 
   @override
-  Widget build(BuildContext context) {
+  Widget buildWidget(BuildContext context) {
+    return _buildAvatar();
+  }
+
+  Widget _buildAvatar() {
     String? source = widget.controller.source?.trim();
     Widget content = EnsembleBoxWrapper(
         widget: source != null && source.isNotEmpty
@@ -76,7 +83,8 @@ class AvatarState extends EnsembleWidgetState<Avatar> {
         boxController: widget.controller,
         ignoresMargin: true,
         fallbackWidth: width,
-        fallbackHeight: height);
+        fallbackHeight: height,
+        fallbackBorderRadius: _getVariantDefaultBorderRadius());
 
     if (widget.controller.onTap != null) {
       content = GestureDetector(
@@ -89,6 +97,18 @@ class AvatarState extends EnsembleWidgetState<Avatar> {
       content = Padding(padding: widget.controller.margin!, child: content);
     }
     return content;
+  }
+
+  EBorderRadius? _getVariantDefaultBorderRadius() {
+    switch (widget.controller.variant) {
+      case AvatarVariant.square:
+        return null;
+      case AvatarVariant.rounded:
+        return EBorderRadius.all(10);
+      case AvatarVariant.circle:
+      default:
+        return EBorderRadius.all(9999);
+    }
   }
 
   Widget _buildImage(String source) => framework.Image(
@@ -126,3 +146,5 @@ class AvatarState extends EnsembleWidgetState<Avatar> {
       (widget.controller.height ?? widget.controller.width)?.toDouble() ??
       defaultSize;
 }
+
+enum AvatarVariant { circle, square, rounded }
