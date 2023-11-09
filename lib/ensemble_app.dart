@@ -163,7 +163,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
   void initDeepLink(AppLifecycleState state) {
     if (!kIsWeb) {
       if (Platform.isIOS) {
-        IOSDeepLinkManager().init(state);
+        IOSDeepLinkManager().init();
       } else {
         DeepLinkManager().init();
       }

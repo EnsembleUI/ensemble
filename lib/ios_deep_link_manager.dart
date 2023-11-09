@@ -1,6 +1,5 @@
 import 'package:ensemble/deep_link_manager.dart';
 import 'package:ensemble/ensemble.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class IOSDeepLinkManager extends DeepLinkNavigator {
@@ -17,7 +16,7 @@ class IOSDeepLinkManager extends DeepLinkNavigator {
     return _instance;
   }
 
-  void init(AppLifecycleState state) {
+  void init() {
     _platform.setMethodCallHandler((call) {
       if (call.method == IOSDeepLinkManager._deepLinkMethod) {
         final url = Uri.parse(call.arguments);
