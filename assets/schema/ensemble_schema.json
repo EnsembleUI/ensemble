@@ -627,6 +627,11 @@
           "type": "string",
           "description": "URL to or asset name of the image. If the URL is used, it is highly recommended that the dimensions is set (either with width/height or other means) to prevent the UI jerkiness while loading."
         },
+        "variant": {
+          "type": "string",
+          "description": "Specify the Avatar's shape: circle (default), square, or rounded.",
+          "enum": ["circle", "square", "rounded"]
+        },
         "name": {
           "type": "string",
           "description": "If the image source is not specified or failed to load, this name's initials will be displayed"
@@ -1679,21 +1684,27 @@
           ]
         },
         "styles": {
-          "properties": {
-            "width": {
-              "type": "integer"
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
             },
-            "height": {
-              "type": "integer"
+            {
+              "$ref": "#/$defs/HasBorder"
             },
-            "borderRadius": {
-              "$ref": "#/$defs/borderRadius",
-              "description": "Applicable only for square/rectangle shape"
-            },
-            "backgroundColor": {
-              "$ref": "#/$defs/type-color"
+            {
+              "properties": {
+                "width": {
+                  "type": "integer"
+                },
+                "height": {
+                  "type": "integer"
+                },
+                "backgroundColor": {
+                  "$ref": "#/$defs/type-color"
+                }
+              }
             }
-          }
+          ]
         }
       }
     },
@@ -3302,6 +3313,29 @@
                 "onExit": {
                   "$ref": "#/$defs/Action-payload",
                   "description": "It is called when a user exits Link without successfully linking an Item, or when an error occurs during Link initialization"
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Receive Intent",
+          "type": "object",
+          "required": [
+            "receiveIntent"
+          ],
+          "properties": {
+            "receiveIntent": {
+              "type": "object",
+              "description": "To receive photos, videos, texts, urls or any other files which is shared from another app",
+              "properties": {
+                "onReceive": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when the data received successfully from another app"
+                },
+                "onError": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when it is failed to receive the data which is shared from another app"
                 }
               }
             }

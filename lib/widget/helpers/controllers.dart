@@ -1,4 +1,5 @@
 /// This class contains helper controllers for our widgets.
+import 'package:ensemble/controller/controller_mixins.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/util/utils.dart';
@@ -356,21 +357,13 @@ abstract class EnsembleWidgetController extends EnsembleController {
 }
 
 /// for Controllers that need Box properties
-class EnsembleBoxController extends EnsembleWidgetController {
+class EnsembleBoxController extends EnsembleWidgetController
+    with HasBackgroundController, HasBorderController {
   EdgeInsets? margin;
   EdgeInsets? padding;
 
   int? width;
   int? height;
-
-  Color? backgroundColor;
-  BackgroundImage? backgroundImage;
-  LinearGradient? backgroundGradient;
-  LinearGradient? borderGradient;
-
-  Color? borderColor;
-  int? borderWidth;
-  EBorderRadius? borderRadius;
 
   Color? shadowColor;
   Offset? shadowOffset;
@@ -383,6 +376,8 @@ class EnsembleBoxController extends EnsembleWidgetController {
   @override
   Map<String, Function> setters() {
     return Map<String, Function>.from(super.setters())
+      ..addAll(hasBackgroundSetters())
+      ..addAll(hasBorderSetters())
       ..addAll({
         // support short-hand notation margin: 10 5 10
         'margin': (value) => margin = Utils.optionalInsets(value),
@@ -390,18 +385,6 @@ class EnsembleBoxController extends EnsembleWidgetController {
 
         'width': (value) => width = Utils.optionalInt(value),
         'height': (value) => height = Utils.optionalInt(value),
-
-        'backgroundColor': (value) => backgroundColor = Utils.getColor(value),
-        'backgroundImage': (value) =>
-            backgroundImage = Utils.getBackgroundImage(value),
-        'backgroundGradient': (value) =>
-            backgroundGradient = Utils.getBackgroundGradient(value),
-        'borderGradient': (value) =>
-            borderGradient = Utils.getBackgroundGradient(value),
-
-        'borderColor': (value) => borderColor = Utils.getColor(value),
-        'borderWidth': (value) => borderWidth = Utils.optionalInt(value),
-        'borderRadius': (value) => borderRadius = Utils.getBorderRadius(value),
 
         'shadowColor': (value) => shadowColor = Utils.getColor(value),
         'shadowOffset': (list) => shadowOffset = Utils.getOffset(list),
@@ -426,14 +409,6 @@ class EnsembleBoxController extends EnsembleWidgetController {
 
   bool hasBoxDecoration() =>
       hasBackground() || hasBorder() || borderRadius != null || hasBoxShadow();
-
-  bool hasBackground() =>
-      backgroundColor != null ||
-      backgroundImage != null ||
-      backgroundGradient != null;
-
-  bool hasBorder() =>
-      borderGradient != null || borderColor != null || borderWidth != null;
 
   bool hasBoxShadow() =>
       shadowColor != null ||
