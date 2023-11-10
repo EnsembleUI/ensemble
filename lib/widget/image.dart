@@ -17,6 +17,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:mime/mime.dart';
 
 class EnsembleImage extends StatefulWidget
     with Invokable, HasController<ImageController, ImageState> {
@@ -131,18 +132,23 @@ class ImageState extends WidgetState<EnsembleImage> {
       }
 
       return CachedNetworkImage(
-          imageUrl: source,
+        imageUrl: source,
+        width: widget._controller.width?.toDouble(),
+        height: widget._controller.height?.toDouble(),
+        fit: fit,
+
+        // we auto resize and cap these values so loading lots of
+        // gigantic images won't run out of memory
+        memCacheWidth: cachedWidth,
+        memCacheHeight: cachedHeight,
+        cacheManager: EnsembleImageCacheManager.instance,
+        errorWidget: (context, error, stacktrace) => errorFallback(),
+        placeholder: (context, url) => ColoredBoxPlaceholder(
+          color: widget._controller.placeholderColor,
           width: widget._controller.width?.toDouble(),
           height: widget._controller.height?.toDouble(),
-          fit: fit,
-
-          // we auto resize and cap these values so loading lots of
-          // gigantic images won't run out of memory
-          memCacheWidth: cachedWidth,
-          memCacheHeight: cachedHeight,
-          cacheManager: EnsembleImageCacheManager.instance,
-          errorWidget: (context, error, stacktrace) => errorFallback(),
-          placeholder: (context, url) => const ColoredBoxPlaceholder());
+        ),
+      );
     } else if (Utils.isMemoryPath(widget._controller.source)) {
       return kIsWeb
           ? Image.network(widget._controller.source,
@@ -170,11 +176,17 @@ class ImageState extends WidgetState<EnsembleImage> {
   Widget buildSvgImage(String source, BoxFit? fit) {
     // if is URL
     if (source.startsWith('https://') || source.startsWith('http://')) {
-      return SvgPicture.network(widget._controller.source,
+      return SvgPicture.network(
+        widget._controller.source,
+        width: widget._controller.width?.toDouble(),
+        height: widget._controller.height?.toDouble(),
+        fit: fit ?? BoxFit.contain,
+        placeholderBuilder: (_) => ColoredBoxPlaceholder(
+          color: widget._controller.placeholderColor,
           width: widget._controller.width?.toDouble(),
           height: widget._controller.height?.toDouble(),
-          fit: fit ?? BoxFit.contain,
-          placeholderBuilder: (_) => const ColoredBoxPlaceholder());
+        ),
+      );
     }
     // attempt local assets
     return SvgPicture.asset(
@@ -185,8 +197,8 @@ class ImageState extends WidgetState<EnsembleImage> {
   }
 
   bool isSvg() {
-    String imgSrc = Utils.stripQueryParamsFromAsset(widget._controller.source);
-    return imgSrc.endsWith('svg');
+    final mimeType = lookupMimeType(widget._controller.source);
+    return mimeType?.contains('svg') == true;
   }
 
   /// display if the image cannot be loaded
