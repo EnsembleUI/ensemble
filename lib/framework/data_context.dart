@@ -351,7 +351,7 @@ class NativeInvokable extends ActionInvokable {
           .executeAction(buildContext, StartTimerAction.fromMap(inputs)),
       ActionType.uploadFiles.name: uploadFiles,
       ActionType.invokeHaptic.name: (inputs) => ScreenController()
-          .executeAction(buildContext, HapticAction.fromMap(inputs)),
+          .executeAction(buildContext, HapticAction.from(inputs)),
       'debug': (value) => debugPrint('Debug: $value'),
       'initNotification': () => notificationUtils.initNotifications(),
       'updateSystemAuthorizationToken': (token) =>

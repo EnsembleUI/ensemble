@@ -5,7 +5,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 
-enum HapticTypes {
+enum HapticType {
   heavyImpact,
   mediumImpact,
   lightImpact,
@@ -16,19 +16,37 @@ enum HapticTypes {
 class HapticAction extends EnsembleAction {
   HapticAction(this.type);
 
-  final HapticTypes type;
+  final HapticType type;
 
-  factory HapticAction.fromMap(dynamic inputs) =>
-      HapticAction.fromYaml(payload: Utils.getYamlMap(inputs));
+  // factory HapticAction.fromMap(dynamic inputs) =>
+  //     HapticAction.fromYaml(payload: Utils.getYamlMap(inputs));
 
-  factory HapticAction.fromYaml({Map? payload}) {
+  // factory HapticAction.fromYaml({Map? payload}) {
+  //   if (payload == null || payload['type'] == null) {
+  //     throw LanguageError("${ActionType.invokeHaptic.name} requires 'type'");
+  //   }
+
+  //   return HapticAction(hapticType);
+  // }
+
+  factory HapticAction.from(dynamic inputs) {
+    Map? payload;
+
+    if (inputs is! Map) payload = Utils.getYamlMap(inputs);
+    if (inputs is Map) payload = inputs;
+
     if (payload == null || payload['type'] == null) {
-      throw LanguageError("${ActionType.share.name} requires 'type'");
+      throw LanguageError("${ActionType.invokeHaptic.name} requires 'type'");
     }
 
-    final hapticType = HapticTypes //
+    // payload['type'] = ScopeManager.eval(payload['type']); // TODO: Continue from here
+
+    final hapticType = HapticType //
         .values
-        .byName(payload['type']);
+        .firstWhere(
+      (element) => element.name == payload!['type'],
+      orElse: () => HapticType.heavyImpact,
+    );
 
     return HapticAction(hapticType);
   }
@@ -36,11 +54,11 @@ class HapticAction extends EnsembleAction {
   @override
   Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
     return switch (type) {
-      HapticTypes.heavyImpact => HapticFeedback.heavyImpact(),
-      HapticTypes.mediumImpact => HapticFeedback.mediumImpact(),
-      HapticTypes.lightImpact => HapticFeedback.lightImpact(),
-      HapticTypes.selectionClick => HapticFeedback.selectionClick(),
-      HapticTypes.vibrate => HapticFeedback.vibrate(),
+      HapticType.heavyImpact => HapticFeedback.heavyImpact(),
+      HapticType.mediumImpact => HapticFeedback.mediumImpact(),
+      HapticType.lightImpact => HapticFeedback.lightImpact(),
+      HapticType.selectionClick => HapticFeedback.selectionClick(),
+      HapticType.vibrate => HapticFeedback.vibrate(),
     };
   }
 }
