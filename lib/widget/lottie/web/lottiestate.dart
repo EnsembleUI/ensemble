@@ -121,14 +121,14 @@ class LottieState extends WidgetState<EnsembleLottie>
       final htmlString = '''
 <html>
   <body>
-    // Importing lottie-player
+    <!--Importing lottie-player-->
     <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
 
-    // Rendering lottie-player
+    <!--Rendering lottie-player-->
     <lottie-player id="$divId" ${autoPlay ? 'autoplay' : ''} ${repeat ? 'loop' : ''} mode="normal" style="width: ${width}px; height: ${height}px">
     </lottie-player>
 
-    // Script to handle all the actions and callbacks for the animation
+    <!--Script to handle all the actions and callbacks for the animation-->
     <script type="text/javascript">
       let direction = 1; // Variable to define the direction ie to run animation forward or backward
       let player_$divId = document.getElementById("$divId");
