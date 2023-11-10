@@ -106,10 +106,10 @@ Map<String, String> parseYamlMap(value) {
   Map<String, String> result = {};
   if (value is YamlMap) {
     YamlMap yamlMap = value;
-    for (var i in yamlMap.entries) {
-      String? key = Utils.optionalString(i.key);
+    for (var entry in yamlMap.entries) {
+      String? key = Utils.optionalString(entry.key);
       if (key != null && key.isNotEmpty) {
-        result.addAll({key: Utils.getString(i.value, fallback: "")});
+        result.addAll({key: Utils.getString(entry.value, fallback: "")});
       }
     }
   }
