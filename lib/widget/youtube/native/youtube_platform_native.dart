@@ -1,8 +1,8 @@
 import 'package:ensemble/widget/youtube/youtubestate.dart';
 
-YoutubeWeb getInstance() => YoutubeNativeInstance();
+YouTubeBase getInstance() => YouTubeNativeInstance();
 
-class YoutubeNativeInstance implements YoutubeWeb {
+class YouTubeNativeInstance implements YouTubeBase {
   @override
   void createWebInstance() {}
 }

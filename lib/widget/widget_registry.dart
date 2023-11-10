@@ -105,7 +105,7 @@ class WidgetRegistry {
         EnsembleMap.type: () => EnsembleMap(), // legacy maps
         Carousel.type: () => Carousel(),
         Video.type: () => Video(),
-        Youtube.type: () => Youtube(),
+        YouTube.type: () => YouTube(),
         EnsembleLottie.type: () => EnsembleLottie(),
         EnsembleSignature.type: () => EnsembleSignature(),
         WeeklyScheduler.type: () => WeeklyScheduler(),
