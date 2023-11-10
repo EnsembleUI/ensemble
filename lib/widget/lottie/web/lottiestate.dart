@@ -23,6 +23,7 @@ import 'package:lottie/lottie.dart';
 class LottieState extends WidgetState<EnsembleLottie>
     with SingleTickerProviderStateMixin, LottieAction {
   String id = 'lottie_${Random().nextInt(900000) + 100000}';
+  final isCanvasKit = js.context['flutterCanvasKit'] != null;
 
   late String divId;
 
@@ -34,10 +35,14 @@ class LottieState extends WidgetState<EnsembleLottie>
 
     divId = widget.controller.id ?? id;
 
-    widget.controller
-      ..lottieController = AnimationController(vsync: this)
-      ..addStatusListener(context, widget);
+    if (isCanvasKit) {
+      widget.controller
+        ..lottieController = AnimationController(vsync: this)
+        ..addStatusListener(context, widget);
+    }
   }
+
+  // Binding LottieActions which are used specifically for html renderer as it is rendered using JS
 
   @override
   void didChangeDependencies() {
@@ -67,15 +72,13 @@ class LottieState extends WidgetState<EnsembleLottie>
 
   @override
   void dispose() {
-    html.window.close();
+    html.window.close(); // To prevent memory leaks
 
     super.dispose();
   }
 
   @override
   Widget buildWidget(BuildContext context) {
-    final isCanvasKit = js.context['flutterCanvasKit'] != null;
-
     BoxFit? fit = Utils.getBoxFit(widget.controller.fit);
     Widget rtn = BoxWrapper(
         widget: isCanvasKit ? buildLottieCanvas(fit) : buildLottieHtml(fit),
@@ -96,6 +99,7 @@ class LottieState extends WidgetState<EnsembleLottie>
     return rtn;
   }
 
+  // Render this when the runtime is flutter web with html renderer
   Widget buildLottieHtml(BoxFit? fit) {
     String source = widget.controller.source.trim();
     double width = widget.controller.width?.toDouble() ?? 250;
@@ -113,31 +117,31 @@ class LottieState extends WidgetState<EnsembleLottie>
       // the image will throw exception. We have to use a permanent placeholder
       // until the binding engages
 
+      // HTML & JS code for the web html renderer
       final htmlString = '''
 <html>
   <body>
+    // Importing lottie-player
     <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
 
+    // Rendering lottie-player
     <lottie-player id="$divId" ${autoPlay ? 'autoplay' : ''} ${repeat ? 'loop' : ''} mode="normal" style="width: ${width}px; height: ${height}px">
     </lottie-player>
 
+    // Script to handle all the actions and callbacks for the animation
     <script type="text/javascript">
-      let direction = 1;
+      let direction = 1; // Variable to define the direction ie to run animation forward or backward
       let player_$divId = document.getElementById("$divId");
 
+      // A counter variable which increments upon each event and thus making each event unique and allowing to segregate from old events
       let counter = 0;
-
-      function getEpochTime() {
-        var d = new Date();
-
-        return Math.round(d.getTime() / 1000);
-      }
 
       player_$divId.load("$source");
       if ($autoPlay) player_$divId.play();
 
-      window.parent.addEventListener("message", handleMessage, false);
+      window.parent.addEventListener("message", handleMessage, false); // Hooking the event listener
       
+      // Function to handle all the messages that are received from dart to js
       function handleMessage(e) {
         var data = e.data;
 
@@ -166,6 +170,7 @@ class LottieState extends WidgetState<EnsembleLottie>
         }
       }
 
+      // Event Listener for specific actions for animation like onComplete, onStart, onLoad and so on
       player_$divId.addEventListener("play", () => {
         if (direction == 1) window.parent.postMessage('{"data": "onForward", "id": ' + counter + ', "tag": "$divId"}', "*");
         else window.parent.postMessage('{"data": "onReverse", "id": ' + counter + ', "tag": "$divId"}', "*");
@@ -194,6 +199,7 @@ class LottieState extends WidgetState<EnsembleLottie>
 </html>
 ''';
 
+      // Defining the constraints and layout for the iframe in flutter side
       final html.IFrameElement iFrame = html.IFrameElement()
         ..width = '$width'
         ..height = '$height'
@@ -201,16 +207,20 @@ class LottieState extends WidgetState<EnsembleLottie>
         ..style.border = 'none'
         ..onLoad;
 
+      // Event listener for the messages that are sent from JS to Dart
       html.window.onMessage.listen(
         (event) async {
           final String data = event.data;
 
+          // Need to check if the data is in json format as there are also other events from JS
           if (data.contains('{')) {
             final json = jsonDecode(data);
 
+            // Segregating the latest event from old events using then html tag and the id which is just a counter which increments by 1 for each event
             if (lastEventId != json['id'] && divId == json['tag']) {
               lastEventId = json['id'];
 
+              // Mapping the events to their respective callbacks
               if (json['data'] == "onForward" &&
                   widget.controller.onForward != null) {
                 ScreenController().executeAction(
@@ -251,6 +261,7 @@ class LottieState extends WidgetState<EnsembleLottie>
         },
       );
 
+      // Registering the iframe in the flutter widget tree
       ui.platformViewRegistry.registerViewFactory(
         divId,
         (int viewId) => iFrame,
@@ -260,12 +271,13 @@ class LottieState extends WidgetState<EnsembleLottie>
       return SizedBox(
         width: width + 24,
         height: height + 16,
-        child: HtmlElementView(viewType: divId),
+        child: HtmlElementView(viewType: divId), // Rendering the iframe
       );
     }
     return blankPlaceholder();
   }
 
+  // Render this when the runtime is flutter web with canvas-kit renderer
   Widget buildLottieCanvas(BoxFit? fit) {
     String source = widget.controller.source.trim();
     if (source.isNotEmpty) {

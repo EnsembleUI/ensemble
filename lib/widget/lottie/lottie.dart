@@ -32,12 +32,14 @@ class EnsembleLottie extends StatefulWidget
   Map<String, Function> methods() {
     if (kIsWeb) {
       // A little hacky way to check if html renderer is used as only html render would have the lottieController null.
-      final bool isHtml = _controller.lottieController != null;
+      // lottieController is null only for the html renderer.
+      // Cannot use js.context['flutterCanvasKit'] != null to check the html renderer as it requires importing dart:js which will break app in mobile runtime as dart:js is a web only package
+      final bool isNotHtml = _controller.lottieController != null;
 
       return {
         // Method to start animation in forward direction
         'forward': () {
-          if (isHtml) {
+          if (isNotHtml) {
             if (_controller.repeat) {
               _controller.lottieController!.repeat();
             } else {
@@ -49,7 +51,7 @@ class EnsembleLottie extends StatefulWidget
         },
         // Method to run animation in reverse direction
         'reverse': () {
-          if (isHtml) {
+          if (isNotHtml) {
             _controller.lottieController!.reverse();
           } else {
             _controller.lottieAction!.reverse();
@@ -57,7 +59,7 @@ class EnsembleLottie extends StatefulWidget
         },
         // Method to reset animation to initial position
         'reset': () {
-          if (isHtml) {
+          if (isNotHtml) {
             _controller.lottieController!.reset();
           } else {
             _controller.lottieAction!.reset();
@@ -65,7 +67,7 @@ class EnsembleLottie extends StatefulWidget
         },
         // Method to stop animation at current position
         'stop': () {
-          if (isHtml) {
+          if (isNotHtml) {
             _controller.lottieController!.stop();
           } else {
             _controller.lottieAction!.stop();
@@ -139,16 +141,20 @@ class LottieController extends BoxController {
   bool repeat = true;
   bool autoPlay = true;
 
+  // lottieController and lottieAction are different things.
+  // lottieController is a AnimationController which is used to control animation and hook callbacks for all the platforms except web html renderer
+  // lottieAction is a mixin that is used to define all the methods for the html renderer. Cannot use normal AnimationController as html is rendered using iframe and doesn't use Lottie widget
   AnimationController? lottieController;
+  LottieAction? lottieAction;
 
   EnsembleAction? onForward;
   EnsembleAction? onReverse;
   EnsembleAction? onComplete;
   EnsembleAction? onStop;
 
-  LottieAction? lottieAction;
-
+  // method to initialize the AnimationController lottieController
   void initializeLottieController(LottieComposition composition) {
+    // Setting the duration of the animation once the lottie is loaded
     lottieController!.duration = composition.duration;
 
     if (autoPlay) {
@@ -160,6 +166,7 @@ class LottieController extends BoxController {
     }
   }
 
+  // Method to link statusListener with their respective events.
   void addStatusListener(BuildContext context, EnsembleLottie widget) {
     final animationStatusActionMap = <AnimationStatus, EnsembleAction?>{
       AnimationStatus.forward: onForward,
