@@ -8,9 +8,9 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
-class Youtube extends StatefulWidget
-    with Invokable, HasController<PlayerController, YoutubeState> {
-  Youtube({super.key});
+class YouTube extends StatefulWidget
+    with Invokable, HasController<PlayerController, YouTubeState> {
+  YouTube({super.key});
 
   static const String type = "YouTube";
 
@@ -20,7 +20,7 @@ class Youtube extends StatefulWidget
   PlayerController get controller => _controller;
 
   @override
-  State<StatefulWidget> createState() => YoutubeState();
+  State<StatefulWidget> createState() => YouTubeState();
 
   @override
   Map<String, Function> getters() => {};
@@ -73,7 +73,7 @@ class Youtube extends StatefulWidget
       };
 }
 
-mixin YoutubeMethods on WidgetState<Youtube> {
+mixin YouTubeMethods on WidgetState<YouTube> {
   void nextVideo();
   void previousVideo();
   void stopVideo();
@@ -85,11 +85,11 @@ mixin YoutubeMethods on WidgetState<Youtube> {
   void setVolume(int volume);
 }
 
-class YoutubeState extends WidgetState<Youtube> with YoutubeMethods {
+class YouTubeState extends WidgetState<YouTube> with YouTubeMethods {
   late YoutubePlayerController player;
   @override
   void initState() {
-    YoutubeWeb().createWebInstance();
+    YouTubeBase().createWebInstance();
     PlayerController playerController = widget._controller;
     player = YoutubePlayerController(
         params: YoutubePlayerParams(
@@ -134,7 +134,7 @@ class YoutubeState extends WidgetState<Youtube> with YoutubeMethods {
   }
 
   @override
-  void didUpdateWidget(covariant Youtube oldWidget) {
+  void didUpdateWidget(covariant YouTube oldWidget) {
     widget._controller.youtubeMethods = this;
     widget._controller.youtubeMethods!
         .setPlaybackRate(oldWidget.controller.playbackRate ?? 1);
@@ -144,16 +144,24 @@ class YoutubeState extends WidgetState<Youtube> with YoutubeMethods {
   }
 
   @override
+  void dispose() {
+    player.close();
+    super.dispose();
+  }
+
+  @override
   Widget buildWidget(BuildContext context) {
     PlayerController playerController = widget._controller;
-
+    Set<Factory<EagerGestureRecognizer>> gesture = {};
+    gesture
+        .add(Factory<EagerGestureRecognizer>(() => EagerGestureRecognizer()));
     if (widget._controller.broken) {
       return const SizedBox.shrink();
     }
     return YoutubePlayerScaffold(
-      gestureRecognizers: <Factory<EagerGestureRecognizer>>{}..add(
-          Factory<EagerGestureRecognizer>(() => EagerGestureRecognizer()),
-        ),
+      gestureRecognizers: (playerController.videoList.isEmpty)
+          ? const <Factory<OneSequenceGestureRecognizer>>{}
+          : gesture,
       enableFullScreenOnVerticalDrag: false,
       autoFullScreen: false,
       aspectRatio: playerController.aspectRatio ?? 16 / 9,
@@ -227,7 +235,7 @@ class YoutubeState extends WidgetState<Youtube> with YoutubeMethods {
 }
 
 class PlayerController extends WidgetController {
-  YoutubeMethods? youtubeMethods;
+  YouTubeMethods? youtubeMethods;
   String url = "";
   double? aspectRatio;
   bool autoplay = false;
