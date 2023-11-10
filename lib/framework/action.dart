@@ -1065,7 +1065,7 @@ abstract class EnsembleAction {
     } else if (actionType == ActionType.clearKeychain) {
       return ClearKeychain.fromYaml(payload: payload);
     } else if (actionType == ActionType.invokeHaptic) {
-      return HapticAction.fromYaml(payload: payload);
+      return HapticAction.from(payload);
     }
 
     throw LanguageError("Invalid action.",
