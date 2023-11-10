@@ -1,5 +1,9 @@
 import 'package:ensemble/ensemble_theme.dart';
+import 'package:ensemble/framework/ensemble_widget.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
+import 'package:ensemble/framework/widget/custom_view.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' as flutter;
 import 'package:ensemble/util/utils.dart';
@@ -7,28 +11,35 @@ import 'package:google_fonts/google_fonts.dart';
 
 /// utility for our Widgets
 class WidgetUtils {
-  /// wrap our widget in a Box, which supports margin, padding, border, ...
-  @Deprecated('use BoxWrapper instead')
-  static Widget wrapInBox(Widget widget, BoxController boxController) {
-    BorderRadius? borderRadius;
-    Widget realWidget = widget;
-
-    if (boxController.borderRadius != null) {
-      borderRadius = boxController.borderRadius!.getValue();
-      realWidget = ClipRRect(child: widget, borderRadius: borderRadius);
+  /// check if an Ensemble widget is visible or not
+  /// This is not a sure-fire approach - just trying our best
+  static bool isVisible(Widget widget) {
+    Widget view = widget;
+    if (view is DataScopeWidget) {
+      if (view.child is CustomView) {
+        // Custom Widgets
+        final CustomView customView = view.child as CustomView;
+        // TODO: this logic is hosed since body is now just the model.
+        // TODO: But then we shouldn't be reaching in like this anyway
+        // view = customView.body;
+        return true;
+      } else {
+        // Native Widgets like Button, Text
+        view = view.child;
+      }
     }
 
-    return Container(
-        margin: boxController.margin,
-        decoration: BoxDecoration(
-            border: !boxController.hasBorder()
-                ? null
-                : Border.all(
-                    color: boxController.borderColor ?? Colors.black26,
-                    width: (boxController.borderWidth ?? 1).toDouble()),
-            borderRadius: borderRadius),
-        padding: boxController.padding,
-        child: realWidget);
+    final isWidgetController =
+        view is HasController && (view.controller is WidgetController);
+    if (isWidgetController) {
+      final visibleChild = (view.controller as WidgetController).visible;
+      return visibleChild;
+    }
+    // new widget renderer
+    if (view is EnsembleWidget && view.controller is EnsembleWidgetController) {
+      return (view.controller as EnsembleWidgetController).visible;
+    }
+    return false;
   }
 }
 
