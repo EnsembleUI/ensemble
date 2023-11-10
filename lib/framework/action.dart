@@ -14,7 +14,10 @@ import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/keychain_manager.dart';
 import 'package:ensemble/framework/permissions_manager.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/bottom_nav_page_group.dart';
+import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
+import 'package:ensemble/receive_intent_manager.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -114,6 +117,24 @@ class NavigateScreenAction extends BaseNavigateScreenAction {
   }
 }
 
+class NavigateViewGroupAction extends EnsembleAction {
+  NavigateViewGroupAction({dynamic viewIndex}) : _viewIndex = viewIndex;
+
+  final dynamic _viewIndex;
+
+  factory NavigateViewGroupAction.from({Map? payload}) {
+    return NavigateViewGroupAction(viewIndex: payload?['viewIndex']);
+  }
+
+  @override
+  Future execute(BuildContext context, ScopeManager scopeManager,
+      {DataContext? dataContext}) {
+    PageGroupWidget.getPageController(context)?.jumpToPage(_viewIndex);
+    viewGroupNotifier.updatePage(_viewIndex);
+    return Future.value(null);
+  }
+}
+
 class NavigateModalScreenAction extends BaseNavigateScreenAction {
   NavigateModalScreenAction({
     super.initiator,
@@ -184,6 +205,46 @@ class PlaidLinkAction extends EnsembleAction {
       onEvent: EnsembleAction.fromYaml(payload['onEvent']),
       onExit: EnsembleAction.fromYaml(payload['onExit']),
     );
+  }
+}
+
+class ReceiveIntentAction extends EnsembleAction {
+  ReceiveIntentAction({
+    Invokable? initiator,
+    this.options,
+    this.id,
+    this.onReceive,
+    this.onError,
+  }) : super(initiator: initiator);
+  final Map<String, dynamic>? options;
+  String? id;
+  EnsembleAction? onReceive;
+  EnsembleAction? onError;
+
+  EnsembleAction? getOnReceive(DataContext dataContext) =>
+      dataContext.eval(onReceive);
+
+  EnsembleAction? getOnError(DataContext dataContext) =>
+      dataContext.eval(onError);
+
+  factory ReceiveIntentAction.fromYaml({Invokable? initiator, Map? payload}) {
+    return ReceiveIntentAction(
+      initiator: initiator,
+      options: Utils.getMap(payload?['options']),
+      id: Utils.optionalString(payload?['id']),
+      onReceive: EnsembleAction.fromYaml(payload?['onReceive']),
+      onError: EnsembleAction.fromYaml(payload?['onError']),
+    );
+  }
+
+  @override
+  Future execute(BuildContext context, ScopeManager scopeManager) {
+    ReceiveIntentManager().init(
+        context,
+        initiator,
+        getOnReceive(scopeManager.dataContext),
+        getOnError(scopeManager.dataContext));
+    return Future.value(null);
   }
 }
 
@@ -816,6 +877,7 @@ class ClearKeychain extends EnsembleAction {
 enum ActionType {
   invokeAPI,
   navigateScreen,
+  navigateViewGroup,
   navigateExternalScreen,
   navigateModalScreen,
   showBottomModal,
@@ -847,6 +909,7 @@ enum ActionType {
   saveKeychain,
   clearKeychain,
   getDeviceToken,
+  receiveIntent,
   connectSocket,
   disconnectSocket,
   messageSocket,
@@ -907,6 +970,8 @@ abstract class EnsembleAction {
     } else if (actionType == ActionType.navigateExternalScreen) {
       return NavigateExternalScreen.from(
           initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.navigateViewGroup) {
+      return NavigateViewGroupAction.from(payload: payload);
     } else if (actionType == ActionType.navigateModalScreen) {
       return NavigateModalScreenAction.fromYaml(
           initiator: initiator, payload: payload);
@@ -976,6 +1041,9 @@ abstract class EnsembleAction {
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.checkPermission) {
       return CheckPermission.fromYaml(payload: payload);
+    } else if (actionType == ActionType.receiveIntent) {
+      return ReceiveIntentAction.fromYaml(
+          initiator: initiator, payload: payload);
     } else if (actionType == ActionType.connectSocket) {
       return ConnectSocketAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.disconnectSocket) {
