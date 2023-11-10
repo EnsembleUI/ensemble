@@ -6799,12 +6799,48 @@
           "properties": {
             "borderColor": {
               "$ref": "#/$defs/type-color",
-              "description": "Border color, starting with '0xFF' for full opacity"
+              "description": "Border color, starting with '0xFF' for full opacity. Also supports the CSS way to define borderColor for individual or grouped sides."
+            },
+            "topBorderColor": {
+              "$ref": "#/$defs/type-color",
+              "description": "Border color for the top side of the border."
+            },
+            "bottomBorderColor": {
+              "$ref": "#/$defs/type-color",
+              "description": "Border color for the bottom side of the border."
+            },
+            "leftBorderColor": {
+              "$ref": "#/$defs/type-color",
+              "description": "Border color for the left side of the border."
+            },
+            "rightBorderColor": {
+              "$ref": "#/$defs/type-color",
+              "description": "Border color for the right side of the border."
             },
             "borderWidth": {
               "type": "integer",
               "minimum": 0,
-              "description": "The thickness of the border"
+              "description": "The thickness of the border. Also supports the CSS way to define borderColor for individual or grouped sides."
+            },
+            "topBorderWidth": {
+              "$ref": "integer",
+              "minimum": 0,
+              "description": "Border thickness for the top side of the border."
+            },
+            "bottomBorderWidth": {
+              "$ref": "integer",
+              "minimum": 0,
+              "description": "Border thickness for the bottom side of the border."
+            },
+            "leftBorderWidth": {
+              "$ref": "integer",
+              "minimum": 0,
+              "description": "Border thickness for the left side of the border."
+            },
+            "rightBorderWidth": {
+              "$ref": "integer",
+              "minimum": 0,
+              "description": "Border thickness for the right side of the border."
             }
           }
         }
