@@ -136,6 +136,9 @@ class EnsembleDataRow extends StatefulWidget
   List<WidgetModel>? children;
   ItemTemplate? itemTemplate;
   bool visible = true;
+  Function(bool value)? onVisibleChanged;
+
+  EnsembleDataRow({super.key});
 
   @override
   State<StatefulWidget> createState() => EnsembleDataRowState();
@@ -159,7 +162,16 @@ class EnsembleDataRow extends StatefulWidget
   @override
   Map<String, Function> setters() {
     return {
-      'visible': (dynamic v) => visible = Utils.getBool(v, fallback: visible)
+      'visible': (dynamic v) {
+        final bool newValue = Utils.getBool(v, fallback: visible);
+        if (visible != newValue) {
+          visible = newValue;
+
+          if (onVisibleChanged != null) {
+            onVisibleChanged!(visible);
+          }
+        }
+      }
     };
   }
 }
@@ -366,8 +378,18 @@ class DataGridState extends WidgetState<DataGrid>
       if (w is! EnsembleDataRow) {
         throw Exception("Direct children of DataGrid must be of type DataRow");
       }
+
       EnsembleDataRow child = w;
-      if (!child.visible) {
+      bool isVisible = child.visible;
+
+      child.onVisibleChanged = (value) {
+        setState(() {
+          isVisible = value;
+        });
+        _buildDataRow();
+      };
+
+      if (!isVisible) {
         continue;
       }
       List<DataCell> cells = [];

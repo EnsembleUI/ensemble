@@ -41,15 +41,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>UIViewControllerBasedStatusBarAppearance</key>
-	<false/>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Ensemble needs location access to preview your App's capabilities.</string>
-	<key>NSLocationAlwaysUsageDescription</key>
-	<string>Ensemble needs location access to preview your App's capabilities.</string>
 </dict>
 </plist>
