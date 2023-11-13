@@ -137,7 +137,7 @@ class EnsembleDataRow extends StatefulWidget
   ItemTemplate? itemTemplate;
   bool visible = true;
   // Callback to fire when visible changes
-  Function(bool value)? onVisibleChanged;
+  Function(bool value)? onVisibilityChanged;
 
   EnsembleDataRow({super.key});
 
@@ -170,9 +170,9 @@ class EnsembleDataRow extends StatefulWidget
         if (visible != newValue) {
           visible = newValue;
 
-          if (onVisibleChanged != null) {
+          if (onVisibilityChanged != null) {
             // Firing the callback to update the state in EnsembleDataGrid
-            onVisibleChanged!(visible);
+            onVisibilityChanged?.call(visible);
           }
         }
       }
@@ -241,7 +241,6 @@ class DataGridState extends WidgetState<DataGrid>
 
   // List for the visibilities for individual row
   List<bool> rowVisibilities = [];
-  bool isFirstTimeRunning = true;
 
   @override
   void initState() {
@@ -292,8 +291,7 @@ class DataGridState extends WidgetState<DataGrid>
     _buildChildren();
 
     // Ensure that _parseVisibility runs only once as it is inside buildWidget. Cannot put it in initState
-    if (isFirstTimeRunning) {
-      isFirstTimeRunning = false;
+    if (rowVisibilities.isEmpty) {
       rowVisibilities = _parseVisibility();
     }
 
@@ -399,9 +397,8 @@ class DataGridState extends WidgetState<DataGrid>
   void _buildDataRow() {
     _rows.clear();
     // Added children.asMap().entries to have access for individual element index
-    for (final element in _children.asMap().entries) {
-      Widget w = element.value;
-      int index = element.key;
+    for (int index = 0; index < _children.length; index++) {
+      Widget w = _children[index];
 
       DataScopeWidget? rowScope;
 
@@ -416,13 +413,13 @@ class DataGridState extends WidgetState<DataGrid>
       EnsembleDataRow child = w;
 
       // Callback to update the visible of a given row changes
-      child.onVisibleChanged = (value) {
+      child.onVisibilityChanged = (value) {
         setState(() {
           rowVisibilities[index] = value;
         });
       };
 
-      if (!rowVisibilities[element.key]) {
+      if (!rowVisibilities[index]) {
         continue;
       }
       List<DataCell> cells = [];
