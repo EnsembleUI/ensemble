@@ -136,6 +136,10 @@ class EnsembleDataRow extends StatefulWidget
   List<WidgetModel>? children;
   ItemTemplate? itemTemplate;
   bool visible = true;
+  // Callback to fire when visible changes
+  Function(bool value)? onVisibilityChanged;
+
+  EnsembleDataRow({super.key});
 
   @override
   State<StatefulWidget> createState() => EnsembleDataRowState();
@@ -159,7 +163,17 @@ class EnsembleDataRow extends StatefulWidget
   @override
   Map<String, Function> setters() {
     return {
-      'visible': (dynamic v) => visible = Utils.getBool(v, fallback: visible)
+      'visible': (dynamic v) {
+        final bool newValue = Utils.getBool(v, fallback: visible);
+
+        // checking if old value and new value are different
+        if (visible != newValue) {
+          visible = newValue;
+
+          // Firing the callback to update the state in EnsembleDataGrid
+          onVisibilityChanged?.call(visible);
+        }
+      }
     };
   }
 }
@@ -223,6 +237,9 @@ class DataGridState extends WidgetState<DataGrid>
   final List<DataRow> _rows = [];
   final List<Widget> _children = [];
 
+  // List for the visibilities for individual row
+  List<bool> rowVisibilities = [];
+
   @override
   void initState() {
     widget._controller.addListener(refreshState);
@@ -270,6 +287,12 @@ class DataGridState extends WidgetState<DataGrid>
 
     _buildDataColumn(scopeManager);
     _buildChildren();
+
+    // Ensure that _parseVisibility runs only once as it is inside buildWidget. Cannot put it in initState
+    if (rowVisibilities.isEmpty) {
+      rowVisibilities = _parseVisibility();
+    }
+
     _buildDataRow();
 
     // Setting sort column index and order
@@ -317,6 +340,21 @@ class DataGridState extends WidgetState<DataGrid>
     );
   }
 
+  // Parsers the visibility out of the list of rows
+  List<bool> _parseVisibility() {
+    List<bool> visibilities = [];
+
+    for (var widget in _children) {
+      if (widget is! EnsembleDataRow) {
+        throw Exception("Direct children of DataGrid must be of type DataRow");
+      } else {
+        visibilities.add(widget.visible);
+      }
+    }
+
+    return visibilities;
+  }
+
   TextStyle? _buildHeadingStyle() {
     TextStyle? headingTextStyle;
     if (widget.controller.headingTextController != null) {
@@ -356,7 +394,10 @@ class DataGridState extends WidgetState<DataGrid>
 
   void _buildDataRow() {
     _rows.clear();
-    for (Widget w in _children) {
+    // Added children.asMap().entries to have access for individual element index
+    for (int index = 0; index < _children.length; index++) {
+      Widget w = _children[index];
+
       DataScopeWidget? rowScope;
 
       if (w is DataScopeWidget) {
@@ -366,8 +407,17 @@ class DataGridState extends WidgetState<DataGrid>
       if (w is! EnsembleDataRow) {
         throw Exception("Direct children of DataGrid must be of type DataRow");
       }
+
       EnsembleDataRow child = w;
-      if (!child.visible) {
+
+      // Callback to update the visible of a given row changes
+      child.onVisibilityChanged = (value) {
+        setState(() {
+          rowVisibilities[index] = value;
+        });
+      };
+
+      if (!rowVisibilities[index]) {
         continue;
       }
       List<DataCell> cells = [];
