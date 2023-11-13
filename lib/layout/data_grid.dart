@@ -170,10 +170,8 @@ class EnsembleDataRow extends StatefulWidget
         if (visible != newValue) {
           visible = newValue;
 
-          if (onVisibilityChanged != null) {
-            // Firing the callback to update the state in EnsembleDataGrid
-            onVisibilityChanged?.call(visible);
-          }
+          // Firing the callback to update the state in EnsembleDataGrid
+          onVisibilityChanged?.call(visible);
         }
       }
     };
