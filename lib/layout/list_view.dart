@@ -1,3 +1,4 @@
+import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/studio_debugger.dart';
@@ -42,6 +43,8 @@ class ListView extends StatefulWidget
     return {
       'onItemTap': (funcDefinition) => _controller.onItemTap =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onItemTapHaptic': (value) =>
+          _controller.onItemTapHaptic = Utils.optionalString(value),
       'showSeparator': (value) =>
           _controller.showSeparator = Utils.optionalBool(value),
       'separatorColor': (value) =>
@@ -88,6 +91,7 @@ class ListViewController extends BoxLayoutController {
   double? separatorWidth;
   EdgeInsets? separatorPadding;
   EnsembleAction? onScrollEnd;
+  String? onItemTapHaptic;
   bool reverse = false;
   ScrollController? scrollController;
 }
@@ -201,6 +205,16 @@ class ListViewState extends WidgetState<ListView>
   void _onItemTapped(int index) {
     if (index != widget._controller.selectedItemIndex &&
         widget._controller.onItemTap != null) {
+      if (widget._controller.onItemTapHaptic != null) {
+        ScreenController().executeAction(
+          context,
+          HapticAction(
+            type: widget._controller.onItemTapHaptic!,
+            onComplete: null,
+          ),
+        );
+      }
+
       widget._controller.selectedItemIndex = index;
       //log("Changed to index $index");
       ScreenController().executeAction(context, widget._controller.onItemTap!);

@@ -1,3 +1,4 @@
+import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/action.dart' as ensemble;
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
@@ -47,6 +48,8 @@ class Button extends StatefulWidget
       'gap': (value) => _controller.gap = Utils.optionalInt(value),
       'onTap': (funcDefinition) => _controller.onTap =
           ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onTapHaptic': (value) =>
+          _controller.onTapHaptic = Utils.optionalString(value),
       'submitForm': (value) =>
           _controller.submitForm = Utils.optionalBool(value),
       'validateForm': (value) =>
@@ -71,6 +74,7 @@ class Button extends StatefulWidget
 
 class ButtonController extends BoxController {
   ensemble.EnsembleAction? onTap;
+  String? onTapHaptic;
 
   TextStyleComposite? _labelStyle;
   TextStyleComposite get labelStyle => _labelStyle ??= TextStyleComposite(this);
@@ -237,6 +241,13 @@ class ButtonState extends WidgetState<Button> {
 
     // execute the onTap action
     if (widget._controller.onTap != null) {
+      if (widget._controller.onTapHaptic != null) {
+        ScreenController().executeAction(
+          context,
+          HapticAction(type: widget._controller.onTapHaptic!, onComplete: null),
+        );
+      }
+
       ScreenController().executeAction(context, widget._controller.onTap!,
           event: EnsembleEvent(widget));
     }
