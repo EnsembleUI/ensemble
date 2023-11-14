@@ -78,9 +78,8 @@ class EnsembleImageCropper extends StatefulWidget
           Utils.optionalDouble(cropPercentage, max: 1.0),
       'placeholderColor': (value) =>
           _controller.placeholderColor = Utils.getColor(value),
-      'onTap': (funcDefinition) => _controller.onTap = EnsembleAction.fromYaml(
-          funcDefinition,
-          initiator: this), // TODO Left from here
+      'onTap': (funcDefinition) => _controller.onTap =
+          EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'onTapHaptic': (value) =>
           _controller.onTapHaptic = Utils.optionalString(value),
       'isRotate': (value) =>
