@@ -3,6 +3,7 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart' as framework;
 import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:ensemble/widget/helpers/widgets.dart';
 
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/material.dart';
@@ -34,6 +35,9 @@ class EnsembleHtml extends StatefulWidget
       'text': (newValue) => _controller.text = Utils.optionalString(newValue),
       'onLinkTap': (funcDefinition) => _controller.onLinkTap =
           ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      // 'classStyles': (value) {
+      //   print(value);
+      // },
     };
   }
 
@@ -43,7 +47,7 @@ class EnsembleHtml extends StatefulWidget
   }
 }
 
-class HtmlController extends WidgetController {
+class HtmlController extends BoxController {
   String? text;
   ensemble.EnsembleAction? onLinkTap;
 }
@@ -51,18 +55,24 @@ class HtmlController extends WidgetController {
 class HtmlState extends framework.WidgetState<EnsembleHtml> {
   @override
   Widget buildWidget(BuildContext context) {
-    return Html(
-      data: widget._controller.text ?? '',
-      onLinkTap: ((url, attributes, element) {
-        if (widget.controller.onLinkTap != null) {
-          ScreenController().executeAction(
-              context, widget.controller.onLinkTap!,
-              event: EnsembleEvent(widget,
-                  data: {'url': url, 'attributes': attributes}));
-        } else if (url != null) {
-          launchUrl(Uri.parse(url));
-        }
-      }),
+    return BoxWrapper(
+      boxController: widget._controller,
+      widget: Html(
+        // style: {
+        //   '#hello': Style(border: Border.all(width: 2, color: Colors.red)),
+        // },
+        data: widget._controller.text ?? '',
+        onLinkTap: ((url, attributes, element) {
+          if (widget.controller.onLinkTap != null) {
+            ScreenController().executeAction(
+                context, widget.controller.onLinkTap!,
+                event: EnsembleEvent(widget,
+                    data: {'url': url, 'attributes': attributes}));
+          } else if (url != null) {
+            launchUrl(Uri.parse(url));
+          }
+        }),
+      ),
     );
   }
 }
