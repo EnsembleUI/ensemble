@@ -504,6 +504,17 @@
               "$ref": "#/$defs/Action-payload",
               "description": "Call Ensemble's built-in functions or execute code"
             },
+            "onTapHaptic": {
+              "type": "enum",
+              "description": "The different types of haptic to play on Tap. The enums are in the decreasing order of intensity from highest intensity being of heavyImpact and lowest of selectionClick.",
+              "enum": [
+                "heavyImpact",
+                "mediumImpact",
+                "lightImpactHaptic",
+                "selectionClickHaptic",
+                "vibrateHaptic"
+              ]
+            },
             "styles": {
               "allOf": [
                 {
@@ -548,6 +559,17 @@
         "onTap": {
           "$ref": "#/$defs/Action-payload",
           "description": "Call Ensemble's built-in functions or execute code"
+        },
+        "onTapHaptic": {
+          "type": "enum",
+          "description": "The different types of haptic to play on Tap. The enums are in the decreasing order of intensity from highest intensity being of heavyImpact and lowest of selectionClick.",
+          "enum": [
+            "heavyImpact",
+            "mediumImpact",
+            "lightImpactHaptic",
+            "selectionClickHaptic",
+            "vibrateHaptic"
+          ]
         },
         "styles": {
           "allOf": [
@@ -644,6 +666,17 @@
           "$ref": "#/$defs/Action-payload",
           "description": "Call Ensemble's built-in functions or execute code"
         },
+        "onTapHaptic": {
+          "type": "enum",
+          "description": "The different types of haptic to play on Tap. The enums are in the decreasing order of intensity from highest intensity being of heavyImpact and lowest of selectionClick.",
+          "enum": [
+            "heavyImpact",
+            "mediumImpact",
+            "lightImpactHaptic",
+            "selectionClickHaptic",
+            "vibrateHaptic"
+          ]
+        },
         "styles": {
           "allOf": [
             {
@@ -716,6 +749,17 @@
         "onTap": {
           "$ref": "#/$defs/Action-payload",
           "description": "Call Ensemble's built-in functions or execute code"
+        },
+        "onTapHaptic": {
+          "type": "enum",
+          "description": "The different types of haptic to play on Tap. The enums are in the decreasing order of intensity from highest intensity being of heavyImpact and lowest of selectionClick.",
+          "enum": [
+            "heavyImpact",
+            "mediumImpact",
+            "lightImpactHaptic",
+            "selectionClickHaptic",
+            "vibrateHaptic"
+          ]
         },
         "onCropped": {
           "$ref": "#/$defs/Action-payload",
@@ -841,6 +885,21 @@
         "source": {
           "type": "string",
           "description": "URL or asset name of the Lottie json file"
+        },
+        "onTap": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Call Ensemble's built-in functions or execute code when tapped on lottie"
+        },
+        "onTapHaptic": {
+          "type": "enum",
+          "description": "The different types of haptic to play on Tap. The enums are in the decreasing order of intensity from highest intensity being of heavyImpact and lowest of selectionClick.",
+          "enum": [
+            "heavyImpact",
+            "mediumImpact",
+            "lightImpactHaptic",
+            "selectionClickHaptic",
+            "vibrateHaptic"
+          ]
         },
         "styles": {
           "allOf": [
@@ -1090,6 +1149,17 @@
         "onChange": {
           "$ref": "#/$defs/Action-payload",
           "description": "Action to execute when the toggle's value has changed"
+        },
+        "onChangeHaptic": {
+          "type": "enum",
+          "description": "The different types of haptic to play on change. The enums are in the decreasing order of intensity from highest intensity being of heavyImpact and lowest of selectionClick.",
+          "enum": [
+            "heavyImpact",
+            "mediumImpact",
+            "lightImpactHaptic",
+            "selectionClickHaptic",
+            "vibrateHaptic"
+          ]
         },
         "styles": {
           "allOf": [
@@ -1888,6 +1958,17 @@
           "$ref": "#/$defs/Action-payload",
           "description": "Call Ensemble's built-in functions or execute code"
         },
+        "onTapHaptic": {
+          "type": "enum",
+          "description": "The different types of haptic to play on Tap. The enums are in the decreasing order of intensity from highest intensity being of heavyImpact and lowest of selectionClick.",
+          "enum": [
+            "heavyImpact",
+            "mediumImpact",
+            "lightImpactHaptic",
+            "selectionClickHaptic",
+            "vibrateHaptic"
+          ]
+        },
         "styles": {
           "allOf": [
             {
@@ -1924,6 +2005,17 @@
         },
         "onTap": {
           "$ref": "#/$defs/Action-payload"
+        },
+        "onTapHaptic": {
+          "type": "enum",
+          "description": "The different types of haptic to play on Tap. The enums are in the decreasing order of intensity from highest intensity being of heavyImpact and lowest of selectionClick.",
+          "enum": [
+            "heavyImpact",
+            "mediumImpact",
+            "lightImpactHaptic",
+            "selectionClickHaptic",
+            "vibrateHaptic"
+          ]
         },
         "styles": {
           "$ref": "#/$defs/baseStyles"
@@ -1983,6 +2075,17 @@
               "$ref": "#/$defs/Action-payload",
               "description": "Call Ensemble's built-in functions or execute code when tapping on an item in the list."
             },
+            "onItemTapHaptic": {
+              "type": "enum",
+              "description": "The different types of haptic to play on Tap on item. The enums are in the decreasing order of intensity from highest intensity being of heavyImpact and lowest of selectionClick.",
+              "enum": [
+                "heavyImpact",
+                "mediumImpact",
+                "lightImpactHaptic",
+                "selectionClickHaptic",
+                "vibrateHaptic"
+              ]
+            },
             "children": {
               "$ref": "#/$defs/Widgets"
             },
@@ -2040,6 +2143,17 @@
         "onChange": {
           "$ref": "#/$defs/Action-payload",
           "description": "Call Ensemble's built-in functions or execute code when the input changes. Note for free-form text input, this event only dispatches if the text changes AND the focus is lost (e.g. clicking on button)"
+        },
+        "onChangeHaptic": {
+          "type": "enum",
+          "description": "The different types of haptic to play on change. The enums are in the decreasing order of intensity from highest intensity being of heavyImpact and lowest of selectionClick.",
+          "enum": [
+            "heavyImpact",
+            "mediumImpact",
+            "lightImpactHaptic",
+            "selectionClickHaptic",
+            "vibrateHaptic"
+          ]
         },
         "styles": {
           "allOf": [
@@ -2269,6 +2383,17 @@
             "onItemTap": {
               "$ref": "#/$defs/Action-payload",
               "description": "Call Ensemble's built-in functions or execute code when tapping on an item in the list."
+            },
+            "onItemTapHaptic": {
+              "type": "enum",
+              "description": "The different types of haptic to play on tap of item. The enums are in the decreasing order of intensity from highest intensity being of heavyImpact and lowest of selectionClick.",
+              "enum": [
+                "heavyImpact",
+                "mediumImpact",
+                "lightImpactHaptic",
+                "selectionClickHaptic",
+                "vibrateHaptic"
+              ]
             },
             "onScrollEnd": {
               "$ref": "#/$defs/Action-payload",
@@ -2674,6 +2799,17 @@
             "onItemTap": {
               "description": "Dispatch when an ListView item is selected/tapped.The event dispatches only when you tap on the item. The index of the item can be retrieved using 'selectedItemIndex'.",
               "$ref": "#/$defs/Action-payload"
+            },
+            "onItemTapHaptic": {
+              "type": "enum",
+              "description": "The different types of haptic to play on tap of item. The enums are in the decreasing order of intensity from highest intensity being of heavyImpact and lowest of selectionClick.",
+              "enum": [
+                "heavyImpact",
+                "mediumImpact",
+                "lightImpactHaptic",
+                "selectionClickHaptic",
+                "vibrateHaptic"
+              ]
             },
             "selectedItemIndex": {
               "type": "integer",
@@ -4101,7 +4237,7 @@
               "required": ["type"],
               "properties": {
                 "type": {
-                  "type": "integer",
+                  "type": "enum",
                   "description": "The different types of haptic to play. The enums are in the decreasing order of intensity from highest intensity being of heavyImpact and lowest of selectionClick.",
                   "enum": [
                     "heavyImpact",
@@ -4633,6 +4769,17 @@
               "floatingMargin": {
                 "$ref": "#/$defs/Margin-payload",
                 "description": "The margin around the floating."
+              },
+              "onTapHaptic": {
+                "type": "enum",
+                "description": "The different types of haptic to play on tap. The enums are in the decreasing order of intensity from highest intensity being of heavyImpact and lowest of selectionClick.",
+                "enum": [
+                  "heavyImpact",
+                  "mediumImpact",
+                  "lightImpactHaptic",
+                  "selectionClickHaptic",
+                  "vibrateHaptic"
+                ]
               },
               "floatingAlignment": {
                 "$ref": "#/$defs/type-alignment",
