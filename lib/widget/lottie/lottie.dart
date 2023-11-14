@@ -40,6 +40,8 @@ class EnsembleLottie extends StatefulWidget
       'repeat': (value) => _controller.repeat = Utils.optionalBool(value),
       'onTap': (funcDefinition) => _controller.onTap =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onTapHaptic': (value) =>
+          _controller.onTapHaptic = Utils.optionalString(value),
     };
   }
 }
@@ -49,4 +51,5 @@ class LottieController extends BoxController {
   bool? repeat;
   String? fit;
   EnsembleAction? onTap;
+  String? onTapHaptic;
 }

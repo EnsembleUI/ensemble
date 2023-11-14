@@ -1,3 +1,4 @@
+import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -21,9 +22,20 @@ class LottieState extends WidgetState<EnsembleLottie> {
     if (widget.controller.onTap != null) {
       rtn = GestureDetector(
           child: rtn,
-          onTap: () => ScreenController().executeAction(
-              context, widget.controller.onTap!,
-              event: EnsembleEvent(widget)));
+          onTap: () {
+            if (widget.controller.onTapHaptic != null) {
+              ScreenController().executeAction(
+                context,
+                HapticAction(
+                  type: widget.controller.onTapHaptic!,
+                  onComplete: null,
+                ),
+              );
+            }
+
+            ScreenController().executeAction(context, widget.controller.onTap!,
+                event: EnsembleEvent(widget));
+          });
     }
     if (widget.controller.margin != null) {
       rtn = Padding(padding: widget.controller.margin!, child: rtn);

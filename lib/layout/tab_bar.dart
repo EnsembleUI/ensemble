@@ -1,3 +1,4 @@
+import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
@@ -83,6 +84,8 @@ abstract class BaseTabBar extends StatefulWidget
           _controller.selectedIndex = Utils.getInt(index, min: 0, fallback: 0),
       'onTabSelection': (action) => _controller.onTabSelection =
           EnsembleAction.fromYaml(action, initiator: this),
+      'onTabSelectionHaptic': (value) =>
+          _controller.onTabSelectionHaptic = Utils.optionalString(value),
       'items': (items) => _controller.items = items,
     };
   }
@@ -104,6 +107,7 @@ class TabBarController extends BoxController {
   int? indicatorThickness;
 
   EnsembleAction? onTabSelection;
+  String? onTabSelectionHaptic;
   TabBarAction? tabBarAction;
 
   int selectedIndex = 0;
@@ -295,6 +299,15 @@ class TabBarState extends WidgetState<BaseTabBar>
           widget._controller.selectedIndex = index;
         });
         if (widget._controller.onTabSelection != null) {
+          if (widget._controller.onTabSelectionHaptic != null) {
+            ScreenController().executeAction(
+              context,
+              HapticAction(
+                type: widget._controller.onTabSelectionHaptic!,
+                onComplete: null,
+              ),
+            );
+          }
           ScreenController()
               .executeAction(context, widget._controller.onTabSelection!);
         }

@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'dart:io' as io;
 import 'package:custom_image_crop/custom_image_crop.dart';
+import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:flutter/cupertino.dart';
@@ -77,8 +78,11 @@ class EnsembleImageCropper extends StatefulWidget
           Utils.optionalDouble(cropPercentage, max: 1.0),
       'placeholderColor': (value) =>
           _controller.placeholderColor = Utils.getColor(value),
-      'onTap': (funcDefinition) => _controller.onTap =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onTap': (funcDefinition) => _controller.onTap = EnsembleAction.fromYaml(
+          funcDefinition,
+          initiator: this), // TODO Left from here
+      'onTapHaptic': (value) =>
+          _controller.onTapHaptic = Utils.optionalString(value),
       'isRotate': (value) =>
           _controller.isRotate = Utils.getBool(value, fallback: true),
       'isMove': (value) =>
@@ -108,6 +112,7 @@ class EnsembleImageCropperController extends BoxController {
   double? shapeBorderRadius;
   double? cropPercentage;
   String shape = '';
+  String? onTapHaptic;
   Color? strokeColor;
   bool isRotate = true;
   bool isMove = true;
@@ -226,10 +231,22 @@ class EnsembleImageCropperState extends WidgetState<EnsembleImageCropper>
     );
     if (widget._controller.onTap != null) {
       rtn = GestureDetector(
-          child: rtn,
-          onTap: () => ScreenController().executeAction(
-              context, widget._controller.onTap!,
-              event: EnsembleEvent(widget)));
+        child: rtn,
+        onTap: () {
+          if (widget._controller.onTapHaptic != null) {
+            ScreenController().executeAction(
+              context,
+              HapticAction(
+                type: widget._controller.onTapHaptic!,
+                onComplete: null,
+              ),
+            );
+          }
+
+          ScreenController().executeAction(context, widget._controller.onTap!,
+              event: EnsembleEvent(widget));
+        },
+      );
     }
     if (widget._controller.margin != null) {
       rtn = Padding(padding: widget._controller.margin!, child: rtn);

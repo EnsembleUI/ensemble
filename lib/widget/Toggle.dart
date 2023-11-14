@@ -1,3 +1,4 @@
+import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -38,6 +39,8 @@ class Toggle extends StatefulWidget
           _controller.value = Utils.getBool(value, fallback: false),
       'onChange': (definition) => _controller.onChange =
           EnsembleAction.fromYaml(definition, initiator: this),
+      'onChangeHaptic': (value) =>
+          _controller.onChangeHaptic = Utils.optionalString(value),
       'inactiveWidget': (widget) => _controller.inactiveWidgetDef = widget,
       'activeWidget': (widget) => _controller.activeWidgetDef = widget,
       'transitionDuration': (value) =>
@@ -49,6 +52,7 @@ class Toggle extends StatefulWidget
 class ToggleController extends WidgetController {
   bool value = false;
   EnsembleAction? onChange;
+  String? onChangeHaptic;
 
   dynamic inactiveWidgetDef;
   dynamic activeWidgetDef;
@@ -88,6 +92,16 @@ class ToggleState extends WidgetState<Toggle> {
             widget._controller.value = !widget._controller.value;
           });
           if (widget._controller.onChange != null) {
+            if (widget._controller.onChangeHaptic != null) {
+              ScreenController().executeAction(
+                context,
+                HapticAction(
+                  type: widget._controller.onChangeHaptic!,
+                  onComplete: null,
+                ),
+              );
+            }
+
             ScreenController()
                 .executeAction(context, widget._controller.onChange!);
           }
