@@ -104,23 +104,76 @@ class EnsembleApp extends StatefulWidget {
   State<StatefulWidget> createState() => EnsembleAppState();
 }
 
-class EnsembleAppState extends State<EnsembleApp> {
+class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
   late Future<EnsembleConfig> config;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     config = initApp();
-
     // Initialize native features.
     if (!kIsWeb) {
       Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
+      initDeepLink(AppLifecycleState.resumed);
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      executeCallbacks();
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) async {
+    super.didChangeAppLifecycleState(state);
+    initDeepLink(state);
+    if (state == AppLifecycleState.resumed) {
+      executeCallbacks();
+    }
+  }
+
+  Future<void> executeCallbacks() async {
+    List<int?> functionIds = [];
+    final callbacks = Ensemble().getCallbacksAfterInitialization();
+    for (final Map<String, Object?> callback in callbacks) {
+      final id = callback['id'] as int?;
+      final method = callback['method'] as Function?;
+      final positionalPayloads = callback['positionalArgs'] as List<dynamic>?;
+      final namedPayloads = callback['namedArgs'] as Map<String, dynamic>?;
+      Map<Symbol, dynamic>? namedParams;
+      namedPayloads?.forEach((key, value) {
+        namedParams = {Symbol(key): value};
+      });
+
+      if (method != null) {
+        await Function.apply(method, positionalPayloads, namedParams);
+        functionIds.add(id);
+      }
+    }
+
+    // Looping function id to remove the functions in the callback object with the id
+    for (final id in functionIds) {
+      callbacks.removeWhere((element) => element['id'] == id);
+    }
+
+    // Reset to empty
+    functionIds = [];
+  }
+
+  void initDeepLink(AppLifecycleState state) {
+    if (!kIsWeb) {
       if (Platform.isIOS) {
         IOSDeepLinkManager().init();
       } else {
         DeepLinkManager().init();
       }
     }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   /// initialize our App with the the passed in config or
