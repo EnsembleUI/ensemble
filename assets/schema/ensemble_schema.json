@@ -2699,6 +2699,13 @@
               "type": "integer",
               "description": "Selecting a ListView item gives the index of selected item"
             },
+            "showLoading": {
+              "type": "boolean",
+              "description": "Show loading indicator. (Default is false)"
+            },
+            "loadingWidget": {
+              "$ref": "#/$defs/Widget"
+            },
             "onScrollEnd": {
               "$ref": "#/$defs/Action-payload",
               "description": "Execute an Ensemble action when user has reached bottom of list."
@@ -6973,13 +6980,6 @@
         }
       }
     },
-
-    
-    
-    
-    
-    
-    
     "TextStyle": {
       "type": "object",
       "properties": {
