@@ -699,57 +699,72 @@ class ScreenController {
         : scopeManager?.dataContext.getContextById(action.id!)
             as UploadFilesResponse;
 
-    if (action.isBackgroundTask) {
-      if (kIsWeb) {
-        throw LanguageError('Background Upload is not supported on web');
+    List<List<File>> fileBatches;
+    if (action.batchSize != null) {
+      fileBatches = [];
+      for (int i = 0; i < selectedFiles.length; i += action.batchSize!) {
+        int end = (i + action.batchSize! < selectedFiles.length)
+            ? i + action.batchSize!
+            : selectedFiles.length;
+        fileBatches.add(selectedFiles.sublist(i, end));
       }
-      await _setBackgroundUploadTask(
-        context: context,
-        action: action,
-        selectedFiles: selectedFiles,
+    } else {
+      fileBatches = [selectedFiles];
+    }
+
+    for (var fileBatch in fileBatches) {
+      if (action.isBackgroundTask) {
+        if (kIsWeb) {
+          throw LanguageError('Background Upload is not supported on web');
+        }
+        await _setBackgroundUploadTask(
+          context: context,
+          action: action,
+          selectedFiles: fileBatch,
+          headers: headers,
+          fields: fields,
+          method: method,
+          url: url,
+          fileResponse: fileResponse,
+          scopeManager: scopeManager,
+        );
+
+        return;
+      }
+      final taskId = generateRandomId(8);
+      fileResponse?.addTask(UploadTask(id: taskId));
+
+      final response = await UploadUtils.uploadFiles(
         headers: headers,
         fields: fields,
         method: method,
         url: url,
-        fileResponse: fileResponse,
-        scopeManager: scopeManager,
+        files: fileBatch,
+        fieldName: action.fieldName,
+        showNotification: action.showNotification,
+        onError: action.onError == null
+            ? null
+            : (error) => executeAction(context, action.onError!),
+        progressCallback: (progress) {
+          fileResponse?.setProgress(taskId, progress);
+          scopeManager?.dispatch(
+              ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
+        },
+        taskId: taskId,
       );
 
-      return;
+      if (response == null) {
+        fileResponse?.setStatus(taskId, UploadStatus.failed);
+        return;
+      }
+      fileResponse?.setHeaders(taskId, response.headers);
+      fileResponse?.setBody(taskId, response.body);
+      fileResponse?.setStatus(taskId, UploadStatus.completed);
+      scopeManager?.dispatch(
+          ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
+
+      if (action.onComplete != null) executeAction(context, action.onComplete!);
     }
-    final taskId = generateRandomId(8);
-    fileResponse?.addTask(UploadTask(id: taskId));
-
-    final response = await UploadUtils.uploadFiles(
-      headers: headers,
-      fields: fields,
-      method: method,
-      url: url,
-      files: selectedFiles,
-      fieldName: action.fieldName,
-      showNotification: action.showNotification,
-      onError: action.onError == null
-          ? null
-          : (error) => executeAction(context, action.onError!),
-      progressCallback: (progress) {
-        fileResponse?.setProgress(taskId, progress);
-        scopeManager?.dispatch(
-            ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
-      },
-      taskId: taskId,
-    );
-
-    if (response == null) {
-      fileResponse?.setStatus(taskId, UploadStatus.failed);
-      return;
-    }
-    fileResponse?.setHeaders(taskId, response.headers);
-    fileResponse?.setBody(taskId, response.body);
-    fileResponse?.setStatus(taskId, UploadStatus.completed);
-    scopeManager?.dispatch(
-        ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
-
-    if (action.onComplete != null) executeAction(context, action.onComplete!);
   }
 
   List<File>? _getRawFiles(dynamic rawFiles, DataContext dataContext) {
