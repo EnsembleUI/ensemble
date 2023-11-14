@@ -62,15 +62,8 @@ class TextController extends BoxController {
 class EnsembleTextState extends framework.WidgetState<EnsembleText> {
   @override
   Widget buildWidget(BuildContext context) {
-    Widget text = buildText(widget.controller);
-    if (StudioDebugger().debugMode) {
-      text = StudioDebugger().assertHasColumnRowFlexWrapper(
-          text, EnsembleText.type, context, widget.controller);
-      text = StudioDebugger().assertHasStackWrapper(
-          text, EnsembleText.type, context, widget.controller);
-    }
     return BoxWrapper(
-      widget: text,
+      widget: buildText(widget.controller),
       boxController: widget.controller,
     );
   }

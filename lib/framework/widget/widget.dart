@@ -2,6 +2,7 @@ import 'package:ensemble/framework/action.dart' as action;
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/studio_debugger.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/framework/view/page.dart';
@@ -65,6 +66,9 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
       // Note that Positioned or expanded below has to be used directly inside
       // Stack and FlexBox, respectively. They should be the last widget returned.
       if (widgetController.hasPositions()) {
+        if (StudioDebugger().debugMode) {
+          rtn = StudioDebugger().assertHasStackWrapper(rtn, context);
+        }
         rtn = Positioned(
             top: widgetController.stackPositionTop?.toDouble(),
             bottom: widgetController.stackPositionBottom?.toDouble(),
@@ -72,6 +76,10 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
             right: widgetController.stackPositionRight?.toDouble(),
             child: rtn);
       } else if (widgetController.expanded == true) {
+        if (StudioDebugger().debugMode) {
+          rtn = StudioDebugger().assertHasColumnRowFlexWrapper(rtn, context);
+        }
+
         /// Important notes:
         /// 1. If the Column/Row is scrollable, putting Expanded on the child will cause layout exception
         /// 2. If Column/Row is inside a parent without height/width constraint, it will collapse its size.
