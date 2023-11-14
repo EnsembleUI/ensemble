@@ -6112,6 +6112,10 @@
           "type": "string",
           "description": "The URl that will be loaded in the webview"
         },
+        "headers": {
+          "type": "object",
+          "description": "Pass the headers' key/value pairs to your service"
+        },
         "cookies": {
           "type": "array",
           "description": "takes cookies in an array of maps"
