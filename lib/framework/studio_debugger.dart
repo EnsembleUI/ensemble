@@ -1,6 +1,5 @@
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/widget/widget.dart';
-import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/cupertino.dart';
 
 class StudioDebugger {
@@ -53,28 +52,24 @@ class StudioDebugger {
         return widget;
       });
 
-  Widget assertHasColumnRowFlexWrapper(Widget widget, String widgetName,
-      BuildContext context, WidgetController controller) {
+  Widget assertHasColumnRowFlexWrapper(Widget widget, BuildContext context) {
     RequiresRowColumnFlexWidget? requiresRowColumnFlexWidget = context
         .dependOnInheritedWidgetOfExactType<RequiresRowColumnFlexWidget>();
-    if (requiresRowColumnFlexWidget == null && controller.expanded) {
-      throw LanguageError(
-          "$widgetName has expanded true with incorrect parent widget ",
+    if (requiresRowColumnFlexWidget == null) {
+      throw LanguageError("expanded is true with incorrect parent widget ",
           recovery:
-              "Expanded widgets must be placed directly inside some form of flex widget.\n PLease place the widget under the parent of flex or column or row");
+              "Expanded widgets must be placed directly inside some form of flex widget.\n Please place the widget under the parent of flex or column or row");
     }
     return widget;
   }
 
-  Widget assertHasStackWrapper(Widget widget, String widgetName,
-      BuildContext context, WidgetController controller) {
+  Widget assertHasStackWrapper(Widget widget, BuildContext context) {
     RequireStackWidget? requireStackWidget =
         context.dependOnInheritedWidgetOfExactType<RequireStackWidget>();
-    if (requireStackWidget == null && controller.hasPositions()) {
-      throw LanguageError(
-          "$widgetName has stackPosition true with incorrect parent widget ",
+    if (requireStackWidget == null) {
+      throw LanguageError("stackPosition true with incorrect parent widget ",
           recovery:
-              "Please add Stack Widget as the parent for $widgetName to render");
+              "There is a widget that is using stackposition as true, however the parent widget is not a stack \n Please add Stack widget as a parent for the widget using stackposition");
     }
     return widget;
   }
