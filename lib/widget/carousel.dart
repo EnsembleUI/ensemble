@@ -61,8 +61,8 @@ class Carousel extends StatefulWidget
           _controller.indicatorHeight = Utils.optionalInt(h),
       'indicatorMargin': (value) =>
           _controller.indicatorMargin = Utils.getInsets(value),
-      'indicatorOffset': (value) =>
-          _controller.indicatorOffset = Utils.optionalDouble(value),
+      'indicatorPadding': (value) =>
+          _controller.indicatorPadding = Utils.getInsets(value),
       'indicatorColor': (value) =>
           _controller.indicatorColor = Utils.getColor(value),
       'currentIndex': (value) =>
@@ -134,7 +134,7 @@ class MyController extends BoxController {
   int? indicatorWidth;
   int? indicatorHeight;
   EdgeInsets? indicatorMargin;
-  double? indicatorOffset;
+  EdgeInsets? indicatorPadding;
   Color? indicatorColor;
   bool? autoplay;
   bool? enableLoop;
@@ -204,20 +204,19 @@ class CarouselState extends WidgetState<Carousel>
         widget._controller.indicatorType != IndicatorType.none) {
       List<Widget> indicators = buildIndicators(items);
 
-      final double indicatorOffset = widget._controller.indicatorOffset ?? 0;
-      final bool isBottom =
-          widget._controller.indicatorPosition != IndicatorPosition.top;
-
       List<Widget> children = [
         carousel,
-        Positioned(
-          top: !isBottom ? indicatorOffset : null,
-          bottom: isBottom ? indicatorOffset : null,
-          left: 0,
-          right: 0,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: indicators,
+        Positioned.fill(
+          child: Align(
+            alignment: widget._controller.indicatorPosition?.alignment ??
+                Alignment.bottomCenter,
+            child: Padding(
+              padding: widget._controller.indicatorPadding ?? EdgeInsets.zero,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: indicators,
+              ),
+            ),
           ),
         )
       ];
@@ -464,4 +463,37 @@ enum IndicatorType {
   custom,
 }
 
-enum IndicatorPosition { bottom, top }
+enum IndicatorPosition {
+  topLeft,
+  topCenter,
+  topRight,
+  centerLeft,
+  center,
+  centerRight,
+  bottomLeft,
+  bottomCenter,
+  bottomRight;
+
+  Alignment get alignment {
+    switch (this) {
+      case IndicatorPosition.topLeft:
+        return Alignment.topLeft;
+      case IndicatorPosition.topCenter:
+        return Alignment.topCenter;
+      case IndicatorPosition.topRight:
+        return Alignment.topRight;
+      case IndicatorPosition.centerLeft:
+        return Alignment.centerLeft;
+      case IndicatorPosition.center:
+        return Alignment.center;
+      case IndicatorPosition.centerRight:
+        return Alignment.centerRight;
+      case IndicatorPosition.bottomLeft:
+        return Alignment.bottomLeft;
+      case IndicatorPosition.bottomCenter:
+        return Alignment.bottomCenter;
+      case IndicatorPosition.bottomRight:
+        return Alignment.bottomRight;
+    }
+  }
+}

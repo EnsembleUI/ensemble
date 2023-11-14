@@ -2812,8 +2812,15 @@
                       "type": "string",
                       "description": "Where to display the indicator if specified",
                       "enum": [
-                        "bottom",
-                        "top"
+                        "topLeft",
+                        "topCenter",
+                        "topRight",
+                        "centerLeft",
+                        "center",
+                        "centerRight",
+                        "bottomLeft",
+                        "bottomCenter",
+                        "bottomRight"
                       ]
                     },
                     "indicatorWidth": {
@@ -2858,6 +2865,10 @@
                         }
                       ],
                       "description": "The margin around each indicator"
+                    },
+                    "indicatorPadding": {
+                      "$ref": "#/$defs/Padding-payload",
+                      "description": "The padding around the indicator"
                     }
                   }
                 }
