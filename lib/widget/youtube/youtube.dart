@@ -6,6 +6,7 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
 class YouTube extends StatefulWidget
@@ -93,33 +94,11 @@ class YouTubeState extends WidgetState<YouTube> with YouTubeMethods {
     PlayerController playerController = widget._controller;
     player = YoutubePlayerController(
         params: YoutubePlayerParams(
+            enableJavaScript: false,
             enableCaption: playerController.enableCaptions,
             showControls: playerController.showControls,
             showFullscreenButton: playerController.showFullScreenButton,
             showVideoAnnotations: playerController.showVideoAnnotation));
-    List<String> list = playerController.videoList;
-
-    if (!playerController.autoplay) {
-      (list.isEmpty)
-          ? player.cueVideoById(
-              videoId: playerController.url,
-              startSeconds: playerController.startSeconds,
-              endSeconds: playerController.endSeconds)
-          : player.cuePlaylist(
-              list: playerController.videoList,
-              startSeconds: playerController.startSeconds,
-              listType: ListType.playlist);
-    } else {
-      (list.isEmpty)
-          ? player.loadVideoById(
-              videoId: playerController.url,
-              startSeconds: playerController.startSeconds,
-              endSeconds: playerController.endSeconds)
-          : player.loadPlaylist(
-              list: playerController.videoList,
-              startSeconds: playerController.startSeconds,
-              listType: ListType.playlist);
-    }
     super.initState();
   }
 
@@ -158,51 +137,64 @@ class YouTubeState extends WidgetState<YouTube> with YouTubeMethods {
     if (widget._controller.broken) {
       return const SizedBox.shrink();
     }
-    return YoutubePlayerScaffold(
-      gestureRecognizers: (playerController.videoList.isEmpty)
-          ? const <Factory<OneSequenceGestureRecognizer>>{}
-          : gesture,
-      enableFullScreenOnVerticalDrag: false,
-      autoFullScreen: false,
-      aspectRatio: playerController.aspectRatio ?? 16 / 9,
-      controller: player
-        ..setFullScreenListener((value) async {
-          final videoData = await player.videoData;
-          final startSeconds = await player.currentTime;
-          if (!context.mounted) return;
-          final currentTime = await FullscreenYoutubePlayer.launch(
-            context,
-            videoId: videoData.videoId,
-            startSeconds: startSeconds,
-          );
-          if (currentTime != null) {
-            player.seekTo(seconds: currentTime, allowSeekAhead: true);
-          }
-        }),
-      builder: (context, youtube) {
-        if (playerController.videoPosition) {
-          return YoutubeValueBuilder(
-              builder: (context, youtubeValue) => Column(
-                    children: [
-                      youtube,
-                      StreamBuilder<YoutubeVideoState>(
+    return ChangeNotifierProvider(
+      create: (context) => YoutubeNotifier(),
+      child: Consumer<YoutubeNotifier>(builder: (context, ref, child) {
+        if (!ref.isCalled) {
+          ref.loadYouTube(
+              playerController, widget.controller.videoList, player);
+          ref.isCalled = true;
+        }
+        return YoutubePlayerScaffold(
+          gestureRecognizers: (playerController.videoList.isEmpty)
+              ? const <Factory<OneSequenceGestureRecognizer>>{}
+              : gesture,
+          enableFullScreenOnVerticalDrag: false,
+          autoFullScreen: false,
+          aspectRatio: playerController.aspectRatio ?? 16 / 9,
+          controller: player
+            ..setFullScreenListener((value) async {
+              final videoData = await player.videoData;
+              final startSeconds = await player.currentTime;
+              if (!context.mounted) return;
+              final currentTime = await FullscreenYoutubePlayer.launch(
+                context,
+                videoId: videoData.videoId,
+                startSeconds: startSeconds,
+              );
+              if (currentTime != null) {
+                player.seekTo(seconds: currentTime, allowSeekAhead: true);
+              }
+            }),
+          builder: (context, youtube) {
+            return Column(
+              children: [
+                youtube,
+                if (playerController.videoPosition)
+                  YoutubeValueBuilder(
+                    controller: player,
+                    builder: (context, youtubeValue) {
+                      return StreamBuilder<YoutubeVideoState>(
                           stream: player.videoStateStream,
                           builder: (context, snapshot) {
-                            final int position =
-                                snapshot.data?.position.inMilliseconds ?? 0;
-                            final int duration =
+                            final int totalDuration =
                                 youtubeValue.metaData.duration.inMilliseconds;
+                            final int current =
+                                snapshot.data?.position.inMilliseconds ?? 0;
                             return LinearProgressIndicator(
-                              value: duration == 0 ? 0 : position / duration,
+                              value: totalDuration == 0
+                                  ? 0
+                                  : current / totalDuration,
                               minHeight: 3,
                             );
-                          })
-                    ],
-                  ));
-        } else {
-          return youtube;
-        }
-      },
+                          });
+                    },
+                  )
+              ],
+            );
+          },
+        );
+      }),
     );
   }
 
@@ -280,5 +272,40 @@ class PlayerController extends WidgetController {
     if (x != null) {
       url = x;
     }
+  }
+}
+
+class YoutubeNotifier extends ChangeNotifier {
+  bool isCalled = false;
+  Future<void> initializeYoutube(PlayerController playerController,
+      List<String> list, YoutubePlayerController player) async {
+    if (!playerController.autoplay) {
+      (list.isEmpty)
+          ? await player.cueVideoById(
+              videoId: playerController.url,
+              startSeconds: playerController.startSeconds,
+              endSeconds: playerController.endSeconds)
+          : await player.cuePlaylist(
+              list: playerController.videoList,
+              startSeconds: playerController.startSeconds,
+              listType: ListType.playlist);
+    } else {
+      (list.isEmpty)
+          ? await player.loadVideoById(
+              videoId: playerController.url,
+              startSeconds: playerController.startSeconds,
+              endSeconds: playerController.endSeconds)
+          : await player.loadPlaylist(
+              list: playerController.videoList,
+              startSeconds: playerController.startSeconds,
+              listType: ListType.playlist);
+    }
+  }
+
+  Future<void> loadYouTube(PlayerController playerController, List<String> list,
+      YoutubePlayerController player) async {
+    await initializeYoutube(playerController, list, player);
+    return await Future.delayed(const Duration(seconds: 1))
+        .then((value) => initializeYoutube(playerController, list, player));
   }
 }
