@@ -743,7 +743,8 @@ class Utils {
     } else if (Platform.isAndroid) {
       return path.startsWith('/data/user/0/');
     } else if (Platform.isIOS) {
-      return path.startsWith('/var/mobile/');
+      return (path.startsWith('/var/mobile/') ||
+          path.startsWith('/private/var/mobile'));
     } else if (Platform.isMacOS) {
       return path.startsWith('/Users/');
     } else if (Platform.isLinux) {
@@ -773,6 +774,34 @@ class Utils {
       return BoxShape.rectangle;
     }
     return null;
+  }
+
+  static BoxFit? getBoxFit(String? inputFit) {
+    BoxFit? fit;
+    switch (inputFit) {
+      case 'fill':
+        fit = BoxFit.fill;
+        break;
+      case 'contain':
+        fit = BoxFit.contain;
+        break;
+      case 'cover':
+        fit = BoxFit.cover;
+        break;
+      case 'fitWidth':
+        fit = BoxFit.fitWidth;
+        break;
+      case 'fitHeight':
+        fit = BoxFit.fitHeight;
+        break;
+      case 'none':
+        fit = BoxFit.none;
+        break;
+      case 'scaleDown':
+        fit = BoxFit.scaleDown;
+        break;
+    }
+    return fit;
   }
 
   // To sort the list with nested map object using Key

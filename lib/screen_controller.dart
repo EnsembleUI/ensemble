@@ -31,6 +31,7 @@ import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/framework/widget/toast.dart';
 import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/receive_intent_manager.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/util/notification_utils.dart';
@@ -106,9 +107,21 @@ class ScreenController {
   Future<void> nowExecuteAction(BuildContext context, EnsembleAction action,
       Map<String, YamlMap>? apiMap, ScopeManager providedScopeManager,
       {EnsembleEvent? event}) async {
-    // create new scope to append data.
-    ScopeManager scopeManager =
-        providedScopeManager.createChildScope(ephemeral: true);
+    // create a new ephemeral scope to append common data.
+    // ScopeManager scopeManager =
+    //     providedScopeManager.createChildScope(ephemeral: true);
+    // if (action.initiator != null) {
+    //   scopeManager.dataContext.addInvokableContext('this', action.initiator!);
+    // }
+    // if (event != null) {
+    //   scopeManager.dataContext.addInvokableContext('event', event);
+    // }
+
+    // temporary until a proper fix. Overwrite the original scope itself
+    // since action requires the original scope to update the data.
+    // The below will cause "this" and "event" to permanently attach to the
+    // context
+    ScopeManager scopeManager = providedScopeManager;
     if (action.initiator != null) {
       scopeManager.dataContext.addInvokableContext('this', action.initiator!);
     }
