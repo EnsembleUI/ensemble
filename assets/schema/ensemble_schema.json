@@ -896,26 +896,6 @@
                       "description": "Center-Align the Lottie and only scale down to fit. Lottie will not be scaled up to bigger dimension."
                     }
                   ]
-                },
-                "autoPlay": {
-                  "type": "boolean",
-                  "description": "Whether to start animation after loading or not. (default true)"
-                },
-                "onForward": {
-                  "$ref": "#/$defs/Action-payload",
-                  "description": "Callback Action when lottie animation moves in forward direction"
-                },
-                "onReverse": {
-                  "$ref": "#/$defs/Action-payload",
-                  "description": "Callback Action when lottie animation moves in reverse direction"
-                },
-                "onComplete": {
-                  "$ref": "#/$defs/Action-payload",
-                  "description": "Callback Action when lottie animation is completed"
-                },
-                "onStop": {
-                  "$ref": "#/$defs/Action-payload",
-                  "description": "Callback Action when lottie animation is stopped"
                 }
               }
             }
@@ -2698,6 +2678,13 @@
             "selectedItemIndex": {
               "type": "integer",
               "description": "Selecting a ListView item gives the index of selected item"
+            },
+            "showLoading": {
+              "type": "boolean",
+              "description": "Show loading indicator. (Default is false)"
+            },
+            "loadingWidget": {
+              "$ref": "#/$defs/Widget"
             },
             "onScrollEnd": {
               "$ref": "#/$defs/Action-payload",
@@ -6973,13 +6960,6 @@
         }
       }
     },
-
-    
-    
-    
-    
-    
-    
     "TextStyle": {
       "type": "object",
       "properties": {

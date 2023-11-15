@@ -1,15 +1,13 @@
 import 'package:ensemble/framework/action.dart';
-import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/lottie/lottiestate.dart';
+import 'package:ensemble/widget/widget_util.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
 
 class EnsembleLottie extends StatefulWidget
     with Invokable, HasController<LottieController, LottieState> {
@@ -102,42 +100,16 @@ class EnsembleLottie extends StatefulWidget
       'source': (value) =>
           _controller.source = Utils.getString(value, fallback: ''),
       'fit': (value) => _controller.fit = Utils.optionalString(value),
-      'repeat': (value) => _controller.repeat = Utils.getBool(
-            value,
-            fallback: true,
-          ),
+      'repeat': (value) => _controller.repeat = Utils.optionalBool(value),
       'onTap': (funcDefinition) => _controller.onTap =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
-      // It defines whether animation would start at the time of rendering or not
-      'autoPlay': (value) => _controller.autoPlay = Utils.getBool(
-            value,
-            fallback: true,
-          ),
-      // Callback method for onForward
-      'onForward': (definition) => _controller.onForward =
-          EnsembleAction.fromYaml(definition, initiator: this),
-      // Callback method for onReverse
-      'onReverse': (definition) => _controller.onReverse =
-          EnsembleAction.fromYaml(definition, initiator: this),
-      // Callback method for onComplete
-      'onComplete': (definition) => _controller.onComplete =
-          EnsembleAction.fromYaml(definition, initiator: this),
-      // Callback method for onStop
-      'onStop': (definition) => _controller.onStop =
-          EnsembleAction.fromYaml(definition, initiator: this),
     };
   }
 }
 
-mixin LottieAction on WidgetState<EnsembleLottie> {
-  void forward();
-  void reverse();
-  void reset();
-  void stop();
-}
-
 class LottieController extends BoxController {
   String source = '';
+  bool? repeat;
   String? fit;
   EnsembleAction? onTap;
   bool repeat = true;
