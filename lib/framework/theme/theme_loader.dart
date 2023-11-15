@@ -3,7 +3,6 @@ import 'package:ensemble/framework/theme/default_theme.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:yaml/yaml.dart';
 
 mixin ThemeLoader {
@@ -16,7 +15,10 @@ mixin ThemeLoader {
     ThemeData defaultTheme = ThemeData(
       useMaterial3: true,
       colorScheme: defaultColorScheme,
-      scaffoldBackgroundColor: DesignSystem.scaffoldBackgroundColor,
+      scaffoldBackgroundColor:
+          Utils.getColor(overrides?['Screen']?['backgroundColor']) ??
+              DesignSystem.scaffoldBackgroundColor,
+      appBarTheme: _getAppBarTheme(overrides?['Screen']),
       disabledColor: DesignSystem.disableColor,
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -135,13 +137,26 @@ mixin ThemeLoader {
     // extends ThemeData
     return customTheme.copyWith(extensions: [
       EnsembleThemeExtension(
-        loadingScreenBackgroundColor: Utils.getColor(
-            overrides?['Colors']?['loadingScreenBackgroundColor']),
+        loadingScreenBackgroundColor:
+            Utils.getColor(overrides?['Screen']?['loadingBackgroundColor']) ??
+                Utils.getColor(
+                    overrides?['Colors']?['loadingScreenBackgroundColor']),
         loadingScreenIndicatorColor: Utils.getColor(
             overrides?['Colors']?['loadingScreenIndicatorColor']),
         transitions: Utils.getMap(overrides?['Transitions']),
       )
     ]);
+  }
+
+  AppBarTheme? _getAppBarTheme(YamlMap? screenMap) {
+    return AppBarTheme(
+        foregroundColor: Utils.getColor(screenMap?['Header']?['color']),
+        backgroundColor:
+            Utils.getColor(screenMap?['Header']?['backgroundColor']),
+        surfaceTintColor:
+            Utils.getColor(screenMap?['Header']?['surfaceTintColor']),
+        titleTextStyle:
+            Utils.getTextStyle(screenMap?['Header']?['titleTextStyle']));
   }
 
   TextTheme _buildTextTheme([YamlMap? textTheme]) {
@@ -404,7 +419,7 @@ class EnsembleThemeExtension extends ThemeExtension<EnsembleThemeExtension> {
       this.transitions});
 
   final Color? loadingScreenBackgroundColor;
-  final Color? loadingScreenIndicatorColor;
+  final Color? loadingScreenIndicatorColor; // should deprecate this
   final Map<String, dynamic>? transitions;
 
   @override
