@@ -288,7 +288,7 @@ class LottieState extends WidgetState<EnsembleLottie>
         // until the binding engages
         return Lottie.network(
           widget.controller.source,
-          controller: widget.controller.lottieController!,
+          controller: widget.controller.lottieController,
           onLoaded: (composition) {
             widget.controller.initializeLottieController(composition);
           },
@@ -302,7 +302,7 @@ class LottieState extends WidgetState<EnsembleLottie>
       // else attempt local asset
 
       return Lottie.asset(Utils.getLocalAssetFullPath(widget.controller.source),
-          controller: widget.controller.lottieController!,
+          controller: widget.controller.lottieController,
           onLoaded: (LottieComposition composition) {
             widget.controller.initializeLottieController(composition);
           },

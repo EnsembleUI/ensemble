@@ -47,7 +47,7 @@ class LottieState extends WidgetState<EnsembleLottie>
       // if is URL
       if (source.startsWith('https://') || source.startsWith('http://')) {
         return Lottie.network(widget.controller.source,
-            controller: widget.controller.lottieController!,
+            controller: widget.controller.lottieController,
             onLoaded: (composition) {
               widget.controller.initializeLottieController(composition);
             },
@@ -61,7 +61,7 @@ class LottieState extends WidgetState<EnsembleLottie>
       else {
         return Lottie.asset(
           Utils.getLocalAssetFullPath(widget.controller.source),
-          controller: widget.controller.lottieController!,
+          controller: widget.controller.lottieController,
           onLoaded: (composition) {
             widget.controller.initializeLottieController(composition);
           },
