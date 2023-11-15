@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/util/extensions.dart';
@@ -187,6 +189,126 @@ void main() {
             'https://hello.com/image_1.jpg?a=b&b=c'),
         'https://hello.com/image_1.jpg');
     expect(Utils.stripQueryParamsFromAsset('me.png?a=b?b=c&c=d'), 'me.png');
+  });
+
+  group('DataGrid sort - list of nested map objects', () {
+    List<dynamic> hotels = [];
+
+    setUp(() {
+      const json = r"""
+      {
+        "hotels": [
+            {
+                "name": "Grand Royal Hotel",
+                "location": "San Francisco",
+                "price": 200,
+                "other": {
+                    "restaurantId": 2,
+                    "type": "Fine Dining",
+                    "maxPrice": 230
+                }
+            },
+            {
+                "name": "Queen Hotel",
+                "location": "East Side, San Francisco",
+                "price": 300,
+                "other": {
+                    "restaurantId": 1,
+                    "type": "Cafe",
+                    "maxPrice": 470
+                }
+            },
+            {
+                "name": "Alif",
+                "location": "Wembley, London",
+                "price": 100,
+                "other": {
+                    "restaurantId": 6,
+                    "type": "Food Truck",
+                    "maxPrice": 160
+                }
+            },
+            {
+                "name": "Bariz Restaurant",
+                "location": "Canada",
+                "price": 400,
+                "other": {
+                    "restaurantId": 8,
+                    "type": "Buffet Style",
+                    "maxPrice": 560
+                }
+            },
+            {
+                "name": "KFC",
+                "location": "Los Vegas",
+                "price": 700,
+                "other": {
+                    "restaurantId": 3,
+                    "type": "Fast Food",
+                    "maxPrice": 800
+                }
+            }
+        ]
+    }
+    """;
+
+      final data = jsonDecode(json);
+      hotels = data['hotels'] as List<dynamic>;
+    });
+
+    // Before Sorting
+    test('Before Sorting', () {
+      expect(hotels.first['name'], 'Grand Royal Hotel');
+      expect(hotels.last['name'], 'KFC');
+    });
+
+    // Sorting - Ascending Order
+    test('After Sorting - Ascending Order (key - restaurantId)', () {
+      final hotelsSortWithRestaurantKey = Utils.sortMapObjectsByKey(
+          hotels, 'restaurantId',
+          isAscendingOrder: true);
+      expect(hotelsSortWithRestaurantKey.first['name'], 'Queen Hotel');
+      expect(hotelsSortWithRestaurantKey.last['name'], 'Bariz Restaurant');
+    });
+
+    test('After Sorting - Ascending Order (key - location)', () {
+      final hotelsSortWithRestaurantKey =
+          Utils.sortMapObjectsByKey(hotels, 'location', isAscendingOrder: true);
+      expect(hotelsSortWithRestaurantKey.first['location'], 'Canada');
+      expect(hotelsSortWithRestaurantKey.last['location'], 'Wembley, London');
+    });
+
+    test('After Sorting - Ascending Order (key - maxPrice)', () {
+      final hotelsSortWithRestaurantKey =
+          Utils.sortMapObjectsByKey(hotels, 'maxPrice', isAscendingOrder: true);
+      expect(hotelsSortWithRestaurantKey.first['price'], 100);
+      expect(hotelsSortWithRestaurantKey.last['price'], 700);
+    });
+
+    // Sorting - Descending Order
+    test('After Sorting - Descending Order (key - restaurantId)', () {
+      final hotelsSortWithRestaurantKey = Utils.sortMapObjectsByKey(
+          hotels, 'restaurantId',
+          isAscendingOrder: false);
+      expect(hotelsSortWithRestaurantKey.first['name'], 'Bariz Restaurant');
+      expect(hotelsSortWithRestaurantKey.last['name'], 'Queen Hotel');
+    });
+
+    test('After Sorting - Descending Order (key - location)', () {
+      final hotelsSortWithRestaurantKey = Utils.sortMapObjectsByKey(
+          hotels, 'location',
+          isAscendingOrder: false);
+      expect(hotelsSortWithRestaurantKey.first['location'], 'Wembley, London');
+      expect(hotelsSortWithRestaurantKey.last['location'], 'Canada');
+    });
+
+    test('After Sorting - Descending Order (key - maxPrice)', () {
+      final hotelsSortWithRestaurantKey = Utils.sortMapObjectsByKey(
+          hotels, 'maxPrice',
+          isAscendingOrder: false);
+      expect(hotelsSortWithRestaurantKey.first['price'], 700);
+      expect(hotelsSortWithRestaurantKey.last['price'], 100);
+    });
   });
 }
 
