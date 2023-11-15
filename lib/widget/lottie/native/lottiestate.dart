@@ -8,7 +8,16 @@ import 'package:ensemble/widget/widget_util.dart';
 import 'package:flutter/widgets.dart';
 import 'package:lottie/lottie.dart';
 
-class LottieState extends WidgetState<EnsembleLottie> {
+class LottieState extends WidgetState<EnsembleLottie>
+    with SingleTickerProviderStateMixin {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller
+      ..lottieController = AnimationController(vsync: this)
+      ..addStatusListener(context, widget);
+  }
+
   @override
   Widget buildWidget(BuildContext context) {
     BoxFit? fit = Utils.getBoxFit(widget.controller.fit);
@@ -57,20 +66,10 @@ class LottieState extends WidgetState<EnsembleLottie> {
           },
           width: widget.controller.width?.toDouble(),
           height: widget.controller.height?.toDouble(),
-          repeat: widget.controller.repeat ?? true,
+          repeat: widget.controller.repeat,
           fit: fit,
           errorBuilder: (context, error, stacktrace) => placeholderImage(),
         );
-      }
-      // else attempt local asset
-      else {
-        return Lottie.asset(
-            Utils.getLocalAssetFullPath(widget.controller.source),
-            width: widget.controller.width?.toDouble(),
-            height: widget.controller.height?.toDouble(),
-            repeat: widget.controller.repeat ?? true,
-            fit: fit,
-            errorBuilder: (context, error, stacktrace) => placeholderImage());
       }
     }
     return SizedBox(
