@@ -460,8 +460,8 @@ class DataGridState extends WidgetState<DataGrid>
 
       if (sortable != null && sortable) {
         bool isAscendingOrder = sortOrder == DataColumnSortType.ascending.name;
-        dataList =
-            Utils.sortMapObjectsByKey(dataList, sortKey, isAscendingOrder);
+        dataList = Utils.sortMapObjectsByKey(dataList, sortKey,
+            isAscendingOrder: isAscendingOrder);
       }
     }
 

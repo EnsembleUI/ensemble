@@ -777,7 +777,8 @@ class Utils {
 
   // To sort the list with nested map object using Key
   static List<dynamic> sortMapObjectsByKey(
-      List<dynamic> dataMapObjects, String? sortKey, bool isAscendingOrder) {
+      List<dynamic> dataMapObjects, String? sortKey,
+      {required bool isAscendingOrder}) {
     final dataObjects = dataMapObjects.map((e) => e as Map).toList();
     if (dataObjects.isNotEmpty && sortKey != null) {
       // Function to recursively traverse the nested object and get the value of the key.
