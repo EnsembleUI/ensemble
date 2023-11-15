@@ -1,5 +1,3 @@
-import 'dart:ffi';
-
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -17,8 +15,6 @@ import 'package:ensemble/widget/widget_util.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:ensemble/framework/view/page.dart';
-import 'package:json_path/json_path.dart';
 
 enum DataColumnSortType { ascending, descending }
 
@@ -463,9 +459,7 @@ class DataGridState extends WidgetState<DataGrid>
 
       if (sortable != null && sortable) {
         bool isAscendingOrder = sortOrder == DataColumnSortType.ascending.name;
-
-        // handleList(dataList);
-        customSort(dataList, sortKey, isAscendingOrder);
+        dataList = sortMapObjectsByKey(dataList, sortKey, isAscendingOrder);
       }
     }
 
@@ -474,52 +468,45 @@ class DataGridState extends WidgetState<DataGrid>
     setState(() {});
   }
 
-  void customSort(List dataList, String? sortKey, bool isAscendingOrder) {
-    if (sortKey == null) return;
-    final lists = JsonPath(sortKey).read(dataList).toList();
-    if (lists.length >= 2) {
-      dataList.asMap().forEach((index, value) {
-        if (index < dataList.length - 1) {
-          final firstItem = lists[index].value.toString();
-          final secondItem = lists[index + 1].value.toString();
-          final val = firstItem.compareTo(secondItem);
-          print('Status: $val');
-          if (isAscendingOrder) {
-            dataList.sort((_, __) => (firstItem).compareTo(secondItem));
-          } else {
-            dataList.sort((_, __) => (secondItem).compareTo(firstItem));
+  List<dynamic> sortMapObjectsByKey(
+      List<dynamic> dataMapObjects, String? sortKey, bool isAscendingOrder) {
+    final dataObjects = dataMapObjects.map((e) => e as Map).toList();
+    if (dataObjects.isNotEmpty && sortKey != null) {
+      // Function to recursively traverse the nested object and get the value of the key.
+      getValue(Map<dynamic, dynamic> mapObject, String key) {
+        if (mapObject.containsKey(key)) {
+          return mapObject[key];
+        }
+
+        for (final nestedKey in mapObject.keys) {
+          final nestedObject = mapObject[nestedKey];
+          if (nestedObject is Map<dynamic, dynamic>) {
+            final value = getValue(nestedObject, key);
+            if (value != null) {
+              return value;
+            }
           }
         }
-      });
+
+        return null;
+      }
+
+      // Comparator function to compare the values of the key in two map objects.
+      int compare(Map<dynamic, dynamic> a, Map<dynamic, dynamic> b) {
+        final aValue = getValue(a, sortKey);
+        final bValue = getValue(b, sortKey);
+
+        return isAscendingOrder
+            ? aValue.compareTo(bValue)
+            : bValue.compareTo(aValue);
+      }
+
+      // Sort the array of map objects using the comparator function.
+      dataObjects.sort(compare);
+      return dataObjects;
     }
-  }
-
-  void handleMap(Map map, [String? key]) {
-    map.forEach((key, value) {
-      if (value is Map) {
-        handleMap(value, key);
-      } else if (value is List) {
-        handleList(value, key);
-      } else {
-        handleValue(value, key);
-      }
-    });
-  }
-
-  void handleList(List list, [String? key]) {
-    list.forEach((entry) {
-      if (entry is Map) {
-        handleMap(entry);
-      } else if (entry is List) {
-        handleList(entry);
-      } else {
-        handleValue(entry);
-      }
-    });
-  }
-
-  void handleValue(dynamic value, [String? key]) {
-    print('Key: $key and Value: $value');
+    // Fallback - Returning same passed-in object to the caller
+    return dataMapObjects;
   }
 
   // Change ascending to descending and vice versa in dataColumnSort object
@@ -527,7 +514,8 @@ class DataGridState extends WidgetState<DataGrid>
     final sortOrder =
         _columns[index].sortOrder ?? DataColumnSortType.ascending.name;
     final sortable = _columns[index].sortable;
-    if (sortable != null && sortable) {
+    final String? sortKey = _columns[index].sortKey;
+    if (sortable == true && sortKey != null) {
       _columns[index].sortOrder = sortOrder == DataColumnSortType.ascending.name
           ? DataColumnSortType.descending.name
           : DataColumnSortType.ascending.name;
@@ -537,8 +525,6 @@ class DataGridState extends WidgetState<DataGrid>
       );
 
       _sortItems();
-      templatedChildren =
-          buildWidgetsFromTemplate(context, dataList, widget.itemTemplate!);
     }
   }
 
