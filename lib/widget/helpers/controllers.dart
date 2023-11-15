@@ -283,45 +283,6 @@ class BoxController extends WidgetController {
     return setters;
   }
 
-  // void parseBorderColor(value) {
-  //   final parsedValue = Utils.optionalString(value);
-
-  //   if (parsedValue == null) return;
-
-  //   final individualBorderColorData = parsedValue.trim().split(' ');
-
-  //   if (individualBorderColorData.length == 1) {
-  //     allBorderColor = convertStringToColor(individualBorderColorData[0]);
-
-  //     topBorderColor = allBorderColor;
-  //     bottomBorderColor = allBorderColor;
-  //     leftBorderColor = allBorderColor;
-  //     rightBorderColor = allBorderColor;
-  //   } else if (individualBorderColorData.length == 2) {
-  //     topBorderColor = convertStringToColor(individualBorderColorData[0]);
-  //     bottomBorderColor = convertStringToColor(individualBorderColorData[0]);
-
-  //     leftBorderColor = convertStringToColor(individualBorderColorData[1]);
-  //     rightBorderColor = convertStringToColor(individualBorderColorData[1]);
-  //   } else if (individualBorderColorData.length == 3) {
-  //     topBorderColor = convertStringToColor(individualBorderColorData[0]);
-
-  //     leftBorderColor = convertStringToColor(individualBorderColorData[1]);
-  //     rightBorderColor = convertStringToColor(individualBorderColorData[1]);
-
-  //     bottomBorderColor = convertStringToColor(individualBorderColorData[2]);
-  //   } else if (individualBorderColorData.length == 4) {
-  //     topBorderColor = convertStringToColor(individualBorderColorData[0]);
-  //     rightBorderColor = convertStringToColor(individualBorderColorData[1]);
-  //     bottomBorderColor = convertStringToColor(individualBorderColorData[2]);
-  //     leftBorderColor = convertStringToColor(individualBorderColorData[3]);
-  //   } else {
-  //     throw RuntimeError(
-  //       "Error: No. of parameters for borderColor cannot be greater than 4",
-  //     );
-  //   }
-  // }
-
   Color? convertStringToColor(String value) {
     final intValue = int.tryParse(value.trim());
 
@@ -329,45 +290,6 @@ class BoxController extends WidgetController {
 
     return Utils.getColor(intValue);
   }
-
-  // void parseBorderWidth(value) {
-  //   final parsedValue = Utils.optionalString(value);
-
-  //   if (parsedValue == null) return;
-
-  //   final individualBorderWidthData = parsedValue.trim().split(' ');
-
-  //   if (individualBorderWidthData.length == 1) {
-  //     oldBorderWidth = int.parse(individualBorderWidthData[0]);
-
-  //     topBorderWidth = oldBorderWidth;
-  //     bottomBorderWidth = oldBorderWidth;
-  //     leftBorderWidth = oldBorderWidth;
-  //     rightBorderWidth = oldBorderWidth;
-  //   } else if (individualBorderWidthData.length == 2) {
-  //     topBorderWidth = int.parse(individualBorderWidthData[0]);
-  //     bottomBorderWidth = int.parse(individualBorderWidthData[0]);
-
-  //     leftBorderWidth = int.parse(individualBorderWidthData[1]);
-  //     rightBorderWidth = int.parse(individualBorderWidthData[1]);
-  //   } else if (individualBorderWidthData.length == 3) {
-  //     topBorderWidth = int.parse(individualBorderWidthData[0]);
-
-  //     leftBorderWidth = int.parse(individualBorderWidthData[1]);
-  //     rightBorderWidth = int.parse(individualBorderWidthData[1]);
-
-  //     bottomBorderWidth = int.parse(individualBorderWidthData[2]);
-  //   } else if (individualBorderWidthData.length == 4) {
-  //     topBorderWidth = int.parse(individualBorderWidthData[0]);
-  //     rightBorderWidth = int.parse(individualBorderWidthData[1]);
-  //     bottomBorderWidth = int.parse(individualBorderWidthData[2]);
-  //     leftBorderWidth = int.parse(individualBorderWidthData[3]);
-  //   } else {
-  //     throw RuntimeError(
-  //       "Error: No. of parameters for borderWidth cannot be greater than 4",
-  //     );
-  //   }
-  // }
 
   /// optimization. This is important to review if more properties are added
   bool requiresBox(
