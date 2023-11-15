@@ -4,7 +4,6 @@ import 'package:ensemble/framework/widget/widget.dart' as framework;
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/widget_util.dart' as util;
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -69,19 +68,12 @@ class EnsembleTextState extends framework.WidgetState<EnsembleText> {
 
   Widget buildText(TextController controller) {
     final gradientStyle = controller.textStyle.gradient;
-    Widget textWidget = kIsWeb
-        ? SelectableText(
-            controller.text ?? '',
-            textAlign: controller.textAlign,
-            maxLines: controller.maxLines,
-            style: controller.textStyle.getTextStyle(),
-          )
-        : Text(
-            controller.text ?? '',
-            textAlign: controller.textAlign,
-            maxLines: controller.maxLines,
-            style: controller.textStyle.getTextStyle(),
-          );
+    Text textWidget = Text(
+      controller.text ?? '',
+      textAlign: controller.textAlign,
+      maxLines: controller.maxLines,
+      style: controller.textStyle.getTextStyle(),
+    );
 
     return gradientStyle != null
         ? _GradientText(gradient: gradientStyle, child: textWidget)
