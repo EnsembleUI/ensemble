@@ -47,12 +47,12 @@ class Ensemble {
     externalScreenWidgets = widgets;
   }
 
-  final List<Function> _afterInitMethods = [];
+  final Set<Function> _afterInitMethods = {};
   void addCallbackAfterInitialization({required Function method}) {
     _afterInitMethods.add(method);
   }
 
-  List<Function> getCallbacksAfterInitialization() => _afterInitMethods;
+  Set<Function> getCallbacksAfterInitialization() => _afterInitMethods;
 
   late FirebaseApp ensembleFirebaseApp;
   static final Map<String, dynamic> externalDataContext = {};
