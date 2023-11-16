@@ -53,8 +53,8 @@ class Carousel extends StatefulWidget
           Utils.optionalDouble(value, min: 0, max: 1),
       'indicatorType': (type) =>
           _controller.indicatorType = IndicatorType.values.from(type),
-      'indicatorPosition': (position) => _controller.indicatorPosition =
-          IndicatorPosition.values.from(position),
+      'indicatorPosition': (position) =>
+          _controller.indicatorPosition = Utils.getAlignment(position),
       'indicatorWidth': (w) =>
           _controller.indicatorWidth = Utils.optionalInt(w),
       'indicatorHeight': (h) =>
@@ -130,7 +130,7 @@ class MyController extends BoxController {
   int? autoLayoutBreakpoint; // applicable only for auto layout
 
   IndicatorType? indicatorType;
-  IndicatorPosition? indicatorPosition;
+  Alignment? indicatorPosition;
   int? indicatorWidth;
   int? indicatorHeight;
   EdgeInsets? indicatorMargin;
@@ -208,8 +208,8 @@ class CarouselState extends WidgetState<Carousel>
         carousel,
         Positioned.fill(
           child: Align(
-            alignment: widget._controller.indicatorPosition?.alignment ??
-                Alignment.bottomCenter,
+            alignment:
+                widget._controller.indicatorPosition ?? Alignment.bottomCenter,
             child: Padding(
               padding: widget._controller.indicatorPadding ?? EdgeInsets.zero,
               child: Row(
@@ -461,39 +461,4 @@ enum IndicatorType {
   circle,
   rectangle,
   custom,
-}
-
-enum IndicatorPosition {
-  topLeft,
-  topCenter,
-  topRight,
-  centerLeft,
-  center,
-  centerRight,
-  bottomLeft,
-  bottomCenter,
-  bottomRight;
-
-  Alignment get alignment {
-    switch (this) {
-      case IndicatorPosition.topLeft:
-        return Alignment.topLeft;
-      case IndicatorPosition.topCenter:
-        return Alignment.topCenter;
-      case IndicatorPosition.topRight:
-        return Alignment.topRight;
-      case IndicatorPosition.centerLeft:
-        return Alignment.centerLeft;
-      case IndicatorPosition.center:
-        return Alignment.center;
-      case IndicatorPosition.centerRight:
-        return Alignment.centerRight;
-      case IndicatorPosition.bottomLeft:
-        return Alignment.bottomLeft;
-      case IndicatorPosition.bottomCenter:
-        return Alignment.bottomCenter;
-      case IndicatorPosition.bottomRight:
-        return Alignment.bottomRight;
-    }
-  }
 }

@@ -2809,19 +2809,8 @@
                       ]
                     },
                     "indicatorPosition": {
-                      "type": "string",
-                      "description": "Where to display the indicator if specified",
-                      "enum": [
-                        "topLeft",
-                        "topCenter",
-                        "topRight",
-                        "centerLeft",
-                        "center",
-                        "centerRight",
-                        "bottomLeft",
-                        "bottomCenter",
-                        "bottomRight"
-                      ]
+                      "$ref": "#/$defs/type-alignment",
+                      "description": "Where to display the indicator if specified"
                     },
                     "indicatorWidth": {
                       "type": "integer"
