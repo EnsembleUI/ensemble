@@ -57,11 +57,13 @@ class EnsembleHtml extends StatefulWidget
       'onLinkTap': (funcDefinition) => _controller.onLinkTap =
           ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'cssStyles': (value) {
-        final list = Utils //
-                .getList(value)
-            ?.map((e) => Utils.getYamlMap(e))
-            .toList();
-        print(list?[0]?['style']);
+        // final list = Utils //
+        //         .getList(value)
+        //     ?.map((e) =>
+        //         Utils.getMap(e)?.forEach((key, value) => Utils.getMap(value)))
+        //     .toList();
+        // print(list?[0]?['style']);
+        // StyleData();
       },
     };
   }
@@ -69,6 +71,26 @@ class EnsembleHtml extends StatefulWidget
   @override
   Map<String, Function> methods() {
     return {};
+  }
+}
+
+class CSSProperties {}
+
+class CSSStyle {
+  String selector;
+  CSSProperties properties;
+
+  CSSStyle._({required this.selector, required this.properties});
+
+  factory CSSStyle.fromMap() {
+    return CSSStyle._(
+      selector: '',
+      properties: CSSProperties(),
+    );
+  }
+
+  Style parseStyle() {
+    return Style();
   }
 }
 
