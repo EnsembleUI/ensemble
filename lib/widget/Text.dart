@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/view/has_selectable_text.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart' as framework;
 import 'package:ensemble/widget/helpers/controllers.dart';
@@ -12,9 +13,11 @@ import 'package:google_fonts/google_fonts.dart';
 class EnsembleText extends StatefulWidget
     with Invokable, HasController<TextController, EnsembleTextState> {
   static const type = 'Text';
+
   EnsembleText({Key? key}) : super(key: key);
 
   final TextController _controller = TextController();
+
   @override
   TextController get controller => _controller;
 
@@ -36,7 +39,8 @@ class EnsembleText extends StatefulWidget
           _controller.maxLines = Utils.optionalInt(value, min: 1),
       'textStyle': (style) => _controller.textStyle =
           Utils.getTextStyleAsComposite(_controller, style: style),
-      'selectable': (value) => _controller.selectable = Utils.getBool(value, fallback: _controller.selectable)
+      'selectable': (value) => _controller.selectable =
+          Utils.optionalBool(value)
     };
   }
 
@@ -53,10 +57,12 @@ class TextController extends BoxController {
   String? text;
   TextAlign? textAlign;
   int? maxLines;
-  bool selectable = false;
+  bool? selectable;
 
   TextStyleComposite? _textStyle;
+
   TextStyleComposite get textStyle => _textStyle ??= TextStyleComposite(this);
+
   set textStyle(TextStyleComposite style) => _textStyle = style;
 }
 
@@ -71,19 +77,25 @@ class EnsembleTextState extends framework.WidgetState<EnsembleText> {
 
   Widget buildText(TextController controller) {
     final gradientStyle = controller.textStyle.gradient;
-    Widget textWidget = controller.selectable ?
-        SelectableText(
-          controller.text ?? '',
-          textAlign: controller.textAlign,
-          maxLines: controller.maxLines,
-          style: controller.textStyle.getTextStyle(),
-        ) :
-    Text(
-      controller.text ?? '',
-      textAlign: controller.textAlign,
-      maxLines: controller.maxLines,
-      style: controller.textStyle.getTextStyle(),
-    );
+
+    bool shouldBeSelectable = controller.selectable == true ||
+        (controller.selectable != false &&
+            context.dependOnInheritedWidgetOfExactType<HasSelectableText>() !=
+                null);
+
+    Widget textWidget = shouldBeSelectable
+        ? SelectableText(
+            controller.text ?? '',
+            textAlign: controller.textAlign,
+            maxLines: controller.maxLines,
+            style: controller.textStyle.getTextStyle(),
+          )
+        : Text(
+            controller.text ?? '',
+            textAlign: controller.textAlign,
+            maxLines: controller.maxLines,
+            style: controller.textStyle.getTextStyle(),
+          );
 
     return gradientStyle != null
         ? _GradientText(gradient: gradientStyle, child: textWidget)
