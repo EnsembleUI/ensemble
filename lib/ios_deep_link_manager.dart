@@ -1,4 +1,5 @@
 import 'package:ensemble/deep_link_manager.dart';
+import 'package:ensemble/ensemble.dart';
 import 'package:flutter/services.dart';
 
 class IOSDeepLinkManager extends DeepLinkNavigator {
@@ -19,9 +20,8 @@ class IOSDeepLinkManager extends DeepLinkNavigator {
     _platform.setMethodCallHandler((call) {
       if (call.method == IOSDeepLinkManager._deepLinkMethod) {
         final url = Uri.parse(call.arguments);
-        Future.delayed(const Duration(seconds: 6), () {
-          navigateToScreen(url);
-        });
+        Ensemble().addCallbackAfterInitialization(
+            method: navigateToScreen, positionalArgs: [url]);
       }
       return Future.value(true);
     });
