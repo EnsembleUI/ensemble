@@ -214,22 +214,22 @@ class BoxWrapper extends StatelessWidget {
                           top: getBorderSide(
                             context,
                             boxController.borderWidth?.top,
-                            boxController.borderColor?.top,
+                            boxController.borderColor.top,
                           ),
                           bottom: getBorderSide(
                             context,
                             boxController.borderWidth?.bottom,
-                            boxController.borderColor?.bottom,
+                            boxController.borderColor.bottom,
                           ),
                           left: getBorderSide(
                             context,
                             boxController.borderWidth?.left,
-                            boxController.borderColor?.left,
+                            boxController.borderColor.left,
                           ),
                           right: getBorderSide(
                             context,
                             boxController.borderWidth?.right,
-                            boxController.borderColor?.right,
+                            boxController.borderColor.right,
                           ),
                         ),
               borderRadius: boxController.borderRadius?.getValue(),
@@ -358,21 +358,11 @@ class InputWrapper extends StatelessWidget {
         context.dependOnInheritedWidgetOfExactType<
             RequiresChildWithIntrinsicDimension>();
     if (requiresChildWithIntrinsicDimension == null) {
-      return LayoutBuilder(builder: (context, constraints) {
-        // inside a e.g. Row but not wrapping inside Expanded.
-        // This is the error condition we need to advise the user
-        if (!constraints.hasBoundedWidth && !controller.expanded) {
-          // throw Error when input widgets (which stretch to their parent) are
-          // inside a Row (which allow its child to have as much space as it wants)
-          // without using expanded flag.
-          throw LanguageError(
-              "$type widget requires a width when used inside a parent with infinite width.",
-              recovery:
-                  "If the parent is a Row, consider using 'expanded: true' on the $type to fill the parent's available width.\n"
-                  "If the parent is a Stack, use stackPosition's attributes to constraint the width.");
-        }
-        return rtn;
-      });
+      // InputWidget takes the parent width, so if the parent is a Row
+      // it'll caused an error. Assert against this in Studio's debugMode
+      if (StudioDebugger().debugMode) {
+        return StudioDebugger().assertHasBoundedWidthWrapper(rtn, type);
+      }
     }
     return rtn;
   }

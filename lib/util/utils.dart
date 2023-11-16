@@ -672,7 +672,9 @@ class Utils {
   //expect r@mystring or r@myapp.myscreen.mystring as long as r@ is there. If r@ is not there, returns the string as-is
   static String translate(String val, BuildContext? ctx) {
     BuildContext? context;
-    context = globalAppKey.currentContext;
+    if (WidgetsBinding.instance != null) {
+      context = globalAppKey.currentContext;
+    }
     context ??= ctx;
     String rtn = val;
     if (val.trim().isNotEmpty && context != null) {
@@ -681,18 +683,20 @@ class Utils {
             match.input.substring(match.start, match.end); //get rid of the @
         String strToAppend = '';
         if (str.length > 2) {
-          String s = str.substring(2);
-          if (s.endsWith(']')) {
-            s = s.substring(0, s.length - 1);
+          String _s = str.substring(2);
+          if (_s.endsWith(']')) {
+            _s = _s.substring(0, _s.length - 1);
             strToAppend = ']';
           }
           try {
-            str = FlutterI18n.translate(context!, s);
+            str = FlutterI18n.translate(context!, _s);
           } catch (e) {
             //if resource is not defined
             //log it
-            debugPrint(
-                'unable to get translated string for the $str; exception=$e');
+            debugPrint('unable to get translated string for the ' +
+                str +
+                '; exception=' +
+                e.toString());
           }
         }
         return str + strToAppend;
