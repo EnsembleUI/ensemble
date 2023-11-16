@@ -305,6 +305,11 @@ class Utils {
 
   static Color? getColor(dynamic value) {
     if (value is String) {
+      // Check if value is integer but stored as string. Added for parsing of borderColor
+      if (int.tryParse(value) != null) {
+        return Color(int.parse(value));
+      }
+
       switch (value) {
         case '.transparent':
         case 'transparent':
