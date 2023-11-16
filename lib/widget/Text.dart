@@ -4,6 +4,7 @@ import 'package:ensemble/framework/widget/widget.dart' as framework;
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/widget_util.dart' as util;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -35,6 +36,7 @@ class EnsembleText extends StatefulWidget
           _controller.maxLines = Utils.optionalInt(value, min: 1),
       'textStyle': (style) => _controller.textStyle =
           Utils.getTextStyleAsComposite(_controller, style: style),
+      'selectable': (value) => _controller.selectable = Utils.getBool(value, fallback: _controller.selectable)
     };
   }
 
@@ -51,6 +53,7 @@ class TextController extends BoxController {
   String? text;
   TextAlign? textAlign;
   int? maxLines;
+  bool selectable = false;
 
   TextStyleComposite? _textStyle;
   TextStyleComposite get textStyle => _textStyle ??= TextStyleComposite(this);
@@ -68,7 +71,14 @@ class EnsembleTextState extends framework.WidgetState<EnsembleText> {
 
   Widget buildText(TextController controller) {
     final gradientStyle = controller.textStyle.gradient;
-    Text textWidget = Text(
+    Widget textWidget = controller.selectable ?
+        SelectableText(
+          controller.text ?? '',
+          textAlign: controller.textAlign,
+          maxLines: controller.maxLines,
+          style: controller.textStyle.getTextStyle(),
+        ) :
+    Text(
       controller.text ?? '',
       textAlign: controller.textAlign,
       maxLines: controller.maxLines,
