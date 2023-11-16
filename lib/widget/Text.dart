@@ -1,5 +1,4 @@
 import 'package:ensemble/framework/extensions.dart';
-import 'package:ensemble/framework/studio_debugger.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart' as framework;
 import 'package:ensemble/widget/helpers/controllers.dart';
