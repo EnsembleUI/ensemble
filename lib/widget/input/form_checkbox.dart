@@ -56,6 +56,14 @@ abstract class OnOffWidget extends StatefulWidget
           _controller.leadingText = Utils.optionalString(text),
       'trailingText': (text) =>
           _controller.trailingText = Utils.optionalString(text),
+      'activeColor': (color) => _controller.activeColor = Utils.getColor(color),
+      'inactiveColor': (color) =>
+          _controller.inactiveColor = Utils.getColor(color),
+      'activeThumbColor': (color) =>
+          _controller.activeThumbColor = Utils.getColor(color),
+      'inactiveThumbColor': (color) =>
+          _controller.inactiveThumbColor = Utils.getColor(color),
+      'checkColor': (color) => _controller.checkColor = Utils.getColor(color),
       'onChange': (definition) => _controller.onChange =
           framework.EnsembleAction.fromYaml(definition, initiator: this)
     };
@@ -79,6 +87,11 @@ class OnOffController extends FormFieldController {
   bool value = false;
   String? leadingText;
   String? trailingText;
+  Color? activeColor;
+  Color? activeThumbColor;
+  Color? inactiveColor;
+  Color? inactiveThumbColor;
+  Color? checkColor;
 
   framework.EnsembleAction? onChange;
 }
@@ -149,19 +162,53 @@ class OnOffState extends FormFieldWidgetState<OnOffWidget> {
   /// we adjust the hit area of the checkbox here. 40px is smaller than the default (48px)
   /// but it seem to be reasonable for touch device, plus the alignment inside
   /// form is much better (align well with the rest of the input widgets)
+
   Widget get aCheckbox {
     return SizedBox(
         width: 40,
         height: 40,
         child: Checkbox(
+            side: widget._controller.inactiveColor != null
+                ? BorderSide(
+                    width: 2.0, color: widget._controller.inactiveColor!)
+                : null,
             value: widget._controller.value,
+            activeColor: widget._controller.activeColor,
+            checkColor: widget._controller.checkColor,
             onChanged: isEnabled()
                 ? (bool? value) => onToggle(value ?? false)
                 : null));
   }
 
   Widget get aSwitch {
+    final MaterialStateProperty<Color?> trackColor =
+        MaterialStateProperty.resolveWith<Color?>(
+      (Set<MaterialState> states) {
+        // Track color when the switch is selected.
+        if (states.contains(MaterialState.selected)) {
+          return widget._controller.activeColor;
+        }
+
+        // Track color for other states.
+        return widget._controller.inactiveColor;
+      },
+    );
+
+    final MaterialStateProperty<Color?> thumbColor =
+        MaterialStateProperty.resolveWith<Color?>(
+      (Set<MaterialState> states) {
+        // Thumb color when the switch is selected.
+        if (states.contains(MaterialState.selected)) {
+          return widget._controller.activeThumbColor;
+        }
+
+        // Thumb color for other states.
+        return widget._controller.inactiveThumbColor;
+      },
+    );
     return Switch(
+        trackColor: trackColor,
+        thumbColor: thumbColor,
         value: widget._controller.value,
         onChanged: isEnabled() ? (value) => onToggle(value) : null);
   }
