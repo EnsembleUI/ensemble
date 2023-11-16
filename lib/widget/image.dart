@@ -1,5 +1,5 @@
+import 'dart:developer';
 import 'dart:io';
-import 'dart:math';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:ensemble/framework/action.dart';
@@ -10,7 +10,6 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
-import 'package:ensemble/widget/widget_util.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -50,6 +49,8 @@ class EnsembleImage extends StatefulWidget
   @override
   Map<String, Function> setters() {
     return {
+      'cache': (value) =>
+          _controller.cache = Utils.getBool(value, fallback: true),
       'source': (value) =>
           _controller.source = Utils.getString(value, fallback: ''),
       'fit': (value) => _controller.fit = Utils.getBoxFit(value),
@@ -82,6 +83,7 @@ class ImageController extends BoxController {
   int? resizedWidth;
   int? resizedHeight;
   dynamic fallback;
+  bool cache = true;
 }
 
 class ImageState extends WidgetState<EnsembleImage> {
@@ -132,7 +134,9 @@ class ImageState extends WidgetState<EnsembleImage> {
       }
 
       return CachedNetworkImage(
-        imageUrl: source,
+        imageUrl: (widget._controller.cache)
+            ? source
+            : "${source}timeStamp=${DateTime.now().toString()}",
         width: widget._controller.width?.toDouble(),
         height: widget._controller.height?.toDouble(),
         fit: fit,
