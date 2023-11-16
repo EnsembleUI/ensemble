@@ -1569,6 +1569,26 @@
             },
             "trailingText": {
               "type": "string"
+            },
+            "activeColor": {
+              "$ref": "#/$defs/type-color",
+              "description": "The active color of the OnOff Widget."
+            },
+            "inactiveColor": {
+              "$ref": "#/$defs/type-color",
+              "description": "The inactive color of the OnOff Widget."
+            },
+            "activeThumbColor": {
+              "$ref": "#/$defs/type-color",
+              "description": "The active thumb color of the Switch Widget."
+            },
+            "inactiveThumbColor": {
+              "$ref": "#/$defs/type-color",
+              "description": "The inactive thumb color of the Switch Widget."
+            },
+            "checkColor": {
+              "$ref": "#/$defs/type-color",
+              "description": "The tick color of the Checkbox Widget."
             }
           }
         }
