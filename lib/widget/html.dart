@@ -11,6 +11,27 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:ensemble/framework/action.dart' as ensemble;
 
+class StyleData with Invokable {
+  @override
+  Map<String, Function> getters() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {
+      'selector': (value) {
+        print(value);
+      }
+    };
+  }
+}
+
 /// widget to render Html content
 class EnsembleHtml extends StatefulWidget
     with Invokable, HasController<HtmlController, HtmlState> {
@@ -35,9 +56,13 @@ class EnsembleHtml extends StatefulWidget
       'text': (newValue) => _controller.text = Utils.optionalString(newValue),
       'onLinkTap': (funcDefinition) => _controller.onLinkTap =
           ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
-      // 'classStyles': (value) {
-      //   print(value);
-      // },
+      'cssStyles': (value) {
+        final list = Utils //
+                .getList(value)
+            ?.map((e) => Utils.getYamlMap(e))
+            .toList();
+        print(list?[0]?['style']);
+      },
     };
   }
 
