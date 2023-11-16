@@ -1,4 +1,5 @@
 /// This class contains helper controllers for our widgets.
+import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/controller/controller_mixins.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
@@ -198,9 +199,13 @@ class BoxController extends WidgetController {
   LinearGradient? backgroundGradient;
   LinearGradient? borderGradient;
 
-  Color? borderColor;
-  int? borderWidth;
   EBorderRadius? borderRadius;
+  // Keeping old variables so that other things wont break, as they are used other places also
+  Color? allBorderColor;
+  int? allBorderWidth;
+  // Defined new models for BorderWidth and BorderColor
+  EBorderWidth? borderWidth = EBorderWidth.create();
+  EBorderColor borderColor = EBorderColor.create();
 
   Color? shadowColor;
   Offset? shadowOffset;
@@ -229,9 +234,43 @@ class BoxController extends WidgetController {
       'borderGradient': (value) =>
           borderGradient = Utils.getBackgroundGradient(value),
 
-      'borderColor': (value) => borderColor = Utils.getColor(value),
-      'borderWidth': (value) => borderWidth = Utils.optionalInt(value),
       'borderRadius': (value) => borderRadius = Utils.getBorderRadius(value),
+      'borderColor': (value) {
+        borderColor = Utils.parseBorderColor(
+          value,
+          (val) {
+            allBorderColor = val;
+          },
+        );
+      },
+      'topBorderColor': (value) => borderColor.update(top: value),
+      'bottomBorderColor': (value) => borderColor.update(bottom: value),
+      'leftBorderColor': (value) => borderColor.update(left: value),
+      'rightBorderColor': (value) => borderColor.update(right: value),
+      'borderWidth': (value) {
+        borderWidth = Utils.parseBorderWidth(
+          value,
+          (val) {
+            allBorderWidth = val?.toInt();
+          },
+        );
+      },
+      'topBorderWidth': (value) => //
+          borderWidth?.update(
+            top: Utils.optionalDouble(value),
+          ),
+      'bottomBorderWidth': (value) => //
+          borderWidth?.update(
+            bottom: Utils.optionalDouble(value),
+          ),
+      'leftBorderWidth': (value) => //
+          borderWidth?.update(
+            left: Utils.optionalDouble(value),
+          ),
+      'rightBorderWidth': (value) => //
+          borderWidth?.update(
+            right: Utils.optionalDouble(value),
+          ),
 
       'shadowColor': (value) => shadowColor = Utils.getColor(value),
       'shadowOffset': (list) => shadowOffset = Utils.getOffset(list),
@@ -240,7 +279,16 @@ class BoxController extends WidgetController {
 
       'clipContent': (value) => clipContent = Utils.optionalBool(value)
     });
+
     return setters;
+  }
+
+  Color? convertStringToColor(String value) {
+    final intValue = int.tryParse(value.trim());
+
+    if (intValue == null) return Utils.getColor(value);
+
+    return Utils.getColor(intValue);
   }
 
   /// optimization. This is important to review if more properties are added
@@ -264,7 +312,18 @@ class BoxController extends WidgetController {
       backgroundGradient != null;
 
   bool hasBorder() =>
-      borderGradient != null || borderColor != null || borderWidth != null;
+      borderGradient != null ||
+      allBorderColor != null ||
+      allBorderWidth != null ||
+      borderColor.top != null ||
+      borderColor.bottom != null ||
+      borderColor.left != null ||
+      borderColor.right != null ||
+      borderWidth != null ||
+      borderWidth?.top != null ||
+      borderWidth?.bottom != null ||
+      borderWidth?.left != null ||
+      borderWidth?.right != null;
 
   bool hasBoxShadow() =>
       shadowColor != null ||

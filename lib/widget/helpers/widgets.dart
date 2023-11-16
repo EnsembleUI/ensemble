@@ -208,7 +208,7 @@ class BoxWrapper extends StatelessWidget {
                   : boxController.borderGradient != null
                       ? GradientBoxBorder(
                           gradient: boxController.borderGradient!,
-                          width: boxController.borderWidth?.toDouble() ??
+                          width: boxController.allBorderWidth?.toDouble() ??
                               ThemeManager().getBorderThickness(context))
                       : Border(
                           top: getBorderSide(
@@ -255,6 +255,15 @@ class BoxWrapper extends StatelessWidget {
               ],
             )
           : _getWidget(),
+    );
+  }
+
+  BorderSide getBorderSide(BuildContext context, double? value, Color? color) {
+    if (value == null) return BorderSide.none;
+
+    return BorderSide(
+      width: value,
+      color: color ?? ThemeManager().getBorderColor(context),
     );
   }
 

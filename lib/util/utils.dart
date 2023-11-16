@@ -181,6 +181,7 @@ class Utils {
       case 'spaceEvenly':
         return WrapAlignment.spaceEvenly;
     }
+    return null;
   }
 
   static InputValidator? getValidator(dynamic value) {
@@ -525,6 +526,84 @@ class Utils {
       }
     }
     return null;
+  }
+
+  static EBorderWidth? parseBorderWidth(
+    dynamic value,
+    Function(double? value) updateBorderWidth,
+  ) {
+    final parsedValue = Utils.optionalString(value);
+
+    if (parsedValue == null) return null;
+
+    final individualData = parsedValue.trim().split(' ');
+
+    if (individualData.length == 1) {
+      updateBorderWidth(optionalDouble(individualData[0]));
+
+      return EBorderWidth.all(optionalDouble(individualData[0]));
+    } else if (individualData.length == 2) {
+      return EBorderWidth.two(
+        optionalDouble(individualData[0]),
+        optionalDouble(individualData[1]),
+      );
+    } else if (individualData.length == 3) {
+      return EBorderWidth.three(
+        optionalDouble(individualData[0]),
+        optionalDouble(individualData[1]),
+        optionalDouble(individualData[2]),
+      );
+    } else if (individualData.length == 4) {
+      return EBorderWidth.only(
+        optionalDouble(individualData[0]),
+        optionalDouble(individualData[1]),
+        optionalDouble(individualData[2]),
+        optionalDouble(individualData[3]),
+      );
+    } else {
+      throw RuntimeError(
+        "Error: No. of parameters for borderWidth cannot be greater than 4",
+      );
+    }
+  }
+
+  static EBorderColor parseBorderColor(
+    dynamic value,
+    Function(Color? value) updateBorderColor,
+  ) {
+    final parsedValue = Utils.getString(value, fallback: '');
+
+    // if (parsedValue == null) return null;
+
+    final individualData = parsedValue.trim().split(' ');
+
+    if (individualData.length == 1) {
+      updateBorderColor(getColor(individualData[0]));
+
+      return EBorderColor.all(individualData[0]);
+    } else if (individualData.length == 2) {
+      return EBorderColor.two(
+        individualData[0],
+        individualData[1],
+      );
+    } else if (individualData.length == 3) {
+      return EBorderColor.three(
+        individualData[0],
+        individualData[1],
+        individualData[2],
+      );
+    } else if (individualData.length == 4) {
+      return EBorderColor.only(
+        individualData[0],
+        individualData[1],
+        individualData[2],
+        individualData[3],
+      );
+    } else {
+      throw RuntimeError(
+        "Error: No. of parameters for borderWidth cannot be greater than 4",
+      );
+    }
   }
 
   static Offset? getOffset(dynamic offset) {
