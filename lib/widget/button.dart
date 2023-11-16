@@ -168,13 +168,13 @@ class ButtonState extends WidgetState<Button> {
     if (defaultShape is RoundedRectangleBorder) {
       // if we don't specify borderColor here, and the default border is none, stick with that
       BorderSide borderSide;
-      if (widget._controller.allBorderColor == null &&
+      if (widget._controller.borderColor == null &&
           defaultShape.side.style == BorderStyle.none) {
         borderSide = defaultShape.side;
       } else {
         borderSide = BorderSide(
-            color: widget._controller.allBorderColor ?? defaultShape.side.color,
-            width: widget._controller.allBorderWidth?.toDouble() ??
+            color: widget._controller.borderColor ?? defaultShape.side.color,
+            width: widget._controller.borderWidth?.toDouble() ??
                 defaultShape.side.width);
       }
 

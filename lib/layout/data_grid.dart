@@ -298,8 +298,8 @@ class DataGridState extends WidgetState<DataGrid>
       columnSpacing: widget.controller.columnSpacing,
       dividerThickness: widget.controller.dividerThickness,
       border: TableBorder.all(
-        color: widget.controller.allBorderColor ?? Colors.black,
-        width: widget.controller.allBorderWidth?.toDouble() ?? 1.0,
+        color: widget.controller.borderColor ?? Colors.black,
+        width: widget.controller.borderWidth?.toDouble() ?? 1.0,
         borderRadius:
             widget.controller.borderRadius?.getValue() ?? BorderRadius.zero,
       ),
