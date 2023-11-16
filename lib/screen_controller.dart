@@ -1049,8 +1049,9 @@ class ScreenController {
     DataContext localizedContext = dataContext.clone();
     localizedContext.addDataContextById('latitude', location.latitude);
     localizedContext.addDataContextById('longitude', location.longitude);
-    nowExecuteAction(context, onLocationReceived, scopeManager.pageData.apiMap,
-        scopeManager);
+    final newScope = scopeManager.createChildScope(context: localizedContext);
+    nowExecuteAction(
+        context, onLocationReceived, scopeManager.pageData.apiMap, newScope);
   }
 
   /// return a wrapper for the screen widget
