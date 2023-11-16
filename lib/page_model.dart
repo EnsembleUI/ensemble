@@ -143,9 +143,7 @@ class SinglePageModel extends PageModel {
     super._processModel(docMap);
 
     if (docMap.containsKey("View")) {
-      if (docMap['View'] == null) {
-        rootWidgetModel = null;
-      } else {
+      if (docMap['View'] != null) {
         YamlMap viewMap = docMap['View'];
         if (viewMap['options'] is YamlMap) {
           PageType pageType = viewMap['options']['type'] == PageType.modal.name
