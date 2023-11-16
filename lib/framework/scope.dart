@@ -150,9 +150,13 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
 
   /// create a copy of the parent's data scope
   @override
-  ScopeManager createChildScope({bool ephemeral = false}) {
-    ScopeManager childScope =
-        ScopeManager(dataContext.clone(), pageData, ephemeral: ephemeral);
+  ScopeManager createChildScope(
+      {bool ephemeral = false, DataContext? context}) {
+    ScopeManager childScope = ScopeManager(
+      context?.clone() ?? dataContext.clone(),
+      pageData,
+      ephemeral: ephemeral,
+    );
     childScope._parent = this;
     return childScope;
   }
