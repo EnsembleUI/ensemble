@@ -1046,9 +1046,8 @@ class ScreenController {
       BuildContext context,
       EnsembleAction onLocationReceived,
       Position location) {
-    DataContext localizedContext = dataContext.clone();
-    localizedContext.addDataContextById('latitude', location.latitude);
-    localizedContext.addDataContextById('longitude', location.longitude);
+    scopeManager.dataContext.addDataContextById('latitude', location.latitude);
+    scopeManager.dataContext.addDataContextById('longitude', location.longitude);
     nowExecuteAction(context, onLocationReceived, scopeManager.pageData.apiMap,
         scopeManager);
   }
