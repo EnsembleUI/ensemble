@@ -126,7 +126,8 @@ class WebViewState extends WidgetState<EnsembleWebView> with CookieMethods {
 
     widget.controller.webViewController =
         WebViewController.fromPlatformCreationParams(params)
-          ..loadRequest(Uri.parse(widget.controller.url!))
+          ..loadRequest(Uri.parse(widget.controller.url!),
+              headers: widget.controller.headers)
           ..setBackgroundColor(Colors.transparent)
           ..setJavaScriptMode(JavaScriptMode.unrestricted)
           ..setNavigationDelegate(initNavigationDelegate());

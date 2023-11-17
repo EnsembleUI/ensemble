@@ -21,12 +21,15 @@ class NotificationManager {
   // Store the last known device token
   String? deviceToken;
 
-  Future<void> init(FirebasePayload payload) async {
+  Future<void> init(FirebasePayload payload,
+      {Future<void> Function(RemoteMessage)?
+          backgroundNotificationHandler}) async {
     if (!_init) {
       await Firebase.initializeApp(
         options: payload.getFirebaseOptions(),
       );
-      _initListener();
+      _initListener(
+          backgroundNotificationHandler: backgroundNotificationHandler);
       _init = true;
     }
   }
@@ -60,7 +63,8 @@ class NotificationManager {
     return null;
   }
 
-  void _initListener() {
+  void _initListener(
+      {Future<void> Function(RemoteMessage)? backgroundNotificationHandler}) {
     /// listen for token changes and store a copy
     FirebaseMessaging.instance.onTokenRefresh.listen((String newToken) {
       deviceToken = newToken;
@@ -75,6 +79,12 @@ class NotificationManager {
       });
       _handleNotification();
     });
+
+    /// when the app is in the background, we can't run UI logic.
+    /// But we can support a callback to the main class for custom logic
+    if (backgroundNotificationHandler != null) {
+      FirebaseMessaging.onBackgroundMessage(backgroundNotificationHandler);
+    }
 
     /// This is when the app is in the background and the user taps on the notification
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {

@@ -1,5 +1,7 @@
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/studio_debugger.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -15,6 +17,8 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' as flutter;
 import 'package:ensemble/screen_controller.dart';
+
+import '../framework/view/data_scope_widget.dart';
 
 class ListView extends StatefulWidget
     with
@@ -34,6 +38,7 @@ class ListView extends StatefulWidget
   Map<String, Function> getters() {
     return {
       'selectedItemIndex': () => _controller.selectedItemIndex,
+      'data': () => _controller.widgetState?.templatedDataList,
     };
   }
 
@@ -62,6 +67,10 @@ class ListView extends StatefulWidget
         if (value is! ScrollController) return null;
         return _controller.scrollController = value;
       },
+      'showLoading': (value) =>
+          _controller.showLoading = Utils.getBool(value, fallback: false),
+      'loadingWidget': (value) => _controller.loadingWidget = value,
+      'data': (value) => _controller.itemTemplate?.data = value,
     };
   }
 
@@ -90,6 +99,12 @@ class ListViewController extends BoxLayoutController {
   EnsembleAction? onScrollEnd;
   bool reverse = false;
   ScrollController? scrollController;
+  dynamic loadingWidget;
+  bool showLoading = false;
+  ListViewState? widgetState;
+  void _bind(ListViewState state) {
+    widgetState = state;
+  }
 }
 
 class ListViewState extends WidgetState<ListView>
@@ -116,11 +131,17 @@ class ListViewState extends WidgetState<ListView>
 
   @override
   Widget buildWidget(BuildContext context) {
+    widget.controller._bind(this);
+
     // children displayed first, followed by item template
     int itemCount = (widget._controller.children?.length ?? 0) +
         (templatedDataList?.length ?? 0);
     if (itemCount == 0) {
       return const SizedBox.shrink();
+    }
+    int indexAdd = 0;
+    if (widget._controller.showLoading) {
+      indexAdd = widget._controller.loadingWidget != null ? 1 : 0;
     }
 
     Widget listView = flutter.ListView.separated(
@@ -130,12 +151,26 @@ class ListViewState extends WidgetState<ListView>
         physics: widget._controller.onPullToRefresh != null
             ? const AlwaysScrollableScrollPhysics()
             : null,
-        itemCount: itemCount,
+        itemCount: itemCount + indexAdd,
         shrinkWrap: false,
         reverse: widget._controller.reverse,
         itemBuilder: (BuildContext context, int index) {
-          // show childrenfocus
           _checkScrollEnd(context, index);
+
+          final total = (widget._controller.children?.length ?? 0) +
+              (templatedDataList?.length ?? 0);
+          if (widget._controller.showLoading) {
+            if (index == total && widget._controller.loadingWidget != null) {
+              final loadingWidget =
+                  widgetBuilder(context, widget._controller.loadingWidget);
+
+              return loadingWidget ?? const flutter.CircularProgressIndicator();
+            }
+          } else if (indexAdd == 1 && index == total) {
+            return const SizedBox.shrink();
+          }
+
+          // show childrenfocus
           Widget? itemWidget;
           if (widget._controller.children != null &&
               index < widget._controller.children!.length) {
@@ -215,6 +250,16 @@ class ListViewState extends WidgetState<ListView>
     if (index == totalItems - 1 && widget._controller.onScrollEnd != null) {
       ScreenController()
           .executeAction(context, widget._controller.onScrollEnd!);
+    }
+  }
+
+  Widget? widgetBuilder(BuildContext context, dynamic widget) {
+    ScopeManager? parentScope = DataScopeWidget.getScope(context);
+    if (parentScope != null) {
+      return parentScope.buildWidgetFromDefinition(widget);
+    } else {
+      LanguageError('Failed to build widget');
+      return null;
     }
   }
 }
