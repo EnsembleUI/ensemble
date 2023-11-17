@@ -8,5 +8,4 @@ class HasSelectableText extends InheritedWidget {
   bool updateShouldNotify(covariant InheritedWidget oldWidget) {
     return false;
   }
-
 }
