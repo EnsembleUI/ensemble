@@ -2816,12 +2816,8 @@
                       ]
                     },
                     "indicatorPosition": {
-                      "type": "string",
-                      "description": "Where to display the indicator if specified",
-                      "enum": [
-                        "bottom",
-                        "top"
-                      ]
+                      "$ref": "#/$defs/type-alignment",
+                      "description": "Where to display the indicator if specified"
                     },
                     "indicatorWidth": {
                       "type": "integer"
@@ -2837,9 +2833,17 @@
                       "type": "boolean",
                       "description": "Determines if carousel should loop infinitely or be limited to item length. Default (false)"
                     },
-                    "selectedItemIndex": {
+                    "selectedIndex": {
                       "type": "integer",
-                      "description": "The initial page to show when first creating the Carousel. Default (0)"
+                      "description": "It returns the selected item index of the Carousel. Default (-1) if not tapped / selected"
+                    },
+                    "currentIndex": {
+                      "type": "integer",
+                      "description": "The initial page to show when first creating the Carousel and the current index of the displaying Carousel Item. Default (0)"
+                    },
+                    "indicatorMaxCount": {
+                      "type": "integer",
+                      "description": "This property is used to show a limited number (for ex: 4) of carousel indicator when creating the carousel with more (for ex: 100+) items. Default (null)"
                     },
                     "autoplayInterval": {
                       "type": "integer",
@@ -2857,6 +2861,10 @@
                         }
                       ],
                       "description": "The margin around each indicator"
+                    },
+                    "indicatorPadding": {
+                      "$ref": "#/$defs/Padding-payload",
+                      "description": "The padding around the indicator"
                     }
                   }
                 }
