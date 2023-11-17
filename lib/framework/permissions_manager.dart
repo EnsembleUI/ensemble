@@ -1,9 +1,9 @@
 import 'package:ensemble/framework/stub/camera_manager.dart';
 import 'package:ensemble/framework/stub/contacts_manager.dart';
+import 'package:ensemble/framework/stub/location_manager.dart';
 import 'package:ensemble/util/notification_utils.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:get_it/get_it.dart';
 
 class PermissionsManager {
@@ -40,17 +40,18 @@ class PermissionsManager {
           }
         }
       case Permission.location:
-        final locationPermission = await Geolocator.checkPermission();
+        final locationPermission =
+            await GetIt.I<LocationManager>().checkPermission();
         switch (locationPermission) {
-          case LocationPermission.always:
-          case LocationPermission.whileInUse:
+          case LocationPermissionStatus.always:
+          case LocationPermissionStatus.whileInUse:
             status = true;
             break;
-          case LocationPermission.denied:
-          case LocationPermission.deniedForever:
+          case LocationPermissionStatus.denied:
+          case LocationPermissionStatus.deniedForever:
             status = false;
             break;
-          case LocationPermission.unableToDetermine:
+          case LocationPermissionStatus.unableToDetermine:
           default:
             status = null;
             break;
