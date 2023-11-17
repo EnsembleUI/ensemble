@@ -13,10 +13,15 @@ class LottieState extends WidgetState<EnsembleLottie>
   @override
   void initState() {
     super.initState();
-
     widget.controller
       ..lottieController = AnimationController(vsync: this)
       ..addStatusListener(context, widget);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.lottieController?.dispose();
+    super.dispose();
   }
 
   @override
@@ -47,7 +52,7 @@ class LottieState extends WidgetState<EnsembleLottie>
       // if is URL
       if (source.startsWith('https://') || source.startsWith('http://')) {
         return Lottie.network(widget.controller.source,
-            controller: widget.controller.lottieController!,
+            controller: widget.controller.lottieController,
             onLoaded: (composition) {
               widget.controller.initializeLottieController(composition);
             },
@@ -61,7 +66,7 @@ class LottieState extends WidgetState<EnsembleLottie>
       else {
         return Lottie.asset(
           Utils.getLocalAssetFullPath(widget.controller.source),
-          controller: widget.controller.lottieController!,
+          controller: widget.controller.lottieController,
           onLoaded: (composition) {
             widget.controller.initializeLottieController(composition);
           },
