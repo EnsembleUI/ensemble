@@ -2679,6 +2679,13 @@
               "type": "integer",
               "description": "Selecting a ListView item gives the index of selected item"
             },
+            "showLoading": {
+              "type": "boolean",
+              "description": "Show loading indicator. (Default is false)"
+            },
+            "loadingWidget": {
+              "$ref": "#/$defs/Widget"
+            },
             "onScrollEnd": {
               "$ref": "#/$defs/Action-payload",
               "description": "Execute an Ensemble action when user has reached bottom of list."
@@ -6108,6 +6115,10 @@
           "type": "string",
           "description": "The URl that will be loaded in the webview"
         },
+        "headers": {
+          "type": "object",
+          "description": "Pass the headers' key/value pairs to your service"
+        },
         "cookies": {
           "type": "array",
           "description": "takes cookies in an array of maps"
@@ -6949,13 +6960,6 @@
         }
       }
     },
-
-    
-    
-    
-    
-    
-    
     "TextStyle": {
       "type": "object",
       "properties": {
