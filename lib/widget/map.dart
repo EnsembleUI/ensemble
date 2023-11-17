@@ -7,6 +7,7 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/stub/location_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/layout/templated.dart';
@@ -19,7 +20,7 @@ import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map/plugin_api.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:get_it/get_it.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:yaml/yaml.dart';
 
@@ -96,7 +97,8 @@ class MyController extends WidgetController with LocationCapability {
     fitBoundary();
   }
 
-  Position? currentLocation; // user's location if enabled & given permission
+  LocationData?
+      currentLocation; // user's location if enabled & given permission
   dynamic customLocationWidget;
 
   void updateMarkerTemplate(dynamic markerData) {
@@ -136,7 +138,7 @@ class MyController extends WidgetController with LocationCapability {
   }
 
   void requestUserLocation() async {
-    currentLocation = (await getLocation()).location;
+    currentLocation = (await GetIt.I<LocationManager>().getLocation()).location;
     fitBoundary();
     notifyListeners();
   }

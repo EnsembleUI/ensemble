@@ -1,5 +1,5 @@
+import 'package:ensemble/framework/stub/location_manager.dart';
 import 'package:ensemble/widget/maps/maps_state.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 /// expose actions
@@ -10,7 +10,7 @@ mixin MapActions on MapsActionableState {
     List<LatLng> points = [];
 
     // add user location
-    Position? currentLocation = getCurrentLocation();
+    LocationData? currentLocation = getCurrentLocation();
     if (currentLocation != null &&
         widget.controller.includeCurrentLocationInAutoZoom) {
       points.add(LatLng(currentLocation.latitude, currentLocation.longitude));
