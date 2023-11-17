@@ -139,9 +139,9 @@ class ListViewState extends WidgetState<ListView>
     if (itemCount == 0) {
       return const SizedBox.shrink();
     }
+    int indexAdd = 0;
     if (widget._controller.showLoading) {
-      int indexAdd = widget._controller.loadingWidget != null ? 1 : 0;
-      itemCount = itemCount + indexAdd;
+      indexAdd = widget._controller.loadingWidget != null ? 1 : 0;
     }
 
     Widget listView = flutter.ListView.separated(
@@ -151,21 +151,23 @@ class ListViewState extends WidgetState<ListView>
         physics: widget._controller.onPullToRefresh != null
             ? const AlwaysScrollableScrollPhysics()
             : null,
-        itemCount: itemCount,
+        itemCount: itemCount + indexAdd,
         shrinkWrap: false,
         reverse: widget._controller.reverse,
         itemBuilder: (BuildContext context, int index) {
           _checkScrollEnd(context, index);
-          if (widget._controller.showLoading) {
-            final total = (widget._controller.children?.length ?? 0) +
-                (templatedDataList?.length ?? 0);
 
+          final total = (widget._controller.children?.length ?? 0) +
+              (templatedDataList?.length ?? 0);
+          if (widget._controller.showLoading) {
             if (index == total && widget._controller.loadingWidget != null) {
               final loadingWidget =
                   widgetBuilder(context, widget._controller.loadingWidget);
 
-              return loadingWidget ?? const SizedBox.shrink();
+              return loadingWidget ?? const flutter.CircularProgressIndicator();
             }
+          } else if (indexAdd == 1 && index == total) {
+            return const SizedBox.shrink();
           }
 
           // show childrenfocus
