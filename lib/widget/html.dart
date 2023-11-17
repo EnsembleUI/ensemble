@@ -11,24 +11,23 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:ensemble/framework/action.dart' as ensemble;
 
-class StyleData with Invokable {
-  @override
-  Map<String, Function> getters() {
-    return {};
+class CSSProperties {}
+
+class CSSStyle {
+  String selector;
+  CSSProperties properties;
+
+  CSSStyle._({required this.selector, required this.properties});
+
+  factory CSSStyle.fromMap(dynamic map) {
+    return CSSStyle._(
+      selector: '',
+      properties: CSSProperties(),
+    );
   }
 
-  @override
-  Map<String, Function> methods() {
-    return {};
-  }
-
-  @override
-  Map<String, Function> setters() {
-    return {
-      'selector': (value) {
-        print(value);
-      }
-    };
+  Style parseStyle() {
+    return Style();
   }
 }
 
@@ -57,13 +56,11 @@ class EnsembleHtml extends StatefulWidget
       'onLinkTap': (funcDefinition) => _controller.onLinkTap =
           ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'cssStyles': (value) {
-        // final list = Utils //
-        //         .getList(value)
-        //     ?.map((e) =>
-        //         Utils.getMap(e)?.forEach((key, value) => Utils.getMap(value)))
-        //     .toList();
-        // print(list?[0]?['style']);
-        // StyleData();
+        _controller.styles = Utils //
+                    .getList(value)
+                ?.map((e) => CSSStyle.fromMap(Utils.getMap(e)?['style']))
+                .toList() ??
+            [];
       },
     };
   }
@@ -74,29 +71,11 @@ class EnsembleHtml extends StatefulWidget
   }
 }
 
-class CSSProperties {}
-
-class CSSStyle {
-  String selector;
-  CSSProperties properties;
-
-  CSSStyle._({required this.selector, required this.properties});
-
-  factory CSSStyle.fromMap() {
-    return CSSStyle._(
-      selector: '',
-      properties: CSSProperties(),
-    );
-  }
-
-  Style parseStyle() {
-    return Style();
-  }
-}
-
 class HtmlController extends BoxController {
   String? text;
   ensemble.EnsembleAction? onLinkTap;
+
+  List<CSSStyle> styles = [];
 }
 
 class HtmlState extends framework.WidgetState<EnsembleHtml> {
