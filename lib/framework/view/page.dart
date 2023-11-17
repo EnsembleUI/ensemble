@@ -9,6 +9,7 @@ import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/bottom_nav_page_view.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
+import 'package:ensemble/framework/view/has_selectable_text.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/layout/list_view.dart' as ensemblelist;
@@ -430,6 +431,12 @@ class PageState extends State<Page>
                   : FloatingActionButtonLocation.endTop),
     );
 
+    // selectableText at the root
+    if (Utils.optionalBool(widget._pageModel.pageStyles?['selectable']) ==
+        true) {
+      rtn = HasSelectableText(child: rtn);
+    }
+
     // if backgroundImage is set, put it outside of the Scaffold so
     // keyboard sliding up (when entering value) won't resize the background
     if (backgroundImage != null) {
@@ -552,8 +559,8 @@ class PageState extends State<Page>
       content.add(NavigationRail(
         extended: itemDisplay == MenuItemDisplay.sideBySide ? true : false,
         minExtendedWidth: minWidth.toDouble(),
-        minWidth: minGap
-            .toDouble(), // this is important for optimal default item spacing
+        minWidth: minGap.toDouble(),
+        // this is important for optimal default item spacing
         labelType: itemDisplay != MenuItemDisplay.sideBySide
             ? NavigationRailLabelType.all
             : null,

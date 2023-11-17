@@ -249,7 +249,7 @@ class DataGridState extends WidgetState<DataGrid>
           onDataChanged: (List dataList) {
         this.dataList = dataList;
         _sortItems();
-      });
+      }, evaluateInitialValue: true);
     }
   }
 
@@ -450,7 +450,7 @@ class DataGridState extends WidgetState<DataGrid>
 
   // Sorting the datas array (ascending or descending)
   void _sortItems() {
-    if (dataColumnSort != null && dataColumnSort?.columnIndex != null) {
+    if (_columns.isNotEmpty && dataColumnSort != null && dataColumnSort?.columnIndex != null) {
       final sortOrder =
           dataColumnSort?.order ?? DataColumnSortType.ascending.name;
       _columns[dataColumnSort!.columnIndex].sortOrder = sortOrder;
@@ -460,12 +460,8 @@ class DataGridState extends WidgetState<DataGrid>
 
       if (sortable != null && sortable) {
         bool isAscendingOrder = sortOrder == DataColumnSortType.ascending.name;
-
-        if (isAscendingOrder) {
-          dataList.sort((a, b) => (a[sortKey]).compareTo(b[sortKey]));
-        } else {
-          dataList.sort((a, b) => (b[sortKey]).compareTo(a[sortKey]));
-        }
+        dataList = Utils.sortMapObjectsByKey(dataList, sortKey,
+            isAscendingOrder: isAscendingOrder);
       }
     }
 
@@ -479,7 +475,8 @@ class DataGridState extends WidgetState<DataGrid>
     final sortOrder =
         _columns[index].sortOrder ?? DataColumnSortType.ascending.name;
     final sortable = _columns[index].sortable;
-    if (sortable != null && sortable) {
+    final String? sortKey = _columns[index].sortKey;
+    if (sortable == true && sortKey != null) {
       _columns[index].sortOrder = sortOrder == DataColumnSortType.ascending.name
           ? DataColumnSortType.descending.name
           : DataColumnSortType.ascending.name;
@@ -489,8 +486,6 @@ class DataGridState extends WidgetState<DataGrid>
       );
 
       _sortItems();
-      templatedChildren =
-          buildWidgetsFromTemplate(context, dataList, widget.itemTemplate!);
     }
   }
 

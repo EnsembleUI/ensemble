@@ -93,7 +93,7 @@ class LottieState extends WidgetState<EnsembleLottie>
     bool repeat = widget.controller.repeat;
     bool autoPlay = widget.controller.autoPlay;
     if (widget.controller.width == null || widget.controller.height == null) {
-      throw LanguageError(
+      print(
           'Lottie widget must have explicit width and height for html renderer in the browser (this includes the preview in the editor). You do not need to specify width or height for native apps or for canvaskit renderer. Defaulting to $width for width and $height for height');
     }
 
