@@ -1,3 +1,4 @@
+import 'package:change_case/change_case.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -10,25 +11,62 @@ import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:ensemble/framework/action.dart' as ensemble;
-
-class CSSProperties {}
+import 'package:yaml/yaml.dart';
 
 class CSSStyle {
-  String selector;
-  CSSProperties properties;
+  // Map<String, Style> css;
+  StringBuffer css;
 
-  CSSStyle._({required this.selector, required this.properties});
+  CSSStyle._({required this.css});
 
-  factory CSSStyle.fromMap(dynamic map) {
-    return CSSStyle._(
-      selector: '',
-      properties: CSSProperties(),
+  factory CSSStyle.fromYaml(List<YamlMap> yaml) {
+    final Map<String, Map<String, dynamic>> _css = {};
+    final List<MapEntry<String, Map<String, dynamic>>> valuesToAdd = [];
+    final _cssBuffer = StringBuffer();
+
+    for (final entity in yaml) {
+      final map = Utils.getMap(entity['style']);
+
+      valuesToAdd.add(
+        MapEntry(
+          map?['selector'],
+          Utils.getMap(map?['properties']) ?? {},
+        ),
+      );
+    }
+
+    _css.addEntries(valuesToAdd);
+    _css.forEach((key, value) {
+      _cssBuffer.write('$key: {\n');
+      value.forEach((key, value) {
+        _cssBuffer.write('  ${key.toParamCase()}: $value;\n');
+      });
+      _cssBuffer.write('}\n\n');
+    });
+
+    print(_cssBuffer);
+
+    final style = Style.fromCss(
+      _cssBuffer.toString(),
+      (css, errors) {
+        print(errors);
+        print(css);
+
+        return null;
+      },  
     );
+
+    print(style);
+
+    return CSSStyle._(css: _cssBuffer);
   }
 
-  Style parseStyle() {
-    return Style();
-  }
+  // MapEntry<String, Style> parseStyle() {
+  //   return MapEntry(
+  //     selector,
+  //     properties.parseProperties(),
+  //   );
+  // }
 }
 
 /// widget to render Html content
@@ -56,11 +94,8 @@ class EnsembleHtml extends StatefulWidget
       'onLinkTap': (funcDefinition) => _controller.onLinkTap =
           ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'cssStyles': (value) {
-        _controller.styles = Utils //
-                    .getList(value)
-                ?.map((e) => CSSStyle.fromMap(Utils.getMap(e)?['style']))
-                .toList() ??
-            [];
+        _controller.styles =
+            CSSStyle.fromYaml(Utils.getListOfYamlMap(value) ?? []);
       },
     };
   }
@@ -75,7 +110,7 @@ class HtmlController extends BoxController {
   String? text;
   ensemble.EnsembleAction? onLinkTap;
 
-  List<CSSStyle> styles = [];
+  CSSStyle? styles;
 }
 
 class HtmlState extends framework.WidgetState<EnsembleHtml> {
@@ -84,9 +119,15 @@ class HtmlState extends framework.WidgetState<EnsembleHtml> {
     return BoxWrapper(
       boxController: widget._controller,
       widget: Html(
-        // style: {
-        //   '#hello': Style(border: Border.all(width: 2, color: Colors.red)),
-        // },
+        style: Style.fromCss(
+          widget._controller.styles?.css.toString() ?? '',
+          (css, errors) {
+            print(errors);
+            print(css);
+
+            return null;
+          },
+        ),
         data: widget._controller.text ?? '',
         onLinkTap: ((url, attributes, element) {
           if (widget.controller.onLinkTap != null) {
