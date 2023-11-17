@@ -70,7 +70,7 @@ dependencies:
   device_info_plus: ^8.2.0
   flutter_map: ^2.2.0
   carousel_slider: ^4.1.1
-  fluttertoast: ^8.0.9
+  fluttertoast: 8.2.2
   video_player: ^2.6.1
   lottie: ^2.3.2
   js_widget:

@@ -36,41 +36,43 @@ class EnsembleLottie extends StatefulWidget
       // Cannot use js.context['flutterCanvasKit'] != null to check the html renderer as it requires importing dart:js which will break app in mobile runtime as dart:js is a web only package
       final bool isNotHtml = _controller.lottieController != null;
 
+      print(isNotHtml);
+
       return {
         // Method to start animation in forward direction
         'forward': () {
           if (isNotHtml) {
             if (_controller.repeat) {
-              _controller.lottieController!.repeat();
+              _controller.lottieController?.repeat();
             } else {
-              _controller.lottieController!.forward();
+              _controller.lottieController?.forward();
             }
           } else {
-            _controller.lottieAction!.forward();
+            _controller.lottieAction?.forward();
           }
         },
         // Method to run animation in reverse direction
         'reverse': () {
           if (isNotHtml) {
-            _controller.lottieController!.reverse();
+            _controller.lottieController?.reverse();
           } else {
-            _controller.lottieAction!.reverse();
+            _controller.lottieAction?.reverse();
           }
         },
         // Method to reset animation to initial position
         'reset': () {
           if (isNotHtml) {
-            _controller.lottieController!.reset();
+            _controller.lottieController?.reset();
           } else {
-            _controller.lottieAction!.reset();
+            _controller.lottieAction?.reset();
           }
         },
         // Method to stop animation at current position
         'stop': () {
           if (isNotHtml) {
-            _controller.lottieController!.stop();
+            _controller.lottieController?.stop();
           } else {
-            _controller.lottieAction!.stop();
+            _controller.lottieAction?.stop();
           }
         },
       };
@@ -80,17 +82,17 @@ class EnsembleLottie extends StatefulWidget
       // Method to start animation in forward direction
       'forward': () {
         if (_controller.repeat) {
-          _controller.lottieController!.repeat();
+          _controller.lottieController?.repeat();
         } else {
-          _controller.lottieController!.forward();
+          _controller.lottieController?.forward();
         }
       },
       // Method to run animation in reverse direction
-      'reverse': () => _controller.lottieController!.reverse(),
+      'reverse': () => _controller.lottieController?.reverse(),
       // Method to reset animation to initial position
-      'reset': () => _controller.lottieController!.reset(),
+      'reset': () => _controller.lottieController?.reset(),
       // Method to stop animation at current position
-      'stop': () => _controller.lottieController!.stop(),
+      'stop': () => _controller.lottieController?.stop(),
     };
   }
 
@@ -155,7 +157,7 @@ class LottieController extends BoxController {
   // method to initialize the AnimationController lottieController
   void initializeLottieController(LottieComposition composition) {
     // Setting the duration of the animation once the lottie is loaded
-    lottieController!.duration = composition.duration;
+    lottieController?.duration = composition.duration;
 
     if (autoPlay) {
       if (repeat) {
