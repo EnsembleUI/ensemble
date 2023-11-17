@@ -47,22 +47,12 @@ class Ensemble {
     externalScreenWidgets = widgets;
   }
 
-  final List<Map<String, Object?>> _afterInitMethods = [];
-  void addCallbackAfterInitialization(
-      {required Function method,
-      List<dynamic>? positionalArgs,
-      Map<String, dynamic>? namedArgs}) {
-    final function = {
-      'id': math.Random().nextInt(100000),
-      'method': method,
-      'positionalArgs': positionalArgs,
-      'namedArgs': namedArgs
-    };
-    _afterInitMethods.add(function);
+  final Set<Function> _afterInitMethods = {};
+  void addCallbackAfterInitialization({required Function method}) {
+    _afterInitMethods.add(method);
   }
 
-  List<Map<String, Object?>> getCallbacksAfterInitialization() =>
-      _afterInitMethods;
+  Set<Function> getCallbacksAfterInitialization() => _afterInitMethods;
 
   late FirebaseApp ensembleFirebaseApp;
   static final Map<String, dynamic> externalDataContext = {};
