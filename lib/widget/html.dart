@@ -14,15 +14,15 @@ import 'package:ensemble/framework/action.dart' as ensemble;
 import 'package:yaml/yaml.dart';
 
 class CSSStyle {
-  // Map<String, Style> css;
-  StringBuffer css;
+  StringBuffer cssBuffer;
+  Map<String, Map<String, dynamic>> cssMap;
 
-  CSSStyle._({required this.css});
+  CSSStyle._({required this.cssBuffer, required this.cssMap});
 
   factory CSSStyle.fromYaml(List<YamlMap> yaml) {
-    final Map<String, Map<String, dynamic>> _css = {};
+    final Map<String, Map<String, dynamic>> rtnCssMap = {};
     final List<MapEntry<String, Map<String, dynamic>>> valuesToAdd = [];
-    final _cssBuffer = StringBuffer();
+    final StringBuffer rtnCssBuffer = StringBuffer();
 
     for (final entity in yaml) {
       final map = Utils.getMap(entity['style']);
@@ -35,38 +35,45 @@ class CSSStyle {
       );
     }
 
-    _css.addEntries(valuesToAdd);
-    _css.forEach((key, value) {
-      _cssBuffer.write('$key: {\n');
+    rtnCssMap.addEntries(valuesToAdd);
+    rtnCssMap.forEach((key, value) {
+      rtnCssBuffer.write('$key {\n');
       value.forEach((key, value) {
-        _cssBuffer.write('  ${key.toParamCase()}: $value;\n');
+        rtnCssBuffer.write('  ${key.toParamCase()}: $value;\n');
       });
-      _cssBuffer.write('}\n\n');
+      rtnCssBuffer.write('}\n\n');
     });
 
-    print(_cssBuffer);
+    return CSSStyle._(cssBuffer: rtnCssBuffer, cssMap: rtnCssMap);
+  }
 
-    final style = Style.fromCss(
-      _cssBuffer.toString(),
+  Map<String, Style> getStyle() {
+    Map<String, Style> style = Style.fromCss(
+      cssBuffer.toString(),
       (css, errors) {
         print(errors);
         print(css);
 
         return null;
-      },  
+      },
     );
 
-    print(style);
+    // Need to check if the parameters are maxLines, textOverflow or textTransform as they are not being parsed by fromCss method, so need to insert them manually
+    cssMap.forEach((key, value) {
+      RegExp pattern = RegExp(r'\b(?:maxLines|textOverflow|textTransform)\b');
+      bool containsMatch = value.keys.any((e) => pattern.hasMatch(e));
 
-    return CSSStyle._(css: _cssBuffer);
+      if (containsMatch) {
+        style[key] = style[key]!.copyWith(
+          maxLines: value['maxLines'],
+          textOverflow: TextOverflow.values.asNameMap()['textOverflow'],
+          textTransform: TextTransform.values.asNameMap()['textTransform'],
+        );
+      }
+    });
+
+    return style;
   }
-
-  // MapEntry<String, Style> parseStyle() {
-  //   return MapEntry(
-  //     selector,
-  //     properties.parseProperties(),
-  //   );
-  // }
 }
 
 /// widget to render Html content
@@ -94,8 +101,9 @@ class EnsembleHtml extends StatefulWidget
       'onLinkTap': (funcDefinition) => _controller.onLinkTap =
           ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'cssStyles': (value) {
-        _controller.styles =
-            CSSStyle.fromYaml(Utils.getListOfYamlMap(value) ?? []);
+        _controller.cssStyle = CSSStyle.fromYaml(
+          Utils.getListOfYamlMap(value) ?? [],
+        );
       },
     };
   }
@@ -110,7 +118,7 @@ class HtmlController extends BoxController {
   String? text;
   ensemble.EnsembleAction? onLinkTap;
 
-  CSSStyle? styles;
+  CSSStyle? cssStyle;
 }
 
 class HtmlState extends framework.WidgetState<EnsembleHtml> {
@@ -119,15 +127,7 @@ class HtmlState extends framework.WidgetState<EnsembleHtml> {
     return BoxWrapper(
       boxController: widget._controller,
       widget: Html(
-        style: Style.fromCss(
-          widget._controller.styles?.css.toString() ?? '',
-          (css, errors) {
-            print(errors);
-            print(css);
-
-            return null;
-          },
-        ),
+        style: widget._controller.cssStyle?.getStyle() ?? {},
         data: widget._controller.text ?? '',
         onLinkTap: ((url, attributes, element) {
           if (widget.controller.onLinkTap != null) {
