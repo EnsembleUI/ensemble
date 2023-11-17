@@ -21,7 +21,7 @@ class IOSDeepLinkManager extends DeepLinkNavigator {
       if (call.method == IOSDeepLinkManager._deepLinkMethod) {
         final url = Uri.parse(call.arguments);
         Ensemble().addCallbackAfterInitialization(
-            method: navigateToScreen, positionalArgs: [url]);
+            method: () => navigateToScreen(url));
       }
       return Future.value(true);
     });
