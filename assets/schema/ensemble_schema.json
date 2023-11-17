@@ -12,9 +12,6 @@
     "View": {
       "type": "object",
       "description": "This is your root View. It requires a body widget.",
-      "required": [
-        "body"
-      ],
       "properties": {
         "header": {
           "type": "object",
