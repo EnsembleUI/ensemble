@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -133,26 +132,29 @@ class ImageState extends WidgetState<EnsembleImage> {
         cachedWidth = 800;
       }
 
-      return CachedNetworkImage(
-        imageUrl: (widget._controller.cache)
-            ? source
-            : "${source}timeStamp=${DateTime.now().toString()}",
-        width: widget._controller.width?.toDouble(),
-        height: widget._controller.height?.toDouble(),
-        fit: fit,
-
-        // we auto resize and cap these values so loading lots of
-        // gigantic images won't run out of memory
-        memCacheWidth: cachedWidth,
-        memCacheHeight: cachedHeight,
-        cacheManager: EnsembleImageCacheManager.instance,
-        errorWidget: (context, error, stacktrace) => errorFallback(),
-        placeholder: (context, url) => ColoredBoxPlaceholder(
-          color: widget._controller.placeholderColor,
-          width: widget._controller.width?.toDouble(),
-          height: widget._controller.height?.toDouble(),
-        ),
-      );
+      return (widget._controller.cache)
+          ? CachedNetworkImage(
+              imageUrl: widget._controller.source,
+              width: widget._controller.width?.toDouble(),
+              height: widget._controller.height?.toDouble(),
+              fit: fit,
+              // we auto resize and cap these values so loading lots of
+              // gigantic images won't run out of memory
+              memCacheWidth: cachedWidth,
+              memCacheHeight: cachedHeight,
+              cacheManager: EnsembleImageCacheManager.instance,
+              errorWidget: (context, error, stacktrace) => errorFallback(),
+              placeholder: (context, url) => ColoredBoxPlaceholder(
+                color: widget._controller.placeholderColor,
+                width: widget._controller.width?.toDouble(),
+                height: widget._controller.height?.toDouble(),
+              ),
+            )
+          : Image.network(widget._controller.source,
+              width: widget._controller.width?.toDouble(),
+              height: widget._controller.height?.toDouble(),
+              fit: fit,
+              errorBuilder: (context, error, stacktrace) => errorFallback());
     } else if (Utils.isMemoryPath(widget._controller.source)) {
       return kIsWeb
           ? Image.network(widget._controller.source,
