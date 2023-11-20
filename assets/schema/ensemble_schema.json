@@ -12,9 +12,6 @@
     "View": {
       "type": "object",
       "description": "This is your root View. It requires a body widget.",
-      "required": [
-        "body"
-      ],
       "properties": {
         "header": {
           "type": "object",
@@ -2816,12 +2813,8 @@
                       ]
                     },
                     "indicatorPosition": {
-                      "type": "string",
-                      "description": "Where to display the indicator if specified",
-                      "enum": [
-                        "bottom",
-                        "top"
-                      ]
+                      "$ref": "#/$defs/type-alignment",
+                      "description": "Where to display the indicator if specified"
                     },
                     "indicatorWidth": {
                       "type": "integer"
@@ -2837,9 +2830,13 @@
                       "type": "boolean",
                       "description": "Determines if carousel should loop infinitely or be limited to item length. Default (false)"
                     },
-                    "selectedItemIndex": {
+                    "currentIndex": {
                       "type": "integer",
-                      "description": "The initial page to show when first creating the Carousel. Default (0)"
+                      "description": "The initial page to show when first creating the Carousel and the current index of the displaying Carousel Item. Default (0)"
+                    },
+                    "indicatorMaxCount": {
+                      "type": "integer",
+                      "description": "This property is used to show a limited number (for ex: 4) of carousel indicator when creating the carousel with more (for ex: 100+) items. Default (null)"
                     },
                     "autoplayInterval": {
                       "type": "integer",
@@ -2857,6 +2854,10 @@
                         }
                       ],
                       "description": "The margin around each indicator"
+                    },
+                    "indicatorPadding": {
+                      "$ref": "#/$defs/Padding-payload",
+                      "description": "The padding around the indicator"
                     }
                   }
                 }
@@ -3958,6 +3959,10 @@
                 "options": {
                   "type": "object",
                   "properties": {
+                    "batchSize": {
+                      "type": "integer",
+                      "description": "If specified, the total set of files to be uploaded will be divided into batches, with each batch containing a number of files equal to batchSize"
+                    },
                     "maxFileSize": {
                       "type": "integer",
                       "description": "File size that is allowed (default 100 mb), If multiple is allow then sum of all files"
