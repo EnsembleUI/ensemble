@@ -5584,6 +5584,30 @@
                 "header": {
                   "$ref": "#/$defs/Widget"
                 },
+                "tooltip": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string",
+                      "description": "The text to display in the tooltip."
+                    },
+                    "date": {
+                      "type": "string",
+                      "description": "Date to show tooltip on."
+                    },
+                    "backgroundColor": {
+                      "$ref": "#/$defs/type-color",
+                      "description": "The background color of the on tooltip"
+                    },
+                    "textStyle": {
+                      "$ref": "#/$defs/TextStyle"
+                    }
+                  },
+                  "required": [
+                    "text",
+                    "date"
+                  ]
+                },
                 "rowSpans": {
                   "type": "object",
                   "properties": {
