@@ -649,20 +649,20 @@ class Formatter with Invokable {
   }
 
   customDateFormat(input, pattern) {
-      DateTime? date;
-  
-      if (input is DateTime) {
-        date = input;
-      } else {
-        date = Utils.getDate(input);
-      }
-  
-      if (date == null) {
-        debugPrint('Failed getting date from input');
-        return null;
-      }
-      return DateFormat(pattern).format(date);
+    DateTime? date;
+
+    if (input is DateTime) {
+      date = input;
+    } else {
+      date = Utils.getDate(input);
     }
+
+    if (date == null) {
+      debugPrint('Failed getting date from input');
+      return null;
+    }
+    return DateFormat(pattern).format(date);
+  }
 
   @override
   Map<String, Function> setters() {
