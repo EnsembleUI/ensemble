@@ -278,6 +278,7 @@ class InvokeAPIController {
       }
       Response? _response = apiResponse.getAPIResponse();
       if (_response != null) {
+        _response.apiName = action.apiName;
         // for convenience, the result of the API contain the API response
         // so it can be referenced from anywhere.
         // Here we set the response and dispatch changes
