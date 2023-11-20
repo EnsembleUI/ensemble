@@ -8,10 +8,25 @@ import 'package:ensemble/widget/widget_util.dart';
 import 'package:flutter/widgets.dart';
 import 'package:lottie/lottie.dart';
 
-class LottieState extends WidgetState<EnsembleLottie> {
+class LottieState extends WidgetState<EnsembleLottie>
+    with SingleTickerProviderStateMixin {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller
+      ..lottieController = AnimationController(vsync: this)
+      ..addStatusListener(context, widget);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.lottieController?.dispose();
+    super.dispose();
+  }
+
   @override
   Widget buildWidget(BuildContext context) {
-    BoxFit? fit = WidgetUtils.getBoxFit(widget.controller.fit);
+    BoxFit? fit = Utils.getBoxFit(widget.controller.fit);
 
     Widget rtn = BoxWrapper(
         widget: buildLottie(fit),
@@ -36,24 +51,31 @@ class LottieState extends WidgetState<EnsembleLottie> {
     if (source.isNotEmpty) {
       // if is URL
       if (source.startsWith('https://') || source.startsWith('http://')) {
-        return Lottie.network(
-          widget.controller.source,
-          width: widget.controller.width?.toDouble(),
-          height: widget.controller.height?.toDouble(),
-          repeat: widget.controller.repeat ?? true,
-          fit: fit,
-          errorBuilder: (context, error, stacktrace) => placeholderImage(),
-        );
+        return Lottie.network(widget.controller.source,
+            controller: widget.controller.lottieController,
+            onLoaded: (composition) {
+              widget.controller.initializeLottieController(composition);
+            },
+            width: widget.controller.width?.toDouble(),
+            height: widget.controller.height?.toDouble(),
+            repeat: widget.controller.repeat,
+            fit: fit,
+            errorBuilder: (context, error, stacktrace) => placeholderImage());
       }
       // else attempt local asset
       else {
         return Lottie.asset(
-            Utils.getLocalAssetFullPath(widget.controller.source),
-            width: widget.controller.width?.toDouble(),
-            height: widget.controller.height?.toDouble(),
-            repeat: widget.controller.repeat ?? true,
-            fit: fit,
-            errorBuilder: (context, error, stacktrace) => placeholderImage());
+          Utils.getLocalAssetFullPath(widget.controller.source),
+          controller: widget.controller.lottieController,
+          onLoaded: (composition) {
+            widget.controller.initializeLottieController(composition);
+          },
+          width: widget.controller.width?.toDouble(),
+          height: widget.controller.height?.toDouble(),
+          repeat: widget.controller.repeat,
+          fit: fit,
+          errorBuilder: (context, error, stacktrace) => placeholderImage(),
+        );
       }
     }
     return SizedBox(

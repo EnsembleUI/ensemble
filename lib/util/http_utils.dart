@@ -24,28 +24,31 @@ class HttpUtils {
 
     // this is the OAuth flow, where the authorization triggers before
     // calling the API. Leave it alone for now
-    OAuthService? oAuthService = OAuthService.values
-        .from(Utils.optionalString(api['authorization']?['oauthId']));
-    String? scope = Utils.optionalString(api['authorization']?['scope']);
-    bool forceNewTokens =
-        Utils.getBool(api['authorization']?['forceNewTokens'], fallback: false);
-    if (oAuthService != null && scope != null) {
-      OAuthServiceToken? token = await GetIt.instance<OAuthController>()
-          .authorize(context, oAuthService,
-              scope: scope, forceNewTokens: forceNewTokens);
-      if (token != null) {
-        headers['Authorization'] = 'Bearer ${token.accessToken}';
+    if (api['authorization'] != "none") {
+      OAuthService? oAuthService = OAuthService.values
+          .from(Utils.optionalString(api['authorization']?['oauthId']));
+      String? scope = Utils.optionalString(api['authorization']?['scope']);
+      bool forceNewTokens = Utils.getBool(
+          api['authorization']?['forceNewTokens'],
+          fallback: false);
+      if (oAuthService != null && scope != null) {
+        OAuthServiceToken? token = await GetIt.instance<OAuthController>()
+            .authorize(context, oAuthService,
+                scope: scope, forceNewTokens: forceNewTokens);
+        if (token != null) {
+          headers['Authorization'] = 'Bearer ${token.accessToken}';
+        }
       }
-    }
 
-    // this is the Bearer token. TODO: consolidate with the above
-    OAuthService? serviceName =
-        OAuthService.values.from(api['authorization']?['serviceId']);
-    if (serviceName != null) {
-      OAuthServiceToken? token =
-          await GetIt.instance<TokenManager>().getServiceTokens(serviceName);
-      if (token != null) {
-        headers['Authorization'] = 'Bearer ${token.accessToken}';
+      // this is the Bearer token. TODO: consolidate with the above
+      OAuthService? serviceName =
+          OAuthService.values.from(api['authorization']?['serviceId']);
+      if (serviceName != null) {
+        OAuthServiceToken? token =
+            await GetIt.instance<TokenManager>().getServiceTokens(serviceName);
+        if (token != null) {
+          headers['Authorization'] = 'Bearer ${token.accessToken}';
+        }
       }
     }
 
@@ -70,6 +73,10 @@ class HttpUtils {
       } on FormatException catch (_, e) {
         log("Only JSON data supported: " + e.toString());
       }
+    }
+
+    if (api["uri"] == null) {
+      throw 'URI cannot be null';
     }
 
     // query parameter

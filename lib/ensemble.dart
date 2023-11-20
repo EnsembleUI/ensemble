@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:developer';
+import 'dart:math' as math;
 
 import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/ensemble_provider.dart';
@@ -45,6 +46,13 @@ class Ensemble {
   void setExternalScreenWidgets(Map<String, CustomBuilder> widgets) {
     externalScreenWidgets = widgets;
   }
+
+  final Set<Function> _afterInitMethods = {};
+  void addCallbackAfterInitialization({required Function method}) {
+    _afterInitMethods.add(method);
+  }
+
+  Set<Function> getCallbacksAfterInitialization() => _afterInitMethods;
 
   late FirebaseApp ensembleFirebaseApp;
   static final Map<String, dynamic> externalDataContext = {};

@@ -9,12 +9,14 @@ import 'package:flutter/cupertino.dart';
 /// expose Ensemble Actions as Invokables
 abstract class ActionInvokable with Invokable {
   ActionInvokable(this.buildContext);
+
   final BuildContext buildContext;
 
   @override
   Map<String, Function> methods() {
     return _generateFromActionTypes([
       ActionType.callExternalMethod,
+      ActionType.callNativeMethod,
       ActionType.share,
       ActionType.rateApp,
       ActionType.copyToClipboard,
