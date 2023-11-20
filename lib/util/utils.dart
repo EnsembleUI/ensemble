@@ -803,4 +803,56 @@ class Utils {
     }
     return fit;
   }
+
+  // To sort the list with nested map object using Key
+  static List<dynamic> sortMapObjectsByKey(
+      List<dynamic> dataMapObjects, String? sortKey,
+      {required bool isAscendingOrder}) {
+    final dataObjects = dataMapObjects.map((e) => e as Map).toList();
+    if (dataObjects.isNotEmpty && sortKey != null) {
+      // Function to recursively traverse the nested object and get the value of the key.
+      getValue(Map<dynamic, dynamic> mapObject, String key) {
+        if (mapObject.containsKey(key)) {
+          return mapObject[key];
+        }
+
+        for (final nestedKey in mapObject.keys) {
+          final nestedObject = mapObject[nestedKey];
+          if (nestedObject is Map<dynamic, dynamic>) {
+            final value = getValue(nestedObject, key);
+            if (value != null) {
+              return value;
+            }
+          }
+        }
+
+        return null;
+      }
+
+      // Comparator function to compare the values of the key in two map objects.
+      int compare(Map<dynamic, dynamic> a, Map<dynamic, dynamic> b) {
+        final aValue = getValue(a, sortKey);
+        final bValue = getValue(b, sortKey);
+
+        return isAscendingOrder
+            ? aValue.compareTo(bValue)
+            : bValue.compareTo(aValue);
+      }
+
+      // Sort the array of map objects using the comparator function.
+      dataObjects.sort(compare);
+      return dataObjects;
+    }
+    // Fallback - Returning same passed-in object to the caller
+    return dataMapObjects;
+  }
+
+  static String generateRandomId(int length) {
+    var rand = Random();
+    var codeUnits = List.generate(length, (index) {
+      return rand.nextInt(26) + 97; // ASCII code for lowercase a-z
+    });
+
+    return String.fromCharCodes(codeUnits);
+  }
 }
