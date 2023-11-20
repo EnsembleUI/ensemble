@@ -644,7 +644,24 @@ class Formatter with Invokable {
       'prettyDuration': (input) =>
           InvokablePrimitive.prettyDuration(input, locale: locale),
       'pluralize': pluralize,
+      'customDate': customDateFormat,
     };
+  }
+
+  customDateFormat(input, pattern) {
+    DateTime? date;
+
+    if (input is DateTime) {
+      date = input;
+    } else {
+      date = Utils.getDate(input);
+    }
+
+    if (date == null) {
+      debugPrint('Failed getting date from input');
+      return null;
+    }
+    return DateFormat(pattern).format(date);
   }
 
   @override
