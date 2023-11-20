@@ -3513,13 +3513,25 @@
                       "type": "boolean",
                       "description": "If set true, users can view captured/selected media."
                     },
+                    "instantPreview": {
+                      "type": "boolean",
+                      "description": "If set true, users can view captured/selected media instantly as soon as it's capture."
+                    },
                     "maxCount": {
                       "type": "number",
-                      "description": "It used to control number of media that can be captured/selected"
+                      "description": "It used to control maximum number of media that can be captured/selected"
                     },
                     "maxCountMessage": {
                       "type": "string",
                       "description": "Custom message to show when captured/selected media is greater than maxCount"
+                    },
+                    "minCount": {
+                      "type": "number",
+                      "description": "It used to control minimum number of media that can be captured/selected"
+                    },
+                    "minCountMessage": {
+                      "type": "string",
+                      "description": "Custom message to show when captured/selected media is lesser than minCount"
                     },
                     "permissionDeniedMessage": {
                       "type": "string",
