@@ -25,6 +25,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:workmanager/workmanager.dart';
 
 const String backgroundUploadTask = 'backgroundUploadTask';
+const String ensembleMethodChannelName = 'com.ensembleui.host.platform';
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
@@ -103,22 +104,62 @@ class EnsembleApp extends StatefulWidget {
   State<StatefulWidget> createState() => EnsembleAppState();
 }
 
-class EnsembleAppState extends State<EnsembleApp> {
+class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
   late Future<EnsembleConfig> config;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     config = initApp();
-    // if (Platform.isIOS) {
-    //   IOSDeepLinkManager().init();
-    // } else {
-    DeepLinkManager().init();
-    // }
-
+    // Initialize native features.
     if (!kIsWeb) {
       Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
+      initDeepLink(AppLifecycleState.resumed);
     }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      executeCallbacks();
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) async {
+    super.didChangeAppLifecycleState(state);
+    initDeepLink(state);
+    if (state == AppLifecycleState.resumed) {
+      executeCallbacks();
+    }
+  }
+
+  Future<void> executeCallbacks() async {
+    final callbacks = List.from(Ensemble().getCallbacksAfterInitialization());
+
+    callbacks.asMap().forEach((index, function) async {
+      // Removing a method and getting the function with index to execute it
+      Ensemble().getCallbacksAfterInitialization().remove(function);
+      try {
+        await Function.apply(function, null);
+      } catch (e) {
+        print('Failed to execute a method: $e');
+      }
+    });
+  }
+
+  void initDeepLink(AppLifecycleState state) {
+    if (!kIsWeb) {
+      if (Platform.isIOS) {
+        IOSDeepLinkManager().init();
+      } else {
+        DeepLinkManager().init();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   /// initialize our App with the the passed in config or

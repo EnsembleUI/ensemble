@@ -70,7 +70,7 @@ dependencies:
   device_info_plus: ^8.2.0
   flutter_map: ^2.2.0
   carousel_slider: ^4.1.1
-  fluttertoast: ^8.0.9
+  fluttertoast: 8.2.2
   video_player: ^2.6.1
   lottie: ^2.3.2
   js_widget:
@@ -78,7 +78,7 @@ dependencies:
   flutter_markdown: ^0.6.10+5
   url_launcher: ^6.1.11
   provider: ^6.0.3
-  cloud_firestore: ^4.8.2
+  cloud_firestore: ^4.12.0
   geolocator: ^9.0.2
   get_storage: ^2.0.3
   flutter_html: ^3.0.0-beta.1 # flutter_html ^2.0.0 requires flutter_svg <1.0.0, conflicts with ours
@@ -105,6 +105,7 @@ dependencies:
   app_settings: ^5.0.0
   firebase_messaging: ^14.6.5
   custom_refresh_indicator: ^2.2.1
+  youtube_player_iframe: ^4.0.4
   web_socket_client: ^0.1.0
   app_links: ^3.4.3
   share_plus: ^6.2.0
@@ -115,6 +116,15 @@ dependencies:
       ref: master
   
   flutter_app_badger: ^1.5.0
+  webview_flutter_wkwebview: ^3.9.2
+  webview_flutter_android: ^3.12.0
+
+  # Using the forked copy of receive_sharing_intent because of the gradle version issue
+  # https://github.com/KasemJaffer/receive_sharing_intent/issues/256
+  receive_sharing_intent:
+    git:
+      url: https://github.com/AyushmanG26/receive_sharing_intent.git
+      ref: abedc3d6d5b80df396e9c300fd1a052cbab08827
 
 dev_dependencies:
   flutter_test:
