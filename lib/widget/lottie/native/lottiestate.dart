@@ -19,6 +19,12 @@ class LottieState extends WidgetState<EnsembleLottie>
   }
 
   @override
+  void dispose() {
+    widget.controller.lottieController?.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget buildWidget(BuildContext context) {
     BoxFit? fit = Utils.getBoxFit(widget.controller.fit);
 
