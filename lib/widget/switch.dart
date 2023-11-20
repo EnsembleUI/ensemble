@@ -1,50 +1,32 @@
-import 'package:ensemble/framework/action.dart' as framework;
 import 'package:ensemble/framework/event.dart';
-import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/framework/widget/widget.dart';
-import 'package:ensemble/widget/input/form_helper.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
+import 'package:ensemble/widget/input/form_helper.dart';
+import 'package:ensemble/framework/action.dart' as framework;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:flutter/material.dart';
-//import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-class EnsembleCheckbox extends OnOffWidget {
-  static const type = 'Checkbox';
-  EnsembleCheckbox({Key? key}) : super(key: key);
-
-  @override
-  OnOffType getType() {
-    return OnOffType.checkbox;
-  }
-}
-
-class EnsembleSwitch extends OnOffWidget {
+class EnsembleSwitch extends StatefulWidget
+    with Invokable, HasController<SwitchController, SwitchState> {
   static const type = 'Switch';
   EnsembleSwitch({Key? key}) : super(key: key);
 
+  final SwitchController _controller = SwitchController();
   @override
-  OnOffType getType() {
-    return OnOffType.toggle;
-  }
-}
-
-abstract class OnOffWidget extends StatefulWidget
-    with Invokable, HasController<OnOffController, OnOffState> {
-  OnOffWidget({Key? key}) : super(key: key);
-
-  final OnOffController _controller = OnOffController();
-  @override
-  OnOffController get controller => _controller;
+  SwitchController get controller => _controller;
 
   @override
-  State<StatefulWidget> createState() => OnOffState();
+  State<StatefulWidget> createState() => SwitchState();
 
   @override
   Map<String, Function> getters() {
     return {'value': () => _controller.value};
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {};
   }
 
   @override
@@ -63,27 +45,17 @@ abstract class OnOffWidget extends StatefulWidget
           _controller.activeThumbColor = Utils.getColor(color),
       'inactiveThumbColor': (color) =>
           _controller.inactiveThumbColor = Utils.getColor(color),
-      'checkColor': (color) => _controller.checkColor = Utils.getColor(color),
       'onChange': (definition) => _controller.onChange =
           framework.EnsembleAction.fromYaml(definition, initiator: this)
     };
   }
 
-  @override
-  Map<String, Function> methods() {
-    return {};
-  }
-
   void onToggle(bool newValue) {
     setProperty('value', newValue);
   }
-
-  OnOffType getType();
 }
 
-enum OnOffType { checkbox, toggle }
-
-class OnOffController extends FormFieldController {
+class SwitchController extends FormFieldController {
   bool value = false;
   String? leadingText;
   String? trailingText;
@@ -91,12 +63,11 @@ class OnOffController extends FormFieldController {
   Color? activeThumbColor;
   Color? inactiveColor;
   Color? inactiveThumbColor;
-  Color? checkColor;
 
   framework.EnsembleAction? onChange;
 }
 
-class OnOffState extends FormFieldWidgetState<OnOffWidget> {
+class SwitchState extends FormFieldWidgetState<EnsembleSwitch> {
   void onToggle(bool newValue) {
     widget.onToggle(newValue);
     //validatorKey.currentState!.validate();
@@ -118,7 +89,9 @@ class OnOffState extends FormFieldWidgetState<OnOffWidget> {
         style: formFieldTextStyle,
       )));
     }
-    children.add(widget.getType() == OnOffType.toggle ? aSwitch : aCheckbox);
+
+    children.add(switchWidget);
+
     if (widget._controller.trailingText != null) {
       children.add(Expanded(
           child: Text(
@@ -129,58 +102,36 @@ class OnOffState extends FormFieldWidgetState<OnOffWidget> {
 
     // wraps around FormField to get all the form effects
     return InputWrapper(
-        type: widget.getType() == OnOffType.toggle
-            ? EnsembleSwitch.type
-            : EnsembleCheckbox.type,
-        controller: widget._controller,
-        widget: FormField<bool>(
-            key: validatorKey,
-            validator: (value) {
-              if (widget._controller.required && !widget._controller.value) {
-                return Utils.translateWithFallback(
-                    'ensemble.input.required', 'This field is required');
-              }
-              return null;
-            },
-            builder: (FormFieldState<bool> field) {
-              return InputDecorator(
-                decoration: inputDecoration.copyWith(
-                    contentPadding: EdgeInsets.zero,
-                    filled: false,
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    disabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    errorText: field.errorText),
-                child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: children),
-              );
-            }));
+      type: EnsembleSwitch.type,
+      controller: widget._controller,
+      widget: FormField<bool>(
+        key: validatorKey,
+        validator: (value) {
+          if (widget._controller.required && !widget._controller.value) {
+            return Utils.translateWithFallback(
+                'ensemble.input.required', 'This field is required');
+          }
+          return null;
+        },
+        builder: (FormFieldState<bool> field) {
+          return InputDecorator(
+            decoration: inputDecoration.copyWith(
+                contentPadding: EdgeInsets.zero,
+                filled: false,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                errorText: field.errorText),
+            child: Row(
+                mainAxisAlignment: MainAxisAlignment.start, children: children),
+          );
+        },
+      ),
+    );
   }
 
-  /// we adjust the hit area of the checkbox here. 40px is smaller than the default (48px)
-  /// but it seem to be reasonable for touch device, plus the alignment inside
-  /// form is much better (align well with the rest of the input widgets)
-
-  Widget get aCheckbox {
-    return SizedBox(
-        width: 40,
-        height: 40,
-        child: Checkbox(
-            side: widget._controller.inactiveColor != null
-                ? BorderSide(
-                    width: 2.0, color: widget._controller.inactiveColor!)
-                : null,
-            value: widget._controller.value,
-            activeColor: widget._controller.activeColor,
-            checkColor: widget._controller.checkColor,
-            onChanged: isEnabled()
-                ? (bool? value) => onToggle(value ?? false)
-                : null));
-  }
-
-  Widget get aSwitch {
+  Widget get switchWidget {
     final MaterialStateProperty<Color?> trackColor =
         MaterialStateProperty.resolveWith<Color?>(
       (Set<MaterialState> states) {
