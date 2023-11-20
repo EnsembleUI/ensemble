@@ -38,8 +38,10 @@ class EnsembleCheckbox extends StatefulWidget
           _controller.leadingText = Utils.optionalString(text),
       'trailingText': (text) =>
           _controller.trailingText = Utils.optionalString(text),
-      'strokeColor': (color) => _controller.strokeColor = Utils.getColor(color),
-      'fillColor': (color) => _controller.fillColor = Utils.getColor(color),
+      'unselectedColor': (color) =>
+          _controller.unselectedColor = Utils.getColor(color),
+      'selectedColor': (color) =>
+          _controller.selectedColor = Utils.getColor(color),
       'checkColor': (color) => _controller.checkColor = Utils.getColor(color),
       'onChange': (definition) => _controller.onChange =
           framework.EnsembleAction.fromYaml(definition, initiator: this)
@@ -55,7 +57,8 @@ class CheckboxController extends FormFieldController {
   bool value = false;
   String? leadingText;
   String? trailingText;
-  Color? strokeColor;
+  Color? unselectedColor;
+  Color? selectedColor;
   Color? checkColor;
 
   framework.EnsembleAction? onChange;
@@ -130,11 +133,12 @@ class CheckboxState extends FormFieldWidgetState<EnsembleCheckbox> {
         width: 40,
         height: 40,
         child: Checkbox(
-            side: widget._controller.strokeColor != null
-                ? BorderSide(width: 2.0, color: widget._controller.strokeColor!)
+            side: widget._controller.unselectedColor != null
+                ? BorderSide(
+                    width: 2.0, color: widget._controller.unselectedColor!)
                 : null,
             value: widget._controller.value,
-            activeColor: widget._controller.fillColor,
+            activeColor: widget._controller.selectedColor,
             checkColor: widget._controller.checkColor,
             onChanged: isEnabled()
                 ? (bool? value) => onToggle(value ?? false)

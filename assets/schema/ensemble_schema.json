@@ -1613,13 +1613,13 @@
             "styles": {
               "type": "object",
               "properties": {
-                "strokeColor": {
+                "unselectedColor": {
                   "$ref": "#/$defs/type-color",
                   "description": "The outline color of the Checkbox Widget."
                 },
-                "fillColor": {
+                "selectedColor": {
                   "$ref": "#/$defs/type-color",
-                  "description": "The outline color of the Checkbox Widget."
+                  "description": "The background color of the Checkbox Widget."
                 },
                 "checkColor": {
                   "$ref": "#/$defs/type-color",
