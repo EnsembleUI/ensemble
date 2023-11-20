@@ -67,8 +67,6 @@ class Carousel extends StatefulWidget
           _controller.indicatorColor = Utils.getColor(value),
       'currentIndex': (value) =>
           _controller.currentIndex = Utils.getInt(value, fallback: 0),
-      'selectedIndex': (value) =>
-          _controller.selectedIndex = Utils.getInt(value, fallback: -1),
       'indicatorMaxCount': (value) =>
           _controller.indicatorMaxCount = Utils.optionalInt(value),
       'onItemChange': (action) => _controller.onItemChange =

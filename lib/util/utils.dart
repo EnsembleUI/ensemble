@@ -846,4 +846,13 @@ class Utils {
     // Fallback - Returning same passed-in object to the caller
     return dataMapObjects;
   }
+
+  static String generateRandomId(int length) {
+    var rand = Random();
+    var codeUnits = List.generate(length, (index) {
+      return rand.nextInt(26) + 97; // ASCII code for lowercase a-z
+    });
+
+    return String.fromCharCodes(codeUnits);
+  }
 }
