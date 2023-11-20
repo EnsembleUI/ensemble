@@ -2890,10 +2890,6 @@
                       "type": "boolean",
                       "description": "Determines if carousel should loop infinitely or be limited to item length. Default (false)"
                     },
-                    "selectedIndex": {
-                      "type": "integer",
-                      "description": "It returns the selected item index of the Carousel. Default (-1) if not tapped / selected"
-                    },
                     "currentIndex": {
                       "type": "integer",
                       "description": "The initial page to show when first creating the Carousel and the current index of the displaying Carousel Item. Default (0)"
@@ -3577,13 +3573,25 @@
                       "type": "boolean",
                       "description": "If set true, users can view captured/selected media."
                     },
+                    "instantPreview": {
+                      "type": "boolean",
+                      "description": "If set true, users can view captured/selected media instantly as soon as it's capture."
+                    },
                     "maxCount": {
                       "type": "number",
-                      "description": "It used to control number of media that can be captured/selected"
+                      "description": "It used to control maximum number of media that can be captured/selected"
                     },
                     "maxCountMessage": {
                       "type": "string",
                       "description": "Custom message to show when captured/selected media is greater than maxCount"
+                    },
+                    "minCount": {
+                      "type": "number",
+                      "description": "It used to control minimum number of media that can be captured/selected"
+                    },
+                    "minCountMessage": {
+                      "type": "string",
+                      "description": "Custom message to show when captured/selected media is lesser than minCount"
                     },
                     "permissionDeniedMessage": {
                       "type": "string",
@@ -4023,6 +4031,10 @@
                 "options": {
                   "type": "object",
                   "properties": {
+                    "batchSize": {
+                      "type": "integer",
+                      "description": "If specified, the total set of files to be uploaded will be divided into batches, with each batch containing a number of files equal to batchSize"
+                    },
                     "maxFileSize": {
                       "type": "integer",
                       "description": "File size that is allowed (default 100 mb), If multiple is allow then sum of all files"
@@ -5631,6 +5643,30 @@
                 },
                 "header": {
                   "$ref": "#/$defs/Widget"
+                },
+                "tooltip": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string",
+                      "description": "The text to display in the tooltip."
+                    },
+                    "date": {
+                      "type": "string",
+                      "description": "Date to show tooltip on."
+                    },
+                    "backgroundColor": {
+                      "$ref": "#/$defs/type-color",
+                      "description": "The background color of the on tooltip"
+                    },
+                    "textStyle": {
+                      "$ref": "#/$defs/TextStyle"
+                    }
+                  },
+                  "required": [
+                    "text",
+                    "date"
+                  ]
                 },
                 "rowSpans": {
                   "type": "object",

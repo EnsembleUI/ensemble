@@ -67,7 +67,6 @@ class EnsembleCalendar extends StatefulWidget
       'next': (value) => _controller.pageController?.nextPage(
           duration: const Duration(milliseconds: 300), curve: Curves.easeOut),
       'addRowSpan': (value) => setRowSpan(value),
-      'header': (value) => _controller.header,
     };
   }
 
@@ -98,7 +97,26 @@ class EnsembleCalendar extends StatefulWidget
       },
       'headerTextStyle': (value) =>
           _controller.headerTextStyle = Utils.getTextStyle(value),
+      'header': (value) => _controller.header = value,
+      'tootlip': (value) => setTooltip(value),
     };
+  }
+
+  setTooltip(value) {
+    _controller.tooltip = Utils.optionalString(value?['text']);
+    _controller.tooltipBackgroundColor =
+        Utils.getColor(value?['backgroundColor']);
+    DateTime? date;
+    if (value?['date'] is DateTime) {
+      date = value?['date'];
+    } else {
+      date = Utils.getDate(value?['date']);
+    }
+    if (date != null) {
+      _controller.tooltipDate =
+          DateTime.utc(date.year, date.month, date.day, 0, 0, 0);
+    }
+    _controller.tooltipTextStyle = Utils.getTextStyle(value?['textStyle']);
   }
 
   List<DateTime>? _getDate(dynamic value) {
@@ -441,6 +459,11 @@ class CalendarController extends WidgetController {
   ValueNotifier<List<RowSpanConfig>> rowSpans = ValueNotifier([]);
   TextStyle? headerTextStyle;
 
+  String? tooltip;
+  DateTime? tooltipDate;
+  TextStyle? tooltipTextStyle;
+  Color? tooltipBackgroundColor;
+
   final ValueNotifier<Set<DateTime>> markedDays = ValueNotifier(
     LinkedHashSet<DateTime>(
       equals: isSameDay,
@@ -609,6 +632,10 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
           rowHeight: widget._controller.rowHeight,
           daysOfWeekVisible: true,
           overlayRanges: getOverlayRange(),
+          toolTipDate: widget._controller.tooltipDate,
+          toolTip: widget._controller.tooltip,
+          toolTipBackgroundColor: widget._controller.tooltipBackgroundColor,
+          toolTipStyle: widget._controller.tooltipTextStyle,
           calendarBuilders: CalendarBuilders(
             overlayDefaultBuilder: (context) {
               if (widget._controller.overlapOverflowBuilder == null) {
