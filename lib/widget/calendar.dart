@@ -67,7 +67,6 @@ class EnsembleCalendar extends StatefulWidget
       'next': (value) => _controller.pageController?.nextPage(
           duration: const Duration(milliseconds: 300), curve: Curves.easeOut),
       'addRowSpan': (value) => setRowSpan(value),
-      'header': (value) => _controller.header,
     };
   }
 
@@ -98,6 +97,7 @@ class EnsembleCalendar extends StatefulWidget
       },
       'headerTextStyle': (value) =>
           _controller.headerTextStyle = Utils.getTextStyle(value),
+      'header': (value) => _controller.header = value,
     };
   }
 
