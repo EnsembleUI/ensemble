@@ -532,6 +532,7 @@ class FileUploadAction extends EnsembleAction {
     this.networkType,
     this.requiresBatteryNotLow,
     required this.showNotification,
+    this.batchSize,
   }) : super(inputs: inputs);
 
   String? id;
@@ -546,6 +547,7 @@ class FileUploadAction extends EnsembleAction {
   String? networkType;
   bool? requiresBatteryNotLow;
   bool showNotification;
+  int? batchSize;
 
   factory FileUploadAction.fromYaml({Map? payload}) {
     if (payload == null || payload['uploadApi'] == null) {
@@ -572,6 +574,7 @@ class FileUploadAction extends EnsembleAction {
           Utils.optionalBool(payload['options']?['requiresBatteryNotLow']),
       showNotification: Utils.getBool(payload['options']?['showNotification'],
           fallback: false),
+      batchSize: Utils.optionalInt(payload['options']?['batchSize']),
     );
   }
 }
