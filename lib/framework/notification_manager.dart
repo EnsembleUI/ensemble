@@ -28,7 +28,8 @@ class NotificationManager {
       await Firebase.initializeApp(
         options: payload.getFirebaseOptions(),
       );
-      _initListener(backgroundNotificationHandler: backgroundNotificationHandler);
+      _initListener(
+          backgroundNotificationHandler: backgroundNotificationHandler);
       _init = true;
     }
   }
