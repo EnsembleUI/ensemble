@@ -25,7 +25,7 @@ class CSSStyle {
     final StringBuffer rtnCssBuffer = StringBuffer();
 
     for (final entity in yaml) {
-      final map = Utils.getMap(entity['style']);
+      final map = Utils.getMap(entity);
 
       valuesToAdd.add(
         MapEntry(
