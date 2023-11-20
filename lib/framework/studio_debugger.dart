@@ -67,9 +67,10 @@ class StudioDebugger {
     RequireStackWidget? requireStackWidget =
         context.dependOnInheritedWidgetOfExactType<RequireStackWidget>();
     if (requireStackWidget == null) {
-      throw LanguageError("stackPosition true with incorrect parent widget ",
+      throw LanguageError(
+          "stackPosition* is applicable only with Stack as the parent widget",
           recovery:
-              "There is a widget that is using stackposition as true, however the parent widget is not a stack \n Please add Stack widget as a parent for the widget using stackposition");
+              "Please remove stackPosition* or put your widget inside a Stack to position it");
     }
     return widget;
   }
