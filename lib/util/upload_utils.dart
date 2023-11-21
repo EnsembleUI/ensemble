@@ -80,7 +80,7 @@ class UploadUtils {
 
       if (response.statusCode >= 200 && response.statusCode <= 300) {
         final res = await http.Response.fromStream(response);
-        return Response(res);
+        return Response(res, APIState.success);
       } else {
         throw Exception('Failed to upload file');
       }
