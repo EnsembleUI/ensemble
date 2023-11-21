@@ -1549,7 +1549,7 @@
         }
       ]
     },
-    "OnOff-payload": {
+    "Switch-payload": {
       "type": "object",
       "allOf": [
         {
@@ -1566,6 +1566,66 @@
             },
             "trailingText": {
               "type": "string"
+            },
+            "styles": {
+              "type": "object",
+              "properties": {
+                "activeColor": {
+                  "$ref": "#/$defs/type-color",
+                  "description": "The active color of the Switch Widget."
+                },
+                "inactiveColor": {
+                  "$ref": "#/$defs/type-color",
+                  "description": "The inactive color of the Switch Widget."
+                },
+                "activeThumbColor": {
+                  "$ref": "#/$defs/type-color",
+                  "description": "The active thumb color of the Switch Widget."
+                },
+                "inactiveThumbColor": {
+                  "$ref": "#/$defs/type-color",
+                  "description": "The inactive thumb color of the Switch Widget."
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Checkbox-payload": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/FormInput-payload"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "value": {
+              "type": "boolean"
+            },
+            "leadingText": {
+              "type": "string"
+            },
+            "trailingText": {
+              "type": "string"
+            },
+            "styles": {
+              "type": "object",
+              "properties": {
+                "unselectedColor": {
+                  "$ref": "#/$defs/type-color",
+                  "description": "The outline color of the Checkbox Widget."
+                },
+                "selectedColor": {
+                  "$ref": "#/$defs/type-color",
+                  "description": "The background color of the Checkbox Widget."
+                },
+                "checkColor": {
+                  "$ref": "#/$defs/type-color",
+                  "description": "The tick color of the Checkbox Widget."
+                }
+              }
             }
           }
         }
@@ -5092,7 +5152,7 @@
           ],
           "properties": {
             "Checkbox": {
-              "$ref": "#/$defs/OnOff-payload",
+              "$ref": "#/$defs/Checkbox-payload",
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/21f43d9b-db21-40fe-9c2f-806267e6c412#"
             }
           }
@@ -5104,7 +5164,7 @@
           ],
           "properties": {
             "Switch": {
-              "$ref": "#/$defs/OnOff-payload",
+              "$ref": "#/$defs/Switch-payload",
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/3f4ba37a-0e6a-46a1-9b78-e4e04c84937d#"
             }
           }
