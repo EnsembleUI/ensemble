@@ -968,6 +968,9 @@ class APIResponse with Invokable {
   @override
   Map<String, Function> getters() {
     return {
+      'isSuccess': () => _response?.apiState.isSuccess,
+      'isError': () => _response?.apiState.isError,
+      'isLoading': () => _response?.apiState.isLoading,
       'body': () => _response?.body,
       'headers': () => _response?.headers,
       'statusCode': () => _response?.statusCode,
