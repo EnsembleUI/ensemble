@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/studio_debugger.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
@@ -64,10 +65,13 @@ class StackState extends WidgetState<EnsembleStack>
         widget._controller.children!.isEmpty) {
       return const SizedBox.shrink();
     }
-
-    return Stack(
+    Widget stackWidget = Stack(
       alignment: widget._controller.alignChildren ?? Alignment.topLeft,
       children: buildChildren(widget._controller.children!),
     );
+    if (StudioDebugger().debugMode) {
+      stackWidget = RequireStackWidget(child: stackWidget);
+    }
+    return stackWidget;
   }
 }

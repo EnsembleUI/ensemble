@@ -107,9 +107,24 @@ class InvokeAPIController {
 
       dynamic errorResponse;
       try {
+        final APIResponse? oldResponse =
+            scopeManager.dataContext.getContextById(action.apiName);
+        final Response? responseObj = oldResponse?.getAPIResponse();
+        responseObj?.apiState = APIState.loading;
+
+        final isSameAPIRequest = action.apiName == responseObj?.apiName;
+        final responseToDispatch = (isSameAPIRequest && responseObj != null)
+            ? responseObj
+            : Response.updateState(apiState: APIState.loading);
+        dispatchAPIChanges(
+          scopeManager,
+          action,
+          APIResponse(response: responseToDispatch),
+        );
+
         Response response = await HttpUtils.invokeApi(
-            context, apiDefinition, scopeManager.dataContext);
-        if (response.isSuccess) {
+            context, apiDefinition, scopeManager.dataContext, action.apiName);
+        if (response.isOkay) {
           _onAPIComplete(
               context, action, apiDefinition, response, apiMap, scopeManager);
           return response;
@@ -139,6 +154,7 @@ class InvokeAPIController {
         apiDefinition['onResponse'],
         initiator: action.initiator);
     if (onResponse != null) {
+      response.apiState = APIState.success;
       _processOnResponse(context, onResponse, response, apiMap, scopeManager,
           apiChangeHandler: dispatchAPIChanges,
           action: action,
@@ -146,6 +162,7 @@ class InvokeAPIController {
     }
     // dispatch changes even if we don't have onResponse
     else {
+      response.apiState = APIState.success;
       dispatchAPIChanges(scopeManager, action, APIResponse(response: response));
     }
 
@@ -215,6 +232,7 @@ class InvokeAPIController {
     String? errorStr;
     dynamic data;
     if (errorResponse is Response) {
+      errorResponse.apiState = APIState.error;
       APIResponse apiResponse = APIResponse(response: errorResponse);
       scopeManager.dataContext.addInvokableContext('response', apiResponse);
       errorStr = errorResponse.reasonPhrase;
@@ -260,6 +278,7 @@ class InvokeAPIController {
       }
       Response? _response = apiResponse.getAPIResponse();
       if (_response != null) {
+        _response.apiName = action.apiName;
         // for convenience, the result of the API contain the API response
         // so it can be referenced from anywhere.
         // Here we set the response and dispatch changes
