@@ -1,8 +1,8 @@
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
-import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/studio_debugger.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/box/base_box_layout.dart';
@@ -10,15 +10,14 @@ import 'package:ensemble/layout/box/box_layout.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/model/pull_to_refresh.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/pull_to_refresh_container.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' as flutter;
-import 'package:ensemble/screen_controller.dart';
-
-import '../framework/view/data_scope_widget.dart';
+import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 
 class ListView extends StatefulWidget
     with
@@ -112,6 +111,49 @@ class ListViewState extends WidgetState<ListView>
   // template item is created on scroll. this will store the template's data list
   List<dynamic>? templatedDataList;
 
+  final PagingController<dynamic, dynamic> _pagingController =
+      PagingController(firstPageKey: 0);
+  bool? previousLoadingStatus;
+
+  @override
+  void initState() {
+    initializePaginationController();
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _pagingController.dispose();
+    widget._controller.removeListener(listener);
+    super.dispose();
+  }
+
+  void initializePaginationController() {
+    _pagingController.addPageRequestListener((pageKey) {
+      if (widget._controller.onScrollEnd != null) {
+        ScreenController()
+            .executeAction(context, widget._controller.onScrollEnd!);
+      } else {
+        _pagingController.appendLastPage([]);
+      }
+    });
+
+    if (widget._controller.children?.isNotEmpty == true) {
+      _pagingController.appendPage(widget._controller.children!, 1);
+    }
+
+    widget._controller.addListener(listener);
+  }
+
+  void listener() {
+    if (previousLoadingStatus != widget._controller.showLoading) {
+      if (widget._controller.showLoading == false) {
+        _pagingController.appendLastPage([]);
+      }
+      previousLoadingStatus = widget._controller.showLoading;
+    }
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -122,8 +164,11 @@ class ListViewState extends WidgetState<ListView>
 
       registerItemTemplate(context, widget._controller.itemTemplate!,
           evaluateInitialValue: true, onDataChanged: (List dataList) {
+        if (!mounted) return;
+
         setState(() {
           templatedDataList = dataList;
+          _pagingController.appendPage(templatedDataList!, 'loadMore');
         });
       });
     }
@@ -132,45 +177,22 @@ class ListViewState extends WidgetState<ListView>
   @override
   Widget buildWidget(BuildContext context) {
     widget.controller._bind(this);
+    Widget? loadingWidget;
 
-    // children displayed first, followed by item template
-    int itemCount = (widget._controller.children?.length ?? 0) +
-        (templatedDataList?.length ?? 0);
-    if (itemCount == 0) {
-      return const SizedBox.shrink();
-    }
-    int indexAdd = 0;
-    if (widget._controller.showLoading) {
-      indexAdd = widget._controller.loadingWidget != null ? 1 : 0;
+    if (widget._controller.loadingWidget != null) {
+      loadingWidget = widgetBuilder(context, widget._controller.loadingWidget);
     }
 
-    Widget listView = flutter.ListView.separated(
-        controller: widget._controller.scrollController,
-        padding: widget._controller.padding ?? const EdgeInsets.all(0),
-        scrollDirection: Axis.vertical,
-        physics: widget._controller.onPullToRefresh != null
-            ? const AlwaysScrollableScrollPhysics()
-            : null,
-        itemCount: itemCount + indexAdd,
-        shrinkWrap: false,
-        reverse: widget._controller.reverse,
-        itemBuilder: (BuildContext context, int index) {
-          _checkScrollEnd(context, index);
-
-          final total = (widget._controller.children?.length ?? 0) +
-              (templatedDataList?.length ?? 0);
-          if (widget._controller.showLoading) {
-            if (index == total && widget._controller.loadingWidget != null) {
-              final loadingWidget =
-                  widgetBuilder(context, widget._controller.loadingWidget);
-
-              return loadingWidget ?? const flutter.CircularProgressIndicator();
-            }
-          } else if (indexAdd == 1 && index == total) {
-            return const SizedBox.shrink();
-          }
-
-          // show childrenfocus
+    Widget listView = PagedListView.separated(
+      scrollController: widget._controller.scrollController,
+      reverse: widget._controller.reverse,
+      padding: widget._controller.padding ?? const EdgeInsets.all(0),
+      physics: widget._controller.onPullToRefresh != null
+          ? const AlwaysScrollableScrollPhysics()
+          : null,
+      pagingController: _pagingController,
+      builderDelegate: PagedChildBuilderDelegate(
+        itemBuilder: (context, item, index) {
           Widget? itemWidget;
           if (widget._controller.children != null &&
               index < widget._controller.children!.length) {
@@ -179,12 +201,17 @@ class ListViewState extends WidgetState<ListView>
           // create widget from item template
           else if (templatedDataList != null &&
               widget._controller.itemTemplate != null) {
-            itemWidget = buildWidgetForIndex(
+            final templateIndex =
+                index - (widget._controller.children?.length ?? 0);
+            if (templateIndex < templatedDataList!.length) {
+              itemWidget = buildWidgetForIndex(
                 context,
                 templatedDataList!,
                 widget._controller.itemTemplate!,
                 // templated widget should start at 0, need to offset chidlren length
-                index - (widget._controller.children?.length ?? 0));
+                templateIndex,
+              );
+            }
           }
           if (itemWidget != null) {
             return widget._controller.onItemTap == null
@@ -194,16 +221,25 @@ class ListViewState extends WidgetState<ListView>
           }
           return const SizedBox.shrink();
         },
-        separatorBuilder: (context, index) =>
-            widget._controller.showSeparator == true
-                ? flutter.Padding(
-                    padding: widget._controller.separatorPadding ??
-                        const EdgeInsets.all(0),
-                    child: flutter.Divider(
-                        color: widget._controller.separatorColor,
-                        thickness:
-                            widget._controller.separatorWidth?.toDouble()))
-                : const SizedBox.shrink());
+        newPageProgressIndicatorBuilder: (context) {
+          return loadingWidget ?? const SizedBox.shrink();
+        },
+        noItemsFoundIndicatorBuilder: (context) => const SizedBox.shrink(),
+        noMoreItemsIndicatorBuilder: (context) => const SizedBox.shrink(),
+        firstPageErrorIndicatorBuilder: (context) => const SizedBox.shrink(),
+        newPageErrorIndicatorBuilder: (context) => const SizedBox.shrink(),
+      ),
+      separatorBuilder: (context, index) =>
+          widget._controller.showSeparator == true
+              ? flutter.Padding(
+                  padding: widget._controller.separatorPadding ??
+                      const EdgeInsets.all(0),
+                  child: flutter.Divider(
+                      color: widget._controller.separatorColor,
+                      thickness: widget._controller.separatorWidth?.toDouble()),
+                )
+              : const SizedBox.shrink(),
+    );
 
     if (StudioDebugger().debugMode) {
       listView = StudioDebugger()
@@ -241,15 +277,6 @@ class ListViewState extends WidgetState<ListView>
       ScreenController().executeAction(context, widget._controller.onItemTap!);
       print(
           "The Selected index in data array of ListView is ${widget._controller.selectedItemIndex}");
-    }
-  }
-
-  void _checkScrollEnd(BuildContext context, int index) {
-    final totalItems = (widget._controller.children?.length ?? 0) +
-        (templatedDataList?.length ?? 0);
-    if (index == totalItems - 1 && widget._controller.onScrollEnd != null) {
-      ScreenController()
-          .executeAction(context, widget._controller.onScrollEnd!);
     }
   }
 

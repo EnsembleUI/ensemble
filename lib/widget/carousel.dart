@@ -67,8 +67,6 @@ class Carousel extends StatefulWidget
           _controller.indicatorColor = Utils.getColor(value),
       'currentIndex': (value) =>
           _controller.currentIndex = Utils.getInt(value, fallback: 0),
-      'selectedIndex': (value) =>
-          _controller.selectedIndex = Utils.getInt(value, fallback: -1),
       'indicatorMaxCount': (value) =>
           _controller.indicatorMaxCount = Utils.optionalInt(value),
       'onItemChange': (action) => _controller.onItemChange =
@@ -245,6 +243,13 @@ class CarouselState extends WidgetState<Carousel>
     } else {
       // Custom Indicator Logic using the indicatorMaxCount property - Indicator size is not same as item size.
       if (widget._controller.indicatorMaxCount! < items.length) {
+        // Modify indicatorIndex to set the currentIndex as indicatorIndex if it's less than the indicatorMaxCount
+        // Else it'll set the indicatorIndex as zero
+        if (widget._controller.currentIndex <
+            widget._controller.indicatorMaxCount!) {
+          indicatorIndex = widget._controller.currentIndex;
+        }
+
         for (int i = 0; i < widget._controller.indicatorMaxCount!; i++) {
           indicators.add(
               buildIndicatorItem(index: i, isSelected: i == indicatorIndex));
