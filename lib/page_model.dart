@@ -171,14 +171,21 @@ class SinglePageModel extends PageModel {
 
         if (viewMap['footer'] != null &&
             viewMap['footer']['children'] != null) {
+          Map<String, dynamic>? dragOptionsMap =
+              Utils.getMap(viewMap['footer']['dragOptions']);
+          WidgetModel? fixedContent = (dragOptionsMap?['fixedContent'] != null)
+              ? ViewUtil.buildModel(
+                  Utils.getYamlMap(dragOptionsMap?['fixedContent']),
+                  customViewDefinitions)
+              : null;
           footer = Footer(
-            ViewUtil.buildModels(
-                viewMap['footer']['children'], customViewDefinitions),
-            Utils.getMap(
-              viewMap['footer']['styles'],
-            ),
-            Utils.getMap(viewMap['footer']['dragOptions']),
-          );
+              ViewUtil.buildModels(
+                  viewMap['footer']['children'], customViewDefinitions),
+              Utils.getMap(
+                viewMap['footer']['styles'],
+              ),
+              dragOptionsMap,
+              fixedContent);
         }
 
         rootWidgetModel = buildRootModel(viewMap, customViewDefinitions);
@@ -356,7 +363,8 @@ class Footer {
   final List<WidgetModel> children;
   final Map<String, dynamic>? styles;
   final Map<String, dynamic>? dragOptions;
-  Footer(this.children, this.styles, this.dragOptions);
+  final WidgetModel? fixedContent;
+  Footer(this.children, this.styles, this.dragOptions, this.fixedContent);
 }
 
 enum PageType { regular, modal }
