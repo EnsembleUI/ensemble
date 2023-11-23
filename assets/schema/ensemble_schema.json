@@ -2897,7 +2897,8 @@
                     "selectedItemIndex": {
                       "type": "integer",
                       "description": "The initial page to show when first creating the Carousel and the current index of the displaying Carousel Item. Default (0)",
-                      "deprecationMessage": "It is deprecated and removed in future. Use the currentIndex property instead"
+                      "deprecated": false,
+                      "deprecationMessage": "It is deprecated and removed in future. Use the 'currentIndex' property instead"
                     },
                     "indicatorMaxCount": {
                       "type": "integer",
