@@ -15,7 +15,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
+import 'package:http/http.dart' as http;
 
 class EnsembleImage extends StatefulWidget
     with Invokable, HasController<ImageController, ImageState> {
@@ -72,6 +74,7 @@ class ImageController extends BoxController {
     /// the image will bleed through the borderRadius
     clipContent = true;
   }
+  DateTime? lastModifiedCache;
   String source = '';
   BoxFit? fit;
   Color? placeholderColor;
@@ -120,6 +123,20 @@ class ImageState extends WidgetState<EnsembleImage> {
     return rtn;
   }
 
+  Future<String> fetch(String url) async {
+    final http.Response response = await http
+        .get(Uri.parse("${url}timeStamp=${DateTime.now().toString()}"));
+    DateTime lastModifiedDateTime =
+        parseHttpDate("${response.headers['last-modified']}");
+    if (widget._controller.lastModifiedCache == null ||
+        lastModifiedDateTime.compareTo(widget._controller.lastModifiedCache!) ==
+            1) {
+      widget._controller.lastModifiedCache = lastModifiedDateTime;
+      await EnsembleImageCacheManager.instance.emptyCache();
+    }
+    return "${widget.controller.source}timeStamp=$lastModifiedDateTime";
+  }
+
   Widget buildNonSvgImage(String source, BoxFit? fit) {
     if (source.startsWith('https://') || source.startsWith('http://')) {
       int? cachedWidth = widget._controller.resizedWidth;
@@ -132,29 +149,46 @@ class ImageState extends WidgetState<EnsembleImage> {
         cachedWidth = 800;
       }
 
-      return (widget._controller.cache)
-          ? CachedNetworkImage(
-              imageUrl: widget._controller.source,
-              width: widget._controller.width?.toDouble(),
-              height: widget._controller.height?.toDouble(),
-              fit: fit,
-              // we auto resize and cap these values so loading lots of
-              // gigantic images won't run out of memory
-              memCacheWidth: cachedWidth,
-              memCacheHeight: cachedHeight,
-              cacheManager: EnsembleImageCacheManager.instance,
-              errorWidget: (context, error, stacktrace) => errorFallback(),
-              placeholder: (context, url) => ColoredBoxPlaceholder(
-                color: widget._controller.placeholderColor,
-                width: widget._controller.width?.toDouble(),
-                height: widget._controller.height?.toDouble(),
-              ),
-            )
-          : Image.network(widget._controller.source,
-              width: widget._controller.width?.toDouble(),
-              height: widget._controller.height?.toDouble(),
-              fit: fit,
-              errorBuilder: (context, error, stacktrace) => errorFallback());
+      Widget cacheImage(String url) {
+        return CachedNetworkImage(
+          imageUrl: url,
+          width: widget._controller.width?.toDouble(),
+          height: widget._controller.height?.toDouble(),
+          fit: fit,
+          // we auto resize and cap these values so loading lots of
+          // gigantic images won't run out of memory
+          memCacheWidth: cachedWidth,
+          memCacheHeight: cachedHeight,
+          cacheManager: EnsembleImageCacheManager.instance,
+          errorWidget: (context, error, stacktrace) => errorFallback(),
+          placeholder: (context, url) => ColoredBoxPlaceholder(
+            color: widget._controller.placeholderColor,
+            width: widget._controller.width?.toDouble(),
+            height: widget._controller.height?.toDouble(),
+          ),
+        );
+      }
+
+      return (widget.controller.cache)
+          ? FutureBuilder(
+              future: fetch(widget.controller.source),
+              initialData: widget._controller.source,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.done) {
+                  if (snapshot.hasData) {
+                    return cacheImage(snapshot.data!);
+                  } else {
+                    return cacheImage(widget.controller.source);
+                  }
+                } else {
+                  return ColoredBoxPlaceholder(
+                    color: widget._controller.placeholderColor,
+                    width: widget._controller.width?.toDouble(),
+                    height: widget._controller.height?.toDouble(),
+                  );
+                }
+              })
+          : cacheImage(widget._controller.source);
     } else if (Utils.isMemoryPath(widget._controller.source)) {
       return kIsWeb
           ? Image.network(widget._controller.source,
