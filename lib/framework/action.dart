@@ -2,6 +2,7 @@ import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/action/badge_action.dart';
 import 'package:ensemble/action/bottom_modal_action.dart';
 import 'package:ensemble/action/call_external_method.dart';
+import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/action/call_native_method.dart';
 import 'package:ensemble/action/invoke_api_action.dart';
 import 'package:ensemble/action/misc_action.dart';
@@ -531,6 +532,7 @@ class FileUploadAction extends EnsembleAction {
     this.networkType,
     this.requiresBatteryNotLow,
     required this.showNotification,
+    this.batchSize,
   }) : super(inputs: inputs);
 
   String? id;
@@ -545,6 +547,7 @@ class FileUploadAction extends EnsembleAction {
   String? networkType;
   bool? requiresBatteryNotLow;
   bool showNotification;
+  int? batchSize;
 
   factory FileUploadAction.fromYaml({Map? payload}) {
     if (payload == null || payload['uploadApi'] == null) {
@@ -571,6 +574,7 @@ class FileUploadAction extends EnsembleAction {
           Utils.optionalBool(payload['options']?['requiresBatteryNotLow']),
       showNotification: Utils.getBool(payload['options']?['showNotification'],
           fallback: false),
+      batchSize: Utils.optionalInt(payload['options']?['batchSize']),
     );
   }
 }
@@ -916,6 +920,7 @@ enum ActionType {
   updateBadgeCount,
   clearBadgeCount,
   callExternalMethod,
+  invokeHaptic,
   callNativeMethod,
 }
 
@@ -1062,7 +1067,10 @@ abstract class EnsembleAction {
       return SaveKeychain.fromYaml(payload: payload);
     } else if (actionType == ActionType.clearKeychain) {
       return ClearKeychain.fromYaml(payload: payload);
+    } else if (actionType == ActionType.invokeHaptic) {
+      return HapticAction.from(payload);
     }
+
     throw LanguageError("Invalid action.",
         recovery: "Make sure to use one of Ensemble-provided actions.");
   }

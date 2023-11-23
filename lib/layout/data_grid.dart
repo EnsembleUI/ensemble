@@ -249,7 +249,7 @@ class DataGridState extends WidgetState<DataGrid>
           onDataChanged: (List dataList) {
         this.dataList = dataList;
         _sortItems();
-      });
+      }, evaluateInitialValue: true);
     }
   }
 
@@ -450,7 +450,9 @@ class DataGridState extends WidgetState<DataGrid>
 
   // Sorting the datas array (ascending or descending)
   void _sortItems() {
-    if (dataColumnSort != null && dataColumnSort?.columnIndex != null) {
+    if (_columns.isNotEmpty &&
+        dataColumnSort != null &&
+        dataColumnSort?.columnIndex != null) {
       final sortOrder =
           dataColumnSort?.order ?? DataColumnSortType.ascending.name;
       _columns[dataColumnSort!.columnIndex].sortOrder = sortOrder;

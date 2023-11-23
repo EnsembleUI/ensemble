@@ -287,6 +287,21 @@ class Utils {
     return null;
   }
 
+  static List<YamlMap>? getListOfYamlMap(dynamic value) {
+    if (value is YamlList) {
+      List<YamlMap> results = [];
+      for (var item in value) {
+        if (item is YamlMap) {
+          results.add(item);
+        } else {
+          results.add(getYamlMap(item) ?? YamlMap());
+        }
+      }
+      return results;
+    }
+    return null;
+  }
+
   static Map<String, dynamic>? getMap(dynamic value) {
     if (value is Map) {
       Map<String, dynamic> results = {};
@@ -929,5 +944,14 @@ class Utils {
     }
     // Fallback - Returning same passed-in object to the caller
     return dataMapObjects;
+  }
+
+  static String generateRandomId(int length) {
+    var rand = Random();
+    var codeUnits = List.generate(length, (index) {
+      return rand.nextInt(26) + 97; // ASCII code for lowercase a-z
+    });
+
+    return String.fromCharCodes(codeUnits);
   }
 }
