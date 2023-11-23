@@ -12,6 +12,7 @@ import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/has_selectable_text.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
+import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/layout/list_view.dart' as ensemblelist;
 import 'package:ensemble/layout/grid_view.dart' as ensembleGrid;
 import 'package:ensemble/page_model.dart';
@@ -694,6 +695,11 @@ class PageState extends State<Page>
         ..borderWidth = Utils.optionalInt(evaluatedFooter?['borderWidth']);
 
       final dragOptions = pageModel.footer?.dragOptions;
+      Widget? fixedContent;
+      if (pageModel.footer!.fixedContent != null) {
+        fixedContent =
+            scopeManager.buildWidget(pageModel.footer!.fixedContent!);
+      }
 
       final isDraggable =
           Utils.getBool(dragOptions?['enable'], fallback: false);
@@ -737,7 +743,13 @@ class PageState extends State<Page>
 
                   if (child is ensemblelist.ListView ||
                       child is ensembleGrid.GridView) {
+                    child.setProperty("expanded", true);
                     child.setProperty("controller", scrollController);
+                    if (fixedContent != null) {
+                      child = Column(
+                        children: [child, fixedContent],
+                      );
+                    }
                   }
 
                   return BoxWrapper(

@@ -112,6 +112,10 @@
                     "type": "number"
                   }
                 },
+                "fixedContent": {                  
+                    "$ref": "#/$defs/Widgets",
+                    "description": "Provide content to be fixed in the footer"                  
+                },
                 "onMinSize": {
                   "$ref": "#/$defs/Action-payload",
                   "description": "Execute an Action when the drag hits minimum size"
