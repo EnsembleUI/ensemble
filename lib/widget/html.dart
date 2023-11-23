@@ -51,8 +51,8 @@ class CSSStyle {
     Map<String, Style> style = Style.fromCss(
       cssBuffer.toString(),
       (css, errors) {
-        print(errors);
-        print(css);
+        debugPrint(errors.toString());
+        debugPrint(css);
 
         return null;
       },
