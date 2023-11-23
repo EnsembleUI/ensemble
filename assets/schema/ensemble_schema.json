@@ -3034,6 +3034,12 @@
                       "type": "integer",
                       "description": "The initial page to show when first creating the Carousel and the current index of the displaying Carousel Item. Default (0)"
                     },
+                    "selectedItemIndex": {
+                      "type": "integer",
+                      "description": "The initial page to show when first creating the Carousel and the current index of the displaying Carousel Item. Default (0)",
+                      "deprecated": true,
+                      "deprecationMessage": "It is deprecated and removed in future. Use the 'currentIndex' property instead"
+                    },
                     "indicatorMaxCount": {
                       "type": "integer",
                       "description": "This property is used to show a limited number (for ex: 4) of carousel indicator when creating the carousel with more (for ex: 100+) items. Default (null)"

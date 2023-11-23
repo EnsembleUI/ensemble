@@ -743,11 +743,10 @@ class PageState extends State<Page>
 
                   if (child is ensemblelist.ListView ||
                       child is ensembleGrid.GridView) {
-                    child.setProperty("expanded", true);
                     child.setProperty("controller", scrollController);
                     if (fixedContent != null) {
                       child = Column(
-                        children: [child, fixedContent],
+                        children: [Expanded(child: child), fixedContent],
                       );
                     }
                   }
