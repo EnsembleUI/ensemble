@@ -457,6 +457,210 @@
         "onLinkTap": {
           "$ref": "#/$defs/Action-payload",
           "description": "Call Ensemble's built-in functions to handle the case when a link within the HTML is tapped. When specified, the default behavior of opening the url will not be invoked."
+        },
+        "cssStyles": {
+          "type": "array",
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "selector": {
+                  "type": "string",
+                  "description": "The CSS selector for the element"
+                },
+                "properties": {
+                  "type": "object",
+                  "description": "The CSS properties to apply for a given selector",
+                  "properties": {
+                    "backgroundColor": {
+                      "$ref": "#/$defs/type-color",
+                      "description": "The background color of the element"
+                    },
+                    "color": {
+                      "$ref": "#/$defs/type-color",
+                      "description": "The color of the element"
+                    },
+                    "direction": {
+                      "enum":  [
+                        "ltr",
+                        "rtl"
+                      ],
+                      "description": "The text direction"
+                    },
+                    "display": {
+                      "enum": [
+                        "block",
+                        "inline",
+                        "inlineBlock",
+                        "listItem",
+                        "none"
+                      ],
+                      "description": "css equivalent of display"
+                    },
+                    "fontFamily": {
+                      "type": "string",
+                      "description": "The Font Family for the text of the given tag"
+                    },
+                    "fontFamilyFallback": {
+                      "type": "array",
+                      "description": "The list of font families to fall back on when a glyph cannot be found in default font family."
+                    },
+                    "fontFeatureSettings": {
+                      "type": "array",
+                      "description": "Equivalent to CSS attribute font-feature-settings"
+                    },
+                    "fontSize": {
+                      "type": "integer",
+                      "description": "Font Size for the text which is inside a tag"
+                    },
+                    "fontStyle": {
+                      "type": "string",
+                      "description": "The styling to give to the text of a tag"
+                    },
+                    "fontWeight": {
+                      "type": "string",
+                      "description": "Font Weight for the text which is inside a tag"
+                    },
+                    "height": {
+                      "type": "double",
+                      "description": "The height for the given tag"
+                    },
+                    "lineHeight": {
+                      "type": "double",
+                      "description": "Line height for the text which is inside a tag"
+                    },
+                    "letterSpacing": {
+                      "type": "double",
+                      "description": "Spacing between two letters"
+                    },
+                    "listStyleImage": {
+                      "type": "string", 
+                      "description": "Equivalent to the CSS attribute list-style-image"
+                    },
+                    "listStyleType": {
+                      "type": "string", 
+                      "description": "Equivalent to the CSS attribute list-style-type"
+                    },
+                    "listStylePosition": {
+                      "type": "string", 
+                      "description": "Equivalent to the CSS attribute list-style-position"
+                    },
+                    "padding": {
+                      "type": "string", 
+                      "description": "Padding for the element, fully supports the CSS syntax to pass individual paddings"
+                    },
+                    "margin": {
+                      "type": "string", 
+                      "description": "Margin for the element, fully supports the CSS syntax to pass individual paddings"
+                    },
+                    "textAlign": {
+                      "enum": [
+                        "left",
+                        "right",
+                        "center",
+                        "justify",
+                        "start",
+                        "end"
+                      ], 
+                      "description": "Text Align for the text which can be inside a selected tag"
+                    },
+                    "textDecoration": {
+                      "type": "string", 
+                      "description": "Text decoration to give to the text inside the selected tag"
+                    },
+                    "textDecorationColor": {
+                      "$ref": "#/$defs/type-color",
+                      "description": "The color for the text decoration"
+                    },
+                    "textDecorationStyle": {
+                      "enum": [
+                        "solid",
+                        "double",
+                        "dotted",
+                        "dashed",
+                        "wavy"
+                      ],
+                      "description": "The styling to give to the text decoration"
+                    },
+                    "textDecorationThickness": {
+                      "type": "double",
+                      "description": "The thickness for the text decoration"
+                    },
+                    "textShadow": {
+                      "type": "string",
+                      "description": "Equivalent to that of CSS attribute text-shadow"
+                    },
+                    "verticalAlign": {
+                      "enum": [
+                        "baseline",
+                        "sub",
+                        "sup",
+                        "top",
+                        "bottom",
+                        "middle"
+                      ],
+                      "description": "The vertical alignment for a given tag, default (baseline)"
+                    },
+                    "whiteSpace": {
+                      "enum": [
+                        "normal",
+                        "pre"
+                      ],
+                      "description": "Equivalent to that of CSS attribute white-space"
+                    },
+                    "width": {
+                      "type": "double",
+                      "description": "The width for the given tag"
+                    },
+                    "wordSpacing": {
+                      "type": "double",
+                      "description": "The spacing between two words"
+                    },
+                    "border": {
+                      "type": "string",
+                      "description": "The border for the tag selected. Follows the css syntax"
+                    },
+                    "alignment": {
+                      "type": "string",
+                      "description": "The alignment of the selected tag"
+                    },
+                    "maxLines": {
+                      "type": "integer",
+                      "description": "The maximum number of lines for the text to have"
+                    },
+                    "textOverflow": {
+                      "enum": [
+                        "clip",
+                        "fade",
+                        "ellipsis",
+                        "visible"
+                      ],
+                      "description": "Defines on what to do when text overflows or when the lines are more than maxLines"
+                    },
+                    "textTransform": {
+                      "enum": [
+                        "uppercase",
+                        "lowercase",
+                        "capitalize",
+                        "none"
+                      ],
+                      "description": "Perform the given operation to the text inside the selected tag"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "styles": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
+            },
+            {
+              "$ref": "#/$defs/boxLayoutStyles"
+            }
+          ]
         }
       }
     },
