@@ -67,6 +67,8 @@ class Carousel extends StatefulWidget
           _controller.indicatorColor = Utils.getColor(value),
       'currentIndex': (value) =>
           _controller.currentIndex = Utils.getInt(value, fallback: 0),
+      'selectedItemIndex': (value) =>
+          _controller.selectedItemIndex = Utils.getInt(value, fallback: 0),
       'indicatorMaxCount': (value) =>
           _controller.indicatorMaxCount = Utils.optionalInt(value),
       'onItemChange': (action) => _controller.onItemChange =
@@ -84,6 +86,7 @@ class Carousel extends StatefulWidget
     return {
       'currentIndex': () => _controller.currentIndex,
       'selectedIndex': () => _controller.selectedIndex,
+      'selectedItemIndex': () => _controller.selectedItemIndex,
     };
   }
 
@@ -148,6 +151,9 @@ class MyController extends BoxController {
   EnsembleAction? onItemChange;
   int currentIndex = 0;
   int selectedIndex = -1;
+
+  @Deprecated('Use currentIndex instead')
+  int selectedItemIndex = 0;
   int? indicatorMaxCount;
 
   final CarouselController _carouselController = CarouselController();
@@ -161,6 +167,18 @@ class CarouselState extends WidgetState<Carousel>
   Widget? selectedCustomIndicator;
 
   int indicatorIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Deprecated - Assigning selectedItemIndex to currentIndex for the deprecated property (selectedItemIndex)
+    // If currentIndex has value it skip setting the selectedItemIndex to currentIndex
+    // NOTE: If both property has value, then it uses the newly introduced property instead of selectedItemIndex
+    if (widget._controller.selectedItemIndex != 0 &&
+        widget._controller.currentIndex == 0) {
+      widget._controller.currentIndex = widget._controller.selectedItemIndex;
+    }
+  }
 
   @override
   void didChangeDependencies() {
@@ -337,6 +355,7 @@ class CarouselState extends WidgetState<Carousel>
     if (widget.controller.onItemTap != null) {
       widget._controller.currentIndex = index;
       widget._controller.selectedIndex = index;
+      widget._controller.selectedItemIndex = index;
       ScreenController().executeAction(context, widget._controller.onItemTap!);
     }
   }
@@ -345,6 +364,7 @@ class CarouselState extends WidgetState<Carousel>
     if (index != widget._controller.currentIndex &&
         widget._controller.onItemChange != null) {
       widget._controller.currentIndex = index;
+      widget._controller.selectedItemIndex = index;
       updateIndicatorIndex();
       ScreenController()
           .executeAction(context, widget._controller.onItemChange!);
@@ -359,6 +379,7 @@ class CarouselState extends WidgetState<Carousel>
         _onItemChange(index);
         setState(() {
           widget._controller.currentIndex = index;
+          widget._controller.selectedItemIndex = index;
         });
       },
     );
@@ -373,6 +394,7 @@ class CarouselState extends WidgetState<Carousel>
         onPageChanged: (index, _) {
           setState(() {
             widget._controller.currentIndex = index;
+            widget._controller.selectedItemIndex = index;
             updateIndicatorIndex();
           });
         });
