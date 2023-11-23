@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/colored_box_placeholder.dart';
@@ -61,7 +62,9 @@ class EnsembleImage extends StatefulWidget
           _controller.placeholderColor = Utils.getColor(value),
       'fallback': (widget) => _controller.fallback = widget,
       'onTap': (funcDefinition) => _controller.onTap =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this)
+          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onTapHaptic': (value) =>
+          _controller.onTapHaptic = Utils.optionalString(value)
     };
   }
 }
@@ -76,6 +79,7 @@ class ImageController extends BoxController {
   BoxFit? fit;
   Color? placeholderColor;
   EnsembleAction? onTap;
+  String? onTapHaptic;
 
   // whether we should resize the image to this. Note that we should set either
   // resizedWidth or resizedHeight but not both so the aspect ratio is maintained
@@ -108,10 +112,22 @@ class ImageState extends WidgetState<EnsembleImage> {
     );
     if (widget._controller.onTap != null) {
       rtn = GestureDetector(
-          child: rtn,
-          onTap: () => ScreenController().executeAction(
-              context, widget._controller.onTap!,
-              event: EnsembleEvent(widget)));
+        child: rtn,
+        onTap: () {
+          if (widget._controller.onTapHaptic != null) {
+            ScreenController().executeAction(
+              context,
+              HapticAction(
+                type: widget._controller.onTapHaptic!,
+                onComplete: null,
+              ),
+            );
+          }
+
+          ScreenController().executeAction(context, widget._controller.onTap!,
+              event: EnsembleEvent(widget));
+        },
+      );
     }
     if (widget._controller.margin != null) {
       rtn = Padding(padding: widget._controller.margin!, child: rtn);
