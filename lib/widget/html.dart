@@ -14,9 +14,6 @@ import 'package:ensemble/framework/action.dart' as ensemble;
 import 'package:yaml/yaml.dart';
 
 class CSSStyle {
-  StringBuffer cssBuffer;
-  Map<String, Map<String, dynamic>> cssMap;
-
   CSSStyle._({required this.cssBuffer, required this.cssMap});
 
   factory CSSStyle.fromYaml(List<YamlMap> yaml) {
@@ -47,6 +44,9 @@ class CSSStyle {
     return CSSStyle._(cssBuffer: rtnCssBuffer, cssMap: rtnCssMap);
   }
 
+  StringBuffer cssBuffer;
+  Map<String, Map<String, dynamic>> cssMap;
+
   Map<String, Style> getStyle() {
     Map<String, Style> style = Style.fromCss(
       cssBuffer.toString(),
@@ -66,8 +66,9 @@ class CSSStyle {
       if (containsMatch) {
         style[key] = style[key]!.copyWith(
           maxLines: value['maxLines'],
-          textOverflow: TextOverflow.values.asNameMap()['textOverflow'],
-          textTransform: TextTransform.values.asNameMap()['textTransform'],
+          textOverflow: TextOverflow.values.asNameMap()[value['textOverflow']],
+          textTransform:
+              TextTransform.values.asNameMap()[value['textTransform']],
         );
       }
     });
@@ -79,10 +80,12 @@ class CSSStyle {
 /// widget to render Html content
 class EnsembleHtml extends StatefulWidget
     with Invokable, HasController<HtmlController, HtmlState> {
-  static const type = 'Html';
   EnsembleHtml({Key? key}) : super(key: key);
 
+  static const type = 'Html';
+
   final HtmlController _controller = HtmlController();
+
   @override
   HtmlController get controller => _controller;
 
@@ -92,6 +95,11 @@ class EnsembleHtml extends StatefulWidget
   @override
   Map<String, Function> getters() {
     return {'text': () => _controller.text};
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {};
   }
 
   @override
@@ -107,18 +115,12 @@ class EnsembleHtml extends StatefulWidget
       },
     };
   }
-
-  @override
-  Map<String, Function> methods() {
-    return {};
-  }
 }
 
 class HtmlController extends BoxController {
-  String? text;
-  ensemble.EnsembleAction? onLinkTap;
-
   CSSStyle? cssStyle;
+  ensemble.EnsembleAction? onLinkTap;
+  String? text;
 }
 
 class HtmlState extends framework.WidgetState<EnsembleHtml> {
