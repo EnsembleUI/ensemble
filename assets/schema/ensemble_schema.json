@@ -112,6 +112,10 @@
                     "type": "number"
                   }
                 },
+                "fixedContent": {                  
+                    "$ref": "#/$defs/Widgets",
+                    "description": "Provide content to be fixed in the footer"                  
+                },
                 "onMinSize": {
                   "$ref": "#/$defs/Action-payload",
                   "description": "Execute an Action when the drag hits minimum size"
@@ -3097,6 +3101,12 @@
                     "currentIndex": {
                       "type": "integer",
                       "description": "The initial page to show when first creating the Carousel and the current index of the displaying Carousel Item. Default (0)"
+                    },
+                    "selectedItemIndex": {
+                      "type": "integer",
+                      "description": "The initial page to show when first creating the Carousel and the current index of the displaying Carousel Item. Default (0)",
+                      "deprecated": true,
+                      "deprecationMessage": "It is deprecated and removed in future. Use the 'currentIndex' property instead"
                     },
                     "indicatorMaxCount": {
                       "type": "integer",
