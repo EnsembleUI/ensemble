@@ -2,6 +2,7 @@ import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/action/badge_action.dart';
 import 'package:ensemble/action/bottom_modal_action.dart';
 import 'package:ensemble/action/call_external_method.dart';
+import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/action/call_native_method.dart';
 import 'package:ensemble/action/invoke_api_action.dart';
 import 'package:ensemble/action/misc_action.dart';
@@ -919,6 +920,7 @@ enum ActionType {
   updateBadgeCount,
   clearBadgeCount,
   callExternalMethod,
+  invokeHaptic,
   callNativeMethod,
 }
 
@@ -1065,7 +1067,10 @@ abstract class EnsembleAction {
       return SaveKeychain.fromYaml(payload: payload);
     } else if (actionType == ActionType.clearKeychain) {
       return ClearKeychain.fromYaml(payload: payload);
+    } else if (actionType == ActionType.invokeHaptic) {
+      return HapticAction.from(payload);
     }
+
     throw LanguageError("Invalid action.",
         recovery: "Make sure to use one of Ensemble-provided actions.");
   }

@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/event.dart';
@@ -42,6 +43,7 @@ class AvatarController extends EnsembleBoxController {
 
   AvatarVariant? variant;
   EnsembleAction? onTap;
+  String? onTapHaptic;
 
   @override
   Map<String, Function> getters() {
@@ -62,7 +64,8 @@ class AvatarController extends EnsembleBoxController {
       'fit': (value) => fit = Utils.getBoxFit(value),
       'placeholderColor': (value) => placeholderColor = Utils.getColor(value),
       'variant': (value) => variant = AvatarVariant.values.from(value),
-      'onTap': (func) => onTap = EnsembleAction.fromYaml(func, initiator: this)
+      'onTap': (func) => onTap = EnsembleAction.fromYaml(func, initiator: this),
+      'onTapHaptic': (value) => onTapHaptic = Utils.optionalString(value)
     });
 }
 
@@ -88,10 +91,22 @@ class AvatarState extends EnsembleWidgetState<Avatar> {
 
     if (widget.controller.onTap != null) {
       content = GestureDetector(
-          child: content,
-          onTap: () => ScreenController().executeAction(
-              context, widget.controller.onTap!,
-              event: EnsembleEvent(widget.controller)));
+        child: content,
+        onTap: () {
+          if (widget.controller.onTapHaptic != null) {
+            ScreenController().executeAction(
+              context,
+              HapticAction(
+                type: widget.controller.onTapHaptic!,
+                onComplete: null,
+              ),
+            );
+          }
+
+          ScreenController().executeAction(context, widget.controller.onTap!,
+              event: EnsembleEvent(widget.controller));
+        },
+      );
     }
     if (widget.controller.margin != null) {
       content = Padding(padding: widget.controller.margin!, child: content);
