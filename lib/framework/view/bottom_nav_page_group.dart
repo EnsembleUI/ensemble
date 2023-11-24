@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -190,6 +191,13 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
   void _floatingButtonTapped(MenuItem fabMenuItem) {
     final onTapAction = EnsembleAction.fromYaml(fabMenuItem.onTap);
     if (onTapAction != null) {
+      if (fabMenuItem.onTapHaptic != null) {
+        ScreenController().executeAction(
+          context,
+          HapticAction(type: fabMenuItem.onTapHaptic!, onComplete: null),
+        );
+      }
+
       ScreenController()
           .executeActionWithScope(context, widget.scopeManager, onTapAction);
     }

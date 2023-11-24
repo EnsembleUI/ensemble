@@ -286,6 +286,21 @@ class Utils {
     return null;
   }
 
+  static List<YamlMap>? getListOfYamlMap(dynamic value) {
+    if (value is YamlList) {
+      List<YamlMap> results = [];
+      for (var item in value) {
+        if (item is YamlMap) {
+          results.add(item);
+        } else {
+          results.add(getYamlMap(item) ?? YamlMap());
+        }
+      }
+      return results;
+    }
+    return null;
+  }
+
   static Map<String, dynamic>? getMap(dynamic value) {
     if (value is Map) {
       Map<String, dynamic> results = {};
