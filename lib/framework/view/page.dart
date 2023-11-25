@@ -9,8 +9,10 @@ import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/bottom_nav_page_view.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
+import 'package:ensemble/framework/view/has_selectable_text.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
+import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/layout/list_view.dart' as ensemblelist;
 import 'package:ensemble/layout/grid_view.dart' as ensembleGrid;
 import 'package:ensemble/page_model.dart';
@@ -178,8 +180,10 @@ class PageState extends State<Page>
     }
 
     // build the root widget
-    rootWidget = _scopeManager.buildRootWidget(
-        widget._pageModel.rootWidgetModel, executeGlobalCode);
+    rootWidget = (widget._pageModel.rootWidgetModel == null)
+        ? const SizedBox.shrink()
+        : _scopeManager.buildRootWidget(
+            widget._pageModel.rootWidgetModel!, executeGlobalCode);
 
     super.initState();
   }
@@ -430,6 +434,12 @@ class PageState extends State<Page>
                   : FloatingActionButtonLocation.endTop),
     );
 
+    // selectableText at the root
+    if (Utils.optionalBool(widget._pageModel.pageStyles?['selectable']) ==
+        true) {
+      rtn = HasSelectableText(child: rtn);
+    }
+
     // if backgroundImage is set, put it outside of the Scaffold so
     // keyboard sliding up (when entering value) won't resize the background
     if (backgroundImage != null) {
@@ -552,8 +562,8 @@ class PageState extends State<Page>
       content.add(NavigationRail(
         extended: itemDisplay == MenuItemDisplay.sideBySide ? true : false,
         minExtendedWidth: minWidth.toDouble(),
-        minWidth: minGap
-            .toDouble(), // this is important for optimal default item spacing
+        minWidth: minGap.toDouble(),
+        // this is important for optimal default item spacing
         labelType: itemDisplay != MenuItemDisplay.sideBySide
             ? NavigationRailLabelType.all
             : null,
@@ -685,6 +695,11 @@ class PageState extends State<Page>
         ..borderWidth = Utils.optionalInt(evaluatedFooter?['borderWidth']);
 
       final dragOptions = pageModel.footer?.dragOptions;
+      Widget? fixedContent;
+      if (pageModel.footer!.fixedContent != null) {
+        fixedContent =
+            scopeManager.buildWidget(pageModel.footer!.fixedContent!);
+      }
 
       final isDraggable =
           Utils.getBool(dragOptions?['enable'], fallback: false);
@@ -729,6 +744,11 @@ class PageState extends State<Page>
                   if (child is ensemblelist.ListView ||
                       child is ensembleGrid.GridView) {
                     child.setProperty("controller", scrollController);
+                    if (fixedContent != null) {
+                      child = Column(
+                        children: [Expanded(child: child), fixedContent],
+                      );
+                    }
                   }
 
                   return BoxWrapper(

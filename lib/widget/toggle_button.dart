@@ -1,3 +1,4 @@
+import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/action.dart' as framework;
 import 'package:ensemble/framework/widget/icon.dart' as iconframework;
 import 'package:ensemble/framework/event.dart';
@@ -54,6 +55,8 @@ class EnsembleToggleButton extends StatefulWidget
       'shadowColor': (value) => _controller.shadowColor = Utils.getColor(value),
       'onChange': (definition) => _controller.onChange =
           framework.EnsembleAction.fromYaml(definition, initiator: this),
+      'onChangeHaptic': (value) =>
+          _controller.onChangeHaptic = Utils.optionalString(value),
     };
   }
 
@@ -248,6 +251,16 @@ class EnsembleToggleButtonState extends WidgetState<EnsembleToggleButton> {
   void onSelectionChanged(dynamic value) {
     widget.onSelectionChanged(value);
     if (widget._controller.onChange != null) {
+      if (widget._controller.onChangeHaptic != null) {
+        ScreenController().executeAction(
+          context,
+          HapticAction(
+            type: widget._controller.onChangeHaptic!,
+            onComplete: null,
+          ),
+        );
+      }
+
       ScreenController().executeAction(context, widget._controller.onChange!,
           event: EnsembleEvent(widget));
     }
@@ -277,6 +290,7 @@ class ToggleButtonController extends BoxController {
   int? runSpacing;
 
   framework.EnsembleAction? onChange;
+  String? onChangeHaptic;
 }
 
 class ToggleItem extends SelectOneItem {
