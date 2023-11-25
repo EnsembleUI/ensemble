@@ -4,6 +4,7 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/studio_debugger.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -208,12 +209,18 @@ class BoxLayoutState extends WidgetState<BoxLayout>
           mainAxisAlignment: widget._controller.mainAxis,
           crossAxisAlignment: widget._controller.crossAxis,
           children: items);
+      if (StudioDebugger().debugMode) {
+        boxWidget = RequiresRowColumnFlexWidget(child: boxWidget);
+      }
     } else if (widget is Row) {
       boxWidget = flutter.Row(
           mainAxisSize: mainAxisSize,
           mainAxisAlignment: widget._controller.mainAxis,
           crossAxisAlignment: widget._controller.crossAxis,
           children: items);
+      if (StudioDebugger().debugMode) {
+        boxWidget = RequiresRowColumnFlexWidget(child: boxWidget);
+      }
     } else if (widget is Flex) {
       boxWidget = flutter.Flex(
           direction: widget.isVertical() ? Axis.vertical : Axis.horizontal,
@@ -221,6 +228,9 @@ class BoxLayoutState extends WidgetState<BoxLayout>
           mainAxisAlignment: widget._controller.mainAxis,
           crossAxisAlignment: widget._controller.crossAxis,
           children: items);
+      if (StudioDebugger().debugMode) {
+        boxWidget = RequiresRowColumnFlexWidget(child: boxWidget);
+      }
     } else {
       throw LanguageError(
           "Invalid box widget. Column, Row, or Flex is required.");

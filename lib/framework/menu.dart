@@ -72,6 +72,7 @@ abstract class Menu {
                   Utils.optionalString(item['floatingAlignment']) ?? 'center',
               floatingMargin: Utils.optionalInt(item['floatingMargin']),
               onTap: item['onTap'],
+              onTapHaptic: Utils.optionalString(item['onTapHaptic']),
               isExternal: Utils.getBool(item['isExternal'], fallback: false),
             ),
           );
@@ -209,6 +210,7 @@ class MenuItem {
     this.floatingAlignment = 'center',
     this.floatingMargin,
     this.onTap,
+    this.onTapHaptic,
     required this.isExternal,
   });
 
@@ -224,5 +226,6 @@ class MenuItem {
   final String floatingAlignment;
   final int? floatingMargin;
   final dynamic onTap;
+  final String? onTapHaptic;
   final bool isExternal;
 }
