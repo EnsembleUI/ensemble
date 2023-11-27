@@ -1,3 +1,4 @@
+import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/model.dart';
@@ -37,6 +38,8 @@ class EnsembleIconButton extends StatefulWidget
       'icon': (value) => _controller.icon = Utils.getIcon(value),
       'onTap': (funcDefinition) => _controller.onTap =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onTapHaptic': (value) =>
+          _controller.onTapHaptic = Utils.optionalString(value),
     };
   }
 }
@@ -45,6 +48,7 @@ class IconButtonController extends WidgetController {
   int? size;
   IconModel? icon;
   EnsembleAction? onTap;
+  String? onTapHaptic;
 }
 
 class IconButtonState extends WidgetState<EnsembleIconButton> {
@@ -60,6 +64,16 @@ class IconButtonState extends WidgetState<EnsembleIconButton> {
   }
 
   void onTap(BuildContext context, EnsembleAction onTap) {
+    if (widget._controller.onTapHaptic != null) {
+      ScreenController().executeAction(
+        context,
+        HapticAction(
+          type: widget._controller.onTapHaptic!,
+          onComplete: null,
+        ),
+      );
+    }
+
     ScreenController()
         .executeAction(context, onTap, event: EnsembleEvent(widget));
   }
