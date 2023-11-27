@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
@@ -47,6 +48,8 @@ class EnsembleStaggeredGrid extends StatefulWidget
           _controller.verticalGap = Utils.optionalDouble(value),
       'onItemTap': (funcDefinition) => _controller.onItemTap =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onItemTapHaptic': (value) =>
+          _controller.onItemTapHaptic = Utils.optionalString(value)
     };
   }
 
@@ -135,6 +138,16 @@ class EnsembleStaggeredGridState extends WidgetState<EnsembleStaggeredGrid>
 
   void _onItemTapped(int index) {
     if (widget._controller.onItemTap != null) {
+      if (widget._controller.onItemTapHaptic != null) {
+        ScreenController().executeAction(
+          context,
+          HapticAction(
+            type: widget._controller.onItemTapHaptic!,
+            onComplete: null,
+          ),
+        );
+      }
+
       ScreenController().executeAction(
         context,
         widget._controller.onItemTap!,
@@ -151,5 +164,6 @@ class StaggeredGridController extends BoxController {
 
   List<WidgetModel>? children;
   ItemTemplate? itemTemplate;
+  String? onItemTapHaptic;
   EnsembleAction? onItemTap;
 }
