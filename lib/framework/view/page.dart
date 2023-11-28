@@ -19,6 +19,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:ensemble/widget/helpers/unfocus.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:flutter/material.dart';
 
@@ -409,29 +410,33 @@ class PageState extends State<Page>
 
     Widget rtn = DataScopeWidget(
       scopeManager: _scopeManager,
-      child: Scaffold(
-          resizeToAvoidBottomInset: true,
-          // slight optimization, if body background is set, let's paint
-          // the entire screen including the Safe Area
-          backgroundColor: backgroundColor,
+      child: Unfocus(
+        isUnfocus: widget._pageModel.pageStyles?['unfocus'] == true,
+        child: Scaffold(
+            resizeToAvoidBottomInset: true,
+            // slight optimization, if body background is set, let's paint
+            // the entire screen including the Safe Area
+            backgroundColor: backgroundColor,
 
-          // appBar is inside CustomScrollView if defined
-          appBar: fixedAppBar,
-          body: isScrollableView
-              ? buildScrollablePageContent(hasDrawer)
-              : buildFixedPageContent(fixedAppBar != null),
-          bottomNavigationBar: _bottomNavBar,
-          drawer: _drawer,
-          endDrawer: _endDrawer,
-          bottomSheet: _buildFooter(
-            _scopeManager,
-            widget._pageModel,
-          ),
-          floatingActionButton: closeModalButton,
-          floatingActionButtonLocation:
-              widget._pageModel.pageStyles?['navigationIconPosition'] == 'start'
-                  ? FloatingActionButtonLocation.startTop
-                  : FloatingActionButtonLocation.endTop),
+            // appBar is inside CustomScrollView if defined
+            appBar: fixedAppBar,
+            body: isScrollableView
+                ? buildScrollablePageContent(hasDrawer)
+                : buildFixedPageContent(fixedAppBar != null),
+            bottomNavigationBar: _bottomNavBar,
+            drawer: _drawer,
+            endDrawer: _endDrawer,
+            bottomSheet: _buildFooter(
+              _scopeManager,
+              widget._pageModel,
+            ),
+            floatingActionButton: closeModalButton,
+            floatingActionButtonLocation:
+                widget._pageModel.pageStyles?['navigationIconPosition'] ==
+                        'start'
+                    ? FloatingActionButtonLocation.startTop
+                    : FloatingActionButtonLocation.endTop),
+      ),
     );
 
     // selectableText at the root
