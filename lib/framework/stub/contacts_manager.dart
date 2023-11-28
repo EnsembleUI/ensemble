@@ -5,15 +5,16 @@ typedef ContactSuccessCallback = void Function(List<Contact> contacts);
 typedef ContactErrorCallback = void Function(dynamic);
 
 abstract class ContactManager {
-  void getPhoneContacts(
-      ContactSuccessCallback onSuccess, ContactErrorCallback onError);
+  void getPhoneContacts(ContactSuccessCallback onSuccess,
+      ContactErrorCallback onError);
+
   Future<bool> requestPermission();
 }
 
 class ContactManagerStub extends ContactManager {
   @override
-  void getPhoneContacts(
-      ContactSuccessCallback onSuccess, ContactErrorCallback onError) {
+  void getPhoneContacts(ContactSuccessCallback onSuccess,
+      ContactErrorCallback onError) {
     throw ConfigError(
         "Phone Contact Service is not enabled. Please review the Ensemble documentation.");
   }
@@ -30,6 +31,7 @@ class Contact {
   String displayName;
   Uint8List? thumbnail;
   Uint8List? photo;
+
   Uint8List? get photoOrThumbnail => photo ?? thumbnail;
   bool isStarred;
   Name name;
@@ -37,6 +39,7 @@ class Contact {
   List<Email> emails;
   List<Address> addresses;
   List<Organization> organizations;
+  Organization? organization;
   List<Website> websites;
   bool thumbnailFetched = true;
   bool photoFetched = true;
@@ -55,14 +58,19 @@ class Contact {
     List<Address>? addresses,
     List<Organization>? organizations,
     List<Website>? websites,
-  })  : name = name ?? Name(),
+  })
+      : name = name ?? Name(),
         phones = phones ?? <Phone>[],
         emails = emails ?? <Email>[],
         addresses = addresses ?? <Address>[],
         organizations = organizations ?? <Organization>[],
+        organization = organizations != null && organizations.isNotEmpty
+            ? organizations[0]
+            : null,
         websites = websites ?? <Website>[];
 
-  factory Contact.fromJson(Map<String, dynamic> json) => Contact(
+  factory Contact.fromJson(Map<String, dynamic> json) =>
+      Contact(
         id: (json['id'] as String?) ?? '',
         displayName: (json['displayName'] as String?) ?? '',
         thumbnail: json['thumbnail'] as Uint8List?,
@@ -98,9 +106,12 @@ class Contact {
         'isStarred': isStarred,
         'name': name.toJson(),
         'phones': phones.map((x) => x.toJson()).toList(),
+        'phone': phones.isNotEmpty ? phones[0].number : '', // first phone
         'emails': emails.map((x) => x.toJson()).toList(),
+        'email': emails.isNotEmpty ? emails[0].address : '', // first email
         'addresses': addresses.map((x) => x.toJson()).toList(),
         'organizations': organizations.map((x) => x.toJson()).toList(),
+        'organization': organization,
         'websites': websites.map((x) => x.toJson()).toList(),
       });
 }
@@ -128,7 +139,8 @@ class Name {
     this.middlePhonetic = '',
   });
 
-  factory Name.fromJson(Map<String, dynamic> json) => Name(
+  factory Name.fromJson(Map<String, dynamic> json) =>
+      Name(
         first: (json['first'] as String?) ?? '',
         last: (json['last'] as String?) ?? '',
         middle: (json['middle'] as String?) ?? '',
@@ -140,7 +152,8 @@ class Name {
         middlePhonetic: (json['middlePhonetic'] as String?) ?? '',
       );
 
-  Map<String, dynamic> toJson() => {
+  Map<String, dynamic> toJson() =>
+      {
         'first': first,
         'last': last,
         'middle': middle,
@@ -163,14 +176,16 @@ class Website {
   Website(this.url,
       {this.label = WebsiteLabel.homepage, this.customLabel = ''});
 
-  factory Website.fromJson(Map<String, dynamic> json) => Website(
+  factory Website.fromJson(Map<String, dynamic> json) =>
+      Website(
         (json['url'] as String?) ?? '',
         label: _stringToWebsiteLabel[json['label'] as String? ?? ''] ??
             WebsiteLabel.homepage,
         customLabel: (json['customLabel'] as String?) ?? '',
       );
 
-  Map<String, dynamic> toJson() => <String, dynamic>{
+  Map<String, dynamic> toJson() =>
+      <String, dynamic>{
         'url': url,
         'label': _websiteLabelToString[label],
         'customLabel': customLabel,
@@ -222,14 +237,14 @@ class Email {
 
   bool isPrimary;
 
-  Email(
-    this.address, {
+  Email(this.address, {
     this.label = EmailLabel.home,
     this.customLabel = '',
     this.isPrimary = false,
   });
 
-  factory Email.fromJson(Map<String, dynamic> json) => Email(
+  factory Email.fromJson(Map<String, dynamic> json) =>
+      Email(
         (json['address'] as String?) ?? '',
         label: _stringToEmailLabel[json['label'] as String? ?? ''] ??
             EmailLabel.home,
@@ -237,7 +252,8 @@ class Email {
         isPrimary: (json['isPrimary'] as bool?) ?? false,
       );
 
-  Map<String, dynamic> toJson() => <String, dynamic>{
+  Map<String, dynamic> toJson() =>
+      <String, dynamic>{
         'address': address,
         'label': _emailLabelToString[label],
         'customLabel': customLabel,
@@ -282,15 +298,15 @@ class Phone {
   String customLabel;
   bool isPrimary;
 
-  Phone(
-    this.number, {
+  Phone(this.number, {
     this.normalizedNumber = '',
     this.label = PhoneLabel.mobile,
     this.customLabel = '',
     this.isPrimary = false,
   });
 
-  factory Phone.fromJson(Map<String, dynamic> json) => Phone(
+  factory Phone.fromJson(Map<String, dynamic> json) =>
+      Phone(
         (json['number'] as String?) ?? '',
         normalizedNumber: (json['normalizedNumber'] as String?) ?? '',
         label: _stringToPhoneLabel[json['label'] as String? ?? ''] ??
@@ -299,7 +315,8 @@ class Phone {
         isPrimary: (json['isPrimary'] as bool?) ?? false,
       );
 
-  Map<String, dynamic> toJson() => <String, dynamic>{
+  Map<String, dynamic> toJson() =>
+      <String, dynamic>{
         'number': number,
         'normalizedNumber': normalizedNumber,
         'label': _phoneLabelToString[label],
@@ -405,7 +422,8 @@ class Organization {
     this.officeLocation = '',
   });
 
-  factory Organization.fromJson(Map<String, dynamic> json) => Organization(
+  factory Organization.fromJson(Map<String, dynamic> json) =>
+      Organization(
         company: (json['company'] as String?) ?? '',
         title: (json['title'] as String?) ?? '',
         department: (json['department'] as String?) ?? '',
@@ -415,7 +433,8 @@ class Organization {
         officeLocation: (json['officeLocation'] as String?) ?? '',
       );
 
-  Map<String, dynamic> toJson() => <String, dynamic>{
+  Map<String, dynamic> toJson() =>
+      <String, dynamic>{
         'company': company,
         'title': title,
         'department': department,
@@ -441,8 +460,7 @@ class Address {
   String subAdminArea;
   String subLocality;
 
-  Address(
-    this.address, {
+  Address(this.address, {
     this.label = AddressLabel.home,
     this.customLabel = '',
     this.street = '',
@@ -457,7 +475,8 @@ class Address {
     this.subLocality = '',
   });
 
-  factory Address.fromJson(Map<String, dynamic> json) => Address(
+  factory Address.fromJson(Map<String, dynamic> json) =>
+      Address(
         (json['address'] as String?) ?? '',
         label: _stringToAddressLabel[json['label'] as String? ?? ''] ??
             AddressLabel.home,
@@ -474,7 +493,8 @@ class Address {
         subLocality: (json['subLocality'] as String?) ?? '',
       );
 
-  Map<String, dynamic> toJson() => <String, dynamic>{
+  Map<String, dynamic> toJson() =>
+      <String, dynamic>{
         'address': address,
         'label': _addressLabelToString[label],
         'customLabel': customLabel,

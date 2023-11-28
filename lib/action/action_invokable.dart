@@ -20,7 +20,8 @@ abstract class ActionInvokable with Invokable {
       ActionType.share,
       ActionType.rateApp,
       ActionType.copyToClipboard,
-      ActionType.getDeviceToken
+      ActionType.getDeviceToken,
+      ActionType.getPhoneContacts,
     ]);
   }
 
