@@ -483,6 +483,8 @@ class GetLocationAction extends EnsembleAction {
   int? recurringDistanceFilter;
 }
 
+enum FileSource { gallery, files }
+
 class FilePickerAction extends EnsembleAction {
   FilePickerAction({
     required this.id,
@@ -491,6 +493,7 @@ class FilePickerAction extends EnsembleAction {
     this.allowCompression,
     this.onComplete,
     this.onError,
+    this.source,
   });
 
   String id;
@@ -499,10 +502,21 @@ class FilePickerAction extends EnsembleAction {
   bool? allowCompression;
   EnsembleAction? onComplete;
   EnsembleAction? onError;
+  FileSource? source;
 
   factory FilePickerAction.fromYaml({Map? payload}) {
     if (payload == null || payload['id'] == null) {
       throw LanguageError("${ActionType.pickFiles.name} requires 'id'.");
+    }
+
+    FileSource? getSource(String? source) {
+      if (source == 'gallery') {
+        return FileSource.gallery;
+      }
+      if (source == 'files') {
+        return FileSource.files;
+      }
+      return null;
     }
 
     return FilePickerAction(
@@ -513,6 +527,7 @@ class FilePickerAction extends EnsembleAction {
       allowCompression: Utils.optionalBool(payload['allowCompression']),
       onComplete: EnsembleAction.fromYaml(payload['onComplete']),
       onError: EnsembleAction.fromYaml(payload['onError']),
+      source: getSource(payload['source']),
     );
   }
 }
