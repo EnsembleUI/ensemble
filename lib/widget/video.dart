@@ -48,7 +48,7 @@ class MyController extends WidgetController {
 
     if (value != null) {
       if (value.startsWith('https://') || value.startsWith('http://')) {
-        _playerController = VideoPlayerController.network(value)
+        _playerController = VideoPlayerController.networkUrl(Uri.parse(value))
           ..initialize().then((_) {
             VideoPlayerValue value = _playerController!.value;
             log(value.toString());
