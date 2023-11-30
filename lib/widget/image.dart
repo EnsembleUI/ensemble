@@ -140,8 +140,9 @@ class ImageState extends WidgetState<EnsembleImage> {
   }
 
   Future<String> fetch(String url) async {
+    String str = (widget.controller.source.contains("?")) ? "&" : "?";
     final http.Response response = await http
-        .get(Uri.parse("$url?timeStamp=${DateTime.now().toString()}"));
+        .get(Uri.parse("$url${str}timeStamp=${DateTime.now().toString()}"));
     DateTime lastModifiedDateTime =
         parseHttpDate("${response.headers['last-modified']}");
     if (widget._controller.lastModifiedCache == null ||
@@ -150,7 +151,7 @@ class ImageState extends WidgetState<EnsembleImage> {
       widget._controller.lastModifiedCache = lastModifiedDateTime;
       await EnsembleImageCacheManager.instance.emptyCache();
     }
-    return "${widget.controller.source}?timeStamp=$lastModifiedDateTime";
+    return "${widget.controller.source}${str}timeStamp=$lastModifiedDateTime";
   }
 
   Widget buildNonSvgImage(String source, BoxFit? fit) {
