@@ -1,6 +1,7 @@
 import 'dart:collection';
 import 'dart:developer';
 
+import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
@@ -66,6 +67,8 @@ class GridView extends StatefulWidget
           _controller.itemAspectRatio = Utils.optionalDouble(value, min: 0),
       'onItemTap': (funcDefinition) => _controller.onItemTap =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onItemTapHaptic': (value) =>
+          _controller.onItemTapHaptic = Utils.optionalString(value),
       'onPullToRefresh': (funcDefinition) => _controller.onPullToRefresh =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'pullToRefreshOptions': (input) => _controller.pullToRefreshOptions =
@@ -97,6 +100,7 @@ class GridViewController extends BoxController with HasPullToRefresh {
 
   ItemTemplate? itemTemplate;
   EnsembleAction? onItemTap;
+  String? onItemTapHaptic;
   int selectedItemIndex = -1;
   EnsembleAction? onScrollEnd;
   bool reverse = false;
@@ -270,6 +274,16 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
 
   void _onItemTap(int index) {
     if (widget.controller.onItemTap != null) {
+      if (widget.controller.onItemTapHaptic != null) {
+        ScreenController().executeAction(
+          context,
+          HapticAction(
+            type: widget.controller.onItemTapHaptic!,
+            onComplete: null,
+          ),
+        );
+      }
+
       widget._controller.selectedItemIndex = index;
       ScreenController().executeAction(context, widget._controller.onItemTap!);
     }
