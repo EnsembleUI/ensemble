@@ -125,7 +125,7 @@ class ImageState extends WidgetState<EnsembleImage> {
 
   Future<String> fetch(String url) async {
     final http.Response response = await http
-        .get(Uri.parse("${url}timeStamp=${DateTime.now().toString()}"));
+        .get(Uri.parse("$url?timeStamp=${DateTime.now().toString()}"));
     DateTime lastModifiedDateTime =
         parseHttpDate("${response.headers['last-modified']}");
     if (widget._controller.lastModifiedCache == null ||
@@ -134,7 +134,7 @@ class ImageState extends WidgetState<EnsembleImage> {
       widget._controller.lastModifiedCache = lastModifiedDateTime;
       await EnsembleImageCacheManager.instance.emptyCache();
     }
-    return "${widget.controller.source}timeStamp=$lastModifiedDateTime";
+    return "${widget.controller.source}?timeStamp=$lastModifiedDateTime";
   }
 
   Widget buildNonSvgImage(String source, BoxFit? fit) {
@@ -169,7 +169,7 @@ class ImageState extends WidgetState<EnsembleImage> {
         );
       }
 
-      return (widget.controller.cache)
+      return (!widget.controller.cache)
           ? FutureBuilder(
               future: fetch(widget.controller.source),
               initialData: widget._controller.source,
