@@ -47,6 +47,10 @@ class CSSStyle {
   StringBuffer cssBuffer;
   Map<String, Map<String, dynamic>> cssMap;
 
+  void updateMaxLines(String selector, int maxLines) {
+    cssMap[selector]?['maxLines'] = maxLines;
+  }
+
   Map<String, Style> getStyle() {
     Map<String, Style> style = Style.fromCss(
       cssBuffer.toString(),
@@ -99,7 +103,10 @@ class EnsembleHtml extends StatefulWidget
 
   @override
   Map<String, Function> methods() {
-    return {};
+    return {
+      // Updates the max lines for a given selector. Takes two attributes as selector and maxLines
+      'updateMaxLines': controller.htmlAction!.updateMaxLines,
+    };
   }
 
   @override
@@ -121,9 +128,38 @@ class HtmlController extends BoxController {
   CSSStyle? cssStyle;
   ensemble.EnsembleAction? onLinkTap;
   String? text;
+
+  // Added action so it becomes easy to add additional methods in future
+  HtmlAction? htmlAction;
 }
 
-class HtmlState extends framework.WidgetState<EnsembleHtml> {
+mixin HtmlAction on framework.WidgetState<EnsembleHtml> {
+  void updateMaxLines(String selector, int maxLines);
+}
+
+class HtmlState extends framework.WidgetState<EnsembleHtml> with HtmlAction {
+  @override
+  void updateMaxLines(String selector, int maxLines) {
+    // Need to add it here to be able to do setState
+    setState(() {
+      widget.controller.cssStyle?.updateMaxLines(selector, maxLines);
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    widget.controller.htmlAction = this;
+  }
+
+  @override
+  void didUpdateWidget(covariant EnsembleHtml oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    widget.controller.htmlAction = this;
+  }
+
   @override
   Widget buildWidget(BuildContext context) {
     return BoxWrapper(
