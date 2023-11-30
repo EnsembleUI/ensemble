@@ -4446,6 +4446,14 @@
                   "type": "string",
                   "description": "Give the picker an ID allows you to bind to its result, which can be access anywhere e.g. ${filePicker.files...}"
                 },
+                "source": {
+                  "type": "enum",
+                  "description": "Source define where you can pick files. Default files.",
+                  "enum": [
+                    "gallery",
+                    "files"
+                  ]
+                },
                 "allowMultiple": {
                   "type": "boolean",
                   "description": "Allow users to pick multiple files (default False)"
