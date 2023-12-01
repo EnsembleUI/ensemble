@@ -56,25 +56,28 @@ class Footer extends StatefulWidget
 
 class _FooterState extends WidgetState<Footer>
     with HasChildren<Footer>, TemplatedWidgetState {
-  late DragOptions _dragOptions;
+  DragOptions? _dragOptions;
   late DraggableScrollableController _dragController;
   @override
   void initState() {
     super.initState();
     _dragController = widget._controller.dragController;
-    _dragOptions = widget._controller.dragOptions!;
-    _dragController.addListener(
-      () {
-        if (_dragController.size == _dragOptions.maxSize &&
-            _dragOptions.onMaxSize != null) {
-          ScreenController().executeAction(context, _dragOptions.onMaxSize!);
-        }
-        if (_dragController.size == _dragOptions.minSize &&
-            _dragOptions.onMinSize != null) {
-          ScreenController().executeAction(context, _dragOptions.onMinSize!);
-        }
-      },
-    );
+    _dragOptions = widget.controller.dragOptions;
+    if (_dragOptions != null) {
+      _dragOptions = widget._controller.dragOptions!;
+      _dragController.addListener(
+        () {
+          if (_dragController.size == _dragOptions?.maxSize &&
+              _dragOptions?.onMaxSize != null) {
+            ScreenController().executeAction(context, _dragOptions!.onMaxSize!);
+          }
+          if (_dragController.size == _dragOptions?.minSize &&
+              _dragOptions?.onMinSize != null) {
+            ScreenController().executeAction(context, _dragOptions!.onMinSize!);
+          }
+        },
+      );
+    }
   }
 
   @override
@@ -94,24 +97,29 @@ class _FooterState extends WidgetState<Footer>
     return AnimatedOpacity(
       opacity: 1.0,
       duration: const Duration(milliseconds: 250),
-      child: widget.controller.dragOptions!.isDraggable
+      child: (_dragOptions != null &&
+              widget.controller.dragOptions!.isDraggable)
           ? DraggableScrollableSheet(
               controller: _dragController,
-              initialChildSize: _dragOptions.initialSize,
-              minChildSize: _dragOptions.minSize,
-              maxChildSize: _dragOptions.maxSize,
-              expand: _dragOptions.expand,
-              snap: _dragOptions.snap,
-              snapSizes: _dragOptions.snapSizes,
+              initialChildSize: _dragOptions!.initialSize,
+              minChildSize: _dragOptions!.minSize,
+              maxChildSize: _dragOptions!.maxSize,
+              expand: _dragOptions!.expand,
+              snap: _dragOptions!.snap,
+              snapSizes: _dragOptions!.snapSizes,
               builder:
                   (BuildContext context, ScrollController scrollController) {
                 widget.controller.scrollBehavior = scrollController;
-                return (widget.controller.children != null)
+                Widget child = (widget.controller.children != null)
                     ? FooterScope(
                         scrollController: scrollController,
                         child: buildChildren(widget.controller.children!).first,
                       )
                     : const SizedBox.shrink();
+                return BoxWrapper(
+                  boxController: widget.controller,
+                  widget: child,
+                );
               },
             )
           : BoxWrapper(
