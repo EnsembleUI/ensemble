@@ -1,6 +1,7 @@
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/youtube/youtubestate.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/foundation.dart';
@@ -167,30 +168,33 @@ class YouTubeState extends WidgetState<YouTube> with YouTubeMethods {
               }
             }),
           builder: (context, youtube) {
-            return Column(
-              children: [
-                youtube,
-                if (playerController.videoPosition)
-                  YoutubeValueBuilder(
-                    controller: player,
-                    builder: (context, youtubeValue) {
-                      return StreamBuilder<YoutubeVideoState>(
-                          stream: player.videoStateStream,
-                          builder: (context, snapshot) {
-                            final int totalDuration =
-                                youtubeValue.metaData.duration.inMilliseconds;
-                            final int current =
-                                snapshot.data?.position.inMilliseconds ?? 0;
-                            return LinearProgressIndicator(
-                              value: totalDuration == 0
-                                  ? 0
-                                  : current / totalDuration,
-                              minHeight: 3,
-                            );
-                          });
-                    },
-                  )
-              ],
+            return BoxWrapper(
+              boxController: widget.controller,
+              widget: Column(
+                children: [
+                  youtube,
+                  if (playerController.videoPosition)
+                    YoutubeValueBuilder(
+                      controller: player,
+                      builder: (context, youtubeValue) {
+                        return StreamBuilder<YoutubeVideoState>(
+                            stream: player.videoStateStream,
+                            builder: (context, snapshot) {
+                              final int totalDuration =
+                                  youtubeValue.metaData.duration.inMilliseconds;
+                              final int current =
+                                  snapshot.data?.position.inMilliseconds ?? 0;
+                              return LinearProgressIndicator(
+                                value: totalDuration == 0
+                                    ? 0
+                                    : current / totalDuration,
+                                minHeight: 3,
+                              );
+                            });
+                      },
+                    )
+                ],
+              ),
             );
           },
         );
@@ -226,7 +230,7 @@ class YouTubeState extends WidgetState<YouTube> with YouTubeMethods {
   void setVolume(int volume) => player.setVolume(volume);
 }
 
-class PlayerController extends WidgetController {
+class PlayerController extends BoxController {
   YouTubeMethods? youtubeMethods;
   String url = "";
   double? aspectRatio;
