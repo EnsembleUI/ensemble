@@ -53,6 +53,7 @@ class PageState extends State<Page>
     with AutomaticKeepAliveClientMixin, RouteAware, WidgetsBindingObserver {
   late Widget rootWidget;
   late ScopeManager _scopeManager;
+  late Widget footerWidget;
 
   /// the last time the screen went to the background
   DateTime? appLastPaused;
@@ -184,6 +185,8 @@ class PageState extends State<Page>
         ? const SizedBox.shrink()
         : _scopeManager.buildRootWidget(
             widget._pageModel.rootWidgetModel!, executeGlobalCode);
+    footerWidget = _scopeManager.buildRootWidget(
+        widget._pageModel.footer!.footerWidgetModel!, executeGlobalCode);
 
     super.initState();
   }
@@ -423,10 +426,7 @@ class PageState extends State<Page>
           bottomNavigationBar: _bottomNavBar,
           drawer: _drawer,
           endDrawer: _endDrawer,
-          bottomSheet: _buildFooter(
-            _scopeManager,
-            widget._pageModel,
-          ),
+          bottomSheet: footerWidget,
           floatingActionButton: closeModalButton,
           floatingActionButtonLocation:
               widget._pageModel.pageStyles?['navigationIconPosition'] == 'start'
@@ -672,99 +672,6 @@ class PageState extends State<Page>
   void selectNavigationIndex(BuildContext context, MenuItem menuItem) {
     ScreenController().navigateToScreen(context,
         screenName: menuItem.page, isExternal: menuItem.isExternal);
-  }
-
-  Widget? _buildFooter(ScopeManager scopeManager, SinglePageModel pageModel) {
-    // Footer can only take 1 child by our design. Ignore the rest
-    if (pageModel.footer != null && pageModel.footer!.children.isNotEmpty) {
-      final evaluatedFooter = _scopeManager.dataContext.eval(
-        pageModel.footer?.styles,
-      );
-
-      final boxController = BoxController()
-        ..padding = Utils.getInsets(evaluatedFooter?['padding'])
-        ..margin = Utils.optionalInsets(evaluatedFooter?['margin'])
-        ..width = Utils.optionalInt(evaluatedFooter?['width'])
-        ..height = Utils.optionalInt(evaluatedFooter?['height'])
-        ..backgroundColor = Utils.getColor(evaluatedFooter?['backgroundColor'])
-        ..backgroundGradient =
-            Utils.getBackgroundGradient(evaluatedFooter?['backgroundGradient'])
-        ..shadowColor = Utils.getColor(evaluatedFooter?['shadowColor'])
-        ..borderRadius = Utils.getBorderRadius(evaluatedFooter?['borderRadius'])
-        ..borderColor = Utils.getColor(evaluatedFooter?['borderColor'])
-        ..borderWidth = Utils.optionalInt(evaluatedFooter?['borderWidth']);
-
-      final dragOptions = pageModel.footer?.dragOptions;
-      Widget? fixedContent;
-      if (pageModel.footer!.fixedContent != null) {
-        fixedContent =
-            scopeManager.buildWidget(pageModel.footer!.fixedContent!);
-      }
-
-      final isDraggable =
-          Utils.getBool(dragOptions?['enable'], fallback: false);
-      DraggableScrollableController dragController =
-          DraggableScrollableController();
-
-      final maxSize = Utils.getDouble(dragOptions?['maxSize'], fallback: 1.0);
-      final minSize = Utils.getDouble(dragOptions?['minSize'], fallback: 0.25);
-
-      final onMaxSize = EnsembleAction.fromYaml(dragOptions?['onMaxSize']);
-      final onMinSize = EnsembleAction.fromYaml(dragOptions?['onMinSize']);
-
-      dragController.addListener(
-        () {
-          if (dragController.size == maxSize && onMaxSize != null) {
-            ScreenController().executeAction(context, onMaxSize);
-          }
-          if (dragController.size == minSize && onMinSize != null) {
-            ScreenController().executeAction(context, onMinSize);
-          }
-        },
-      );
-
-      return AnimatedOpacity(
-        opacity: 1.0,
-        duration: const Duration(milliseconds: 500),
-        child: isDraggable
-            ? DraggableScrollableSheet(
-                controller: dragController,
-                initialChildSize:
-                    Utils.getDouble(dragOptions?['initialSize'], fallback: 0.5),
-                minChildSize: minSize,
-                maxChildSize: maxSize,
-                expand: Utils.getBool(dragOptions?['expand'], fallback: false),
-                snap: Utils.getBool(dragOptions?['span'], fallback: false),
-                snapSizes: Utils.getList<double>(dragOptions?['snapSizes']),
-                builder:
-                    (BuildContext context, ScrollController scrollController) {
-                  dynamic child = scopeManager
-                      .buildWidget(pageModel.footer!.children.first);
-
-                  if (child is ensemblelist.ListView ||
-                      child is ensembleGrid.GridView) {
-                    child.setProperty("controller", scrollController);
-                    if (fixedContent != null) {
-                      child = Column(
-                        children: [Expanded(child: child), fixedContent],
-                      );
-                    }
-                  }
-
-                  return BoxWrapper(
-                    widget: child,
-                    boxController: boxController,
-                  );
-                },
-              )
-            : BoxWrapper(
-                boxController: boxController,
-                widget:
-                    scopeManager.buildWidget(pageModel.footer!.children.first),
-              ),
-      );
-    }
-    return null;
   }
 
   @override
