@@ -95,7 +95,9 @@ class NotificationManager {
       });
       _handleNotification();
     });
+  }
 
+  void initGetInitialMessage() {
     // This is called when the user taps on the notification and the app is opened from the terminated state
     FirebaseMessaging.instance.getInitialMessage().then((message) {
       if (message == null) return;
@@ -105,8 +107,8 @@ class NotificationManager {
         'body': message.notification?.body,
         'data': message.data
       });
-      Ensemble().addCallbackAfterInitialization(
-          method: () => _handleNotification(isFromTerminatedState: true));
+      Ensemble()
+          .addCallbackAfterInitialization(method: () => _handleNotification());
     }).catchError((err) {
       // ignore: avoid_print
       print('Failed to get the remote notification');
