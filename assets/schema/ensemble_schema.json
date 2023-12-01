@@ -3058,6 +3058,10 @@
               "type": "string",
               "description": "A unique identifier for this widget"
             },
+            "controller" :{
+              "type": "string",
+              "description": "For setting the scrollbehaviour"
+            },
             "children": {
               "$ref": "#/$defs/Widgets"
             },
