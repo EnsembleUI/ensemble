@@ -490,6 +490,7 @@ int getHashCode(DateTime key) {
 
 class CalendarState extends WidgetState<EnsembleCalendar> {
   final CalendarFormat _calendarFormat = CalendarFormat.month;
+  bool showTooltip = true;
 
   @override
   void initState() {
@@ -558,6 +559,7 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
       widget._controller.focusedDay.value = focusedDay;
       widget._controller.rangeStart = start;
       widget._controller.rangeEnd = end;
+      showTooltip = false;
     });
     if (end != null && widget._controller.onRangeComplete != null) {
       widget._controller.range = DateTimeRange(start: start!, end: end);
@@ -636,13 +638,18 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
           toolTip: widget._controller.tooltip,
           toolTipBackgroundColor: widget._controller.tooltipBackgroundColor,
           toolTipStyle: widget._controller.tooltipTextStyle,
+          showTooltip: showTooltip,
           calendarBuilders: CalendarBuilders(
-            overlayDefaultBuilder: (context) {
+            overlayDefaultBuilder: (context, collapsedLength) {
+              Map<String, dynamic> data = {};
+              if (collapsedLength != null) {
+                data['collapsedLength'] = collapsedLength;
+              }
               if (widget._controller.overlapOverflowBuilder == null) {
                 return null;
               }
               return widgetBuilder(
-                  context, widget._controller.overlapOverflowBuilder, {});
+                  context, widget._controller.overlapOverflowBuilder, data);
             },
             overlayBuilder: widget._controller.rowSpans.value.isEmpty
                 ? null
