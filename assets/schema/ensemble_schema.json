@@ -460,7 +460,7 @@
         },
         "cssStyles": {
           "type": "array",
-          "oneOf": [
+          "items": [
             {
               "type": "object",
               "properties": {
