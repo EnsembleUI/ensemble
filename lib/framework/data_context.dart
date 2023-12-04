@@ -370,7 +370,7 @@ class NativeInvokable extends ActionInvokable {
       ActionType.dismissBottomModal.name: (inputs) =>
           ScreenController().executeAction(
             buildContext,
-            DismissBottomModalAction.from(),
+            DismissBottomModalAction.from(payload: inputs),
           ),
       ActionType.showDialog.name: (inputs) => ScreenController()
           .executeAction(buildContext, ShowDialogAction.from(payload: inputs)),
