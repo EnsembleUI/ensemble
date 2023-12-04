@@ -44,7 +44,6 @@ import 'package:ensemble/widget/popup_menu.dart';
 import 'package:ensemble/widget/progress_indicator.dart';
 import 'package:ensemble/widget/qr_code.dart';
 import 'package:ensemble/widget/rating.dart';
-import 'package:ensemble/widget/shape.dart';
 import 'package:ensemble/widget/signature.dart';
 import 'package:ensemble/widget/spacer.dart';
 import 'package:ensemble/widget/staggered_grid.dart';
@@ -58,7 +57,7 @@ import 'package:ensemble/widget/visualization/chart_js.dart';
 import 'package:ensemble/widget/visualization/line_area_chart.dart';
 import 'package:ensemble/widget/visualization/topology_chart.dart';
 import 'package:ensemble/widget/webview/webview.dart';
-import 'package:ensemble/widget/youtube.dart';
+import 'package:ensemble/widget/youtube/youtube.dart';
 import 'package:ensemble/widget/weeklyscheduler.dart';
 import 'package:get_it/get_it.dart';
 
@@ -107,7 +106,7 @@ class WidgetRegistry {
         EnsembleMap.type: () => EnsembleMap(), // legacy maps
         Carousel.type: () => Carousel(),
         Video.type: () => Video(),
-        Youtube.type: () => Youtube(),
+        YouTube.type: () => YouTube(),
         EnsembleLottie.type: () => EnsembleLottie(),
         EnsembleSignature.type: () => EnsembleSignature(),
         WeeklyScheduler.type: () => WeeklyScheduler(),
