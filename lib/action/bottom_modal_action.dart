@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -9,9 +7,7 @@ import 'package:ensemble/framework/view/context_scope_widget.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:yaml/yaml.dart';
 
 /// open a Modal Bottom Sheet
 class ShowBottomModalAction extends EnsembleAction {
@@ -100,12 +96,6 @@ class DismissBottomModalAction extends EnsembleAction {
   @override
   Future<dynamic> execute(BuildContext context, ScopeManager scopeManager,
       {DataContext? dataContext}) {
-    BuildContext? bottomModalContext =
-        ContextScopeWidget.getRootContext(context);
-    if (bottomModalContext != null) {
-      return Navigator.maybePop(
-          bottomModalContext, scopeManager.dataContext.eval(payload));
-    }
-    return Future.value(null);
+    return Navigator.maybePop(context, scopeManager.dataContext.eval(payload));
   }
 }
