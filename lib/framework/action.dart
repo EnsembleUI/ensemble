@@ -15,7 +15,6 @@ import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/keychain_manager.dart';
 import 'package:ensemble/framework/permissions_manager.dart';
 import 'package:ensemble/framework/scope.dart';
-import 'package:ensemble/framework/view/bottom_nav_page_group.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/receive_intent_manager.dart';
@@ -68,18 +67,6 @@ class ShowDialogAction extends EnsembleAction {
   final EnsembleAction? onDialogDismiss;
 
   factory ShowDialogAction.from({Invokable? initiator, Map? payload}) {
-    if (payload == null || payload['widget'] == null) {
-      throw LanguageError(
-          "${ActionType.showDialog.name} requires the 'widget' for the Dialog's content.");
-    }
-    return ShowDialogAction(
-        initiator: initiator,
-        widget: payload['widget'],
-        options: Utils.getMap(payload['options']),
-        onDialogDismiss: EnsembleAction.fromYaml(payload['onDialogDismiss']));
-  }
-
-  factory ShowDialogAction.fromYaml({Invokable? initiator, Map? payload}) {
     if (payload == null || payload['widget'] == null) {
       throw LanguageError(
           "${ActionType.showDialog.name} requires the 'widget' for the Dialog's content.");
@@ -1018,7 +1005,7 @@ abstract class EnsembleAction {
     } else if (actionType == ActionType.openCamera) {
       return ShowCameraAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.showDialog) {
-      return ShowDialogAction.fromYaml(initiator: initiator, payload: payload);
+      return ShowDialogAction.from(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.closeAllDialogs) {
       return CloseAllDialogsAction();
     } else if (actionType == ActionType.startTimer) {
