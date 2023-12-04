@@ -3658,6 +3658,10 @@
                 "options": {
                   "type": "object",
                   "properties": {
+                    "scrollableView": {
+                      "type": "boolean",
+                      "description": "Specify if the view is scrollable. (default is False)"
+                    },
                     "enableDrag": {
                       "type": "boolean",
                       "description": "Whether to drag a bottom modal sheet (default is True)"
