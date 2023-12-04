@@ -67,6 +67,18 @@ class ShowDialogAction extends EnsembleAction {
   final Map<String, dynamic>? options;
   final EnsembleAction? onDialogDismiss;
 
+  factory ShowDialogAction.from({Invokable? initiator, Map? payload}) {
+    if (payload == null || payload['widget'] == null) {
+      throw LanguageError(
+          "${ActionType.showDialog.name} requires the 'widget' for the Dialog's content.");
+    }
+    return ShowDialogAction(
+        initiator: initiator,
+        widget: payload['widget'],
+        options: Utils.getMap(payload['options']),
+        onDialogDismiss: EnsembleAction.fromYaml(payload['onDialogDismiss']));
+  }
+
   factory ShowDialogAction.fromYaml({Invokable? initiator, Map? payload}) {
     if (payload == null || payload['widget'] == null) {
       throw LanguageError(
