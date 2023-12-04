@@ -30,10 +30,6 @@ class ShowBottomModalAction extends EnsembleAction {
   final Map<String, dynamic>? _options;
   final EnsembleAction? onDismiss;
 
-  bool _scrollableView(scopeManager) =>
-      Utils.getBool(scopeManager.dataContext.eval(_options?['scrollableView']),
-          fallback: false);
-
   bool _enableDrag(scopeManager) =>
       Utils.getBool(scopeManager.dataContext.eval(_options?['enableDrag']),
           fallback: true);
@@ -82,12 +78,7 @@ class ShowBottomModalAction extends EnsembleAction {
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(context).viewInsets.bottom,
           ),
-          child: _scrollableView(scopeManager) == true
-              ? SingleChildScrollView(
-                  child:
-                      ContextScopeWidget(rootContext: context, child: widget!),
-                )
-              : ContextScopeWidget(rootContext: context, child: widget!),
+          child: ContextScopeWidget(rootContext: context, child: widget!),
         ),
       ).then((payload) {
         if (onDismiss != null) {
