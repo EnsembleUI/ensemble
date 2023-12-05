@@ -53,7 +53,7 @@ class PageState extends State<Page>
     with AutomaticKeepAliveClientMixin, RouteAware, WidgetsBindingObserver {
   late Widget rootWidget;
   late ScopeManager _scopeManager;
-  late Widget footerWidget;
+  Widget? footerWidget;
 
   /// the last time the screen went to the background
   DateTime? appLastPaused;
@@ -185,8 +185,11 @@ class PageState extends State<Page>
         ? const SizedBox.shrink()
         : _scopeManager.buildRootWidget(
             widget._pageModel.rootWidgetModel!, executeGlobalCode);
-    footerWidget = _scopeManager.buildRootWidget(
-        widget._pageModel.footer!.footerWidgetModel!, executeGlobalCode);
+
+    footerWidget = (widget._pageModel.footer?.footerWidgetModel != null)
+        ? _scopeManager
+            .buildWidget(widget._pageModel.footer!.footerWidgetModel!)
+        : null;
 
     super.initState();
   }
