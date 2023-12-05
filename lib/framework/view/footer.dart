@@ -10,6 +10,9 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/framework/action.dart' as action;
 import 'package:yaml/yaml.dart';
+import '../../layout/list_view.dart' as ensemblelistview;
+import '../../layout/grid_view.dart' as ensemblegridview;
+import '../../layout/box/box_layout.dart' as ensemblecolumn;
 
 class Footer extends StatefulWidget
     with
@@ -112,6 +115,7 @@ class _FooterState extends WidgetState<Footer>
                 widget.controller.scrollBehavior = scrollController;
                 Widget child = (widget.controller.children != null)
                     ? FooterScope(
+                        dragOptions: _dragOptions!,
                         scrollController: scrollController,
                         child: buildChildren(widget.controller.children!).first,
                       )
@@ -183,11 +187,47 @@ class DragOptions {
 }
 
 class FooterScope extends InheritedWidget {
-  const FooterScope({super.key, required super.child, this.scrollController});
+  FooterScope(
+      {super.key,
+      required super.child,
+      this.scrollController,
+      this.rootWithinFooterFound = false,
+      this.isColumnScrollable = false,
+      required this.dragOptions});
 
   final ScrollController? scrollController;
+  final DragOptions dragOptions;
+  bool rootWithinFooterFound;
+  bool isColumnScrollable;
+
+  static FooterScope? of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<FooterScope>();
+
+  bool isRootWithinFooter(BuildContext context) {
+    if (rootWithinFooterFound) {
+      return false;
+    } else {
+      if (FooterScope.of(context) != null &&
+          FooterScope.of(context)!.dragOptions.isDraggable &&
+          context.findAncestorWidgetOfExactType<ensemblecolumn.Column>() ==
+              null &&
+          context.findAncestorWidgetOfExactType<ensemblegridview.GridView>() ==
+              null &&
+          context.findAncestorWidgetOfExactType<ensemblelistview.ListView>() ==
+              null) {
+        rootWithinFooterFound = true;
+        return true;
+      } else {
+        return false;
+      }
+    }
+  }
+
+  bool isColumnScrollableAndRoot(BuildContext context) =>
+      context.findAncestorWidgetOfExactType<ensemblecolumn.Column>() != null &&
+      isColumnScrollable;
 
   @override
   bool updateShouldNotify(covariant FooterScope oldWidget) =>
-      oldWidget.scrollController != scrollController;
+      oldWidget.scrollController == scrollController;
 }

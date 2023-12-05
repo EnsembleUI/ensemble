@@ -188,7 +188,6 @@ class SinglePageModel extends PageModel {
               dragOptionsMap,
               fixedContent,
               ViewUtil.buildModel(footerYamlMap, customViewDefinitions));
-          log("footer Yaml Map: ${ViewUtil.buildModel(footerYamlMap, customViewDefinitions).props}");
         }
 
         rootWidgetModel = buildRootModel(viewMap, customViewDefinitions);
