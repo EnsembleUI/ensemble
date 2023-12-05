@@ -255,19 +255,20 @@ class BoxLayoutState extends WidgetState<BoxLayout>
 
     if (widget._controller.scrollable) {
       FooterScope? footerScope = FooterScope.of(context);
-      footerScope?.isColumnScrollable = true;
-      rtn = SingleChildScrollView(
-          controller: (widget.isVertical() &&
-                  footerScope != null &&
-                  footerScope.isRootWithinFooter(context))
-              ? FooterScope.of(context)!.scrollController
-              : null,
-          scrollDirection:
-              widget.isVertical() ? Axis.vertical : Axis.horizontal,
-          physics: widget._controller.onPullToRefresh != null
-              ? const AlwaysScrollableScrollPhysics()
-              : null,
-          child: rtn);
+      rtn = ScrollableColumn(
+        child: SingleChildScrollView(
+            controller: (widget.isVertical() &&
+                    footerScope != null &&
+                    footerScope.isRootWithinFooter(context))
+                ? FooterScope.of(context)!.scrollController
+                : null,
+            scrollDirection:
+                widget.isVertical() ? Axis.vertical : Axis.horizontal,
+            physics: widget._controller.onPullToRefresh != null
+                ? const AlwaysScrollableScrollPhysics()
+                : null,
+            child: rtn),
+      );
 
       if (widget is Column && widget._controller.onPullToRefresh != null) {
         rtn = PullToRefreshContainer(
@@ -301,4 +302,11 @@ class BoxLayoutState extends WidgetState<BoxLayout>
       );
     }
   }
+}
+
+class ScrollableColumn extends flutter.InheritedWidget {
+  const ScrollableColumn({super.key, required super.child});
+
+  @override
+  bool updateShouldNotify(covariant InheritedWidget oldWidget) => false;
 }
