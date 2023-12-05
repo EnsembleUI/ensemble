@@ -192,13 +192,11 @@ class FooterScope extends InheritedWidget {
       required super.child,
       this.scrollController,
       this.rootWithinFooterFound = false,
-      this.isColumnScrollable = false,
       required this.dragOptions});
 
   final ScrollController? scrollController;
   final DragOptions dragOptions;
   bool rootWithinFooterFound;
-  bool isColumnScrollable;
 
   static FooterScope? of(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<FooterScope>();
@@ -209,7 +207,8 @@ class FooterScope extends InheritedWidget {
     } else {
       if (FooterScope.of(context) != null &&
           FooterScope.of(context)!.dragOptions.isDraggable &&
-          context.findAncestorWidgetOfExactType<ensemblecolumn.Column>() ==
+          context.findAncestorWidgetOfExactType<
+                  ensemblecolumn.ScrollableColumn>() ==
               null &&
           context.findAncestorWidgetOfExactType<ensemblegridview.GridView>() ==
               null &&
@@ -224,8 +223,9 @@ class FooterScope extends InheritedWidget {
   }
 
   bool isColumnScrollableAndRoot(BuildContext context) =>
-      context.findAncestorWidgetOfExactType<ensemblecolumn.Column>() != null &&
-      isColumnScrollable;
+      context
+          .findAncestorWidgetOfExactType<ensemblecolumn.ScrollableColumn>() !=
+      null;
 
   @override
   bool updateShouldNotify(covariant FooterScope oldWidget) =>
