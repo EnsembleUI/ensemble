@@ -117,8 +117,21 @@ class _FooterState extends WidgetState<Footer>
                     ? FooterScope(
                         dragOptions: _dragOptions!,
                         scrollController: scrollController,
-                        child: buildChildren(widget.controller.children!).first,
-                      )
+                        child: (_dragOptions!.showDragHandle)
+                            ? Stack(
+                                alignment: Alignment.topCenter,
+                                children: <Widget>[
+                                  dragHandle(context),
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                        top: kMinInteractiveDimension),
+                                    child: buildChildren(
+                                            widget.controller.children!)
+                                        .first,
+                                  ),
+                                ],
+                              )
+                            : buildChildren(widget.controller.children!).first)
                     : const SizedBox.shrink();
                 return BoxWrapper(
                   boxController: widget.controller,
@@ -132,6 +145,25 @@ class _FooterState extends WidgetState<Footer>
                   ? buildChildren(widget.controller.children!).first
                   : const SizedBox.shrink(),
             ),
+    );
+  }
+
+  Widget dragHandle(BuildContext context) {
+    ColorScheme colors = Theme.of(context).colorScheme;
+    var handleSize = const Size(32, 4);
+    return SizedBox(
+      height: kMinInteractiveDimension,
+      width: kMinInteractiveDimension,
+      child: Center(
+        child: Container(
+          height: handleSize.height,
+          width: handleSize.width,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(handleSize.height / 2),
+            color: colors.onSurfaceVariant.withOpacity(0.4),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -157,6 +189,7 @@ class DragOptions {
   bool expand;
   bool snap;
   List<double>? snapSizes;
+  bool showDragHandle = false;
 
   DragOptions(
       {required this.onMaxSize,
@@ -167,23 +200,28 @@ class DragOptions {
       required this.initialSize,
       required this.expand,
       required this.snap,
+      required this.showDragHandle,
       required this.snapSizes});
 
   factory DragOptions.fromYaml(
           YamlMap yamlMap, Invokable invokable) =>
       DragOptions(
           onMaxSize:
-              action.EnsembleAction.fromYaml(yamlMap['onMaxSize'],
+              action
+                      .EnsembleAction
+                  .fromYaml(yamlMap['onMaxSize'], initiator: invokable),
+          onMinSize:
+              action.EnsembleAction.fromYaml(yamlMap['onMinSize'],
                   initiator: invokable),
-          onMinSize: action.EnsembleAction.fromYaml(yamlMap['onMinSize'],
-              initiator: invokable),
           minSize: Utils.getDouble(yamlMap['minSize'], fallback: 0.25),
           maxSize: Utils.getDouble(yamlMap['maxSize'], fallback: 1.0),
           isDraggable: Utils.getBool(yamlMap['enable'], fallback: false),
           initialSize: Utils.getDouble(yamlMap['initialSize'], fallback: 0.5),
           expand: Utils.getBool(yamlMap['expand'], fallback: false),
           snap: Utils.getBool(yamlMap, fallback: false),
-          snapSizes: Utils.getList(yamlMap['snapSize']));
+          snapSizes: Utils.getList(yamlMap['snapSize']),
+          showDragHandle:
+              Utils.getBool(yamlMap['enableDragHandler'], fallback: false));
 }
 
 class FooterScope extends InheritedWidget {
