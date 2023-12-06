@@ -71,7 +71,7 @@ class ShowBottomModalAction extends EnsembleAction {
               enableDrag: _enableDrag(scopeManager),
               showDragHandle: _enableDragHandler(scopeManager),
               builder: (modalContext) =>
-                  ContextScopeWidget(rootContext: modalContext, child: widget!))
+                  ContextScopeWidget(rootContext: context, child: widget!))
           .then((payload) {
         if (onDismiss != null) {
           return ScreenController().executeActionWithScope(
@@ -96,6 +96,12 @@ class DismissBottomModalAction extends EnsembleAction {
   @override
   Future<dynamic> execute(BuildContext context, ScopeManager scopeManager,
       {DataContext? dataContext}) {
+    BuildContext? bottomModalContext =
+        ContextScopeWidget.getRootContext(context);
+    if (bottomModalContext != null) {
+      return Navigator.maybePop(
+          bottomModalContext, scopeManager.dataContext.eval(payload));
+    }
     return Navigator.maybePop(context, scopeManager.dataContext.eval(payload));
   }
 }
