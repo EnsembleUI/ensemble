@@ -209,11 +209,6 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
     }
 
     Widget myGridView = LayoutBuilder(builder: (context, constraints) {
-      if (StudioDebugger().debugMode) {
-        StudioDebugger()
-            .assertScrollableHasBoundedHeight(constraints, GridView.type);
-      }
-
       return flutter.GridView.builder(
           controller: (footerScope != null &&
                   footerScope.isColumnScrollableAndRoot(context))
@@ -244,7 +239,10 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
           padding: widget._controller.padding,
           itemBuilder: (context, index) => _buildItem(index));
     });
-
+    if (StudioDebugger().debugMode) {
+      myGridView = StudioDebugger().assertScrollableHasBoundedHeightWrapper(
+          myGridView, GridView.type, context, widget.controller);
+    }
     // wrapping view inside
 
     if (widget._controller.onPullToRefresh != null) {

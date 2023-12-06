@@ -2649,6 +2649,10 @@
               "type": "string",
               "description": "A unique identifier for this widget"
             },
+            "scrollController": {
+              "type": "string",
+              "description": "For setting the scrollbehaviour"
+            },
             "onItemTap": {
               "$ref": "#/$defs/Action-payload",
               "description": "Call Ensemble's built-in functions or execute code when tapping on an item in the list."
