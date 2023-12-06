@@ -97,20 +97,25 @@ class NotificationManager {
     });
   }
 
-  Future<RemoteMessage?> getInitialMessage() {
+  void initGetInitialMessage() {
     // This is called when the user taps on the notification and the app is opened from the terminated state
-    try {
-      final message = FirebaseMessaging.instance.getInitialMessage();
-      return message;
-    } catch (e) {
+    FirebaseMessaging.instance.getInitialMessage().then((message) {
+      if (message == null) return;
+
+      Ensemble.externalDataContext.addAll({
+        'title': message.notification?.title,
+        'body': message.notification?.body,
+        'data': message.data
+      });
+      Ensemble()
+          .addCallbackAfterInitialization(method: () => _handleNotification());
+    }).catchError((err) {
       // ignore: avoid_print
       print('Failed to get the remote notification');
-      return Future.value(null);
-    }
+    });
   }
 
-  Future<void> _handleNotification({bool isFromTerminatedState = false}) async {
-    if (isFromTerminatedState) await Future.delayed(const Duration(seconds: 2));
+  Future<void> _handleNotification() async {
     Map<String, dynamic>? messageData = Ensemble.externalDataContext['data'];
     if (messageData?['screenId'] != null ||
         messageData?['screenName'] != null) {
