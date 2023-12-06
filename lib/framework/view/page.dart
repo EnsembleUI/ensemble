@@ -411,7 +411,8 @@ class PageState extends State<Page>
     Widget rtn = DataScopeWidget(
       scopeManager: _scopeManager,
       child: Unfocus(
-        isUnfocus: widget._pageModel.pageStyles?['unfocus'] == true,
+        isUnfocus: Utils.getBool(widget._pageModel.pageStyles?['unfocus'],
+            fallback: false),
         child: Scaffold(
             resizeToAvoidBottomInset: true,
             // slight optimization, if body background is set, let's paint
