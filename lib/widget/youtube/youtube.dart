@@ -1,19 +1,20 @@
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:ensemble/widget/helpers/widgets.dart';
+import 'package:ensemble/widget/youtube/youtubestate.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
-// import 'package:webview_flutter_platform_interface/src/webview_platform.dart';
-// import 'package:youtube_player_iframe_web/src/web_youtube_player_iframe_platform.dart';
 
-class Youtube extends StatefulWidget
-    with Invokable, HasController<PlayerController, YoutubeState> {
-  Youtube({super.key});
+class YouTube extends StatefulWidget
+    with Invokable, HasController<PlayerController, YouTubeState> {
+  YouTube({super.key});
 
-  static const String type = "Youtube";
+  static const String type = "YouTube";
 
   final PlayerController _controller = PlayerController();
 
@@ -21,7 +22,7 @@ class Youtube extends StatefulWidget
   PlayerController get controller => _controller;
 
   @override
-  State<StatefulWidget> createState() => YoutubeState();
+  State<StatefulWidget> createState() => YouTubeState();
 
   @override
   Map<String, Function> getters() => {};
@@ -68,11 +69,13 @@ class Youtube extends StatefulWidget
           _controller.youtubeMethods
               ?.setVolume(Utils.getInt(value, fallback: 100, max: 100, min: 0));
           _controller.volume = Utils.optionalInt(value, max: 100, min: 0);
-        }
+        },
+        'videoPosition': (value) =>
+            _controller.videoPosition = Utils.getBool(value, fallback: false)
       };
 }
 
-mixin YoutubeMethods on WidgetState<Youtube> {
+mixin YouTubeMethods on WidgetState<YouTube> {
   void nextVideo();
   void previousVideo();
   void stopVideo();
@@ -84,48 +87,19 @@ mixin YoutubeMethods on WidgetState<Youtube> {
   void setVolume(int volume);
 }
 
-class YoutubeState extends WidgetState<Youtube> with YoutubeMethods {
+class YouTubeState extends WidgetState<YouTube> with YouTubeMethods {
   late YoutubePlayerController player;
   @override
   void initState() {
-    // known issue with the youtube package. Without this
-    // Web renderer intermittently fails to load
-    // https://github.com/sarbagyastha/youtube_player_flutter/issues/819
-    // TODO: use the below but conditionally import libraries
-    // if (kIsWeb) {
-    //   WebViewPlatform.instance = WebYoutubePlayerIframePlatform();
-    // }
-
+    YouTubeBase().createWebInstance();
     PlayerController playerController = widget._controller;
     player = YoutubePlayerController(
         params: YoutubePlayerParams(
+            enableJavaScript: false,
             enableCaption: playerController.enableCaptions,
             showControls: playerController.showControls,
             showFullscreenButton: playerController.showFullScreenButton,
             showVideoAnnotations: playerController.showVideoAnnotation));
-    List<String> list = playerController.videoList;
-
-    if (!playerController.autoplay) {
-      (list.isEmpty)
-          ? player.cueVideoById(
-              videoId: playerController.url,
-              startSeconds: playerController.startSeconds,
-              endSeconds: playerController.endSeconds)
-          : player.cuePlaylist(
-              list: playerController.videoList,
-              startSeconds: playerController.startSeconds,
-              listType: ListType.playlist);
-    } else {
-      (list.isEmpty)
-          ? player.loadVideoById(
-              videoId: playerController.url,
-              startSeconds: playerController.startSeconds,
-              endSeconds: playerController.endSeconds)
-          : player.loadPlaylist(
-              list: playerController.videoList,
-              startSeconds: playerController.startSeconds,
-              listType: ListType.playlist);
-    }
     super.initState();
   }
 
@@ -140,40 +114,91 @@ class YoutubeState extends WidgetState<Youtube> with YoutubeMethods {
   }
 
   @override
-  void didUpdateWidget(covariant Youtube oldWidget) {
+  void didUpdateWidget(covariant YouTube oldWidget) {
     widget._controller.youtubeMethods = this;
+    widget._controller.youtubeMethods!
+        .setPlaybackRate(oldWidget.controller.playbackRate ?? 1);
+    widget._controller.youtubeMethods!
+        .setVolume(oldWidget.controller.volume ?? 100);
     super.didUpdateWidget(oldWidget);
+  }
+
+  @override
+  void dispose() {
+    player.close();
+    super.dispose();
   }
 
   @override
   Widget buildWidget(BuildContext context) {
     PlayerController playerController = widget._controller;
-
+    Set<Factory<EagerGestureRecognizer>> gesture = {};
+    gesture
+        .add(Factory<EagerGestureRecognizer>(() => EagerGestureRecognizer()));
     if (widget._controller.broken) {
       return const SizedBox.shrink();
     }
-    return YoutubePlayerScaffold(
-      gestureRecognizers: <Factory<EagerGestureRecognizer>>{}..add(
-          Factory<EagerGestureRecognizer>(() => EagerGestureRecognizer()),
-        ),
-      enableFullScreenOnVerticalDrag: false,
-      autoFullScreen: false,
-      aspectRatio: playerController.aspectRatio ?? 16 / 9,
-      controller: player
-        ..setFullScreenListener((value) async {
-          final videoData = await player.videoData;
-          final startSeconds = await player.currentTime;
-          if (!context.mounted) return;
-          final currentTime = await FullscreenYoutubePlayer.launch(
-            context,
-            videoId: videoData.videoId,
-            startSeconds: startSeconds,
-          );
-          if (currentTime != null) {
-            player.seekTo(seconds: currentTime, allowSeekAhead: true);
-          }
-        }),
-      builder: (context, player) => player,
+    return ChangeNotifierProvider(
+      create: (context) => YoutubeNotifier(),
+      child: Consumer<YoutubeNotifier>(builder: (context, ref, child) {
+        if (!ref.isCalled) {
+          ref.loadYouTube(
+              playerController, widget.controller.videoList, player);
+          ref.isCalled = true;
+        }
+        return YoutubePlayerScaffold(
+          gestureRecognizers: (playerController.videoList.isEmpty)
+              ? const <Factory<OneSequenceGestureRecognizer>>{}
+              : gesture,
+          enableFullScreenOnVerticalDrag: false,
+          autoFullScreen: false,
+          aspectRatio: playerController.aspectRatio ?? 16 / 9,
+          controller: player
+            ..setFullScreenListener((value) async {
+              final videoData = await player.videoData;
+              final startSeconds = await player.currentTime;
+              if (!context.mounted) return;
+              final currentTime = await FullscreenYoutubePlayer.launch(
+                context,
+                videoId: videoData.videoId,
+                startSeconds: startSeconds,
+              );
+              if (currentTime != null) {
+                player.seekTo(seconds: currentTime, allowSeekAhead: true);
+              }
+            }),
+          builder: (context, youtube) {
+            return BoxWrapper(
+              boxController: widget.controller,
+              widget: Column(
+                children: [
+                  youtube,
+                  if (playerController.videoPosition)
+                    YoutubeValueBuilder(
+                      controller: player,
+                      builder: (context, youtubeValue) {
+                        return StreamBuilder<YoutubeVideoState>(
+                            stream: player.videoStateStream,
+                            builder: (context, snapshot) {
+                              final int totalDuration =
+                                  youtubeValue.metaData.duration.inMilliseconds;
+                              final int current =
+                                  snapshot.data?.position.inMilliseconds ?? 0;
+                              return LinearProgressIndicator(
+                                value: totalDuration == 0
+                                    ? 0
+                                    : current / totalDuration,
+                                minHeight: 3,
+                              );
+                            });
+                      },
+                    )
+                ],
+              ),
+            );
+          },
+        );
+      }),
     );
   }
 
@@ -205,8 +230,8 @@ class YoutubeState extends WidgetState<Youtube> with YoutubeMethods {
   void setVolume(int volume) => player.setVolume(volume);
 }
 
-class PlayerController extends WidgetController {
-  YoutubeMethods? youtubeMethods;
+class PlayerController extends BoxController {
+  YouTubeMethods? youtubeMethods;
   String url = "";
   double? aspectRatio;
   bool autoplay = false;
@@ -219,6 +244,7 @@ class PlayerController extends WidgetController {
   bool enableCaptions = true;
   double? playbackRate;
   int? volume;
+  bool videoPosition = false;
 
   List<String> videoList = [];
 
@@ -250,5 +276,40 @@ class PlayerController extends WidgetController {
     if (x != null) {
       url = x;
     }
+  }
+}
+
+class YoutubeNotifier extends ChangeNotifier {
+  bool isCalled = false;
+  Future<void> initializeYoutube(PlayerController playerController,
+      List<String> list, YoutubePlayerController player) async {
+    if (!playerController.autoplay) {
+      (list.isEmpty)
+          ? await player.cueVideoById(
+              videoId: playerController.url,
+              startSeconds: playerController.startSeconds,
+              endSeconds: playerController.endSeconds)
+          : await player.cuePlaylist(
+              list: playerController.videoList,
+              startSeconds: playerController.startSeconds,
+              listType: ListType.playlist);
+    } else {
+      (list.isEmpty)
+          ? await player.loadVideoById(
+              videoId: playerController.url,
+              startSeconds: playerController.startSeconds,
+              endSeconds: playerController.endSeconds)
+          : await player.loadPlaylist(
+              list: playerController.videoList,
+              startSeconds: playerController.startSeconds,
+              listType: ListType.playlist);
+    }
+  }
+
+  Future<void> loadYouTube(PlayerController playerController, List<String> list,
+      YoutubePlayerController player) async {
+    await initializeYoutube(playerController, list, player);
+    return await Future.delayed(const Duration(seconds: 1))
+        .then((value) => initializeYoutube(playerController, list, player));
   }
 }
