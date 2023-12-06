@@ -17,7 +17,7 @@ class StudioDebugger {
   /// studio mode will enable extra friendly debugging information
   /// to enable this add --dart-define=studio=true
   final bool debugMode =
-      const bool.fromEnvironment('studio', defaultValue: true);
+      const bool.fromEnvironment('studio', defaultValue: false);
 
   /// assert that the widget's constraints does not have infinite height
   /// This usually happen when the widget is scrollable and:
