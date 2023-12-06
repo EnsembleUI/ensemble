@@ -1558,6 +1558,10 @@
               "type": "boolean",
               "description": "enable the toggling between plain and obscure text."
             },
+            "toolbarDone": {
+              "type": "boolean",
+              "description": "enable the toolbar with done button in the TextInput. (defaults to False)"
+            },
             "enableClearText": {
               "type": "boolean",
               "description": "It enables the default suffix clear icon button for the text input field to clear the values. Default (false)"
