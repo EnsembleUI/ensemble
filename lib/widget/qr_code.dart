@@ -65,7 +65,14 @@ class QRCodeState extends WidgetState<QRCode> {
             size: widget._controller.size?.toDouble() ?? defaultSize,
             backgroundColor:
                 widget._controller.backgroundColor ?? Colors.transparent,
-            foregroundColor: widget._controller.color),
+            dataModuleStyle: QrDataModuleStyle(
+              color: widget._controller.color ?? Colors.black,
+              dataModuleShape: QrDataModuleShape.square,
+            ),
+            eyeStyle: QrEyeStyle(
+              color: widget._controller.color ?? Colors.black,
+              eyeShape: QrEyeShape.square,
+            )),
         boxController: widget._controller,
         ignoresDimension: true // width/height doesn't apply here
         );
