@@ -24,7 +24,6 @@ abstract class ActionInvokable with Invokable {
       ActionType.showBottomModal,
       ActionType.dismissBottomModal,
       ActionType.showDialog,
-      ActionType.rateApp
     ]);
   }
 
