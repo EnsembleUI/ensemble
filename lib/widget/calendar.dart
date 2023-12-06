@@ -99,6 +99,8 @@ class EnsembleCalendar extends StatefulWidget
           _controller.headerTextStyle = Utils.getTextStyle(value),
       'header': (value) => _controller.header = value,
       'tootlip': (value) => setTooltip(value),
+      'showTooltip': (value) =>
+          _controller.showTooltip = Utils.getBool(value, fallback: false)
     };
   }
 
@@ -463,6 +465,7 @@ class CalendarController extends WidgetController {
   DateTime? tooltipDate;
   TextStyle? tooltipTextStyle;
   Color? tooltipBackgroundColor;
+  bool showTooltip = false;
 
   final ValueNotifier<Set<DateTime>> markedDays = ValueNotifier(
     LinkedHashSet<DateTime>(
@@ -493,23 +496,24 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
 
   @override
   void initState() {
-    widget._controller.selectedDays.addListener(() {
-      setState(() {});
-    });
-
-    widget._controller.markedDays.addListener(() {
-      setState(() {});
-    });
-
-    widget._controller.disableDays.addListener(() {
-      setState(() {});
-    });
-
-    widget._controller.rowSpans.addListener(() {
-      setState(() {});
-    });
-
+    widget._controller.selectedDays.addListener(listener);
+    widget._controller.markedDays.addListener(listener);
+    widget._controller.disableDays.addListener(listener);
+    widget._controller.rowSpans.addListener(listener);
     super.initState();
+  }
+
+  void listener() {
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    widget._controller.selectedDays.removeListener(listener);
+    widget._controller.markedDays.removeListener(listener);
+    widget._controller.disableDays.removeListener(listener);
+    widget._controller.rowSpans.removeListener(listener);
+    super.dispose();
   }
 
   void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
@@ -636,13 +640,18 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
           toolTip: widget._controller.tooltip,
           toolTipBackgroundColor: widget._controller.tooltipBackgroundColor,
           toolTipStyle: widget._controller.tooltipTextStyle,
+          showTooltip: widget._controller.showTooltip,
           calendarBuilders: CalendarBuilders(
-            overlayDefaultBuilder: (context) {
+            overlayDefaultBuilder: (context, collapsedLength) {
+              Map<String, dynamic> data = {};
+              if (collapsedLength != null) {
+                data['collapsedLength'] = collapsedLength;
+              }
               if (widget._controller.overlapOverflowBuilder == null) {
                 return null;
               }
               return widgetBuilder(
-                  context, widget._controller.overlapOverflowBuilder, {});
+                  context, widget._controller.overlapOverflowBuilder, data);
             },
             overlayBuilder: widget._controller.rowSpans.value.isEmpty
                 ? null

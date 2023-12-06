@@ -14,6 +14,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/input/form_helper.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:email_validator/email_validator.dart';
@@ -130,6 +131,8 @@ abstract class BaseTextInput extends StatefulWidget
           _controller.enableClearText = Utils.optionalBool(value),
       'obscureToggle': (value) =>
           _controller.obscureToggle = Utils.optionalBool(value),
+      'toolbarDone': (value) =>
+          _controller.toolbarDoneButton = Utils.optionalBool(value),
       'keyboardAction': (value) =>
           _controller.keyboardAction = _getKeyboardAction(value),
       'maxLines': (value) => _controller.maxLines =
@@ -199,6 +202,8 @@ class TextInputController extends FormFieldController {
   // applicable only for Password or obscure TextInput, to toggle between plain and secure text
   bool? obscureToggle;
 
+  bool? toolbarDoneButton;
+
   model.InputValidator? validator;
   String? inputType;
   String? mask;
@@ -217,6 +222,13 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
   // This is so we can be consistent with the other input widgets' onChange
   String previousText = '';
   bool didItChange = false;
+  // password is obscure by default
+  late bool currentlyObscured;
+  late List<TextInputFormatter> _inputFormatter;
+  OverlayEntry? overlayEntry;
+  bool get toolbarDoneStatus {
+    return widget.controller.toolbarDoneButton ?? false;
+  }
 
   void evaluateChanges() {
     if (didItChange) {
@@ -232,9 +244,28 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
     }
   }
 
-  // password is obscure by default
-  late bool currentlyObscured;
-  late List<TextInputFormatter> _inputFormatter;
+  void showOverlay(BuildContext context) {
+    if (overlayEntry != null || !toolbarDoneStatus) return;
+    OverlayState overlayState = Overlay.of(context);
+    overlayEntry = OverlayEntry(builder: (context) {
+      return Positioned(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+        right: 0.0,
+        left: 0.0,
+        child: const _InputDoneButton(),
+      );
+    });
+
+    overlayState.insert(overlayEntry!);
+  }
+
+  void removeOverlayAndUnfocus() {
+    if (overlayEntry != null) {
+      overlayEntry!.remove();
+      overlayEntry = null;
+    }
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
 
   @override
   void initState() {
@@ -410,6 +441,8 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
           controller: widget.textController,
           focusNode: focusNode,
           enabled: isEnabled(),
+          onTap: () => showOverlay(context),
+          onTapOutside: (_) => removeOverlayAndUnfocus(),
           onFieldSubmitted: (value) => widget.controller.submitForm(context),
           onChanged: (String txt) {
             if (txt != previousText) {
@@ -494,3 +527,25 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
 }
 
 enum InputType { email, phone, ipAddress, number, text, url, datetime }
+
+class _InputDoneButton extends StatelessWidget {
+  const _InputDoneButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      color: Colors.grey[200],
+      alignment: Alignment.topRight,
+      padding: const EdgeInsets.only(top: 1.0, bottom: 1.0),
+      child: CupertinoButton(
+        padding: const EdgeInsets.only(right: 24.0, top: 2.0, bottom: 2.0),
+        onPressed: () => FocusScope.of(context).requestFocus(FocusNode()),
+        child: const Text(
+          'Done',
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.normal),
+        ),
+      ),
+    );
+  }
+}
