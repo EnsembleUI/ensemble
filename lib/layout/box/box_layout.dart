@@ -307,6 +307,9 @@ class BoxLayoutState extends WidgetState<BoxLayout>
 class ScrollableColumn extends flutter.InheritedWidget {
   const ScrollableColumn({super.key, required super.child});
 
+  static ScrollableColumn? of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<ScrollableColumn>();
+
   @override
   bool updateShouldNotify(covariant InheritedWidget oldWidget) => false;
 }

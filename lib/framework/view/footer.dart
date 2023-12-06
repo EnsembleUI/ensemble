@@ -33,7 +33,7 @@ class Footer extends StatefulWidget
 
   @override
   Map<String, Function> getters() {
-    return {"scrollBehaviour": () => controller.scrollBehavior};
+    return {"controller": () => controller.scrollBehavior};
   }
 
   @override

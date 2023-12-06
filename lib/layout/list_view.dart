@@ -258,8 +258,8 @@ class ListViewState extends WidgetState<ListView>
     );
 
     if (StudioDebugger().debugMode) {
-      listView = StudioDebugger()
-          .assertScrollableHasBoundedHeightWrapper(listView, ListView.type);
+      listView = StudioDebugger().assertScrollableHasBoundedHeightWrapper(
+          listView, ListView.type, context, widget._controller);
     }
 
     if (widget._controller.onPullToRefresh != null) {
