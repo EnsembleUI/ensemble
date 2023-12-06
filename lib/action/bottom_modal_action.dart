@@ -64,15 +64,19 @@ class ShowBottomModalAction extends EnsembleAction {
 
     if (widget != null) {
       showModalBottomSheet(
-              context: context,
-              backgroundColor: _backgroundColor(scopeManager),
-              barrierColor: _barrierColor(scopeManager),
-              isScrollControlled: true,
-              enableDrag: _enableDrag(scopeManager),
-              showDragHandle: _enableDragHandler(scopeManager),
-              builder: (modalContext) =>
-                  ContextScopeWidget(rootContext: modalContext, child: widget!))
-          .then((payload) {
+        context: context,
+        backgroundColor: _backgroundColor(scopeManager),
+        barrierColor: _barrierColor(scopeManager),
+        isScrollControlled: true,
+        enableDrag: _enableDrag(scopeManager),
+        showDragHandle: _enableDragHandler(scopeManager),
+        builder: (context) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: ContextScopeWidget(rootContext: context, child: widget!),
+        ),
+      ).then((payload) {
         if (onDismiss != null) {
           return ScreenController().executeActionWithScope(
               context, scopeManager, onDismiss!,
