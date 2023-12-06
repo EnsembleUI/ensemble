@@ -72,11 +72,14 @@ class ShowDialogAction extends EnsembleAction {
           "${ActionType.showDialog.name} requires the 'widget' for the Dialog's content.");
     }
     return ShowDialogAction(
-        initiator: initiator,
-        widget: payload['widget'],
-        //inputs: Utils.getMap(payload["inputs"]),
-        options: Utils.getMap(payload['options']),
-        onDialogDismiss: EnsembleAction.fromYaml(payload['onDialogDismiss']));
+      initiator: initiator,
+      widget: payload['widget'],
+      //inputs: Utils.getMap(payload["inputs"]),
+      options: Utils.getMap(payload['options']),
+      onDialogDismiss: payload['onDialogDismiss'] == null
+          ? null
+          : EnsembleAction.fromYaml(payload['onDialogDismiss']),
+    );
   }
 }
 
