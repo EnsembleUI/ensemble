@@ -91,8 +91,8 @@ class _FooterState extends WidgetState<Footer>
 
   @override
   void dispose() {
-    super.dispose();
     _dragController.dispose();
+    super.dispose();
   }
 
   @override
