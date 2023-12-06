@@ -131,6 +131,8 @@ abstract class BaseTextInput extends StatefulWidget
           _controller.enableClearText = Utils.optionalBool(value),
       'obscureToggle': (value) =>
           _controller.obscureToggle = Utils.optionalBool(value),
+      'toolbarDone': (value) =>
+          _controller.toolbarDoneButton = Utils.optionalBool(value),
       'keyboardAction': (value) =>
           _controller.keyboardAction = _getKeyboardAction(value),
       'maxLines': (value) => _controller.maxLines =
@@ -200,6 +202,8 @@ class TextInputController extends FormFieldController {
   // applicable only for Password or obscure TextInput, to toggle between plain and secure text
   bool? obscureToggle;
 
+  bool? toolbarDoneButton;
+
   model.InputValidator? validator;
   String? inputType;
   String? mask;
@@ -223,9 +227,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
   late List<TextInputFormatter> _inputFormatter;
   OverlayEntry? overlayEntry;
   bool get toolbarDoneStatus {
-    final status = widget.keyboardType == TextInputType.phone ||
-        widget.keyboardType == TextInputType.number;
-    return status;
+    return widget.controller.toolbarDoneButton ?? false;
   }
 
   void evaluateChanges() {
