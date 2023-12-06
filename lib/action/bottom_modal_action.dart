@@ -106,6 +106,6 @@ class DismissBottomModalAction extends EnsembleAction {
       return Navigator.maybePop(
           bottomModalContext, scopeManager.dataContext.eval(payload));
     }
-    return Future.value(null);
+    return Navigator.maybePop(context, scopeManager.dataContext.eval(payload));
   }
 }
