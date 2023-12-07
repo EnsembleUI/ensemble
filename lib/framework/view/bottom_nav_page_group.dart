@@ -13,14 +13,16 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:flutter/material.dart';
 
-class FABBottomAppBarItem {
-  FABBottomAppBarItem({
+class BottomNavBarItem {
+  BottomNavBarItem({
     required this.icon,
     required this.text,
     required this.isCustom,
     this.activeIcon,
     this.isFloating = false,
     this.floatingMargin,
+    this.onTap,
+    this.onTapHaptic,
   });
 
   Widget icon;
@@ -29,6 +31,8 @@ class FABBottomAppBarItem {
   bool isFloating;
   bool isCustom;
   double? floatingMargin;
+  EnsembleAction? onTap;
+  String? onTapHaptic;
 }
 
 enum FloatingAlignment {
@@ -240,7 +244,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
   }
 
   Widget? _buildBottomNavBar() {
-    List<FABBottomAppBarItem> navItems = [];
+    List<BottomNavBarItem> navItems = [];
 
     final unselectedColor = Utils.getColor(widget.menu.styles?['color']) ??
         Theme.of(context).unselectedWidgetColor;
@@ -272,11 +276,13 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
               : null);
 
       navItems.add(
-        FABBottomAppBarItem(
+        BottomNavBarItem(
           icon: icon,
           activeIcon: activeIcon,
           isCustom: isCustom,
           text: label,
+          onTap: EnsembleAction.fromYaml(item.onTap),
+          onTapHaptic: item.onTapHaptic,
         ),
       );
     }
@@ -314,6 +320,21 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
             } else {
               PageGroupWidget.getPageController(context)!.jumpToPage(index);
               viewGroupNotifier.updatePage(index);
+            }
+
+            // Executing onTap action
+            if (navItems[index].onTap != null) {
+              ScreenController().executeActionWithScope(
+                  context, widget.scopeManager, navItems[index].onTap!);
+            }
+
+            // Executing haptic feedback action
+            if (navItems[index].onTapHaptic != null) {
+              ScreenController().executeAction(
+                context,
+                HapticAction(
+                    type: navItems[index].onTapHaptic!, onComplete: null),
+              );
             }
           },
           items: navItems,
@@ -360,7 +381,7 @@ class EnsembleBottomAppBar extends StatefulWidget {
   }) {
     // assert(items.length == 2 || items.length == 4);
   }
-  final List<FABBottomAppBarItem> items;
+  final List<BottomNavBarItem> items;
   final int selectedIndex;
   final double? height;
   final dynamic margin;
@@ -484,7 +505,7 @@ class EnsembleBottomAppBarState extends State<EnsembleBottomAppBar> {
   }
 
   Widget _buildTabItem({
-    required FABBottomAppBarItem item,
+    required BottomNavBarItem item,
     required int index,
     required ValueChanged<int> onPressed,
   }) {
