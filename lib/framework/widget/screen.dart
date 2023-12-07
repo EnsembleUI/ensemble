@@ -91,13 +91,82 @@ class _ScreenState extends State<Screen> {
       }
     });
 
-    if (pageModel is PageGroupModel && pageModel.menu != null) {
+    return PageInitializer(
+      pageModel: pageModel,
+      dataContext: dataContext,
+      screenPayload: widget.screenPayload,
+    );
+  }
+}
+
+class PageInitializer extends StatefulWidget {
+  const PageInitializer({
+    super.key,
+    required this.pageModel,
+    required this.dataContext,
+    required this.screenPayload,
+  });
+
+  final PageModel pageModel;
+  final DataContext dataContext;
+  final ScreenPayload? screenPayload;
+
+  @override
+  State<PageInitializer> createState() => _PageInitializerState();
+}
+
+class _PageInitializerState extends State<PageInitializer>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      executeCallbacks();
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) async {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      executeCallbacks();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  Future<void> executeCallbacks() async {
+    final callbacks = List.from(Ensemble().getCallbacksAfterInitialization());
+
+    callbacks.asMap().forEach((index, function) async {
+      // Removing a method and getting the function with index to execute it
+      Ensemble().getCallbacksAfterInitialization().remove(function);
+      try {
+        await Function.apply(function, null);
+      } catch (e) {
+        print('Failed to execute a method: $e');
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.pageModel is PageGroupModel && widget.pageModel.menu != null) {
+      final pageModel = widget.pageModel as PageGroupModel;
+
       return PageGroup(
           pageArgs: widget.screenPayload?.arguments,
-          initialDataContext: dataContext,
+          initialDataContext: widget.dataContext,
           model: pageModel,
           menu: pageModel.menu!);
-    } else if (pageModel is SinglePageModel) {
+    } else if (widget.pageModel is SinglePageModel) {
+      final pageModel = widget.pageModel as SinglePageModel;
+
       // overwrite the pageType as modal only if specified in the payload
       if (widget.screenPayload?.pageType == PageType.modal) {
         if (pageModel.screenOptions != null) {
@@ -107,7 +176,10 @@ class _ScreenState extends State<Screen> {
               ScreenOptions(pageType: widget.screenPayload!.pageType!);
         }
       }
-      return ensemble.Page(dataContext: dataContext, pageModel: pageModel);
+      return ensemble.Page(
+        dataContext: widget.dataContext,
+        pageModel: pageModel,
+      );
     }
 
     throw LanguageError("Invalid Screen Definition");
