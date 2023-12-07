@@ -37,7 +37,6 @@ import 'package:ensemble/widget/input/form_time.dart';
 import 'package:ensemble/widget/input/slider.dart';
 import 'package:ensemble/widget/loading_container.dart';
 import 'package:ensemble/widget/lottie/lottie.dart';
-import 'package:ensemble/widget/map.dart';
 import 'package:ensemble/widget/maps/maps.dart';
 import 'package:ensemble/widget/markdown.dart';
 import 'package:ensemble/widget/popup_menu.dart';
@@ -103,7 +102,6 @@ class WidgetRegistry {
         QRCode.type: () => QRCode(),
         EnsembleProgressIndicator.type: () => EnsembleProgressIndicator(),
         Maps.type: () => Maps(),
-        EnsembleMap.type: () => EnsembleMap(), // legacy maps
         Carousel.type: () => Carousel(),
         Video.type: () => Video(),
         YouTube.type: () => YouTube(),
