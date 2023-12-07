@@ -21,6 +21,7 @@ class BottomNavBarItem {
     this.activeIcon,
     this.isFloating = false,
     this.floatingMargin,
+    this.switchScreen = true,
     this.onTap,
     this.onTapHaptic,
   });
@@ -31,6 +32,7 @@ class BottomNavBarItem {
   bool isFloating;
   bool isCustom;
   double? floatingMargin;
+  bool? switchScreen;
   EnsembleAction? onTap;
   String? onTapHaptic;
 }
@@ -281,6 +283,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
           activeIcon: activeIcon,
           isCustom: isCustom,
           text: label,
+          switchScreen: item.switchScreen,
           onTap: EnsembleAction.fromYaml(item.onTap),
           onTapHaptic: item.onTapHaptic,
         ),
@@ -315,17 +318,20 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
               Utils.getShadowBlurStyle(widget.menu.styles?['shadowStyle']),
           notchedShape: const CircularNotchedRectangle(),
           onTabSelected: (index) {
-            if (widget.menu.reloadView == true) {
-              viewGroupNotifier.updatePage(index);
-            } else {
-              PageGroupWidget.getPageController(context)!.jumpToPage(index);
-              viewGroupNotifier.updatePage(index);
-            }
+            final isSwitchScreen =
+                Utils.getBool(navItems[index].switchScreen, fallback: true);
+            if (isSwitchScreen) {
+              if (widget.menu.reloadView == true) {
+                viewGroupNotifier.updatePage(index);
+              } else {
+                PageGroupWidget.getPageController(context)!.jumpToPage(index);
+                viewGroupNotifier.updatePage(index);
+              }
 
-            // Executing onTap action
-            if (navItems[index].onTap != null) {
-              ScreenController().executeActionWithScope(
-                  context, widget.scopeManager, navItems[index].onTap!);
+              _onTap(navItems[index]);
+            } else {
+              // Execute only onTap action. Page switching is handled by the developer with onTap
+              _onTap(navItems[index]);
             }
 
             // Executing haptic feedback action
@@ -344,6 +350,13 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
         );
       },
     );
+  }
+
+  void _onTap(BottomNavBarItem menuItem) {
+    if (menuItem.onTap != null) {
+      ScreenController().executeActionWithScope(
+          context, widget.scopeManager, menuItem.onTap!);
+    }
   }
 
   Widget? _buildCustomIcon(MenuItem item, {bool isActive = false}) {
@@ -412,9 +425,11 @@ class EnsembleBottomAppBarState extends State<EnsembleBottomAppBar> {
 
   void _updateIndex(int index) {
     widget.onTabSelected(index);
-    setState(() {
-      _selectedIndex = index;
-    });
+    if (widget.items[index].switchScreen == true) {
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
   }
 
   int? getFabIndex() {
