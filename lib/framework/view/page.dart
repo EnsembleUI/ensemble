@@ -697,8 +697,8 @@ class PageState extends State<Page>
             Utils.getBackgroundGradient(evaluatedFooter?['backgroundGradient'])
         ..shadowColor = Utils.getColor(evaluatedFooter?['shadowColor'])
         ..borderRadius = Utils.getBorderRadius(evaluatedFooter?['borderRadius'])
-        ..borderColor = Utils.getColor(evaluatedFooter?['borderColor'])
-        ..borderWidth = Utils.optionalInt(evaluatedFooter?['borderWidth']);
+        ..allBorderColor = Utils.getColor(evaluatedFooter?['borderColor'])
+        ..allBorderWidth = Utils.optionalInt(evaluatedFooter?['borderWidth']);
 
       final dragOptions = pageModel.footer?.dragOptions;
       Widget? fixedContent;

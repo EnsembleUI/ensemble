@@ -208,13 +208,30 @@ class BoxWrapper extends StatelessWidget {
                   : boxController.borderGradient != null
                       ? GradientBoxBorder(
                           gradient: boxController.borderGradient!,
-                          width: boxController.borderWidth?.toDouble() ??
+                          width: boxController.allBorderWidth?.toDouble() ??
                               ThemeManager().getBorderThickness(context))
-                      : Border.all(
-                          color: boxController.borderColor ??
-                              ThemeManager().getBorderColor(context),
-                          width: boxController.borderWidth?.toDouble() ??
-                              ThemeManager().getBorderThickness(context)),
+                      : Border(
+                          top: getBorderSide(
+                            context,
+                            boxController.borderWidth?.top,
+                            boxController.borderColor.top,
+                          ),
+                          bottom: getBorderSide(
+                            context,
+                            boxController.borderWidth?.bottom,
+                            boxController.borderColor.bottom,
+                          ),
+                          left: getBorderSide(
+                            context,
+                            boxController.borderWidth?.left,
+                            boxController.borderColor.left,
+                          ),
+                          right: getBorderSide(
+                            context,
+                            boxController.borderWidth?.right,
+                            boxController.borderColor.right,
+                          ),
+                        ),
               borderRadius: boxController.borderRadius?.getValue(),
               boxShadow: !boxController.hasBoxShadow()
                   ? null
@@ -238,6 +255,15 @@ class BoxWrapper extends StatelessWidget {
               ],
             )
           : _getWidget(),
+    );
+  }
+
+  BorderSide getBorderSide(BuildContext context, double? value, Color? color) {
+    if (value == null) return BorderSide.none;
+
+    return BorderSide(
+      width: value,
+      color: color ?? ThemeManager().getBorderColor(context),
     );
   }
 
