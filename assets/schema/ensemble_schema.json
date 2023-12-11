@@ -5088,6 +5088,10 @@
                 "type": "boolean",
                 "description": "Mark this item as a floating icon"
               },
+              "switchScreen": {
+                "type": "boolean",
+                "description": "Disable the screen switching when clicking the bottom nav bar item. Default (True)"
+              },
               "floatingMargin": {
                 "$ref": "#/$defs/Margin-payload",
                 "description": "The margin around the floating."
