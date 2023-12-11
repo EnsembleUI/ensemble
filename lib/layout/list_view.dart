@@ -4,6 +4,7 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/studio_debugger.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
+import 'package:ensemble/framework/view/footer.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/box/base_box_layout.dart';
@@ -181,6 +182,10 @@ class ListViewState extends WidgetState<ListView>
   @override
   Widget buildWidget(BuildContext context) {
     widget.controller._bind(this);
+    FooterScope? footerScope = FooterScope.of(context);
+    if (footerScope != null && footerScope.isRootWithinFooter(context)) {
+      widget._controller.scrollController = footerScope.scrollController;
+    }
     Widget? loadingWidget;
 
     if (widget._controller.loadingWidget != null) {
@@ -188,12 +193,19 @@ class ListViewState extends WidgetState<ListView>
     }
 
     Widget listView = PagedListView.separated(
-      scrollController: widget._controller.scrollController,
+      scrollController: (footerScope != null &&
+              footerScope.isColumnScrollableAndRoot(context))
+          ? null
+          : widget._controller.scrollController,
+      shrinkWrap: FooterScope.of(context) != null ? true : false,
       reverse: widget._controller.reverse,
       padding: widget._controller.padding ?? const EdgeInsets.all(0),
-      physics: widget._controller.onPullToRefresh != null
-          ? const AlwaysScrollableScrollPhysics()
-          : null,
+      physics: (footerScope != null &&
+              footerScope.isColumnScrollableAndRoot(context))
+          ? const NeverScrollableScrollPhysics()
+          : widget._controller.onPullToRefresh != null
+              ? const AlwaysScrollableScrollPhysics()
+              : null,
       pagingController: _pagingController,
       builderDelegate: PagedChildBuilderDelegate(
         itemBuilder: (context, item, index) {
@@ -246,8 +258,8 @@ class ListViewState extends WidgetState<ListView>
     );
 
     if (StudioDebugger().debugMode) {
-      listView = StudioDebugger()
-          .assertScrollableHasBoundedHeightWrapper(listView, ListView.type);
+      listView = StudioDebugger().assertScrollableHasBoundedHeightWrapper(
+          listView, ListView.type, context, widget._controller);
     }
 
     if (widget._controller.onPullToRefresh != null) {
