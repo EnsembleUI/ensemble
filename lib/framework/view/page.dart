@@ -1,7 +1,6 @@
 import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
-import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/menu.dart';
@@ -12,14 +11,10 @@ import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/has_selectable_text.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
-import 'package:ensemble/framework/widget/view_util.dart';
-import 'package:ensemble/layout/list_view.dart' as ensemblelist;
-import 'package:ensemble/layout/grid_view.dart' as ensembleGrid;
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/helpers/controllers.dart';
-import 'package:ensemble/widget/helpers/widgets.dart';
+import 'package:ensemble/widget/helpers/unfocus.dart';
 import 'package:flutter/material.dart';
 
 import '../widget/custom_view.dart';
@@ -415,26 +410,31 @@ class PageState extends State<Page>
 
     Widget rtn = DataScopeWidget(
       scopeManager: _scopeManager,
-      child: Scaffold(
-          resizeToAvoidBottomInset: true,
-          // slight optimization, if body background is set, let's paint
-          // the entire screen including the Safe Area
-          backgroundColor: backgroundColor,
+      child: Unfocus(
+        isUnfocus: Utils.getBool(widget._pageModel.pageStyles?['unfocus'],
+            fallback: false),
+        child: Scaffold(
+            resizeToAvoidBottomInset: true,
+            // slight optimization, if body background is set, let's paint
+            // the entire screen including the Safe Area
+            backgroundColor: backgroundColor,
 
-          // appBar is inside CustomScrollView if defined
-          appBar: fixedAppBar,
-          body: isScrollableView
-              ? buildScrollablePageContent(hasDrawer)
-              : buildFixedPageContent(fixedAppBar != null),
-          bottomNavigationBar: _bottomNavBar,
-          drawer: _drawer,
-          endDrawer: _endDrawer,
-          bottomSheet: footerWidget,
-          floatingActionButton: closeModalButton,
-          floatingActionButtonLocation:
-              widget._pageModel.pageStyles?['navigationIconPosition'] == 'start'
-                  ? FloatingActionButtonLocation.startTop
-                  : FloatingActionButtonLocation.endTop),
+            // appBar is inside CustomScrollView if defined
+            appBar: fixedAppBar,
+            body: isScrollableView
+                ? buildScrollablePageContent(hasDrawer)
+                : buildFixedPageContent(fixedAppBar != null),
+            bottomNavigationBar: _bottomNavBar,
+            drawer: _drawer,
+            endDrawer: _endDrawer,
+            bottomSheet: footerWidget,
+            floatingActionButton: closeModalButton,
+            floatingActionButtonLocation:
+                widget._pageModel.pageStyles?['navigationIconPosition'] ==
+                        'start'
+                    ? FloatingActionButtonLocation.startTop
+                    : FloatingActionButtonLocation.endTop),
+      ),
     );
 
     // selectableText at the root
