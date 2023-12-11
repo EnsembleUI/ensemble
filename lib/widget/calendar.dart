@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:yaml/yaml.dart';
+import 'package:collection/collection.dart';
 
 final kToday = DateTime.now();
 final kFirstDay = DateTime(kToday.year, kToday.month - 12, kToday.day);
@@ -89,6 +90,7 @@ class EnsembleCalendar extends StatefulWidget
         _controller.rowSpanLimit =
             Utils.getInt(value['spanPerRow'], fallback: -1);
         _controller.overlapOverflowBuilder = value['overflowWidget'];
+        _controller.topMargin = Utils.getInt(value['topMargin'], fallback: 0);
         if (value['children'] is List) {
           for (var span in value['children']) {
             setRowSpan(span['span']);
@@ -100,7 +102,7 @@ class EnsembleCalendar extends StatefulWidget
       'header': (value) => _controller.header = value,
       'tootlip': (value) => setTooltip(value),
       'showTooltip': (value) =>
-          _controller.showTooltip = Utils.getBool(value, fallback: false)
+          _controller.showTooltip = Utils.getBool(value, fallback: false),
     };
   }
 
@@ -343,6 +345,7 @@ class EnsembleCalendar extends StatefulWidget
         endDay: Utils.getDate(data['end']),
         widget: data['widget'],
         inputs: data['inputs'],
+        id: Utils.generateRandomId(6),
       );
       spans.add(rowSpan);
     }
@@ -387,15 +390,26 @@ class RowSpanConfig {
   DateTime? endDay;
   dynamic widget;
   Map? inputs;
+  String id;
 
   RowSpanConfig({
     this.startDay,
     this.endDay,
     this.widget,
     this.inputs,
+    required this.id,
   });
 
   bool get isValid => startDay != null && endDay != null;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'start': startDay,
+      'end': endDay,
+      'widget': widget,
+      'inputs': inputs,
+    };
+  }
 }
 
 class CellConfig {
@@ -440,6 +454,7 @@ class CalendarController extends WidgetController {
   Cell rangeBetweenCell = Cell();
 
   int rowSpanLimit = -1;
+  int topMargin = 0;
   dynamic overlapOverflowBuilder;
 
   DateTime? selectedDate;
@@ -641,12 +656,19 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
           toolTipBackgroundColor: widget._controller.tooltipBackgroundColor,
           toolTipStyle: widget._controller.tooltipTextStyle,
           showTooltip: widget._controller.showTooltip,
+          topMargin: widget._controller.topMargin,
           calendarBuilders: CalendarBuilders(
-            overlayDefaultBuilder: (context, collapsedLength) {
+            overlayDefaultBuilder: (context, collapsedLength, children) {
               Map<String, dynamic> data = {};
+              final collapsedSpans = widget._controller.rowSpans.value
+                  .where((object) => children.contains(object.id))
+                  .toList();
               if (collapsedLength != null) {
-                data['collapsedLength'] = collapsedLength;
+                data['collapsedLength'] = collapsedSpans.length;
+                data['collapsedSpans'] =
+                    collapsedSpans.map((e) => e.toJson()).toList();
               }
+
               if (widget._controller.overlapOverflowBuilder == null) {
                 return null;
               }
@@ -657,20 +679,17 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
                 ? null
                 : (context, range) {
                     final spans = widget._controller.rowSpans;
-                    for (var span in spans.value) {
-                      if (span.startDay == null || span.endDay == null) {
-                        return const SizedBox.shrink();
-                      }
-                      if (DateTimeRange(
-                              start: span.startDay!, end: span.endDay!) ==
-                          range) {
-                        return widgetBuilder(
-                          context,
-                          span.widget,
-                          span.inputs?.cast<String, dynamic>() ?? {},
-                        );
-                      }
+
+                    final span = spans.value
+                        .firstWhereOrNull((element) => element.id == range.id);
+                    if (span != null) {
+                      return widgetBuilder(
+                        context,
+                        span.widget,
+                        span.inputs?.cast<String, dynamic>() ?? {},
+                      );
                     }
+
                     return const SizedBox.shrink();
                   },
             disabledBuilder: (context, day, focusedDay) {
@@ -780,12 +799,15 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
     );
   }
 
-  List<DateTimeRange> getOverlayRange() {
-    final overlayRange = <DateTimeRange>[];
+  List<CustomRange> getOverlayRange() {
+    final overlayRange = <CustomRange>[];
     for (var span in widget._controller.rowSpans.value) {
       if (span.endDay != null && span.startDay != null) {
-        overlayRange
-            .add(DateTimeRange(start: span.startDay!, end: span.endDay!));
+        overlayRange.add(CustomRange(
+          start: span.startDay!,
+          end: span.endDay!,
+          id: span.id,
+        ));
       }
     }
     return overlayRange;
