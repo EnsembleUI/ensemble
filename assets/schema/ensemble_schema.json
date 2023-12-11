@@ -166,6 +166,10 @@
                   "type": "boolean",
                   "description": "Specify if the content of this screen is scrollable with a global scrollbar. Using this also allow you to customize the scrolling experience of the header."
                 },
+                "unfocus": {
+                  "type": "boolean",
+                  "description": "Specify if the keyboard should dismissed automatically when tapping in the non interactive widgets. Default (false)"
+                },
                 "showNavigationIcon": {
                   "type": "boolean",
                   "description": "For a screen with header, the App will automatically show the Menu, Back, or Close icon (for modal screen) before the title. On modal screen without the header, the Close icon will be shown. Set this flag to false if you wish to hide the icons and handle the navigation yourself."
@@ -1557,6 +1561,10 @@
             "obscureToggle": {
               "type": "boolean",
               "description": "enable the toggling between plain and obscure text."
+            },
+            "toolbarDone": {
+              "type": "boolean",
+              "description": "enable the toolbar with done button in the TextInput. (defaults to False)"
             },
             "enableClearText": {
               "type": "boolean",

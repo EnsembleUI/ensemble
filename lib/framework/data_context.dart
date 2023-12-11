@@ -1,17 +1,14 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:developer';
 import 'dart:io' as io;
 import 'dart:ui';
 import 'package:ensemble/action/action_invokable.dart';
-import 'package:ensemble/action/call_external_method.dart';
+import 'package:ensemble/action/bottom_modal_action.dart';
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/action/invoke_api_action.dart';
+import 'package:ensemble/action/misc_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
-import 'package:ensemble/ensemble.dart';
-import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/framework/all_countries.dart';
-import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -365,6 +362,20 @@ class NativeInvokable extends ActionInvokable {
         final scope = ScreenController().getScopeManager(buildContext);
         callNativeMethod(buildContext, scope, inputs);
       },
+      ActionType.showBottomModal.name: (inputs) =>
+          ScreenController().executeAction(
+            buildContext,
+            ShowBottomModalAction.from(payload: inputs),
+          ),
+      ActionType.dismissBottomModal.name: (inputs) =>
+          ScreenController().executeAction(
+            buildContext,
+            DismissBottomModalAction.from(payload: inputs),
+          ),
+      ActionType.showDialog.name: (inputs) => ScreenController()
+          .executeAction(buildContext, ShowDialogAction.from(payload: inputs)),
+      ActionType.rateApp.name: (inputs) => ScreenController()
+          .executeAction(buildContext, RateAppAction.from(payload: inputs)),
       'connectSocket': (String socketName, Map<dynamic, dynamic>? inputs) {
         connectSocket(buildContext, socketName, inputs: inputs);
       },

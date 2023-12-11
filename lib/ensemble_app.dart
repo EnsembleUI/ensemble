@@ -117,33 +117,12 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
       Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
       initDeepLink(AppLifecycleState.resumed);
     }
-
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      executeCallbacks();
-    });
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     super.didChangeAppLifecycleState(state);
     initDeepLink(state);
-    if (state == AppLifecycleState.resumed) {
-      executeCallbacks();
-    }
-  }
-
-  Future<void> executeCallbacks() async {
-    final callbacks = List.from(Ensemble().getCallbacksAfterInitialization());
-
-    callbacks.asMap().forEach((index, function) async {
-      // Removing a method and getting the function with index to execute it
-      Ensemble().getCallbacksAfterInitialization().remove(function);
-      try {
-        await Function.apply(function, null);
-      } catch (e) {
-        print('Failed to execute a method: $e');
-      }
-    });
   }
 
   void initDeepLink(AppLifecycleState state) {
