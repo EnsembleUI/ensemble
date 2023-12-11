@@ -2189,6 +2189,12 @@
           "$ref": "#/$defs/InvokeAPI-payload",
           "description": "If the server needs access to the access/refresh token, the OAuth token exchange API can be specified. Please see Ensemble's documentation regarding the expected request/response format."
         },
+        "onInitiated": {
+          "$ref": "#/$defs/Action-payload"
+        },
+        "onCanceled": {
+          "$ref": "#/$defs/Action-payload"
+        },
         "onAuthorized": {
           "$ref": "#/$defs/Action-payload"
         },
