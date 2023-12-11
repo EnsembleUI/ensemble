@@ -102,7 +102,7 @@ class EnsembleCalendar extends StatefulWidget
       'header': (value) => _controller.header = value,
       'tootlip': (value) => setTooltip(value),
       'showTooltip': (value) =>
-          _controller.showTooltip = Utils.getBool(value, fallback: false),
+          _controller.showTooltip = Utils.getBool(value, fallback: false)
     };
   }
 
