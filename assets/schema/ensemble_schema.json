@@ -757,6 +757,10 @@
           "type": "string",
           "description": "A unique identifier for this widget"
         },
+       "cache": {
+          "type": "boolean",
+          "description": "To put the image in the cache"
+        },
         "source": {
           "type": "string",
           "description": "URL to or asset name of the image. If the URL is used, it is highly recommended that the dimensions is set (either with width/height or other means) to prevent the UI jerkiness while loading."
