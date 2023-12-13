@@ -71,6 +71,7 @@ abstract class Menu {
               floatingAlignment:
                   Utils.optionalString(item['floatingAlignment']) ?? 'center',
               floatingMargin: Utils.optionalInt(item['floatingMargin']),
+              switchScreen: Utils.getBool(item['switchScreen'], fallback: true),
               onTap: item['onTap'],
               onTapHaptic: Utils.optionalString(item['onTapHaptic']),
               isExternal: Utils.getBool(item['isExternal'], fallback: false),
@@ -207,6 +208,7 @@ class MenuItem {
     this.iconLibrary,
     this.selected,
     this.floating = false,
+    this.switchScreen = true,
     this.floatingAlignment = 'center',
     this.floatingMargin,
     this.onTap,
@@ -223,6 +225,7 @@ class MenuItem {
   final String? iconLibrary;
   final dynamic selected;
   final bool floating;
+  final bool switchScreen;
   final String floatingAlignment;
   final int? floatingMargin;
   final dynamic onTap;
