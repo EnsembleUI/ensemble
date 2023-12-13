@@ -166,6 +166,10 @@
                   "type": "boolean",
                   "description": "Specify if the content of this screen is scrollable with a global scrollbar. Using this also allow you to customize the scrolling experience of the header."
                 },
+                "unfocus": {
+                  "type": "boolean",
+                  "description": "Specify if the keyboard should dismissed automatically when tapping in the non interactive widgets. Default (false)"
+                },
                 "showNavigationIcon": {
                   "type": "boolean",
                   "description": "For a screen with header, the App will automatically show the Menu, Back, or Close icon (for modal screen) before the title. On modal screen without the header, the Close icon will be shown. Set this flag to false if you wish to hide the icons and handle the navigation yourself."
@@ -460,7 +464,7 @@
         },
         "cssStyles": {
           "type": "array",
-          "oneOf": [
+          "items": [
             {
               "type": "object",
               "properties": {
@@ -1562,6 +1566,10 @@
               "type": "boolean",
               "description": "enable the toggling between plain and obscure text."
             },
+            "toolbarDone": {
+              "type": "boolean",
+              "description": "enable the toolbar with done button in the TextInput. (defaults to False)"
+            },
             "enableClearText": {
               "type": "boolean",
               "description": "It enables the default suffix clear icon button for the text input field to clear the values. Default (false)"
@@ -2649,6 +2657,10 @@
               "type": "string",
               "description": "A unique identifier for this widget"
             },
+            "scrollController": {
+              "type": "string",
+              "description": "For setting the scrollbehaviour"
+            },
             "onItemTap": {
               "$ref": "#/$defs/Action-payload",
               "description": "Call Ensemble's built-in functions or execute code when tapping on an item in the list."
@@ -3061,6 +3073,10 @@
             "id": {
               "type": "string",
               "description": "A unique identifier for this widget"
+            },
+            "controller" :{
+              "type": "string",
+              "description": "For setting the scrollbehaviour"
             },
             "children": {
               "$ref": "#/$defs/Widgets"
@@ -5076,6 +5092,10 @@
                 "type": "boolean",
                 "description": "Mark this item as a floating icon"
               },
+              "switchScreen": {
+                "type": "boolean",
+                "description": "Disable the screen switching when clicking the bottom nav bar item. Default (True)"
+              },
               "floatingMargin": {
                 "$ref": "#/$defs/Margin-payload",
                 "description": "The margin around the floating."
@@ -5887,13 +5907,13 @@
           }
         },
         {
-          "title": "Youtube",
+          "title": "YouTube",
           "required": [
-            "Youtube"
+            "YouTube"
           ],
           "properties": {
-            "Youtube" : {
-              "$ref" : "#/$defs/Youtube-payload"
+            "YouTube" : {
+              "$ref" : "#/$defs/YouTube-payload"
             }
           }
         },
@@ -6546,60 +6566,67 @@
         }
       }
     },
-    "Youtube-payload":{
+    "YouTube-payload":{
       "type" : "object",
       "properties" : {
         "id" : {
           "type" : "string",
           "description": "The unique identifier for this widget"
         },
+        "styles": {
+          "$ref": "#/$defs/boxStyles"
+        },
         "url" : {
           "type": "string",
-          "description": "The URL source to the youtube video"
+          "description": "The URL source to the youTube video"
         },
         "aspectRatio" : {
-          "type": "double",
+          "type": "number",
           "description" : "Video aspect ratio"
         },
         "autoplay": {
-          "type" : "bool",
+          "type" : "boolean",
           "description" : "Automatically start the video when player is loaded. (default False)"
         },
         "videoList" : {
-          "type" : "array",
+          "type" : "object",
           "description" : "List of videos to be played within a single player."
         },
         "startSeconds": {
-          "type" : "double",
+          "type" : "number",
           "description" : "specifies the time from which the first video in the list(or single video) should start playing"
         },
         "endSeconds": {
-          "type": "double",
+          "type": "number",
           "description": "Ends the video after the certain number of seconds (works with Single video)"
         },
         "showAnnotations" : {
-          "type" : "bool",
+          "type" : "boolean",
           "description" : "Showing the annotations of the video"
         },            
         "playbackRate" : {
-          "type": "double",
+          "type": "number",
           "description": "For changing the speed at which the video is displayed"
         },
         "showControls": {
-          "type" : "bool",
+          "type" : "boolean",
           "description" : "For showing the controls on the video within the player(Like in youtube)"
         },
         "showFullScreenButton": {
-          "type" : "bool",
+          "type" : "boolean",
           "description" : "To show the fullscreen button of the video"
         },
         "enableCaptions" : {
-          "type": "bool",
+          "type": "boolean",
           "description" : "To enable any captions in the video(default language of caption is English)"
         },
         "volume": {
           "type": "integer",
           "description" : "Changes the volume. (max = 100, min = 0)"
+        },
+        "videoPosition": {
+          "type": "boolean",
+          "description": "To add an indicator for the amount of video that is completed"
         }
       }
     },
