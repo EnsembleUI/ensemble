@@ -19,6 +19,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
 import 'package:http/http.dart' as http;
+import 'package:yaml/yaml.dart';
 
 class EnsembleImage extends StatefulWidget
     with Invokable, HasController<ImageController, ImageState> {
@@ -78,7 +79,7 @@ class ImageController extends BoxController {
     clipContent = true;
   }
   DateTime? lastModifiedCache;
-  String source = '';
+  dynamic source;
   BoxFit? fit;
   Color? placeholderColor;
   EnsembleAction? onTap;
@@ -95,17 +96,25 @@ class ImageController extends BoxController {
 class ImageState extends WidgetState<EnsembleImage> {
   @override
   Widget buildWidget(BuildContext context) {
-    String source = widget._controller.source.trim();
-    // use the placeholder for the initial state before binding kicks in
-    if (source.isEmpty) {
-      return const ColoredBoxPlaceholder();
-    }
-
     Widget image;
-    if (isSvg()) {
-      image = buildSvgImage(source, widget._controller.fit);
+    // Memory Image
+    if (widget._controller.source is YamlList) {
+      final List<int> data = Utils.getList(widget._controller.source) ?? [];
+      final imageBytes = Uint8List.fromList(data);
+      image = buildMemoryImage(imageBytes);
     } else {
-      image = buildNonSvgImage(source, widget._controller.fit);
+      String source =
+          Utils.getString(widget._controller.source.trim(), fallback: '');
+      // use the placeholder for the initial state before binding kicks in
+      if (source.isEmpty) {
+        return const ColoredBoxPlaceholder();
+      }
+
+      if (isSvg()) {
+        image = buildSvgImage(source, widget._controller.fit);
+      } else {
+        image = buildNonSvgImage(source, widget._controller.fit);
+      }
     }
 
     Widget rtn = BoxWrapper(
@@ -154,6 +163,16 @@ class ImageState extends WidgetState<EnsembleImage> {
     return "${widget.controller.source}${str}timeStamp=$lastModifiedDateTime";
   }
 
+  Widget buildMemoryImage(Uint8List source) {
+    return Image.memory(
+      source,
+      width: widget._controller.width?.toDouble(),
+      height: widget._controller.height?.toDouble(),
+      fit: widget._controller.fit,
+      errorBuilder: (context, error, stacktrace) => errorFallback(),
+    );
+  }
+
   Widget buildNonSvgImage(String source, BoxFit? fit) {
     if (source.startsWith('https://') || source.startsWith('http://')) {
       int? cachedWidth = widget._controller.resizedWidth;
@@ -190,7 +209,7 @@ class ImageState extends WidgetState<EnsembleImage> {
           ? FutureBuilder(
               future: fetch(widget.controller.source),
               initialData: widget._controller.source,
-              builder: (context, snapshot) {
+              builder: (context, AsyncSnapshot snapshot) {
                 if (snapshot.connectionState == ConnectionState.done) {
                   if (snapshot.hasData) {
                     return cacheImage(snapshot.data!);
