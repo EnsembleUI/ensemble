@@ -5,26 +5,27 @@ on:
     branches: [main]
 
 jobs:
-
   runUnitTest:
     name: Execute Unit/Widget tests
-  
+
     runs-on: macos-latest
     steps:
-    
-    - name: Checkout Code
-      uses: actions/checkout@v3
-      
-    - name: Setup Flutter SDK
-      uses: subosito/flutter-action@v2
-      with:
-        channel: 'stable'
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
-    - name: Lint
-      run: dart format --output=none --set-exit-if-changed .
+      - name: Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
 
-    - name: Pub Upgrade
-      run: flutter pub upgrade
+      - name: Install Melos
+        run: dart pub global activate melos
 
-    - name: Run Unit Tests / Widget Tests
-      run: flutter test
+      - name: Lint
+        run: melos exec --fail-fast -- "dart format --output=none --set-exit-if-changed ."
+
+      - name: Pub Upgrade
+        run: melos bootstrap
+
+      - name: Run Unit Tests / Widget Tests
+        run: melos exec --fail-fast -- "flutter test"
