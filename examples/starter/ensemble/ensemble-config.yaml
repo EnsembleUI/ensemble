@@ -1,0 +1,92 @@
+definitions:
+  # where your page definitions are hosted ('local', 'remote' or 'ensemble')
+  from: local
+
+  # for embedding definitions locally in your Flutter App
+  local:
+    # the root directory where all your Apps definitions reside
+    path: ensemble/apps/
+    # appId represents an App, and is a folder under the root directory
+    # Note that each App directory also has to be added manually under pubspec.yaml
+    appId: helloApp
+    # appHome is the name of the home screen. This will be the first screen when your App loads
+    appHome: Hello Home
+    #folder that contains the translated strings for all locales
+    i18nPath: ensemble/i18n
+
+  # for hosting definitions on your own server
+  remote:
+    path: <your_http_server_hosting_the_definitions>
+    appId: helloApp
+    appHome: Hello Home
+    i18nPath: <full_url_including_scheme_and_host_to_i18n_directory_on_your_server>
+
+  # for Ensemble-hosted definitions, simply enter your Ensemble's app key
+  ensemble:
+    # appId can be found on Ensemble Studio.
+    appId: <my app id on studio.ensembleui.com>
+    i18nPath: https://raw.githubusercontent.com/EnsembleUI/starter/main/ensemble/i18n
+
+  # for legacy Ensemble-hosted definitions, simply enter your Ensemble's app key
+  legacy:
+    # this is the Ensemble server URL. Do not change
+    path: https://pz0mwfkp5m.execute-api.us-east-1.amazonaws.com/dev
+    # appId can be found on Ensemble Studio.
+    appId: <my app id>
+    i18nPath: https://raw.githubusercontent.com/EnsembleUI/starter/main/ensemble/i18n
+    enableCache: false
+
+i18n:
+  #locale string e.g. en, nl etc. If empty, user's device locale is used
+  defaultLocale: nl
+  #if strings in defaultLocale are not found, which locale to use instead
+  fallbackLocale: en
+  #use country code after locale code such as en_us
+  useCountryCode: false
+
+services:
+  # Social sign-in
+  signIn:
+    serverUri:
+
+    providers:
+
+      # replace with your clientId
+      google:
+        iOSClientId: 126811761383-8idgi6nkva2tb33j42l5vpqu3jli6eak.apps.googleusercontent.com
+        androidClientId: 126811761383-pm0dlhb9fb8svso7f9bapv3fojmncvfo.apps.googleusercontent.com
+        webClientId: 126811761383-3k0ojg0tbuslc1pbhh0vllu1orbr3aml.apps.googleusercontent.com
+        serverClientId: 126811761383-5grp0akbag9aam2nl0r7j5j6u77l39eb.apps.googleusercontent.com
+
+
+  # Built-in API authorization. Override these callbacks in your Starter App.
+  # You may use https redirect (Universal Links) or custom scheme redirects.
+  # If using https redirect, redirectScheme should be empty
+  apiAuthorization:
+    # replace this with your server (TODO: provide documentation)
+    tokenExchangeServer: https://us-central1-ensemble-web-studio.cloudfunctions.net/oauth-gettoken
+
+    providers:
+      google:
+        clientId: 326748243798-btoriljk7i7sgsr9mvas90b0gn9vfebm.apps.googleusercontent.com
+        redirectUri: https://app.ensembleui.com/oauth-starter
+        redirectScheme:
+      microsoft:
+        clientId: 36501417-8ad8-4885-82eb-232f345524ac
+        redirectUri: msauth.com.ensembleui.starter://auth
+        redirectScheme: msauth.com.ensembleui.starter
+
+# Legacy Maps, replace with your own keys
+accounts:
+  maps:
+    mapbox_access_token: pk.eyJ1IjoiZW5zZW1ibGV1aSIsImEiOiJjbDVsYTNoeDQwaGQwM21udzhyemR3cDJrIn0.dnn3x8nZVj5ZFO3tn5l8Ww
+
+# override any environment variables on studio.ensembleui.com here
+# e.g. load local assets instead of URL
+environmentVariables:
+  # Environment variables can have any value you want and are referenced by {env.myVariable}.
+  # Here we use it to demonstrate loading assets locally, overriding the environment variables
+  # defined in your App on studio.ensembleui.com.
+  # This asset value is empty, meaning a reference of {env.exampleAssetVariable}pic.png
+  # will be loaded locally from /ensemble/assets/pic.png
+  exampleAssetVariable:

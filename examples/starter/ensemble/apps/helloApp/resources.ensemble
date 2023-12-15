@@ -1,0 +1,14 @@
+Widgets:
+  # this widget can be referenced using ensemble.MyCustomWidget1
+  MyCustomWidget1:
+    inputs:
+      - name
+    body:
+      Text:
+        text: Hello ${name} !
+
+  # another widget
+  MyCustomWidget2:
+    body:
+      Text:
+        text: hello world

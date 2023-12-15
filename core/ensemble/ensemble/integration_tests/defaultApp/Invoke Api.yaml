@@ -1,0 +1,119 @@
+View:
+  styles:
+    useSafeArea: true
+    scrollableView: true
+
+  body:
+    Column:
+      children:
+        - Button:
+            label: Call API
+            onTap:
+              invokeAPI:
+                name: getPeople
+        - Text: 
+            text: HEADERS
+        - Text:
+            id: myHeader1
+        - Text:
+            id: myHeader2
+        - Text:
+            id: myHeader3
+        - Spacer:
+            styles:
+              size: 10
+
+        - Text:
+            text: BODY
+        - Text:
+            id: myBody1
+        - Text:
+            id: myBody2
+        - Text:
+            id: myBody3
+        - Spacer:
+            styles:
+              size: 10
+
+        - Text:
+            text: STATUS
+        - Text:
+            id: status
+        - Spacer:
+            styles:
+              size: 10
+        
+        - Text:
+            text: ERROR
+        - Text:
+            id: myError1
+
+
+        - Button:
+            label: Call API with invalid URI
+            onTap:
+              invokeAPI:
+                name: callBadAPI
+        - Text:
+            id: badAPIStatus
+        - Spacer:
+            styles:
+              size: 10
+        - Text:
+            id: badAPIonError
+
+
+        - Button:
+            label: Call API that returns error
+            onTap:
+              invokeAPI:
+                name: callAPIThatReturnsErrors
+        - Text:
+            id: errorText
+        - Text:
+            id: errorStatus
+        - Text:
+            id: errorReason
+
+
+API:
+  getPeople:
+    uri: https://randomuser.me/api/?results=2
+    method: GET
+    onResponse: |-
+      // TODO: verify header works (content-type = json)
+      // There are 3 ways to accessing the body/headers
+      myHeader1.text = response.headers['content-type'];
+      myHeader2.text = event.data.headers['content-type'];
+      myHeader3.text = getPeople.headers['content-type'];
+
+      // TODO: verify API response work (first name is not empty)
+      myBody1.text = "Body: " + response.body.results[0].name.first;
+      myBody2.text = "Body: " + event.data.body.results[0].name.first;
+      myBody3.text = "Body: " + getPeople.body.results[0].name.first;
+
+      // TODO: verify statusCode and reason phrase matches
+      status.text = response.statusCode + '-' + response.reasonPhrase;
+      
+
+    onError: |-
+      // TODO: verify this error is not called
+      myError1.text = "Error";
+
+  callBadAPI:
+    uri: blah
+    onResponse: |-
+      // TODO: confirm this is not called
+      badAPIStatus.text = "Bad Api onResponse called"      
+
+    onError: |-
+      // TODO: verify errors
+      badAPIonError.text = event.error;
+
+  callAPIThatReturnsErrors:
+    uri: https://api.chucknorris.io/jokes/search?query=
+    onError: |-
+      // TODO: verify errors
+      errorText.text = event.error;
+      errorStatus.text = event.data.statusCode;
+      errorReason.text = event.data.reasonPhrase;

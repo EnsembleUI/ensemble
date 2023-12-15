@@ -1,3 +1,0 @@
-# contacts
-
-an Ensemble module

@@ -1,0 +1,15 @@
+View:
+  styles:
+    useSafeArea: true
+  body:
+    # show 2 widgets vertically
+    Column:
+      children:
+        # widget displaying a text
+        - Text:
+            text: Welcome
+
+        # reference a reusable widget defined in resources.ensemble
+        - MyCustomWidget1:
+            inputs:
+              name: Peter Parker

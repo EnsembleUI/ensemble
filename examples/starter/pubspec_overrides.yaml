@@ -1,0 +1,20 @@
+# melos_managed_dependency_overrides: device_preview,ensemble,ensemble_icons,ensemble_ts_interpreter,high_chart,js_widget,otp_pin_field,receive_sharing_intent,table_calendar
+dependency_overrides:
+  device_preview:
+    path: ../../packages/flutter_device_preview
+  ensemble:
+    path: ../../core/ensemble
+  ensemble_icons:
+    path: ../../packages/ensemble_icons
+  ensemble_ts_interpreter:
+    path: ../../packages/ensemble_ts_interpreter
+  high_chart:
+    path: ../../packages/high_chart
+  js_widget:
+    path: ../../packages/js_widget
+  otp_pin_field:
+    path: ../../packages/otp_pin_field
+  receive_sharing_intent:
+    path: ../../packages/receive_sharing_intent
+  table_calendar:
+    path: ../../packages/table_calendar
