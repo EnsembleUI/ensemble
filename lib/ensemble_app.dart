@@ -200,10 +200,9 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
   Widget renderApp(EnsembleConfig config) {
     // notify external app once of EnsembleApp loading status
     if (widget.onAppLoad != null && !notifiedAppLoad) {
-        widget.onAppLoad!.call();
-        notifiedAppLoad = true;
+      widget.onAppLoad!.call();
+      notifiedAppLoad = true;
     }
-
 
     StorageManager().setIsPreview(widget.isPreview);
 
