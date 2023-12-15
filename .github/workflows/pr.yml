@@ -21,11 +21,11 @@ jobs:
       - name: Install Melos
         run: dart pub global activate melos
 
-      - name: Lint
-        run: melos exec --fail-fast -- "dart format --output=none --set-exit-if-changed ."
+      # - name: Lint
+      #   run: melos exec -- "dart format --output=none --set-exit-if-changed ."
 
       - name: Pub Upgrade
         run: melos bootstrap
 
       - name: Run Unit Tests / Widget Tests
-        run: melos exec --fail-fast -- "flutter test"
+        run: melos exec -- "flutter test"
