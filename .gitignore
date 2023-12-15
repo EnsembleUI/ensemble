@@ -2,3 +2,4 @@
 build
 pubspec.lock
 analysis_options.yaml
+pubspec_overrides.yaml

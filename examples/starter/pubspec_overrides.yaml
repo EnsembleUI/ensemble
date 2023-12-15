@@ -3,7 +3,7 @@ dependency_overrides:
   device_preview:
     path: ../../packages/flutter_device_preview
   ensemble:
-    path: ../../core/ensemble
+    path: ../../packages/ensemble
   ensemble_icons:
     path: ../../packages/ensemble_icons
   ensemble_ts_interpreter:

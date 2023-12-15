@@ -3,4 +3,3 @@ name: Ensemble
 packages:
   - packages/**
   - examples/**
-  - core/**

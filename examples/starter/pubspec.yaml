@@ -35,21 +35,21 @@ dependencies:
 
   # embed Ensemble as a sibling project
   ensemble:
-    path: ../../core/ensemble
+    path: ../../packages/ensemble
 
   # Uncomment to enable camera services
   # ensemble_camera:
-  #   path: ../../core/camera
+  #   path: ../../packages/camera
   # ensemble_file_manager:
-  #   path: ../../core/file_manager
+  #   path: ../../packages/file_manager
   # ensemble_contacts:
-  #   path: ../../core/contacts
+  #   path: ../../packages/contacts
   # ensemble_connect:
-  #   path: ../../core/connect
+  #   path: ../../packages/connect
 
   # Uncomment to enable Auth service
   # ensemble_auth:
-  #   path: ../../core/auth
+  #   path: ../../packages/auth
 
   # Uncomment to enable ensemble chat widget
   # ensemble_chat:
