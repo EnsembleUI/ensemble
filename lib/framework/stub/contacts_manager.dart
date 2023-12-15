@@ -3,11 +3,14 @@ import 'package:flutter/foundation.dart';
 
 typedef ContactSuccessCallback = void Function(List<Contact> contacts);
 typedef ContactErrorCallback = void Function(dynamic);
+typedef ContactPhotoSuccessCallback = void Function(Uint8List);
+typedef ContactPhotoErrorCallback = void Function(dynamic);
 
 abstract class ContactManager {
   void getPhoneContacts(
       ContactSuccessCallback onSuccess, ContactErrorCallback onError);
-
+  Future<void> getContactPhoto(String id, ContactPhotoSuccessCallback onSuccess,
+      ContactPhotoErrorCallback onError);
   Future<bool> requestPermission();
 }
 
@@ -15,6 +18,13 @@ class ContactManagerStub extends ContactManager {
   @override
   void getPhoneContacts(
       ContactSuccessCallback onSuccess, ContactErrorCallback onError) {
+    throw ConfigError(
+        "Phone Contact Service is not enabled. Please review the Ensemble documentation.");
+  }
+
+  @override
+  Future<void> getContactPhoto(String id, ContactPhotoSuccessCallback onSuccess,
+      ContactPhotoErrorCallback onError) {
     throw ConfigError(
         "Phone Contact Service is not enabled. Please review the Ensemble documentation.");
   }
