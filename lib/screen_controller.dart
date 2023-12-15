@@ -126,7 +126,7 @@ class ScreenController {
     } else if (action is BaseNavigateScreenAction) {
       // process input parameters
       Map<String, dynamic>? nextArgs = {};
-      action.inputs?.forEach((key, value) {
+      action.payload?.forEach((key, value) {
         nextArgs[key] = scopeManager.dataContext.eval(value);
       });
 
@@ -175,7 +175,7 @@ class ScreenController {
         });
       }
     } else if (action is ShowDialogAction) {
-      Widget widget = scopeManager.buildWidgetFromDefinition(action.widget);
+      Widget widget = scopeManager.buildWidgetFromDefinition(action.body);
 
       // get styles. TODO: make bindable
       Map<String, dynamic> dialogStyles = {};
@@ -417,8 +417,8 @@ class ScreenController {
       }
     } else if (action is ShowToastAction) {
       Widget? customToastBody;
-      if (action.widget != null) {
-        customToastBody = scopeManager.buildWidgetFromDefinition(action.widget);
+      if (action.body != null) {
+        customToastBody = scopeManager.buildWidgetFromDefinition(action.body);
       }
       ToastController().showToast(context, action, customToastBody,
           dataContext: scopeManager.dataContext);
