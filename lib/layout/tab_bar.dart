@@ -1,5 +1,6 @@
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
@@ -55,6 +56,7 @@ abstract class BaseTabBar extends StatefulWidget
   @override
   Map<String, Function> setters() {
     return {
+      'id': (value) => _controller.id = Utils.optionalString(value),
       'tabPosition': (position) =>
           _controller.tabPosition = Utils.optionalString(position),
       'indicatorSize': (type) =>
@@ -146,11 +148,27 @@ class TabBarState extends WidgetState<BaseTabBar>
         initialIndex: widget._controller.selectedIndex,
         length: widget._controller._items.length,
         vsync: this);
+    _tabController.addListener(notifyListener);
     super.initState();
+  }
+
+  void notifyListener() {
+    ScopeManager? scopeManager = ScreenController().getScopeManager(context);
+    if (widget._controller.selectedIndex == _tabController.index ||
+        scopeManager == null ||
+        widget._controller.id == null) return;
+    scopeManager.dispatch(
+      ModelChangeEvent(
+        WidgetBindingSource(widget._controller.id!, property: 'selectedIndex'),
+        _tabController.index,
+        bindingScope: scopeManager,
+      ),
+    );
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(notifyListener);
     _tabController.dispose();
     super.dispose();
   }
