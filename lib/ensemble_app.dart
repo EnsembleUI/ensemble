@@ -90,12 +90,16 @@ class EnsembleApp extends StatefulWidget {
       this.ensembleConfig,
       this.externalMethods,
       this.isPreview = false,
-      this.placeholderBackgroundColor});
+      this.placeholderBackgroundColor,
+      this.onAppLoad});
 
   final ScreenPayload? screenPayload;
   final EnsembleConfig? ensembleConfig;
   final bool isPreview;
   final Map<String, Function>? externalMethods;
+
+  // for integration with external Flutter code
+  final Function? onAppLoad;
 
   /// use this as the placeholder background while Ensemble is loading
   final Color? placeholderBackgroundColor;
@@ -105,6 +109,7 @@ class EnsembleApp extends StatefulWidget {
 }
 
 class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
+  bool notifiedAppLoad = false;
   late Future<EnsembleConfig> config;
 
   @override
@@ -193,7 +198,12 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
   }
 
   Widget renderApp(EnsembleConfig config) {
-    //log("EnsembleApp build() - $hashCode");
+    // notify external app once of EnsembleApp loading status
+    if (widget.onAppLoad != null && !notifiedAppLoad) {
+      widget.onAppLoad!.call();
+      notifiedAppLoad = true;
+    }
+
     StorageManager().setIsPreview(widget.isPreview);
 
     return MaterialApp(
