@@ -65,7 +65,6 @@ class ShowDialogAction extends EnsembleAction {
   final dynamic widget;
   final Map<String, dynamic>? options;
   final EnsembleAction? onDialogDismiss;
-
   factory ShowDialogAction.from({Invokable? initiator, Map? payload}) {
     if (payload == null || payload['widget'] == null) {
       throw LanguageError(
@@ -73,12 +72,11 @@ class ShowDialogAction extends EnsembleAction {
     }
     return ShowDialogAction(
       initiator: initiator,
-      widget: payload['widget'],
-      //inputs: Utils.getMap(payload["inputs"]),
+      widget: Utils.maybeYamlMap(payload['widget']),
       options: Utils.getMap(payload['options']),
       onDialogDismiss: payload['onDialogDismiss'] == null
           ? null
-          : EnsembleAction.fromYaml(payload['onDialogDismiss']),
+          : EnsembleAction.fromYaml(Utils.maybeYamlMap(payload['onDialogDismiss'])),
     );
   }
 }

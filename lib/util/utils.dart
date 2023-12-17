@@ -316,7 +316,13 @@ class Utils {
     Map? map = getMap(value);
     return map != null ? YamlMap.wrap(map) : null;
   }
-
+  //this is semantically different from the methods above as it is doesn't return null when value is not a map
+  static dynamic maybeYamlMap(dynamic value) {
+    if ( value is Map ) {
+      return YamlMap.wrap(value);
+    }
+    return value;
+  }
   static Color? getColor(dynamic value) {
     if (value is String) {
       switch (value) {
