@@ -6569,6 +6569,42 @@
         "source": {
           "type": "string",
           "description": "The URL source to the media file"
+        },
+        "showControls": {
+          "type" : "boolean",
+          "description" : "It shows the default video player control. (default True)"
+        },
+        "loadingWidget": {
+          "$ref": "#/$defs/Widget",
+          "description": "The widget to display when the player is in loading state."
+        },
+        "enableLoop": {
+          "type" : "boolean",
+          "description" : "It plays the video in loop mode. (default False)"
+        },
+        "autoplay": {
+          "type" : "boolean",
+          "description" : "Automatically start the video when the player is loaded. (default False)"
+        },
+        "playbackRate" : {
+          "type": "number",
+          "description": "For changing the speed at which the video is displayed. (max = 2.0, min = 0)"
+        },
+        "volume": {
+          "type": "number",
+          "description" : "Changes the volume of the video (max = 1.0, min = 0)"
+        },
+        "onStart": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "It is called when the player started to playing the video"
+        },
+        "onChange": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "It is called everytime when the player is playing the video"
+        },
+        "onEnd": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "It is called when the player is completed playing the video"
         }
       }
     },
