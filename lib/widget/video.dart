@@ -206,7 +206,14 @@ class VideoState extends WidgetState<Video> with PlayerCapabilities {
         children: [
           CircleButton(
             icon: Icons.replay_10_outlined,
-            onTap: () => widget._controller.playerCapabilities?.seekTo(10000),
+            onTap: () {
+              final currentDuration =
+                  widget._controller._playerController?.value.position;
+              if (currentDuration != null) {
+                widget._controller.playerCapabilities
+                    ?.seekTo(currentDuration.inSeconds - 10);
+              }
+            },
           ),
           CircleButton(
             icon: getVideoIconStatus(playerController),
@@ -220,7 +227,14 @@ class VideoState extends WidgetState<Video> with PlayerCapabilities {
           ),
           CircleButton(
             icon: Icons.forward_10_outlined,
-            onTap: () => widget._controller.playerCapabilities?.seekTo(10000),
+            onTap: () {
+              final currentDuration =
+                  widget._controller._playerController?.value.position;
+              if (currentDuration != null) {
+                widget._controller.playerCapabilities
+                    ?.seekTo(currentDuration.inSeconds + 10);
+              }
+            },
           ),
         ],
       ),
