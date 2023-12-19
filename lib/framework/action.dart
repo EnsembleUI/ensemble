@@ -942,6 +942,7 @@ enum ActionType {
   branchLinkInit,
   branchLinkValidate,
   branchLinkCreateDeeplink,
+  branchLinkCreateDeeplinkWithShareSheet,
 }
 
 enum ToastType { success, error, warning, info }
@@ -1095,6 +1096,9 @@ abstract class EnsembleAction {
       return BranchLinkValidateAction.fromMap(payload: payload);
     } else if (actionType == ActionType.branchLinkCreateDeeplink) {
       return BranchLinkCreateDeeplinkAction.fromMap(payload: payload);
+    } else if (actionType == ActionType.branchLinkCreateDeeplink) {
+      return BranchLinkCreateDeeplinkWithShareSheetAction.fromMap(
+          payload: payload);
     }
 
     throw LanguageError("Invalid action.",
