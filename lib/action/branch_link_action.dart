@@ -167,3 +167,92 @@ class BranchLinkCreateDeeplinkAction extends EnsembleAction {
     }
   }
 }
+
+class BranchLinkCreateDeeplinkWithShareSheetAction extends EnsembleAction {
+  BranchLinkCreateDeeplinkWithShareSheetAction({
+    super.initiator,
+    required this.onSuccess,
+    required this.messageText,
+    this.messageTitle,
+    this.sharingTitle,
+    this.onError,
+    this.universalProps,
+    this.linkProps,
+  });
+
+  EnsembleAction? onSuccess;
+  EnsembleAction? onError;
+  String messageText;
+  String? messageTitle;
+  String? sharingTitle;
+  Map<String, dynamic>? universalProps;
+  Map<String, dynamic>? linkProps;
+
+  factory BranchLinkCreateDeeplinkWithShareSheetAction.fromMap(
+      {dynamic payload}) {
+    if (payload is Map) {
+      EnsembleAction? successAction =
+          EnsembleAction.fromYaml(payload['onSuccess']);
+      if (successAction == null) {
+        throw LanguageError(
+            'onSuccess() is required for branchLinkCreateDeepLinkWithShareSheet action');
+      }
+
+      final universalPropsData = Utils.getMap(payload['universalProps']);
+      final linkPropsData = Utils.getMap(payload['linkProps']);
+
+      if (universalPropsData == null) {
+        throw LanguageError(
+            'universalProps is required for branchLinkCreateDeepLinkWithShareSheet action');
+      }
+
+      if (linkPropsData == null) {
+        throw LanguageError(
+            'linkProps is required for branchLinkCreateDeepLinkWithShareSheet action');
+      }
+
+      final messageTextData = Utils.optionalString(payload['messageText']);
+      if (messageTextData == null) {
+        throw LanguageError(
+            'messageText is required for branchLinkCreateDeepLinkWithShareSheet action');
+      }
+
+      return BranchLinkCreateDeeplinkWithShareSheetAction(
+        onSuccess: successAction,
+        onError: EnsembleAction.fromYaml(payload['onError']),
+        messageText: messageTextData,
+        messageTitle: payload['messageTitle'],
+        sharingTitle: payload['sharingTitle'],
+        universalProps: universalPropsData,
+        linkProps: linkPropsData,
+      );
+    }
+    throw LanguageError(
+        'Missing inputs for branchLinkCreateDeepLinkWithShareSheet');
+  }
+
+  @override
+  Future execute(BuildContext context, ScopeManager scopeManager) async {
+    try {
+      final response = await BranchLinkManager().createDeeplinkWithShareSheet(
+          messageText: messageText,
+          messageTitle: Utils.getString(messageTitle, fallback: ''),
+          sharingTitle: Utils.getString(sharingTitle, fallback: ''),
+          universalProps: universalProps!,
+          linkProps: linkProps!);
+      if (response != null && response.success) {
+        return ScreenController().executeAction(context, onSuccess!,
+            event: EnsembleEvent(initiator, data: {'result': response.result}));
+      } else {
+        return ScreenController().executeAction(context, onError!,
+            event: EnsembleEvent(initiator,
+                error:
+                    'Branch SDK: Unable to create deeplink - Reason: ${response?.errorMessage}'));
+      }
+    } catch (e) {
+      return ScreenController().executeAction(context, onError!,
+          event: EnsembleEvent(initiator,
+              error: 'Branch SDK: Unable to create deeplink - Reason: $e'));
+    }
+  }
+}

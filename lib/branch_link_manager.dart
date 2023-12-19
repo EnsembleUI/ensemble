@@ -26,17 +26,54 @@ class BranchLinkManager {
   Future<BranchResponse<dynamic>?> createDeepLink(
       Map<String, dynamic> universalProps,
       Map<String, dynamic> linkProps) async {
+    final buo = _getUniversalObject(universalProps);
+    final blp = _getLinkProperties(linkProps);
+
+    try {
+      BranchResponse response =
+          await FlutterBranchSdk.getShortUrl(buo: buo, linkProperties: blp);
+      return response;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<BranchResponse> createDeeplinkWithShareSheet({
+    required String messageText,
+    required Map<String, dynamic> universalProps,
+    required Map<String, dynamic> linkProps,
+    String messageTitle = '',
+    String sharingTitle = '',
+  }) async {
+    final buo = _getUniversalObject(universalProps);
+    final blp = _getLinkProperties(linkProps);
+
+    BranchResponse response = await FlutterBranchSdk.showShareSheet(
+      buo: buo,
+      linkProperties: blp,
+      messageText: messageText,
+      androidMessageTitle: messageTitle,
+      androidSharingTitle: sharingTitle,
+    );
+
+    return response;
+  }
+
+  BranchUniversalObject _getUniversalObject(
+      Map<String, dynamic> universalProps) {
     final contentMetadata = BranchContentMetaData();
     contentMetadata.contentSchema = universalProps['contentSchema'];
 
-    final buo = BranchUniversalObject(
+    return BranchUniversalObject(
       canonicalIdentifier: universalProps['id'],
       title: universalProps['title'],
       imageUrl: universalProps['imageUrl'],
       contentDescription: universalProps['title'],
       contentMetadata: contentMetadata,
     );
+  }
 
+  BranchLinkProperties _getLinkProperties(Map<String, dynamic> linkProps) {
     final blp = BranchLinkProperties(
       channel: linkProps['channel'],
       feature: linkProps['feature'],
@@ -52,12 +89,6 @@ class BranchLinkManager {
       });
     }
 
-    try {
-      BranchResponse response =
-          await FlutterBranchSdk.getShortUrl(buo: buo, linkProperties: blp);
-      return response;
-    } catch (e) {
-      return null;
-    }
+    return blp;
   }
 }
