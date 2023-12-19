@@ -25,7 +25,7 @@ class BranchLinkInitAction extends EnsembleAction {
           EnsembleAction.fromYaml(payload['onSuccess']);
       if (successAction == null) {
         throw LanguageError(
-            "onSuccess() is required for branchLinkInit action");
+            'onSuccess() is required for branchLinkInit action');
       }
 
       return BranchLinkInitAction(
@@ -54,7 +54,7 @@ class BranchLinkInitAction extends EnsembleAction {
     } catch (e) {
       return ScreenController().executeAction(context, onError!,
           event: EnsembleEvent(initiator,
-              error: 'Unable to initialize the Branch SDK: $e'));
+              error: 'Branch SDK: Unable to initialize - Reason: $e'));
     }
   }
 }
@@ -75,7 +75,7 @@ class BranchLinkValidateAction extends EnsembleAction {
           EnsembleAction.fromYaml(payload['onSuccess']);
       if (successAction == null) {
         throw LanguageError(
-            "onSuccess() is required for branchLinkValidate action");
+            'onSuccess() is required for branchLinkValidate action');
       }
 
       return BranchLinkValidateAction(
@@ -95,7 +95,7 @@ class BranchLinkValidateAction extends EnsembleAction {
     } catch (e) {
       return ScreenController().executeAction(context, onError!,
           event: EnsembleEvent(initiator,
-              error: 'Unable to validate the Branch SDK: $e'));
+              error: 'Branch SDK: Unable to validate - Reason: $e'));
     }
   }
 }
@@ -105,10 +105,14 @@ class BranchLinkCreateDeeplinkAction extends EnsembleAction {
     super.initiator,
     required this.onSuccess,
     this.onError,
+    this.universalProps,
+    this.linkProps,
   });
 
   EnsembleAction? onSuccess;
   EnsembleAction? onError;
+  Map<String, dynamic>? universalProps;
+  Map<String, dynamic>? linkProps;
 
   factory BranchLinkCreateDeeplinkAction.fromMap({dynamic payload}) {
     if (payload is Map) {
@@ -119,9 +123,24 @@ class BranchLinkCreateDeeplinkAction extends EnsembleAction {
             'onSuccess() is required for branchLinkCreateDeepLink action');
       }
 
+      final universalPropsData = Utils.getMap(payload['universalProps']);
+      final linkPropsData = Utils.getMap(payload['linkProps']);
+
+      if (universalPropsData == null) {
+        throw LanguageError(
+            'universalProps is required for branchLinkCreateDeepLink action');
+      }
+
+      if (linkPropsData == null) {
+        throw LanguageError(
+            'linkProps is required for branchLinkCreateDeepLink action');
+      }
+
       return BranchLinkCreateDeeplinkAction(
         onSuccess: successAction,
         onError: EnsembleAction.fromYaml(payload['onError']),
+        universalProps: universalPropsData,
+        linkProps: linkPropsData,
       );
     }
     throw LanguageError('Missing inputs for branchLinkCreateDeepLink');
@@ -130,13 +149,21 @@ class BranchLinkCreateDeeplinkAction extends EnsembleAction {
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) async {
     try {
-      BranchLinkManager().validate();
-      return ScreenController()
-          .executeAction(context, onSuccess!, event: EnsembleEvent(initiator));
+      final response =
+          await BranchLinkManager().createDeepLink(universalProps!, linkProps!);
+      if (response != null && response.success) {
+        return ScreenController().executeAction(context, onSuccess!,
+            event: EnsembleEvent(initiator, data: {'result': response.result}));
+      } else {
+        return ScreenController().executeAction(context, onError!,
+            event: EnsembleEvent(initiator,
+                error:
+                    'Branch SDK: Unable to create deeplink - Reason: ${response?.errorMessage}'));
+      }
     } catch (e) {
       return ScreenController().executeAction(context, onError!,
           event: EnsembleEvent(initiator,
-              error: 'Unable to create deeplink using Branch SDK: $e'));
+              error: 'Branch SDK: Unable to create deeplink - Reason: $e'));
     }
   }
 }

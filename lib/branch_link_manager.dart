@@ -22,4 +22,42 @@ class BranchLinkManager {
   void validate() {
     FlutterBranchSdk.validateSDKIntegration();
   }
+
+  Future<BranchResponse<dynamic>?> createDeepLink(
+      Map<String, dynamic> universalProps,
+      Map<String, dynamic> linkProps) async {
+    final contentMetadata = BranchContentMetaData();
+    contentMetadata.contentSchema = universalProps['contentSchema'];
+
+    final buo = BranchUniversalObject(
+      canonicalIdentifier: universalProps['id'],
+      title: universalProps['title'],
+      imageUrl: universalProps['imageUrl'],
+      contentDescription: universalProps['title'],
+      contentMetadata: contentMetadata,
+    );
+
+    final blp = BranchLinkProperties(
+      channel: linkProps['channel'],
+      feature: linkProps['feature'],
+      campaign: linkProps['campaign'],
+      stage: linkProps['stage'],
+      tags: linkProps['tags'],
+    );
+
+    final controlParams = linkProps['controlParams'] as Map<String, dynamic>?;
+    if (controlParams != null) {
+      controlParams.forEach((key, value) {
+        blp.addControlParam(key, value);
+      });
+    }
+
+    try {
+      BranchResponse response =
+          await FlutterBranchSdk.getShortUrl(buo: buo, linkProperties: blp);
+      return response;
+    } catch (e) {
+      return null;
+    }
+  }
 }
