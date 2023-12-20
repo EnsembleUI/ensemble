@@ -1,3 +1,5 @@
+import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:flutter_branch_sdk/flutter_branch_sdk.dart';
 
 class BranchLinkManager {
@@ -62,14 +64,16 @@ class BranchLinkManager {
   BranchUniversalObject _getUniversalObject(
       Map<String, dynamic> universalProps) {
     final contentMetadata = BranchContentMetaData();
-    contentMetadata.contentSchema = universalProps['contentSchema'];
+    // contentMetadata.contentSchema = BranchContentSchema.values.from(universalProps['contentSchema']);
+    contentMetadata.contentSchema =
+        BranchContentSchema.values.from('COMMERCE_PRODUCT');
 
     return BranchUniversalObject(
       canonicalIdentifier: universalProps['id'],
       title: universalProps['title'],
       imageUrl: universalProps['imageUrl'],
       contentDescription: universalProps['title'],
-      contentMetadata: contentMetadata,
+      // contentMetadata: contentMetadata,
     );
   }
 
@@ -79,10 +83,10 @@ class BranchLinkManager {
       feature: linkProps['feature'],
       campaign: linkProps['campaign'],
       stage: linkProps['stage'],
-      tags: linkProps['tags'],
+      tags: Utils.getListOfStrings(linkProps['tags']) ?? [],
     );
 
-    final controlParams = linkProps['controlParams'] as Map<String, dynamic>?;
+    final controlParams = Utils.getMap(linkProps['controlParams']);
     if (controlParams != null) {
       controlParams.forEach((key, value) {
         blp.addControlParam(key, value);

@@ -240,7 +240,7 @@ class BranchLinkCreateDeeplinkWithShareSheetAction extends EnsembleAction {
           sharingTitle: Utils.getString(sharingTitle, fallback: ''),
           universalProps: universalProps!,
           linkProps: linkProps!);
-      if (response != null && response.success) {
+      if (response.success) {
         return ScreenController().executeAction(context, onSuccess!,
             event: EnsembleEvent(initiator, data: {'result': response.result}));
       } else {
