@@ -6103,6 +6103,45 @@
                       "$ref": "#/$defs/Widget",
                       "description": "If spans per row overflow based on spanPerRow than overflowWidget will render"
                     },
+                    "span-template": {
+                      "type": "object",
+                      "required": [
+                        "data",
+                        "name",
+                        "span"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "string",
+                          "description": "Bind the rowspan list to the data e.g. myAPI.body.items"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Give this a name. This is the bindable data for each rowspan."
+                        },
+                        "span": {
+                          "type": "object",
+                          "required": [
+                            "start",
+                            "end",
+                            "widget"
+                          ],
+                          "properties": {
+                            "start": {
+                              "type": "string",
+                              "description": "Starting date of the rowspan in ISO format"
+                            },
+                            "end": {
+                              "type": "string",
+                              "description": "Ending date of the rowspan in ISO format"
+                            },
+                            "widget": {
+                              "$ref": "#/$defs/Widget"
+                            }
+                          }
+                        }
+                      }
+                    },
                     "children": {
                       "type": "array",
                       "items": {
