@@ -76,7 +76,8 @@ class ShowDialogAction extends EnsembleAction {
       options: Utils.getMap(payload['options']),
       onDialogDismiss: payload['onDialogDismiss'] == null
           ? null
-          : EnsembleAction.fromYaml(Utils.maybeYamlMap(payload['onDialogDismiss'])),
+          : EnsembleAction.fromYaml(
+              Utils.maybeYamlMap(payload['onDialogDismiss'])),
     );
   }
 }
