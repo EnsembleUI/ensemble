@@ -5,10 +5,13 @@ import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/layout/templated.dart';
+import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:ensemble_ts_interpreter/extensions.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -91,6 +94,12 @@ class EnsembleCalendar extends StatefulWidget
             Utils.getInt(value['spanPerRow'], fallback: -1);
         _controller.overlapOverflowBuilder = value['overflowWidget'];
         _controller.topMargin = Utils.getInt(value['topMargin'], fallback: 0);
+
+        if (value['span-template'] is YamlMap ||
+            value['span-template'] is Map) {
+          setRowSpanItemTemplate(value['span-template']);
+        }
+
         if (value['children'] is List) {
           for (var span in value['children']) {
             setRowSpan(span['span']);
@@ -104,6 +113,30 @@ class EnsembleCalendar extends StatefulWidget
       'showTooltip': (value) =>
           _controller.showTooltip = Utils.getBool(value, fallback: false)
     };
+  }
+
+  void setRowSpanItemTemplate(dynamic rowSpanData) {
+    try {
+      if (rowSpanData is! Map ||
+          rowSpanData is! YamlMap ||
+          rowSpanData['span'] is! Map ||
+          rowSpanData['span'] is! YamlMap) {
+        return;
+      }
+
+      final rowSpanTemplate = RowSpanTemplate(
+        data: rowSpanData['data'],
+        name: rowSpanData['name'],
+        spanTemplate: SpanTemplate(
+          start: rowSpanData['span']['start'],
+          end: rowSpanData['span']['end'],
+          widget: rowSpanData['span']['widget'],
+        ),
+      );
+      _controller.rowSpanTemplate = rowSpanTemplate;
+    } on Exception catch (_) {
+      //noop
+    }
   }
 
   setTooltip(value) {
@@ -386,6 +419,7 @@ class EnsembleCalendar extends StatefulWidget
 }
 
 class RowSpanConfig {
+  ScopeManager? scope;
   DateTime? startDay;
   DateTime? endDay;
   dynamic widget;
@@ -398,6 +432,7 @@ class RowSpanConfig {
     this.widget,
     this.inputs,
     required this.id,
+    this.scope,
   });
 
   bool get isValid => startDay != null && endDay != null;
@@ -457,6 +492,7 @@ class CalendarController extends WidgetController {
   int topMargin = 0;
   dynamic overlapOverflowBuilder;
 
+  RowSpanTemplate? rowSpanTemplate;
   DateTime? selectedDate;
   DateTime? disabledDate;
 
@@ -506,8 +542,10 @@ int getHashCode(DateTime key) {
   return key.day * 1000000 + key.month * 10000 + key.year;
 }
 
-class CalendarState extends WidgetState<EnsembleCalendar> {
+class CalendarState extends WidgetState<EnsembleCalendar>
+    with TemplatedWidgetState {
   final CalendarFormat _calendarFormat = CalendarFormat.month;
+  ItemTemplate? itemTemplate;
 
   @override
   void initState() {
@@ -520,6 +558,51 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
 
   void listener() {
     setState(() {});
+  }
+
+  @override
+  void didChangeDependencies() {
+    _registerRowSpanListener(context);
+    super.didChangeDependencies();
+  }
+
+  void _registerRowSpanListener(BuildContext context) {
+    if (widget.controller.rowSpanTemplate != null) {
+      registerItemTemplate(context, widget.controller.rowSpanTemplate!,
+          evaluateInitialValue: true, onDataChanged: (dataList) {
+        if (dataList is List) {
+          final configs = _builRowSpanConfigs(context, dataList);
+          widget._controller.rowSpans.value = configs;
+          setState(() {});
+        }
+      });
+    }
+  }
+
+  _builRowSpanConfigs(BuildContext context, List dataList) {
+    List<RowSpanConfig> rowSpanConfigs = [];
+
+    RowSpanTemplate? itemTemplate = widget.controller.rowSpanTemplate;
+    ScopeManager? myScope = DataScopeWidget.getScope(context);
+    if (myScope != null && itemTemplate != null) {
+      for (dynamic dataItem in dataList) {
+        ScopeManager dataScope = myScope.createChildScope();
+        dataScope.dataContext.addDataContextById(itemTemplate.name, dataItem);
+
+        rowSpanConfigs.add(
+          RowSpanConfig(
+            id: Utils.generateRandomId(6),
+            startDay: Utils.getDate(
+                dataScope.dataContext.eval(itemTemplate.spanTemplate.start)),
+            endDay: Utils.getDate(
+                dataScope.dataContext.eval(itemTemplate.spanTemplate.end)),
+            scope: dataScope,
+            widget: itemTemplate.spanTemplate.widget,
+          ),
+        );
+      }
+    }
+    return rowSpanConfigs;
   }
 
   @override
@@ -683,6 +766,11 @@ class CalendarState extends WidgetState<EnsembleCalendar> {
                     final span = spans.value
                         .firstWhereOrNull((element) => element.id == range.id);
                     if (span != null) {
+                      if (span.scope != null) {
+                        final child =
+                            span.scope?.buildWidgetFromDefinition(span.widget);
+                        return child;
+                      }
                       return widgetBuilder(
                         context,
                         span.widget,
@@ -917,4 +1005,23 @@ class _CalendarHeader extends StatelessWidget {
       ),
     );
   }
+}
+
+class RowSpanTemplate extends ItemTemplate {
+  RowSpanTemplate({
+    required String data,
+    required String name,
+    dynamic template,
+    required this.spanTemplate,
+  }) : super(data, name, template);
+
+  final SpanTemplate spanTemplate;
+}
+
+class SpanTemplate {
+  final String start;
+  final String end;
+  final dynamic widget;
+
+  SpanTemplate({required this.start, required this.end, this.widget});
 }
