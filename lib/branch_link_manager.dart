@@ -2,6 +2,8 @@ import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter_branch_sdk/flutter_branch_sdk.dart';
 
+typedef BranchDeepLink = Function(Map<dynamic, dynamic>);
+
 class BranchLinkManager {
   static final BranchLinkManager _instance = BranchLinkManager._internal();
 
@@ -11,14 +13,21 @@ class BranchLinkManager {
     return _instance;
   }
 
-  Future<void> init(
-      {bool useTestKey = false,
-      bool enableLog = false,
-      bool disableTrack = false}) async {
+  Future<void> init({
+    bool useTestKey = false,
+    bool enableLog = false,
+    bool disableTrack = false,
+    BranchDeepLink? onLinkReceived,
+  }) async {
     FlutterBranchSdk.init(
         useTestKey: useTestKey,
         enableLogging: enableLog,
         disableTracking: disableTrack);
+    FlutterBranchSdk.disableTracking(false);
+
+    FlutterBranchSdk.listSession().listen((data) {
+      onLinkReceived?.call(data);
+    });
   }
 
   void validate() {
