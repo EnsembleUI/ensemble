@@ -1096,10 +1096,6 @@ abstract class EnsembleAction {
       return BranchLinkValidateAction.fromMap(payload: payload);
     } else if (actionType == ActionType.branchLinkCreateDeeplink) {
       return BranchLinkCreateDeeplinkAction.fromMap(payload: payload);
-    } else if (actionType ==
-        ActionType.branchLinkCreateDeeplinkWithShareSheet) {
-      return BranchLinkCreateDeeplinkWithShareSheetAction.fromMap(
-          payload: payload);
     }
 
     throw LanguageError("Invalid action.",

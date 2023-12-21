@@ -12,12 +12,14 @@ class BranchLinkInitAction extends EnsembleAction {
     super.initiator,
     required this.onSuccess,
     this.onError,
+    this.onLinkReceived,
     this.options,
   });
 
   Map<String, dynamic>? options;
   EnsembleAction? onSuccess;
   EnsembleAction? onError;
+  EnsembleAction? onLinkReceived;
 
   factory BranchLinkInitAction.fromMap({dynamic payload}) {
     if (payload is Map) {
@@ -31,6 +33,7 @@ class BranchLinkInitAction extends EnsembleAction {
       return BranchLinkInitAction(
         onSuccess: successAction,
         onError: EnsembleAction.fromYaml(payload['onError']),
+        onLinkReceived: EnsembleAction.fromYaml(payload['onLinkReceived']),
         options: Utils.getMap(payload['options']),
       );
     }
@@ -48,7 +51,11 @@ class BranchLinkInitAction extends EnsembleAction {
       await BranchLinkManager().init(
           useTestKey: useTestKey,
           enableLog: enableLog,
-          disableTrack: disableTrack);
+          disableTrack: disableTrack,
+          onLinkReceived: (linkData) {
+            return ScreenController().executeAction(context, onLinkReceived!,
+                event: EnsembleEvent(initiator, data: {'link': linkData}));
+          });
       return ScreenController()
           .executeAction(context, onSuccess!, event: EnsembleEvent(initiator));
     } catch (e) {
@@ -107,12 +114,14 @@ class BranchLinkCreateDeeplinkAction extends EnsembleAction {
     this.onError,
     this.universalProps,
     this.linkProps,
+    this.shareSheet,
   });
 
   EnsembleAction? onSuccess;
   EnsembleAction? onError;
   Map<String, dynamic>? universalProps;
   Map<String, dynamic>? linkProps;
+  Map<String, dynamic>? shareSheet;
 
   factory BranchLinkCreateDeeplinkAction.fromMap({dynamic payload}) {
     if (payload is Map) {
@@ -141,6 +150,7 @@ class BranchLinkCreateDeeplinkAction extends EnsembleAction {
         onError: EnsembleAction.fromYaml(payload['onError']),
         universalProps: universalPropsData,
         linkProps: linkPropsData,
+        shareSheet: Utils.getMap(payload['shareSheet']),
       );
     }
     throw LanguageError('Missing inputs for branchLinkCreateDeepLink');
@@ -149,98 +159,22 @@ class BranchLinkCreateDeeplinkAction extends EnsembleAction {
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) async {
     try {
-      final response =
-          await BranchLinkManager().createDeepLink(universalProps!, linkProps!);
-      if (response != null && response.success) {
-        return ScreenController().executeAction(context, onSuccess!,
-            event: EnsembleEvent(initiator, data: {'result': response.result}));
+      dynamic response;
+      if (shareSheet != null) {
+        response = await BranchLinkManager().createDeeplinkWithShareSheet(
+            messageText: Utils.getString(shareSheet?['sharingTitle'],
+                fallback: 'messageText'),
+            messageTitle:
+                Utils.getString(shareSheet?['messageTitle'], fallback: ''),
+            sharingTitle:
+                Utils.getString(shareSheet?['sharingTitle'], fallback: ''),
+            universalProps: universalProps!,
+            linkProps: linkProps!);
       } else {
-        return ScreenController().executeAction(context, onError!,
-            event: EnsembleEvent(initiator,
-                error:
-                    'Branch SDK: Unable to create deeplink - Reason: ${response?.errorMessage}'));
+        response = await BranchLinkManager()
+            .createDeepLink(universalProps!, linkProps!);
       }
-    } catch (e) {
-      return ScreenController().executeAction(context, onError!,
-          event: EnsembleEvent(initiator,
-              error: 'Branch SDK: Unable to create deeplink - Reason: $e'));
-    }
-  }
-}
-
-class BranchLinkCreateDeeplinkWithShareSheetAction extends EnsembleAction {
-  BranchLinkCreateDeeplinkWithShareSheetAction({
-    super.initiator,
-    required this.onSuccess,
-    required this.messageText,
-    this.messageTitle,
-    this.sharingTitle,
-    this.onError,
-    this.universalProps,
-    this.linkProps,
-  });
-
-  EnsembleAction? onSuccess;
-  EnsembleAction? onError;
-  String messageText;
-  String? messageTitle;
-  String? sharingTitle;
-  Map<String, dynamic>? universalProps;
-  Map<String, dynamic>? linkProps;
-
-  factory BranchLinkCreateDeeplinkWithShareSheetAction.fromMap(
-      {dynamic payload}) {
-    if (payload is Map) {
-      EnsembleAction? successAction =
-          EnsembleAction.fromYaml(payload['onSuccess']);
-      if (successAction == null) {
-        throw LanguageError(
-            'onSuccess() is required for branchLinkCreateDeepLinkWithShareSheet action');
-      }
-
-      final universalPropsData = Utils.getMap(payload['universalProps']);
-      final linkPropsData = Utils.getMap(payload['linkProps']);
-
-      if (universalPropsData == null) {
-        throw LanguageError(
-            'universalProps is required for branchLinkCreateDeepLinkWithShareSheet action');
-      }
-
-      if (linkPropsData == null) {
-        throw LanguageError(
-            'linkProps is required for branchLinkCreateDeepLinkWithShareSheet action');
-      }
-
-      final messageTextData = Utils.optionalString(payload['messageText']);
-      if (messageTextData == null) {
-        throw LanguageError(
-            'messageText is required for branchLinkCreateDeepLinkWithShareSheet action');
-      }
-
-      return BranchLinkCreateDeeplinkWithShareSheetAction(
-        onSuccess: successAction,
-        onError: EnsembleAction.fromYaml(payload['onError']),
-        messageText: messageTextData,
-        messageTitle: payload['messageTitle'],
-        sharingTitle: payload['sharingTitle'],
-        universalProps: universalPropsData,
-        linkProps: linkPropsData,
-      );
-    }
-    throw LanguageError(
-        'Missing inputs for branchLinkCreateDeepLinkWithShareSheet');
-  }
-
-  @override
-  Future execute(BuildContext context, ScopeManager scopeManager) async {
-    try {
-      final response = await BranchLinkManager().createDeeplinkWithShareSheet(
-          messageText: messageText,
-          messageTitle: Utils.getString(messageTitle, fallback: ''),
-          sharingTitle: Utils.getString(sharingTitle, fallback: ''),
-          universalProps: universalProps!,
-          linkProps: linkProps!);
-      if (response.success) {
+      if (response != null && response.success) {
         return ScreenController().executeAction(context, onSuccess!,
             event: EnsembleEvent(initiator, data: {'result': response.result}));
       } else {
