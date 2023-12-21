@@ -591,14 +591,14 @@ class CalendarState extends WidgetState<EnsembleCalendar>
 
         rowSpanConfigs.add(
           RowSpanConfig(
-            id: Utils.generateRandomId(6),
-            startDay: Utils.getDate(
-                dataScope.dataContext.eval(itemTemplate.spanTemplate.start)),
-            endDay: Utils.getDate(
-                dataScope.dataContext.eval(itemTemplate.spanTemplate.end)),
-            scope: dataScope,
-            widget: itemTemplate.spanTemplate.widget,
-          ),
+              id: Utils.generateRandomId(6),
+              startDay: Utils.getDate(
+                  dataScope.dataContext.eval(itemTemplate.spanTemplate.start)),
+              endDay: Utils.getDate(
+                  dataScope.dataContext.eval(itemTemplate.spanTemplate.end)),
+              scope: dataScope,
+              widget:
+                  dataScope.dataContext.eval(itemTemplate.spanTemplate.widget)),
         );
       }
     }
@@ -742,21 +742,27 @@ class CalendarState extends WidgetState<EnsembleCalendar>
           topMargin: widget._controller.topMargin,
           calendarBuilders: CalendarBuilders(
             overlayDefaultBuilder: (context, collapsedLength, children) {
-              Map<String, dynamic> data = {};
               final collapsedSpans = widget._controller.rowSpans.value
                   .where((object) => children.contains(object.id))
                   .toList();
-              if (collapsedLength != null) {
-                data['collapsedLength'] = collapsedSpans.length;
-                data['collapsedSpans'] =
-                    collapsedSpans.map((e) => e.toJson()).toList();
-              }
 
               if (widget._controller.overlapOverflowBuilder == null) {
                 return null;
               }
-              return widgetBuilder(
-                  context, widget._controller.overlapOverflowBuilder, data);
+
+              ScopeManager? myScope = DataScopeWidget.getScope(context);
+              ScopeManager? dataScope = myScope?.createChildScope();
+
+              if (collapsedLength != null) {
+                dataScope?.dataContext.addDataContextById(
+                    'collapsedLength', collapsedSpans.length);
+                dataScope?.dataContext.addDataContextById('collapsedSpans',
+                    collapsedSpans.map((e) => e.toJson()).toList());
+              }
+
+              final child = dataScope?.buildWidgetWithScopeFromDefinition(
+                  widget._controller.overlapOverflowBuilder);
+              return child;
             },
             overlayBuilder: widget._controller.rowSpans.value.isEmpty
                 ? null
@@ -767,8 +773,8 @@ class CalendarState extends WidgetState<EnsembleCalendar>
                         .firstWhereOrNull((element) => element.id == range.id);
                     if (span != null) {
                       if (span.scope != null) {
-                        final child =
-                            span.scope?.buildWidgetFromDefinition(span.widget);
+                        final child = span.scope?.buildWidgetFromDefinition(
+                            YamlMap.wrap(span.widget));
                         return child;
                       }
                       return widgetBuilder(
