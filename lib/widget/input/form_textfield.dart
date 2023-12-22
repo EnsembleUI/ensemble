@@ -39,11 +39,7 @@ class TextInput extends BaseTextInput {
           textController.text = '';
           return;
         }
-        if ( newValue is! String ) {
-          textController.text = newValue.toString();
-          return;
-        }
-        textController.text = newValue;
+        textController.text = Utils.optionalString(newValue)!;
       },
       'obscureText': (obscure) =>
           _controller.obscureText = Utils.optionalBool(obscure),
