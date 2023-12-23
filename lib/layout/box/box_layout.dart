@@ -154,6 +154,7 @@ class BoxLayoutState extends WidgetState<BoxLayout>
       // In that case we want to evaluate the data to see if they are there
       registerItemTemplate(context, widget._controller.itemTemplate!,
           evaluateInitialValue: true, onDataChanged: (List dataList) {
+        if (!mounted) return;
         setState(() {
           templatedChildren = buildWidgetsFromTemplate(
               context, dataList, widget._controller.itemTemplate!);
