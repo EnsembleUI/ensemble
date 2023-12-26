@@ -1,3 +1,4 @@
+import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/action.dart' as framework;
 import 'package:ensemble/framework/event.dart';
@@ -16,6 +17,7 @@ import '../../framework/model.dart';
 
 class Dropdown extends SelectOne {
   static const type = "Dropdown";
+
   Dropdown({Key? key}) : super(key: key);
 
   @override
@@ -29,6 +31,7 @@ abstract class SelectOne extends StatefulWidget
   SelectOne({Key? key}) : super(key: key);
 
   final SelectOneController _controller = SelectOneController();
+
   @override
   SelectOneController get controller => _controller;
 
@@ -67,6 +70,14 @@ abstract class SelectOne extends StatefulWidget
       'itemsFromArray': (dynamic arrValues) => setItemsFromArray(arrValues),
       'autoComplete': (value) =>
           _controller.autoComplete = Utils.getBool(value, fallback: false),
+      'dropdownOffsetX': (value) =>
+          _controller.dropdownOffsetX = Utils.optionalInt(value),
+      'dropdownOffsetY': (value) =>
+          _controller.dropdownOffsetY = Utils.optionalInt(value),
+      'dropdownBackgroundColor': (color) =>
+          _controller.dropdownBackgroundColor = Utils.getColor(color),
+      'dropdownMaxHeight': (value) =>
+          _controller.dropdownMaxHeight = Utils.optionalInt(value, min: 0),
     };
   }
 
@@ -174,7 +185,9 @@ enum SelectOneType { dropdown }
 
 mixin SelectOneInputFieldAction on FormFieldWidgetState<SelectOne> {
   void clear();
+
   void focusInputField();
+
   void unfocusInputField();
 }
 
@@ -188,6 +201,12 @@ class SelectOneController extends FormFieldController {
   dynamic maybeValue;
   int gap = 0;
   bool autoComplete = false;
+
+  // dropdown styles
+  int? dropdownOffsetX;
+  int? dropdownOffsetY;
+  Color? dropdownBackgroundColor;
+  int? dropdownMaxHeight;
 
   framework.EnsembleAction? clear;
   framework.EnsembleAction? onChange;
@@ -243,80 +262,98 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
     }
   }
 
+  /// build the standard Dropdown
+  Widget _buildDropdown(BuildContext context) {
+    // if not overrode, decrease the default theme's vertical contentPadding
+    // slightly so the dropdown is the same height as other input widgets
+    EdgeInsetsGeometry? adjustedContentPadding;
+    if (widget._controller.contentPadding == null) {
+      InputDecorationTheme themeDecoration =
+          Theme.of(context).inputDecorationTheme;
+      if (themeDecoration.contentPadding != null) {
+        adjustedContentPadding = themeDecoration.contentPadding!
+            .subtract(const EdgeInsets.only(top: 2, bottom: 3));
+      }
+    }
+
+    return DropdownButtonFormField2<dynamic>(
+        key: validatorKey,
+        validator: (value) {
+          if (widget._controller.required && widget.getValue() == null) {
+            return Utils.translateWithFallback(
+                'ensemble.input.required', 'This field is required');
+          }
+          return null;
+        },
+        hint: widget._controller.hintText == null
+            ? null
+            : Text(widget._controller.hintText!),
+        value: widget.getValue(),
+        items: buildItems(widget._controller.items),
+        onChanged: isEnabled() ? (item) => onSelectionChanged(item) : null,
+        focusNode: focusNode,
+        iconStyleData: const IconStyleData(
+            icon: Icon(Icons.keyboard_arrow_down, size: 20),
+            openMenuIcon: Icon(Icons.keyboard_arrow_up, size: 20)),
+        dropdownStyleData: DropdownStyleData(
+          decoration: widget._controller.dropdownBackgroundColor != null
+              ? BoxDecoration(color: widget._controller.dropdownBackgroundColor)
+              : null,
+          maxHeight: widget._controller.dropdownMaxHeight?.toDouble(),
+          offset: Offset(
+            widget._controller.dropdownOffsetX?.toDouble() ?? 0,
+            widget._controller.dropdownOffsetY?.toDouble() ?? 0,
+          )
+        ),
+        decoration:
+            inputDecoration.copyWith(contentPadding: adjustedContentPadding));
+  }
+
+  /// build the auto-complete Dropdown
+  Widget _buildAutoComplete(BuildContext context) {
+    return LayoutBuilder(
+        builder: (context, constraints) => RawAutocomplete<SelectOneItem>(
+              focusNode: focusNode,
+              textEditingController: textEditingController,
+              optionsBuilder: (TextEditingValue textEditingValue) =>
+                  buildAutoCompleteOptions(textEditingValue),
+              displayStringForOption: (SelectOneItem option) =>
+                  option.label ?? option.value,
+              fieldViewBuilder: (BuildContext context,
+                  TextEditingController fieldTextEditingController,
+                  FocusNode fieldFocusNode,
+                  VoidCallback onFieldSubmitted) {
+                return TextField(
+                    enabled: isEnabled(),
+                    showCursor: true,
+                    style: const TextStyle(
+                        color: Colors.black, fontWeight: FontWeight.w500),
+                    controller: fieldTextEditingController,
+                    focusNode: fieldFocusNode,
+                    decoration: inputDecoration);
+              },
+              onSelected: (SelectOneItem selection) {
+                onSelectionChanged(selection.value);
+                if (kDebugMode) {
+                  print('Selected: ${selection.value}');
+                }
+              },
+              optionsViewBuilder: (BuildContext context,
+                  AutocompleteOnSelected<SelectOneItem> onSelected,
+                  Iterable<SelectOneItem> options) {
+                return buildAutoCompleteItems(constraints, options, onSelected);
+              },
+            ));
+  }
+
   @override
   Widget buildWidget(BuildContext context) {
-    Widget rtn;
-    if (widget._controller.autoComplete == false) {
-      // if not overrode, decrease the default theme's vertical contentPadding
-      // slightly so the dropdown is the same height as other input widgets
-      EdgeInsetsGeometry? adjustedContentPadding;
-      if (widget._controller.contentPadding == null) {
-        InputDecorationTheme themeDecoration =
-            Theme.of(context).inputDecorationTheme;
-        if (themeDecoration.contentPadding != null) {
-          adjustedContentPadding = themeDecoration.contentPadding!
-              .subtract(const EdgeInsets.only(top: 2, bottom: 3));
-        }
-      }
-
-      rtn = DropdownButtonFormField<dynamic>(
-          key: validatorKey,
-          validator: (value) {
-            if (widget._controller.required && widget.getValue() == null) {
-              return Utils.translateWithFallback(
-                  'ensemble.input.required', 'This field is required');
-            }
-            return null;
-          },
-          hint: widget._controller.hintText == null
-              ? null
-              : Text(widget._controller.hintText!),
-          value: widget.getValue(),
-          items: buildItems(widget._controller.items),
-          dropdownColor: Colors.white,
-          onChanged: isEnabled() ? (item) => onSelectionChanged(item) : null,
-          focusNode: focusNode,
-          icon: const Icon(Icons.keyboard_arrow_down, size: 20),
-          decoration:
-              inputDecoration.copyWith(contentPadding: adjustedContentPadding));
-    } else {
-      rtn = LayoutBuilder(
-          builder: (context, constraints) => RawAutocomplete<SelectOneItem>(
-                focusNode: focusNode,
-                textEditingController: textEditingController,
-                optionsBuilder: (TextEditingValue textEditingValue) =>
-                    buildAutoCompleteOptions(textEditingValue),
-                displayStringForOption: (SelectOneItem option) =>
-                    option.label ?? option.value,
-                fieldViewBuilder: (BuildContext context,
-                    TextEditingController fieldTextEditingController,
-                    FocusNode fieldFocusNode,
-                    VoidCallback onFieldSubmitted) {
-                  return TextField(
-                      enabled: isEnabled(),
-                      showCursor: true,
-                      style: const TextStyle(
-                          color: Colors.black, fontWeight: FontWeight.w500),
-                      controller: fieldTextEditingController,
-                      focusNode: fieldFocusNode,
-                      decoration: inputDecoration);
-                },
-                onSelected: (SelectOneItem selection) {
-                  onSelectionChanged(selection.value);
-                  if (kDebugMode) {
-                    print('Selected: ${selection.value}');
-                  }
-                },
-                optionsViewBuilder: (BuildContext context,
-                    AutocompleteOnSelected<SelectOneItem> onSelected,
-                    Iterable<SelectOneItem> options) {
-                  return buildAutoCompleteItems(
-                      constraints, options, onSelected);
-                },
-              ));
-    }
     return InputWrapper(
-        type: Dropdown.type, controller: widget._controller, widget: rtn);
+        type: Dropdown.type,
+        controller: widget._controller,
+        widget: widget._controller.autoComplete
+            ? _buildAutoComplete(context)
+            : _buildDropdown(context));
   }
 
   // ---------------------- Search From the List if [AUTOCOMPLETE] is true ---------------------------------
