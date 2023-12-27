@@ -166,6 +166,10 @@
                   "type": "boolean",
                   "description": "Specify if the content of this screen is scrollable with a global scrollbar. Using this also allow you to customize the scrolling experience of the header."
                 },
+                "unfocus": {
+                  "type": "boolean",
+                  "description": "Specify if the keyboard should dismissed automatically when tapping in the non interactive widgets. Default (false)"
+                },
                 "showNavigationIcon": {
                   "type": "boolean",
                   "description": "For a screen with header, the App will automatically show the Menu, Back, or Close icon (for modal screen) before the title. On modal screen without the header, the Close icon will be shown. Set this flag to false if you wish to hide the icons and handle the navigation yourself."
@@ -460,7 +464,7 @@
         },
         "cssStyles": {
           "type": "array",
-          "oneOf": [
+          "items": [
             {
               "type": "object",
               "properties": {
@@ -752,6 +756,10 @@
         "id": {
           "type": "string",
           "description": "A unique identifier for this widget"
+        },
+       "cache": {
+          "type": "boolean",
+          "description": "To put the image in the cache"
         },
         "source": {
           "type": "string",
@@ -1558,6 +1566,10 @@
               "type": "boolean",
               "description": "enable the toggling between plain and obscure text."
             },
+            "toolbarDone": {
+              "type": "boolean",
+              "description": "enable the toolbar with done button in the TextInput. (defaults to False)"
+            },
             "enableClearText": {
               "type": "boolean",
               "description": "It enables the default suffix clear icon button for the text input field to clear the values. Default (false)"
@@ -2108,18 +2120,50 @@
           "oneOf": [
             {
               "const": "local",
-              "description": "Sign the user on the client side. This is useful when your app doesn't need a server. (this is the default)."
+              "description": "Sign the user in on the client (default)."
             },
             {
               "const": "firebase",
               "description": "Use your custom Firebase to manage your users. Please see Ensemble documentation on how to integrate Firebase."
+            },
+            {
+              "const": "server",
+              "description": "After authenticated the user, send the idToken to your Server to retrieve the credentials (e.g. bearer token, cookies, ...), then sign the user in on the client."
             }
           ]
         },
-        "onAuthenticated": {
-          "$ref": "#/$defs/Action-payload"
-        },
+        "oneOf": [
+          {
+            "properties": {
+              "provider": {"enum": ["server"]},
+              "signInServerAPI": {
+                "type": "object",
+                "description": "Call this Server API to retrieve the server credentials to sign in:\n1. Authenticate with Google, Apple, ..\n2. Call your server with the idToken (accessible with ${idToken}) and expect the response to contain server-specific credentials necessary for subsequent access.\n3. Client will set these credentials and sign the user in locally. The credentials are accessible with ${auth.user.data}\n4. Subsequent server API calls can append these credentials to the requests.",
+                "required": ["setSignInCredentialsOnResponse"],
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/InvokeAPI-payload"
+                  },
+                  {
+                    "setSignInCredentialsOnResponse": {
+                      "type": "object",
+                      "description": "On server response, set any key/value pairs to save them as the user's credentials. The client will automatically sign the user in and have these key/value pairs available at ${auth.user.data}",
+                      "additionalProperties": {}
+                    }
+                  }
+                ]
+              }
+            },
+            "required": ["signInServerAPI"]
+          },
+          {
+            "properties": {
+              "provider": {"not": {"enum": ["server"]}}
+            }
+          }
+        ],
         "onSignedIn": {
+          "description": "Execute an Action once the user has signed in.",
           "$ref": "#/$defs/Action-payload"
         },
         "onError": {
@@ -2129,7 +2173,7 @@
           "properties": {
             "overrideLabel": {
               "type": "string",
-              "description": "Override the Sign In label. Note that changing the default Apple guideline may get your app rejected when submitting to Apple's App Store."
+              "description": "(Native only) Override the Sign In label. Note that changing the default Apple guideline may get your app rejected when submitting to Apple's App Store."
             },
             "iconAlignment": {
               "type": "string",
@@ -2140,10 +2184,12 @@
               ]
             },
             "borderRadius": {
+              "description": "(Native only). Set the border radius",
               "$ref": "#/$defs/borderRadius"
             },
             "height": {
               "type": "integer",
+              "description": "(Native only). Set the button height",
               "minimum": 0
             }
           }
@@ -2180,6 +2226,12 @@
         "tokenExchangeAPI": {
           "$ref": "#/$defs/InvokeAPI-payload",
           "description": "If the server needs access to the access/refresh token, the OAuth token exchange API can be specified. Please see Ensemble's documentation regarding the expected request/response format."
+        },
+        "onInitiated": {
+          "$ref": "#/$defs/Action-payload"
+        },
+        "onCanceled": {
+          "$ref": "#/$defs/Action-payload"
         },
         "onAuthorized": {
           "$ref": "#/$defs/Action-payload"
@@ -2665,6 +2717,10 @@
               "type": "string",
               "description": "A unique identifier for this widget"
             },
+            "scrollController": {
+              "type": "string",
+              "description": "For setting the scrollbehaviour"
+            },
             "onItemTap": {
               "$ref": "#/$defs/Action-payload",
               "description": "Call Ensemble's built-in functions or execute code when tapping on an item in the list."
@@ -3077,6 +3133,10 @@
             "id": {
               "type": "string",
               "description": "A unique identifier for this widget"
+            },
+            "controller" :{
+              "type": "string",
+              "description": "For setting the scrollbehaviour"
             },
             "children": {
               "$ref": "#/$defs/Widgets"
@@ -4462,6 +4522,14 @@
                   "type": "string",
                   "description": "Give the picker an ID allows you to bind to its result, which can be access anywhere e.g. ${filePicker.files...}"
                 },
+                "source": {
+                  "type": "enum",
+                  "description": "Source define where you can pick files. Default files.",
+                  "enum": [
+                    "gallery",
+                    "files"
+                  ]
+                },
                 "allowMultiple": {
                   "type": "boolean",
                   "description": "Allow users to pick multiple files (default False)"
@@ -4925,6 +4993,48 @@
               }
             }
           }
+        },
+        {
+          "title": "Verify if the user is currently signed in",
+          "type": "object",
+          "required": [
+            "verifySignIn"
+          ],
+          "properties": {
+            "verifySignIn": {
+              "type": "object",
+              "description": "Verify if the user is currently signed in or not",
+              "properties": {
+                "onSignedIn": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action if the user is currently signed in"
+                },
+                "onNotSignedIn": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action if the user is currently not signed in, or if the status is unknown."
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Sign the user out",
+          "type": "object",
+          "required": [
+            "signOut"
+          ],
+          "properties": {
+            "signOut": {
+              "type": "object",
+              "description": "Sign the user out (if currently signed in) and clear the user's data ${auth.user}",
+              "properties": {
+                "onComplete": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action once the user has signed out."
+                }
+              }
+            }
+          }
         }
       ]
     },
@@ -5083,6 +5193,10 @@
               "floating": {
                 "type": "boolean",
                 "description": "Mark this item as a floating icon"
+              },
+              "switchScreen": {
+                "type": "boolean",
+                "description": "Disable the screen switching when clicking the bottom nav bar item. Default (True)"
               },
               "floatingMargin": {
                 "$ref": "#/$defs/Margin-payload",
@@ -5895,13 +6009,13 @@
           }
         },
         {
-          "title": "Youtube",
+          "title": "YouTube",
           "required": [
-            "Youtube"
+            "YouTube"
           ],
           "properties": {
-            "Youtube" : {
-              "$ref" : "#/$defs/Youtube-payload"
+            "YouTube" : {
+              "$ref" : "#/$defs/YouTube-payload"
             }
           }
         },
@@ -6084,6 +6198,45 @@
                     "overflowWidget": {
                       "$ref": "#/$defs/Widget",
                       "description": "If spans per row overflow based on spanPerRow than overflowWidget will render"
+                    },
+                    "span-template": {
+                      "type": "object",
+                      "required": [
+                        "data",
+                        "name",
+                        "span"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "string",
+                          "description": "Bind the rowspan list to the data e.g. myAPI.body.items"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Give this a name. This is the bindable data for each rowspan."
+                        },
+                        "span": {
+                          "type": "object",
+                          "required": [
+                            "start",
+                            "end",
+                            "widget"
+                          ],
+                          "properties": {
+                            "start": {
+                              "type": "string",
+                              "description": "Starting date of the rowspan in ISO format"
+                            },
+                            "end": {
+                              "type": "string",
+                              "description": "Ending date of the rowspan in ISO format"
+                            },
+                            "widget": {
+                              "$ref": "#/$defs/Widget"
+                            }
+                          }
+                        }
+                      }
                     },
                     "children": {
                       "type": "array",
@@ -6554,60 +6707,67 @@
         }
       }
     },
-    "Youtube-payload":{
+    "YouTube-payload":{
       "type" : "object",
       "properties" : {
         "id" : {
           "type" : "string",
           "description": "The unique identifier for this widget"
         },
+        "styles": {
+          "$ref": "#/$defs/boxStyles"
+        },
         "url" : {
           "type": "string",
-          "description": "The URL source to the youtube video"
+          "description": "The URL source to the youTube video"
         },
         "aspectRatio" : {
-          "type": "double",
+          "type": "number",
           "description" : "Video aspect ratio"
         },
         "autoplay": {
-          "type" : "bool",
+          "type" : "boolean",
           "description" : "Automatically start the video when player is loaded. (default False)"
         },
         "videoList" : {
-          "type" : "array",
+          "type" : "object",
           "description" : "List of videos to be played within a single player."
         },
         "startSeconds": {
-          "type" : "double",
+          "type" : "number",
           "description" : "specifies the time from which the first video in the list(or single video) should start playing"
         },
         "endSeconds": {
-          "type": "double",
+          "type": "number",
           "description": "Ends the video after the certain number of seconds (works with Single video)"
         },
         "showAnnotations" : {
-          "type" : "bool",
+          "type" : "boolean",
           "description" : "Showing the annotations of the video"
         },            
         "playbackRate" : {
-          "type": "double",
+          "type": "number",
           "description": "For changing the speed at which the video is displayed"
         },
         "showControls": {
-          "type" : "bool",
+          "type" : "boolean",
           "description" : "For showing the controls on the video within the player(Like in youtube)"
         },
         "showFullScreenButton": {
-          "type" : "bool",
+          "type" : "boolean",
           "description" : "To show the fullscreen button of the video"
         },
         "enableCaptions" : {
-          "type": "bool",
+          "type": "boolean",
           "description" : "To enable any captions in the video(default language of caption is English)"
         },
         "volume": {
           "type": "integer",
           "description" : "Changes the volume. (max = 100, min = 0)"
+        },
+        "videoPosition": {
+          "type": "boolean",
+          "description": "To add an indicator for the amount of video that is completed"
         }
       }
     },

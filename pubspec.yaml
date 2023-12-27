@@ -68,7 +68,7 @@ dependencies:
   flutter_svg_provider: ^1.0.4
   qr_flutter: ^4.1.0
   device_info_plus: ^8.2.0
-  flutter_map: ^2.2.0
+  flutter_map: ^4.0.0
   carousel_slider: ^4.1.1
   fluttertoast: 8.2.2
   video_player: ^2.6.1
@@ -78,7 +78,7 @@ dependencies:
   flutter_markdown: ^0.6.10+5
   url_launcher: ^6.1.11
   provider: ^6.0.3
-  cloud_firestore: ^4.12.0
+  cloud_firestore: 4.9.3
   geolocator: ^9.0.2
   get_storage: ^2.0.3
   flutter_html: ^3.0.0-beta.1 # flutter_html ^2.0.0 requires flutter_svg <1.0.0, conflicts with ours
@@ -126,7 +126,6 @@ dependencies:
       url: https://github.com/AyushmanG26/receive_sharing_intent.git
       ref: abedc3d6d5b80df396e9c300fd1a052cbab08827
   change_case: ^1.1.0
-  infinite_scroll_pagination: ^4.0.0
 
 dev_dependencies:
   flutter_test:

@@ -6,6 +6,7 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/studio_debugger.dart';
+import 'package:ensemble/framework/view/footer.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/model/pull_to_refresh.dart';
@@ -199,20 +200,27 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
 
   @override
   Widget buildWidget(BuildContext context) {
+    FooterScope? footerScope = FooterScope.of(context);
+    if (footerScope != null && footerScope.isRootWithinFooter(context)) {
+      widget._controller.scrollController = footerScope.scrollController;
+    }
     if (widget._controller.itemTemplate == null) {
       return const SizedBox.shrink();
     }
 
     Widget myGridView = LayoutBuilder(builder: (context, constraints) {
-      if (StudioDebugger().debugMode) {
-        StudioDebugger()
-            .assertScrollableHasBoundedHeight(constraints, GridView.type);
-      }
-
       return flutter.GridView.builder(
-          physics: widget._controller.onPullToRefresh != null
-              ? const AlwaysScrollableScrollPhysics()
-              : null,
+          controller: (footerScope != null &&
+                  footerScope.isColumnScrollableAndRoot(context))
+              ? null
+              : widget._controller.scrollController,
+          shrinkWrap: FooterScope.of(context) != null ? true : false,
+          physics: (footerScope != null &&
+                  footerScope.isColumnScrollableAndRoot(context))
+              ? const NeverScrollableScrollPhysics()
+              : widget._controller.onPullToRefresh != null
+                  ? const AlwaysScrollableScrollPhysics()
+                  : null,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: _getTileCount(constraints),
             crossAxisSpacing:
@@ -231,7 +239,10 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
           padding: widget._controller.padding,
           itemBuilder: (context, index) => _buildItem(index));
     });
-
+    if (StudioDebugger().debugMode) {
+      myGridView = StudioDebugger().assertScrollableHasBoundedHeightWrapper(
+          myGridView, GridView.type, context, widget.controller);
+    }
     // wrapping view inside
 
     if (widget._controller.onPullToRefresh != null) {
