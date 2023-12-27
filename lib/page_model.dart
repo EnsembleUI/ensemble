@@ -136,7 +136,7 @@ class SinglePageModel extends PageModel {
   Map<String, dynamic>? pageStyles;
   ScreenOptions? screenOptions;
   WidgetModel? rootWidgetModel;
-  Footer? footer;
+  FooterItems? footer;
 
   @override
   _processModel(YamlMap docMap) {
@@ -178,14 +178,16 @@ class SinglePageModel extends PageModel {
                   Utils.getYamlMap(dragOptionsMap?['fixedContent']),
                   customViewDefinitions)
               : null;
-          footer = Footer(
+          YamlMap footerYamlMap = YamlMap.wrap({'footer': viewMap['footer']});
+          footer = FooterItems(
               ViewUtil.buildModels(
                   viewMap['footer']['children'], customViewDefinitions),
               Utils.getMap(
                 viewMap['footer']['styles'],
               ),
               dragOptionsMap,
-              fixedContent);
+              fixedContent,
+              ViewUtil.buildModel(footerYamlMap, customViewDefinitions));
         }
 
         rootWidgetModel = buildRootModel(viewMap, customViewDefinitions);
@@ -359,12 +361,14 @@ class HeaderModel {
   Map<String, dynamic>? styles;
 }
 
-class Footer {
+class FooterItems {
   final List<WidgetModel> children;
   final Map<String, dynamic>? styles;
   final Map<String, dynamic>? dragOptions;
   final WidgetModel? fixedContent;
-  Footer(this.children, this.styles, this.dragOptions, this.fixedContent);
+  final WidgetModel? footerWidgetModel;
+  FooterItems(this.children, this.styles, this.dragOptions, this.fixedContent,
+      this.footerWidgetModel);
 }
 
 enum PageType { regular, modal }

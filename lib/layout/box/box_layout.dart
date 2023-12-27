@@ -5,6 +5,7 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/studio_debugger.dart';
+import 'package:ensemble/framework/view/footer.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -153,6 +154,7 @@ class BoxLayoutState extends WidgetState<BoxLayout>
       // In that case we want to evaluate the data to see if they are there
       registerItemTemplate(context, widget._controller.itemTemplate!,
           evaluateInitialValue: true, onDataChanged: (List dataList) {
+        if (!mounted) return;
         setState(() {
           templatedChildren = buildWidgetsFromTemplate(
               context, dataList, widget._controller.itemTemplate!);
@@ -253,13 +255,21 @@ class BoxLayoutState extends WidgetState<BoxLayout>
         ignoresMargin: widget is Column);
 
     if (widget._controller.scrollable) {
-      rtn = SingleChildScrollView(
-          scrollDirection:
-              widget.isVertical() ? Axis.vertical : Axis.horizontal,
-          physics: widget._controller.onPullToRefresh != null
-              ? const AlwaysScrollableScrollPhysics()
-              : null,
-          child: rtn);
+      FooterScope? footerScope = FooterScope.of(context);
+      rtn = ScrollableColumn(
+        child: SingleChildScrollView(
+            controller: (widget.isVertical() &&
+                    footerScope != null &&
+                    footerScope.isRootWithinFooter(context))
+                ? FooterScope.of(context)!.scrollController
+                : null,
+            scrollDirection:
+                widget.isVertical() ? Axis.vertical : Axis.horizontal,
+            physics: widget._controller.onPullToRefresh != null
+                ? const AlwaysScrollableScrollPhysics()
+                : null,
+            child: rtn),
+      );
 
       if (widget is Column && widget._controller.onPullToRefresh != null) {
         rtn = PullToRefreshContainer(
@@ -293,4 +303,14 @@ class BoxLayoutState extends WidgetState<BoxLayout>
       );
     }
   }
+}
+
+class ScrollableColumn extends flutter.InheritedWidget {
+  const ScrollableColumn({super.key, required super.child});
+
+  static ScrollableColumn? of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<ScrollableColumn>();
+
+  @override
+  bool updateShouldNotify(covariant InheritedWidget oldWidget) => false;
 }

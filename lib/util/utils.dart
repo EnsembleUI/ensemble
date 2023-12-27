@@ -287,7 +287,7 @@ class Utils {
   }
 
   static List<YamlMap>? getListOfYamlMap(dynamic value) {
-    if (value is YamlList) {
+    if (value is YamlList || value is List) {
       List<YamlMap> results = [];
       for (var item in value) {
         if (item is YamlMap) {
@@ -315,6 +315,14 @@ class Utils {
   static YamlMap? getYamlMap(dynamic value) {
     Map? map = getMap(value);
     return map != null ? YamlMap.wrap(map) : null;
+  }
+
+  //this is semantically different from the methods above as it is doesn't return null when value is not a map
+  static dynamic maybeYamlMap(dynamic value) {
+    if (value is Map) {
+      return YamlMap.wrap(value);
+    }
+    return value;
   }
 
   static Color? getColor(dynamic value) {

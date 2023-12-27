@@ -8,6 +8,7 @@ import 'package:ensemble/action/invoke_api_action.dart';
 import 'package:ensemble/action/misc_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/action/notification_action.dart';
+import 'package:ensemble/action/sign_in_out_action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
@@ -15,7 +16,6 @@ import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/keychain_manager.dart';
 import 'package:ensemble/framework/permissions_manager.dart';
 import 'package:ensemble/framework/scope.dart';
-import 'package:ensemble/framework/view/bottom_nav_page_group.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/receive_intent_manager.dart';
@@ -67,17 +67,20 @@ class ShowDialogAction extends EnsembleAction {
   final Map<String, dynamic>? options;
   final EnsembleAction? onDialogDismiss;
 
-  factory ShowDialogAction.fromYaml({Invokable? initiator, Map? payload}) {
+  factory ShowDialogAction.from({Invokable? initiator, Map? payload}) {
     if (payload == null || payload['widget'] == null) {
       throw LanguageError(
           "${ActionType.showDialog.name} requires the 'widget' for the Dialog's content.");
     }
     return ShowDialogAction(
-        initiator: initiator,
-        widget: payload['widget'],
-        //inputs: Utils.getMap(payload["inputs"]),
-        options: Utils.getMap(payload['options']),
-        onDialogDismiss: EnsembleAction.fromYaml(payload['onDialogDismiss']));
+      initiator: initiator,
+      widget: Utils.maybeYamlMap(payload['widget']),
+      options: Utils.getMap(payload['options']),
+      onDialogDismiss: payload['onDialogDismiss'] == null
+          ? null
+          : EnsembleAction.fromYaml(
+              Utils.maybeYamlMap(payload['onDialogDismiss'])),
+    );
   }
 }
 
@@ -483,6 +486,8 @@ class GetLocationAction extends EnsembleAction {
   int? recurringDistanceFilter;
 }
 
+enum FileSource { gallery, files }
+
 class FilePickerAction extends EnsembleAction {
   FilePickerAction({
     required this.id,
@@ -491,6 +496,7 @@ class FilePickerAction extends EnsembleAction {
     this.allowCompression,
     this.onComplete,
     this.onError,
+    this.source,
   });
 
   String id;
@@ -499,10 +505,21 @@ class FilePickerAction extends EnsembleAction {
   bool? allowCompression;
   EnsembleAction? onComplete;
   EnsembleAction? onError;
+  FileSource? source;
 
   factory FilePickerAction.fromYaml({Map? payload}) {
     if (payload == null || payload['id'] == null) {
       throw LanguageError("${ActionType.pickFiles.name} requires 'id'.");
+    }
+
+    FileSource? getSource(String? source) {
+      if (source == 'gallery') {
+        return FileSource.gallery;
+      }
+      if (source == 'files') {
+        return FileSource.files;
+      }
+      return null;
     }
 
     return FilePickerAction(
@@ -513,6 +530,7 @@ class FilePickerAction extends EnsembleAction {
       allowCompression: Utils.optionalBool(payload['allowCompression']),
       onComplete: EnsembleAction.fromYaml(payload['onComplete']),
       onError: EnsembleAction.fromYaml(payload['onError']),
+      source: getSource(payload['source']),
     );
   }
 }
@@ -922,6 +940,8 @@ enum ActionType {
   callExternalMethod,
   invokeHaptic,
   callNativeMethod,
+  verifySignIn,
+  signOut,
 }
 
 enum ToastType { success, error, warning, info }
@@ -991,7 +1011,7 @@ abstract class EnsembleAction {
     } else if (actionType == ActionType.openCamera) {
       return ShowCameraAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.showDialog) {
-      return ShowDialogAction.fromYaml(initiator: initiator, payload: payload);
+      return ShowDialogAction.from(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.closeAllDialogs) {
       return CloseAllDialogsAction();
     } else if (actionType == ActionType.startTimer) {
@@ -1069,6 +1089,15 @@ abstract class EnsembleAction {
       return ClearKeychain.fromYaml(payload: payload);
     } else if (actionType == ActionType.invokeHaptic) {
       return HapticAction.from(payload);
+    } else if (actionType == ActionType.verifySignIn) {
+      return VerifySignInAction(
+          initiator: initiator,
+          onSignedIn: EnsembleAction.fromYaml(payload?['onSignedIn']),
+          onNotSignedIn: EnsembleAction.fromYaml(payload?['onNotSignedIn']));
+    } else if (actionType == ActionType.signOut) {
+      return SignOutAction(
+          initiator: initiator,
+          onComplete: EnsembleAction.fromYaml(payload?['onComplete']));
     }
 
     throw LanguageError("Invalid action.",
