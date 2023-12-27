@@ -126,6 +126,7 @@ dependencies:
       url: https://github.com/AyushmanG26/receive_sharing_intent.git
       ref: abedc3d6d5b80df396e9c300fd1a052cbab08827
   change_case: ^1.1.0
+  dropdown_button2: ^2.3.9
 
 dev_dependencies:
   flutter_test:
