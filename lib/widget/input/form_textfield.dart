@@ -35,7 +35,7 @@ class TextInput extends BaseTextInput {
     Map<String, Function> setters = super.setters();
     setters.addAll({
       'value': (newValue) {
-        if( newValue == null ) {
+        if (newValue == null) {
           textController.text = '';
           return;
         }
