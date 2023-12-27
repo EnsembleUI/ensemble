@@ -309,7 +309,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
         ScreenController().executeAction(
           context,
           widget._controller.onChange!,
-          event: EnsembleEvent(widget),
+          event: EnsembleEvent(widget, data: {'value': value}),
         );
       }
     }
