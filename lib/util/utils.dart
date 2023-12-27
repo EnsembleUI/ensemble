@@ -427,6 +427,7 @@ class Utils {
     return TextStyleComposite(
       widgetController,
       textGradient: Utils.getBackgroundGradient(style['gradient']),
+      textAlign: style['textAlign'],
       styleWithFontFamily: getTextStyle(style),
     );
   }
@@ -475,6 +476,31 @@ class Utils {
       }
     }
     return null;
+  }
+
+  static TextAlign? getTextAlignment(dynamic align) {
+    TextAlign? textAlign;
+    switch (align) {
+      case 'start':
+        textAlign = TextAlign.start;
+        break;
+      case 'end':
+        textAlign = TextAlign.end;
+        break;
+      case 'left':
+        textAlign = TextAlign.left;
+        break;
+      case 'center':
+        textAlign = TextAlign.center;
+        break;
+      case 'right':
+        textAlign = TextAlign.right;
+        break;
+      case 'justify':
+        textAlign = TextAlign.justify;
+        break;
+    }
+    return textAlign;
   }
 
   static TextDecoration? getDecoration(dynamic decoration) {
