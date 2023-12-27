@@ -2,7 +2,12 @@ import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/action.dart' as framework;
 import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/theme/theme_manager.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/icon.dart' as iconframework;
+import 'package:ensemble/layout/templated.dart';
+import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
@@ -37,6 +42,9 @@ abstract class SelectOne extends StatefulWidget
 
   @override
   State<StatefulWidget> createState() => SelectOneState();
+
+  @override
+  List<String> passthroughSetters() => ['itemTemplate'];
 
   @override
   Map<String, Function> getters() {
@@ -76,9 +84,29 @@ abstract class SelectOne extends StatefulWidget
           _controller.dropdownOffsetY = Utils.optionalInt(value),
       'dropdownBackgroundColor': (color) =>
           _controller.dropdownBackgroundColor = Utils.getColor(color),
+      'dropdownBorderRadius': (value) =>
+          _controller.dropdownBorderRadius = Utils.getBorderRadius(value),
+      'dropdownBorderColor': (value) =>
+          _controller.dropdownBorderColor = Utils.getColor(value),
+      'dropdownBorderWidth': (value) =>
+          _controller.dropdownBorderWidth = Utils.optionalInt(value),
       'dropdownMaxHeight': (value) =>
           _controller.dropdownMaxHeight = Utils.optionalInt(value, min: 0),
+      'itemTemplate': (itemTemplate) => _setItemTemplate(itemTemplate),
     };
+  }
+
+  void _setItemTemplate(dynamic input) {
+    if (input is Map) {
+      dynamic data = input['data'];
+      String? name = input['name'];
+      dynamic template = input['template'];
+      dynamic value = input['value'];
+      if (data != null && name != null && template != null && value != null) {
+        _controller.itemTemplate =
+            DropdownItemTemplate(data, name, template, value);
+      }
+    }
   }
 
   @override
@@ -95,11 +123,20 @@ abstract class SelectOne extends StatefulWidget
   }
 
   bool isValueInItems() {
-    if (_controller.maybeValue != null && _controller.items != null) {
-      for (SelectOneItem item in _controller.items!) {
-        if (_controller.maybeValue == item.value) {
-          return true;
+    if (_controller.maybeValue != null) {
+      // check for match in the item list
+      if (_controller.items != null) {
+        for (SelectOneItem item in _controller.items!) {
+          if (_controller.maybeValue == item.value) {
+            return true;
+          }
         }
+      }
+      // check for match in the item template
+      if (_controller.itemTemplate != null) {
+        // TODO: we have no way to look into the itemTemplate to see
+        // if the value matches one of them. Return true for now
+        return true;
       }
     }
     return false;
@@ -206,16 +243,22 @@ class SelectOneController extends FormFieldController {
   int? dropdownOffsetX;
   int? dropdownOffsetY;
   Color? dropdownBackgroundColor;
+  EBorderRadius? dropdownBorderRadius;
+  int? dropdownBorderWidth;
+  Color? dropdownBorderColor;
   int? dropdownMaxHeight;
+
+  DropdownItemTemplate? itemTemplate;
 
   framework.EnsembleAction? clear;
   framework.EnsembleAction? onChange;
 }
 
 class SelectOneState extends FormFieldWidgetState<SelectOne>
-    with SelectOneInputFieldAction {
+    with SelectOneInputFieldAction, TemplatedWidgetState {
   FocusNode focusNode = FocusNode();
   TextEditingController textEditingController = TextEditingController();
+  List? dataList;
 
   @override
   void initState() {
@@ -232,6 +275,15 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
   void didChangeDependencies() {
     super.didChangeDependencies();
     widget.controller.inputFieldAction = this;
+
+    if (widget._controller.itemTemplate != null) {
+      registerItemTemplate(context, widget._controller.itemTemplate!,
+          onDataChanged: (data) {
+        setState(() {
+          dataList = data;
+        });
+      }, evaluateInitialValue: true);
+    }
   }
 
   @override
@@ -243,6 +295,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
   @override
   void dispose() {
     focusNode.dispose();
+    dataList = null;
     super.dispose();
   }
 
@@ -289,22 +342,32 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
             ? null
             : Text(widget._controller.hintText!),
         value: widget.getValue(),
-        items: buildItems(widget._controller.items),
+        items: buildItems(widget._controller.items,
+            widget._controller.itemTemplate, dataList),
         onChanged: isEnabled() ? (item) => onSelectionChanged(item) : null,
         focusNode: focusNode,
         iconStyleData: const IconStyleData(
             icon: Icon(Icons.keyboard_arrow_down, size: 20),
             openMenuIcon: Icon(Icons.keyboard_arrow_up, size: 20)),
         dropdownStyleData: DropdownStyleData(
-          decoration: widget._controller.dropdownBackgroundColor != null
-              ? BoxDecoration(color: widget._controller.dropdownBackgroundColor)
-              : null,
-          maxHeight: widget._controller.dropdownMaxHeight?.toDouble(),
-          offset: Offset(
-            widget._controller.dropdownOffsetX?.toDouble() ?? 0,
-            widget._controller.dropdownOffsetY?.toDouble() ?? 0,
-          )
-        ),
+            decoration: BoxDecoration(
+                color: widget._controller.dropdownBackgroundColor,
+                borderRadius:
+                    widget._controller.dropdownBorderRadius?.getValue(),
+                border: widget._controller.borderColor != null ||
+                        widget._controller.borderWidth != null
+                    ? Border.all(
+                        color: widget._controller.borderColor ??
+                            ThemeManager().getBorderColor(context),
+                        width: widget._controller.borderWidth?.toDouble() ??
+                            ThemeManager().getBorderThickness(context),
+                      )
+                    : null),
+            maxHeight: widget._controller.dropdownMaxHeight?.toDouble(),
+            offset: Offset(
+              widget._controller.dropdownOffsetX?.toDouble() ?? 0,
+              widget._controller.dropdownOffsetY?.toDouble() ?? 0,
+            )),
         decoration:
             inputDecoration.copyWith(contentPadding: adjustedContentPadding));
   }
@@ -437,8 +500,10 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
   }
 
 // ---------------------------------- Build Items ListTile if [AUTOCOMPLETE] is false ---------------------------------
-  List<DropdownMenuItem<dynamic>>? buildItems(List<SelectOneItem>? items) {
+  List<DropdownMenuItem<dynamic>>? buildItems(List<SelectOneItem>? items,
+      DropdownItemTemplate? itemTemplate, List? dataList) {
     List<DropdownMenuItem<dynamic>>? results;
+    // first add the static list
     if (items != null) {
       results = [];
       for (SelectOneItem item in items) {
@@ -477,6 +542,26 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                   child: Text(Utils.optionalString(item.label) ?? item.value),
                 ),
               );
+      }
+    }
+    // then add the templated list
+    if (itemTemplate != null && dataList != null) {
+      ScopeManager? parentScope = DataScopeWidget.getScope(context);
+      if (parentScope != null) {
+        results ??= [];
+        for (var itemData in dataList) {
+          ScopeManager templatedScope = parentScope.createChildScope();
+          templatedScope.dataContext
+              .addDataContextById(itemTemplate.name, itemData);
+
+          var labelWidget = DataScopeWidget(
+              scopeManager: templatedScope,
+              child: templatedScope
+                  .buildWidgetFromDefinition(itemTemplate.template));
+          results.add(DropdownMenuItem(
+              value: templatedScope.dataContext.eval(itemTemplate.value),
+              child: labelWidget));
+        }
       }
     }
     return results;
@@ -527,4 +612,13 @@ class SelectOneItem {
   final String? label;
   IconModel? icon;
   final bool isIcon;
+}
+
+class DropdownItemTemplate extends ItemTemplate {
+  DropdownItemTemplate(
+      super.data,
+      super.name,
+      super.template, // label widget template
+      this.value); // the value when the item is selected
+  dynamic value;
 }
