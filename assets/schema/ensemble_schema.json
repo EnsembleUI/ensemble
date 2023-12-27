@@ -2344,7 +2344,27 @@
               "type": "object",
               "properties": {
                 "labelStyle": {
-                  "$ref": "#/$defs/TextStyle"
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/TextStyle"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "textAlign": {
+                          "enum": [
+                            "left",
+                            "right",
+                            "center",
+                            "justify",
+                            "start",
+                            "end"
+                          ], 
+                          "description": "Text Align for the label inside the Button"
+                        }
+                      }
+                    }
+                  ]
                 },
                 "outline": {
                   "type": "boolean",
