@@ -1956,9 +1956,55 @@
               },
               "description": "List of values, or Objects with value/label pairs"
             },
+            "itemTemplate": {
+              "data": {
+                "type": "string",
+                "description": "Bind to an array of data from an API response or a variable"
+              },
+              "name": {
+                "type": "string",
+                "description": "Set the name to reference as you iterate through the array of data"
+              },
+              "template": {
+                "$ref": "#/$defs/Widget",
+                "description": "Specify the widget to render as each dropdown item's label"
+              },
+              "value": {
+                "type": "string",
+                "description": "Specify the expression to evaluate as each item's value. This will be the value when the item is selected."
+              }
+            },
             "autoComplete": {
               "type": "boolean",
               "description": "Enable the Input search suggestion option"
+            },
+            "styles": {
+              "dropdownOffsetX": {
+                "type": "integer",
+                "description": "The horizontal offset of the dropdown relative to the menu button (default is 0)"
+              },
+              "dropdownOffsetY": {
+                "type": "integer",
+                "description": "The vertical offset of the dropdown relative to the menu button (default is 0 which display the dropdown right below the menu button)"
+              },
+              "dropdownBackgroundColor": {
+                "$ref": "#/$defs/type-color"
+              },
+              "dropdownBorderRadius": {
+                "$ref": "#/$defs/borderRadius"
+              },
+              "dropdownBorderColor": {
+                "$ref": "#/$defs/type-color"
+              },
+              "dropdownBorderWidth": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "The thickness of the dropdown border"
+              },
+              "dropdownMaxHeight": {
+                "type": "integer",
+                "minimum": 0
+              }
             }
           }
         }
