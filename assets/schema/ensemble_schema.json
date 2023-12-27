@@ -6578,9 +6578,9 @@
           "$ref": "#/$defs/Widget",
           "description": "The widget to display when the player is in loading state."
         },
-        "enableLoop": {
+        "repeat": {
           "type" : "boolean",
-          "description" : "It plays the video in loop mode. (default False)"
+          "description" : "It plays the video in repeat mode. (default False)"
         },
         "autoplay": {
           "type" : "boolean",
@@ -6600,7 +6600,7 @@
         },
         "onChange": {
           "$ref": "#/$defs/Action-payload",
-          "description": "It is called everytime when the player is playing the video"
+          "description": "It is called indefinitely with position(milliseconds) when the video player changes the frame when playing the video"
         },
         "onEnd": {
           "$ref": "#/$defs/Action-payload",

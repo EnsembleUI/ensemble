@@ -9,7 +9,6 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_layout_grid/flutter_layout_grid.dart';
 import 'package:video_player/video_player.dart';
 
 class Video extends StatefulWidget
@@ -44,8 +43,6 @@ class Video extends StatefulWidget
       'mute': () => _controller.playerCapabilities?.mute(),
       'unmute': () => _controller.playerCapabilities?.unmute(),
       'seekTo': (value) => _controller.playerCapabilities?.seekTo(value),
-      'setPlaybackRate': (value) =>
-          _controller.playerCapabilities?.setPlaybackRate(value),
     };
   }
 
@@ -57,14 +54,12 @@ class Video extends StatefulWidget
           _controller.showControls = Utils.getBool(value, fallback: true),
       'loadingWidget': (loadingWidget) =>
           _controller.loadingWidget = loadingWidget,
-      'enableLoop': (value) => _controller._playerController
+      'repeat': (value) => _controller._playerController
           ?.setLooping(Utils.getBool(value, fallback: false)),
       'autoplay': (value) =>
           controller.autoplay = Utils.getBool(value, fallback: false),
-      'playbackRate': (value) =>
-          controller.playbackRate = Utils.optionalDouble(value, max: 2.0),
-      'volume': (value) =>
-          controller.volume = Utils.optionalDouble(value, max: 1.0),
+      'playbackRate': (value) => controller.setPlaybackRate(value),
+      'volume': (value) => controller.setVolume(value),
       'onChange': (definition) => _controller.onChange =
           EnsembleAction.fromYaml(definition, initiator: this),
       'onStart': (definition) => _controller.onStart =
@@ -80,7 +75,6 @@ class MyController extends WidgetController {
   EnsembleAction? onStart;
   EnsembleAction? onChange;
   EnsembleAction? onEnd;
-  EnsembleAction? onComplete;
   bool showControls = true;
   bool autoplay = false;
   bool? enableLoop;
@@ -145,6 +139,20 @@ class MyController extends WidgetController {
       });
     }
   }
+
+  void setPlaybackRate(dynamic speed) {
+    playbackRate = Utils.optionalDouble(speed, max: 2.0);
+    if (playbackRate != null) {
+      _playerController?.setPlaybackSpeed(playbackRate!);
+    }
+  }
+
+  void setVolume(dynamic volume) {
+    volume = Utils.optionalDouble(volume, max: 1.0);
+    if (volume != null) {
+      _playerController?.setVolume(volume);
+    }
+  }
 }
 
 mixin PlayerCapabilities on WidgetState<Video> {
@@ -154,8 +162,6 @@ mixin PlayerCapabilities on WidgetState<Video> {
   void mute();
   void unmute();
   void seekTo(dynamic value);
-  void setPlaybackRate(double speed);
-  void setVolume(double volume);
   void videoPlayerStateChange();
 }
 
@@ -254,6 +260,7 @@ class VideoState extends WidgetState<Video> with PlayerCapabilities {
   @override
   void dispose() {
     super.dispose();
+    widget._controller.playerCapabilities = null;
     widget._controller._playerController?.dispose();
   }
 
@@ -280,22 +287,6 @@ class VideoState extends WidgetState<Video> with PlayerCapabilities {
     final position = Utils.getDuration(value);
     if (position != null) {
       widget._controller._playerController?.seekTo(position);
-    }
-  }
-
-  @override
-  void setPlaybackRate(dynamic speed) {
-    final playbackSpeed = Utils.optionalDouble(speed, max: 2.0);
-    if (playbackSpeed != null) {
-      widget._controller._playerController?.setPlaybackSpeed(playbackSpeed);
-    }
-  }
-
-  @override
-  void setVolume(dynamic volume) {
-    final videoVolume = Utils.optionalDouble(volume, max: 1.0);
-    if (videoVolume != null) {
-      widget._controller._playerController?.setVolume(videoVolume);
     }
   }
 
