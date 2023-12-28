@@ -127,6 +127,7 @@ dependencies:
       ref: abedc3d6d5b80df396e9c300fd1a052cbab08827
   change_case: ^1.1.0
   flutter_branch_sdk: ^7.0.1
+  dropdown_button2: ^2.3.9
 
 dev_dependencies:
   flutter_test:

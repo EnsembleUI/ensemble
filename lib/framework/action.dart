@@ -9,6 +9,7 @@ import 'package:ensemble/action/invoke_api_action.dart';
 import 'package:ensemble/action/misc_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/action/notification_action.dart';
+import 'package:ensemble/action/sign_in_out_action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
@@ -66,6 +67,7 @@ class ShowDialogAction extends EnsembleAction {
   final dynamic widget;
   final Map<String, dynamic>? options;
   final EnsembleAction? onDialogDismiss;
+
   factory ShowDialogAction.from({Invokable? initiator, Map? payload}) {
     if (payload == null || payload['widget'] == null) {
       throw LanguageError(
@@ -941,6 +943,8 @@ enum ActionType {
   callNativeMethod,
   deeplinkInit,
   createDeeplink,
+  verifySignIn,
+  signOut,
 }
 
 enum ToastType { success, error, warning, info }
@@ -1092,6 +1096,15 @@ abstract class EnsembleAction {
       return DeepLinkInitAction.fromMap(payload: payload);
     } else if (actionType == ActionType.createDeeplink) {
       return CreateDeeplinkAction.fromMap(payload: payload);
+    } else if (actionType == ActionType.verifySignIn) {
+      return VerifySignInAction(
+          initiator: initiator,
+          onSignedIn: EnsembleAction.fromYaml(payload?['onSignedIn']),
+          onNotSignedIn: EnsembleAction.fromYaml(payload?['onNotSignedIn']));
+    } else if (actionType == ActionType.signOut) {
+      return SignOutAction(
+          initiator: initiator,
+          onComplete: EnsembleAction.fromYaml(payload?['onComplete']));
     }
 
     throw LanguageError("Invalid action.",
