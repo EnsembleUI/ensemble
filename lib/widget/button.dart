@@ -118,6 +118,7 @@ class ButtonState extends WidgetState<Button> {
 
     List<Widget> labelParts = [
       Text(Utils.translate(widget._controller.label ?? '', context),
+          textAlign: widget._controller.labelStyle.textAlign,
           style: widget._controller.labelStyle.getTextStyle())
     ];
 

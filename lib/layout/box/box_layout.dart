@@ -6,6 +6,7 @@ import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/studio_debugger.dart';
 import 'package:ensemble/framework/view/footer.dart';
+import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -154,6 +155,7 @@ class BoxLayoutState extends WidgetState<BoxLayout>
       // In that case we want to evaluate the data to see if they are there
       registerItemTemplate(context, widget._controller.itemTemplate!,
           evaluateInitialValue: true, onDataChanged: (List dataList) {
+        if (!mounted) return;
         setState(() {
           templatedChildren = buildWidgetsFromTemplate(
               context, dataList, widget._controller.itemTemplate!);
@@ -170,8 +172,10 @@ class BoxLayoutState extends WidgetState<BoxLayout>
 
   @override
   Widget buildWidget(BuildContext context) {
+    final pageGroupScopeManager = PageGroupWidget.getScope(context);
     List<Widget>? childrenList = widget._controller.children != null
-        ? buildChildren(widget._controller.children!)
+        ? buildChildren(widget._controller.children!,
+            preferredScopeManager: pageGroupScopeManager)
         : null;
     List<Widget>? templatedList = templatedChildren;
 
