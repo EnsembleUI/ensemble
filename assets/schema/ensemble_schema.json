@@ -3863,6 +3863,143 @@
           }
         },
         {
+          "title": "Deep Link Init",
+          "type": "object",
+          "required": [
+            "deeplinkInit"
+          ],
+          "properties": {
+            "deeplinkInit": {
+              "type": "object",
+              "description": "It will initialize the Deep Link Service",
+              "required": [
+                "provider"
+              ],
+              "properties": {
+                "provider": {
+                  "$ref": "#/$defs/deeplink-provider",
+                  "description": "Sets the deferred deep link service provider"
+                },
+                "options": {
+                  "type": "object",
+                  "properties": {
+                    "useTestKey": {
+                      "type": "boolean",
+                      "description": "Sets true to use the test key_test. Default(False)"
+                    },
+                    "enableLog": {
+                      "type": "boolean",
+                      "description": "Sets true turn on debug logging. Default(False)"
+                    },
+                    "disableTrack": {
+                      "type": "boolean",
+                      "description": "Sets true to disable tracking. Default(False)"
+                    }
+                  }
+                },
+                "onSuccess": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when the deeplink intialized successfully"
+                },
+                "onLinkReceived": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when the link is recieved successfully after opening the app from the deeplink. Get link from `event.data.link`"
+                },
+                "onError": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when it is failed to initialize the deeplink service provider"
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Create Deep Link",
+          "type": "object",
+          "required": [
+            "createDeeplink"
+          ],
+          "properties": {
+            "createDeeplink": {
+              "type": "object",
+              "description": "It will create deep link url",
+              "required": [
+                "provider"
+              ],
+              "properties": {
+                "provider": {
+                  "$ref": "#/$defs/deeplink-provider",
+                  "description": "Sets the deferred deep link service provider"
+                },
+                "universalProps": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Canonical url for the content referred. This would be the corresponding website URL"
+                    },
+                    "title": {
+                      "type": "string",
+                      "description": "Title for the content."
+                    },
+                    "contentDescription": {
+                      "type": "string",
+                      "description": "Description for the content referred"
+                    },
+                    "imageUrl": {
+                      "type": "string",
+                      "description": "An image url associated with the content referred."
+                    },
+                    "contentSchema": {
+                      "type": "string",
+                      "description": "Schema for the qualifying content item."
+                    }
+                  }
+                },
+                "linkProps": {
+                  "type": "object",
+                  "properties": {
+                    "channel": {
+                      "type": "string",
+                      "description": "Sets the channel for the deeplink"
+                    },
+                    "feature": {
+                      "type": "string",
+                      "description": "Sets the feature for the deeplink"
+                    },
+                    "campaign": {
+                      "type": "string",
+                      "description": "Sets the campaign for the deeplink"
+                    },
+                    "stage": {
+                      "type": "string",
+                      "description": "Sets the stage for the deeplink"
+                    },
+                    "tags": {
+                      "type": "array",
+                      "description": "Sets the tags for the deeplink"
+                    },
+                    "controlParams": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "onSuccess": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when deeplink created successfully. Get result from `event.data.result`"
+                },
+                "onError": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when it is failed to create a deep link"
+                }
+              }
+            }
+          }
+        },
+        {
           "title": "Receive Intent",
           "type": "object",
           "required": [
@@ -7833,6 +7970,24 @@
         "bottomLeft",
         "bottomCenter",
         "bottomRight"
+      ]
+    },
+    "deeplink-provider": {
+      "type": "string",
+      "description": "Select a DeepLink provider to use. By default 'branch' provider is used",
+      "oneOf": [
+        {
+          "const": "branch",
+          "description": "Use the branch.io deeplink service"
+        },
+        {
+          "const": "appsflyer",
+          "description": "Use the appsflyer.com for deeplink service"
+        },
+        {
+          "const": "kochava",
+          "description": "Use the kochava.com for deeplink service"
+        }
       ]
     }
   }
