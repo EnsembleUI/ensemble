@@ -6032,13 +6032,13 @@
           }
         },
         {
-          "title": "Maps",
+          "title": "Map",
           "required": [
-            "Maps"
+            "Map"
           ],
           "properties": {
-            "Maps": {
-              "$ref": "#/$defs/Maps-payload"
+            "Map": {
+              "$ref": "#/$defs/Map-payload"
             }
           }
         },
@@ -6550,7 +6550,7 @@
         }
       }
     },
-    "Maps-payload": {
+    "Map-payload": {
       "type": "object",
       "properties": {
         "id": {
