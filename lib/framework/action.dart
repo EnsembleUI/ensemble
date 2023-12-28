@@ -1,7 +1,7 @@
 import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/action/badge_action.dart';
 import 'package:ensemble/action/bottom_modal_action.dart';
-import 'package:ensemble/action/branch_link_action.dart';
+import 'package:ensemble/action/deep_link_action.dart';
 import 'package:ensemble/action/call_external_method.dart';
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/action/call_native_method.dart';
@@ -939,10 +939,8 @@ enum ActionType {
   callExternalMethod,
   invokeHaptic,
   callNativeMethod,
-  branchLinkInit,
-  branchLinkValidate,
-  branchLinkCreateDeeplink,
-  branchLinkCreateDeeplinkWithShareSheet,
+  deeplinkInit,
+  createDeeplink,
 }
 
 enum ToastType { success, error, warning, info }
@@ -1090,12 +1088,10 @@ abstract class EnsembleAction {
       return ClearKeychain.fromYaml(payload: payload);
     } else if (actionType == ActionType.invokeHaptic) {
       return HapticAction.from(payload);
-    } else if (actionType == ActionType.branchLinkInit) {
-      return BranchLinkInitAction.fromMap(payload: payload);
-    } else if (actionType == ActionType.branchLinkValidate) {
-      return BranchLinkValidateAction.fromMap(payload: payload);
-    } else if (actionType == ActionType.branchLinkCreateDeeplink) {
-      return BranchLinkCreateDeeplinkAction.fromMap(payload: payload);
+    } else if (actionType == ActionType.deeplinkInit) {
+      return DeepLinkInitAction.fromMap(payload: payload);
+    } else if (actionType == ActionType.createDeeplink) {
+      return CreateDeeplinkAction.fromMap(payload: payload);
     }
 
     throw LanguageError("Invalid action.",
