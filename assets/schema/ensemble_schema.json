@@ -3880,7 +3880,10 @@
                       "description": "Sets the tags for the deeplink"
                     },
                     "controlParams": {
-                      "type": "object"
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
                     }
                   }
                 },
