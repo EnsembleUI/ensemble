@@ -119,6 +119,13 @@ class ListViewState extends WidgetState<ListView>
     with TemplatedWidgetState, HasChildren<ListView> {
   // template item is created on scroll. this will store the template's data list
   List<dynamic>? templatedDataList;
+  bool showLoading = false;
+
+  @override
+  void initState() {
+    showLoading = widget._controller.showLoading;
+    super.initState();
+  }
 
   @override
   void didChangeDependencies() {
@@ -140,6 +147,12 @@ class ListViewState extends WidgetState<ListView>
   }
 
   @override
+  void didUpdateWidget(covariant ListView oldWidget) {
+    showLoading = oldWidget._controller.showLoading;
+    super.didUpdateWidget(oldWidget);
+  }
+
+  @override
   Widget buildWidget(BuildContext context) {
     widget.controller._bind(this);
     FooterScope? footerScope = FooterScope.of(context);
@@ -156,7 +169,7 @@ class ListViewState extends WidgetState<ListView>
     Widget listView = ListViewCore(
       shrinkWrap: FooterScope.of(context) != null ? true : false,
       itemCount: itemCount,
-      isLoading: widget._controller.showLoading,
+      isLoading: showLoading,
       onFetchData: _fetchData,
       hasReachedMax: widget._controller.hasReachedMax,
       scrollController: (footerScope != null &&

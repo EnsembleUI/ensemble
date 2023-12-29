@@ -18,6 +18,7 @@ import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/calendar.dart';
 import 'package:ensemble/widget/checkbox.dart';
 import 'package:ensemble/widget/countdown.dart';
+import 'package:ensemble/widget/maps/static_map.dart';
 import 'package:ensemble/widget/shape.dart';
 import 'package:ensemble/widget/carousel.dart';
 import 'package:ensemble/widget/chart_highcharts_builder.dart';
@@ -74,7 +75,8 @@ class WidgetRegistry {
   /// widgets can be dynamically registered (or overridden) by calling registerWidget()
   final Map<String, Function> _registeredWidgets = {
     Avatar.type: Avatar.build,
-    Shape.type: Shape.build
+    Shape.type: Shape.build,
+    StaticMap.type: StaticMap.build,
   };
 
   /// register or override a widget
@@ -105,7 +107,8 @@ class WidgetRegistry {
         EnsembleWebView.type: () => EnsembleWebView(),
         QRCode.type: () => QRCode(),
         EnsembleProgressIndicator.type: () => EnsembleProgressIndicator(),
-        Maps.type: () => Maps(),
+        EnsembleMap.type: () => EnsembleMap(),
+        'Maps': () => EnsembleMap(), // backward compatible
         Carousel.type: () => Carousel(),
         Video.type: () => Video(),
         YouTube.type: () => YouTube(),
