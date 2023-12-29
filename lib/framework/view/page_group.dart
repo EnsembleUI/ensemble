@@ -149,12 +149,14 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
             scopeManager: _scopeManager,
             child: buildSidebarNavigation(context, widget.menu as SidebarMenu));
       } else if (widget.menu is BottomNavBarMenu) {
-        return BottomNavPageGroup(
-          scopeManager: _scopeManager,
-          selectedPage: viewGroupNotifier.viewIndex,
-          menu: widget.menu,
-          children: pageWidgets,
-        );
+        return PageGroupWidget(
+            scopeManager: _scopeManager,
+            child: BottomNavPageGroup(
+              scopeManager: _scopeManager,
+              selectedPage: viewGroupNotifier.viewIndex,
+              menu: widget.menu,
+              children: pageWidgets,
+            ));
       }
     }
     throw LanguageError('ViewGroup requires a menu and at least one page.');
