@@ -1956,9 +1956,55 @@
               },
               "description": "List of values, or Objects with value/label pairs"
             },
+            "itemTemplate": {
+              "data": {
+                "type": "string",
+                "description": "Bind to an array of data from an API response or a variable"
+              },
+              "name": {
+                "type": "string",
+                "description": "Set the name to reference as you iterate through the array of data"
+              },
+              "template": {
+                "$ref": "#/$defs/Widget",
+                "description": "Specify the widget to render as each dropdown item's label"
+              },
+              "value": {
+                "type": "string",
+                "description": "Specify the expression to evaluate as each item's value. This will be the value when the item is selected."
+              }
+            },
             "autoComplete": {
               "type": "boolean",
               "description": "Enable the Input search suggestion option"
+            },
+            "styles": {
+              "dropdownOffsetX": {
+                "type": "integer",
+                "description": "The horizontal offset of the dropdown relative to the menu button (default is 0)"
+              },
+              "dropdownOffsetY": {
+                "type": "integer",
+                "description": "The vertical offset of the dropdown relative to the menu button (default is 0 which display the dropdown right below the menu button)"
+              },
+              "dropdownBackgroundColor": {
+                "$ref": "#/$defs/type-color"
+              },
+              "dropdownBorderRadius": {
+                "$ref": "#/$defs/borderRadius"
+              },
+              "dropdownBorderColor": {
+                "$ref": "#/$defs/type-color"
+              },
+              "dropdownBorderWidth": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "The thickness of the dropdown border"
+              },
+              "dropdownMaxHeight": {
+                "type": "integer",
+                "minimum": 0
+              }
             }
           }
         }
@@ -2298,7 +2344,27 @@
               "type": "object",
               "properties": {
                 "labelStyle": {
-                  "$ref": "#/$defs/TextStyle"
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/TextStyle"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "textAlign": {
+                          "enum": [
+                            "left",
+                            "right",
+                            "center",
+                            "justify",
+                            "start",
+                            "end"
+                          ], 
+                          "description": "Text Align for the label inside the Button"
+                        }
+                      }
+                    }
+                  ]
                 },
                 "outline": {
                   "type": "boolean",
@@ -3791,6 +3857,143 @@
                 "onExit": {
                   "$ref": "#/$defs/Action-payload",
                   "description": "It is called when a user exits Link without successfully linking an Item, or when an error occurs during Link initialization"
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Deep Link Init",
+          "type": "object",
+          "required": [
+            "deeplinkInit"
+          ],
+          "properties": {
+            "deeplinkInit": {
+              "type": "object",
+              "description": "It will initialize the Deep Link Service",
+              "required": [
+                "provider"
+              ],
+              "properties": {
+                "provider": {
+                  "$ref": "#/$defs/deeplink-provider",
+                  "description": "Sets the deferred deep link service provider"
+                },
+                "options": {
+                  "type": "object",
+                  "properties": {
+                    "useTestKey": {
+                      "type": "boolean",
+                      "description": "Sets true to use the test key_test. Default(False)"
+                    },
+                    "enableLog": {
+                      "type": "boolean",
+                      "description": "Sets true turn on debug logging. Default(False)"
+                    },
+                    "disableTrack": {
+                      "type": "boolean",
+                      "description": "Sets true to disable tracking. Default(False)"
+                    }
+                  }
+                },
+                "onSuccess": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when the deeplink intialized successfully"
+                },
+                "onLinkReceived": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when the link is recieved successfully after opening the app from the deeplink. Get link from `event.data.link`"
+                },
+                "onError": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when it is failed to initialize the deeplink service provider"
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Create Deep Link",
+          "type": "object",
+          "required": [
+            "createDeeplink"
+          ],
+          "properties": {
+            "createDeeplink": {
+              "type": "object",
+              "description": "It will create deep link url",
+              "required": [
+                "provider"
+              ],
+              "properties": {
+                "provider": {
+                  "$ref": "#/$defs/deeplink-provider",
+                  "description": "Sets the deferred deep link service provider"
+                },
+                "universalProps": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Canonical url for the content referred. This would be the corresponding website URL"
+                    },
+                    "title": {
+                      "type": "string",
+                      "description": "Title for the content."
+                    },
+                    "contentDescription": {
+                      "type": "string",
+                      "description": "Description for the content referred"
+                    },
+                    "imageUrl": {
+                      "type": "string",
+                      "description": "An image url associated with the content referred."
+                    },
+                    "contentSchema": {
+                      "type": "string",
+                      "description": "Schema for the qualifying content item."
+                    }
+                  }
+                },
+                "linkProps": {
+                  "type": "object",
+                  "properties": {
+                    "channel": {
+                      "type": "string",
+                      "description": "Sets the channel for the deeplink"
+                    },
+                    "feature": {
+                      "type": "string",
+                      "description": "Sets the feature for the deeplink"
+                    },
+                    "campaign": {
+                      "type": "string",
+                      "description": "Sets the campaign for the deeplink"
+                    },
+                    "stage": {
+                      "type": "string",
+                      "description": "Sets the stage for the deeplink"
+                    },
+                    "tags": {
+                      "type": "array",
+                      "description": "Sets the tags for the deeplink"
+                    },
+                    "controlParams": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "onSuccess": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when deeplink created successfully. Get result from `event.data.result`"
+                },
+                "onError": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when it is failed to create a deep link"
                 }
               }
             }
@@ -6011,13 +6214,13 @@
           }
         },
         {
-          "title": "Maps",
+          "title": "Map",
           "required": [
-            "Maps"
+            "Map"
           ],
           "properties": {
-            "Maps": {
-              "$ref": "#/$defs/Maps-payload"
+            "Map": {
+              "$ref": "#/$defs/Map-payload"
             }
           }
         },
@@ -6529,7 +6732,7 @@
         }
       }
     },
-    "Maps-payload": {
+    "Map-payload": {
       "type": "object",
       "properties": {
         "id": {
@@ -7812,6 +8015,24 @@
         "bottomLeft",
         "bottomCenter",
         "bottomRight"
+      ]
+    },
+    "deeplink-provider": {
+      "type": "string",
+      "description": "Select a DeepLink provider to use. By default 'branch' provider is used",
+      "oneOf": [
+        {
+          "const": "branch",
+          "description": "Use the branch.io deeplink service"
+        },
+        {
+          "const": "appsflyer",
+          "description": "Use the appsflyer.com for deeplink service"
+        },
+        {
+          "const": "kochava",
+          "description": "Use the kochava.com for deeplink service"
+        }
       ]
     }
   }
