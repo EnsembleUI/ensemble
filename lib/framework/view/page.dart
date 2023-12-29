@@ -366,7 +366,10 @@ class PageState extends State<Page>
     LinearGradient? backgroundGradient = Utils.getBackgroundGradient(
         widget._pageModel.pageStyles?['backgroundGradient']);
     Color? backgroundColor =
-        Utils.getColor(widget._pageModel.pageStyles?['backgroundColor']);
+        Utils.getColor(
+            _scopeManager.dataContext
+                .eval(widget._pageModel.pageStyles?['backgroundColor'])
+            );
     // if we have a background image, set the background color to transparent
     // since our image is outside the Scaffold
     dynamic evaluatedBackgroundImg = _scopeManager.dataContext
