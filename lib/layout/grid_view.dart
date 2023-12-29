@@ -82,6 +82,7 @@ class GridView extends StatefulWidget
         if (value is! ScrollController) return null;
         return _controller.scrollController = value;
       },
+      'direction': (value) => _controller.direction = Utils.optionalString(value),
     };
   }
 
@@ -106,7 +107,7 @@ class GridViewController extends BoxController with HasPullToRefresh {
   EnsembleAction? onScrollEnd;
   bool reverse = false;
   ScrollController? scrollController;
-
+  String? direction;
   // single number, 3 numbers (small, medium, large), or 5 numbers (xSmall, small, medium, large, xLarge)
   // min 1, max 5
   setHorizontalTileCount(dynamic value) {
@@ -234,7 +235,9 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
           ),
           itemCount: _items.length,
           reverse: widget._controller.reverse,
-          scrollDirection: Axis.vertical,
+          scrollDirection: widget._controller.direction == 'horizontal'
+              ? flutter.Axis.horizontal
+              : flutter.Axis.vertical,
           cacheExtent: cachedPixels,
           padding: widget._controller.padding,
           itemBuilder: (context, index) => _buildItem(index));
