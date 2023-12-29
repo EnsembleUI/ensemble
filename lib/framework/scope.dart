@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 
+import 'package:ensemble/controller/controller_mixins.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/bindings.dart';
@@ -336,6 +337,8 @@ mixin ViewBuilder on IsScopeManager {
   bool _isPassthroughProperty(String property, dynamic widget) =>
       property.startsWith('on') ||
       (widget is HasController &&
+          widget.passthroughSetters().contains(property)) ||
+      (widget is HasPassThrough &&
           widget.passthroughSetters().contains(property));
 
   /// iterate through and set/evaluate the widget's properties/styles/...
