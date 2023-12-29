@@ -83,20 +83,30 @@ class AvatarController extends EnsembleBoxController {
     String? name = groupData['name'];
 
     if (data == null || name == null) return;
+    dynamic avatarMap;
+    if (groupData?['template'] != null) {
+      avatarMap = {'Avatar': groupData?['template'] ?? {}};
+    }
+    dynamic surplus;
+    if (groupData?['surplus'] != null) {
+      surplus = SurplusData(
+        backgroundColor:
+            Utils.getColor(groupData?['surplus']['backgroundColor']),
+        height: Utils.optionalDouble(groupData?['surplus']['height']),
+        width: Utils.optionalDouble(groupData?['surplus']['width']),
+        onTap: EnsembleAction.fromYaml(groupData?['surplus']['onTap']),
+        textStyle: Utils.getTextStyle(groupData?['surplus']['textStyle']),
+        variant: AvatarVariant.values.from(groupData?['surplus']['variant']),
+      );
+    }
 
     groupTemplate = GroupTemplate(
       data: data,
       name: name,
       max: Utils.optionalInt(groupData['max']),
       offset: Utils.getDouble(groupData['offset'], fallback: 30),
-      surplusBackgroundColor:
-          Utils.getColor(groupData['surplusBackgroundColor']),
-      surplusTextStyle: Utils.getTextStyle(groupData['surplusTextStyle']),
-      onSurplusTap:
-          EnsembleAction.fromYaml(groupData['onSurplusTap'], initiator: this),
-      avatarData: AvatarData.fromYaml(
-        YamlMap.wrap(groupData?['template'] ?? {}),
-      ),
+      avatarWidget: avatarMap == null ? null : YamlMap.wrap(avatarMap),
+      surplusData: surplus,
     );
   }
 }
@@ -104,7 +114,7 @@ class AvatarController extends EnsembleBoxController {
 class AvatarState extends EnsembleWidgetState<Avatar>
     with TemplatedWidgetState {
   static const defaultSize = 40.0;
-  List<AvatarData> groupAvatar = [];
+  List<Widget> groupAvatar = [];
 
   @override
   void didChangeDependencies() {
@@ -128,8 +138,8 @@ class AvatarState extends EnsembleWidgetState<Avatar>
     }
   }
 
-  List<AvatarData> _buildAvatarPayload(List dataList) {
-    List<AvatarData> avatarData = [];
+  List<Widget> _buildAvatarPayload(List dataList) {
+    List<Widget> avatarData = [];
 
     GroupTemplate? itemTemplate = widget.controller.groupTemplate;
     ScopeManager? myScope = getScopeManager();
@@ -137,26 +147,9 @@ class AvatarState extends EnsembleWidgetState<Avatar>
       for (dynamic dataItem in dataList) {
         ScopeManager dataScope = myScope.createChildScope();
         dataScope.dataContext.addDataContextById(itemTemplate.name, dataItem);
-
-        avatarData.add(
-          AvatarData(
-            source: Utils.optionalString(
-                dataScope.dataContext.eval(itemTemplate.avatarData.source)),
-            boxFit: Utils.getBoxFit(
-                dataScope.dataContext.eval(itemTemplate.avatarData.boxFit)),
-            name: Utils.optionalString(
-                dataScope.dataContext.eval(itemTemplate.avatarData.name)),
-            nameTextStyle: Utils.getTextStyle(dataScope.dataContext
-                .eval(itemTemplate.avatarData.nameTextStyle)),
-            onTap: EnsembleAction.fromYaml(
-                dataScope.dataContext.eval(itemTemplate.avatarData.onTap)),
-            onTapHaptic: Utils.optionalString(dataScope.dataContext
-                .eval(itemTemplate.avatarData.onTapHaptic)),
-            placeholderColor: Utils.getColor(dataScope.dataContext
-                .eval(itemTemplate.avatarData.placeholderColor)),
-            variant: itemTemplate.avatarData.variant,
-          ),
-        );
+        final avatar = dataScope
+            .buildWidgetWithScopeFromDefinition(itemTemplate.avatarWidget);
+        avatarData.add(avatar);
       }
     }
     return avatarData;
@@ -165,16 +158,7 @@ class AvatarState extends EnsembleWidgetState<Avatar>
   @override
   Widget buildWidget(BuildContext context) {
     return widget.controller.groupTemplate == null
-        ? _buildAvatar(AvatarData(
-            boxFit: widget.controller.fit,
-            name: widget.controller.name,
-            nameTextStyle: widget.controller.nameTextStyle,
-            onTap: widget.controller.onTap,
-            onTapHaptic: widget.controller.onTapHaptic,
-            placeholderColor: widget.controller.placeholderColor,
-            source: widget.controller.source,
-            variant: widget.controller.variant,
-          ))
+        ? _buildAvatar()
         : _buildGroupAvatar();
   }
 
@@ -195,23 +179,32 @@ class AvatarState extends EnsembleWidgetState<Avatar>
                     leftOffset * groupAvatar.length,
                   )
                 : leftOffset * maxAvatars),
-        child: CircleAvatar(
-          backgroundColor: groupTemplate?.surplusBackgroundColor,
-          child: Text(
-            '+$surplusCount',
-            style: groupTemplate?.surplusTextStyle,
+        child: Container(
+          width: groupTemplate?.surplusData?.width ?? defaultSize,
+          height: groupTemplate?.surplusData?.height ?? defaultSize,
+          decoration: BoxDecoration(
+            color: groupTemplate?.surplusData?.backgroundColor,
+            borderRadius: _getVariantDefaultBorderRadius(
+                    groupTemplate?.surplusData?.variant)
+                ?.getValue(),
+          ),
+          child: Center(
+            child: Text(
+              '+$surplusCount',
+              style: groupTemplate?.surplusData?.textStyle,
+            ),
           ),
         ),
       );
     }
 
     Widget surplus = surplusBuilder();
-    if (groupTemplate?.onSurplusTap != null) {
+    if (groupTemplate?.surplusData?.onTap != null) {
       surplus = InkWell(
         onTap: () {
           ScreenController().executeAction(
             context,
-            groupTemplate!.onSurplusTap!,
+            groupTemplate!.surplusData!.onTap!,
             event: EnsembleEvent(widget.controller),
           );
         },
@@ -226,41 +219,40 @@ class AvatarState extends EnsembleWidgetState<Avatar>
             i++)
           Transform.translate(
             offset: Offset(i * leftOffset, 0),
-            child: _buildAvatar(groupAvatar[i]),
+            child: groupAvatar[i],
           ),
         if (surplusCount > 0) surplus
       ],
     );
   }
 
-  Widget _buildAvatar(AvatarData avatarData) {
-    String? source = avatarData.source?.trim();
+  Widget _buildAvatar() {
+    String? source = widget.controller.source?.trim();
     Widget content = EnsembleBoxWrapper(
-      widget: source != null && source.isNotEmpty
-          ? _buildImage(source, avatarData)
-          : _buildFallback(avatarData),
-      boxController: widget.controller,
-      ignoresMargin: true,
-      fallbackWidth: width,
-      fallbackHeight: height,
-      fallbackBorderRadius: _getVariantDefaultBorderRadius(avatarData.variant),
-    );
+        widget: source != null && source.isNotEmpty
+            ? _buildImage(source)
+            : _buildFallback(),
+        boxController: widget.controller,
+        ignoresMargin: true,
+        fallbackWidth: width,
+        fallbackHeight: height,
+        fallbackBorderRadius: _getVariantDefaultBorderRadius());
 
-    if (avatarData.onTap != null) {
+    if (widget.controller.onTap != null) {
       content = GestureDetector(
         child: content,
         onTap: () {
-          if (avatarData.onTapHaptic != null) {
+          if (widget.controller.onTapHaptic != null) {
             ScreenController().executeAction(
               context,
               HapticAction(
-                type: avatarData.onTapHaptic!,
+                type: widget.controller.onTapHaptic!,
                 onComplete: null,
               ),
             );
           }
 
-          ScreenController().executeAction(context, avatarData.onTap!,
+          ScreenController().executeAction(context, widget.controller.onTap!,
               event: EnsembleEvent(widget.controller));
         },
       );
@@ -271,8 +263,8 @@ class AvatarState extends EnsembleWidgetState<Avatar>
     return content;
   }
 
-  EBorderRadius? _getVariantDefaultBorderRadius(AvatarVariant? variant) {
-    switch (variant) {
+  EBorderRadius? _getVariantDefaultBorderRadius([AvatarVariant? variant]) {
+    switch (variant ?? widget.controller.variant) {
       case AvatarVariant.square:
         return null;
       case AvatarVariant.rounded:
@@ -283,18 +275,18 @@ class AvatarState extends EnsembleWidgetState<Avatar>
     }
   }
 
-  Widget _buildImage(String source, AvatarData avatarData) => framework.Image(
+  Widget _buildImage(String source) => framework.Image(
       source: source,
       fit: widget.controller.fit,
       networkCacheManager: EnsembleImageCacheManager.instance,
       placeholderBuilder: (_, __) =>
           ColoredBoxPlaceholder(color: widget.controller.placeholderColor),
-      errorBuilder: (_) => _buildFallback(avatarData));
+      errorBuilder: (_) => _buildFallback());
 
   /// build the initial or an empty box
-  Widget _buildFallback(AvatarData avatarData) {
+  Widget _buildFallback() {
     String? initial;
-    String? name = avatarData.name?.trim();
+    String? name = widget.controller.name?.trim();
     if (name != null && name.isNotEmpty) {
       List<String> tokens = name.split(RegExp(r'\s+'));
       initial = tokens[0][0].toUpperCase();
@@ -303,7 +295,7 @@ class AvatarState extends EnsembleWidgetState<Avatar>
       }
     }
 
-    var textStyle = avatarData.nameTextStyle ??
+    var textStyle = widget.controller.nameTextStyle ??
         TextStyle(fontSize: min(width, height) * .5);
     return initial != null
         ? Align(child: Text(initial, style: textStyle))
@@ -327,50 +319,31 @@ class GroupTemplate extends ItemTemplate {
     required String name,
     dynamic template,
     this.max,
-    required this.avatarData,
+    required this.avatarWidget,
+    this.surplusData,
     this.offset = 30,
-    this.surplusBackgroundColor,
-    this.surplusTextStyle,
-    this.onSurplusTap,
   }) : super(data, name, template);
 
   final int? max;
   final double offset;
-  final Color? surplusBackgroundColor;
-  final TextStyle? surplusTextStyle;
-  final EnsembleAction? onSurplusTap;
-
-  final AvatarData avatarData;
+  final dynamic avatarWidget;
+  final SurplusData? surplusData;
 }
 
-class AvatarData {
-  final String? name;
-  final TextStyle? nameTextStyle;
-  final String? source;
-  final BoxFit? boxFit;
-  final Color? placeholderColor;
-  final AvatarVariant? variant;
+class SurplusData {
+  final Color? backgroundColor;
+  final double? width;
+  final double? height;
   final EnsembleAction? onTap;
-  final String? onTapHaptic;
+  final TextStyle? textStyle;
+  final AvatarVariant? variant;
 
-  AvatarData(
-      {this.name,
-      this.nameTextStyle,
-      this.source,
-      this.boxFit,
-      this.placeholderColor,
-      this.variant,
-      this.onTap,
-      this.onTapHaptic});
-
-  factory AvatarData.fromYaml(YamlMap yamlMap) => AvatarData(
-        name: Utils.optionalString(yamlMap['name']),
-        nameTextStyle: Utils.getTextStyle(yamlMap['nameTextStyle']),
-        source: Utils.optionalString(yamlMap['source']),
-        boxFit: Utils.getBoxFit(yamlMap['fit']),
-        placeholderColor: Utils.getColor(yamlMap['placeHolderColor']),
-        variant: AvatarVariant.values.from(yamlMap['variant']),
-        onTap: EnsembleAction.fromYaml(yamlMap['onTap']),
-        onTapHaptic: Utils.optionalString(yamlMap['onTapHaptic']),
-      );
+  SurplusData({
+    this.backgroundColor,
+    this.width,
+    this.height,
+    this.onTap,
+    this.textStyle,
+    this.variant,
+  });
 }
