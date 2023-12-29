@@ -41,7 +41,6 @@ class Button extends StatefulWidget
       'width': () => _controller.buttonWidth,
       'height': () => _controller.buttonHeight
     };
-
   }
 
   @override

@@ -406,8 +406,7 @@ class Account {
 
     if (input != null && input is Map) {
       firebaseConfig = FirebaseConfig.fromYaml(input['firebase']);
-      googleMapsAPIKey =
-          Utils.optionalString(input['googleMaps']?['apiKey']);
+      googleMapsAPIKey = Utils.optionalString(input['googleMaps']?['apiKey']);
     }
     return Account(
         firebaseConfig: firebaseConfig, googleMapsAPIKey: googleMapsAPIKey);
