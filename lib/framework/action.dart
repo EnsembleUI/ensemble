@@ -1,6 +1,7 @@
 import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/action/badge_action.dart';
 import 'package:ensemble/action/bottom_modal_action.dart';
+import 'package:ensemble/action/deep_link_action.dart';
 import 'package:ensemble/action/call_external_method.dart';
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/action/call_native_method.dart';
@@ -940,6 +941,8 @@ enum ActionType {
   callExternalMethod,
   invokeHaptic,
   callNativeMethod,
+  deeplinkInit,
+  createDeeplink,
   verifySignIn,
   signOut,
 }
@@ -1089,6 +1092,10 @@ abstract class EnsembleAction {
       return ClearKeychain.fromYaml(payload: payload);
     } else if (actionType == ActionType.invokeHaptic) {
       return HapticAction.from(payload);
+    } else if (actionType == ActionType.deeplinkInit) {
+      return DeepLinkInitAction.fromMap(payload: payload);
+    } else if (actionType == ActionType.createDeeplink) {
+      return CreateDeeplinkAction.fromMap(payload: payload);
     } else if (actionType == ActionType.verifySignIn) {
       return VerifySignInAction(
           initiator: initiator,
