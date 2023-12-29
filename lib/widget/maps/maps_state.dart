@@ -6,7 +6,6 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
-import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -21,24 +20,26 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:async/async.dart';
-import 'package:yaml/yaml.dart';
 
 import '../../framework/device.dart';
 
-abstract class MapsActionableState extends WidgetState<Maps> {
+abstract class MapsActionableState extends WidgetState<EnsembleMap> {
   List<MarkerPayload> getMarkerPayloads();
+
   Position? getCurrentLocation();
+
   Future<GoogleMapController> getMapController();
+
   void zoom(List<LatLng> points, {bool? hasCurrentLocation});
 }
 
-class MapsState extends MapsActionableState
+class EnsembleMapState extends MapsActionableState
     with TemplatedWidgetState, LocationCapability, MapActions {
   static const selectedMarkerZIndex = 100.0;
 
   final Completer<GoogleMapController> _controller =
       Completer<GoogleMapController>();
+
   @override
   Future<GoogleMapController> getMapController() => _controller.future;
 
@@ -53,6 +54,7 @@ class MapsState extends MapsActionableState
   Set<MarkerId> uniqueMarkerIds = {};
 
   List<MarkerPayload> _markerPayloads = [];
+
   @override
   List<MarkerPayload> getMarkerPayloads() => _markerPayloads;
 
@@ -60,6 +62,7 @@ class MapsState extends MapsActionableState
   Widget? _overlayWidget;
 
   Position? currentLocation;
+
   @override
   Position? getCurrentLocation() => currentLocation;
 
@@ -70,7 +73,7 @@ class MapsState extends MapsActionableState
   bool showLocationOnMap = false;
 
   @override
-  void didUpdateWidget(covariant Maps oldWidget) {
+  void didUpdateWidget(covariant EnsembleMap oldWidget) {
     super.didUpdateWidget(oldWidget);
     widget.controller.mapActions = this;
   }
@@ -409,6 +412,7 @@ class MapsState extends MapsActionableState
 
   // TODO: LRU cache
   Map<String, BitmapDescriptor> markersCache = {};
+
   Future<BitmapDescriptor?> _buildMarkerFromTemplate(
       MarkerPayload markerPayload, MarkerTemplate? template) async {
     if (template != null) {
@@ -437,7 +441,8 @@ class MapsState extends MapsActionableState
         onMapCreated: _onMapCreated,
         myLocationEnabled: showLocationOnMap,
         mapType: widget.controller.mapType ?? MapType.normal,
-        myLocationButtonEnabled: false, // use our own button
+        myLocationButtonEnabled: false,
+        // use our own button
         mapToolbarEnabled: false,
         zoomControlsEnabled: false,
         onCameraMove: _onCameraMove,

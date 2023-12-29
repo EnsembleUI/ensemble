@@ -32,7 +32,15 @@ class Button extends StatefulWidget
 
   @override
   Map<String, Function> getters() {
-    return {'labelStyle': () => _controller.labelStyle};
+    return {
+      'label': () => _controller.label,
+      'labelStyle': () => _controller.labelStyle,
+      'gap': () => Utils.getInt(_controller.gap, fallback: 0),
+      'enabled': () => Utils.getBool(_controller.enabled, fallback: true),
+      'outline': () => Utils.getBool(_controller.outline, fallback: false),
+      'width': () => _controller.buttonWidth,
+      'height': () => _controller.buttonHeight
+    };
   }
 
   @override
@@ -118,6 +126,7 @@ class ButtonState extends WidgetState<Button> {
 
     List<Widget> labelParts = [
       Text(Utils.translate(widget._controller.label ?? '', context),
+          textAlign: widget._controller.labelStyle.textAlign,
           style: widget._controller.labelStyle.getTextStyle())
     ];
 
