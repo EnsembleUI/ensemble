@@ -82,7 +82,8 @@ class GridView extends StatefulWidget
         if (value is! ScrollController) return null;
         return _controller.scrollController = value;
       },
-      'direction': (value) => _controller.direction = Utils.optionalString(value),
+      'direction': (value) =>
+          _controller.direction = Utils.optionalString(value),
     };
   }
 

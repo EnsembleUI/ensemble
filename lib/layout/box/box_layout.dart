@@ -172,10 +172,8 @@ class BoxLayoutState extends WidgetState<BoxLayout>
 
   @override
   Widget buildWidget(BuildContext context) {
-    final pageGroupScopeManager = PageGroupWidget.getScope(context);
     List<Widget>? childrenList = widget._controller.children != null
-        ? buildChildren(widget._controller.children!,
-            preferredScopeManager: pageGroupScopeManager)
+        ? buildChildren(widget._controller.children!)
         : null;
     List<Widget>? templatedList = templatedChildren;
 

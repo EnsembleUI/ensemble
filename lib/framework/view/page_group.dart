@@ -145,7 +145,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
           ),
         );
       } else if (widget.menu is SidebarMenu) {
-        return PageGroupWidget(
+        return DataScopeWidget(
           scopeManager: _scopeManager,
           child: buildSidebarNavigation(context, widget.menu as SidebarMenu),
         );
