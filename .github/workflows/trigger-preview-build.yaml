@@ -5,6 +5,9 @@ on:
         types: [closed]
         branches: 
             - main
+    push:
+        branches:
+            - main
     workflow_dispatch:  # Added manual trigger option
 
 jobs:
