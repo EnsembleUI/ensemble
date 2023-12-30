@@ -1,13 +1,13 @@
 name: Trigger Preview Build
 
 on: 
-    # pull_request: 
-    #     types: [closed]
-    #     branches: 
-    #         - main
-    push:
-        branches:
+    pull_request: 
+        types: [closed]
+        branches: 
             - main
+    # push:
+    #     branches:
+    #         - main
     workflow_dispatch:  # Added manual trigger option
 
 jobs:
