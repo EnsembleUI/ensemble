@@ -8,14 +8,16 @@ import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/colored_box_placeholder.dart';
+import 'package:ensemble/layout/templated.dart';
+import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/image.dart' as framework;
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/image.dart';
-import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:yaml/yaml.dart';
 
 class Avatar extends EnsembleWidget<AvatarController> {
   static const type = 'Avatar';
@@ -41,9 +43,14 @@ class AvatarController extends EnsembleBoxController {
   BoxFit? fit;
   Color? placeholderColor;
 
+  GroupTemplate? groupTemplate;
+
   AvatarVariant? variant;
   EnsembleAction? onTap;
   String? onTapHaptic;
+
+  @override
+  List<String> passthroughSetters() => ['group-template'];
 
   @override
   Map<String, Function> getters() {
@@ -65,16 +72,158 @@ class AvatarController extends EnsembleBoxController {
       'placeholderColor': (value) => placeholderColor = Utils.getColor(value),
       'variant': (value) => variant = AvatarVariant.values.from(value),
       'onTap': (func) => onTap = EnsembleAction.fromYaml(func, initiator: this),
-      'onTapHaptic': (value) => onTapHaptic = Utils.optionalString(value)
+      'onTapHaptic': (value) => onTapHaptic = Utils.optionalString(value),
+      'group-template': (value) => setGroupAvatar(value)
     });
+
+  void setGroupAvatar(dynamic groupData) {
+    if (groupData is! Map && groupData is! YamlMap) return;
+
+    dynamic data = groupData['data'];
+    String? name = groupData['name'];
+
+    if (data == null || name == null) return;
+    dynamic avatarMap;
+    if (groupData?['template'] != null) {
+      avatarMap = {'Avatar': groupData?['template'] ?? {}};
+    }
+    dynamic surplus;
+    if (groupData?['surplus'] != null) {
+      surplus = SurplusData(
+        backgroundColor:
+            Utils.getColor(groupData?['surplus']['backgroundColor']),
+        height: Utils.optionalDouble(groupData?['surplus']['height']),
+        width: Utils.optionalDouble(groupData?['surplus']['width']),
+        onTap: EnsembleAction.fromYaml(groupData?['surplus']['onTap']),
+        textStyle: Utils.getTextStyle(groupData?['surplus']['textStyle']),
+        variant: AvatarVariant.values.from(groupData?['surplus']['variant']),
+      );
+    }
+
+    groupTemplate = GroupTemplate(
+      data: data,
+      name: name,
+      max: Utils.optionalInt(groupData['max']),
+      offset: Utils.getDouble(groupData['offset'], fallback: 30),
+      avatarWidget: avatarMap == null ? null : YamlMap.wrap(avatarMap),
+      surplusData: surplus,
+    );
+  }
 }
 
-class AvatarState extends EnsembleWidgetState<Avatar> {
+class AvatarState extends EnsembleWidgetState<Avatar>
+    with TemplatedWidgetState {
   static const defaultSize = 40.0;
+  List<Widget> groupAvatar = [];
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _registerGroupAvatarListener(context);
+  }
+
+  void _registerGroupAvatarListener(BuildContext context) {
+    if (widget.controller.groupTemplate != null) {
+      registerItemTemplate(
+        context,
+        widget.controller.groupTemplate!,
+        evaluateInitialValue: true,
+        onDataChanged: (dataList) {
+          final avatars = _buildAvatarPayload(dataList);
+          setState(() {
+            groupAvatar = avatars;
+          });
+        },
+      );
+    }
+  }
+
+  List<Widget> _buildAvatarPayload(List dataList) {
+    List<Widget> avatarData = [];
+
+    GroupTemplate? itemTemplate = widget.controller.groupTemplate;
+    ScopeManager? myScope = getScopeManager();
+    if (myScope != null && itemTemplate != null) {
+      for (dynamic dataItem in dataList) {
+        ScopeManager dataScope = myScope.createChildScope();
+        dataScope.dataContext.addDataContextById(itemTemplate.name, dataItem);
+        final avatar = dataScope
+            .buildWidgetWithScopeFromDefinition(itemTemplate.avatarWidget);
+        avatarData.add(avatar);
+      }
+    }
+    return avatarData;
+  }
 
   @override
   Widget buildWidget(BuildContext context) {
-    return _buildAvatar();
+    return widget.controller.groupTemplate == null
+        ? _buildAvatar()
+        : _buildGroupAvatar();
+  }
+
+  Widget _buildGroupAvatar() {
+    final groupTemplate = widget.controller.groupTemplate;
+    int? maxAvatars = groupTemplate?.max;
+    double leftOffset = groupTemplate?.offset ?? 30.0;
+
+    int surplusCount =
+        maxAvatars == null ? 0 : max(0, groupAvatar.length - maxAvatars);
+
+    Widget surplusBuilder() {
+      return Padding(
+        padding: EdgeInsets.only(
+            left: maxAvatars == null
+                ? min(
+                    MediaQuery.of(context).size.width,
+                    leftOffset * groupAvatar.length,
+                  )
+                : leftOffset * maxAvatars),
+        child: Container(
+          width: groupTemplate?.surplusData?.width ?? defaultSize,
+          height: groupTemplate?.surplusData?.height ?? defaultSize,
+          decoration: BoxDecoration(
+            color: groupTemplate?.surplusData?.backgroundColor,
+            borderRadius: _getVariantDefaultBorderRadius(
+                    groupTemplate?.surplusData?.variant)
+                ?.getValue(),
+          ),
+          child: Center(
+            child: Text(
+              '+$surplusCount',
+              style: groupTemplate?.surplusData?.textStyle,
+            ),
+          ),
+        ),
+      );
+    }
+
+    Widget surplus = surplusBuilder();
+    if (groupTemplate?.surplusData?.onTap != null) {
+      surplus = InkWell(
+        onTap: () {
+          ScreenController().executeAction(
+            context,
+            groupTemplate!.surplusData!.onTap!,
+            event: EnsembleEvent(widget.controller),
+          );
+        },
+        child: surplus,
+      );
+    }
+
+    return Stack(
+      children: [
+        for (var i = 0;
+            i < min(groupAvatar.length, maxAvatars ?? groupAvatar.length);
+            i++)
+          Transform.translate(
+            offset: Offset(i * leftOffset, 0),
+            child: groupAvatar[i],
+          ),
+        if (surplusCount > 0) surplus
+      ],
+    );
   }
 
   Widget _buildAvatar() {
@@ -114,8 +263,8 @@ class AvatarState extends EnsembleWidgetState<Avatar> {
     return content;
   }
 
-  EBorderRadius? _getVariantDefaultBorderRadius() {
-    switch (widget.controller.variant) {
+  EBorderRadius? _getVariantDefaultBorderRadius([AvatarVariant? variant]) {
+    switch (variant ?? widget.controller.variant) {
       case AvatarVariant.square:
         return null;
       case AvatarVariant.rounded:
@@ -163,3 +312,38 @@ class AvatarState extends EnsembleWidgetState<Avatar> {
 }
 
 enum AvatarVariant { circle, square, rounded }
+
+class GroupTemplate extends ItemTemplate {
+  GroupTemplate({
+    required dynamic data,
+    required String name,
+    dynamic template,
+    this.max,
+    required this.avatarWidget,
+    this.surplusData,
+    this.offset = 30,
+  }) : super(data, name, template);
+
+  final int? max;
+  final double offset;
+  final dynamic avatarWidget;
+  final SurplusData? surplusData;
+}
+
+class SurplusData {
+  final Color? backgroundColor;
+  final double? width;
+  final double? height;
+  final EnsembleAction? onTap;
+  final TextStyle? textStyle;
+  final AvatarVariant? variant;
+
+  SurplusData({
+    this.backgroundColor,
+    this.width,
+    this.height,
+    this.onTap,
+    this.textStyle,
+    this.variant,
+  });
+}
