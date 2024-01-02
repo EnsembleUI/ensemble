@@ -97,6 +97,8 @@ class AvatarController extends EnsembleBoxController {
         onTap: EnsembleAction.fromYaml(groupData?['surplus']['onTap']),
         textStyle: Utils.getTextStyle(groupData?['surplus']['textStyle']),
         variant: AvatarVariant.values.from(groupData?['surplus']['variant']),
+        visible:
+            Utils.getBool(groupData?['surplus']['visible'], fallback: true),
       );
     }
 
@@ -114,6 +116,8 @@ class AvatarController extends EnsembleBoxController {
 class AvatarState extends EnsembleWidgetState<Avatar>
     with TemplatedWidgetState {
   static const defaultSize = 40.0;
+  double? groupHeight;
+  double? groupWidth;
   List<Widget> groupAvatar = [];
 
   @override
@@ -146,6 +150,10 @@ class AvatarState extends EnsembleWidgetState<Avatar>
     if (myScope != null && itemTemplate != null) {
       for (dynamic dataItem in dataList) {
         ScopeManager dataScope = myScope.createChildScope();
+        groupHeight = Utils.optionalDouble(
+            itemTemplate.avatarWidget['Avatar']['styles']['height']);
+        groupWidth = Utils.optionalDouble(
+            itemTemplate.avatarWidget['Avatar']['styles']['width']);
         dataScope.dataContext.addDataContextById(itemTemplate.name, dataItem);
         final avatar = dataScope
             .buildWidgetWithScopeFromDefinition(itemTemplate.avatarWidget);
@@ -198,8 +206,9 @@ class AvatarState extends EnsembleWidgetState<Avatar>
       );
     }
 
-    Widget surplus = surplusBuilder();
-    if (groupTemplate?.surplusData?.onTap != null) {
+    Widget? surplus =
+        groupTemplate?.surplusData?.visible == true ? surplusBuilder() : null;
+    if (groupTemplate?.surplusData?.onTap != null && surplus != null) {
       surplus = InkWell(
         onTap: () {
           ScreenController().executeAction(
@@ -211,18 +220,24 @@ class AvatarState extends EnsembleWidgetState<Avatar>
         child: surplus,
       );
     }
-
-    return Stack(
-      children: [
-        for (var i = 0;
-            i < min(groupAvatar.length, maxAvatars ?? groupAvatar.length);
-            i++)
-          Transform.translate(
-            offset: Offset(i * leftOffset, 0),
-            child: groupAvatar[i],
-          ),
-        if (surplusCount > 0) surplus
-      ],
+    final numAvatars =
+        min(groupAvatar.length, maxAvatars ?? groupAvatar.length);
+    final width = leftOffset * (numAvatars - 1) + (groupWidth ?? defaultSize);
+    return SizedBox(
+      width: surplus == null
+          ? width
+          : width + (groupTemplate?.surplusData?.width ?? defaultSize),
+      height: groupHeight ?? defaultSize,
+      child: Stack(
+        children: [
+          for (var i = 0; i < numAvatars; i++)
+            Transform.translate(
+              offset: Offset(i * leftOffset, 0),
+              child: groupAvatar[i],
+            ),
+          if (surplusCount > 0) surplus ?? const SizedBox.shrink()
+        ],
+      ),
     );
   }
 
@@ -337,6 +352,7 @@ class SurplusData {
   final EnsembleAction? onTap;
   final TextStyle? textStyle;
   final AvatarVariant? variant;
+  final bool visible;
 
   SurplusData({
     this.backgroundColor,
@@ -345,5 +361,6 @@ class SurplusData {
     this.onTap,
     this.textStyle,
     this.variant,
+    this.visible = true,
   });
 }
