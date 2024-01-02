@@ -410,7 +410,12 @@ class ScreenController {
           scopeManager.dataContext.addDataContextById(key, val);
         }
       });
-      scopeManager.dataContext.evalCode(action.codeBlock, action.codeBlockSpan);
+      // code execution relies on the correct Context for proper execution.
+      // It looks up the context from ScopeManager which maybe incorrect.
+      // Here we adjust the correct context
+      DataContext newDataContext =
+          scopeManager.dataContext.clone(newBuildContext: context);
+      newDataContext.evalCode(action.codeBlock, action.codeBlockSpan);
 
       if (action.onComplete != null) {
         executeActionWithScope(context, scopeManager, action.onComplete!);

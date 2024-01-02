@@ -316,13 +316,15 @@ class Utils {
     Map? map = getMap(value);
     return map != null ? YamlMap.wrap(map) : null;
   }
+
   //this is semantically different from the methods above as it is doesn't return null when value is not a map
   static dynamic maybeYamlMap(dynamic value) {
-    if ( value is Map ) {
+    if (value is Map) {
       return YamlMap.wrap(value);
     }
     return value;
   }
+
   static Color? getColor(dynamic value) {
     if (value is String) {
       switch (value) {
@@ -425,6 +427,7 @@ class Utils {
     return TextStyleComposite(
       widgetController,
       textGradient: Utils.getBackgroundGradient(style['gradient']),
+      textAlign: style['textAlign'],
       styleWithFontFamily: getTextStyle(style),
     );
   }
@@ -473,6 +476,31 @@ class Utils {
       }
     }
     return null;
+  }
+
+  static TextAlign? getTextAlignment(dynamic align) {
+    TextAlign? textAlign;
+    switch (align) {
+      case 'start':
+        textAlign = TextAlign.start;
+        break;
+      case 'end':
+        textAlign = TextAlign.end;
+        break;
+      case 'left':
+        textAlign = TextAlign.left;
+        break;
+      case 'center':
+        textAlign = TextAlign.center;
+        break;
+      case 'right':
+        textAlign = TextAlign.right;
+        break;
+      case 'justify':
+        textAlign = TextAlign.justify;
+        break;
+    }
+    return textAlign;
   }
 
   static TextDecoration? getDecoration(dynamic decoration) {
