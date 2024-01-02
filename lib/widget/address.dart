@@ -6,6 +6,7 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/stub/location_manager.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -14,7 +15,7 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:get_it/get_it.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 
@@ -82,7 +83,7 @@ class AddressController extends WidgetController with LocationCapability {
     _proximitySearchEnabled = value;
     if (value) {
       // async. Just trigger the permission request. Don't care about the result yet.
-      getLocationStatus();
+      GetIt.I<LocationManager>().getLocationStatus();
     }
   }
 }
