@@ -5719,20 +5719,39 @@
                           "type": "integer",
                           "description": "Specify how much each item is off to previous element. Default: 30.0"
                         },
-                        "surplusBackgroundColor": {
-                          "$ref": "#/$defs/type-color",
-                          "description": "The background color of surplus avatar"    
-                        },
-                        "surplusTextStyle": {
-                          "$ref": "#/$defs/TextStyle"
-                        },
-                        "onSurplusTap": {
-                          "$ref": "#/$defs/Action-payload",
-                          "description": "Execute an Action when surplus is tap."
-                        },
                         "template": {
                           "$ref": "#/$defs/Avatar-payload",
                           "description": "The data row widget to render for each item"
+                        },
+                        "surplus": {
+                          "type": "object",
+                          "properties": {
+                            "backgroundColor": {
+                              "$ref": "#/$defs/type-color",
+                              "description": "The background color of surplus avatar"    
+                            },
+                            "textStyle": {
+                              "$ref": "#/$defs/TextStyle"
+                            },
+                            "onTap": {
+                              "$ref": "#/$defs/Action-payload",
+                              "description": "Execute an Action when surplus is tap."
+                            },
+                            "width": {
+                              "type": "integer"
+                            },
+                            "height": {
+                              "type": "integer"
+                            },
+                            "variant": {
+                              "type": "string",
+                              "description": "Specify the Avatar's shape: circle (default), square, or rounded.",
+                              "enum": ["circle", "square", "rounded"]
+                            },
+                            "visible": {
+                              "type": "boolean"
+                            }
+                          }
                         }
                       }
                     }
