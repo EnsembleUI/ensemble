@@ -229,6 +229,11 @@ class ViewUtil {
       widgetInstance = WidgetRegistry.legacyWidgetMap[model.type];
       if (widgetInstance != null) {
         w = widgetInstance.call();
+      } else {
+        widgetInstance = WidgetRegistry.pageWidgetMap[model.type];
+        if (widgetInstance != null) {
+          w = widgetInstance.call();
+        }
       }
     }
 

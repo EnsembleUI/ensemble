@@ -90,12 +90,16 @@ class EnsembleApp extends StatefulWidget {
       this.ensembleConfig,
       this.externalMethods,
       this.isPreview = false,
-      this.placeholderBackgroundColor});
+      this.placeholderBackgroundColor,
+      this.onAppLoad});
 
   final ScreenPayload? screenPayload;
   final EnsembleConfig? ensembleConfig;
   final bool isPreview;
   final Map<String, Function>? externalMethods;
+
+  // for integration with external Flutter code
+  final Function? onAppLoad;
 
   /// use this as the placeholder background while Ensemble is loading
   final Color? placeholderBackgroundColor;
@@ -105,6 +109,7 @@ class EnsembleApp extends StatefulWidget {
 }
 
 class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
+  bool notifiedAppLoad = false;
   late Future<EnsembleConfig> config;
 
   @override
@@ -117,47 +122,12 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
       Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
       initDeepLink(AppLifecycleState.resumed);
     }
-
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      executeCallbacks();
-    });
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     super.didChangeAppLifecycleState(state);
     initDeepLink(state);
-    if (state == AppLifecycleState.resumed) {
-      executeCallbacks();
-    }
-  }
-
-  Future<void> executeCallbacks() async {
-    List<int?> functionIds = [];
-    final callbacks = Ensemble().getCallbacksAfterInitialization();
-    for (final Map<String, Object?> callback in callbacks) {
-      final id = callback['id'] as int?;
-      final method = callback['method'] as Function?;
-      final positionalPayloads = callback['positionalArgs'] as List<dynamic>?;
-      final namedPayloads = callback['namedArgs'] as Map<String, dynamic>?;
-      Map<Symbol, dynamic>? namedParams;
-      namedPayloads?.forEach((key, value) {
-        namedParams = {Symbol(key): value};
-      });
-
-      if (method != null) {
-        await Function.apply(method, positionalPayloads, namedParams);
-        functionIds.add(id);
-      }
-    }
-
-    // Looping function id to remove the functions in the callback object with the id
-    for (final id in functionIds) {
-      callbacks.removeWhere((element) => element['id'] == id);
-    }
-
-    // Reset to empty
-    functionIds = [];
   }
 
   void initDeepLink(AppLifecycleState state) {
@@ -228,7 +198,12 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
   }
 
   Widget renderApp(EnsembleConfig config) {
-    //log("EnsembleApp build() - $hashCode");
+    // notify external app once of EnsembleApp loading status
+    if (widget.onAppLoad != null && !notifiedAppLoad) {
+      widget.onAppLoad!.call();
+      notifiedAppLoad = true;
+    }
+
     StorageManager().setIsPreview(widget.isPreview);
 
     return MaterialApp(

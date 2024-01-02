@@ -59,6 +59,7 @@ class LottieState extends WidgetState<EnsembleLottie>
   @override
   void dispose() {
     html.window.close(); // To prevent memory leaks
+    widget.controller.lottieController?.dispose();
     super.dispose();
   }
 

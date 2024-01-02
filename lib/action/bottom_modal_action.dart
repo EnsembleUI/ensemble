@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -9,9 +7,7 @@ import 'package:ensemble/framework/view/context_scope_widget.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:yaml/yaml.dart';
 
 /// open a Modal Bottom Sheet
 class ShowBottomModalAction extends EnsembleAction {
@@ -68,15 +64,19 @@ class ShowBottomModalAction extends EnsembleAction {
 
     if (widget != null) {
       showModalBottomSheet(
-              context: context,
-              backgroundColor: _backgroundColor(scopeManager),
-              barrierColor: _barrierColor(scopeManager),
-              isScrollControlled: true,
-              enableDrag: _enableDrag(scopeManager),
-              showDragHandle: _enableDragHandler(scopeManager),
-              builder: (modalContext) =>
-                  ContextScopeWidget(rootContext: modalContext, child: widget!))
-          .then((payload) {
+        context: context,
+        backgroundColor: _backgroundColor(scopeManager),
+        barrierColor: _barrierColor(scopeManager),
+        isScrollControlled: true,
+        enableDrag: _enableDrag(scopeManager),
+        showDragHandle: _enableDragHandler(scopeManager),
+        builder: (context) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: ContextScopeWidget(rootContext: context, child: widget!),
+        ),
+      ).then((payload) {
         if (onDismiss != null) {
           return ScreenController().executeActionWithScope(
               context, scopeManager, onDismiss!,
@@ -106,6 +106,6 @@ class DismissBottomModalAction extends EnsembleAction {
       return Navigator.maybePop(
           bottomModalContext, scopeManager.dataContext.eval(payload));
     }
-    return Future.value(null);
+    return Navigator.maybePop(context, scopeManager.dataContext.eval(payload));
   }
 }

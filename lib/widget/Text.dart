@@ -39,8 +39,8 @@ class EnsembleText extends StatefulWidget
           _controller.maxLines = Utils.optionalInt(value, min: 1),
       'textStyle': (style) => _controller.textStyle =
           Utils.getTextStyleAsComposite(_controller, style: style),
-      'selectable': (value) => _controller.selectable =
-          Utils.optionalBool(value)
+      'selectable': (value) =>
+          _controller.selectable = Utils.optionalBool(value)
     };
   }
 

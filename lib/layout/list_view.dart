@@ -1,8 +1,10 @@
+import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
-import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/studio_debugger.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
+import 'package:ensemble/framework/view/footer.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/box/base_box_layout.dart';
@@ -10,15 +12,15 @@ import 'package:ensemble/layout/box/box_layout.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/model/pull_to_refresh.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/pull_to_refresh_container.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' as flutter;
-import 'package:ensemble/screen_controller.dart';
 
-import '../framework/view/data_scope_widget.dart';
+import 'helpers/list_view_core.dart';
 
 class ListView extends StatefulWidget
     with
@@ -47,6 +49,8 @@ class ListView extends StatefulWidget
     return {
       'onItemTap': (funcDefinition) => _controller.onItemTap =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onItemTapHaptic': (value) =>
+          _controller.onItemTapHaptic = Utils.optionalString(value),
       'showSeparator': (value) =>
           _controller.showSeparator = Utils.optionalBool(value),
       'separatorColor': (value) =>
@@ -69,6 +73,8 @@ class ListView extends StatefulWidget
       },
       'showLoading': (value) =>
           _controller.showLoading = Utils.getBool(value, fallback: false),
+      'hasReachedMax': (value) =>
+          _controller.hasReachedMax = Utils.getBool(value, fallback: false),
       'loadingWidget': (value) => _controller.loadingWidget = value,
       'data': (value) => _controller.itemTemplate?.data = value,
     };
@@ -97,10 +103,12 @@ class ListViewController extends BoxLayoutController {
   double? separatorWidth;
   EdgeInsets? separatorPadding;
   EnsembleAction? onScrollEnd;
+  String? onItemTapHaptic;
   bool reverse = false;
   ScrollController? scrollController;
   dynamic loadingWidget;
   bool showLoading = false;
+  bool hasReachedMax = false;
   ListViewState? widgetState;
   void _bind(ListViewState state) {
     widgetState = state;
@@ -111,6 +119,13 @@ class ListViewState extends WidgetState<ListView>
     with TemplatedWidgetState, HasChildren<ListView> {
   // template item is created on scroll. this will store the template's data list
   List<dynamic>? templatedDataList;
+  bool showLoading = false;
+
+  @override
+  void initState() {
+    showLoading = widget._controller.showLoading;
+    super.initState();
+  }
 
   @override
   void didChangeDependencies() {
@@ -122,6 +137,8 @@ class ListViewState extends WidgetState<ListView>
 
       registerItemTemplate(context, widget._controller.itemTemplate!,
           evaluateInitialValue: true, onDataChanged: (List dataList) {
+        if (!mounted) return;
+
         setState(() {
           templatedDataList = dataList;
         });
@@ -130,84 +147,92 @@ class ListViewState extends WidgetState<ListView>
   }
 
   @override
+  void didUpdateWidget(covariant ListView oldWidget) {
+    showLoading = oldWidget._controller.showLoading;
+    super.didUpdateWidget(oldWidget);
+  }
+
+  @override
   Widget buildWidget(BuildContext context) {
     widget.controller._bind(this);
+    FooterScope? footerScope = FooterScope.of(context);
+    if (footerScope != null && footerScope.isRootWithinFooter(context)) {
+      widget._controller.scrollController = footerScope.scrollController;
+    }
 
-    // children displayed first, followed by item template
     int itemCount = (widget._controller.children?.length ?? 0) +
         (templatedDataList?.length ?? 0);
     if (itemCount == 0) {
       return const SizedBox.shrink();
     }
-    int indexAdd = 0;
-    if (widget._controller.showLoading) {
-      indexAdd = widget._controller.loadingWidget != null ? 1 : 0;
-    }
 
-    Widget listView = flutter.ListView.separated(
-        controller: widget._controller.scrollController,
-        padding: widget._controller.padding ?? const EdgeInsets.all(0),
-        scrollDirection: Axis.vertical,
-        physics: widget._controller.onPullToRefresh != null
-            ? const AlwaysScrollableScrollPhysics()
-            : null,
-        itemCount: itemCount + indexAdd,
-        shrinkWrap: false,
-        reverse: widget._controller.reverse,
-        itemBuilder: (BuildContext context, int index) {
-          _checkScrollEnd(context, index);
-
-          final total = (widget._controller.children?.length ?? 0) +
-              (templatedDataList?.length ?? 0);
-          if (widget._controller.showLoading) {
-            if (index == total && widget._controller.loadingWidget != null) {
-              final loadingWidget =
-                  widgetBuilder(context, widget._controller.loadingWidget);
-
-              return loadingWidget ?? const flutter.CircularProgressIndicator();
-            }
-          } else if (indexAdd == 1 && index == total) {
-            return const SizedBox.shrink();
-          }
-
-          // show childrenfocus
-          Widget? itemWidget;
-          if (widget._controller.children != null &&
-              index < widget._controller.children!.length) {
-            itemWidget = buildChild(widget._controller.children![index]);
-          }
-          // create widget from item template
-          else if (templatedDataList != null &&
-              widget._controller.itemTemplate != null) {
+    Widget listView = ListViewCore(
+      shrinkWrap: FooterScope.of(context) != null ? true : false,
+      itemCount: itemCount,
+      isLoading: showLoading,
+      onFetchData: _fetchData,
+      hasReachedMax: widget._controller.hasReachedMax,
+      scrollController: (footerScope != null &&
+              footerScope.isColumnScrollableAndRoot(context))
+          ? null
+          : widget._controller.scrollController,
+      reverse: widget._controller.reverse,
+      padding: widget._controller.padding ?? const EdgeInsets.all(0),
+      physics: (footerScope != null &&
+              footerScope.isColumnScrollableAndRoot(context))
+          ? const NeverScrollableScrollPhysics()
+          : widget._controller.onPullToRefresh != null
+              ? const AlwaysScrollableScrollPhysics()
+              : null,
+      loadingBuilder: widget._controller.loadingWidget != null
+          ? (context) =>
+              widgetBuilder(context, widget._controller.loadingWidget) ??
+              const SizedBox.shrink()
+          : null,
+      separatorBuilder: (context, index) =>
+          widget._controller.showSeparator == true
+              ? flutter.Padding(
+                  padding: widget._controller.separatorPadding ??
+                      const EdgeInsets.all(0),
+                  child: flutter.Divider(
+                      color: widget._controller.separatorColor,
+                      thickness: widget._controller.separatorWidth?.toDouble()),
+                )
+              : const SizedBox.shrink(),
+      itemBuilder: (context, index) {
+        Widget? itemWidget;
+        if (widget._controller.children != null &&
+            index < widget._controller.children!.length) {
+          itemWidget = buildChild(widget._controller.children![index]);
+        }
+        // create widget from item template
+        else if (templatedDataList != null &&
+            widget._controller.itemTemplate != null) {
+          final templateIndex =
+              index - (widget._controller.children?.length ?? 0);
+          if (templateIndex < templatedDataList!.length) {
             itemWidget = buildWidgetForIndex(
-                context,
-                templatedDataList!,
-                widget._controller.itemTemplate!,
-                // templated widget should start at 0, need to offset chidlren length
-                index - (widget._controller.children?.length ?? 0));
+              context,
+              templatedDataList!,
+              widget._controller.itemTemplate!,
+              // templated widget should start at 0, need to offset chidlren length
+              templateIndex,
+            );
           }
-          if (itemWidget != null) {
-            return widget._controller.onItemTap == null
-                ? itemWidget
-                : flutter.InkWell(
-                    onTap: () => _onItemTapped(index), child: itemWidget);
-          }
-          return const SizedBox.shrink();
-        },
-        separatorBuilder: (context, index) =>
-            widget._controller.showSeparator == true
-                ? flutter.Padding(
-                    padding: widget._controller.separatorPadding ??
-                        const EdgeInsets.all(0),
-                    child: flutter.Divider(
-                        color: widget._controller.separatorColor,
-                        thickness:
-                            widget._controller.separatorWidth?.toDouble()))
-                : const SizedBox.shrink());
+        }
+        if (itemWidget != null) {
+          return widget._controller.onItemTap == null
+              ? itemWidget
+              : flutter.InkWell(
+                  onTap: () => _onItemTapped(index), child: itemWidget);
+        }
+        return const SizedBox.shrink();
+      },
+    );
 
     if (StudioDebugger().debugMode) {
-      listView = StudioDebugger()
-          .assertScrollableHasBoundedHeightWrapper(listView, ListView.type);
+      listView = StudioDebugger().assertScrollableHasBoundedHeightWrapper(
+          listView, ListView.type, context, widget._controller);
     }
 
     if (widget._controller.onPullToRefresh != null) {
@@ -236,20 +261,21 @@ class ListViewState extends WidgetState<ListView>
   void _onItemTapped(int index) {
     if (index != widget._controller.selectedItemIndex &&
         widget._controller.onItemTap != null) {
+      if (widget._controller.onItemTapHaptic != null) {
+        ScreenController().executeAction(
+          context,
+          HapticAction(
+            type: widget._controller.onItemTapHaptic!,
+            onComplete: null,
+          ),
+        );
+      }
+
       widget._controller.selectedItemIndex = index;
       //log("Changed to index $index");
       ScreenController().executeAction(context, widget._controller.onItemTap!);
       print(
           "The Selected index in data array of ListView is ${widget._controller.selectedItemIndex}");
-    }
-  }
-
-  void _checkScrollEnd(BuildContext context, int index) {
-    final totalItems = (widget._controller.children?.length ?? 0) +
-        (templatedDataList?.length ?? 0);
-    if (index == totalItems - 1 && widget._controller.onScrollEnd != null) {
-      ScreenController()
-          .executeAction(context, widget._controller.onScrollEnd!);
     }
   }
 
@@ -261,5 +287,11 @@ class ListViewState extends WidgetState<ListView>
       LanguageError('Failed to build widget');
       return null;
     }
+  }
+
+  void _fetchData() {
+    if (widget._controller.onScrollEnd == null) return;
+
+    ScreenController().executeAction(context, widget._controller.onScrollEnd!);
   }
 }

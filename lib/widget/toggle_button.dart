@@ -1,3 +1,4 @@
+import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/action.dart' as framework;
 import 'package:ensemble/framework/widget/icon.dart' as iconframework;
 import 'package:ensemble/framework/event.dart';
@@ -54,6 +55,8 @@ class EnsembleToggleButton extends StatefulWidget
       'shadowColor': (value) => _controller.shadowColor = Utils.getColor(value),
       'onChange': (definition) => _controller.onChange =
           framework.EnsembleAction.fromYaml(definition, initiator: this),
+      'onChangeHaptic': (value) =>
+          _controller.onChangeHaptic = Utils.optionalString(value),
     };
   }
 
@@ -174,11 +177,11 @@ class EnsembleToggleButtonState extends WidgetState<EnsembleToggleButton> {
       selectedBorderColor: controller.selectedBorderColor,
       spacing: widget.controller.spacing?.toDouble() ?? 0,
       runSpacing: widget.controller.runSpacing?.toDouble() ?? 0,
+      isExpanded: widget.controller.expanded,
       constraints: const BoxConstraints(
         minHeight: 40.0,
         minWidth: 80.0,
       ),
-      children: _getChildren(),
       isSelected: [
         ..._items!.map((e) => e.isSelected).toList(),
       ],
@@ -190,6 +193,7 @@ class EnsembleToggleButtonState extends WidgetState<EnsembleToggleButton> {
           print('Selected: ${_items![_selectedIndex].value}');
         }
       },
+      children: _getChildren(),
     );
 
     // add margin if specified
@@ -248,6 +252,16 @@ class EnsembleToggleButtonState extends WidgetState<EnsembleToggleButton> {
   void onSelectionChanged(dynamic value) {
     widget.onSelectionChanged(value);
     if (widget._controller.onChange != null) {
+      if (widget._controller.onChangeHaptic != null) {
+        ScreenController().executeAction(
+          context,
+          HapticAction(
+            type: widget._controller.onChangeHaptic!,
+            onComplete: null,
+          ),
+        );
+      }
+
       ScreenController().executeAction(context, widget._controller.onChange!,
           event: EnsembleEvent(widget));
     }
@@ -277,6 +291,7 @@ class ToggleButtonController extends BoxController {
   int? runSpacing;
 
   framework.EnsembleAction? onChange;
+  String? onChangeHaptic;
 }
 
 class ToggleItem extends SelectOneItem {
@@ -308,6 +323,7 @@ class _CustomToggleButtons extends StatelessWidget {
     this.borderRadius,
     this.spacing = 0,
     this.runSpacing = 0,
+    this.isExpanded = false,
   })  : assert(children.length == isSelected.length),
         super(key: key);
 
@@ -325,6 +341,7 @@ class _CustomToggleButtons extends StatelessWidget {
   final double? borderRadius;
   final double spacing;
   final double runSpacing;
+  final bool isExpanded;
 
   Border _getBorder(index) {
     Color? _borderColor = borderColor;
@@ -337,32 +354,44 @@ class _CustomToggleButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (isExpanded) {
+      return Row(
+        children: List<Widget>.generate(children.length, (index) {
+          return Expanded(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: spacing),
+              child: getChild(index),
+            ),
+          );
+        }),
+      );
+    }
+
     return Wrap(
+      alignment: WrapAlignment.spaceEvenly,
       spacing: spacing,
       runSpacing: runSpacing,
       direction: Axis.horizontal,
       children: List<Widget>.generate(
         children.length,
-        (index) {
-          return _CustomToggleButton(
-            child: children[index],
-            onPressed: onPressed == null
-                ? null
-                : () {
-                    onPressed!(index);
-                  },
-            constraints: constraints,
-            isSelected: isSelected[index],
-            color: color,
-            selectedColor: selectedColor,
-            fillColor: fillColor,
-            unselectedFillColor: unselectedFillColor,
-            shadowColor: shadowColor,
-            border: _getBorder(index),
-            borderRadius: borderRadius,
-          );
-        },
+        (index) => getChild(index),
       ),
+    );
+  }
+
+  _CustomToggleButton getChild(int index) {
+    return _CustomToggleButton(
+      onPressed: onPressed == null ? null : () => onPressed!(index),
+      constraints: constraints,
+      isSelected: isSelected[index],
+      color: color,
+      selectedColor: selectedColor,
+      fillColor: fillColor,
+      unselectedFillColor: unselectedFillColor,
+      shadowColor: shadowColor,
+      border: _getBorder(index),
+      borderRadius: borderRadius,
+      child: children[index],
     );
   }
 }
@@ -473,8 +502,8 @@ class _CustomToggleButton extends StatelessWidget {
           fillColor: _getFillColor(context),
           materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           padding: const EdgeInsets.all(0),
-          child: child,
           onPressed: onPressed,
+          child: child,
         ),
       ),
     );

@@ -1,4 +1,3 @@
-import 'package:ensemble/action/call_external_method.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
@@ -20,7 +19,11 @@ abstract class ActionInvokable with Invokable {
       ActionType.share,
       ActionType.rateApp,
       ActionType.copyToClipboard,
-      ActionType.getDeviceToken
+      ActionType.getDeviceToken,
+      ActionType.getPhoneContacts,
+      ActionType.showBottomModal,
+      ActionType.dismissBottomModal,
+      ActionType.showDialog,
     ]);
   }
 

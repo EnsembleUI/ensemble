@@ -47,22 +47,12 @@ class Ensemble {
     externalScreenWidgets = widgets;
   }
 
-  final List<Map<String, Object?>> _afterInitMethods = [];
-  void addCallbackAfterInitialization(
-      {required Function method,
-      List<dynamic>? positionalArgs,
-      Map<String, dynamic>? namedArgs}) {
-    final function = {
-      'id': math.Random().nextInt(100000),
-      'method': method,
-      'positionalArgs': positionalArgs,
-      'namedArgs': namedArgs
-    };
-    _afterInitMethods.add(function);
+  final Set<Function> _afterInitMethods = {};
+  void addCallbackAfterInitialization({required Function method}) {
+    _afterInitMethods.add(method);
   }
 
-  List<Map<String, Object?>> getCallbacksAfterInitialization() =>
-      _afterInitMethods;
+  Set<Function> getCallbacksAfterInitialization() => _afterInitMethods;
 
   late FirebaseApp ensembleFirebaseApp;
   static final Map<String, dynamic> externalDataContext = {};
@@ -405,23 +395,21 @@ class AppBundle {
 
 /// store the App's account info (e.g. access token for maps)
 class Account {
-  Account({this.firebaseConfig, this.mapAccessToken});
+  Account({this.firebaseConfig, this.googleMapsAPIKey});
   FirebaseConfig? firebaseConfig;
 
-  // legacy Mapbox key
-  String? mapAccessToken;
+  String? googleMapsAPIKey;
 
   factory Account.fromYaml(dynamic input) {
     FirebaseConfig? firebaseConfig;
-    String? mapAccessToken;
+    String? googleMapsAPIKey;
 
     if (input != null && input is Map) {
       firebaseConfig = FirebaseConfig.fromYaml(input['firebase']);
-      mapAccessToken =
-          Utils.optionalString(input['maps']?['mapbox_access_token']);
+      googleMapsAPIKey = Utils.optionalString(input['googleMaps']?['apiKey']);
     }
     return Account(
-        firebaseConfig: firebaseConfig, mapAccessToken: mapAccessToken);
+        firebaseConfig: firebaseConfig, googleMapsAPIKey: googleMapsAPIKey);
   }
 }
 

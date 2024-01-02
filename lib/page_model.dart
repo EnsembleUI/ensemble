@@ -135,51 +135,66 @@ class SinglePageModel extends PageModel {
 
   Map<String, dynamic>? pageStyles;
   ScreenOptions? screenOptions;
-  late WidgetModel rootWidgetModel;
-  Footer? footer;
+  WidgetModel? rootWidgetModel;
+  FooterItems? footer;
 
   @override
   _processModel(YamlMap docMap) {
     super._processModel(docMap);
 
-    YamlMap viewMap = docMap['View'];
+    if (docMap.containsKey("View")) {
+      if (docMap['View'] != null) {
+        YamlMap viewMap = docMap['View'];
+        if (viewMap['options'] is YamlMap) {
+          PageType pageType = viewMap['options']['type'] == PageType.modal.name
+              ? PageType.modal
+              : PageType.regular;
+          screenOptions = ScreenOptions(pageType: pageType);
+        }
 
-    if (viewMap['options'] is YamlMap) {
-      PageType pageType = viewMap['options']['type'] == PageType.modal.name
-          ? PageType.modal
-          : PageType.regular;
-      screenOptions = ScreenOptions(pageType: pageType);
+        // set the view behavior
+        viewBehavior.onLoad = EnsembleAction.fromYaml(viewMap['onLoad']);
+        viewBehavior.onResume = EnsembleAction.fromYaml(viewMap['onResume']);
+
+        processHeader(viewMap['header'], viewMap['title']);
+
+        if (viewMap['menu'] != null) {
+          menu = Menu.fromYaml(viewMap['menu'], customViewDefinitions);
+        }
+
+        if (viewMap['styles'] is YamlMap) {
+          pageStyles = {};
+          (viewMap['styles'] as YamlMap).forEach((key, value) {
+            pageStyles![key] = value;
+          });
+        }
+
+        if (viewMap['footer'] != null &&
+            viewMap['footer']['children'] != null) {
+          Map<String, dynamic>? dragOptionsMap =
+              Utils.getMap(viewMap['footer']['dragOptions']);
+          WidgetModel? fixedContent = (dragOptionsMap?['fixedContent'] != null)
+              ? ViewUtil.buildModel(
+                  Utils.getYamlMap(dragOptionsMap?['fixedContent']),
+                  customViewDefinitions)
+              : null;
+          YamlMap footerYamlMap = YamlMap.wrap({'footer': viewMap['footer']});
+          footer = FooterItems(
+              ViewUtil.buildModels(
+                  viewMap['footer']['children'], customViewDefinitions),
+              Utils.getMap(
+                viewMap['footer']['styles'],
+              ),
+              dragOptionsMap,
+              fixedContent,
+              ViewUtil.buildModel(footerYamlMap, customViewDefinitions));
+        }
+
+        rootWidgetModel = buildRootModel(viewMap, customViewDefinitions);
+      }
+    } else {
+      throw (LanguageError("Please add View"));
     }
-
-    // set the view behavior
-    viewBehavior.onLoad = EnsembleAction.fromYaml(viewMap['onLoad']);
-    viewBehavior.onResume = EnsembleAction.fromYaml(viewMap['onResume']);
-
-    processHeader(viewMap['header'], viewMap['title']);
-
-    if (viewMap['menu'] != null) {
-      menu = Menu.fromYaml(viewMap['menu'], customViewDefinitions);
-    }
-
-    if (viewMap['styles'] is YamlMap) {
-      pageStyles = {};
-      (viewMap['styles'] as YamlMap).forEach((key, value) {
-        pageStyles![key] = value;
-      });
-    }
-
-    if (viewMap['footer'] != null && viewMap['footer']['children'] != null) {
-      footer = Footer(
-        ViewUtil.buildModels(
-            viewMap['footer']['children'], customViewDefinitions),
-        Utils.getMap(
-          viewMap['footer']['styles'],
-        ),
-        Utils.getMap(viewMap['footer']['dragOptions']),
-      );
-    }
-
-    rootWidgetModel = buildRootModel(viewMap, customViewDefinitions);
   }
 
   void processHeader(YamlMap? headerData, String? legacyTitle) {
@@ -220,7 +235,7 @@ class SinglePageModel extends PageModel {
   // where as the root body (e.g Column) should be more restrictive
   // (e.g the whole body shouldn't be click-enable)
   // Let's manually select what can be specified here (really just styles/item-template/children)
-  WidgetModel buildRootModel(
+  WidgetModel? buildRootModel(
       YamlMap viewMap, Map<String, dynamic>? customViewDefinitions) {
     if (viewMap['body'] != null) {
       return ViewUtil.buildModel(viewMap['body'], customViewDefinitions);
@@ -240,9 +255,10 @@ class SinglePageModel extends PageModel {
               'Root widget type should only be Row, Column, Flex or Stack.');
         }
         return rootModel;
+      } else {
+        return null;
       }
     }
-    throw LanguageError("View requires a child widget !");
   }
 
   WidgetModel? getRootModel(
@@ -345,11 +361,14 @@ class HeaderModel {
   Map<String, dynamic>? styles;
 }
 
-class Footer {
+class FooterItems {
   final List<WidgetModel> children;
   final Map<String, dynamic>? styles;
   final Map<String, dynamic>? dragOptions;
-  Footer(this.children, this.styles, this.dragOptions);
+  final WidgetModel? fixedContent;
+  final WidgetModel? footerWidgetModel;
+  FooterItems(this.children, this.styles, this.dragOptions, this.fixedContent,
+      this.footerWidgetModel);
 }
 
 enum PageType { regular, modal }

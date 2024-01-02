@@ -1,7 +1,6 @@
 import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
-import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/menu.dart';
@@ -12,13 +11,10 @@ import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/has_selectable_text.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
-import 'package:ensemble/layout/list_view.dart' as ensemblelist;
-import 'package:ensemble/layout/grid_view.dart' as ensembleGrid;
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/helpers/controllers.dart';
-import 'package:ensemble/widget/helpers/widgets.dart';
+import 'package:ensemble/widget/helpers/unfocus.dart';
 import 'package:flutter/material.dart';
 
 import '../widget/custom_view.dart';
@@ -52,6 +48,7 @@ class PageState extends State<Page>
     with AutomaticKeepAliveClientMixin, RouteAware, WidgetsBindingObserver {
   late Widget rootWidget;
   late ScopeManager _scopeManager;
+  Widget? footerWidget;
 
   /// the last time the screen went to the background
   DateTime? appLastPaused;
@@ -179,8 +176,15 @@ class PageState extends State<Page>
     }
 
     // build the root widget
-    rootWidget = _scopeManager.buildRootWidget(
-        widget._pageModel.rootWidgetModel, executeGlobalCode);
+    rootWidget = (widget._pageModel.rootWidgetModel == null)
+        ? const SizedBox.shrink()
+        : _scopeManager.buildRootWidget(
+            widget._pageModel.rootWidgetModel!, executeGlobalCode);
+
+    footerWidget = (widget._pageModel.footer?.footerWidgetModel != null)
+        ? _scopeManager
+            .buildWidget(widget._pageModel.footer!.footerWidgetModel!)
+        : null;
 
     super.initState();
   }
@@ -361,8 +365,8 @@ class PageState extends State<Page>
 
     LinearGradient? backgroundGradient = Utils.getBackgroundGradient(
         widget._pageModel.pageStyles?['backgroundGradient']);
-    Color? backgroundColor =
-        Utils.getColor(widget._pageModel.pageStyles?['backgroundColor']);
+    Color? backgroundColor = Utils.getColor(_scopeManager.dataContext
+        .eval(widget._pageModel.pageStyles?['backgroundColor']));
     // if we have a background image, set the background color to transparent
     // since our image is outside the Scaffold
     dynamic evaluatedBackgroundImg = _scopeManager.dataContext
@@ -406,29 +410,31 @@ class PageState extends State<Page>
 
     Widget rtn = DataScopeWidget(
       scopeManager: _scopeManager,
-      child: Scaffold(
-          resizeToAvoidBottomInset: true,
-          // slight optimization, if body background is set, let's paint
-          // the entire screen including the Safe Area
-          backgroundColor: backgroundColor,
+      child: Unfocus(
+        isUnfocus: Utils.getBool(widget._pageModel.pageStyles?['unfocus'],
+            fallback: false),
+        child: Scaffold(
+            resizeToAvoidBottomInset: true,
+            // slight optimization, if body background is set, let's paint
+            // the entire screen including the Safe Area
+            backgroundColor: backgroundColor,
 
-          // appBar is inside CustomScrollView if defined
-          appBar: fixedAppBar,
-          body: isScrollableView
-              ? buildScrollablePageContent(hasDrawer)
-              : buildFixedPageContent(fixedAppBar != null),
-          bottomNavigationBar: _bottomNavBar,
-          drawer: _drawer,
-          endDrawer: _endDrawer,
-          bottomSheet: _buildFooter(
-            _scopeManager,
-            widget._pageModel,
-          ),
-          floatingActionButton: closeModalButton,
-          floatingActionButtonLocation:
-              widget._pageModel.pageStyles?['navigationIconPosition'] == 'start'
-                  ? FloatingActionButtonLocation.startTop
-                  : FloatingActionButtonLocation.endTop),
+            // appBar is inside CustomScrollView if defined
+            appBar: fixedAppBar,
+            body: isScrollableView
+                ? buildScrollablePageContent(hasDrawer)
+                : buildFixedPageContent(fixedAppBar != null),
+            bottomNavigationBar: _bottomNavBar,
+            drawer: _drawer,
+            endDrawer: _endDrawer,
+            bottomSheet: footerWidget,
+            floatingActionButton: closeModalButton,
+            floatingActionButtonLocation:
+                widget._pageModel.pageStyles?['navigationIconPosition'] ==
+                        'start'
+                    ? FloatingActionButtonLocation.startTop
+                    : FloatingActionButtonLocation.endTop),
+      ),
     );
 
     // selectableText at the root
@@ -669,89 +675,6 @@ class PageState extends State<Page>
   void selectNavigationIndex(BuildContext context, MenuItem menuItem) {
     ScreenController().navigateToScreen(context,
         screenName: menuItem.page, isExternal: menuItem.isExternal);
-  }
-
-  Widget? _buildFooter(ScopeManager scopeManager, SinglePageModel pageModel) {
-    // Footer can only take 1 child by our design. Ignore the rest
-    if (pageModel.footer != null && pageModel.footer!.children.isNotEmpty) {
-      final evaluatedFooter = _scopeManager.dataContext.eval(
-        pageModel.footer?.styles,
-      );
-
-      final boxController = BoxController()
-        ..padding = Utils.getInsets(evaluatedFooter?['padding'])
-        ..margin = Utils.optionalInsets(evaluatedFooter?['margin'])
-        ..width = Utils.optionalInt(evaluatedFooter?['width'])
-        ..height = Utils.optionalInt(evaluatedFooter?['height'])
-        ..backgroundColor = Utils.getColor(evaluatedFooter?['backgroundColor'])
-        ..backgroundGradient =
-            Utils.getBackgroundGradient(evaluatedFooter?['backgroundGradient'])
-        ..shadowColor = Utils.getColor(evaluatedFooter?['shadowColor'])
-        ..borderRadius = Utils.getBorderRadius(evaluatedFooter?['borderRadius'])
-        ..borderColor = Utils.getColor(evaluatedFooter?['borderColor'])
-        ..borderWidth = Utils.optionalInt(evaluatedFooter?['borderWidth']);
-
-      final dragOptions = pageModel.footer?.dragOptions;
-
-      final isDraggable =
-          Utils.getBool(dragOptions?['enable'], fallback: false);
-      DraggableScrollableController dragController =
-          DraggableScrollableController();
-
-      final maxSize = Utils.getDouble(dragOptions?['maxSize'], fallback: 1.0);
-      final minSize = Utils.getDouble(dragOptions?['minSize'], fallback: 0.25);
-
-      final onMaxSize = EnsembleAction.fromYaml(dragOptions?['onMaxSize']);
-      final onMinSize = EnsembleAction.fromYaml(dragOptions?['onMinSize']);
-
-      dragController.addListener(
-        () {
-          if (dragController.size == maxSize && onMaxSize != null) {
-            ScreenController().executeAction(context, onMaxSize);
-          }
-          if (dragController.size == minSize && onMinSize != null) {
-            ScreenController().executeAction(context, onMinSize);
-          }
-        },
-      );
-
-      return AnimatedOpacity(
-        opacity: 1.0,
-        duration: const Duration(milliseconds: 500),
-        child: isDraggable
-            ? DraggableScrollableSheet(
-                controller: dragController,
-                initialChildSize:
-                    Utils.getDouble(dragOptions?['initialSize'], fallback: 0.5),
-                minChildSize: minSize,
-                maxChildSize: maxSize,
-                expand: Utils.getBool(dragOptions?['expand'], fallback: false),
-                snap: Utils.getBool(dragOptions?['span'], fallback: false),
-                snapSizes: Utils.getList<double>(dragOptions?['snapSizes']),
-                builder:
-                    (BuildContext context, ScrollController scrollController) {
-                  dynamic child = scopeManager
-                      .buildWidget(pageModel.footer!.children.first);
-
-                  if (child is ensemblelist.ListView ||
-                      child is ensembleGrid.GridView) {
-                    child.setProperty("controller", scrollController);
-                  }
-
-                  return BoxWrapper(
-                    widget: child,
-                    boxController: boxController,
-                  );
-                },
-              )
-            : BoxWrapper(
-                boxController: boxController,
-                widget:
-                    scopeManager.buildWidget(pageModel.footer!.children.first),
-              ),
-      );
-    }
-    return null;
   }
 
   @override
