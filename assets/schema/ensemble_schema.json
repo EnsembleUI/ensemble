@@ -1207,6 +1207,19 @@
                 "color": {
                   "$ref": "#/$defs/type-color",
                   "description": "Set the color for the QR code drawing"
+                },
+                "eyeShape": {
+                  "type": "enum",
+                  "description": "The different type of shapes possible for eye of QR Code. Default: square",
+                  "enum": [
+                    "square",
+                    "circle"
+                  ]
+                },
+                "dataModuleShape": {
+                  "type": "enum",
+                  "description": "The different type of shapes possible for data module of QR Code. Default: square",
+                  "enum": ["square", "circle"]
                 }
               }
             }
