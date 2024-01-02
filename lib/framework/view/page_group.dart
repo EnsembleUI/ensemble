@@ -145,17 +145,18 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
           ),
         );
       } else if (widget.menu is SidebarMenu) {
-        return DataScopeWidget(
-          scopeManager: _scopeManager,
-          child: buildSidebarNavigation(context, widget.menu as SidebarMenu),
-        );
+        return PageGroupWidget(
+            scopeManager: _scopeManager,
+            child: buildSidebarNavigation(context, widget.menu as SidebarMenu));
       } else if (widget.menu is BottomNavBarMenu) {
-        return BottomNavPageGroup(
-          scopeManager: _scopeManager,
-          selectedPage: viewGroupNotifier.viewIndex,
-          menu: widget.menu,
-          children: pageWidgets,
-        );
+        return PageGroupWidget(
+            scopeManager: _scopeManager,
+            child: BottomNavPageGroup(
+              scopeManager: _scopeManager,
+              selectedPage: viewGroupNotifier.viewIndex,
+              menu: widget.menu,
+              children: pageWidgets,
+            ));
       }
     }
     throw LanguageError('ViewGroup requires a menu and at least one page.');
@@ -353,21 +354,21 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
 
   /// TODO: can't do this anymore without Conditional widget
   /// get the menu mode depending on user spec + device types / screen resolutions
-  // MenuDisplay _getPreferredMenuDisplay(Menu menu) {
-  //   MenuDisplay? display =
-  //       MenuDisplay.values.from(_scopeManager.dataContext.eval(menu.display));
-  //   // left nav becomes drawer in lower resolution. TODO: take in user settings
-  //   if (screenWidth < 1024) {
-  //     if (display == MenuDisplay.sidebar) {
-  //       display = MenuDisplay.drawer;
-  //     } else if (display == MenuDisplay.endSidebar) {
-  //       display = MenuDisplay.endDrawer;
-  //     }
-  //   }
-  //   display ??= MenuDisplay.bottomNavBar;
-  //
-  //   return display;
-  // }
+// MenuDisplay _getPreferredMenuDisplay(Menu menu) {
+//   MenuDisplay? display =
+//       MenuDisplay.values.from(_scopeManager.dataContext.eval(menu.display));
+//   // left nav becomes drawer in lower resolution. TODO: take in user settings
+//   if (screenWidth < 1024) {
+//     if (display == MenuDisplay.sidebar) {
+//       display = MenuDisplay.drawer;
+//     } else if (display == MenuDisplay.endSidebar) {
+//       display = MenuDisplay.endDrawer;
+//     }
+//   }
+//   display ??= MenuDisplay.bottomNavBar;
+//
+//   return display;
+// }
 }
 
 class ViewGroupNotifier extends ChangeNotifier {
