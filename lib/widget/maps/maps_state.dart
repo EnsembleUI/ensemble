@@ -5,6 +5,7 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/stub/location_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/templated.dart';
@@ -19,6 +20,7 @@ import 'package:ensemble/widget/maps/maps_utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:get_it/get_it.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../framework/device.dart';
@@ -26,7 +28,7 @@ import '../../framework/device.dart';
 abstract class MapsActionableState extends WidgetState<EnsembleMap> {
   List<MarkerPayload> getMarkerPayloads();
 
-  Position? getCurrentLocation();
+  LocationData? getCurrentLocation();
 
   Future<GoogleMapController> getMapController();
 
@@ -61,10 +63,10 @@ class EnsembleMapState extends MapsActionableState
   MarkerId? _selectedMarkerId;
   Widget? _overlayWidget;
 
-  Position? currentLocation;
+  LocationData? currentLocation;
 
   @override
-  Position? getCurrentLocation() => currentLocation;
+  LocationData? getCurrentLocation() => currentLocation;
 
   // we use both geolocator to get the location and google maps to show
   // location marker on non-Web. Both of these request permission and can
@@ -94,7 +96,7 @@ class EnsembleMapState extends MapsActionableState
             .then((asset) => currentLocationIcon = asset);
       }
 
-      getLocation().then((device) {
+      GetIt.I<LocationManager>().getLocation().then((device) {
         currentLocation = device.location;
 
         // we got the location here, now tell Google Maps it can show its location
