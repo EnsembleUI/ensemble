@@ -1,7 +1,7 @@
 import 'dart:io';
-import 'dart:math';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/colored_box_placeholder.dart';
@@ -10,14 +10,15 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
-import 'package:ensemble/widget/widget_util.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
+import 'package:http/http.dart' as http;
 
 class EnsembleImage extends StatefulWidget
     with Invokable, HasController<ImageController, ImageState> {
@@ -50,6 +51,8 @@ class EnsembleImage extends StatefulWidget
   @override
   Map<String, Function> setters() {
     return {
+      'cache': (value) =>
+          _controller.cache = Utils.getBool(value, fallback: true),
       'source': (value) =>
           _controller.source = Utils.getString(value, fallback: ''),
       'fit': (value) => _controller.fit = Utils.getBoxFit(value),
@@ -61,7 +64,9 @@ class EnsembleImage extends StatefulWidget
           _controller.placeholderColor = Utils.getColor(value),
       'fallback': (widget) => _controller.fallback = widget,
       'onTap': (funcDefinition) => _controller.onTap =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this)
+          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onTapHaptic': (value) =>
+          _controller.onTapHaptic = Utils.optionalString(value)
     };
   }
 }
@@ -72,16 +77,19 @@ class ImageController extends BoxController {
     /// the image will bleed through the borderRadius
     clipContent = true;
   }
+  DateTime? lastModifiedCache;
   String source = '';
   BoxFit? fit;
   Color? placeholderColor;
   EnsembleAction? onTap;
+  String? onTapHaptic;
 
   // whether we should resize the image to this. Note that we should set either
   // resizedWidth or resizedHeight but not both so the aspect ratio is maintained
   int? resizedWidth;
   int? resizedHeight;
   dynamic fallback;
+  bool cache = true;
 }
 
 class ImageState extends WidgetState<EnsembleImage> {
@@ -108,15 +116,42 @@ class ImageState extends WidgetState<EnsembleImage> {
     );
     if (widget._controller.onTap != null) {
       rtn = GestureDetector(
-          child: rtn,
-          onTap: () => ScreenController().executeAction(
-              context, widget._controller.onTap!,
-              event: EnsembleEvent(widget)));
+        child: rtn,
+        onTap: () {
+          if (widget._controller.onTapHaptic != null) {
+            ScreenController().executeAction(
+              context,
+              HapticAction(
+                type: widget._controller.onTapHaptic!,
+                onComplete: null,
+              ),
+            );
+          }
+
+          ScreenController().executeAction(context, widget._controller.onTap!,
+              event: EnsembleEvent(widget));
+        },
+      );
     }
     if (widget._controller.margin != null) {
       rtn = Padding(padding: widget._controller.margin!, child: rtn);
     }
     return rtn;
+  }
+
+  Future<String> fetch(String url) async {
+    String str = (widget.controller.source.contains("?")) ? "&" : "?";
+    final http.Response response = await http
+        .get(Uri.parse("$url${str}timeStamp=${DateTime.now().toString()}"));
+    DateTime lastModifiedDateTime =
+        parseHttpDate("${response.headers['last-modified']}");
+    if (widget._controller.lastModifiedCache == null ||
+        lastModifiedDateTime.compareTo(widget._controller.lastModifiedCache!) ==
+            1) {
+      widget._controller.lastModifiedCache = lastModifiedDateTime;
+      await EnsembleImageCacheManager.instance.emptyCache();
+    }
+    return "${widget.controller.source}${str}timeStamp=$lastModifiedDateTime";
   }
 
   Widget buildNonSvgImage(String source, BoxFit? fit) {
@@ -131,24 +166,46 @@ class ImageState extends WidgetState<EnsembleImage> {
         cachedWidth = 800;
       }
 
-      return CachedNetworkImage(
-        imageUrl: source,
-        width: widget._controller.width?.toDouble(),
-        height: widget._controller.height?.toDouble(),
-        fit: fit,
-
-        // we auto resize and cap these values so loading lots of
-        // gigantic images won't run out of memory
-        memCacheWidth: cachedWidth,
-        memCacheHeight: cachedHeight,
-        cacheManager: EnsembleImageCacheManager.instance,
-        errorWidget: (context, error, stacktrace) => errorFallback(),
-        placeholder: (context, url) => ColoredBoxPlaceholder(
-          color: widget._controller.placeholderColor,
+      Widget cacheImage(String url) {
+        return CachedNetworkImage(
+          imageUrl: url,
           width: widget._controller.width?.toDouble(),
           height: widget._controller.height?.toDouble(),
-        ),
-      );
+          fit: fit,
+          // we auto resize and cap these values so loading lots of
+          // gigantic images won't run out of memory
+          memCacheWidth: cachedWidth,
+          memCacheHeight: cachedHeight,
+          cacheManager: EnsembleImageCacheManager.instance,
+          errorWidget: (context, error, stacktrace) => errorFallback(),
+          placeholder: (context, url) => ColoredBoxPlaceholder(
+            color: widget._controller.placeholderColor,
+            width: widget._controller.width?.toDouble(),
+            height: widget._controller.height?.toDouble(),
+          ),
+        );
+      }
+
+      return (!widget.controller.cache)
+          ? FutureBuilder(
+              future: fetch(widget.controller.source),
+              initialData: widget._controller.source,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.done) {
+                  if (snapshot.hasData) {
+                    return cacheImage(snapshot.data!);
+                  } else {
+                    return cacheImage(widget.controller.source);
+                  }
+                } else {
+                  return ColoredBoxPlaceholder(
+                    color: widget._controller.placeholderColor,
+                    width: widget._controller.width?.toDouble(),
+                    height: widget._controller.height?.toDouble(),
+                  );
+                }
+              })
+          : cacheImage(widget._controller.source);
     } else if (Utils.isMemoryPath(widget._controller.source)) {
       return kIsWeb
           ? Image.network(widget._controller.source,

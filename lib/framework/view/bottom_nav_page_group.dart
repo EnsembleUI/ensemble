@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -12,14 +13,17 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:flutter/material.dart';
 
-class FABBottomAppBarItem {
-  FABBottomAppBarItem({
+class BottomNavBarItem {
+  BottomNavBarItem({
     required this.icon,
     required this.text,
     required this.isCustom,
     this.activeIcon,
     this.isFloating = false,
     this.floatingMargin,
+    this.switchScreen = true,
+    this.onTap,
+    this.onTapHaptic,
   });
 
   Widget icon;
@@ -28,6 +32,9 @@ class FABBottomAppBarItem {
   bool isFloating;
   bool isCustom;
   double? floatingMargin;
+  bool? switchScreen;
+  EnsembleAction? onTap;
+  String? onTapHaptic;
 }
 
 enum FloatingAlignment {
@@ -190,6 +197,13 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
   void _floatingButtonTapped(MenuItem fabMenuItem) {
     final onTapAction = EnsembleAction.fromYaml(fabMenuItem.onTap);
     if (onTapAction != null) {
+      if (fabMenuItem.onTapHaptic != null) {
+        ScreenController().executeAction(
+          context,
+          HapticAction(type: fabMenuItem.onTapHaptic!, onComplete: null),
+        );
+      }
+
       ScreenController()
           .executeActionWithScope(context, widget.scopeManager, onTapAction);
     }
@@ -232,7 +246,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
   }
 
   Widget? _buildBottomNavBar() {
-    List<FABBottomAppBarItem> navItems = [];
+    List<BottomNavBarItem> navItems = [];
 
     final unselectedColor = Utils.getColor(widget.menu.styles?['color']) ??
         Theme.of(context).unselectedWidgetColor;
@@ -264,11 +278,14 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
               : null);
 
       navItems.add(
-        FABBottomAppBarItem(
+        BottomNavBarItem(
           icon: icon,
           activeIcon: activeIcon,
           isCustom: isCustom,
           text: label,
+          switchScreen: item.switchScreen,
+          onTap: EnsembleAction.fromYaml(item.onTap),
+          onTapHaptic: item.onTapHaptic,
         ),
       );
     }
@@ -301,11 +318,29 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
               Utils.getShadowBlurStyle(widget.menu.styles?['shadowStyle']),
           notchedShape: const CircularNotchedRectangle(),
           onTabSelected: (index) {
-            if (widget.menu.reloadView == true) {
-              viewGroupNotifier.updatePage(index);
+            final isSwitchScreen =
+                Utils.getBool(navItems[index].switchScreen, fallback: true);
+            if (isSwitchScreen) {
+              if (widget.menu.reloadView == true) {
+                viewGroupNotifier.updatePage(index);
+              } else {
+                PageGroupWidget.getPageController(context)!.jumpToPage(index);
+                viewGroupNotifier.updatePage(index);
+              }
+
+              _onTap(navItems[index]);
             } else {
-              PageGroupWidget.getPageController(context)!.jumpToPage(index);
-              viewGroupNotifier.updatePage(index);
+              // Execute only onTap action. Page switching is handled by the developer with onTap
+              _onTap(navItems[index]);
+            }
+
+            // Executing haptic feedback action
+            if (navItems[index].onTapHaptic != null) {
+              ScreenController().executeAction(
+                context,
+                HapticAction(
+                    type: navItems[index].onTapHaptic!, onComplete: null),
+              );
             }
           },
           items: navItems,
@@ -315,6 +350,13 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
         );
       },
     );
+  }
+
+  void _onTap(BottomNavBarItem menuItem) {
+    if (menuItem.onTap != null) {
+      ScreenController().executeActionWithScope(
+          context, widget.scopeManager, menuItem.onTap!);
+    }
   }
 
   Widget? _buildCustomIcon(MenuItem item, {bool isActive = false}) {
@@ -352,7 +394,7 @@ class EnsembleBottomAppBar extends StatefulWidget {
   }) {
     // assert(items.length == 2 || items.length == 4);
   }
-  final List<FABBottomAppBarItem> items;
+  final List<BottomNavBarItem> items;
   final int selectedIndex;
   final double? height;
   final dynamic margin;
@@ -383,9 +425,11 @@ class EnsembleBottomAppBarState extends State<EnsembleBottomAppBar> {
 
   void _updateIndex(int index) {
     widget.onTabSelected(index);
-    setState(() {
-      _selectedIndex = index;
-    });
+    if (widget.items[index].switchScreen == true) {
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
   }
 
   int? getFabIndex() {
@@ -476,7 +520,7 @@ class EnsembleBottomAppBarState extends State<EnsembleBottomAppBar> {
   }
 
   Widget _buildTabItem({
-    required FABBottomAppBarItem item,
+    required BottomNavBarItem item,
     required int index,
     required ValueChanged<int> onPressed,
   }) {

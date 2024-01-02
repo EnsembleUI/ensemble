@@ -12,9 +12,6 @@
     "View": {
       "type": "object",
       "description": "This is your root View. It requires a body widget.",
-      "required": [
-        "body"
-      ],
       "properties": {
         "header": {
           "type": "object",
@@ -115,6 +112,10 @@
                     "type": "number"
                   }
                 },
+                "fixedContent": {                  
+                    "$ref": "#/$defs/Widgets",
+                    "description": "Provide content to be fixed in the footer"                  
+                },
                 "onMinSize": {
                   "$ref": "#/$defs/Action-payload",
                   "description": "Execute an Action when the drag hits minimum size"
@@ -164,6 +165,10 @@
                 "scrollableView": {
                   "type": "boolean",
                   "description": "Specify if the content of this screen is scrollable with a global scrollbar. Using this also allow you to customize the scrolling experience of the header."
+                },
+                "unfocus": {
+                  "type": "boolean",
+                  "description": "Specify if the keyboard should dismissed automatically when tapping in the non interactive widgets. Default (false)"
                 },
                 "showNavigationIcon": {
                   "type": "boolean",
@@ -456,6 +461,210 @@
         "onLinkTap": {
           "$ref": "#/$defs/Action-payload",
           "description": "Call Ensemble's built-in functions to handle the case when a link within the HTML is tapped. When specified, the default behavior of opening the url will not be invoked."
+        },
+        "cssStyles": {
+          "type": "array",
+          "items": [
+            {
+              "type": "object",
+              "properties": {
+                "selector": {
+                  "type": "string",
+                  "description": "The CSS selector for the element"
+                },
+                "properties": {
+                  "type": "object",
+                  "description": "The CSS properties to apply for a given selector",
+                  "properties": {
+                    "backgroundColor": {
+                      "$ref": "#/$defs/type-color",
+                      "description": "The background color of the element"
+                    },
+                    "color": {
+                      "$ref": "#/$defs/type-color",
+                      "description": "The color of the element"
+                    },
+                    "direction": {
+                      "enum":  [
+                        "ltr",
+                        "rtl"
+                      ],
+                      "description": "The text direction"
+                    },
+                    "display": {
+                      "enum": [
+                        "block",
+                        "inline",
+                        "inlineBlock",
+                        "listItem",
+                        "none"
+                      ],
+                      "description": "css equivalent of display"
+                    },
+                    "fontFamily": {
+                      "type": "string",
+                      "description": "The Font Family for the text of the given tag"
+                    },
+                    "fontFamilyFallback": {
+                      "type": "array",
+                      "description": "The list of font families to fall back on when a glyph cannot be found in default font family."
+                    },
+                    "fontFeatureSettings": {
+                      "type": "array",
+                      "description": "Equivalent to CSS attribute font-feature-settings"
+                    },
+                    "fontSize": {
+                      "type": "integer",
+                      "description": "Font Size for the text which is inside a tag"
+                    },
+                    "fontStyle": {
+                      "type": "string",
+                      "description": "The styling to give to the text of a tag"
+                    },
+                    "fontWeight": {
+                      "type": "string",
+                      "description": "Font Weight for the text which is inside a tag"
+                    },
+                    "height": {
+                      "type": "double",
+                      "description": "The height for the given tag"
+                    },
+                    "lineHeight": {
+                      "type": "double",
+                      "description": "Line height for the text which is inside a tag"
+                    },
+                    "letterSpacing": {
+                      "type": "double",
+                      "description": "Spacing between two letters"
+                    },
+                    "listStyleImage": {
+                      "type": "string", 
+                      "description": "Equivalent to the CSS attribute list-style-image"
+                    },
+                    "listStyleType": {
+                      "type": "string", 
+                      "description": "Equivalent to the CSS attribute list-style-type"
+                    },
+                    "listStylePosition": {
+                      "type": "string", 
+                      "description": "Equivalent to the CSS attribute list-style-position"
+                    },
+                    "padding": {
+                      "type": "string", 
+                      "description": "Padding for the element, fully supports the CSS syntax to pass individual paddings"
+                    },
+                    "margin": {
+                      "type": "string", 
+                      "description": "Margin for the element, fully supports the CSS syntax to pass individual paddings"
+                    },
+                    "textAlign": {
+                      "enum": [
+                        "left",
+                        "right",
+                        "center",
+                        "justify",
+                        "start",
+                        "end"
+                      ], 
+                      "description": "Text Align for the text which can be inside a selected tag"
+                    },
+                    "textDecoration": {
+                      "type": "string", 
+                      "description": "Text decoration to give to the text inside the selected tag"
+                    },
+                    "textDecorationColor": {
+                      "$ref": "#/$defs/type-color",
+                      "description": "The color for the text decoration"
+                    },
+                    "textDecorationStyle": {
+                      "enum": [
+                        "solid",
+                        "double",
+                        "dotted",
+                        "dashed",
+                        "wavy"
+                      ],
+                      "description": "The styling to give to the text decoration"
+                    },
+                    "textDecorationThickness": {
+                      "type": "double",
+                      "description": "The thickness for the text decoration"
+                    },
+                    "textShadow": {
+                      "type": "string",
+                      "description": "Equivalent to that of CSS attribute text-shadow"
+                    },
+                    "verticalAlign": {
+                      "enum": [
+                        "baseline",
+                        "sub",
+                        "sup",
+                        "top",
+                        "bottom",
+                        "middle"
+                      ],
+                      "description": "The vertical alignment for a given tag, default (baseline)"
+                    },
+                    "whiteSpace": {
+                      "enum": [
+                        "normal",
+                        "pre"
+                      ],
+                      "description": "Equivalent to that of CSS attribute white-space"
+                    },
+                    "width": {
+                      "type": "double",
+                      "description": "The width for the given tag"
+                    },
+                    "wordSpacing": {
+                      "type": "double",
+                      "description": "The spacing between two words"
+                    },
+                    "border": {
+                      "type": "string",
+                      "description": "The border for the tag selected. Follows the css syntax"
+                    },
+                    "alignment": {
+                      "type": "string",
+                      "description": "The alignment of the selected tag"
+                    },
+                    "maxLines": {
+                      "type": "integer",
+                      "description": "The maximum number of lines for the text to have"
+                    },
+                    "textOverflow": {
+                      "enum": [
+                        "clip",
+                        "fade",
+                        "ellipsis",
+                        "visible"
+                      ],
+                      "description": "Defines on what to do when text overflows or when the lines are more than maxLines"
+                    },
+                    "textTransform": {
+                      "enum": [
+                        "uppercase",
+                        "lowercase",
+                        "capitalize",
+                        "none"
+                      ],
+                      "description": "Perform the given operation to the text inside the selected tag"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "styles": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/baseStyles"
+            },
+            {
+              "$ref": "#/$defs/boxLayoutStyles"
+            }
+          ]
         }
       }
     },
@@ -504,6 +713,17 @@
               "$ref": "#/$defs/Action-payload",
               "description": "Call Ensemble's built-in functions or execute code"
             },
+            "onTapHaptic": {
+              "type": "enum",
+              "description": "The different types of haptic to play on Tap. The enums are in the decreasing order of intensity from highest intensity being of heavyImpact and lowest of selectionClick.",
+              "enum": [
+                "heavyImpact",
+                "mediumImpact",
+                "lightImpactHaptic",
+                "selectionClickHaptic",
+                "vibrateHaptic"
+              ]
+            },
             "styles": {
               "allOf": [
                 {
@@ -537,6 +757,10 @@
           "type": "string",
           "description": "A unique identifier for this widget"
         },
+       "cache": {
+          "type": "boolean",
+          "description": "To put the image in the cache"
+        },
         "source": {
           "type": "string",
           "description": "URL to or asset name of the image. If the URL is used, it is highly recommended that the dimensions is set (either with width/height or other means) to prevent the UI jerkiness while loading."
@@ -548,6 +772,17 @@
         "onTap": {
           "$ref": "#/$defs/Action-payload",
           "description": "Call Ensemble's built-in functions or execute code"
+        },
+        "onTapHaptic": {
+          "type": "enum",
+          "description": "The different types of haptic to play on Tap. The enums are in the decreasing order of intensity from highest intensity being of heavyImpact and lowest of selectionClick.",
+          "enum": [
+            "heavyImpact",
+            "mediumImpact",
+            "lightImpactHaptic",
+            "selectionClickHaptic",
+            "vibrateHaptic"
+          ]
         },
         "styles": {
           "allOf": [
@@ -644,6 +879,17 @@
           "$ref": "#/$defs/Action-payload",
           "description": "Call Ensemble's built-in functions or execute code"
         },
+        "onTapHaptic": {
+          "type": "enum",
+          "description": "The different types of haptic to play on Tap. The enums are in the decreasing order of intensity from highest intensity being of heavyImpact and lowest of selectionClick.",
+          "enum": [
+            "heavyImpact",
+            "mediumImpact",
+            "lightImpactHaptic",
+            "selectionClickHaptic",
+            "vibrateHaptic"
+          ]
+        },
         "styles": {
           "allOf": [
             {
@@ -716,6 +962,17 @@
         "onTap": {
           "$ref": "#/$defs/Action-payload",
           "description": "Call Ensemble's built-in functions or execute code"
+        },
+        "onTapHaptic": {
+          "type": "enum",
+          "description": "The different types of haptic to play on Tap. The enums are in the decreasing order of intensity from highest intensity being of heavyImpact and lowest of selectionClick.",
+          "enum": [
+            "heavyImpact",
+            "mediumImpact",
+            "lightImpactHaptic",
+            "selectionClickHaptic",
+            "vibrateHaptic"
+          ]
         },
         "onCropped": {
           "$ref": "#/$defs/Action-payload",
@@ -841,6 +1098,21 @@
         "source": {
           "type": "string",
           "description": "URL or asset name of the Lottie json file"
+        },
+        "onTap": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "Call Ensemble's built-in functions or execute code when tapped on lottie"
+        },
+        "onTapHaptic": {
+          "type": "enum",
+          "description": "The different types of haptic to play on Tap. The enums are in the decreasing order of intensity from highest intensity being of heavyImpact and lowest of selectionClick.",
+          "enum": [
+            "heavyImpact",
+            "mediumImpact",
+            "lightImpactHaptic",
+            "selectionClickHaptic",
+            "vibrateHaptic"
+          ]
         },
         "styles": {
           "allOf": [
@@ -1091,6 +1363,17 @@
           "$ref": "#/$defs/Action-payload",
           "description": "Action to execute when the toggle's value has changed"
         },
+        "onChangeHaptic": {
+          "type": "enum",
+          "description": "The different types of haptic to play on change. The enums are in the decreasing order of intensity from highest intensity being of heavyImpact and lowest of selectionClick.",
+          "enum": [
+            "heavyImpact",
+            "mediumImpact",
+            "lightImpactHaptic",
+            "selectionClickHaptic",
+            "vibrateHaptic"
+          ]
+        },
         "styles": {
           "allOf": [
             {
@@ -1282,6 +1565,10 @@
             "obscureToggle": {
               "type": "boolean",
               "description": "enable the toggling between plain and obscure text."
+            },
+            "toolbarDone": {
+              "type": "boolean",
+              "description": "enable the toolbar with done button in the TextInput. (defaults to False)"
             },
             "enableClearText": {
               "type": "boolean",
@@ -1552,7 +1839,7 @@
         }
       ]
     },
-    "OnOff-payload": {
+    "Switch-payload": {
       "type": "object",
       "allOf": [
         {
@@ -1569,6 +1856,66 @@
             },
             "trailingText": {
               "type": "string"
+            },
+            "styles": {
+              "type": "object",
+              "properties": {
+                "activeColor": {
+                  "$ref": "#/$defs/type-color",
+                  "description": "The active color of the Switch Widget."
+                },
+                "inactiveColor": {
+                  "$ref": "#/$defs/type-color",
+                  "description": "The inactive color of the Switch Widget."
+                },
+                "activeThumbColor": {
+                  "$ref": "#/$defs/type-color",
+                  "description": "The active thumb color of the Switch Widget."
+                },
+                "inactiveThumbColor": {
+                  "$ref": "#/$defs/type-color",
+                  "description": "The inactive thumb color of the Switch Widget."
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Checkbox-payload": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/FormInput-payload"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "value": {
+              "type": "boolean"
+            },
+            "leadingText": {
+              "type": "string"
+            },
+            "trailingText": {
+              "type": "string"
+            },
+            "styles": {
+              "type": "object",
+              "properties": {
+                "unselectedColor": {
+                  "$ref": "#/$defs/type-color",
+                  "description": "The outline color of the Checkbox Widget."
+                },
+                "selectedColor": {
+                  "$ref": "#/$defs/type-color",
+                  "description": "The background color of the Checkbox Widget."
+                },
+                "checkColor": {
+                  "$ref": "#/$defs/type-color",
+                  "description": "The tick color of the Checkbox Widget."
+                }
+              }
             }
           }
         }
@@ -1609,9 +1956,55 @@
               },
               "description": "List of values, or Objects with value/label pairs"
             },
+            "itemTemplate": {
+              "data": {
+                "type": "string",
+                "description": "Bind to an array of data from an API response or a variable"
+              },
+              "name": {
+                "type": "string",
+                "description": "Set the name to reference as you iterate through the array of data"
+              },
+              "template": {
+                "$ref": "#/$defs/Widget",
+                "description": "Specify the widget to render as each dropdown item's label"
+              },
+              "value": {
+                "type": "string",
+                "description": "Specify the expression to evaluate as each item's value. This will be the value when the item is selected."
+              }
+            },
             "autoComplete": {
               "type": "boolean",
               "description": "Enable the Input search suggestion option"
+            },
+            "styles": {
+              "dropdownOffsetX": {
+                "type": "integer",
+                "description": "The horizontal offset of the dropdown relative to the menu button (default is 0)"
+              },
+              "dropdownOffsetY": {
+                "type": "integer",
+                "description": "The vertical offset of the dropdown relative to the menu button (default is 0 which display the dropdown right below the menu button)"
+              },
+              "dropdownBackgroundColor": {
+                "$ref": "#/$defs/type-color"
+              },
+              "dropdownBorderRadius": {
+                "$ref": "#/$defs/borderRadius"
+              },
+              "dropdownBorderColor": {
+                "$ref": "#/$defs/type-color"
+              },
+              "dropdownBorderWidth": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "The thickness of the dropdown border"
+              },
+              "dropdownMaxHeight": {
+                "type": "integer",
+                "minimum": 0
+              }
             }
           }
         }
@@ -1773,18 +2166,50 @@
           "oneOf": [
             {
               "const": "local",
-              "description": "Sign the user on the client side. This is useful when your app doesn't need a server. (this is the default)."
+              "description": "Sign the user in on the client (default)."
             },
             {
               "const": "firebase",
               "description": "Use your custom Firebase to manage your users. Please see Ensemble documentation on how to integrate Firebase."
+            },
+            {
+              "const": "server",
+              "description": "After authenticated the user, send the idToken to your Server to retrieve the credentials (e.g. bearer token, cookies, ...), then sign the user in on the client."
             }
           ]
         },
-        "onAuthenticated": {
-          "$ref": "#/$defs/Action-payload"
-        },
+        "oneOf": [
+          {
+            "properties": {
+              "provider": {"enum": ["server"]},
+              "signInServerAPI": {
+                "type": "object",
+                "description": "Call this Server API to retrieve the server credentials to sign in:\n1. Authenticate with Google, Apple, ..\n2. Call your server with the idToken (accessible with ${idToken}) and expect the response to contain server-specific credentials necessary for subsequent access.\n3. Client will set these credentials and sign the user in locally. The credentials are accessible with ${auth.user.data}\n4. Subsequent server API calls can append these credentials to the requests.",
+                "required": ["setSignInCredentialsOnResponse"],
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/InvokeAPI-payload"
+                  },
+                  {
+                    "setSignInCredentialsOnResponse": {
+                      "type": "object",
+                      "description": "On server response, set any key/value pairs to save them as the user's credentials. The client will automatically sign the user in and have these key/value pairs available at ${auth.user.data}",
+                      "additionalProperties": {}
+                    }
+                  }
+                ]
+              }
+            },
+            "required": ["signInServerAPI"]
+          },
+          {
+            "properties": {
+              "provider": {"not": {"enum": ["server"]}}
+            }
+          }
+        ],
         "onSignedIn": {
+          "description": "Execute an Action once the user has signed in.",
           "$ref": "#/$defs/Action-payload"
         },
         "onError": {
@@ -1794,7 +2219,7 @@
           "properties": {
             "overrideLabel": {
               "type": "string",
-              "description": "Override the Sign In label. Note that changing the default Apple guideline may get your app rejected when submitting to Apple's App Store."
+              "description": "(Native only) Override the Sign In label. Note that changing the default Apple guideline may get your app rejected when submitting to Apple's App Store."
             },
             "iconAlignment": {
               "type": "string",
@@ -1805,10 +2230,12 @@
               ]
             },
             "borderRadius": {
+              "description": "(Native only). Set the border radius",
               "$ref": "#/$defs/borderRadius"
             },
             "height": {
               "type": "integer",
+              "description": "(Native only). Set the button height",
               "minimum": 0
             }
           }
@@ -1845,6 +2272,12 @@
         "tokenExchangeAPI": {
           "$ref": "#/$defs/InvokeAPI-payload",
           "description": "If the server needs access to the access/refresh token, the OAuth token exchange API can be specified. Please see Ensemble's documentation regarding the expected request/response format."
+        },
+        "onInitiated": {
+          "$ref": "#/$defs/Action-payload"
+        },
+        "onCanceled": {
+          "$ref": "#/$defs/Action-payload"
         },
         "onAuthorized": {
           "$ref": "#/$defs/Action-payload"
@@ -1888,6 +2321,17 @@
           "$ref": "#/$defs/Action-payload",
           "description": "Call Ensemble's built-in functions or execute code"
         },
+        "onTapHaptic": {
+          "type": "enum",
+          "description": "The different types of haptic to play on Tap. The enums are in the decreasing order of intensity from highest intensity being of heavyImpact and lowest of selectionClick.",
+          "enum": [
+            "heavyImpact",
+            "mediumImpact",
+            "lightImpactHaptic",
+            "selectionClickHaptic",
+            "vibrateHaptic"
+          ]
+        },
         "styles": {
           "allOf": [
             {
@@ -1900,7 +2344,27 @@
               "type": "object",
               "properties": {
                 "labelStyle": {
-                  "$ref": "#/$defs/TextStyle"
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/TextStyle"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "textAlign": {
+                          "enum": [
+                            "left",
+                            "right",
+                            "center",
+                            "justify",
+                            "start",
+                            "end"
+                          ], 
+                          "description": "Text Align for the label inside the Button"
+                        }
+                      }
+                    }
+                  ]
                 },
                 "outline": {
                   "type": "boolean",
@@ -1924,6 +2388,17 @@
         },
         "onTap": {
           "$ref": "#/$defs/Action-payload"
+        },
+        "onTapHaptic": {
+          "type": "enum",
+          "description": "The different types of haptic to play on Tap. The enums are in the decreasing order of intensity from highest intensity being of heavyImpact and lowest of selectionClick.",
+          "enum": [
+            "heavyImpact",
+            "mediumImpact",
+            "lightImpactHaptic",
+            "selectionClickHaptic",
+            "vibrateHaptic"
+          ]
         },
         "styles": {
           "$ref": "#/$defs/baseStyles"
@@ -1983,6 +2458,17 @@
               "$ref": "#/$defs/Action-payload",
               "description": "Call Ensemble's built-in functions or execute code when tapping on an item in the list."
             },
+            "onItemTapHaptic": {
+              "type": "enum",
+              "description": "The different types of haptic to play on Tap on item. The enums are in the decreasing order of intensity from highest intensity being of heavyImpact and lowest of selectionClick.",
+              "enum": [
+                "heavyImpact",
+                "mediumImpact",
+                "lightImpactHaptic",
+                "selectionClickHaptic",
+                "vibrateHaptic"
+              ]
+            },
             "children": {
               "$ref": "#/$defs/Widgets"
             },
@@ -2040,6 +2526,17 @@
         "onChange": {
           "$ref": "#/$defs/Action-payload",
           "description": "Call Ensemble's built-in functions or execute code when the input changes. Note for free-form text input, this event only dispatches if the text changes AND the focus is lost (e.g. clicking on button)"
+        },
+        "onChangeHaptic": {
+          "type": "enum",
+          "description": "The different types of haptic to play on change. The enums are in the decreasing order of intensity from highest intensity being of heavyImpact and lowest of selectionClick.",
+          "enum": [
+            "heavyImpact",
+            "mediumImpact",
+            "lightImpactHaptic",
+            "selectionClickHaptic",
+            "vibrateHaptic"
+          ]
         },
         "styles": {
           "allOf": [
@@ -2266,9 +2763,24 @@
               "type": "string",
               "description": "A unique identifier for this widget"
             },
+            "scrollController": {
+              "type": "string",
+              "description": "For setting the scrollbehaviour"
+            },
             "onItemTap": {
               "$ref": "#/$defs/Action-payload",
               "description": "Call Ensemble's built-in functions or execute code when tapping on an item in the list."
+            },
+            "onItemTapHaptic": {
+              "type": "enum",
+              "description": "The different types of haptic to play on tap of item. The enums are in the decreasing order of intensity from highest intensity being of heavyImpact and lowest of selectionClick.",
+              "enum": [
+                "heavyImpact",
+                "mediumImpact",
+                "lightImpactHaptic",
+                "selectionClickHaptic",
+                "vibrateHaptic"
+              ]
             },
             "onScrollEnd": {
               "$ref": "#/$defs/Action-payload",
@@ -2668,12 +3180,27 @@
               "type": "string",
               "description": "A unique identifier for this widget"
             },
+            "controller" :{
+              "type": "string",
+              "description": "For setting the scrollbehaviour"
+            },
             "children": {
               "$ref": "#/$defs/Widgets"
             },
             "onItemTap": {
               "description": "Dispatch when an ListView item is selected/tapped.The event dispatches only when you tap on the item. The index of the item can be retrieved using 'selectedItemIndex'.",
               "$ref": "#/$defs/Action-payload"
+            },
+            "onItemTapHaptic": {
+              "type": "enum",
+              "description": "The different types of haptic to play on tap of item. The enums are in the decreasing order of intensity from highest intensity being of heavyImpact and lowest of selectionClick.",
+              "enum": [
+                "heavyImpact",
+                "mediumImpact",
+                "lightImpactHaptic",
+                "selectionClickHaptic",
+                "vibrateHaptic"
+              ]
             },
             "selectedItemIndex": {
               "type": "integer",
@@ -2816,12 +3343,8 @@
                       ]
                     },
                     "indicatorPosition": {
-                      "type": "string",
-                      "description": "Where to display the indicator if specified",
-                      "enum": [
-                        "bottom",
-                        "top"
-                      ]
+                      "$ref": "#/$defs/type-alignment",
+                      "description": "Where to display the indicator if specified"
                     },
                     "indicatorWidth": {
                       "type": "integer"
@@ -2837,9 +3360,19 @@
                       "type": "boolean",
                       "description": "Determines if carousel should loop infinitely or be limited to item length. Default (false)"
                     },
+                    "currentIndex": {
+                      "type": "integer",
+                      "description": "The initial page to show when first creating the Carousel and the current index of the displaying Carousel Item. Default (0)"
+                    },
                     "selectedItemIndex": {
                       "type": "integer",
-                      "description": "The initial page to show when first creating the Carousel. Default (0)"
+                      "description": "The initial page to show when first creating the Carousel and the current index of the displaying Carousel Item. Default (0)",
+                      "deprecated": true,
+                      "deprecationMessage": "It is deprecated and removed in future. Use the 'currentIndex' property instead"
+                    },
+                    "indicatorMaxCount": {
+                      "type": "integer",
+                      "description": "This property is used to show a limited number (for ex: 4) of carousel indicator when creating the carousel with more (for ex: 100+) items. Default (null)"
                     },
                     "autoplayInterval": {
                       "type": "integer",
@@ -2857,6 +3390,10 @@
                         }
                       ],
                       "description": "The margin around each indicator"
+                    },
+                    "indicatorPadding": {
+                      "$ref": "#/$defs/Padding-payload",
+                      "description": "The padding around the indicator"
                     }
                   }
                 }
@@ -3326,6 +3863,143 @@
           }
         },
         {
+          "title": "Deep Link Init",
+          "type": "object",
+          "required": [
+            "deeplinkInit"
+          ],
+          "properties": {
+            "deeplinkInit": {
+              "type": "object",
+              "description": "It will initialize the Deep Link Service",
+              "required": [
+                "provider"
+              ],
+              "properties": {
+                "provider": {
+                  "$ref": "#/$defs/deeplink-provider",
+                  "description": "Sets the deferred deep link service provider"
+                },
+                "options": {
+                  "type": "object",
+                  "properties": {
+                    "useTestKey": {
+                      "type": "boolean",
+                      "description": "Sets true to use the test key_test. Default(False)"
+                    },
+                    "enableLog": {
+                      "type": "boolean",
+                      "description": "Sets true turn on debug logging. Default(False)"
+                    },
+                    "disableTrack": {
+                      "type": "boolean",
+                      "description": "Sets true to disable tracking. Default(False)"
+                    }
+                  }
+                },
+                "onSuccess": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when the deeplink intialized successfully"
+                },
+                "onLinkReceived": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when the link is recieved successfully after opening the app from the deeplink. Get link from `event.data.link`"
+                },
+                "onError": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when it is failed to initialize the deeplink service provider"
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Create Deep Link",
+          "type": "object",
+          "required": [
+            "createDeeplink"
+          ],
+          "properties": {
+            "createDeeplink": {
+              "type": "object",
+              "description": "It will create deep link url",
+              "required": [
+                "provider"
+              ],
+              "properties": {
+                "provider": {
+                  "$ref": "#/$defs/deeplink-provider",
+                  "description": "Sets the deferred deep link service provider"
+                },
+                "universalProps": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Canonical url for the content referred. This would be the corresponding website URL"
+                    },
+                    "title": {
+                      "type": "string",
+                      "description": "Title for the content."
+                    },
+                    "contentDescription": {
+                      "type": "string",
+                      "description": "Description for the content referred"
+                    },
+                    "imageUrl": {
+                      "type": "string",
+                      "description": "An image url associated with the content referred."
+                    },
+                    "contentSchema": {
+                      "type": "string",
+                      "description": "Schema for the qualifying content item."
+                    }
+                  }
+                },
+                "linkProps": {
+                  "type": "object",
+                  "properties": {
+                    "channel": {
+                      "type": "string",
+                      "description": "Sets the channel for the deeplink"
+                    },
+                    "feature": {
+                      "type": "string",
+                      "description": "Sets the feature for the deeplink"
+                    },
+                    "campaign": {
+                      "type": "string",
+                      "description": "Sets the campaign for the deeplink"
+                    },
+                    "stage": {
+                      "type": "string",
+                      "description": "Sets the stage for the deeplink"
+                    },
+                    "tags": {
+                      "type": "array",
+                      "description": "Sets the tags for the deeplink"
+                    },
+                    "controlParams": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "onSuccess": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when deeplink created successfully. Get result from `event.data.result`"
+                },
+                "onError": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when it is failed to create a deep link"
+                }
+              }
+            }
+          }
+        },
+        {
           "title": "Receive Intent",
           "type": "object",
           "required": [
@@ -3512,13 +4186,25 @@
                       "type": "boolean",
                       "description": "If set true, users can view captured/selected media."
                     },
+                    "instantPreview": {
+                      "type": "boolean",
+                      "description": "If set true, users can view captured/selected media instantly as soon as it's capture."
+                    },
                     "maxCount": {
                       "type": "number",
-                      "description": "It used to control number of media that can be captured/selected"
+                      "description": "It used to control maximum number of media that can be captured/selected"
                     },
                     "maxCountMessage": {
                       "type": "string",
                       "description": "Custom message to show when captured/selected media is greater than maxCount"
+                    },
+                    "minCount": {
+                      "type": "number",
+                      "description": "It used to control minimum number of media that can be captured/selected"
+                    },
+                    "minCountMessage": {
+                      "type": "string",
+                      "description": "Custom message to show when captured/selected media is lesser than minCount"
                     },
                     "permissionDeniedMessage": {
                       "type": "string",
@@ -3958,6 +4644,10 @@
                 "options": {
                   "type": "object",
                   "properties": {
+                    "batchSize": {
+                      "type": "integer",
+                      "description": "If specified, the total set of files to be uploaded will be divided into batches, with each batch containing a number of files equal to batchSize"
+                    },
                     "maxFileSize": {
                       "type": "integer",
                       "description": "File size that is allowed (default 100 mb), If multiple is allow then sum of all files"
@@ -4014,6 +4704,14 @@
                 "id": {
                   "type": "string",
                   "description": "Give the picker an ID allows you to bind to its result, which can be access anywhere e.g. ${filePicker.files...}"
+                },
+                "source": {
+                  "type": "enum",
+                  "description": "Source define where you can pick files. Default files.",
+                  "enum": [
+                    "gallery",
+                    "files"
+                  ]
                 },
                 "allowMultiple": {
                   "type": "boolean",
@@ -4094,6 +4792,31 @@
             "rateApp": {
               "type": "object",
               "description": "(iOS only) Prompt the user to rate this App"
+            }
+          }
+        },
+        {
+          "title": "Haptics",
+          "type": "object",
+          "required": ["Haptic"],
+          "properties": {
+            "invokeHaptics": {
+              "type": "object",
+              "description": "Play a given haptic on mobile.",
+              "required": ["type"],
+              "properties": {
+                "type": {
+                  "type": "enum",
+                  "description": "The different types of haptic to play. The enums are in the decreasing order of intensity from highest intensity being of heavyImpact and lowest of selectionClick.",
+                  "enum": [
+                    "heavyImpact",
+                    "mediumImpact",
+                    "lightImpactHaptic",
+                    "selectionClickHaptic",
+                    "vibrateHaptic"
+                  ]
+                }
+              }
             }
           }
         },
@@ -4453,6 +5176,48 @@
               }
             }
           }
+        },
+        {
+          "title": "Verify if the user is currently signed in",
+          "type": "object",
+          "required": [
+            "verifySignIn"
+          ],
+          "properties": {
+            "verifySignIn": {
+              "type": "object",
+              "description": "Verify if the user is currently signed in or not",
+              "properties": {
+                "onSignedIn": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action if the user is currently signed in"
+                },
+                "onNotSignedIn": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action if the user is currently not signed in, or if the status is unknown."
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Sign the user out",
+          "type": "object",
+          "required": [
+            "signOut"
+          ],
+          "properties": {
+            "signOut": {
+              "type": "object",
+              "description": "Sign the user out (if currently signed in) and clear the user's data ${auth.user}",
+              "properties": {
+                "onComplete": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action once the user has signed out."
+                }
+              }
+            }
+          }
         }
       ]
     },
@@ -4612,9 +5377,24 @@
                 "type": "boolean",
                 "description": "Mark this item as a floating icon"
               },
+              "switchScreen": {
+                "type": "boolean",
+                "description": "Disable the screen switching when clicking the bottom nav bar item. Default (True)"
+              },
               "floatingMargin": {
                 "$ref": "#/$defs/Margin-payload",
                 "description": "The margin around the floating."
+              },
+              "onTapHaptic": {
+                "type": "enum",
+                "description": "The different types of haptic to play on tap. The enums are in the decreasing order of intensity from highest intensity being of heavyImpact and lowest of selectionClick.",
+                "enum": [
+                  "heavyImpact",
+                  "mediumImpact",
+                  "lightImpactHaptic",
+                  "selectionClickHaptic",
+                  "vibrateHaptic"
+                ]
               },
               "floatingAlignment": {
                 "$ref": "#/$defs/type-alignment",
@@ -4913,7 +5693,52 @@
           ],
           "properties": {
             "Avatar": {
-              "$ref": "#/$defs/Avatar-payload",
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/Avatar-payload"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "group-template": {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "string",
+                          "description": "Bind to an array of data from an API response or a variable"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Set the name to reference as you iterate through the array of data"
+                        },
+                        "max": {
+                          "type": "integer",
+                          "description": "Maximum avatar that can be displayed"
+                        },
+                        "offset": {
+                          "type": "integer",
+                          "description": "Specify how much each item is off to previous element. Default: 30.0"
+                        },
+                        "surplusBackgroundColor": {
+                          "$ref": "#/$defs/type-color",
+                          "description": "The background color of surplus avatar"    
+                        },
+                        "surplusTextStyle": {
+                          "$ref": "#/$defs/TextStyle"
+                        },
+                        "onSurplusTap": {
+                          "$ref": "#/$defs/Action-payload",
+                          "description": "Execute an Action when surplus is tap."
+                        },
+                        "template": {
+                          "$ref": "#/$defs/Avatar-payload",
+                          "description": "The data row widget to render for each item"
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/kJ9eqI5BPL30IwjnEDdJ"
             }
           }
@@ -5075,7 +5900,7 @@
           ],
           "properties": {
             "Checkbox": {
-              "$ref": "#/$defs/OnOff-payload",
+              "$ref": "#/$defs/Checkbox-payload",
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/21f43d9b-db21-40fe-9c2f-806267e6c412#"
             }
           }
@@ -5087,7 +5912,7 @@
           ],
           "properties": {
             "Switch": {
-              "$ref": "#/$defs/OnOff-payload",
+              "$ref": "#/$defs/Switch-payload",
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/3f4ba37a-0e6a-46a1-9b78-e4e04c84937d#"
             }
           }
@@ -5389,13 +6214,13 @@
           }
         },
         {
-          "title": "Maps",
+          "title": "Map",
           "required": [
-            "Maps"
+            "Map"
           ],
           "properties": {
-            "Maps": {
-              "$ref": "#/$defs/Maps-payload"
+            "Map": {
+              "$ref": "#/$defs/Map-payload"
             }
           }
         },
@@ -5412,13 +6237,13 @@
           }
         },
         {
-          "title": "Youtube",
+          "title": "YouTube",
           "required": [
-            "Youtube"
+            "YouTube"
           ],
           "properties": {
-            "Youtube" : {
-              "$ref" : "#/$defs/Youtube-payload"
+            "YouTube" : {
+              "$ref" : "#/$defs/YouTube-payload"
             }
           }
         },
@@ -5567,6 +6392,30 @@
                 "header": {
                   "$ref": "#/$defs/Widget"
                 },
+                "tooltip": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string",
+                      "description": "The text to display in the tooltip."
+                    },
+                    "date": {
+                      "type": "string",
+                      "description": "Date to show tooltip on."
+                    },
+                    "backgroundColor": {
+                      "$ref": "#/$defs/type-color",
+                      "description": "The background color of the on tooltip"
+                    },
+                    "textStyle": {
+                      "$ref": "#/$defs/TextStyle"
+                    }
+                  },
+                  "required": [
+                    "text",
+                    "date"
+                  ]
+                },
                 "rowSpans": {
                   "type": "object",
                   "properties": {
@@ -5577,6 +6426,45 @@
                     "overflowWidget": {
                       "$ref": "#/$defs/Widget",
                       "description": "If spans per row overflow based on spanPerRow than overflowWidget will render"
+                    },
+                    "span-template": {
+                      "type": "object",
+                      "required": [
+                        "data",
+                        "name",
+                        "span"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "string",
+                          "description": "Bind the rowspan list to the data e.g. myAPI.body.items"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Give this a name. This is the bindable data for each rowspan."
+                        },
+                        "span": {
+                          "type": "object",
+                          "required": [
+                            "start",
+                            "end",
+                            "widget"
+                          ],
+                          "properties": {
+                            "start": {
+                              "type": "string",
+                              "description": "Starting date of the rowspan in ISO format"
+                            },
+                            "end": {
+                              "type": "string",
+                              "description": "Ending date of the rowspan in ISO format"
+                            },
+                            "widget": {
+                              "$ref": "#/$defs/Widget"
+                            }
+                          }
+                        }
+                      }
                     },
                     "children": {
                       "type": "array",
@@ -5844,7 +6732,7 @@
         }
       }
     },
-    "Maps-payload": {
+    "Map-payload": {
       "type": "object",
       "properties": {
         "id": {
@@ -6044,63 +6932,106 @@
         "source": {
           "type": "string",
           "description": "The URL source to the media file"
+        },
+        "showControls": {
+          "type" : "boolean",
+          "description" : "It shows the default video player control. (default True)"
+        },
+        "loadingWidget": {
+          "$ref": "#/$defs/Widget",
+          "description": "The widget to display when the player is in loading state."
+        },
+        "repeat": {
+          "type" : "boolean",
+          "description" : "It plays the video in repeat mode. (default False)"
+        },
+        "autoplay": {
+          "type" : "boolean",
+          "description" : "Automatically start the video when the player is loaded. (default False)"
+        },
+        "playbackRate" : {
+          "type": "number",
+          "description": "For changing the speed at which the video is displayed. (max = 2.0, min = 0)"
+        },
+        "volume": {
+          "type": "number",
+          "description" : "Changes the volume of the video (max = 1.0, min = 0)"
+        },
+        "onStart": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "It is called when the player started to playing the video"
+        },
+        "onChange": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "It is called indefinitely with position(milliseconds) when the video player changes the frame when playing the video"
+        },
+        "onEnd": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "It is called when the player is completed playing the video"
         }
       }
     },
-    "Youtube-payload":{
+    "YouTube-payload":{
       "type" : "object",
       "properties" : {
         "id" : {
           "type" : "string",
           "description": "The unique identifier for this widget"
         },
+        "styles": {
+          "$ref": "#/$defs/boxStyles"
+        },
         "url" : {
           "type": "string",
-          "description": "The URL source to the youtube video"
+          "description": "The URL source to the youTube video"
         },
         "aspectRatio" : {
-          "type": "double",
+          "type": "number",
           "description" : "Video aspect ratio"
         },
         "autoplay": {
-          "type" : "bool",
+          "type" : "boolean",
           "description" : "Automatically start the video when player is loaded. (default False)"
         },
         "videoList" : {
-          "type" : "array",
+          "type" : "object",
           "description" : "List of videos to be played within a single player."
         },
         "startSeconds": {
-          "type" : "double",
+          "type" : "number",
           "description" : "specifies the time from which the first video in the list(or single video) should start playing"
         },
         "endSeconds": {
-          "type": "double",
+          "type": "number",
           "description": "Ends the video after the certain number of seconds (works with Single video)"
         },
         "showAnnotations" : {
-          "type" : "bool",
+          "type" : "boolean",
           "description" : "Showing the annotations of the video"
         },            
         "playbackRate" : {
-          "type": "double",
+          "type": "number",
           "description": "For changing the speed at which the video is displayed"
         },
         "showControls": {
-          "type" : "bool",
+          "type" : "boolean",
           "description" : "For showing the controls on the video within the player(Like in youtube)"
         },
         "showFullScreenButton": {
-          "type" : "bool",
+          "type" : "boolean",
           "description" : "To show the fullscreen button of the video"
         },
         "enableCaptions" : {
-          "type": "bool",
+          "type": "boolean",
           "description" : "To enable any captions in the video(default language of caption is English)"
         },
         "volume": {
           "type": "integer",
           "description" : "Changes the volume. (max = 100, min = 0)"
+        },
+        "videoPosition": {
+          "type": "boolean",
+          "description": "To add an indicator for the amount of video that is completed"
         }
       }
     },
@@ -7120,6 +8051,24 @@
         "bottomLeft",
         "bottomCenter",
         "bottomRight"
+      ]
+    },
+    "deeplink-provider": {
+      "type": "string",
+      "description": "Select a DeepLink provider to use. By default 'branch' provider is used",
+      "oneOf": [
+        {
+          "const": "branch",
+          "description": "Use the branch.io deeplink service"
+        },
+        {
+          "const": "appsflyer",
+          "description": "Use the appsflyer.com for deeplink service"
+        },
+        {
+          "const": "kochava",
+          "description": "Use the kochava.com for deeplink service"
+        }
       ]
     }
   }

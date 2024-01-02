@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/stub/ensemble_chat.dart';
+import 'package:ensemble/framework/view/footer.dart';
 import 'package:ensemble/layout/app_scroller.dart';
 import 'package:ensemble/layout/box/box_layout.dart';
 import 'package:ensemble/layout/box/fitted_box_layout.dart';
@@ -15,7 +16,9 @@ import 'package:ensemble/widget/address.dart';
 import 'package:ensemble/widget/avatar.dart';
 import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/calendar.dart';
+import 'package:ensemble/widget/checkbox.dart';
 import 'package:ensemble/widget/countdown.dart';
+import 'package:ensemble/widget/maps/static_map.dart';
 import 'package:ensemble/widget/shape.dart';
 import 'package:ensemble/widget/carousel.dart';
 import 'package:ensemble/widget/chart_highcharts_builder.dart';
@@ -30,25 +33,23 @@ import 'package:ensemble/widget/icon_button.dart';
 import 'package:ensemble/widget/image.dart';
 import 'package:ensemble/widget/image_cropper.dart';
 import 'package:ensemble/widget/input/dropdown.dart';
-import 'package:ensemble/widget/input/form_checkbox.dart';
 import 'package:ensemble/widget/input/form_date.dart';
 import 'package:ensemble/widget/input/form_textfield.dart';
 import 'package:ensemble/widget/input/form_time.dart';
 import 'package:ensemble/widget/input/slider.dart';
 import 'package:ensemble/widget/loading_container.dart';
 import 'package:ensemble/widget/lottie/lottie.dart';
-import 'package:ensemble/widget/map.dart';
 import 'package:ensemble/widget/maps/maps.dart';
 import 'package:ensemble/widget/markdown.dart';
 import 'package:ensemble/widget/popup_menu.dart';
 import 'package:ensemble/widget/progress_indicator.dart';
 import 'package:ensemble/widget/qr_code.dart';
 import 'package:ensemble/widget/rating.dart';
-import 'package:ensemble/widget/shape.dart';
 import 'package:ensemble/widget/signature.dart';
 import 'package:ensemble/widget/spacer.dart';
 import 'package:ensemble/widget/staggered_grid.dart';
 import 'package:ensemble/widget/stub_widgets.dart';
+import 'package:ensemble/widget/switch.dart';
 import 'package:ensemble/widget/text.dart';
 import 'package:ensemble/widget/toggle_button.dart';
 import 'package:ensemble/widget/video.dart';
@@ -57,7 +58,7 @@ import 'package:ensemble/widget/visualization/chart_js.dart';
 import 'package:ensemble/widget/visualization/line_area_chart.dart';
 import 'package:ensemble/widget/visualization/topology_chart.dart';
 import 'package:ensemble/widget/webview/webview.dart';
-import 'package:ensemble/widget/youtube.dart';
+import 'package:ensemble/widget/youtube/youtube.dart';
 import 'package:ensemble/widget/weeklyscheduler.dart';
 import 'package:get_it/get_it.dart';
 
@@ -74,7 +75,8 @@ class WidgetRegistry {
   /// widgets can be dynamically registered (or overridden) by calling registerWidget()
   final Map<String, Function> _registeredWidgets = {
     Avatar.type: Avatar.build,
-    Shape.type: Shape.build
+    Shape.type: Shape.build,
+    StaticMap.type: StaticMap.build,
   };
 
   /// register or override a widget
@@ -83,6 +85,9 @@ class WidgetRegistry {
   }
 
   Map<String, Function> get widgetMap => _registeredWidgets;
+
+  static Map<String, Function> get pageWidgetMap =>
+      <String, Function>{Footer.type: () => Footer()};
 
   /// Legacy: To be moved to _registeredWidgets;
   static Map<String, Function> get legacyWidgetMap => <String, Function>{
@@ -102,11 +107,11 @@ class WidgetRegistry {
         EnsembleWebView.type: () => EnsembleWebView(),
         QRCode.type: () => QRCode(),
         EnsembleProgressIndicator.type: () => EnsembleProgressIndicator(),
-        Maps.type: () => Maps(),
-        EnsembleMap.type: () => EnsembleMap(), // legacy maps
+        EnsembleMap.type: () => EnsembleMap(),
+        'Maps': () => EnsembleMap(), // backward compatible
         Carousel.type: () => Carousel(),
         Video.type: () => Video(),
-        Youtube.type: () => Youtube(),
+        YouTube.type: () => YouTube(),
         EnsembleLottie.type: () => EnsembleLottie(),
         EnsembleSignature.type: () => EnsembleSignature(),
         WeeklyScheduler.type: () => WeeklyScheduler(),

@@ -108,6 +108,8 @@ class EnsembleLottie extends StatefulWidget
           ),
       'onTap': (funcDefinition) => _controller.onTap =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onTapHaptic': (value) =>
+          _controller.onTapHaptic = Utils.optionalString(value),
       // It defines whether animation would start at the time of rendering or not
       'autoPlay': (value) => _controller.autoPlay = Utils.getBool(
             value,
@@ -140,6 +142,7 @@ class LottieController extends BoxController {
   String source = '';
   String? fit;
   EnsembleAction? onTap;
+  String? onTapHaptic;
   bool repeat = true;
   bool autoPlay = true;
 

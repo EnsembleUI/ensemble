@@ -120,6 +120,11 @@ mixin ThemeLoader {
                 isOutline: true, colorScheme: customColorSchema) ??
             defaultTheme.outlinedButtonTheme.style,
       ),
+      textButtonTheme: TextButtonThemeData(
+        style: _buildButtonTheme(overrides?['Widgets']?['Button'],
+                isOutline: true, colorScheme: customColorSchema) ??
+            defaultTheme.outlinedButtonTheme.style,
+      ),
       filledButtonTheme: FilledButtonThemeData(
         style: _buildButtonTheme(overrides?['Widgets']?['Button'],
                 isOutline: false, colorScheme: customColorSchema) ??

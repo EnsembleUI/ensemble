@@ -286,6 +286,21 @@ class Utils {
     return null;
   }
 
+  static List<YamlMap>? getListOfYamlMap(dynamic value) {
+    if (value is YamlList || value is List) {
+      List<YamlMap> results = [];
+      for (var item in value) {
+        if (item is YamlMap) {
+          results.add(item);
+        } else {
+          results.add(getYamlMap(item) ?? YamlMap());
+        }
+      }
+      return results;
+    }
+    return null;
+  }
+
   static Map<String, dynamic>? getMap(dynamic value) {
     if (value is Map) {
       Map<String, dynamic> results = {};
@@ -300,6 +315,14 @@ class Utils {
   static YamlMap? getYamlMap(dynamic value) {
     Map? map = getMap(value);
     return map != null ? YamlMap.wrap(map) : null;
+  }
+
+  //this is semantically different from the methods above as it is doesn't return null when value is not a map
+  static dynamic maybeYamlMap(dynamic value) {
+    if (value is Map) {
+      return YamlMap.wrap(value);
+    }
+    return value;
   }
 
   static Color? getColor(dynamic value) {
@@ -404,6 +427,7 @@ class Utils {
     return TextStyleComposite(
       widgetController,
       textGradient: Utils.getBackgroundGradient(style['gradient']),
+      textAlign: style['textAlign'],
       styleWithFontFamily: getTextStyle(style),
     );
   }
@@ -452,6 +476,31 @@ class Utils {
       }
     }
     return null;
+  }
+
+  static TextAlign? getTextAlignment(dynamic align) {
+    TextAlign? textAlign;
+    switch (align) {
+      case 'start':
+        textAlign = TextAlign.start;
+        break;
+      case 'end':
+        textAlign = TextAlign.end;
+        break;
+      case 'left':
+        textAlign = TextAlign.left;
+        break;
+      case 'center':
+        textAlign = TextAlign.center;
+        break;
+      case 'right':
+        textAlign = TextAlign.right;
+        break;
+      case 'justify':
+        textAlign = TextAlign.justify;
+        break;
+    }
+    return textAlign;
   }
 
   static TextDecoration? getDecoration(dynamic decoration) {
@@ -845,5 +894,14 @@ class Utils {
     }
     // Fallback - Returning same passed-in object to the caller
     return dataMapObjects;
+  }
+
+  static String generateRandomId(int length) {
+    var rand = Random();
+    var codeUnits = List.generate(length, (index) {
+      return rand.nextInt(26) + 97; // ASCII code for lowercase a-z
+    });
+
+    return String.fromCharCodes(codeUnits);
   }
 }

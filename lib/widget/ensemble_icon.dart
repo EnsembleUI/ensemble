@@ -1,3 +1,4 @@
+import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
@@ -39,6 +40,8 @@ class EnsembleIcon extends StatefulWidget
       'splashColor': (value) => _controller.splashColor = Utils.getColor(value),
       'onTap': (funcDefinition) => _controller.onTap =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onTapHaptic': (value) =>
+          _controller.onTapHaptic = Utils.optionalString(value),
     };
   }
 
@@ -58,6 +61,7 @@ class IconController extends BoxController {
   Color? color;
   Color? splashColor;
   EnsembleAction? onTap;
+  String? onTapHaptic;
 }
 
 class IconState extends WidgetState<EnsembleIcon> {
@@ -84,9 +88,19 @@ class IconState extends WidgetState<EnsembleIcon> {
           splashColor: widget._controller.splashColor ??
               ThemeManager().getSplashColor(context),
           borderRadius: widget._controller.borderRadius?.getValue(),
-          onTap: () => ScreenController().executeAction(
-              context, widget._controller.onTap!,
-              event: EnsembleEvent(widget)),
+          onTap: () {
+            if (widget._controller.onTapHaptic != null) {
+              ScreenController().executeAction(
+                context,
+                HapticAction(
+                  type: widget._controller.onTapHaptic!,
+                  onComplete: null,
+                ),
+              );
+            }
+            ScreenController().executeAction(context, widget._controller.onTap!,
+                event: EnsembleEvent(widget));
+          },
           child: rtn);
       if (widget._controller.margin != null) {
         rtn = Padding(padding: widget._controller.margin!, child: rtn);

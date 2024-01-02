@@ -1,10 +1,12 @@
 import 'dart:collection';
 import 'dart:developer';
 
+import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/studio_debugger.dart';
+import 'package:ensemble/framework/view/footer.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/model/pull_to_refresh.dart';
@@ -66,6 +68,8 @@ class GridView extends StatefulWidget
           _controller.itemAspectRatio = Utils.optionalDouble(value, min: 0),
       'onItemTap': (funcDefinition) => _controller.onItemTap =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
+      'onItemTapHaptic': (value) =>
+          _controller.onItemTapHaptic = Utils.optionalString(value),
       'onPullToRefresh': (funcDefinition) => _controller.onPullToRefresh =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'pullToRefreshOptions': (input) => _controller.pullToRefreshOptions =
@@ -78,6 +82,8 @@ class GridView extends StatefulWidget
         if (value is! ScrollController) return null;
         return _controller.scrollController = value;
       },
+      'direction': (value) =>
+          _controller.direction = Utils.optionalString(value),
     };
   }
 
@@ -97,11 +103,12 @@ class GridViewController extends BoxController with HasPullToRefresh {
 
   ItemTemplate? itemTemplate;
   EnsembleAction? onItemTap;
+  String? onItemTapHaptic;
   int selectedItemIndex = -1;
   EnsembleAction? onScrollEnd;
   bool reverse = false;
   ScrollController? scrollController;
-
+  String? direction;
   // single number, 3 numbers (small, medium, large), or 5 numbers (xSmall, small, medium, large, xLarge)
   // min 1, max 5
   setHorizontalTileCount(dynamic value) {
@@ -195,20 +202,27 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
 
   @override
   Widget buildWidget(BuildContext context) {
+    FooterScope? footerScope = FooterScope.of(context);
+    if (footerScope != null && footerScope.isRootWithinFooter(context)) {
+      widget._controller.scrollController = footerScope.scrollController;
+    }
     if (widget._controller.itemTemplate == null) {
       return const SizedBox.shrink();
     }
 
     Widget myGridView = LayoutBuilder(builder: (context, constraints) {
-      if (StudioDebugger().debugMode) {
-        StudioDebugger()
-            .assertScrollableHasBoundedHeight(constraints, GridView.type);
-      }
-
       return flutter.GridView.builder(
-          physics: widget._controller.onPullToRefresh != null
-              ? const AlwaysScrollableScrollPhysics()
-              : null,
+          controller: (footerScope != null &&
+                  footerScope.isColumnScrollableAndRoot(context))
+              ? null
+              : widget._controller.scrollController,
+          shrinkWrap: FooterScope.of(context) != null ? true : false,
+          physics: (footerScope != null &&
+                  footerScope.isColumnScrollableAndRoot(context))
+              ? const NeverScrollableScrollPhysics()
+              : widget._controller.onPullToRefresh != null
+                  ? const AlwaysScrollableScrollPhysics()
+                  : null,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: _getTileCount(constraints),
             crossAxisSpacing:
@@ -222,12 +236,17 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
           ),
           itemCount: _items.length,
           reverse: widget._controller.reverse,
-          scrollDirection: Axis.vertical,
+          scrollDirection: widget._controller.direction == 'horizontal'
+              ? flutter.Axis.horizontal
+              : flutter.Axis.vertical,
           cacheExtent: cachedPixels,
           padding: widget._controller.padding,
           itemBuilder: (context, index) => _buildItem(index));
     });
-
+    if (StudioDebugger().debugMode) {
+      myGridView = StudioDebugger().assertScrollableHasBoundedHeightWrapper(
+          myGridView, GridView.type, context, widget.controller);
+    }
     // wrapping view inside
 
     if (widget._controller.onPullToRefresh != null) {
@@ -270,6 +289,16 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
 
   void _onItemTap(int index) {
     if (widget.controller.onItemTap != null) {
+      if (widget.controller.onItemTapHaptic != null) {
+        ScreenController().executeAction(
+          context,
+          HapticAction(
+            type: widget.controller.onItemTapHaptic!,
+            onComplete: null,
+          ),
+        );
+      }
+
       widget._controller.selectedItemIndex = index;
       ScreenController().executeAction(context, widget._controller.onItemTap!);
     }

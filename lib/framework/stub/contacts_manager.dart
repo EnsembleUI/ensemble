@@ -7,6 +7,7 @@ typedef ContactErrorCallback = void Function(dynamic);
 abstract class ContactManager {
   void getPhoneContacts(
       ContactSuccessCallback onSuccess, ContactErrorCallback onError);
+
   Future<bool> requestPermission();
 }
 
@@ -30,6 +31,7 @@ class Contact {
   String displayName;
   Uint8List? thumbnail;
   Uint8List? photo;
+
   Uint8List? get photoOrThumbnail => photo ?? thumbnail;
   bool isStarred;
   Name name;
@@ -37,6 +39,7 @@ class Contact {
   List<Email> emails;
   List<Address> addresses;
   List<Organization> organizations;
+  Organization? organization;
   List<Website> websites;
   bool thumbnailFetched = true;
   bool photoFetched = true;
@@ -60,6 +63,9 @@ class Contact {
         emails = emails ?? <Email>[],
         addresses = addresses ?? <Address>[],
         organizations = organizations ?? <Organization>[],
+        organization = organizations != null && organizations.isNotEmpty
+            ? organizations[0]
+            : null,
         websites = websites ?? <Website>[];
 
   factory Contact.fromJson(Map<String, dynamic> json) => Contact(
@@ -98,9 +104,12 @@ class Contact {
         'isStarred': isStarred,
         'name': name.toJson(),
         'phones': phones.map((x) => x.toJson()).toList(),
+        'phone': phones.isNotEmpty ? phones[0].number : '', // first phone
         'emails': emails.map((x) => x.toJson()).toList(),
+        'email': emails.isNotEmpty ? emails[0].address : '', // first email
         'addresses': addresses.map((x) => x.toJson()).toList(),
         'organizations': organizations.map((x) => x.toJson()).toList(),
+        'organization': organization,
         'websites': websites.map((x) => x.toJson()).toList(),
       });
 }
