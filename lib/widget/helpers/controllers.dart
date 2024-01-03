@@ -363,7 +363,7 @@ abstract class EnsembleWidgetController extends EnsembleController {
 
 /// for Controllers that need Box properties
 class EnsembleBoxController extends EnsembleWidgetController
-    with HasBackgroundController, HasBorderController {
+    with HasBackgroundController, HasBorderController, HasPassThrough {
   EdgeInsets? margin;
   EdgeInsets? padding;
 
