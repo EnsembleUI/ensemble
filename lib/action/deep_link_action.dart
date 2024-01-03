@@ -1,12 +1,13 @@
-import 'package:ensemble/deferred_deep_link_manager.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/stub/deferred_link_manager.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:get_it/get_it.dart';
 
 class DeepLinkInitAction extends EnsembleAction {
   DeepLinkInitAction({
@@ -52,7 +53,7 @@ class DeepLinkInitAction extends EnsembleAction {
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) async {
     try {
-      await DeferredDeepLinkManager().init(
+      await GetIt.I<DeferredLinkManager>().init(
           provider: provider,
           options: options,
           onLinkReceived: (linkData) {
@@ -114,7 +115,7 @@ class CreateDeeplinkAction extends EnsembleAction {
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) async {
     try {
-      final response = await DeferredDeepLinkManager().createDeepLink(
+      final response = await GetIt.I<DeferredLinkManager>().createDeepLink(
           provider: provider,
           universalProps: universalProps,
           linkProps: linkProps);
