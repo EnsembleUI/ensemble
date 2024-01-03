@@ -2174,10 +2174,12 @@
                   "$ref": "#/$defs/InvokeAPI-payload"
                 },
                 {
-                  "setSignInCredentialsOnResponse": {
-                    "type": "object",
-                    "description": "On server response, set any key/value pairs to save them as the user's credentials. The client will automatically sign the user in and have these key/value pairs available at ${auth.user.data}",
-                    "additionalProperties": {}
+                  "properties": {
+                    "setSignInCredentialsOnResponse": {
+                      "type": "object",
+                      "description": "On server response, set any key/value pairs to save them as the user's credentials. The client will automatically sign the user in and have these key/value pairs available at ${auth.user.data}",
+                      "additionalProperties": {}
+                    }
                   }
                 }
               ]
