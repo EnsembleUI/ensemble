@@ -2161,6 +2161,36 @@
       ]
     },
     "SignIn-payload": {
+      "oneOf": [
+        {
+          "properties": {
+            "provider": {"enum": ["server"]},
+            "signInServerAPI": {
+              "type": "object",
+              "description": "Call this Server API to retrieve the server credentials to sign in:\n1. Authenticate with Google, Apple, ..\n2. Call your server with the idToken (accessible with ${idToken}) and expect the response to contain server-specific credentials necessary for subsequent access.\n3. Client will set these credentials and sign the user in locally. The credentials are accessible with ${auth.user.data}\n4. Subsequent server API calls can append these credentials to the requests.",
+              "required": ["setSignInCredentialsOnResponse"],
+              "allOf": [
+                {
+                  "$ref": "#/$defs/InvokeAPI-payload"
+                },
+                {
+                  "setSignInCredentialsOnResponse": {
+                    "type": "object",
+                    "description": "On server response, set any key/value pairs to save them as the user's credentials. The client will automatically sign the user in and have these key/value pairs available at ${auth.user.data}",
+                    "additionalProperties": {}
+                  }
+                }
+              ]
+            }
+          },
+          "required": ["signInServerAPI"]
+        },
+        {
+          "properties": {
+            "provider": {"not": {"enum": ["server"]}}
+          }
+        }
+      ],
       "properties": {
         "provider": {
           "type": "string",
@@ -2180,36 +2210,6 @@
             }
           ]
         },
-        "oneOf": [
-          {
-            "properties": {
-              "provider": {"enum": ["server"]},
-              "signInServerAPI": {
-                "type": "object",
-                "description": "Call this Server API to retrieve the server credentials to sign in:\n1. Authenticate with Google, Apple, ..\n2. Call your server with the idToken (accessible with ${idToken}) and expect the response to contain server-specific credentials necessary for subsequent access.\n3. Client will set these credentials and sign the user in locally. The credentials are accessible with ${auth.user.data}\n4. Subsequent server API calls can append these credentials to the requests.",
-                "required": ["setSignInCredentialsOnResponse"],
-                "allOf": [
-                  {
-                    "$ref": "#/$defs/InvokeAPI-payload"
-                  },
-                  {
-                    "setSignInCredentialsOnResponse": {
-                      "type": "object",
-                      "description": "On server response, set any key/value pairs to save them as the user's credentials. The client will automatically sign the user in and have these key/value pairs available at ${auth.user.data}",
-                      "additionalProperties": {}
-                    }
-                  }
-                ]
-              }
-            },
-            "required": ["signInServerAPI"]
-          },
-          {
-            "properties": {
-              "provider": {"not": {"enum": ["server"]}}
-            }
-          }
-        ],
         "onSignedIn": {
           "description": "Execute an Action once the user has signed in.",
           "$ref": "#/$defs/Action-payload"
@@ -7925,7 +7925,7 @@
         },
         "lineHeightMultiple": {
           "type": "number",
-          "description": "A multiple of the fontSize to determine the line height. (e.g. 2.0 means the line height is double the height the font size occupies). Default null. (note that 1.0 is not the default depending on the font)"
+          "description": "A multiplier applied to the font size to determine line height (e.g., 2.0 for double the height of the font size). By default this value varies on the font used."
         },
         "fontWeight": {
           "$ref": "#/$defs/type-fontWeight"
