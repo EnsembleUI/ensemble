@@ -2,12 +2,14 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 
+import 'package:ensemble/controller/controller_mixins.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/stub/location_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
@@ -18,7 +20,6 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:event_bus/event_bus.dart';
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:web_socket_client/web_socket_client.dart';
 import 'package:yaml/yaml.dart';
 
@@ -77,7 +78,8 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
   }
 
   /// only 1 location listener per screen
-  void addLocationListener(StreamSubscription<Position> streamSubscription) {
+  void addLocationListener(
+      StreamSubscription<LocationData> streamSubscription) {
     // first cancel the previous one
     pageData.locationListener?.cancel();
     pageData.locationListener = streamSubscription;
@@ -336,6 +338,8 @@ mixin ViewBuilder on IsScopeManager {
   bool _isPassthroughProperty(String property, dynamic widget) =>
       property.startsWith('on') ||
       (widget is HasController &&
+          widget.passthroughSetters().contains(property)) ||
+      (widget is HasPassThrough &&
           widget.passthroughSetters().contains(property));
 
   /// iterate through and set/evaluate the widget's properties/styles/...
@@ -566,7 +570,7 @@ class PageData {
   final List<EnsembleTimer> _timers = [];
 
   /// 1 recurring location listener per page
-  StreamSubscription<Position>? locationListener;
+  StreamSubscription<LocationData>? locationListener;
 
   // list of all opened Dialogs' contexts
   final List<BuildContext> openedDialogs = [];

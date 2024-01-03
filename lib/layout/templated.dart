@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page.dart';
@@ -24,8 +25,10 @@ mixin TemplatedWidgetState<W extends StatefulWidget> on State<W> {
         // listen to the binding from our itemTemplate
         // data: $(apiName.*)
         scopeManager.listen(scopeManager, dataExpression.rawExpression,
-            destination:
-                BindingDestination(widget as Invokable, 'item-template'),
+            destination: (widget is EnsembleWidget)
+                ? BindingDestination(
+                    (widget as EnsembleWidget).controller, 'item-template')
+                : BindingDestination(widget as Invokable, 'item-template'),
             onDataChange: (ModelChangeEvent event) {
           // evaluate the expression
           dynamic dataList = scopeManager.dataContext.eval(itemTemplate.data);
