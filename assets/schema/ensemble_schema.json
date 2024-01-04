@@ -2212,8 +2212,12 @@
             }
           ]
         },
+        "onAuthenticated": {
+          "description": "Execute an Action when the user has successfully authenticated",
+          "$ref": "#/$defs/Action-payload"
+        },
         "onSignedIn": {
-          "description": "Execute an Action once the user has signed in.",
+          "description": "Dispatch when the user has successfully authenticated and the system has signed the user in. This event is only applicable when the provider is not of type Server.",
           "$ref": "#/$defs/Action-payload"
         },
         "onError": {
