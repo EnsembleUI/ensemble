@@ -1,0 +1,23 @@
+name: Trigger Preview Build
+
+on: 
+    pull_request: 
+        types: [closed]
+        branches: 
+            - main
+    # push:
+    #     branches:
+    #         - main
+    workflow_dispatch:  # Added manual trigger option
+
+jobs:
+    Trigger-Preview-Build:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Create workflow dispatch event
+              uses: benc-uk/workflow-dispatch@v1
+              with:
+                workflow: 80211660
+                repo: ensembleUI/ensemble_live
+                token: ${{ secrets.PAT }}
+            
