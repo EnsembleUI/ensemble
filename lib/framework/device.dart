@@ -6,12 +6,13 @@ import 'package:app_settings/app_settings.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/storage_manager.dart';
+import 'package:ensemble/framework/stub/location_manager.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 
 /// get device information as well as requesting device permissions
@@ -91,51 +92,17 @@ mixin MediaQueryCapability {
   }
 }
 
-/// This mixin can access user's location
+// /// This mixin can access user's location
 mixin LocationCapability {
-  static Position? lastLocation;
+  static LocationData? lastLocation;
 
-  Position? getLastLocation() {
+  LocationData? getLastLocation() {
     return lastLocation;
   }
 
   // TODO: shouldn't set this from outside.
-  void updateLastLocation(Position location) {
+  void updateLastLocation(LocationData location) {
     lastLocation = location;
-  }
-
-  Future<LocationStatus> getLocationStatus() async {
-    if (await Geolocator.isLocationServiceEnabled()) {
-      LocationPermission permission = await Geolocator.checkPermission();
-      // ask for permission if not already
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-
-      if (![LocationPermission.denied, LocationPermission.deniedForever]
-          .contains(permission)) {
-        return LocationStatus.ready;
-      } else {
-        return LocationStatus.denied;
-      }
-    }
-    return LocationStatus.disabled;
-  }
-
-  Future<DeviceLocation> getLocation() async {
-    Position? location;
-    LocationStatus status = await getLocationStatus();
-    if (status == LocationStatus.ready) {
-      location = await simplyGetLocation();
-    }
-    return DeviceLocation(status: status, location: location);
-  }
-
-  /// return the location without any permission checks. Use this only
-  /// if you already check for permission with getLocationStatus()
-  Future<Position> simplyGetLocation() async {
-    lastLocation = await Geolocator.getCurrentPosition();
-    return lastLocation!;
   }
 }
 
@@ -208,7 +175,7 @@ class DeviceWebInfo with Invokable {
 
 class Location with Invokable {
   Location(this.location);
-  Position? location;
+  LocationData? location;
 
   @override
   Map<String, Function> getters() {
@@ -234,7 +201,7 @@ class Location with Invokable {
   /// return distance between 2 coordinates in miles
   double? getDistance(double lat, double lng) {
     if (location != null) {
-      return Geolocator.distanceBetween(
+      return GetIt.I<LocationManager>().distanceBetween(
               location!.latitude, location!.longitude, lat, lng) /
           1609.344;
     }
@@ -256,7 +223,7 @@ enum DevicePlatform { web, android, ios, macos, windows, other }
 // the wrapper class for location request that includes other info
 class DeviceLocation {
   DeviceLocation({required this.status, this.location});
-  Position? location;
+  LocationData? location;
   LocationStatus status;
 }
 

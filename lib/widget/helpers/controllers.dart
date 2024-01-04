@@ -28,7 +28,9 @@ abstract class WidgetCompositeProperty with Invokable {
 
 class TextStyleComposite extends WidgetCompositeProperty {
   TextStyleComposite(super.widgetController,
-      {LinearGradient? textGradient, TextStyle? styleWithFontFamily})
+      {LinearGradient? textGradient,
+      dynamic textAlign,
+      TextStyle? styleWithFontFamily})
       : fontFamily = styleWithFontFamily,
         fontSize = styleWithFontFamily?.fontSize?.toInt(),
         lineHeightMultiple = styleWithFontFamily?.height,
@@ -36,6 +38,7 @@ class TextStyleComposite extends WidgetCompositeProperty {
         isItalic = styleWithFontFamily?.fontStyle == FontStyle.italic,
         color = textGradient == null ? styleWithFontFamily?.color : null,
         gradient = textGradient,
+        textAlign = Utils.getTextAlignment(textAlign),
         backgroundColor = styleWithFontFamily?.backgroundColor,
         decoration = styleWithFontFamily?.decoration,
         decorationStyle = styleWithFontFamily?.decorationStyle,
@@ -56,6 +59,7 @@ class TextStyleComposite extends WidgetCompositeProperty {
   TextOverflow? overflow;
   double? letterSpacing;
   double? wordSpacing;
+  TextAlign? textAlign;
 
   TextStyle getTextStyle() => (fontFamily ?? const TextStyle()).copyWith(
       fontSize: fontSize?.toDouble(),
@@ -90,6 +94,7 @@ class TextStyleComposite extends WidgetCompositeProperty {
       'overflow': (value) => overflow = TextOverflow.values.from(value),
       'letterSpacing': (value) => letterSpacing = Utils.optionalDouble(value),
       'wordSpacing': (value) => wordSpacing = Utils.optionalDouble(value),
+      'textAlign': (value) => textAlign = Utils.getTextAlignment(value),
     };
   }
 
@@ -358,7 +363,7 @@ abstract class EnsembleWidgetController extends EnsembleController {
 
 /// for Controllers that need Box properties
 class EnsembleBoxController extends EnsembleWidgetController
-    with HasBackgroundController, HasBorderController {
+    with HasBackgroundController, HasBorderController, HasPassThrough {
   EdgeInsets? margin;
   EdgeInsets? padding;
 
