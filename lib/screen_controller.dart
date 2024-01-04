@@ -4,6 +4,7 @@ import 'dart:async';
 
 import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/action/navigation_action.dart';
+import 'package:ensemble/action/phone_contact_action.dart';
 import 'package:ensemble/action/upload_files_action.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
@@ -332,9 +333,21 @@ class ScreenController {
             context,
             scopeManager,
             action.getOnError(scopeManager.dataContext)!,
-            event: EnsembleEvent(action.initiator!, data: {'error': error}),
+            event: EnsembleEvent(action.initiator!, error: error),
           );
         }
+      });
+    } else if (action is PhoneContactPhotoAction) {
+      GetIt.I<ContactManager>().getContactPhoto(
+          action.getContactId(scopeManager.dataContext), (imageData) {
+        // print('Image Data: $imageData');
+        if (action.id != null) {
+          scopeManager.dataContext.addDataContextById(
+              action.id!, PhoneContactPhotoResponse(image: imageData));
+        }
+        updateContactData(action, scopeManager, context);
+      }, (error) {
+        print('Contact Photo Error: $error');
       });
     } else if (action is ShowCameraAction) {
       GetIt.I<CameraManager>().openCamera(context, action, scopeManager);
@@ -598,6 +611,15 @@ class ScreenController {
     // catch-all. All Actions should just be using this
     else {
       action.execute(context, scopeManager);
+    }
+  }
+
+  void updateContactData(PhoneContactPhotoAction action,
+      ScopeManager? scopeManager, BuildContext context) {
+    if (action.id != null && scopeManager != null) {
+      final contactData = scopeManager.dataContext.getContextById(action.id!);
+      scopeManager.dispatch(
+          ModelChangeEvent(SimpleBindingSource(action.id!), contactData));
     }
   }
 

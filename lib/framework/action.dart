@@ -8,6 +8,7 @@ import 'package:ensemble/action/invoke_api_action.dart';
 import 'package:ensemble/action/misc_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/action/notification_action.dart';
+import 'package:ensemble/action/phone_contact_action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
@@ -267,39 +268,6 @@ class AppSettingAction extends EnsembleAction {
     return AppSettingAction(
       initiator: initiator,
       target: Utils.getString(payload?['target'], fallback: 'settings'),
-    );
-  }
-}
-
-class PhoneContactAction extends EnsembleAction {
-  PhoneContactAction({
-    super.initiator,
-    this.id,
-    this.onSuccess,
-    this.onError,
-  });
-
-  final String? id;
-  final EnsembleAction? onSuccess;
-  final EnsembleAction? onError;
-
-  EnsembleAction? getOnSuccess(DataContext dataContext) =>
-      dataContext.eval(onSuccess);
-
-  EnsembleAction? getOnError(DataContext dataContext) =>
-      dataContext.eval(onError);
-
-  factory PhoneContactAction.fromYaml({Invokable? initiator, Map? payload}) {
-    if (payload == null) {
-      throw LanguageError(
-          "${ActionType.getPhoneContacts.name} action requires payload");
-    }
-
-    return PhoneContactAction(
-      initiator: initiator,
-      id: Utils.optionalString(payload['id']),
-      onSuccess: EnsembleAction.fromYaml(payload['onSuccess']),
-      onError: EnsembleAction.fromYaml(payload['onError']),
     );
   }
 }
@@ -926,6 +894,7 @@ enum ActionType {
   openPlaidLink,
   openAppSettings,
   getPhoneContacts,
+  getPhoneContactPhoto,
   checkPermission,
   saveKeychain,
   clearKeychain,
@@ -1060,6 +1029,9 @@ abstract class EnsembleAction {
       return AppSettingAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.getPhoneContacts) {
       return PhoneContactAction.fromYaml(
+          initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.getPhoneContactPhoto) {
+      return PhoneContactPhotoAction.fromYaml(
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.checkPermission) {
       return CheckPermission.fromYaml(payload: payload);
