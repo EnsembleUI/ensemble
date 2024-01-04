@@ -54,8 +54,7 @@ class EnsembleImage extends StatefulWidget
     return {
       'cache': (value) =>
           _controller.cache = Utils.getBool(value, fallback: true),
-      'source': (value) =>
-          _controller.source = Utils.getString(value, fallback: ''),
+      'source': (value) => _controller.source = value,
       'fit': (value) => _controller.fit = Utils.getBoxFit(value),
       'resizedWidth': (width) => _controller.resizedWidth =
           Utils.optionalInt(width, min: 0, max: 2000),
@@ -97,6 +96,7 @@ class ImageState extends WidgetState<EnsembleImage> {
   @override
   Widget buildWidget(BuildContext context) {
     Widget image;
+
     // Memory Image
     if (widget._controller.source is YamlList) {
       final List<int> data = Utils.getList(widget._controller.source) ?? [];
@@ -164,6 +164,14 @@ class ImageState extends WidgetState<EnsembleImage> {
   }
 
   Widget buildMemoryImage(Uint8List source) {
+    if (isSvg()) {
+      return SvgPicture.memory(
+        source,
+        width: widget._controller.width?.toDouble(),
+        height: widget._controller.height?.toDouble(),
+        fit: widget._controller.fit ?? BoxFit.contain,
+      );
+    }
     return Image.memory(
       source,
       width: widget._controller.width?.toDouble(),
@@ -273,6 +281,20 @@ class ImageState extends WidgetState<EnsembleImage> {
   }
 
   bool isSvg() {
+    // Bytes Image
+    if (widget._controller.source is YamlList) {
+      final List<int> data = Utils.getList(widget._controller.source) ?? [];
+      final Uint8List imageBytes = Uint8List.fromList(data);
+
+      return imageBytes.length >= 5 &&
+          imageBytes[0] == 0x3C &&
+          imageBytes[1] == 0x3F &&
+          imageBytes[2] == 0x78 &&
+          imageBytes[3] == 0x6D &&
+          imageBytes[4] == 0x6C;
+    }
+
+    // String path image
     final mimeType = lookupMimeType(widget._controller.source);
     return mimeType?.contains('svg') == true;
   }
