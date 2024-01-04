@@ -11,6 +11,8 @@ abstract class EnsembleWidget<C extends EnsembleController>
     extends StatefulWidget {
   const EnsembleWidget(this.controller, {super.key});
   final C controller;
+
+  List<String> passthroughSetters() => [];
 }
 
 abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {

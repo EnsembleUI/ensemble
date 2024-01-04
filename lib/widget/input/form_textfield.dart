@@ -34,7 +34,13 @@ class TextInput extends BaseTextInput {
   Map<String, Function> setters() {
     Map<String, Function> setters = super.setters();
     setters.addAll({
-      'value': (newValue) => textController.text = newValue,
+      'value': (newValue) {
+        if (newValue == null) {
+          textController.text = '';
+          return;
+        }
+        textController.text = Utils.optionalString(newValue)!;
+      },
       'obscureText': (obscure) =>
           _controller.obscureText = Utils.optionalBool(obscure),
       'inputType': (type) => _controller.inputType = Utils.optionalString(type),

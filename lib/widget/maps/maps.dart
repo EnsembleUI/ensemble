@@ -16,15 +16,17 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:yaml/yaml.dart';
 
-class Maps extends StatefulWidget
-    with Invokable, HasController<MyController, MapsState> {
-  static const type = 'Maps';
-  Maps({Key? key}) : super(key: key);
+class EnsembleMap extends StatefulWidget
+    with Invokable, HasController<MyController, EnsembleMapState> {
+  static const type = 'Map';
+
+  EnsembleMap({Key? key}) : super(key: key);
 
   @override
-  MapsState createState() => MapsState();
+  EnsembleMapState createState() => EnsembleMapState();
 
   final MyController _controller = MyController();
+
   @override
   MyController get controller => _controller;
 
@@ -152,6 +154,7 @@ class Maps extends StatefulWidget
 
 class MyController extends WidgetController with LocationCapability {
   MapActions? mapActions;
+
   // a size is required, either explicit or via parent
   int? height;
   int? width;
@@ -200,7 +203,9 @@ class MyController extends WidgetController with LocationCapability {
   EnsembleAction? onCameraMove;
 
   MapType? _mapType;
+
   MapType? get mapType => _mapType;
+
   set mapType(dynamic input) {
     _mapType = MapType.values.from(input);
     if (_mapType == MapType.none) {
@@ -251,6 +256,7 @@ class MarkerItemTemplate extends ItemTemplate {
 /// a marker template and selectedTemplate can take in an image, an icon, or a custom widget
 class MarkerTemplate {
   MarkerTemplate._({this.source, this.icon, this.widget});
+
   final String? source;
   final String? icon;
   final String? widget;

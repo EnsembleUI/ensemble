@@ -1,6 +1,7 @@
 import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/action/badge_action.dart';
 import 'package:ensemble/action/bottom_modal_action.dart';
+import 'package:ensemble/action/deep_link_action.dart';
 import 'package:ensemble/action/call_external_method.dart';
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/action/call_native_method.dart';
@@ -9,6 +10,7 @@ import 'package:ensemble/action/misc_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/action/notification_action.dart';
 import 'package:ensemble/action/phone_contact_action.dart';
+import 'package:ensemble/action/sign_in_out_action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
@@ -74,12 +76,12 @@ class ShowDialogAction extends EnsembleAction {
     }
     return ShowDialogAction(
       initiator: initiator,
-      widget: payload['widget'],
-      //inputs: Utils.getMap(payload["inputs"]),
+      widget: Utils.maybeYamlMap(payload['widget']),
       options: Utils.getMap(payload['options']),
       onDialogDismiss: payload['onDialogDismiss'] == null
           ? null
-          : EnsembleAction.fromYaml(payload['onDialogDismiss']),
+          : EnsembleAction.fromYaml(
+              Utils.maybeYamlMap(payload['onDialogDismiss'])),
     );
   }
 }
@@ -908,6 +910,10 @@ enum ActionType {
   callExternalMethod,
   invokeHaptic,
   callNativeMethod,
+  deeplinkInit,
+  createDeeplink,
+  verifySignIn,
+  signOut,
 }
 
 enum ToastType { success, error, warning, info }
@@ -1058,6 +1064,19 @@ abstract class EnsembleAction {
       return ClearKeychain.fromYaml(payload: payload);
     } else if (actionType == ActionType.invokeHaptic) {
       return HapticAction.from(payload);
+    } else if (actionType == ActionType.deeplinkInit) {
+      return DeepLinkInitAction.fromMap(payload: payload);
+    } else if (actionType == ActionType.createDeeplink) {
+      return CreateDeeplinkAction.fromMap(payload: payload);
+    } else if (actionType == ActionType.verifySignIn) {
+      return VerifySignInAction(
+          initiator: initiator,
+          onSignedIn: EnsembleAction.fromYaml(payload?['onSignedIn']),
+          onNotSignedIn: EnsembleAction.fromYaml(payload?['onNotSignedIn']));
+    } else if (actionType == ActionType.signOut) {
+      return SignOutAction(
+          initiator: initiator,
+          onComplete: EnsembleAction.fromYaml(payload?['onComplete']));
     }
 
     throw LanguageError("Invalid action.",

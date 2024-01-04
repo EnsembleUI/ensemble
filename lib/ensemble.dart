@@ -395,23 +395,21 @@ class AppBundle {
 
 /// store the App's account info (e.g. access token for maps)
 class Account {
-  Account({this.firebaseConfig, this.mapAccessToken});
+  Account({this.firebaseConfig, this.googleMapsAPIKey});
   FirebaseConfig? firebaseConfig;
 
-  // legacy Mapbox key
-  String? mapAccessToken;
+  String? googleMapsAPIKey;
 
   factory Account.fromYaml(dynamic input) {
     FirebaseConfig? firebaseConfig;
-    String? mapAccessToken;
+    String? googleMapsAPIKey;
 
     if (input != null && input is Map) {
       firebaseConfig = FirebaseConfig.fromYaml(input['firebase']);
-      mapAccessToken =
-          Utils.optionalString(input['maps']?['mapbox_access_token']);
+      googleMapsAPIKey = Utils.optionalString(input['googleMaps']?['apiKey']);
     }
     return Account(
-        firebaseConfig: firebaseConfig, mapAccessToken: mapAccessToken);
+        firebaseConfig: firebaseConfig, googleMapsAPIKey: googleMapsAPIKey);
   }
 }
 
