@@ -19,7 +19,6 @@ import 'package:flutter_svg/svg.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
 import 'package:http/http.dart' as http;
-import 'package:yaml/yaml.dart';
 
 class EnsembleImage extends StatefulWidget
     with Invokable, HasController<ImageController, ImageState> {
@@ -96,11 +95,9 @@ class ImageState extends WidgetState<EnsembleImage> {
   @override
   Widget buildWidget(BuildContext context) {
     Widget image;
-
     // Memory Image
-    if (widget._controller.source is YamlList) {
-      final List<int> data = Utils.getList(widget._controller.source) ?? [];
-      final imageBytes = Uint8List.fromList(data);
+    if (widget._controller.source is List<dynamic>) {
+      final imageBytes = Uint8List.fromList(widget._controller.source);
       image = buildMemoryImage(imageBytes);
     } else {
       String source =
@@ -282,9 +279,9 @@ class ImageState extends WidgetState<EnsembleImage> {
 
   bool isSvg() {
     // Bytes Image
-    if (widget._controller.source is YamlList) {
-      final List<int> data = Utils.getList(widget._controller.source) ?? [];
-      final Uint8List imageBytes = Uint8List.fromList(data);
+    if (widget._controller.source is List<dynamic>) {
+      final Uint8List imageBytes =
+          Uint8List.fromList(widget._controller.source);
 
       return imageBytes.length >= 5 &&
           imageBytes[0] == 0x3C &&
