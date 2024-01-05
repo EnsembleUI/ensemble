@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -280,15 +281,8 @@ class ImageState extends WidgetState<EnsembleImage> {
   bool isSvg() {
     // Bytes Image
     if (widget._controller.source is List<dynamic>) {
-      final Uint8List imageBytes =
-          Uint8List.fromList(widget._controller.source);
-
-      return imageBytes.length >= 5 &&
-          imageBytes[0] == 0x3C &&
-          imageBytes[1] == 0x3F &&
-          imageBytes[2] == 0x78 &&
-          imageBytes[3] == 0x6D &&
-          imageBytes[4] == 0x6C;
+      String bytesAsString = utf8.decode(widget._controller.source);
+      return bytesAsString.contains('<svg') || bytesAsString.contains('<xml');
     }
 
     // String path image
