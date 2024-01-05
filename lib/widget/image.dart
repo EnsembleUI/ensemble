@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -53,8 +54,7 @@ class EnsembleImage extends StatefulWidget
     return {
       'cache': (value) =>
           _controller.cache = Utils.getBool(value, fallback: true),
-      'source': (value) =>
-          _controller.source = Utils.getString(value, fallback: ''),
+      'source': (value) => _controller.source = value,
       'fit': (value) => _controller.fit = Utils.getBoxFit(value),
       'resizedWidth': (width) => _controller.resizedWidth =
           Utils.optionalInt(width, min: 0, max: 2000),
@@ -78,7 +78,7 @@ class ImageController extends BoxController {
     clipContent = true;
   }
   DateTime? lastModifiedCache;
-  String source = '';
+  dynamic source;
   BoxFit? fit;
   Color? placeholderColor;
   EnsembleAction? onTap;
@@ -95,17 +95,24 @@ class ImageController extends BoxController {
 class ImageState extends WidgetState<EnsembleImage> {
   @override
   Widget buildWidget(BuildContext context) {
-    String source = widget._controller.source.trim();
-    // use the placeholder for the initial state before binding kicks in
-    if (source.isEmpty) {
-      return const ColoredBoxPlaceholder();
-    }
-
     Widget image;
-    if (isSvg()) {
-      image = buildSvgImage(source, widget._controller.fit);
+    // Memory Image
+    if (widget._controller.source is List<dynamic>) {
+      final imageBytes = Uint8List.fromList(widget._controller.source);
+      image = buildMemoryImage(imageBytes);
     } else {
-      image = buildNonSvgImage(source, widget._controller.fit);
+      String source =
+          Utils.getString(widget._controller.source.trim(), fallback: '');
+      // use the placeholder for the initial state before binding kicks in
+      if (source.isEmpty) {
+        return errorFallback();
+      }
+
+      if (isSvg()) {
+        image = buildSvgImage(source, widget._controller.fit);
+      } else {
+        image = buildNonSvgImage(source, widget._controller.fit);
+      }
     }
 
     Widget rtn = BoxWrapper(
@@ -154,6 +161,24 @@ class ImageState extends WidgetState<EnsembleImage> {
     return "${widget.controller.source}${str}timeStamp=$lastModifiedDateTime";
   }
 
+  Widget buildMemoryImage(Uint8List source) {
+    if (isSvg()) {
+      return SvgPicture.memory(
+        source,
+        width: widget._controller.width?.toDouble(),
+        height: widget._controller.height?.toDouble(),
+        fit: widget._controller.fit ?? BoxFit.contain,
+      );
+    }
+    return Image.memory(
+      source,
+      width: widget._controller.width?.toDouble(),
+      height: widget._controller.height?.toDouble(),
+      fit: widget._controller.fit,
+      errorBuilder: (context, error, stacktrace) => errorFallback(),
+    );
+  }
+
   Widget buildNonSvgImage(String source, BoxFit? fit) {
     if (source.startsWith('https://') || source.startsWith('http://')) {
       int? cachedWidth = widget._controller.resizedWidth;
@@ -190,7 +215,7 @@ class ImageState extends WidgetState<EnsembleImage> {
           ? FutureBuilder(
               future: fetch(widget.controller.source),
               initialData: widget._controller.source,
-              builder: (context, snapshot) {
+              builder: (context, AsyncSnapshot snapshot) {
                 if (snapshot.connectionState == ConnectionState.done) {
                   if (snapshot.hasData) {
                     return cacheImage(snapshot.data!);
@@ -254,6 +279,13 @@ class ImageState extends WidgetState<EnsembleImage> {
   }
 
   bool isSvg() {
+    // Bytes Image
+    if (widget._controller.source is List<dynamic>) {
+      String bytesAsString = utf8.decode(widget._controller.source);
+      return bytesAsString.contains('<svg') || bytesAsString.contains('<xml');
+    }
+
+    // String path image
     final mimeType = lookupMimeType(widget._controller.source);
     return mimeType?.contains('svg') == true;
   }
