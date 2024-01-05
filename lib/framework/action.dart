@@ -1034,10 +1034,10 @@ abstract class EnsembleAction {
     } else if (actionType == ActionType.openAppSettings) {
       return AppSettingAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.getPhoneContacts) {
-      return PhoneContactAction.fromYaml(
+      return GetPhoneContactAction.fromMap(
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.getPhoneContactPhoto) {
-      return PhoneContactPhotoAction.fromYaml(
+      return GetPhoneContactPhotoAction.fromMap(
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.checkPermission) {
       return CheckPermission.fromYaml(payload: payload);
