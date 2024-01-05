@@ -67,7 +67,7 @@ dependencies:
   flutter_svg: ^2.0.7
   flutter_svg_provider: ^1.0.4
   qr_flutter: ^4.1.0
-  device_info_plus: ^8.2.0
+  device_info_plus: ^9.1.1
   flutter_map: ^4.0.0
   carousel_slider: ^4.1.1
   fluttertoast: 8.2.2
@@ -96,7 +96,7 @@ dependencies:
   flutter_local_notifications: ^14.0.0+2
   flutter_i18n: ^0.33.0
   pointer_interceptor: ^0.9.3+4
-  flutter_secure_storage: ^8.0.0
+  flutter_secure_storage: ^9.0.0
   staggered_grid_view_flutter: ^0.0.4
   dart_jsonwebtoken: ^2.8.2
   flutter_dotenv: ^5.1.0
@@ -108,7 +108,7 @@ dependencies:
   youtube_player_iframe: ^4.0.4
   web_socket_client: ^0.1.0
   app_links: ^3.4.3
-  share_plus: ^6.2.0
+  share_plus: ^7.2.1
   rate_my_app: ^2.0.0
   table_calendar:
     git:
