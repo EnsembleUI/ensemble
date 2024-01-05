@@ -311,44 +311,6 @@ class ScreenController {
     } else if (action is AppSettingAction) {
       final settingType = action.getTarget(scopeManager.dataContext);
       AppSettings.openAppSettings(type: settingType);
-    } else if (action is PhoneContactAction) {
-      GetIt.I<ContactManager>().getPhoneContacts((contacts) {
-        if (action.getOnSuccess(scopeManager.dataContext) != null) {
-          final contactsData =
-              contacts.map((contact) => contact.toJson()).toList();
-
-          executeActionWithScope(
-            context,
-            scopeManager,
-            action.getOnSuccess(scopeManager.dataContext)!,
-            event: EnsembleEvent(
-              action.initiator,
-              data: {'contacts': contactsData},
-            ),
-          );
-        }
-      }, (error) {
-        if (action.getOnError(scopeManager.dataContext) != null) {
-          executeActionWithScope(
-            context,
-            scopeManager,
-            action.getOnError(scopeManager.dataContext)!,
-            event: EnsembleEvent(action.initiator!, error: error),
-          );
-        }
-      });
-    } else if (action is PhoneContactPhotoAction) {
-      GetIt.I<ContactManager>().getContactPhoto(
-          action.getContactId(scopeManager.dataContext), (imageData) {
-        // print('Image Data: $imageData');
-        if (action.id != null) {
-          scopeManager.dataContext.addDataContextById(
-              action.id!, PhoneContactPhotoResponse(image: imageData));
-        }
-        updateContactData(action, scopeManager, context);
-      }, (error) {
-        print('Contact Photo Error: $error');
-      });
     } else if (action is ShowCameraAction) {
       GetIt.I<CameraManager>().openCamera(context, action, scopeManager);
     } else if (action is StartTimerAction) {
@@ -616,15 +578,6 @@ class ScreenController {
     // catch-all. All Actions should just be using this
     else {
       action.execute(context, scopeManager);
-    }
-  }
-
-  void updateContactData(PhoneContactPhotoAction action,
-      ScopeManager? scopeManager, BuildContext context) {
-    if (action.id != null && scopeManager != null) {
-      final contactData = scopeManager.dataContext.getContextById(action.id!);
-      scopeManager.dispatch(
-          ModelChangeEvent(SimpleBindingSource(action.id!), contactData));
     }
   }
 
