@@ -387,6 +387,10 @@ class NativeInvokable extends ActionInvokable {
         final evalMessage = scope?.dataContext.eval(message);
         messageSocket(socketName, evalMessage);
       },
+      ActionType.dispatchEvent.name: (inputs) => ScreenController().executeAction(
+        buildContext,
+        DispatchEventAction.from(inputs),
+      ),
     });
     return methods;
   }
