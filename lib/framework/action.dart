@@ -1,6 +1,7 @@
 import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/action/badge_action.dart';
 import 'package:ensemble/action/bottom_modal_action.dart';
+import 'package:ensemble/action/deep_link_action.dart';
 import 'package:ensemble/action/call_external_method.dart';
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/action/call_native_method.dart';
@@ -8,6 +9,8 @@ import 'package:ensemble/action/invoke_api_action.dart';
 import 'package:ensemble/action/misc_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/action/notification_action.dart';
+import 'package:ensemble/action/phone_contact_action.dart';
+import 'package:ensemble/action/sign_in_out_action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
@@ -57,7 +60,6 @@ class ShowDialogAction extends EnsembleAction {
   ShowDialogAction({
     super.initiator,
     required this.body,
-    //super.inputs,
     this.options,
     this.onDialogDismiss,
   });
@@ -67,18 +69,20 @@ class ShowDialogAction extends EnsembleAction {
   final EnsembleAction? onDialogDismiss;
 
   factory ShowDialogAction.from({Invokable? initiator, Map? payload}) {
-    if (payload == null || (payload['body'] == null && payload['widget'] == null)) {
+    if (payload == null ||
+        (payload['body'] == null && payload['widget'] == null)) {
       throw LanguageError(
           "${ActionType.showDialog.name} requires the 'widget' for the Dialog's content.");
     }
     return ShowDialogAction(
       initiator: initiator,
-      body: payload['body'] ?? payload['widget'],
-      //inputs: Utils.getMap(payload["inputs"]),
+      body: Utils.maybeYamlMap(payload['body']) ??
+          Utils.maybeYamlMap(payload['widget']),
       options: Utils.getMap(payload['options']),
       onDialogDismiss: payload['onDialogDismiss'] == null
           ? null
-          : EnsembleAction.fromYaml(payload['onDialogDismiss']),
+          : EnsembleAction.fromYaml(
+              Utils.maybeYamlMap(payload['onDialogDismiss'])),
     );
   }
 }
@@ -103,7 +107,8 @@ class NavigateScreenAction extends BaseNavigateScreenAction {
     return NavigateScreenAction(
       initiator: initiator,
       screenName: payload['name'].toString(),
-      payload: Utils.getMap(payload['payload']) ?? Utils.getMap(payload['inputs']),
+      payload:
+          Utils.getMap(payload['payload']) ?? Utils.getMap(payload['inputs']),
       options: Utils.getMap(payload['options']),
       onNavigateBack: EnsembleAction.fromYaml(payload['onNavigateBack']),
       transition: Utils.getMap(payload['transition']),
@@ -156,7 +161,8 @@ class NavigateModalScreenAction extends BaseNavigateScreenAction {
     return NavigateModalScreenAction(
         initiator: initiator,
         screenName: payload['name'].toString(),
-        payload: Utils.getMap(payload['payload']) ?? Utils.getMap(payload['inputs']),
+        payload:
+            Utils.getMap(payload['payload']) ?? Utils.getMap(payload['inputs']),
         onModalDismiss: EnsembleAction.fromYaml(payload['onModalDismiss']));
   }
 }
@@ -268,39 +274,6 @@ class AppSettingAction extends EnsembleAction {
     return AppSettingAction(
       initiator: initiator,
       target: Utils.getString(payload?['target'], fallback: 'settings'),
-    );
-  }
-}
-
-class PhoneContactAction extends EnsembleAction {
-  PhoneContactAction({
-    super.initiator,
-    this.id,
-    this.onSuccess,
-    this.onError,
-  });
-
-  final String? id;
-  final EnsembleAction? onSuccess;
-  final EnsembleAction? onError;
-
-  EnsembleAction? getOnSuccess(DataContext dataContext) =>
-      dataContext.eval(onSuccess);
-
-  EnsembleAction? getOnError(DataContext dataContext) =>
-      dataContext.eval(onError);
-
-  factory PhoneContactAction.fromYaml({Invokable? initiator, Map? payload}) {
-    if (payload == null) {
-      throw LanguageError(
-          "${ActionType.getPhoneContacts.name} action requires payload");
-    }
-
-    return PhoneContactAction(
-      initiator: initiator,
-      id: Utils.optionalString(payload['id']),
-      onSuccess: EnsembleAction.fromYaml(payload['onSuccess']),
-      onError: EnsembleAction.fromYaml(payload['onError']),
     );
   }
 }
@@ -419,7 +392,8 @@ class OpenUrlAction extends EnsembleAction {
     }
     return OpenUrlAction(payload['url'].toString(),
         openInExternalApp: Utils.optionalBool(payload['external']) ??
-            Utils.optionalBool(payload['openInExternalApp']) ?? false);
+            Utils.optionalBool(payload['openInExternalApp']) ??
+            false);
   }
 
   factory OpenUrlAction.fromMap(dynamic inputs) =>
@@ -453,7 +427,9 @@ class ShowToastAction extends EnsembleAction {
 
   factory ShowToastAction.fromYaml({Map? payload}) {
     if (payload == null ||
-        (payload['message'] == null && payload['body'] == null && payload['widget'] == null)) {
+        (payload['message'] == null &&
+            payload['body'] == null &&
+            payload['widget'] == null)) {
       throw LanguageError(
           "${ActionType.showToast.name} requires either a message or a body widget.");
     }
@@ -927,6 +903,7 @@ enum ActionType {
   openPlaidLink,
   openAppSettings,
   getPhoneContacts,
+  getPhoneContactPhoto,
   checkPermission,
   saveKeychain,
   clearKeychain,
@@ -940,6 +917,10 @@ enum ActionType {
   callExternalMethod,
   invokeHaptic,
   callNativeMethod,
+  deeplinkInit,
+  createDeeplink,
+  verifySignIn,
+  signOut,
 }
 
 enum ToastType { success, error, warning, info }
@@ -1060,7 +1041,10 @@ abstract class EnsembleAction {
     } else if (actionType == ActionType.openAppSettings) {
       return AppSettingAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.getPhoneContacts) {
-      return PhoneContactAction.fromYaml(
+      return GetPhoneContactAction.fromMap(
+          initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.getPhoneContactPhoto) {
+      return GetPhoneContactPhotoAction.fromMap(
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.checkPermission) {
       return CheckPermission.fromYaml(payload: payload);
@@ -1087,6 +1071,19 @@ abstract class EnsembleAction {
       return ClearKeychain.fromYaml(payload: payload);
     } else if (actionType == ActionType.invokeHaptic) {
       return HapticAction.from(payload);
+    } else if (actionType == ActionType.deeplinkInit) {
+      return DeepLinkInitAction.fromMap(payload: payload);
+    } else if (actionType == ActionType.createDeeplink) {
+      return CreateDeeplinkAction.fromMap(payload: payload);
+    } else if (actionType == ActionType.verifySignIn) {
+      return VerifySignInAction(
+          initiator: initiator,
+          onSignedIn: EnsembleAction.fromYaml(payload?['onSignedIn']),
+          onNotSignedIn: EnsembleAction.fromYaml(payload?['onNotSignedIn']));
+    } else if (actionType == ActionType.signOut) {
+      return SignOutAction(
+          initiator: initiator,
+          onComplete: EnsembleAction.fromYaml(payload?['onComplete']));
     }
 
     throw LanguageError("Invalid action.",
