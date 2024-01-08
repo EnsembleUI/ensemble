@@ -141,8 +141,11 @@ abstract class BaseTextInput extends StatefulWidget
           _controller.toolbarDoneButton = Utils.optionalBool(value),
       'keyboardAction': (value) =>
           _controller.keyboardAction = _getKeyboardAction(value),
-      'maxLines': (value) => _controller.maxLines =
-          Utils.getInt(value, min: 1, fallback: _controller.maxLines),
+      'multiline': (value) => _controller.multiline = Utils.optionalBool(value),
+      'minLines': (value) =>
+          _controller.minLines = Utils.optionalInt(value, min: 1),
+      'maxLines': (value) =>
+          _controller.maxLines = Utils.optionalInt(value, min: 1),
       'textStyle': (style) => _controller.textStyle = Utils.getTextStyle(style),
       'hintStyle': (style) => _controller.hintStyle = Utils.getTextStyle(style),
     };
@@ -213,9 +216,12 @@ class TextInputController extends FormFieldController {
   model.InputValidator? validator;
   String? inputType;
   String? mask;
-  int maxLines = 1;
   TextStyle? textStyle;
   TextStyle? hintStyle;
+
+  bool? multiline;
+  int? minLines;
+  int? maxLines;
 }
 
 class TextInputState extends FormFieldWidgetState<BaseTextInput>
@@ -228,10 +234,12 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
   // This is so we can be consistent with the other input widgets' onChange
   String previousText = '';
   bool didItChange = false;
+
   // password is obscure by default
   late bool currentlyObscured;
   late List<TextInputFormatter> _inputFormatter;
   OverlayEntry? overlayEntry;
+
   bool get toolbarDoneStatus {
     return widget.controller.toolbarDoneButton ?? false;
   }
@@ -440,7 +448,8 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
           textInputAction: widget._controller.keyboardAction,
           keyboardType: widget.keyboardType,
           inputFormatters: _inputFormatter,
-          maxLines: widget._controller.maxLines,
+          minLines: isMultiline() ? widget._controller.minLines : null,
+          maxLines: isMultiline() ? widget._controller.maxLines : 1,
           obscureText: isObscureOrPlainText(),
           enableSuggestions: !widget.isPassword(),
           autocorrect: !widget.isPassword(),
@@ -479,6 +488,11 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
         ));
   }
 
+  /// multi-line if specified or if maxLine is more than 1
+  bool isMultiline() =>
+      widget._controller.multiline ??
+      (widget._controller.maxLines != null && widget._controller.maxLines! > 1);
+
   void _clearSelection() {
     widget.textController.clear();
     focusNode.unfocus();
@@ -493,6 +507,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
 
   Debouncer? _delayedKeyPressDebouncer;
   Duration? _lastDelayedKeyPressDuration;
+
   Debouncer getKeyPressDebouncer() {
     if (_delayedKeyPressDebouncer == null) {
       _delayedKeyPressDebouncer =
