@@ -1609,7 +1609,7 @@
             "minLines": {
               "type": "integer",
               "minimum": 1,
-              "description": "Specify the number of lines to visually start out with, and can expand to the specified 'maxLines'."
+              "description": "Specify the number of lines to visually start out with, and can expand to the specified 'maxLines'. (applicable only if 'multiline' is true, or if maxLines is greater han than 1)"
             },
             "maxLines": {
               "type": "integer",
