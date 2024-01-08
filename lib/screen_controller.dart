@@ -4,6 +4,7 @@ import 'dart:async';
 
 import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/action/navigation_action.dart';
+import 'package:ensemble/action/phone_contact_action.dart';
 import 'package:ensemble/action/upload_files_action.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
@@ -17,6 +18,7 @@ import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/stub/camera_manager.dart';
 import 'package:ensemble/framework/stub/contacts_manager.dart';
 import 'package:ensemble/framework/stub/file_manager.dart';
+import 'package:ensemble/framework/stub/location_manager.dart';
 import 'package:ensemble/framework/stub/plaid_link_manager.dart';
 import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
@@ -31,7 +33,6 @@ import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:get_it/get_it.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
@@ -310,32 +311,6 @@ class ScreenController {
     } else if (action is AppSettingAction) {
       final settingType = action.getTarget(scopeManager.dataContext);
       AppSettings.openAppSettings(type: settingType);
-    } else if (action is PhoneContactAction) {
-      GetIt.I<ContactManager>().getPhoneContacts((contacts) {
-        if (action.getOnSuccess(scopeManager.dataContext) != null) {
-          final contactsData =
-              contacts.map((contact) => contact.toJson()).toList();
-
-          executeActionWithScope(
-            context,
-            scopeManager,
-            action.getOnSuccess(scopeManager.dataContext)!,
-            event: EnsembleEvent(
-              action.initiator,
-              data: {'contacts': contactsData},
-            ),
-          );
-        }
-      }, (error) {
-        if (action.getOnError(scopeManager.dataContext) != null) {
-          executeActionWithScope(
-            context,
-            scopeManager,
-            action.getOnError(scopeManager.dataContext)!,
-            event: EnsembleEvent(action.initiator!, data: {'error': error}),
-          );
-        }
-      });
     } else if (action is ShowCameraAction) {
       GetIt.I<CameraManager>().openCamera(context, action, scopeManager);
     } else if (action is StartTimerAction) {
@@ -410,7 +385,12 @@ class ScreenController {
           scopeManager.dataContext.addDataContextById(key, val);
         }
       });
-      scopeManager.dataContext.evalCode(action.codeBlock, action.codeBlockSpan);
+      // code execution relies on the correct Context for proper execution.
+      // It looks up the context from ScopeManager which maybe incorrect.
+      // Here we adjust the correct context
+      DataContext newDataContext =
+          scopeManager.dataContext.clone(newBuildContext: context);
+      newDataContext.evalCode(action.codeBlock, action.codeBlockSpan);
 
       if (action.onComplete != null) {
         executeActionWithScope(context, scopeManager, action.onComplete!);
@@ -720,17 +700,20 @@ class ScreenController {
   void executeGetLocationAction(ScopeManager scopeManager,
       DataContext dataContext, BuildContext context, GetLocationAction action) {
     if (action.onLocationReceived != null) {
-      Device().getLocationStatus().then((LocationStatus status) async {
+      GetIt.I<LocationManager>()
+          .getLocationStatus()
+          .then((LocationStatus status) async {
         if (status == LocationStatus.ready) {
           // if recurring
           if (action.recurring == true) {
-            StreamSubscription<Position> streamSubscription =
-                Geolocator.getPositionStream(
-                        locationSettings: LocationSettings(
-                            accuracy: LocationAccuracy.high,
-                            distanceFilter:
-                                action.recurringDistanceFilter ?? 1000))
-                    .listen((Position? location) {
+            StreamSubscription<LocationData> streamSubscription =
+                GetIt.I<LocationManager>()
+                    .getPositionStream(
+                        distanceFilter: action.recurringDistanceFilter ?? 1000)
+                    .map((position) => LocationData(
+                        latitude: position.latitude,
+                        longitude: position.longitude))
+                    .listen((LocationData? location) {
               if (location != null) {
                 // update last location. TODO: consolidate this
                 Device().updateLastLocation(location);
@@ -748,8 +731,12 @@ class ScreenController {
           }
           // one-time get location
           else {
-            _onLocationReceived(scopeManager, dataContext, context,
-                action.onLocationReceived!, await Device().simplyGetLocation());
+            _onLocationReceived(
+                scopeManager,
+                dataContext,
+                context,
+                action.onLocationReceived!,
+                await GetIt.I<LocationManager>().simplyGetLocation());
           }
         } else if (action.onError != null) {
           DataContext localizedContext = dataContext.clone();
@@ -766,7 +753,7 @@ class ScreenController {
       DataContext dataContext,
       BuildContext context,
       EnsembleAction onLocationReceived,
-      Position location) {
+      LocationData location) {
     scopeManager.dataContext.addDataContextById('latitude', location.latitude);
     scopeManager.dataContext
         .addDataContextById('longitude', location.longitude);

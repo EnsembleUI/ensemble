@@ -2,11 +2,11 @@ import 'dart:developer';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui';
+import 'package:ensemble/framework/stub/location_manager.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
@@ -91,7 +91,7 @@ class MapsUtils {
     return null;
   }
 
-  static LatLng? fromPosition(Position? position) {
+  static LatLng? fromPosition(LocationData? position) {
     if (position != null) {
       return LatLng(position.latitude, position.longitude);
     }

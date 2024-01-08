@@ -1602,9 +1602,19 @@
               "description": "Styling the hint text. Default to theme's bodyMedium styling",
               "$ref": "#/$defs/TextStyle"
             },
+            "multiline": {
+              "type": "boolean",
+              "description": "Specify whether this Text Input should span multiple lines."
+            },
+            "minLines": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Specify the number of lines to visually start out with, and can expand to the specified 'maxLines'. (applicable only if 'multiline' is true, or if maxLines is greater han than 1)"
+            },
             "maxLines": {
               "type": "integer",
-              "description": "max number of lines allowed in a textinput"
+              "minimum": 1,
+              "description": "Specify the max number of lines this Text Input can visually expand to show. Multi-line will also be enabled if this number is greater than 1 and the 'multiline' property is not specified."
             }            
           }
         }
@@ -1956,9 +1966,57 @@
               },
               "description": "List of values, or Objects with value/label pairs"
             },
+            "itemTemplate": {
+              "properties": {
+                "data": {
+                  "type": "string",
+                  "description": "Bind to an array of data from an API response or a variable"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Set the name to reference as you iterate through the array of data"
+                },
+                "template": {
+                  "$ref": "#/$defs/Widget",
+                  "description": "Specify the widget to render as each dropdown item's label"
+                },
+                "value": {
+                  "type": "string",
+                  "description": "Specify the expression to evaluate as each item's value. This will be the value when the item is selected."
+                }
+              }
+            },
             "autoComplete": {
               "type": "boolean",
               "description": "Enable the Input search suggestion option"
+            },
+            "styles": {
+              "dropdownOffsetX": {
+                "type": "integer",
+                "description": "The horizontal offset of the dropdown relative to the menu button (default is 0)"
+              },
+              "dropdownOffsetY": {
+                "type": "integer",
+                "description": "The vertical offset of the dropdown relative to the menu button (default is 0 which display the dropdown right below the menu button)"
+              },
+              "dropdownBackgroundColor": {
+                "$ref": "#/$defs/type-color"
+              },
+              "dropdownBorderRadius": {
+                "$ref": "#/$defs/borderRadius"
+              },
+              "dropdownBorderColor": {
+                "$ref": "#/$defs/type-color"
+              },
+              "dropdownBorderWidth": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "The thickness of the dropdown border"
+              },
+              "dropdownMaxHeight": {
+                "type": "integer",
+                "minimum": 0
+              }
             }
           }
         }
@@ -2113,6 +2171,38 @@
       ]
     },
     "SignIn-payload": {
+      "oneOf": [
+        {
+          "properties": {
+            "provider": {"enum": ["server"]},
+            "signInServerAPI": {
+              "type": "object",
+              "description": "Call this Server API to retrieve the server credentials to sign in:\n1. Authenticate with Google, Apple, ..\n2. Call your server with the idToken (accessible with ${idToken}) and expect the response to contain server-specific credentials necessary for subsequent access.\n3. Client will set these credentials and sign the user in locally. The credentials are accessible with ${auth.user.data}\n4. Subsequent server API calls can append these credentials to the requests.",
+              "required": ["setSignInCredentialsOnResponse"],
+              "allOf": [
+                {
+                  "$ref": "#/$defs/InvokeAPI-payload"
+                },
+                {
+                  "properties": {
+                    "setSignInCredentialsOnResponse": {
+                      "type": "object",
+                      "description": "On server response, set any key/value pairs to save them as the user's credentials. The client will automatically sign the user in and have these key/value pairs available at ${auth.user.data}",
+                      "additionalProperties": {}
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "required": ["signInServerAPI"]
+        },
+        {
+          "properties": {
+            "provider": {"not": {"enum": ["server"]}}
+          }
+        }
+      ],
       "properties": {
         "provider": {
           "type": "string",
@@ -2120,18 +2210,24 @@
           "oneOf": [
             {
               "const": "local",
-              "description": "Sign the user on the client side. This is useful when your app doesn't need a server. (this is the default)."
+              "description": "Sign the user in on the client (default)."
             },
             {
               "const": "firebase",
               "description": "Use your custom Firebase to manage your users. Please see Ensemble documentation on how to integrate Firebase."
+            },
+            {
+              "const": "server",
+              "description": "After authenticated the user, send the idToken to your Server to retrieve the credentials (e.g. bearer token, cookies, ...), then sign the user in on the client."
             }
           ]
         },
         "onAuthenticated": {
+          "description": "Execute an Action when the user has successfully authenticated",
           "$ref": "#/$defs/Action-payload"
         },
         "onSignedIn": {
+          "description": "Dispatch when the user has successfully authenticated and the system has signed the user in. This event is only applicable when the provider is not of type Server.",
           "$ref": "#/$defs/Action-payload"
         },
         "onError": {
@@ -2141,7 +2237,7 @@
           "properties": {
             "overrideLabel": {
               "type": "string",
-              "description": "Override the Sign In label. Note that changing the default Apple guideline may get your app rejected when submitting to Apple's App Store."
+              "description": "(Native only) Override the Sign In label. Note that changing the default Apple guideline may get your app rejected when submitting to Apple's App Store."
             },
             "iconAlignment": {
               "type": "string",
@@ -2152,10 +2248,12 @@
               ]
             },
             "borderRadius": {
+              "description": "(Native only). Set the border radius",
               "$ref": "#/$defs/borderRadius"
             },
             "height": {
               "type": "integer",
+              "description": "(Native only). Set the button height",
               "minimum": 0
             }
           }
@@ -2264,7 +2362,27 @@
               "type": "object",
               "properties": {
                 "labelStyle": {
-                  "$ref": "#/$defs/TextStyle"
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/TextStyle"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "textAlign": {
+                          "enum": [
+                            "left",
+                            "right",
+                            "center",
+                            "justify",
+                            "start",
+                            "end"
+                          ], 
+                          "description": "Text Align for the label inside the Button"
+                        }
+                      }
+                    }
+                  ]
                 },
                 "outline": {
                   "type": "boolean",
@@ -3763,6 +3881,143 @@
           }
         },
         {
+          "title": "Deep Link Init",
+          "type": "object",
+          "required": [
+            "deeplinkInit"
+          ],
+          "properties": {
+            "deeplinkInit": {
+              "type": "object",
+              "description": "It will initialize the Deep Link Service",
+              "required": [
+                "provider"
+              ],
+              "properties": {
+                "provider": {
+                  "$ref": "#/$defs/deeplink-provider",
+                  "description": "Sets the deferred deep link service provider"
+                },
+                "options": {
+                  "type": "object",
+                  "properties": {
+                    "useTestKey": {
+                      "type": "boolean",
+                      "description": "Sets true to use the test key_test. Default(False)"
+                    },
+                    "enableLog": {
+                      "type": "boolean",
+                      "description": "Sets true turn on debug logging. Default(False)"
+                    },
+                    "disableTrack": {
+                      "type": "boolean",
+                      "description": "Sets true to disable tracking. Default(False)"
+                    }
+                  }
+                },
+                "onSuccess": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when the deeplink intialized successfully"
+                },
+                "onLinkReceived": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when the link is recieved successfully after opening the app from the deeplink. Get link from `event.data.link`"
+                },
+                "onError": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when it is failed to initialize the deeplink service provider"
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Create Deep Link",
+          "type": "object",
+          "required": [
+            "createDeeplink"
+          ],
+          "properties": {
+            "createDeeplink": {
+              "type": "object",
+              "description": "It will create deep link url",
+              "required": [
+                "provider"
+              ],
+              "properties": {
+                "provider": {
+                  "$ref": "#/$defs/deeplink-provider",
+                  "description": "Sets the deferred deep link service provider"
+                },
+                "universalProps": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Canonical url for the content referred. This would be the corresponding website URL"
+                    },
+                    "title": {
+                      "type": "string",
+                      "description": "Title for the content."
+                    },
+                    "contentDescription": {
+                      "type": "string",
+                      "description": "Description for the content referred"
+                    },
+                    "imageUrl": {
+                      "type": "string",
+                      "description": "An image url associated with the content referred."
+                    },
+                    "contentSchema": {
+                      "type": "string",
+                      "description": "Schema for the qualifying content item."
+                    }
+                  }
+                },
+                "linkProps": {
+                  "type": "object",
+                  "properties": {
+                    "channel": {
+                      "type": "string",
+                      "description": "Sets the channel for the deeplink"
+                    },
+                    "feature": {
+                      "type": "string",
+                      "description": "Sets the feature for the deeplink"
+                    },
+                    "campaign": {
+                      "type": "string",
+                      "description": "Sets the campaign for the deeplink"
+                    },
+                    "stage": {
+                      "type": "string",
+                      "description": "Sets the stage for the deeplink"
+                    },
+                    "tags": {
+                      "type": "array",
+                      "description": "Sets the tags for the deeplink"
+                    },
+                    "controlParams": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "onSuccess": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when deeplink created successfully. Get result from `event.data.result`"
+                },
+                "onError": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "It is called when it is failed to create a deep link"
+                }
+              }
+            }
+          }
+        },
+        {
           "title": "Receive Intent",
           "type": "object",
           "required": [
@@ -4939,6 +5194,48 @@
               }
             }
           }
+        },
+        {
+          "title": "Verify if the user is currently signed in",
+          "type": "object",
+          "required": [
+            "verifySignIn"
+          ],
+          "properties": {
+            "verifySignIn": {
+              "type": "object",
+              "description": "Verify if the user is currently signed in or not",
+              "properties": {
+                "onSignedIn": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action if the user is currently signed in"
+                },
+                "onNotSignedIn": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action if the user is currently not signed in, or if the status is unknown."
+                }
+              }
+            }
+          }
+        },
+        {
+          "title": "Sign the user out",
+          "type": "object",
+          "required": [
+            "signOut"
+          ],
+          "properties": {
+            "signOut": {
+              "type": "object",
+              "description": "Sign the user out (if currently signed in) and clear the user's data ${auth.user}",
+              "properties": {
+                "onComplete": {
+                  "$ref": "#/$defs/Action-payload",
+                  "description": "Execute an Action once the user has signed out."
+                }
+              }
+            }
+          }
         }
       ]
     },
@@ -5414,7 +5711,71 @@
           ],
           "properties": {
             "Avatar": {
-              "$ref": "#/$defs/Avatar-payload",
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/Avatar-payload"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "group-template": {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "string",
+                          "description": "Bind to an array of data from an API response or a variable"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Set the name to reference as you iterate through the array of data"
+                        },
+                        "max": {
+                          "type": "integer",
+                          "description": "Maximum avatar that can be displayed"
+                        },
+                        "offset": {
+                          "type": "integer",
+                          "description": "Specify how much each item is off to previous element. Default: 30.0"
+                        },
+                        "template": {
+                          "$ref": "#/$defs/Avatar-payload",
+                          "description": "The data row widget to render for each item"
+                        },
+                        "surplus": {
+                          "type": "object",
+                          "properties": {
+                            "backgroundColor": {
+                              "$ref": "#/$defs/type-color",
+                              "description": "The background color of surplus avatar"    
+                            },
+                            "textStyle": {
+                              "$ref": "#/$defs/TextStyle"
+                            },
+                            "onTap": {
+                              "$ref": "#/$defs/Action-payload",
+                              "description": "Execute an Action when surplus is tap."
+                            },
+                            "width": {
+                              "type": "integer"
+                            },
+                            "height": {
+                              "type": "integer"
+                            },
+                            "variant": {
+                              "type": "string",
+                              "description": "Specify the Avatar's shape: circle (default), square, or rounded.",
+                              "enum": ["circle", "square", "rounded"]
+                            },
+                            "visible": {
+                              "type": "boolean"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/kJ9eqI5BPL30IwjnEDdJ"
             }
           }
@@ -5890,13 +6251,13 @@
           }
         },
         {
-          "title": "Maps",
+          "title": "Map",
           "required": [
-            "Maps"
+            "Map"
           ],
           "properties": {
-            "Maps": {
-              "$ref": "#/$defs/Maps-payload"
+            "Map": {
+              "$ref": "#/$defs/Map-payload"
             }
           }
         },
@@ -6102,6 +6463,45 @@
                     "overflowWidget": {
                       "$ref": "#/$defs/Widget",
                       "description": "If spans per row overflow based on spanPerRow than overflowWidget will render"
+                    },
+                    "span-template": {
+                      "type": "object",
+                      "required": [
+                        "data",
+                        "name",
+                        "span"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "string",
+                          "description": "Bind the rowspan list to the data e.g. myAPI.body.items"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Give this a name. This is the bindable data for each rowspan."
+                        },
+                        "span": {
+                          "type": "object",
+                          "required": [
+                            "start",
+                            "end",
+                            "widget"
+                          ],
+                          "properties": {
+                            "start": {
+                              "type": "string",
+                              "description": "Starting date of the rowspan in ISO format"
+                            },
+                            "end": {
+                              "type": "string",
+                              "description": "Ending date of the rowspan in ISO format"
+                            },
+                            "widget": {
+                              "$ref": "#/$defs/Widget"
+                            }
+                          }
+                        }
+                      }
                     },
                     "children": {
                       "type": "array",
@@ -6369,7 +6769,7 @@
         }
       }
     },
-    "Maps-payload": {
+    "Map-payload": {
       "type": "object",
       "properties": {
         "id": {
@@ -6569,6 +6969,42 @@
         "source": {
           "type": "string",
           "description": "The URL source to the media file"
+        },
+        "showControls": {
+          "type" : "boolean",
+          "description" : "It shows the default video player control. (default True)"
+        },
+        "loadingWidget": {
+          "$ref": "#/$defs/Widget",
+          "description": "The widget to display when the player is in loading state."
+        },
+        "repeat": {
+          "type" : "boolean",
+          "description" : "It plays the video in repeat mode. (default False)"
+        },
+        "autoplay": {
+          "type" : "boolean",
+          "description" : "Automatically start the video when the player is loaded. (default False)"
+        },
+        "playbackRate" : {
+          "type": "number",
+          "description": "For changing the speed at which the video is displayed. (max = 2.0, min = 0)"
+        },
+        "volume": {
+          "type": "number",
+          "description" : "Changes the volume of the video (max = 1.0, min = 0)"
+        },
+        "onStart": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "It is called when the player started to playing the video"
+        },
+        "onChange": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "It is called indefinitely with position(milliseconds) when the video player changes the frame when playing the video"
+        },
+        "onEnd": {
+          "$ref": "#/$defs/Action-payload",
+          "description": "It is called when the player is completed playing the video"
         }
       }
     },
@@ -7505,7 +7941,7 @@
         },
         "lineHeightMultiple": {
           "type": "number",
-          "description": "A multiple of the fontSize to determine the line height. (e.g. 2.0 means the line height is double the height the font size occupies). Default null. (note that 1.0 is not the default depending on the font)"
+          "description": "A multiplier applied to the font size to determine line height (e.g., 2.0 for double the height of the font size). By default this value varies on the font used."
         },
         "fontWeight": {
           "$ref": "#/$defs/type-fontWeight"
@@ -7652,6 +8088,24 @@
         "bottomLeft",
         "bottomCenter",
         "bottomRight"
+      ]
+    },
+    "deeplink-provider": {
+      "type": "string",
+      "description": "Select a DeepLink provider to use. By default 'branch' provider is used",
+      "oneOf": [
+        {
+          "const": "branch",
+          "description": "Use the branch.io deeplink service"
+        },
+        {
+          "const": "appsflyer",
+          "description": "Use the appsflyer.com for deeplink service"
+        },
+        {
+          "const": "kochava",
+          "description": "Use the kochava.com for deeplink service"
+        }
       ]
     }
   }
