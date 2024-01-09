@@ -13,6 +13,7 @@ import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/keychain_manager.dart';
+import 'package:ensemble/framework/package.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble/framework/stub/auth_context_manager.dart';
@@ -59,6 +60,7 @@ class DataContext {
     _contextMap['env'] = EnvConfig();
     _contextMap['secrets'] = SecretsStore();
     _contextMap['ensemble'] = NativeInvokable(buildContext);
+    _contextMap['package'] = Package();
 
     // auth can be selectively turned on
     if (GetIt.instance.isRegistered<AuthContextManager>()) {
@@ -458,9 +460,11 @@ class NativeInvokable extends ActionInvokable {
         screenName: screenName, pageArgs: inputMap, asModal: true);
     // how do we handle onModalDismiss in Typescript?
   }
+
   void closeAllDialogs() {
     ScreenController().executeAction(buildContext, CloseAllDialogsAction());
   }
+
   void showDialog(dynamic widget) {
     ScreenController()
         .executeAction(buildContext, ShowDialogAction(widget: widget));
