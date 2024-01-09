@@ -408,6 +408,10 @@ class PageState extends State<Page>
       );
     }
 
+    Widget getBodyContent() => isScrollableView
+        ? buildScrollablePageContent(hasDrawer)
+        : buildFixedPageContent(fixedAppBar != null);
+
     Widget rtn = DataScopeWidget(
       scopeManager: _scopeManager,
       child: Unfocus(
@@ -421,13 +425,17 @@ class PageState extends State<Page>
 
             // appBar is inside CustomScrollView if defined
             appBar: fixedAppBar,
-            body: isScrollableView
-                ? buildScrollablePageContent(hasDrawer)
-                : buildFixedPageContent(fixedAppBar != null),
+            body: footerWidget == null
+                ? getBodyContent()
+                : Column(
+                    children: [
+                      Expanded(child: getBodyContent()),
+                      footerWidget!,
+                    ],
+                  ),
             bottomNavigationBar: _bottomNavBar,
             drawer: _drawer,
             endDrawer: _endDrawer,
-            bottomSheet: footerWidget,
             floatingActionButton: closeModalButton,
             floatingActionButtonLocation:
                 widget._pageModel.pageStyles?['navigationIconPosition'] ==
