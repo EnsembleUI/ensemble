@@ -8,6 +8,7 @@ import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/bottom_nav_page_view.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
+import 'package:ensemble/framework/view/footer.dart';
 import 'package:ensemble/framework/view/has_selectable_text.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
@@ -16,7 +17,6 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/unfocus.dart';
 import 'package:flutter/material.dart';
-
 import '../widget/custom_view.dart';
 
 /// The root View. Every Ensemble page will have at least one at its root
@@ -408,10 +408,6 @@ class PageState extends State<Page>
       );
     }
 
-    Widget getBodyContent() => isScrollableView
-        ? buildScrollablePageContent(hasDrawer)
-        : buildFixedPageContent(fixedAppBar != null);
-
     Widget rtn = DataScopeWidget(
       scopeManager: _scopeManager,
       child: Unfocus(
@@ -425,14 +421,12 @@ class PageState extends State<Page>
 
             // appBar is inside CustomScrollView if defined
             appBar: fixedAppBar,
-            body: footerWidget == null
-                ? getBodyContent()
-                : Column(
-                    children: [
-                      Expanded(child: getBodyContent()),
-                      footerWidget!,
-                    ],
-                  ),
+            body: FooterLayout(
+              body: isScrollableView
+                  ? buildScrollablePageContent(hasDrawer)
+                  : buildFixedPageContent(fixedAppBar != null),
+              footer: footerWidget,
+            ),
             bottomNavigationBar: _bottomNavBar,
             drawer: _drawer,
             endDrawer: _endDrawer,
