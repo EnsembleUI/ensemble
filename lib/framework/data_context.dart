@@ -458,9 +458,11 @@ class NativeInvokable extends ActionInvokable {
         screenName: screenName, pageArgs: inputMap, asModal: true);
     // how do we handle onModalDismiss in Typescript?
   }
+
   void closeAllDialogs() {
     ScreenController().executeAction(buildContext, CloseAllDialogsAction());
   }
+
   void showDialog(dynamic widget) {
     ScreenController()
         .executeAction(buildContext, ShowDialogAction(widget: widget));
