@@ -78,7 +78,7 @@ dependencies:
   flutter_markdown: ^0.6.10+5
   url_launcher: ^6.1.11
   provider: ^6.0.3
-  cloud_firestore: 4.9.3
+  cloud_firestore: 4.14.0
   geolocator: ^9.0.2
   get_storage: ^2.0.3
   flutter_html: ^3.0.0-beta.1 # flutter_html ^2.0.0 requires flutter_svg <1.0.0, conflicts with ours
@@ -93,7 +93,7 @@ dependencies:
   shared_preferences: ^2.1.1
   google_maps_flutter: ^2.2.6
   workmanager: ^0.5.1
-  flutter_local_notifications: ^14.0.0+2
+  flutter_local_notifications: ^16.1.0
   flutter_i18n: ^0.33.0
   pointer_interceptor: ^0.9.3+4
   flutter_secure_storage: ^8.1.0
