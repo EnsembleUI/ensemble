@@ -1602,9 +1602,19 @@
               "description": "Styling the hint text. Default to theme's bodyMedium styling",
               "$ref": "#/$defs/TextStyle"
             },
+            "multiline": {
+              "type": "boolean",
+              "description": "Specify whether this Text Input should span multiple lines."
+            },
+            "minLines": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Specify the number of lines to visually start out with, and can expand to the specified 'maxLines'. (applicable only if 'multiline' is true, or if maxLines is greater han than 1)"
+            },
             "maxLines": {
               "type": "integer",
-              "description": "max number of lines allowed in a textinput"
+              "minimum": 1,
+              "description": "Specify the max number of lines this Text Input can visually expand to show. Multi-line will also be enabled if this number is greater than 1 and the 'multiline' property is not specified."
             }            
           }
         }
