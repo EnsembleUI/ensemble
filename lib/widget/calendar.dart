@@ -71,6 +71,7 @@ class EnsembleCalendar extends StatefulWidget
       'next': (value) => _controller.pageController?.nextPage(
           duration: const Duration(milliseconds: 300), curve: Curves.easeOut),
       'addRowSpan': (value) => setRowSpan(value),
+      'update': () => _controller.update(),
     };
   }
 
@@ -536,6 +537,14 @@ class CalendarController extends WidgetController {
       hashCode: getHashCode,
     ),
   );
+  CalendarState? widgetState;
+  void _bind(CalendarState state) {
+    widgetState = state;
+  }
+
+  void update() {
+    widgetState?.listener();
+  }
 }
 
 int getHashCode(DateTime key) {
@@ -677,6 +686,8 @@ class CalendarState extends WidgetState<EnsembleCalendar>
 
   @override
   Widget buildWidget(BuildContext context) {
+    widget.controller._bind(this);
+
     return Column(
       children: [
         if (widget._controller.headerVisible)
