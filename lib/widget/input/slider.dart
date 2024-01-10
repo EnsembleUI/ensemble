@@ -121,6 +121,7 @@ class SliderState extends FormFieldWidgetState<EnsembleSlider> {
                 enabledThumbRadius: widget._controller.thumbRadius,
               ),
               trackHeight: widget.controller.trackHeight,
+              valueIndicatorColor: widget.controller.thumbColor,
             ),
             child: Slider(
               label: widget.controller.value.toStringAsFixed(decimalPlaces),
