@@ -46,9 +46,11 @@ mixin AppInfoCapability {
   /// initialize package info
   void initPackageInfo(EnsembleConfig? config) async {
     try {
-      _appId = (config?.definitionProvider as EnsembleDefinitionProvider?)
-          ?.appModel
-          .appId;
+      if (config?.definitionProvider is EnsembleDefinitionProvider) {
+        _appId = (config?.definitionProvider as EnsembleDefinitionProvider?)
+            ?.appModel
+            .appId;
+      }
       _info = await PackageInfo.fromPlatform();
     } catch (e) {
       log("Error getting package info: $e");
