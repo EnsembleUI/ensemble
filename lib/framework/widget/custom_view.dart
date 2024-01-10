@@ -17,7 +17,7 @@ class CustomView extends StatelessWidget with Invokable {
       required this.viewBehavior});
 
   final List<String>? parameters;
-  final Map<String,EnsembleEvent>? events;
+  final Map<String, EnsembleEvent>? events;
   final WidgetModel body;
   final ScopeManager scopeManager;
   final ViewBehavior viewBehavior;
@@ -39,10 +39,9 @@ class CustomView extends StatelessWidget with Invokable {
   /// as well as dispatching changes
   @override
   void setProperty(dynamic prop, dynamic val) {
-    if (prop != null &&
-        (parameters != null && parameters!.contains(prop))
-        || (events != null && events!.containsKey(prop))
-    //this does mean that an input must not have the same name as an event
+    if (prop != null && (parameters != null && parameters!.contains(prop)) ||
+            (events != null && events!.containsKey(prop))
+        //this does mean that an input must not have the same name as an event
         ) {
       // override the key
       if (val is Invokable) {
