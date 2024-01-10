@@ -375,12 +375,10 @@ class ExecuteCodeAction extends EnsembleAction {
             ViewUtil.optDefinition((payload as YamlMap).nodes['body']));
   }
 }
+
 //used to dispatch events. Used within custom widgets as custom widgets expose events to the callers
 class DispatchEventAction extends EnsembleAction {
-  DispatchEventAction(
-      {super.initiator,
-      required this.event,
-      this.onComplete});
+  DispatchEventAction({super.initiator, required this.event, this.onComplete});
 
   EnsembleEvent event;
   EnsembleAction? onComplete;
@@ -403,14 +401,16 @@ class DispatchEventAction extends EnsembleAction {
   Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
     //we can safely do event.name! as we are always settings it
     //we are not going to check if the returned type is a handler or not as that should have been done before
-    EnsembleEventHandler? handler = scopeManager.dataContext.getContextById(event.name!);
-    if ( handler != null ) {
+    EnsembleEventHandler? handler =
+        scopeManager.dataContext.getContextById(event.name!);
+    if (handler != null) {
       return handler.handleEvent(event, context);
       //return ScreenController().executeAction(context, action!, event: event);
     }
     return Future.value(null);
   }
 }
+
 class OpenUrlAction extends EnsembleAction {
   OpenUrlAction(this.url, {this.openInExternalApp = false});
 
@@ -1113,8 +1113,9 @@ abstract class EnsembleAction {
       return SignOutAction(
           initiator: initiator,
           onComplete: EnsembleAction.fromYaml(payload?['onComplete']));
-    } else if ( actionType == ActionType.dispatchEvent ) {
-      return DispatchEventAction.fromYaml(initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.dispatchEvent) {
+      return DispatchEventAction.fromYaml(
+          initiator: initiator, payload: payload);
     }
 
     throw LanguageError("Invalid action.",
