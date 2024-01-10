@@ -78,7 +78,7 @@ class Ensemble {
       await StorageManager().init();
       await SecretsStore().initialize();
       Device().initDeviceInfo();
-      Package().initPackageInfo();
+      Package().initPackageInfo(_config);
       _completer!.complete();
     } catch (error) {
       _completer!.completeError(error);
@@ -144,6 +144,8 @@ class Ensemble {
         services: Services.fromYaml(yamlMap['services']),
         signInServices: SignInServices.fromYaml(yamlMap['services']),
         envOverrides: envOverrides);
+
+    Package().initPackageInfo(_config);
     return _config!;
   }
 
