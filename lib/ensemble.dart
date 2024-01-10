@@ -7,6 +7,7 @@ import 'package:ensemble/ensemble_provider.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/app_info.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble/framework/storage_manager.dart';
@@ -77,6 +78,7 @@ class Ensemble {
       await StorageManager().init();
       await SecretsStore().initialize();
       Device().initDeviceInfo();
+      AppInfo().initPackageInfo(_config);
       _completer!.complete();
     } catch (error) {
       _completer!.completeError(error);
@@ -142,6 +144,8 @@ class Ensemble {
         services: Services.fromYaml(yamlMap['services']),
         signInServices: SignInServices.fromYaml(yamlMap['services']),
         envOverrides: envOverrides);
+
+    AppInfo().initPackageInfo(_config);
     return _config!;
   }
 
