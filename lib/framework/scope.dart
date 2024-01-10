@@ -275,9 +275,9 @@ mixin ViewBuilder on IsScopeManager {
             }
           }
         }
-        if ( model.events != null && model.actions != null ) {
-          for ( var event in model.events!.keys ) {
-            if ( model.actions![event] != null ) {
+        if (model.events != null && model.actions != null) {
+          for (var event in model.events!.keys) {
+            if (model.actions![event] != null) {
               // set the Custom Widget's inputs from parent scope
               registerEventHandler(
                   // widget inputs are set in the parent's scope
@@ -287,7 +287,6 @@ mixin ViewBuilder on IsScopeManager {
                   model.actions![event]!);
             }
           }
-
         }
         return;
       }
@@ -398,13 +397,14 @@ mixin ViewBuilder on IsScopeManager {
   //registers the action as the eventhandler. This is done (instead of registering the action as a property value)
   // so that when the event is dispatched,
   //the action tied to it could be executed in the right context
-  void registerEventHandler(
-      ScopeManager scopeManager, Invokable widget, String key, EnsembleAction action) {
+  void registerEventHandler(ScopeManager scopeManager, Invokable widget,
+      String key, EnsembleAction action) {
     //no need to evaluate any expressions or create bindings as event handlers will get evaluated when the
     //event occurs and bindings are not relevant
     EnsembleEventHandler handler = EnsembleEventHandler(scopeManager, action);
     InvokableController.setProperty(widget, key, handler);
   }
+
   /// evaluate the value and call widget's setProperty with this value.
   /// If the value is a valid binding, we'll register to listen for changes.
   void evalPropertyAndRegisterBinding(
