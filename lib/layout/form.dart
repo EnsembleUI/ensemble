@@ -21,6 +21,7 @@ class EnsembleForm extends StatefulWidget
         HasController<FormController, FormState> {
   static const type = 'Form';
   EnsembleForm({Key? key}) : super(key: key);
+  final GlobalKey<flutter.FormState> _formKey = GlobalKey<flutter.FormState>();
 
   final FormController _controller = FormController();
   @override
@@ -41,7 +42,16 @@ class EnsembleForm extends StatefulWidget
 
   @override
   Map<String, Function> methods() {
-    return {};
+    return {
+      'submit': () {
+        if (_formKey.currentContext != null) {
+          FormHelper.submitForm(_formKey.currentContext!);
+        }
+      },
+      'validate': () {
+        return _formKey.currentState?.validate() ?? false;
+      }
+    };
   }
 
   @override
@@ -105,9 +115,8 @@ class FormController extends WidgetController {
 
 class FormState extends WidgetState<EnsembleForm>
     with HasChildren<EnsembleForm> {
-  final _formKey = GlobalKey<flutter.FormState>();
   bool validate() {
-    return _formKey.currentState!.validate();
+    return widget?._formKey.currentState!.validate() ?? false;
   }
 
   @override
@@ -128,7 +137,7 @@ class FormState extends WidgetState<EnsembleForm>
         width: widget._controller.width?.toDouble(),
         height: widget._controller.height?.toDouble(),
         child: EnsembleFormScope(
-            formState: this, child: Form(key: _formKey, child: body)));
+            formState: this, child: Form(key: widget._formKey, child: body)));
 
     if (widget._controller.maxWidth != null) {
       return ConstrainedBox(
