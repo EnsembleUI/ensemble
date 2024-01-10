@@ -6,10 +6,10 @@ import 'package:ensemble/ensemble_provider.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
-class Package with Invokable, PackageInfoCapability {
-  static final Package _instance = Package._internal();
-  Package._internal();
-  factory Package() {
+class AppInfo with Invokable, AppInfoCapability {
+  static final AppInfo _instance = AppInfo._internal();
+  AppInfo._internal();
+  factory AppInfo() {
     return _instance;
   }
 
@@ -35,8 +35,8 @@ class Package with Invokable, PackageInfoCapability {
   }
 }
 
-/// retrieve basic device info
-mixin PackageInfoCapability {
+/// retrieve basic app info
+mixin AppInfoCapability {
   PackageInfo? _info;
   String? _appId;
 
