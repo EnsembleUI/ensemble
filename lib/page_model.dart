@@ -4,6 +4,7 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/menu.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
@@ -309,12 +310,14 @@ class WidgetModel {
 
 class CustomWidgetModel extends WidgetModel {
   CustomWidgetModel(this.widgetModel, Map<String, dynamic> props,
-      {this.parameters, this.inputs})
+      {this.parameters, this.inputs, this.actions, this.events})
       : super(widgetModel.definition, '', {}, props);
 
   WidgetModel widgetModel;
   List<String>? parameters;
   Map<String, dynamic>? inputs;
+  Map<String, EnsembleEvent>? events;
+  Map<String, EnsembleAction?>? actions;
 
   WidgetModel getModel() {
     return widgetModel;

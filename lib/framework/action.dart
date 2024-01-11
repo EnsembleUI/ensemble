@@ -380,6 +380,41 @@ class ExecuteCodeAction extends EnsembleAction {
   }
 }
 
+//used to dispatch events. Used within custom widgets as custom widgets expose events to the callers
+class DispatchEventAction extends EnsembleAction {
+  DispatchEventAction({super.initiator, required this.event, this.onComplete});
+
+  EnsembleEvent event;
+  EnsembleAction? onComplete;
+
+  factory DispatchEventAction.fromYaml({Invokable? initiator, Map? payload}) {
+    if (payload == null || payload.keys.length != 1) {
+      throw LanguageError(
+          "${ActionType.dispatchEvent.name} requires one and only one 'event' to dispatch.");
+    }
+    return DispatchEventAction(
+        initiator: initiator,
+        event: EnsembleEvent.fromYaml(
+            payload.keys.first, payload.values.first as YamlMap),
+        onComplete: EnsembleAction.fromYaml(payload['onComplete']));
+  }
+  factory DispatchEventAction.from(dynamic payLoad) {
+    return DispatchEventAction.fromYaml(payload: Utils.getYamlMap(payLoad));
+  }
+  @override
+  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
+    //we can safely do event.name! as we are always settings it
+    //we are not going to check if the returned type is a handler or not as that should have been done before
+    EnsembleEventHandler? handler =
+        scopeManager.dataContext.getContextById(event.name!);
+    if (handler != null) {
+      return handler.handleEvent(event, context);
+      //return ScreenController().executeAction(context, action!, event: event);
+    }
+    return Future.value(null);
+  }
+}
+
 class OpenUrlAction extends EnsembleAction {
   OpenUrlAction(this.url, {this.openInExternalApp = false});
 
@@ -921,6 +956,7 @@ enum ActionType {
   createDeeplink,
   verifySignIn,
   signOut,
+  dispatchEvent
 }
 
 enum ToastType { success, error, warning, info }
@@ -1084,6 +1120,9 @@ abstract class EnsembleAction {
       return SignOutAction(
           initiator: initiator,
           onComplete: EnsembleAction.fromYaml(payload?['onComplete']));
+    } else if (actionType == ActionType.dispatchEvent) {
+      return DispatchEventAction.fromYaml(
+          initiator: initiator, payload: payload);
     }
 
     throw LanguageError("Invalid action.",

@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/bindings.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -11,10 +12,12 @@ class CustomView extends StatelessWidget with Invokable {
       {super.key,
       required this.body,
       this.parameters,
+      this.events,
       required this.scopeManager,
       required this.viewBehavior});
 
   final List<String>? parameters;
+  final Map<String, EnsembleEvent>? events;
   final WidgetModel body;
   final ScopeManager scopeManager;
   final ViewBehavior viewBehavior;
@@ -36,7 +39,10 @@ class CustomView extends StatelessWidget with Invokable {
   /// as well as dispatching changes
   @override
   void setProperty(dynamic prop, dynamic val) {
-    if (prop != null && parameters != null && parameters!.contains(prop)) {
+    if (prop != null && (parameters != null && parameters!.contains(prop)) ||
+            (events != null && events!.containsKey(prop))
+        //this does mean that an input must not have the same name as an event
+        ) {
       // override the key
       if (val is Invokable) {
         scopeManager.dataContext.addInvokableContext(prop, val);
