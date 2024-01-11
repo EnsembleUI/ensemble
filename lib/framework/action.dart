@@ -59,24 +59,25 @@ class ShowCameraAction extends EnsembleAction {
 class ShowDialogAction extends EnsembleAction {
   ShowDialogAction({
     super.initiator,
-    required this.widget,
-    //super.inputs,
+    required this.body,
     this.options,
     this.onDialogDismiss,
   });
 
-  final dynamic widget;
+  final dynamic body;
   final Map<String, dynamic>? options;
   final EnsembleAction? onDialogDismiss;
 
   factory ShowDialogAction.from({Invokable? initiator, Map? payload}) {
-    if (payload == null || payload['widget'] == null) {
+    if (payload == null ||
+        (payload['body'] == null && payload['widget'] == null)) {
       throw LanguageError(
           "${ActionType.showDialog.name} requires the 'widget' for the Dialog's content.");
     }
     return ShowDialogAction(
       initiator: initiator,
-      widget: Utils.maybeYamlMap(payload['widget']),
+      body: Utils.maybeYamlMap(payload['body']) ??
+          Utils.maybeYamlMap(payload['widget']),
       options: Utils.getMap(payload['options']),
       onDialogDismiss: payload['onDialogDismiss'] == null
           ? null
@@ -90,7 +91,7 @@ class NavigateScreenAction extends BaseNavigateScreenAction {
   NavigateScreenAction(
       {super.initiator,
       required super.screenName,
-      super.inputs,
+      super.payload,
       super.options,
       this.onNavigateBack,
       super.transition,
@@ -106,7 +107,8 @@ class NavigateScreenAction extends BaseNavigateScreenAction {
     return NavigateScreenAction(
       initiator: initiator,
       screenName: payload['name'].toString(),
-      inputs: Utils.getMap(payload['inputs']),
+      payload:
+          Utils.getMap(payload['payload']) ?? Utils.getMap(payload['inputs']),
       options: Utils.getMap(payload['options']),
       onNavigateBack: EnsembleAction.fromYaml(payload['onNavigateBack']),
       transition: Utils.getMap(payload['transition']),
@@ -145,7 +147,7 @@ class NavigateModalScreenAction extends BaseNavigateScreenAction {
   NavigateModalScreenAction({
     super.initiator,
     required super.screenName,
-    super.inputs,
+    super.payload,
     this.onModalDismiss,
   }) : super(asModal: true);
   EnsembleAction? onModalDismiss;
@@ -159,7 +161,8 @@ class NavigateModalScreenAction extends BaseNavigateScreenAction {
     return NavigateModalScreenAction(
         initiator: initiator,
         screenName: payload['name'].toString(),
-        inputs: Utils.getMap(payload['inputs']),
+        payload:
+            Utils.getMap(payload['payload']) ?? Utils.getMap(payload['inputs']),
         onModalDismiss: EnsembleAction.fromYaml(payload['onModalDismiss']));
   }
 }
@@ -170,7 +173,7 @@ abstract class BaseNavigateScreenAction extends EnsembleAction {
       required this.screenName,
       required this.asModal,
       this.transition,
-      super.inputs,
+      this.payload,
       this.options,
       this.isExternal = false});
 
@@ -179,6 +182,7 @@ abstract class BaseNavigateScreenAction extends EnsembleAction {
   Map<String, dynamic>? transition;
   final Map<String, dynamic>? options;
   final bool isExternal;
+  Map? payload;
 }
 
 class PlaidLinkAction extends EnsembleAction {
@@ -422,8 +426,9 @@ class OpenUrlAction extends EnsembleAction {
       throw LanguageError("${ActionType.openUrl.name} requires the 'url'.");
     }
     return OpenUrlAction(payload['url'].toString(),
-        openInExternalApp:
-            Utils.getBool(payload['openInExternalApp'], fallback: false));
+        openInExternalApp: Utils.optionalBool(payload['external']) ??
+            Utils.optionalBool(payload['openInExternalApp']) ??
+            false);
   }
 
   factory OpenUrlAction.fromMap(dynamic inputs) =>
@@ -436,7 +441,7 @@ class ShowToastAction extends EnsembleAction {
       this.type,
       this.title,
       this.message,
-      this.widget,
+      this.body,
       this.dismissible,
       this.alignment,
       this.duration,
@@ -447,7 +452,7 @@ class ShowToastAction extends EnsembleAction {
 
   // either message or widget is needed
   final String? message;
-  final dynamic widget;
+  final dynamic body;
 
   final bool? dismissible;
 
@@ -457,15 +462,17 @@ class ShowToastAction extends EnsembleAction {
 
   factory ShowToastAction.fromYaml({Map? payload}) {
     if (payload == null ||
-        (payload['message'] == null && payload['widget'] == null)) {
+        (payload['message'] == null &&
+            payload['body'] == null &&
+            payload['widget'] == null)) {
       throw LanguageError(
-          "${ActionType.showToast.name} requires either a message or a widget to render.");
+          "${ActionType.showToast.name} requires either a message or a body widget.");
     }
     return ShowToastAction(
         type: ToastType.values.from(payload['options']?['type']),
         title: Utils.optionalString(payload['title']),
         message: payload['message']?.toString(),
-        widget: payload['widget'],
+        body: payload['body'] ?? payload['widget'],
         dismissible: Utils.optionalBool(payload['options']?['dismissible']),
         alignment: Utils.getAlignment(payload['options']?['alignment']),
         duration: Utils.optionalInt(payload['options']?['duration'], min: 1),
@@ -541,7 +548,7 @@ class FilePickerAction extends EnsembleAction {
 
 class FileUploadAction extends EnsembleAction {
   FileUploadAction({
-    Map<String, dynamic>? inputs,
+    super.inputs,
     this.id,
     this.onComplete,
     this.onError,
@@ -555,7 +562,7 @@ class FileUploadAction extends EnsembleAction {
     this.requiresBatteryNotLow,
     required this.showNotification,
     this.batchSize,
-  }) : super(inputs: inputs);
+  });
 
   String? id;
   EnsembleAction? onComplete;
@@ -716,8 +723,8 @@ class ConnectSocketAction extends EnsembleAction {
     required this.name,
     this.onSuccess,
     this.onError,
-    Map<String, dynamic>? inputs,
-  }) : super(inputs: inputs);
+    super.inputs,
+  });
 
   factory ConnectSocketAction.fromYaml({Map? payload}) {
     if (payload == null || payload['name'] == null) {
@@ -960,7 +967,7 @@ abstract class EnsembleAction {
 
   // initiator is an Invokable so we can scope to *this* variable
   Invokable? initiator;
-  Map<String, dynamic>? inputs;
+  Map? inputs;
 
   /// TODO: each Action does all the execution in here
   /// use DataContext to eval properties. ScopeManager should be refactored
