@@ -10,7 +10,10 @@ import 'package:flutter/cupertino.dart';
 /// Navigate to a screen outside of Ensemble (i.e. Flutter, iOS or Android screen)
 class NavigateExternalScreen extends BaseNavigateScreenAction {
   NavigateExternalScreen(
-      {super.initiator, required super.screenName, super.payload, super.options})
+      {super.initiator,
+      required super.screenName,
+      super.payload,
+      super.options})
       : super(asModal: false, isExternal: false);
 
   factory NavigateExternalScreen.from({Invokable? initiator, Map? payload}) {
@@ -21,17 +24,18 @@ class NavigateExternalScreen extends BaseNavigateScreenAction {
     return NavigateExternalScreen(
         initiator: initiator,
         screenName: payload!['name'].toString(),
-        payload: Utils.getMap(payload['payload']) ?? Utils.getMap(payload['inputs']),
+        payload:
+            Utils.getMap(payload['payload']) ?? Utils.getMap(payload['inputs']),
         options: Utils.getMap(payload['options']));
   }
 
   @override
   Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
-    Map? evaluatedPayload = payload?.map((key, value) =>
-        MapEntry(key, scopeManager.dataContext.eval(value)));
+    Map? evaluatedPayload = payload?.map(
+        (key, value) => MapEntry(key, scopeManager.dataContext.eval(value)));
 
-    Map? evaluatedOptions = options?.map((key, value) =>
-        MapEntry(key, scopeManager.dataContext.eval(value)));
+    Map? evaluatedOptions = options?.map(
+        (key, value) => MapEntry(key, scopeManager.dataContext.eval(value)));
 
     return HostPlatformManager().navigateExternalScreen({
       'name': scopeManager.dataContext.eval(screenName),
