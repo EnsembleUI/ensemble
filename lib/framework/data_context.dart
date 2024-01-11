@@ -472,7 +472,7 @@ class NativeInvokable extends ActionInvokable {
 
   void showDialog(dynamic widget) {
     ScreenController()
-        .executeAction(buildContext, ShowDialogAction(widget: widget));
+        .executeAction(buildContext, ShowDialogAction(body: widget));
   }
 
   void openUrl([dynamic inputs]) {
