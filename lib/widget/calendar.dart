@@ -11,7 +11,6 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
-import 'package:ensemble_ts_interpreter/extensions.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -58,10 +57,14 @@ class EnsembleCalendar extends StatefulWidget
   Map<String, Function> methods() {
     return {
       'selectCell': (value) => _selectCell(value),
+      'selectStartEndCell': (start, end) => _selectCell(start, end),
       'toggleSelectCell': (value) => _toggleSelectedCell(value),
       'unSelectCell': (value) => _unSelectCell(value),
+      'unSelectStartEndCell': (start, end) => _unSelectCell(start, end),
       'markCell': (singleDate) => _markCell(singleDate),
+      'markStartEndCell': (start, end) => _markCell(start, end),
       'unMarkCell': (singleDate) => _unMarkCell(singleDate),
+      'unMarkStartEndCell': (start, end) => _unMarkCell(start, end),
       'toggleMarkCell': (singleDate) => _toggleMarkCell(singleDate),
       'disableCell': (value) => _disableCell(value),
       'enableCell': (value) => _enableCell(value),
@@ -157,6 +160,18 @@ class EnsembleCalendar extends StatefulWidget
     _controller.tooltipTextStyle = Utils.getTextStyle(value?['textStyle']);
   }
 
+  List<DateTime>? _getDates(DateTime? start, DateTime? end) {
+    List<DateTime> dates = [];
+
+    if (start == null || end == null || start.isAfter(end)) return null;
+
+    for (int i = 0; i <= end.difference(start).inDays; i++) {
+      dates.add(start.add(Duration(days: i)));
+    }
+
+    return dates;
+  }
+
   List<DateTime>? _getDate(dynamic value) {
     if (value is DateTime) {
       return [value.toDate()];
@@ -249,8 +264,16 @@ class EnsembleCalendar extends StatefulWidget
     _controller.disableDays.value = updatedDisabledDays;
   }
 
-  void _selectCell(dynamic value) {
-    final rawDate = _getDate(value);
+  void _selectCell(dynamic value, [dynamic end]) {
+    List<DateTime>? rawDate;
+    if (end != null) {
+      final startDate = _getDate(value)?.firstOrNull;
+      final endDate = _getDate(end)?.firstOrNull;
+
+      rawDate = _getDates(startDate, endDate);
+    } else {
+      rawDate = _getDate(value);
+    }
     if (rawDate == null) return;
 
     HashSet<DateTime> updatedDisabledDays =
@@ -266,8 +289,16 @@ class EnsembleCalendar extends StatefulWidget
     _controller.selectedDays.value = updatedDisabledDays;
   }
 
-  void _unSelectCell(dynamic value) {
-    final rawDate = _getDate(value);
+  void _unSelectCell(dynamic value, [dynamic end]) {
+    List<DateTime>? rawDate;
+    if (end != null) {
+      final startDate = _getDate(value)?.firstOrNull;
+      final endDate = _getDate(end)?.firstOrNull;
+
+      rawDate = _getDates(startDate, endDate);
+    } else {
+      rawDate = _getDate(value);
+    }
     if (rawDate == null) return;
 
     HashSet<DateTime> updatedDisabledDays =
@@ -304,8 +335,16 @@ class EnsembleCalendar extends StatefulWidget
     _controller.selectedDays.value = updatedDisabledDays;
   }
 
-  void _unMarkCell(dynamic value) {
-    final rawDate = _getDate(value);
+  void _unMarkCell(dynamic value, [dynamic end]) {
+    List<DateTime>? rawDate;
+    if (end != null) {
+      final startDate = _getDate(value)?.firstOrNull;
+      final endDate = _getDate(end)?.firstOrNull;
+
+      rawDate = _getDates(startDate, endDate);
+    } else {
+      rawDate = _getDate(value);
+    }
     if (rawDate == null) return;
 
     HashSet<DateTime> updatedMarkDays =
@@ -325,8 +364,16 @@ class EnsembleCalendar extends StatefulWidget
     _controller.selectedDays.value = updatedSelectedDays;
   }
 
-  void _markCell(dynamic value) {
-    final rawDate = _getDate(value);
+  void _markCell(dynamic value, [dynamic end]) {
+    List<DateTime>? rawDate;
+    if (end != null) {
+      final startDate = _getDate(value)?.firstOrNull;
+      final endDate = _getDate(end)?.firstOrNull;
+
+      rawDate = _getDates(startDate, endDate);
+    } else {
+      rawDate = _getDate(value);
+    }
     if (rawDate == null) return;
 
     HashSet<DateTime> updatedMarkDays =
