@@ -37,6 +37,7 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
   final PageData pageData;
   ScopeManager? _parent;
 
+
   // TODO: have proper root scope
   RootScope rootScope = Ensemble().rootScope();
 
@@ -151,11 +152,13 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
     }
   }
 
-  /// create a copy of the parent's data scope
+  /// create a copy of the parent's data scope. the initialMap is generally coming from the imports
   @override
-  ScopeManager createChildScope({bool ephemeral = false}) {
+  ScopeManager createChildScope({bool ephemeral = false, List<ParsedCode>? importedCode}) {
     ScopeManager childScope =
-        ScopeManager(dataContext.clone(), pageData, ephemeral: ephemeral);
+        ScopeManager(dataContext
+                        .clone()
+                        .evalImports(importedCode), pageData, ephemeral: ephemeral);
     childScope._parent = this;
     return childScope;
   }

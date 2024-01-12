@@ -14,16 +14,18 @@ import 'package:ensemble/layout/stack.dart';
 import 'package:ensemble/provider.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_registry.dart';
+import 'package:ensemble_ts_interpreter/errors.dart';
+import 'package:ensemble_ts_interpreter/parser/newjs_interpreter.dart';
 import 'package:source_span/source_span.dart';
 import 'package:yaml/yaml.dart';
-
+import 'package:jsparser/jsparser.dart';
 import 'framework/scope.dart';
 
 abstract class PageModel {
   PageModel();
-
+  static const String importToken = 'Import';
   final List<String> _reservedTokens = [
-    'Import',
+    importToken,
     'View',
     'ViewGroup',
     'Action',
@@ -43,6 +45,8 @@ abstract class PageModel {
   Map<String, dynamic>? customViewDefinitions;
   String? globalCode;
   SourceSpan? globalCodeSpan;
+  //list of imports parsed but not evaluated yet as evaluation will be done in context during page/widget building
+  List<ParsedCode>? importedCode;
 
   factory PageModel.fromYaml(YamlMap data) {
     try {
@@ -64,11 +68,52 @@ abstract class PageModel {
       globalCode = Utils.optionalString(globalCodeNode.value);
       globalCodeSpan = ViewUtil.getDefinition(globalCodeNode);
     }
-
+    importedCode = Ensemble().getConfig()?.processImports(docMap[importToken] as YamlList);
     // build a Map of the Custom Widgets
     customViewDefinitions = _buildCustomViewDefinitions(docMap);
   }
 
+
+  // static Map<String,dynamic> buildContextFromCode(String name, String code, Map<String,dynamic>? context) {
+  //   try {
+  //     JSInterpreter.fromCode(code, context ??= {}).evaluate();
+  //   } on JSException catch (e) {
+  //     throw 'Error evaluating code library with name - $name Detailed Error: ${e.detailedError}. \n'
+  //         'Note that the variables defined outside of functions in code library cannot access the global properties or '
+  //         'methods of the ensemble object. For example, you cannot do \n'
+  //         'var myVar = ensemble.storage.name;\n '
+  //         ' The variables inside code libraries, however, can be used for storing values that are global across the app. ';
+  //   }
+  //   return context;
+  // }
+  // static Map<String,dynamic>? processImports(YamlList? imports, Map<String,dynamic>? context) {
+  //   if ( imports == null ) return null;
+  //   Map? globals = Ensemble().getConfig()?.getResources();
+  //   Map<String,dynamic> context = {};
+  //   globals?[ResourceArtifactEntry.Code.name]?.forEach((key,value) {
+  //     if ( imports.contains(key) ) {
+  //       if (value is String) {
+  //         context[key] = buildContextFromCode(key, value, context);
+  //       } else if (value is Map) {
+  //         context[key] = value;
+  //       } else {
+  //         throw 'Invalid code definition for $key';
+  //       }
+  //     }
+  //   });
+  //   //we will update the globals so that any other screen that imports this code doesn't need to parse it again
+  //   context.forEach((key,value) {
+  //     globals?[ResourceArtifactEntry.Code.name]?[key] = value;
+  //   });
+  //   //now we add the context maps in a list exactly in the order of imports to make sure the last function/var overwirtes others in case of a name conflict
+  //   Map<String, dynamic> importContext = {};
+  //   for (var element in imports) {
+  //     if ( context[element] != null ) {
+  //       importContext.addAll(context[element]);
+  //     }
+  //   }
+  //   return importContext;
+  // }
   void _processAPI(YamlMap? map) {
     if (map != null) {
       apiMap = {};
@@ -85,13 +130,12 @@ abstract class PageModel {
     });
     SocketService.socketData = socketData;
   }
-
   /// Create a map of Ensemble's custom widgets so WidgetModel can reference them
   Map<String, dynamic> _buildCustomViewDefinitions(YamlMap docMap) {
     Map<String, dynamic> subViewDefinitions = {};
 
     // first get the custom widgets from Global
-    YamlMap? globalWidgets = Ensemble().getConfig()?.getResources();
+    Map? globalWidgets = Ensemble().getConfig()?.getResources();
     globalWidgets?['Widgets']?.forEach((key, value) {
       if (value != null) {
         subViewDefinitions[key] = value;
@@ -310,9 +354,10 @@ class WidgetModel {
 
 class CustomWidgetModel extends WidgetModel {
   CustomWidgetModel(this.widgetModel, Map<String, dynamic> props,
-      {this.parameters, this.inputs, this.actions, this.events})
+      {this.importedCode,this.parameters, this.inputs, this.actions, this.events})
       : super(widgetModel.definition, '', {}, props);
 
+  List<ParsedCode>? importedCode;
   WidgetModel widgetModel;
   List<String>? parameters;
   Map<String, dynamic>? inputs;

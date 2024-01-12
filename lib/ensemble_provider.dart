@@ -309,8 +309,9 @@ class AppModel {
         resources: await getCombinedResources());
   }
 
-  /// combine our App's resources with imported Apps' widgets (no code/APIs fornow)
-  Future<YamlMap?> getCombinedResources() async {
+  /// combine our App's resources with imported Apps' widgets (no APIs for now)
+  Future<Map?> getCombinedResources() async {
+    Map code = {};
     Map output = {};
     Map widgets = {};
 
@@ -320,7 +321,24 @@ class AppModel {
         if (value is YamlMap) {
           widgets.addAll(value.value);
         }
-      } else {
+      } else if (key == ResourceArtifactEntry.Code.name) {
+        if ( value is YamlMap ) {
+          //code will be in the format -
+          // Code:
+          //  #apiUtils is the name of the code artifact
+          //  apiUtils: |-
+          //    function callAPI(name,payload) {
+          //      ensemble.invokeAPI(name, payload);
+          //    }
+          //  #common is the name of the code artifact
+          //  common: |-
+          //    function sayHello() {
+          //      return 'hello';
+          //    }
+          code.addAll(value.value);
+        }
+      }
+      else {
         // copy over non-Widgets
         output[key] = value;
       }
@@ -354,9 +372,11 @@ class AppModel {
       }
     }
 
-    // finally add the widgets to the output
+    // finally add the widgets and code to the output
     output[ResourceArtifactEntry.Widgets.name] = widgets;
+    output[ResourceArtifactEntry.Code.name] = code;
     //log(">>" + output.toString());
-    return YamlMap.wrap(output);
+    //return YamlMap.wrap(output);
+    return output;
   }
 }

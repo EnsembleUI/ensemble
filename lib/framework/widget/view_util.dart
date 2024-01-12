@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -154,6 +155,11 @@ class ViewUtil {
         eventPayload[key] = EnsembleAction.fromYaml(value);
       });
     }
+    List<ParsedCode>? importedCode;
+    if ( callerPayload?[PageModel.importToken] is YamlList ) {
+      importedCode = Ensemble().getConfig()?.processImports(callerPayload?[PageModel.importToken]);
+    }
+
     WidgetModel? widgetModel;
     Map<String, dynamic> props = {};
     List<String> inputParams = [];
@@ -195,6 +201,7 @@ class ViewUtil {
     }
 
     return CustomWidgetModel(widgetModel, props,
+        importedCode: importedCode,
         inputs: inputPayload,
         parameters: inputParams,
         actions: eventPayload,
@@ -216,16 +223,11 @@ class ViewUtil {
   static Widget buildBareCustomWidget(ScopeNode scopeNode,
       CustomWidgetModel customModel, Map<WidgetModel, ModelPayload> modelMap) {
     // create a new Scope (for our custom widget) and add to the parent
-    ScopeManager customScope = scopeNode.scope.createChildScope();
+    ScopeManager customScope = scopeNode.scope.createChildScope(importedCode: customModel.importedCode);
     ScopeNode customScopeNode = ScopeNode(customScope);
     scopeNode.addChild(customScopeNode);
 
-    Widget customWidget = CustomView(
-        body: customModel.getModel(),
-        parameters: customModel.parameters,
-        events: customModel.events,
-        scopeManager: customScope,
-        viewBehavior: customModel.getViewBehavior());
+    Widget customWidget = CustomView.fromModel(model: customModel, scopeManager: customScope);
     modelMap[customModel] = ModelPayload(customWidget, customScope);
 
     return DataScopeWidget(scopeManager: customScope, child: customWidget);
