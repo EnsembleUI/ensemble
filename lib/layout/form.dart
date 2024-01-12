@@ -95,6 +95,8 @@ class EnsembleForm extends StatefulWidget
   // whether a child Form field should show or hide its label
   bool get shouldFormFieldShowLabel =>
       _controller.labelPosition == LabelPosition.top;
+
+  TextStyle? get labelStyle => _controller.labelStyle;
 }
 
 class FormController extends WidgetController {
