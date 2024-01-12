@@ -212,8 +212,7 @@
       "additionalProperties": {
         "type": "object",
         "required": [
-          "uri",
-          "method"
+          "url"
         ],
         "properties": {
           "inputs": {
@@ -223,7 +222,7 @@
             },
             "description": "Define the list of input names that this API accepts"
           },
-          "uri": {
+          "url": {
             "type": "string",
             "description": "The URL for this API"
           },

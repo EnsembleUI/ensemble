@@ -63,6 +63,8 @@ class EnsembleForm extends StatefulWidget
           handleLabelPosition(Utils.optionalString(value)),
       'labelOverflow': (value) =>
           _controller.labelOverflow = Utils.optionalString(value),
+      'labelStyle': (value) =>
+          _controller.labelStyle = Utils.getTextStyle(value),
       'enabled': (value) => _controller.enabled = Utils.optionalBool(value),
       'width': (value) => _controller.width = Utils.optionalInt(value),
       'height': (value) => _controller.height = Utils.optionalInt(value),
@@ -107,6 +109,7 @@ class FormController extends WidgetController {
   // labelMaxWidth applicable only to labelPosition=start
   int? labelMaxWidth;
   int? maxWidth;
+  flutter.TextStyle? labelStyle;
 
   int? width;
   int? height;
@@ -166,6 +169,7 @@ class FormState extends WidgetState<EnsembleForm>
                   border: InputBorder.none,
                   focusedBorder: InputBorder.none,
                   enabledBorder: InputBorder.none,
+                  labelStyle: widget._controller.labelStyle,
                   labelText: widget.shouldFormFieldShowLabel
                       ? (formItem.controller as WidgetController).label
                       : null),
@@ -193,7 +197,11 @@ class FormState extends WidgetState<EnsembleForm>
           (child.controller as WidgetController).visible &&
           (child.controller as WidgetController).label != null &&
           !inExcludedList(child.controller as WidgetController)) {
-        label = buildLabel((child.controller as WidgetController).label!,
+        label = buildLabel(
+            (child.controller as WidgetController).label!,
+            (child.controller is FormFieldController
+                ? (child.controller as FormFieldController).labelStyle
+                : null),
             (child.controller as WidgetController).labelHint);
         hasAtLeastOneLabel = true;
       } else {
@@ -233,12 +241,15 @@ class FormState extends WidgetState<EnsembleForm>
     return hasAtLeastOneLabel ? Column(children: rows) : buildColumn(formItems);
   }
 
-  Widget buildLabel(String label, String? labelHint) {
+  /// Note that this is only for side-by-side. Label display on top will have
+  /// its label at the widget level
+  Widget buildLabel(String label, TextStyle? labelStyle, String? labelHint) {
     util.TextOverflow textOverflow =
         util.TextOverflow.from(widget._controller.labelOverflow);
 
     Widget labelWidget = Text(
       Utils.translate(label, context),
+      style: labelStyle ?? widget.controller.labelStyle,
       overflow: textOverflow.overflow,
       maxLines: textOverflow.maxLine,
       softWrap: textOverflow.softWrap,

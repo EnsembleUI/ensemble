@@ -128,6 +128,9 @@ dependencies:
   change_case: ^1.1.0
   flutter_branch_sdk: ^7.0.1
   dropdown_button2: ^2.3.9
+  collection: ^1.17.1
+  package_info_plus: ^3.1.2
+
 
 dev_dependencies:
   flutter_test:
@@ -136,7 +139,6 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^2.0.1
   mockito: ^5.1.0
-  collection: ^1.17.1
 
 flutter:
   # The following line ensures that the Material Icons font is
