@@ -398,9 +398,11 @@ class DispatchEventAction extends EnsembleAction {
             payload.keys.first, payload.values.first as YamlMap),
         onComplete: EnsembleAction.fromYaml(payload['onComplete']));
   }
+
   factory DispatchEventAction.from(dynamic payLoad) {
     return DispatchEventAction.fromYaml(payload: Utils.getYamlMap(payLoad));
   }
+
   @override
   Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
     //we can safely do event.name! as we are always settings it

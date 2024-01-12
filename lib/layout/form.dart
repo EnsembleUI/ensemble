@@ -5,14 +5,12 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/layout_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/button.dart';
-import 'package:ensemble/widget/ensemble_icon.dart';
-import 'package:ensemble/widget/input/form_helper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:ensemble/widget/input/form_helper.dart';
 import 'package:ensemble/widget/widget_util.dart' as util;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart' as flutter;
 import 'package:flutter/material.dart';
-import 'package:flutter_layout_grid/flutter_layout_grid.dart';
 
 class EnsembleForm extends StatefulWidget
     with
@@ -22,6 +20,7 @@ class EnsembleForm extends StatefulWidget
   static const type = 'Form';
 
   EnsembleForm({Key? key}) : super(key: key);
+  final GlobalKey<flutter.FormState> _formKey = GlobalKey<flutter.FormState>();
 
   final FormController _controller = FormController();
 
@@ -43,7 +42,16 @@ class EnsembleForm extends StatefulWidget
 
   @override
   Map<String, Function> methods() {
-    return {};
+    return {
+      'submit': () {
+        if (_formKey.currentContext != null) {
+          FormHelper.submitForm(_formKey.currentContext!);
+        }
+      },
+      'validate': () {
+        return _formKey.currentState?.validate() ?? false;
+      }
+    };
   }
 
   @override
@@ -110,10 +118,8 @@ class FormController extends WidgetController {
 
 class FormState extends WidgetState<EnsembleForm>
     with HasChildren<EnsembleForm> {
-  final _formKey = GlobalKey<flutter.FormState>();
-
   bool validate() {
-    return _formKey.currentState!.validate();
+    return widget?._formKey.currentState!.validate() ?? false;
   }
 
   @override
@@ -134,7 +140,7 @@ class FormState extends WidgetState<EnsembleForm>
         width: widget._controller.width?.toDouble(),
         height: widget._controller.height?.toDouble(),
         child: EnsembleFormScope(
-            formState: this, child: Form(key: _formKey, child: body)));
+            formState: this, child: Form(key: widget._formKey, child: body)));
 
     if (widget._controller.maxWidth != null) {
       return ConstrainedBox(
