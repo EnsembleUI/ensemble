@@ -17,6 +17,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/provider.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble_ts_interpreter/parser/newjs_interpreter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -24,7 +25,7 @@ import 'package:flutter_i18n/flutter_i18n_delegate.dart';
 import 'package:yaml/yaml.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'html_shim.dart' if (dart.library.html) 'dart:html' show window;
-
+import 'package:jsparser/jsparser.dart';
 import 'framework/theme/theme_loader.dart';
 import 'layout/ensemble_page_route.dart';
 
@@ -372,15 +373,53 @@ class EnsembleConfig {
   }
 
   /// retrieve the global widgets/codes/APIs
-  YamlMap? getResources() {
+  Map? getResources() {
     return appBundle?.resources;
   }
 
+  List<ParsedCode>? processImports(YamlList? imports) {
+    if (imports == null) {
+      return null;
+    }
+    Map<String,ParsedCode>? importMap = {};
+    Map? globals = getResources();
+    globals?[ResourceArtifactEntry.Code.name]?.forEach((key,value) {
+      if ( imports.contains(key) ) {
+        if (value is String) {
+          try {
+            importMap[key] = ParsedCode(value, JSInterpreter.parseCode(value));
+          } catch (e) {
+            throw 'Error Parsing Code. Invalid code definition for $key. Detailed Message: $e';
+          }
+        } else if (value is ParsedCode) {
+            //it's already parsed so need to parse again
+            importMap[key] = value;
+        } else {
+          throw 'Invalid code definition for $key';
+        }
+      }
+    });
+    //this way globals will get parsed as needed and parsed only once during the execution of the app
+    importMap.forEach((key, value) {
+      globals?[ResourceArtifactEntry.Code.name]?[key] = value;
+    });
+    List<ParsedCode>? importList = [];
+    for (var element in imports) {
+      if ( importMap[element] != null ) {
+        importList.add(importMap[element]!);
+      }
+    }
+    return importList;
+  }
   FlutterI18nDelegate getI18NDelegate() {
     return definitionProvider.getI18NDelegate();
   }
 }
-
+class ParsedCode {
+  String code;
+  Program program;
+  ParsedCode(this.code, this.program);
+}
 class I18nProps {
   String defaultLocale;
   String fallbackLocale;
@@ -394,7 +433,7 @@ class AppBundle {
   AppBundle({this.theme, this.resources});
 
   YamlMap? theme; // theme
-  YamlMap? resources; // globally available widgets/codes/APIs
+  Map? resources; // globally available widgets/codes/APIs
 }
 
 /// store the App's account info (e.g. access token for maps)
