@@ -150,6 +150,7 @@ class PageState extends State<Page>
         apiMap: widget._pageModel.apiMap,
         socketData: widget._pageModel.socketData,
       ),
+      importedCode: widget._pageModel.importedCode
     );
     widget.rootScopeManager = _scopeManager;
     // if we have a menu, figure out which child page to display initially

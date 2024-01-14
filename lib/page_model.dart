@@ -68,7 +68,7 @@ abstract class PageModel {
       globalCode = Utils.optionalString(globalCodeNode.value);
       globalCodeSpan = ViewUtil.getDefinition(globalCodeNode);
     }
-    importedCode = Ensemble().getConfig()?.processImports(docMap[importToken] as YamlList);
+    importedCode = Ensemble().getConfig()?.processImports(docMap[importToken]);
     // build a Map of the Custom Widgets
     customViewDefinitions = _buildCustomViewDefinitions(docMap);
   }

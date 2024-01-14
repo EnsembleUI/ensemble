@@ -376,7 +376,34 @@ class EnsembleConfig {
   Map? getResources() {
     return appBundle?.resources;
   }
-
+  /* example of code
+Code:
+  apiUtils: |-
+    ensemble.storage.jslibtest = {name: {first:'apiUtils.first', last: 'apiUtils.last'}};
+    var storageName = ensemble.storage.jslibtest;
+    var apiUtilsCount = 0;
+    function callAPI(name,inputs) {
+      apiUtilsCount++;
+      console.log('apiUtilsCount='+apiUtilsCount);
+      internalCallAPI(name,inputs);
+    }
+    function internalCallAPI(name,inputs) {
+      ensemble.invokeAPI(name,{});
+    }
+  common: |-
+    function sayHello(name) {
+      console.log('sayHello:'+name);
+    }
+    function saveName(first,last) {
+      ensemble.storage.jslibtest = {name: {first: first, last: last}};
+    }
+    function getName() {
+      if ( ensemble.storage.jslibtest != null ) {
+        return ensemble.storage.jslibtest.name;
+      }
+      return null;
+    }
+   */
   List<ParsedCode>? processImports(YamlList? imports) {
     if (imports == null) {
       return null;
@@ -387,7 +414,7 @@ class EnsembleConfig {
       if ( imports.contains(key) ) {
         if (value is String) {
           try {
-            importMap[key] = ParsedCode(value, JSInterpreter.parseCode(value));
+            importMap[key] = ParsedCode(key, value, JSInterpreter.parseCode(value));
           } catch (e) {
             throw 'Error Parsing Code. Invalid code definition for $key. Detailed Message: $e';
           }
@@ -416,9 +443,10 @@ class EnsembleConfig {
   }
 }
 class ParsedCode {
+  String libraryName;
   String code;
   Program program;
-  ParsedCode(this.code, this.program);
+  ParsedCode(this.libraryName,this.code, this.program);
 }
 class I18nProps {
   String defaultLocale;
