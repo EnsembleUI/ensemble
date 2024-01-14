@@ -161,7 +161,7 @@ class ViewUtil {
     Map<String, EnsembleEvent> eventParams = {};
     List<ParsedCode>? importedCode;
     for (MapEntry entry in (viewDefinition as YamlMap).entries) {
-      if ( entry.key == PageModel.importToken) {
+      if (entry.key == PageModel.importToken) {
         importedCode = Ensemble().getConfig()?.processImports(entry.value);
       }
       // see if the custom widget actually declare any input parameters
@@ -222,11 +222,13 @@ class ViewUtil {
   static Widget buildBareCustomWidget(ScopeNode scopeNode,
       CustomWidgetModel customModel, Map<WidgetModel, ModelPayload> modelMap) {
     // create a new Scope (for our custom widget) and add to the parent
-    ScopeManager customScope = scopeNode.scope.createChildScope(childImportedCode: customModel.importedCode);
+    ScopeManager customScope = scopeNode.scope
+        .createChildScope(childImportedCode: customModel.importedCode);
     ScopeNode customScopeNode = ScopeNode(customScope);
     scopeNode.addChild(customScopeNode);
 
-    Widget customWidget = CustomView.fromModel(model: customModel, scopeManager: customScope);
+    Widget customWidget =
+        CustomView.fromModel(model: customModel, scopeManager: customScope);
     modelMap[customModel] = ModelPayload(customWidget, customScope);
 
     return DataScopeWidget(scopeManager: customScope, child: customWidget);

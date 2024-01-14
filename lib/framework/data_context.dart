@@ -75,9 +75,10 @@ class DataContext {
     }
   }
 
-  DataContext clone({BuildContext? newBuildContext, Map<String,dynamic>? initialMap}) {
-    Map<String,dynamic> map = _contextMap;
-    if ( initialMap != null ) {
+  DataContext clone(
+      {BuildContext? newBuildContext, Map<String, dynamic>? initialMap}) {
+    Map<String, dynamic> map = _contextMap;
+    if (initialMap != null) {
       map = {};
       map.addAll(_contextMap);
       //we add the initialMap after the parent conextMap so that it can override parent context
@@ -132,13 +133,15 @@ class DataContext {
   dynamic getContextById(String id) {
     return _contextMap[id];
   }
+
   DataContext evalImports(List<ParsedCode>? imports) {
-    if ( imports == null ) return this;
+    if (imports == null) return this;
     for (var import in imports) {
       evalProgram(import.program, import.code);
     }
     return this;
   }
+
   /// evaluate single inline binding expression (getters only) e.g Hello ${myVar.name}.
   /// Note that this expects the variable (if any) to be inside ${...}
   dynamic eval(dynamic expression) {
@@ -247,7 +250,7 @@ class DataContext {
     }
     try {
       Program p = JSInterpreter.parseCode(codeBlock);
-      return evalProgram(p,codeBlock,startLoc);
+      return evalProgram(p, codeBlock, startLoc);
     } on JSException catch (e) {
       if (e.detailedError is EnsembleError) {
         throw e.detailedError.toString();
@@ -265,12 +268,14 @@ class DataContext {
       return null;
     }
   }
+
   /// evaluate javscript code block
-  dynamic evalProgram(Program program, String codeBlock,[SourceLocation? startLoc]) {
+  dynamic evalProgram(Program program, String codeBlock,
+      [SourceLocation? startLoc]) {
     try {
       _contextMap['getStringValue'] = Utils.optionalString;
       return JSInterpreter(codeBlock, program, _contextMap).evaluate();
-    }  on JSException catch (e) {
+    } on JSException catch (e) {
       if (e.detailedError is EnsembleError) {
         throw e.detailedError.toString();
       }
@@ -686,7 +691,6 @@ class EnsembleUtils with Invokable {
 }
 
 class Formatter with Invokable {
-
   Formatter();
 
   @override

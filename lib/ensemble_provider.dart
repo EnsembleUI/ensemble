@@ -17,6 +17,7 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
   EnsembleDefinitionProvider(String appId, super.i18nProps) {
     appModel = AppModel(appId);
   }
+
   late final AppModel appModel;
   FlutterI18nDelegate? _i18nDelegate;
 
@@ -98,6 +99,7 @@ class AppModel {
 
   // the cache for ID -> screen content
   Map<String, dynamic> artifactCache = {};
+
   // these are mappings from home/screen name to IDs
   Map<String, String> screenNameMappings = {};
   String? homeMapping;
@@ -111,6 +113,7 @@ class AppModel {
   /// fetch async and cache our entire App's artifacts.
   /// Plus listen for changes and update the cache
   String? listenerError;
+
   void initListeners() {
     final app = Ensemble().ensembleFirebaseApp!;
     FirebaseFirestore db = FirebaseFirestore.instanceFor(app: app);
@@ -322,7 +325,7 @@ class AppModel {
           widgets.addAll(value.value);
         }
       } else if (key == ResourceArtifactEntry.Code.name) {
-        if ( value is YamlMap ) {
+        if (value is YamlMap) {
           //code will be in the format -
           // Code:
           //  #apiUtils is the name of the code artifact
@@ -337,8 +340,7 @@ class AppModel {
           //    }
           code.addAll(value.value);
         }
-      }
-      else {
+      } else {
         // copy over non-Widgets
         output[key] = value;
       }

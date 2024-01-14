@@ -21,13 +21,13 @@ class CustomView extends StatelessWidget with Invokable {
     required CustomWidgetModel model,
     required ScopeManager scopeManager,
   }) : this(
-    key: key,
-    body: model.getModel(),
-    parameters: model.parameters,
-    events: model.events,
-    scopeManager: scopeManager,
-    viewBehavior: model.getViewBehavior(),
-  );
+          key: key,
+          body: model.getModel(),
+          parameters: model.parameters,
+          events: model.events,
+          scopeManager: scopeManager,
+          viewBehavior: model.getViewBehavior(),
+        );
 
   final List<String>? parameters;
   final Map<String, EnsembleEvent>? events;

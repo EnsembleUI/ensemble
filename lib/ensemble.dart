@@ -35,21 +35,26 @@ typedef CustomBuilder = Widget Function(
 /// Singleton Controller
 class Ensemble {
   static final Ensemble _instance = Ensemble._internal();
+
   Ensemble._internal();
+
   factory Ensemble() {
     return _instance;
   }
 
   Map<String, Function> externalMethods = {};
+
   void setExternalMethods(Map<String, Function> methods) =>
       externalMethods = methods;
 
   Map<String, CustomBuilder> externalScreenWidgets = {};
+
   void setExternalScreenWidgets(Map<String, CustomBuilder> widgets) {
     externalScreenWidgets = widgets;
   }
 
   final Set<Function> _afterInitMethods = {};
+
   void addCallbackAfterInitialization({required Function method}) {
     _afterInitMethods.add(method);
   }
@@ -67,6 +72,7 @@ class Ensemble {
   /// The actual code block to initialize the managers is guaranteed to run
   /// at most once.
   Completer<void>? _completer;
+
   Future<void> initManagers() async {
     // if currently pending or completed, wait till it finishes and do nothing.
     if (_completer != null) {
@@ -376,6 +382,7 @@ class EnsembleConfig {
   Map? getResources() {
     return appBundle?.resources;
   }
+
   /* example of code
     ensemble.storage.jslibtest = {name: {first:'apiUtils.first', last: 'apiUtils.last'}};
     var storageName = ensemble.storage.jslibtest;
@@ -393,19 +400,20 @@ class EnsembleConfig {
     if (imports == null) {
       return null;
     }
-    Map<String,ParsedCode>? importMap = {};
+    Map<String, ParsedCode>? importMap = {};
     Map? globals = getResources();
-    globals?[ResourceArtifactEntry.Code.name]?.forEach((key,value) {
-      if ( imports.contains(key) ) {
+    globals?[ResourceArtifactEntry.Code.name]?.forEach((key, value) {
+      if (imports.contains(key)) {
         if (value is String) {
           try {
-            importMap[key] = ParsedCode(key, value, JSInterpreter.parseCode(value));
+            importMap[key] =
+                ParsedCode(key, value, JSInterpreter.parseCode(value));
           } catch (e) {
             throw 'Error Parsing Code. Invalid code definition for $key. Detailed Message: $e';
           }
         } else if (value is ParsedCode) {
-            //it's already parsed so need to parse again
-            importMap[key] = value;
+          //it's already parsed so need to parse again
+          importMap[key] = value;
         } else {
           throw 'Invalid code definition for $key';
         }
@@ -417,22 +425,26 @@ class EnsembleConfig {
     });
     List<ParsedCode>? importList = [];
     for (var element in imports) {
-      if ( importMap[element] != null ) {
+      if (importMap[element] != null) {
         importList.add(importMap[element]!);
       }
     }
     return importList;
   }
+
   FlutterI18nDelegate getI18NDelegate() {
     return definitionProvider.getI18NDelegate();
   }
 }
+
 class ParsedCode {
   String libraryName;
   String code;
   Program program;
-  ParsedCode(this.libraryName,this.code, this.program);
+
+  ParsedCode(this.libraryName, this.code, this.program);
 }
+
 class I18nProps {
   String defaultLocale;
   String fallbackLocale;
@@ -452,6 +464,7 @@ class AppBundle {
 /// store the App's account info (e.g. access token for maps)
 class Account {
   Account({this.firebaseConfig, this.googleMapsAPIKey});
+
   FirebaseConfig? firebaseConfig;
 
   String? googleMapsAPIKey;
@@ -471,6 +484,7 @@ class Account {
 
 class FirebaseConfig {
   FirebaseConfig._({this.iOSConfig, this.androidConfig, this.webConfig});
+
   FirebaseOptions? iOSConfig;
   FirebaseOptions? androidConfig;
   FirebaseOptions? webConfig;
@@ -514,6 +528,7 @@ class FirebaseConfig {
 /// for social sign-in and API authorization via OAuth2
 class Services {
   Services._({this.oauthCredentials});
+
   Map<OAuthService, ServiceCredential>? oauthCredentials;
 
   factory Services.fromYaml(dynamic input) {
@@ -535,6 +550,7 @@ class Services {
 
 class ServiceCredential {
   ServiceCredential._({this.config, this.credentialMap});
+
   Map<String, dynamic>? config;
   Map<DevicePlatform, OAuthCredential>? credentialMap;
 

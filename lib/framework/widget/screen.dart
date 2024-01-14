@@ -79,14 +79,14 @@ class _ScreenState extends State<Screen> {
     //here add the js code
     //widget.appProvider.definitionProvider.getAppBundle().
     // build the data context
-    Map<String,dynamic>? initialMap = widget.screenPayload?.arguments;
+    Map<String, dynamic>? initialMap = widget.screenPayload?.arguments;
     //we add the imported code context first before adding the arguments so in case of conflict, arguments win
     // if ( pageModel.importedCodeContext != null ) {
     //   initialMap = Map<String,dynamic>.of(pageModel.importedCodeContext!);
     //   initialMap.addAll(widget.screenPayload?.arguments ?? {});
     // }
-    DataContext dataContext = DataContext(
-        buildContext: context, initialMap: initialMap);
+    DataContext dataContext =
+        DataContext(buildContext: context, initialMap: initialMap);
 
     // add all the API names to our context as Invokable, even though their result
     // will be null. This is so we can always reference it API responses come back
@@ -195,6 +195,7 @@ class _PageInitializerState extends State<PageInitializer>
 
 class ScreenDefinition {
   ScreenDefinition(this._content);
+
   final YamlMap _content;
 
   PageModel getModel(Map<String, dynamic>? inputParams) {

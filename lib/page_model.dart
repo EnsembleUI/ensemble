@@ -23,6 +23,7 @@ import 'framework/scope.dart';
 
 abstract class PageModel {
   PageModel();
+
   static const String importToken = 'Import';
   final List<String> _reservedTokens = [
     importToken,
@@ -45,6 +46,7 @@ abstract class PageModel {
   Map<String, dynamic>? customViewDefinitions;
   String? globalCode;
   SourceSpan? globalCodeSpan;
+
   //list of imports parsed but not evaluated yet as evaluation will be done in context during page/widget building
   List<ParsedCode>? importedCode;
 
@@ -60,6 +62,7 @@ abstract class PageModel {
           detailError: e.toString() + "\n" + (e.stackTrace?.toString() ?? ''));
     }
   }
+
   void _processModel(YamlMap docMap) {
     _processAPI(docMap['API']);
     _processSocket(docMap['Socket']);
@@ -72,7 +75,6 @@ abstract class PageModel {
     // build a Map of the Custom Widgets
     customViewDefinitions = _buildCustomViewDefinitions(docMap);
   }
-
 
   // static Map<String,dynamic> buildContextFromCode(String name, String code, Map<String,dynamic>? context) {
   //   try {
@@ -130,6 +132,7 @@ abstract class PageModel {
     });
     SocketService.socketData = socketData;
   }
+
   /// Create a map of Ensemble's custom widgets so WidgetModel can reference them
   Map<String, dynamic> _buildCustomViewDefinitions(YamlMap docMap) {
     Map<String, dynamic> subViewDefinitions = {};
@@ -354,7 +357,11 @@ class WidgetModel {
 
 class CustomWidgetModel extends WidgetModel {
   CustomWidgetModel(this.widgetModel, Map<String, dynamic> props,
-      {this.importedCode,this.parameters, this.inputs, this.actions, this.events})
+      {this.importedCode,
+      this.parameters,
+      this.inputs,
+      this.actions,
+      this.events})
       : super(widgetModel.definition, '', {}, props);
 
   List<ParsedCode>? importedCode;
@@ -415,6 +422,7 @@ class FooterItems {
   final Map<String, dynamic>? dragOptions;
   final WidgetModel? fixedContent;
   final WidgetModel? footerWidgetModel;
+
   FooterItems(this.children, this.styles, this.dragOptions, this.fixedContent,
       this.footerWidgetModel);
 }
@@ -424,6 +432,7 @@ enum PageType { regular, modal }
 /// provider that gets passed into every screen
 class AppProvider {
   AppProvider({required this.definitionProvider});
+
   DefinitionProvider definitionProvider;
 
   Future<ScreenDefinition> getDefinition({ScreenPayload? payload}) {
@@ -443,6 +452,7 @@ class ScreenPayload {
 
   // screen ID is optional as the App always have a default screen
   String? screenId;
+
   // screenName is also optional, and refer to the friendly readable name
   String? screenName;
 
