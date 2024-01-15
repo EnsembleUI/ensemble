@@ -24,9 +24,11 @@ import 'package:http/http.dart' as http;
 class EnsembleImage extends StatefulWidget
     with Invokable, HasController<ImageController, ImageState> {
   static const type = 'Image';
+
   EnsembleImage({Key? key}) : super(key: key);
 
   final ImageController _controller = ImageController();
+
   @override
   get controller => _controller;
 
@@ -77,6 +79,7 @@ class ImageController extends BoxController {
     /// the image will bleed through the borderRadius
     clipContent = true;
   }
+
   DateTime? lastModifiedCache;
   dynamic source;
   BoxFit? fit;
@@ -102,10 +105,10 @@ class ImageState extends WidgetState<EnsembleImage> {
       image = buildMemoryImage(imageBytes);
     } else {
       String source =
-          Utils.getString(widget._controller.source.trim(), fallback: '');
+          Utils.getString(widget._controller.source?.trim(), fallback: '');
       // use the placeholder for the initial state before binding kicks in
       if (source.isEmpty) {
-        return errorFallback();
+        return const ColoredBoxPlaceholder();
       }
 
       if (isSvg()) {
