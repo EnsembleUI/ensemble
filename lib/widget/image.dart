@@ -102,10 +102,10 @@ class ImageState extends WidgetState<EnsembleImage> {
       image = buildMemoryImage(imageBytes);
     } else {
       String source =
-          Utils.getString(widget._controller.source.trim(), fallback: '');
+          Utils.getString(widget._controller.source?.trim(), fallback: '');
       // use the placeholder for the initial state before binding kicks in
       if (source.isEmpty) {
-        return errorFallback();
+        return const ColoredBoxPlaceholder();
       }
 
       if (isSvg()) {
