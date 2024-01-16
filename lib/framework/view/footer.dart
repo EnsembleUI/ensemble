@@ -39,7 +39,9 @@ class Footer extends StatefulWidget
 
   @override
   Map<String, Function> methods() {
-    return {};
+    return {
+      'drag': handleDrag,
+    };
   }
 
   @override
@@ -55,6 +57,16 @@ class Footer extends StatefulWidget
   @override
   void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate}) {
     _controller.children = children;
+  }
+
+  void handleDrag(dynamic value) {
+    final size = Utils.optionalDouble(value);
+    if (size == null) return;
+    _controller.dragController.animateTo(
+      size,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.bounceIn,
+    );
   }
 }
 
