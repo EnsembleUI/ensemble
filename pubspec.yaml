@@ -103,7 +103,8 @@ dependencies:
   get_it: ^7.6.0
   custom_image_crop: ^0.0.10
   app_settings: ^5.0.0
-  firebase_messaging: ^14.6.5
+  firebase_messaging: ^14.7.10
+  firebase_core: ^2.24.2
   custom_refresh_indicator: ^2.2.1
   youtube_player_iframe: ^4.0.4
   web_socket_client: ^0.1.0
@@ -126,7 +127,6 @@ dependencies:
       url: https://github.com/AyushmanG26/receive_sharing_intent.git
       ref: abedc3d6d5b80df396e9c300fd1a052cbab08827
   change_case: ^1.1.0
-  flutter_branch_sdk: ^7.0.1
   dropdown_button2: ^2.3.9
   collection: ^1.17.1
   package_info_plus: ^3.1.2
