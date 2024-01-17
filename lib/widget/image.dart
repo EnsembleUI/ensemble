@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -12,7 +11,6 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
@@ -68,7 +66,9 @@ class EnsembleImage extends StatefulWidget
       'onTap': (funcDefinition) => _controller.onTap =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'onTapHaptic': (value) =>
-          _controller.onTapHaptic = Utils.optionalString(value)
+          _controller.onTapHaptic = Utils.optionalString(value),
+      'pinchToZoom': (value) =>
+          _controller.pinchToZoom = Utils.optionalBool(value),
     };
   }
 }
@@ -93,6 +93,7 @@ class ImageController extends BoxController {
   int? resizedHeight;
   dynamic fallback;
   bool cache = true;
+  bool? pinchToZoom;
 }
 
 class ImageState extends WidgetState<EnsembleImage> {
@@ -145,6 +146,9 @@ class ImageState extends WidgetState<EnsembleImage> {
     }
     if (widget._controller.margin != null) {
       rtn = Padding(padding: widget._controller.margin!, child: rtn);
+    }
+    if (widget._controller.pinchToZoom == true) {
+      rtn = PinchToZoom(child: rtn);
     }
     return rtn;
   }
@@ -330,4 +334,168 @@ class EnsembleImageCacheManager {
     stalePeriod: const Duration(minutes: 15),
     maxNrOfCacheObjects: 50,
   ));
+}
+
+class PinchToZoom extends StatefulWidget {
+  static const Duration defaultResetDuration = Duration(milliseconds: 200);
+
+  const PinchToZoom({
+    required this.child,
+    this.resetDuration = defaultResetDuration,
+    this.resetCurve = Curves.ease,
+    this.boundaryMargin = EdgeInsets.zero,
+    this.clipBehavior = Clip.none,
+    this.minScale = 0.8,
+    this.maxScale = 8,
+    this.useOverlay = true,
+    this.maxOverlayOpacity = 0.5,
+    this.overlayColor = Colors.black,
+    super.key,
+  })  : assert(minScale > 0),
+        assert(maxScale > 0),
+        assert(maxScale >= minScale);
+
+  final Widget child;
+  final Clip clipBehavior;
+  final double maxScale;
+  final double minScale;
+  final Duration resetDuration;
+  final Curve resetCurve;
+  final EdgeInsets boundaryMargin;
+  final bool useOverlay;
+  final double maxOverlayOpacity;
+  final Color overlayColor;
+
+  @override
+  State<PinchToZoom> createState() => _PinchToZoomState();
+}
+
+class _PinchToZoomState extends State<PinchToZoom>
+    with TickerProviderStateMixin {
+  late TransformationController controller;
+  late AnimationController animationController;
+  Animation<Matrix4>? animation;
+  OverlayEntry? entry;
+  List<OverlayEntry> overlayEntries = [];
+  double scale = 1;
+  static const fingersRequiredToPinch = 2;
+
+  @override
+  void initState() {
+    super.initState();
+
+    controller = TransformationController();
+    animationController = AnimationController(
+      vsync: this,
+      duration: widget.resetDuration,
+    )
+      ..addListener(
+        () => controller.value = animation!.value,
+      )
+      ..addStatusListener(
+        (status) {
+          if (status == AnimationStatus.completed && widget.useOverlay) {
+            Future.delayed(const Duration(milliseconds: 100), removeOverlay);
+          }
+        },
+      );
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    animationController.dispose();
+
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => buildWidget(widget.child);
+
+  void resetAnimation() {
+    if (mounted) {
+      animation = Matrix4Tween(begin: controller.value, end: Matrix4.identity())
+          .animate(CurvedAnimation(
+              parent: animationController, curve: widget.resetCurve));
+      animationController.forward(from: 0);
+    }
+  }
+
+  Widget buildWidget(Widget zoomableWidget) {
+    return InteractiveViewer(
+      clipBehavior: widget.clipBehavior,
+      minScale: widget.minScale,
+      maxScale: widget.maxScale,
+      transformationController: controller,
+      onInteractionStart: (details) {
+        if (fingersRequiredToPinch > 0 &&
+            details.pointerCount != fingersRequiredToPinch) {
+          return;
+        }
+        if (widget.useOverlay) {
+          showOverlay(context);
+        }
+      },
+      onInteractionEnd: (details) {
+        if (overlayEntries.isEmpty) {
+          return;
+        }
+        resetAnimation();
+      },
+      onInteractionUpdate: (details) {
+        if (entry == null) {
+          return;
+        }
+        scale = details.scale;
+        entry?.markNeedsBuild();
+      },
+      panEnabled: false,
+      boundaryMargin: widget.boundaryMargin,
+      child: zoomableWidget,
+    );
+  }
+
+  void showOverlay(BuildContext context) {
+    final OverlayState overlay = Overlay.of(context);
+    final RenderBox renderBox = context.findRenderObject()! as RenderBox;
+    final Offset offset = renderBox.localToGlobal(Offset.zero);
+
+    entry = OverlayEntry(builder: (context) {
+      final double opacity = ((scale - 1) / (widget.maxScale - 1))
+          .clamp(0, widget.maxOverlayOpacity);
+
+      return Material(
+        color: Colors.green.withOpacity(0),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Opacity(
+                opacity: opacity,
+                child: Container(color: widget.overlayColor),
+              ),
+            ),
+            Positioned(
+              left: offset.dx,
+              top: offset.dy,
+              child: SizedBox(
+                width: renderBox.size.width,
+                height: renderBox.size.height,
+                child: buildWidget(widget.child),
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+    overlay.insert(entry!);
+    overlayEntries.add(entry!);
+  }
+
+  void removeOverlay() {
+    for (final OverlayEntry entry in overlayEntries) {
+      entry.remove();
+    }
+    overlayEntries.clear();
+    entry = null;
+  }
 }
