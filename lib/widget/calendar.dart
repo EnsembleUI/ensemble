@@ -896,6 +896,8 @@ class CalendarState extends WidgetState<EnsembleCalendar>
                 final data = {
                   'day': day.day,
                   'month': day.month,
+                  'date': day,
+                  'year': day.year,
                 };
 
                 Widget? cell;
@@ -980,8 +982,9 @@ class CalendarState extends WidgetState<EnsembleCalendar>
   Widget? widgetBuilder(
       BuildContext context, dynamic item, Map<String, dynamic> data) {
     ScopeManager? parentScope = DataScopeWidget.getScope(context);
-    parentScope?.dataContext.addDataContext(data);
-    return parentScope?.buildWidgetFromDefinition(item);
+    final childScope = parentScope?.createChildScope();
+    childScope?.dataContext.addDataContext(data);
+    return childScope?.buildWidgetWithScopeFromDefinition(item);
   }
 
   Widget? cellBuilder(
