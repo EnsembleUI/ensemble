@@ -53,7 +53,8 @@ class NotificationUtilsMobile implements NotificationUtilsBase {
           localNotificationsPlugin.resolvePlatformSpecificImplementation<
               AndroidFlutterLocalNotificationsPlugin>();
 
-      bool? granted = await androidImplementation?.requestPermission();
+      bool? granted =
+          await androidImplementation?.requestNotificationsPermission();
       return granted ?? false;
     }
     return false;

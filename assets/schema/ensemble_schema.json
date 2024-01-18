@@ -212,8 +212,7 @@
       "additionalProperties": {
         "type": "object",
         "required": [
-          "uri",
-          "method"
+          "url"
         ],
         "properties": {
           "inputs": {
@@ -223,7 +222,7 @@
             },
             "description": "Define the list of input names that this API accepts"
           },
-          "uri": {
+          "url": {
             "type": "string",
             "description": "The URL for this API"
           },
@@ -1615,9 +1614,19 @@
               "description": "Styling the hint text. Default to theme's bodyMedium styling",
               "$ref": "#/$defs/TextStyle"
             },
+            "multiline": {
+              "type": "boolean",
+              "description": "Specify whether this Text Input should span multiple lines."
+            },
+            "minLines": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Specify the number of lines to visually start out with, and can expand to the specified 'maxLines'. (applicable only if 'multiline' is true, or if maxLines is greater han than 1)"
+            },
             "maxLines": {
               "type": "integer",
-              "description": "max number of lines allowed in a textinput"
+              "minimum": 1,
+              "description": "Specify the max number of lines this Text Input can visually expand to show. Multi-line will also be enabled if this number is greater than 1 and the 'multiline' property is not specified."
             }            
           }
         }
@@ -1970,21 +1979,23 @@
               "description": "List of values, or Objects with value/label pairs"
             },
             "itemTemplate": {
-              "data": {
-                "type": "string",
-                "description": "Bind to an array of data from an API response or a variable"
-              },
-              "name": {
-                "type": "string",
-                "description": "Set the name to reference as you iterate through the array of data"
-              },
-              "template": {
-                "$ref": "#/$defs/Widget",
-                "description": "Specify the widget to render as each dropdown item's label"
-              },
-              "value": {
-                "type": "string",
-                "description": "Specify the expression to evaluate as each item's value. This will be the value when the item is selected."
+              "properties": {
+                "data": {
+                  "type": "string",
+                  "description": "Bind to an array of data from an API response or a variable"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Set the name to reference as you iterate through the array of data"
+                },
+                "template": {
+                  "$ref": "#/$defs/Widget",
+                  "description": "Specify the widget to render as each dropdown item's label"
+                },
+                "value": {
+                  "type": "string",
+                  "description": "Specify the expression to evaluate as each item's value. This will be the value when the item is selected."
+                }
               }
             },
             "autoComplete": {
@@ -2172,6 +2183,38 @@
       ]
     },
     "SignIn-payload": {
+      "oneOf": [
+        {
+          "properties": {
+            "provider": {"enum": ["server"]},
+            "signInServerAPI": {
+              "type": "object",
+              "description": "Call this Server API to retrieve the server credentials to sign in:\n1. Authenticate with Google, Apple, ..\n2. Call your server with the idToken (accessible with ${idToken}) and expect the response to contain server-specific credentials necessary for subsequent access.\n3. Client will set these credentials and sign the user in locally. The credentials are accessible with ${auth.user.data}\n4. Subsequent server API calls can append these credentials to the requests.",
+              "required": ["setSignInCredentialsOnResponse"],
+              "allOf": [
+                {
+                  "$ref": "#/$defs/InvokeAPI-payload"
+                },
+                {
+                  "properties": {
+                    "setSignInCredentialsOnResponse": {
+                      "type": "object",
+                      "description": "On server response, set any key/value pairs to save them as the user's credentials. The client will automatically sign the user in and have these key/value pairs available at ${auth.user.data}",
+                      "additionalProperties": {}
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "required": ["signInServerAPI"]
+        },
+        {
+          "properties": {
+            "provider": {"not": {"enum": ["server"]}}
+          }
+        }
+      ],
       "properties": {
         "provider": {
           "type": "string",
@@ -2191,38 +2234,12 @@
             }
           ]
         },
-        "oneOf": [
-          {
-            "properties": {
-              "provider": {"enum": ["server"]},
-              "signInServerAPI": {
-                "type": "object",
-                "description": "Call this Server API to retrieve the server credentials to sign in:\n1. Authenticate with Google, Apple, ..\n2. Call your server with the idToken (accessible with ${idToken}) and expect the response to contain server-specific credentials necessary for subsequent access.\n3. Client will set these credentials and sign the user in locally. The credentials are accessible with ${auth.user.data}\n4. Subsequent server API calls can append these credentials to the requests.",
-                "required": ["setSignInCredentialsOnResponse"],
-                "allOf": [
-                  {
-                    "$ref": "#/$defs/InvokeAPI-payload"
-                  },
-                  {
-                    "setSignInCredentialsOnResponse": {
-                      "type": "object",
-                      "description": "On server response, set any key/value pairs to save them as the user's credentials. The client will automatically sign the user in and have these key/value pairs available at ${auth.user.data}",
-                      "additionalProperties": {}
-                    }
-                  }
-                ]
-              }
-            },
-            "required": ["signInServerAPI"]
-          },
-          {
-            "properties": {
-              "provider": {"not": {"enum": ["server"]}}
-            }
-          }
-        ],
+        "onAuthenticated": {
+          "description": "Execute an Action when the user has successfully authenticated",
+          "$ref": "#/$defs/Action-payload"
+        },
         "onSignedIn": {
-          "description": "Execute an Action once the user has signed in.",
+          "description": "Dispatch when the user has successfully authenticated and the system has signed the user in. This event is only applicable when the provider is not of type Server.",
           "$ref": "#/$defs/Action-payload"
         },
         "onError": {
@@ -7936,7 +7953,7 @@
         },
         "lineHeightMultiple": {
           "type": "number",
-          "description": "A multiple of the fontSize to determine the line height. (e.g. 2.0 means the line height is double the height the font size occupies). Default null. (note that 1.0 is not the default depending on the font)"
+          "description": "A multiplier applied to the font size to determine line height (e.g., 2.0 for double the height of the font size). By default this value varies on the font used."
         },
         "fontWeight": {
           "$ref": "#/$defs/type-fontWeight"

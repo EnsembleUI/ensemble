@@ -13,6 +13,7 @@ import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/keychain_manager.dart';
+import 'package:ensemble/framework/app_info.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble/framework/stub/auth_context_manager.dart';
@@ -59,6 +60,7 @@ class DataContext {
     _contextMap['env'] = EnvConfig();
     _contextMap['secrets'] = SecretsStore();
     _contextMap['ensemble'] = NativeInvokable(buildContext);
+    _contextMap['appInfo'] = AppInfo();
 
     // auth can be selectively turned on
     if (GetIt.instance.isRegistered<AuthContextManager>()) {
@@ -337,6 +339,7 @@ class NativeInvokable extends ActionInvokable {
           .executeAction(buildContext, NavigateScreenAction.fromMap(inputs)),
       ActionType.navigateModalScreen.name: navigateToModalScreen,
       ActionType.showDialog.name: showDialog,
+      ActionType.closeAllDialogs.name: () => closeAllDialogs(),
       ActionType.invokeAPI.name: invokeAPI,
       ActionType.openUrl.name: openUrl,
       ActionType.stopTimer.name: stopTimer,
@@ -387,6 +390,11 @@ class NativeInvokable extends ActionInvokable {
         final evalMessage = scope?.dataContext.eval(message);
         messageSocket(socketName, evalMessage);
       },
+      ActionType.dispatchEvent.name: (inputs) =>
+          ScreenController().executeAction(
+            buildContext,
+            DispatchEventAction.from(inputs),
+          ),
     });
     return methods;
   }
@@ -458,9 +466,13 @@ class NativeInvokable extends ActionInvokable {
     // how do we handle onModalDismiss in Typescript?
   }
 
+  void closeAllDialogs() {
+    ScreenController().executeAction(buildContext, CloseAllDialogsAction());
+  }
+
   void showDialog(dynamic widget) {
     ScreenController()
-        .executeAction(buildContext, ShowDialogAction(widget: widget));
+        .executeAction(buildContext, ShowDialogAction(body: widget));
   }
 
   void openUrl([dynamic inputs]) {

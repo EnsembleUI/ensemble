@@ -4,6 +4,7 @@ import 'dart:async';
 
 import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/action/navigation_action.dart';
+import 'package:ensemble/action/phone_contact_action.dart';
 import 'package:ensemble/action/upload_files_action.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
@@ -126,7 +127,7 @@ class ScreenController {
     } else if (action is BaseNavigateScreenAction) {
       // process input parameters
       Map<String, dynamic>? nextArgs = {};
-      action.inputs?.forEach((key, value) {
+      action.payload?.forEach((key, value) {
         nextArgs[key] = scopeManager.dataContext.eval(value);
       });
 
@@ -175,7 +176,7 @@ class ScreenController {
         });
       }
     } else if (action is ShowDialogAction) {
-      Widget widget = scopeManager.buildWidgetFromDefinition(action.widget);
+      Widget widget = scopeManager.buildWidgetFromDefinition(action.body);
 
       // get styles. TODO: make bindable
       Map<String, dynamic> dialogStyles = {};
@@ -310,32 +311,6 @@ class ScreenController {
     } else if (action is AppSettingAction) {
       final settingType = action.getTarget(scopeManager.dataContext);
       AppSettings.openAppSettings(type: settingType);
-    } else if (action is PhoneContactAction) {
-      GetIt.I<ContactManager>().getPhoneContacts((contacts) {
-        if (action.getOnSuccess(scopeManager.dataContext) != null) {
-          final contactsData =
-              contacts.map((contact) => contact.toJson()).toList();
-
-          executeActionWithScope(
-            context,
-            scopeManager,
-            action.getOnSuccess(scopeManager.dataContext)!,
-            event: EnsembleEvent(
-              action.initiator,
-              data: {'contacts': contactsData},
-            ),
-          );
-        }
-      }, (error) {
-        if (action.getOnError(scopeManager.dataContext) != null) {
-          executeActionWithScope(
-            context,
-            scopeManager,
-            action.getOnError(scopeManager.dataContext)!,
-            event: EnsembleEvent(action.initiator!, data: {'error': error}),
-          );
-        }
-      });
     } else if (action is ShowCameraAction) {
       GetIt.I<CameraManager>().openCamera(context, action, scopeManager);
     } else if (action is StartTimerAction) {
@@ -422,8 +397,8 @@ class ScreenController {
       }
     } else if (action is ShowToastAction) {
       Widget? customToastBody;
-      if (action.widget != null) {
-        customToastBody = scopeManager.buildWidgetFromDefinition(action.widget);
+      if (action.body != null) {
+        customToastBody = scopeManager.buildWidgetFromDefinition(action.body);
       }
       ToastController().showToast(context, action, customToastBody,
           dataContext: scopeManager.dataContext);
