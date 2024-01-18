@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -158,7 +159,11 @@ class ViewUtil {
     Map<String, dynamic> props = {};
     List<String> inputParams = [];
     Map<String, EnsembleEvent> eventParams = {};
+    List<ParsedCode>? importedCode;
     for (MapEntry entry in (viewDefinition as YamlMap).entries) {
+      if (entry.key == PageModel.importToken) {
+        importedCode = Ensemble().getConfig()?.processImports(entry.value);
+      }
       // see if the custom widget actually declare any input parameters
       if (entry.key == 'inputs' && entry.value is YamlList) {
         for (var input in entry.value) {
@@ -195,6 +200,7 @@ class ViewUtil {
     }
 
     return CustomWidgetModel(widgetModel, props,
+        importedCode: importedCode,
         inputs: inputPayload,
         parameters: inputParams,
         actions: eventPayload,
@@ -216,16 +222,13 @@ class ViewUtil {
   static Widget buildBareCustomWidget(ScopeNode scopeNode,
       CustomWidgetModel customModel, Map<WidgetModel, ModelPayload> modelMap) {
     // create a new Scope (for our custom widget) and add to the parent
-    ScopeManager customScope = scopeNode.scope.createChildScope();
+    ScopeManager customScope = scopeNode.scope
+        .createChildScope(childImportedCode: customModel.importedCode);
     ScopeNode customScopeNode = ScopeNode(customScope);
     scopeNode.addChild(customScopeNode);
 
-    Widget customWidget = CustomView(
-        body: customModel.getModel(),
-        parameters: customModel.parameters,
-        events: customModel.events,
-        scopeManager: customScope,
-        viewBehavior: customModel.getViewBehavior());
+    Widget customWidget =
+        CustomView.fromModel(model: customModel, scopeManager: customScope);
     modelMap[customModel] = ModelPayload(customWidget, customScope);
 
     return DataScopeWidget(scopeManager: customScope, child: customWidget);
