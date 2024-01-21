@@ -419,10 +419,6 @@ class EnsembleConfig {
         }
       }
     });
-    //this way globals will get parsed as needed and parsed only once during the execution of the app
-    importMap.forEach((key, value) {
-      globals?[ResourceArtifactEntry.Code.name]?[key] = value;
-    });
     List<ParsedCode>? importList = [];
     for (var element in imports) {
       if (importMap[element] != null) {
