@@ -1866,26 +1866,49 @@
             "trailingText": {
               "type": "string"
             },
-            "styles": {
-              "type": "object",
-              "properties": {
-                "activeColor": {
-                  "$ref": "#/$defs/type-color",
-                  "description": "The active color of the Switch Widget."
-                },
-                "inactiveColor": {
-                  "$ref": "#/$defs/type-color",
-                  "description": "The inactive color of the Switch Widget."
-                },
-                "activeThumbColor": {
-                  "$ref": "#/$defs/type-color",
-                  "description": "The active thumb color of the Switch Widget."
-                },
-                "inactiveThumbColor": {
-                  "$ref": "#/$defs/type-color",
-                  "description": "The inactive thumb color of the Switch Widget."
+             "styles": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/switchStyles"
                 }
-              }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "TripleStateSwitch-payload": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/FormInput-payload"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "value": {
+              "type": "boolean"
+            },
+            "leadingText": {
+              "type": "string"
+            },
+            "trailingText": {
+              "type": "string"
+            },
+            "styles": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/switchStyles"
+                },
+                {
+                  "properties": {
+                    "intermediateColor": {
+                      "$ref": "#/$defs/type-color",
+                      "description": "The middle state color of the Switch Widget."
+                    }
+                  }
+                }
+              ]
             }
           }
         }
@@ -5954,6 +5977,18 @@
           }
         },
         {
+          "title": "TripleStateSwitch",
+          "required": [
+            "TripleStateSwitch"
+          ],
+          "properties": {
+            "TripleStateSwitch": {
+              "$ref": "#/$defs/TripleStateSwitch-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/"
+            }
+          }
+        },
+        {
           "title": "Slider",
           "required": [
             "Slider"
@@ -8106,6 +8141,27 @@
           "description": "Use the kochava.com for deeplink service"
         }
       ]
+    },
+    "switchStyles": {
+      "type": "object",
+      "properties": {
+        "activeColor": {
+          "$ref": "#/$defs/type-color",
+          "description": "The active color of the Switch Widget."
+        },
+        "inactiveColor": {
+          "$ref": "#/$defs/type-color",
+          "description": "The inactive color of the Switch Widget."
+        },
+        "activeThumbColor": {
+          "$ref": "#/$defs/type-color",
+          "description": "The active thumb color of the Switch Widget."
+        },
+        "inactiveThumbColor": {
+          "$ref": "#/$defs/type-color",
+          "description": "The inactive thumb color of the Switch Widget."
+        }
+      }
     }
   }
 }
