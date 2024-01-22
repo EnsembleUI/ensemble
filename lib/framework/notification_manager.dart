@@ -21,12 +21,15 @@ class NotificationManager {
   // Store the last known device token
   String? deviceToken;
 
-  Future<void> init(FirebasePayload payload,
-      {Future<void> Function(RemoteMessage)?
+  Future<void> init(
+      {FirebasePayload? payload,
+      Future<void> Function(RemoteMessage)?
           backgroundNotificationHandler}) async {
     if (!_init) {
+      /// if payload is not passed, Firebase configuration files
+      /// are required to be added manualy to iOS and Android
       await Firebase.initializeApp(
-        options: payload.getFirebaseOptions(),
+        options: payload?.getFirebaseOptions(),
       );
       _initListener(
           backgroundNotificationHandler: backgroundNotificationHandler);

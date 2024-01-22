@@ -628,8 +628,7 @@ class Utils {
       r'''\${([a-z_-\d\s.,:?!$@&|<>\+/*|%^="'\(\)\[\]]+)}''',
       caseSensitive: false);
 
-  static final i18nExpression =
-      RegExp(r'r@[a-zA-Z0-9.-_]+', caseSensitive: false);
+  static final i18nExpression = RegExp(r'\br@([\w\.]+)', caseSensitive: false);
 
   // extract only the code after the comment and expression e.g //@code <expression>\n
   static final codeAfterComment =
@@ -647,29 +646,24 @@ class Utils {
     }
     context ??= ctx;
     String rtn = val;
+    String fallbackKey = '____FALLBACK_WHEN_NOT_FOUND____';
     if (val.trim().isNotEmpty && context != null) {
       rtn = val.replaceAllMapped(i18nExpression, (match) {
-        String str =
-            match.input.substring(match.start, match.end); //get rid of the @
-        String strToAppend = '';
-        if (str.length > 2) {
-          String _s = str.substring(2);
-          if (_s.endsWith(']')) {
-            _s = _s.substring(0, _s.length - 1);
-            strToAppend = ']';
-          }
-          try {
-            str = FlutterI18n.translate(context!, _s);
-          } catch (e) {
-            //if resource is not defined
-            //log it
-            debugPrint('unable to get translated string for the ' +
-                str +
-                '; exception=' +
-                e.toString());
-          }
+        String fullMatch =
+            match.group(0) ?? ''; // Get the full match including 'r@'
+        String _s = match.group(1) ?? ''; // The captured group, excluding 'r@'
+        try {
+          _s = FlutterI18n.translate(context!, _s, fallbackKey: fallbackKey);
+        } catch (e) {
+          debugPrint(
+              'unable to get translated string for the $_s; exception=$e');
+          return fullMatch; // Return the full match as-is in case of an exception
         }
-        return str + strToAppend;
+        if (_s == fallbackKey) {
+          debugPrint('unable to get translated string for the $_s');
+          return fullMatch; // Return the full match as-is in case of an exception
+        }
+        return _s;
       });
     }
     return rtn;
