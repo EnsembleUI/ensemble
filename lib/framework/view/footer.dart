@@ -348,6 +348,16 @@ class _FooterLayoutState extends State<FooterLayout> {
     final MediaQueryData mediaQuery = MediaQuery.of(context);
     EdgeInsets minInset = mediaQuery.padding.copyWith(bottom: 0.0);
 
+    _addIfNonNull(
+      children,
+      widget.body,
+      _FooterSlot.body,
+      removeLeftPadding: false,
+      removeTopPadding: false,
+      removeRightPadding: false,
+      removeBottomPadding: true,
+    );
+
     if (widget.footer != null) {
       _addIfNonNull(
         children,
@@ -359,16 +369,6 @@ class _FooterLayoutState extends State<FooterLayout> {
         removeBottomPadding: false,
       );
     }
-
-    _addIfNonNull(
-      children,
-      widget.body,
-      _FooterSlot.body,
-      removeLeftPadding: false,
-      removeTopPadding: false,
-      removeRightPadding: false,
-      removeBottomPadding: true,
-    );
 
     return CustomMultiChildLayout(
       delegate: _FooterLayout(minInsets: minInset),
