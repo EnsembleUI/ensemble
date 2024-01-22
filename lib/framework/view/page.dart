@@ -141,15 +141,17 @@ class PageState extends State<Page>
   void initState() {
     WidgetsBinding.instance.addObserver(this);
     _scopeManager = ScopeManager(
-      widget._initialDataContext.clone(newBuildContext: context),
-      PageData(
-        customViewDefinitions: widget._pageModel.customViewDefinitions,
-        apiMap: widget._pageModel.apiMap,
-        socketData: widget._pageModel.socketData,
-      ),
-    );
+        widget._initialDataContext
+            .clone(newBuildContext: context)
+            //evaluate imports if any in the context of this page
+            .evalImports(widget._pageModel.importedCode),
+        PageData(
+          customViewDefinitions: widget._pageModel.customViewDefinitions,
+          apiMap: widget._pageModel.apiMap,
+          socketData: widget._pageModel.socketData,
+        ),
+        importedCode: widget._pageModel.importedCode);
     widget.rootScopeManager = _scopeManager;
-
     // if we have a menu, figure out which child page to display initially
     if (widget._pageModel.menu != null &&
         widget._pageModel.menu!.menuItems.length > 1) {

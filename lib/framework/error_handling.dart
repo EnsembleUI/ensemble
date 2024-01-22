@@ -25,12 +25,12 @@ class LayoutError extends EnsembleError {
 }
 
 class CodeError extends EnsembleError {
-  CodeError(JSException exception, SourceLocation yamlLocation)
+  CodeError(JSException exception, SourceLocation? yamlLocation)
       : super(exception.message,
             line: exception.line,
             recovery: exception.recovery,
             detailError: exception.detailedError) {
-    line = yamlLocation.line;
+    line = yamlLocation?.line ?? 0;
     line = line! + exception.line;
     error =
         'Line: $line in YAML and Line: ${exception.line} within the code block. Error Message: $error';

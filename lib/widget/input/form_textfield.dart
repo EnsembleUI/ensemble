@@ -124,6 +124,9 @@ abstract class BaseTextInput extends StatefulWidget
   Map<String, Function> setters() {
     // set value is not specified here for safety in case of PasswordInput
     return {
+      'validateOnUserInteraction': (value) => _controller
+              .validateOnUserInteraction =
+          Utils.getBool(value, fallback: _controller.validateOnUserInteraction),
       'onKeyPress': (function) => _controller.onKeyPress =
           EnsembleAction.fromYaml(function, initiator: this),
       'onChange': (definition) => _controller.onChange =
@@ -214,6 +217,7 @@ class TextInputController extends FormFieldController {
   bool? toolbarDoneButton;
 
   model.InputValidator? validator;
+  bool validateOnUserInteraction = false;
   String? inputType;
   String? mask;
   TextStyle? textStyle;
@@ -383,6 +387,9 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
         controller: widget._controller,
         widget: TextFormField(
           key: validatorKey,
+          autovalidateMode: widget._controller.validateOnUserInteraction
+              ? AutovalidateMode.onUserInteraction
+              : AutovalidateMode.disabled,
           validator: (value) {
             if (value == null || value.isEmpty) {
               return widget._controller.required
