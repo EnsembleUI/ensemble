@@ -42,7 +42,7 @@ abstract class SwitchBase extends StatefulWidget
   @override
   Map<String, Function> setters() {
     return {
-      'value': (value) => setSwitchValue(value),
+      'value': (value) => _controller.value = value,
       'leadingText': (text) =>
           _controller.leadingText = Utils.optionalString(text),
       'trailingText': (text) =>
@@ -61,33 +61,24 @@ abstract class SwitchBase extends StatefulWidget
     };
   }
 
-  void setSwitchValue(dynamic value) {
-    if (value is bool) {
-      _controller.value = Utils.getBool(value, fallback: false);
-    } else if (value is String) {
-      _controller.value = SwitchState.values.from(value) ?? _controller.value;
-    }
-  }
-
   void onToggle(dynamic newValue) {
     setProperty('value', newValue);
   }
 }
 
 class SwitchBaseState extends FormFieldWidgetState<SwitchBase> {
-  void onToggle(dynamic newValue) {
-    if (newValue is bool) {
-      widget.onToggle(newValue);
-      widget._controller.value = newValue;
-    } else if (newValue is String) {
-      final SwitchState switchState =
-          SwitchState.values.from(newValue) ?? widget._controller.value;
-      widget.onToggle(switchState);
-      widget._controller.value = switchState;
-    }
-    if (widget._controller.onChange != null) {
-      ScreenController().executeAction(context, widget._controller.onChange!,
-          event: EnsembleEvent(widget));
+  @override
+  void initState() {
+    super.initState();
+    setSwitchValue(widget._controller.value);
+  }
+
+  void setSwitchValue(dynamic value) {
+    if (widget is EnsembleSwitch) {
+      widget._controller.value = Utils.getBool(value, fallback: false);
+    } else if (widget is EnsembleTripleStateSwitch) {
+      widget._controller.value =
+          SwitchState.values.from(value)?.name ?? SwitchState.off.name;
     }
   }
 
@@ -122,7 +113,16 @@ class SwitchBaseState extends FormFieldWidgetState<SwitchBase> {
       widget: FormField<bool>(
         key: validatorKey,
         validator: (value) {
-          if (widget._controller.required) {
+          final switchRequiredStatus = widget is EnsembleSwitch &&
+              widget._controller.required &&
+              !widget._controller.value;
+
+          final tripleStateRequiredStatus =
+              widget is EnsembleTripleStateSwitch &&
+                  widget._controller.required &&
+                  widget._controller.value == SwitchState.off.name;
+
+          if (switchRequiredStatus || tripleStateRequiredStatus) {
             return Utils.translateWithFallback(
                 'ensemble.input.required', 'This field is required');
           }
@@ -146,7 +146,25 @@ class SwitchBaseState extends FormFieldWidgetState<SwitchBase> {
     );
   }
 
+  void onToggle(dynamic newValue) {
+    if (newValue is bool) {
+      widget.onToggle(newValue);
+      widget._controller.value = newValue;
+    } else if (newValue is String) {
+      final SwitchState switchState =
+          SwitchState.values.from(newValue) ?? widget._controller.value;
+      widget.onToggle(switchState.name);
+      widget._controller.value = switchState.name;
+    }
+    if (widget._controller.onChange != null) {
+      ScreenController().executeAction(context, widget._controller.onChange!,
+          event: EnsembleEvent(widget));
+    }
+  }
+
   Widget get tripleStateSwitch {
+    final SwitchState switchState =
+        SwitchState.values.from(widget._controller.value) ?? SwitchState.off;
     return TripleStateSwitch(
       dotColor: widget._controller.activeThumbColor,
       disableDotColor: widget._controller.inactiveThumbColor,
@@ -154,7 +172,7 @@ class SwitchBaseState extends FormFieldWidgetState<SwitchBase> {
       middleBackgroundColor: widget._controller.intermediateColor,
       endBackgroundColor: widget._controller.inactiveColor,
       disable: widget._controller.enabled == false,
-      state: widget._controller.value,
+      state: switchState,
       onChanged: isEnabled() ? (value) => onToggle(value.name) : (_) {},
     );
   }
