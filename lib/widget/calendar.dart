@@ -75,6 +75,7 @@ class EnsembleCalendar extends StatefulWidget
           duration: const Duration(milliseconds: 300), curve: Curves.easeOut),
       'addRowSpan': (value) => setRowSpan(value),
       'update': () => _controller.update(),
+      'clearRange': () => clearRange(),
     };
   }
 
@@ -117,6 +118,12 @@ class EnsembleCalendar extends StatefulWidget
       'showTooltip': (value) =>
           _controller.showTooltip = Utils.getBool(value, fallback: false)
     };
+  }
+
+  void clearRange() {
+    _controller.rangeStart = null;
+    _controller.rangeEnd = null;
+    _controller.range = null;
   }
 
   void setRowSpanItemTemplate(dynamic rowSpanData) {
@@ -308,9 +315,6 @@ class EnsembleCalendar extends StatefulWidget
       updatedDisabledDays.remove(date);
     }
 
-    _controller.rangeStart = null;
-    _controller.rangeEnd = null;
-    _controller.range = null;
     _controller.selectedDays.value = updatedDisabledDays;
   }
 
