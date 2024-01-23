@@ -621,12 +621,11 @@ class Utils {
     return int.tryParse(value);
   }
 
-  static final onlyExpression = RegExp(
-      r'''^\${([a-z_-\d\s.,:?!$@&|<>\+/*|%^="'\(\)\[\]]+)}$''',
-      caseSensitive: false);
-  static final containExpression = RegExp(
-      r'''\${([a-z_-\d\s.,:?!$@&|<>\+/*|%^="'\(\)\[\]]+)}''',
-      caseSensitive: false);
+  static final onlyExpression =
+      RegExp(r'''^\$\{([^}]+)\}$''', caseSensitive: false);
+
+  static final containExpression =
+      RegExp(r'''\$\{([^}{]+(?:\{[^}{]*\}[^}{]*)*)\}''', caseSensitive: false);
 
   static final i18nExpression = RegExp(r'\br@([\w\.]+)', caseSensitive: false);
 
