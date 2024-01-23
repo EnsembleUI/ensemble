@@ -115,8 +115,9 @@ class SwitchBaseState extends FormFieldWidgetState<SwitchBase> {
 
     // wraps around FormField to get all the form effects
     return InputWrapper(
-      // type: EnsembleTripleStateSwitch.type,
-      type: '',
+      type: (widget is EnsembleSwitch)
+          ? EnsembleSwitch.type
+          : EnsembleTripleStateSwitch.type,
       controller: widget._controller,
       widget: FormField<bool>(
         key: validatorKey,
