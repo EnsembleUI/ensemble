@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
@@ -7,17 +8,26 @@ import 'package:ensemble/framework/action.dart' as framework;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 
-class EnsembleSwitch extends StatefulWidget
-    with Invokable, HasController<SwitchController, SwitchState> {
+class EnsembleTripleStateSwitch extends SwitchBase {
+  static const type = 'TripleStateSwitch';
+  EnsembleTripleStateSwitch({super.key});
+}
+
+class EnsembleSwitch extends SwitchBase {
   static const type = 'Switch';
-  EnsembleSwitch({Key? key}) : super(key: key);
+  EnsembleSwitch({super.key});
+}
 
-  final SwitchController _controller = SwitchController();
+abstract class SwitchBase extends StatefulWidget
+    with Invokable, HasController<SwitchBaseController, SwitchBaseState> {
+  SwitchBase({Key? key}) : super(key: key);
+
+  final SwitchBaseController _controller = SwitchBaseController();
   @override
-  SwitchController get controller => _controller;
+  SwitchBaseController get controller => _controller;
 
   @override
-  State<StatefulWidget> createState() => SwitchState();
+  State<StatefulWidget> createState() => SwitchBaseState();
 
   @override
   Map<String, Function> getters() {
@@ -32,8 +42,7 @@ class EnsembleSwitch extends StatefulWidget
   @override
   Map<String, Function> setters() {
     return {
-      'value': (value) =>
-          _controller.value = Utils.getBool(value, fallback: false),
+      'value': (value) => setSwitchValue(value),
       'leadingText': (text) =>
           _controller.leadingText = Utils.optionalString(text),
       'trailingText': (text) =>
@@ -41,6 +50,8 @@ class EnsembleSwitch extends StatefulWidget
       'activeColor': (color) => _controller.activeColor = Utils.getColor(color),
       'inactiveColor': (color) =>
           _controller.inactiveColor = Utils.getColor(color),
+      'intermediateColor': (color) =>
+          _controller.intermediateColor = Utils.getColor(color),
       'activeThumbColor': (color) =>
           _controller.activeThumbColor = Utils.getColor(color),
       'inactiveThumbColor': (color) =>
@@ -50,28 +61,30 @@ class EnsembleSwitch extends StatefulWidget
     };
   }
 
-  void onToggle(bool newValue) {
+  void setSwitchValue(dynamic value) {
+    if (value is bool) {
+      _controller.value = Utils.getBool(value, fallback: false);
+    } else if (value is String) {
+      _controller.value = SwitchState.values.from(value) ?? _controller.value;
+    }
+  }
+
+  void onToggle(dynamic newValue) {
     setProperty('value', newValue);
   }
 }
 
-class SwitchController extends FormFieldController {
-  bool value = false;
-  String? leadingText;
-  String? trailingText;
-  Color? activeColor;
-  Color? activeThumbColor;
-  Color? inactiveColor;
-  Color? inactiveThumbColor;
-
-  framework.EnsembleAction? onChange;
-}
-
-class SwitchState extends FormFieldWidgetState<EnsembleSwitch> {
-  void onToggle(bool newValue) {
-    widget.onToggle(newValue);
-    //validatorKey.currentState!.validate();
-
+class SwitchBaseState extends FormFieldWidgetState<SwitchBase> {
+  void onToggle(dynamic newValue) {
+    if (newValue is bool) {
+      widget.onToggle(newValue);
+      widget._controller.value = newValue;
+    } else if (newValue is String) {
+      final SwitchState switchState =
+          SwitchState.values.from(newValue) ?? widget._controller.value;
+      widget.onToggle(switchState);
+      widget._controller.value = switchState;
+    }
     if (widget._controller.onChange != null) {
       ScreenController().executeAction(context, widget._controller.onChange!,
           event: EnsembleEvent(widget));
@@ -90,7 +103,7 @@ class SwitchState extends FormFieldWidgetState<EnsembleSwitch> {
       )));
     }
 
-    children.add(switchWidget);
+    children.add(widget is EnsembleSwitch ? switchWidget : tripleStateSwitch);
 
     if (widget._controller.trailingText != null) {
       children.add(Expanded(
@@ -102,12 +115,13 @@ class SwitchState extends FormFieldWidgetState<EnsembleSwitch> {
 
     // wraps around FormField to get all the form effects
     return InputWrapper(
-      type: EnsembleSwitch.type,
+      // type: EnsembleTripleStateSwitch.type,
+      type: '',
       controller: widget._controller,
       widget: FormField<bool>(
         key: validatorKey,
         validator: (value) {
-          if (widget._controller.required && !widget._controller.value) {
+          if (widget._controller.required) {
             return Utils.translateWithFallback(
                 'ensemble.input.required', 'This field is required');
           }
@@ -128,6 +142,19 @@ class SwitchState extends FormFieldWidgetState<EnsembleSwitch> {
           );
         },
       ),
+    );
+  }
+
+  Widget get tripleStateSwitch {
+    return TripleStateSwitch(
+      dotColor: widget._controller.activeThumbColor,
+      disableDotColor: widget._controller.inactiveThumbColor,
+      startBackgroundColor: widget._controller.activeColor,
+      middleBackgroundColor: widget._controller.intermediateColor,
+      endBackgroundColor: widget._controller.inactiveColor,
+      disable: widget._controller.enabled == false,
+      state: widget._controller.value,
+      onChanged: isEnabled() ? (value) => onToggle(value.name) : (_) {},
     );
   }
 
@@ -162,5 +189,160 @@ class SwitchState extends FormFieldWidgetState<EnsembleSwitch> {
         thumbColor: thumbColor,
         value: widget._controller.value,
         onChanged: isEnabled() ? (value) => onToggle(value) : null);
+  }
+}
+
+class SwitchBaseController extends FormFieldController {
+  dynamic value;
+  String? leadingText;
+  String? trailingText;
+  Color? activeColor;
+  Color? activeThumbColor;
+  Color? inactiveColor;
+  Color? inactiveThumbColor;
+  Color? intermediateColor;
+
+  framework.EnsembleAction? onChange;
+}
+
+class SwitchColors {
+  SwitchColors._();
+
+  static const Color backgroundColor = Color(0xFFd1d1d1);
+  static const Color dotColor = Color(0xFFFFFFFF);
+  static const Color disableBackgroundColor = Color(0xFFbfbfbf);
+  static const Color disableDotColor = Color(0xFFe3e3e3);
+}
+
+enum SwitchState {
+  off,
+  mixed,
+  on,
+}
+
+class TripleStateSwitch extends StatelessWidget {
+  const TripleStateSwitch({
+    Key? key,
+    required this.onChanged,
+    required this.state,
+    this.startBackgroundColor,
+    this.middleBackgroundColor,
+    this.endBackgroundColor,
+    this.dotColor,
+    this.disableBackgroundColor,
+    this.disableDotColor,
+    this.width = 70,
+    this.height = 30,
+    this.child,
+    this.borderRadius,
+    this.disable = false,
+  }) : super(key: key);
+
+  final Function(SwitchState) onChanged;
+  final double? width;
+  final double? height;
+  final BorderRadius? borderRadius;
+  final Color? startBackgroundColor;
+  final Color? middleBackgroundColor;
+  final Color? endBackgroundColor;
+  final Color? dotColor;
+  final Color? disableBackgroundColor;
+  final Color? disableDotColor;
+  final Widget? child;
+  final SwitchState state;
+  final bool? disable;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: !disable!
+            ? state == SwitchState.off
+                ? startBackgroundColor ?? SwitchColors.backgroundColor
+                : state == SwitchState.mixed
+                    ? middleBackgroundColor ?? SwitchColors.backgroundColor
+                    : endBackgroundColor ?? SwitchColors.backgroundColor
+            : SwitchColors.disableBackgroundColor,
+        borderRadius: borderRadius ??
+            BorderRadius.circular(
+              200,
+            ),
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 1,
+        vertical: 2,
+      ),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: !disable!
+                        ? () {
+                            onChanged(SwitchState.off);
+                          }
+                        : null,
+                    child: const SizedBox.expand(),
+                  ),
+                ),
+                Expanded(
+                  child: InkWell(
+                    onTap: !disable!
+                        ? () {
+                            onChanged(SwitchState.mixed);
+                          }
+                        : null,
+                    child: const SizedBox.expand(),
+                  ),
+                ),
+                Expanded(
+                  child: InkWell(
+                    onTap: !disable!
+                        ? () {
+                            onChanged(SwitchState.on);
+                          }
+                        : null,
+                    child: const SizedBox.expand(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          AnimatedAlign(
+            duration: const Duration(milliseconds: 300),
+            alignment: state == SwitchState.off
+                ? AlignmentDirectional.centerStart
+                : state == SwitchState.mixed
+                    ? AlignmentDirectional.center
+                    : AlignmentDirectional.centerEnd,
+            child: child ??
+                Container(
+                  height: height,
+                  width: height,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: !disable!
+                        ? dotColor ?? SwitchColors.dotColor
+                        : SwitchColors.disableDotColor,
+                    boxShadow: !disable!
+                        ? [
+                            const BoxShadow(
+                              color: Colors.black,
+                              blurRadius: 10,
+                              spreadRadius: -5,
+                            ),
+                          ]
+                        : null,
+                  ),
+                ),
+          ),
+        ],
+      ),
+    );
   }
 }
