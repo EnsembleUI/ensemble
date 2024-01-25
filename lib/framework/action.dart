@@ -945,6 +945,7 @@ enum ActionType {
   saveKeychain,
   clearKeychain,
   getDeviceToken,
+  processNotification,
   receiveIntent,
   connectSocket,
   disconnectSocket,
@@ -1074,6 +1075,8 @@ abstract class EnsembleAction {
       return RateAppAction.from(payload: payload);
     } else if (actionType == ActionType.getDeviceToken) {
       return GetDeviceTokenAction.fromMap(payload: payload);
+    } else if (actionType == ActionType.processNotification) {
+      return ProcessNotificationAction.fromMap(payload: payload);
     } else if (actionType == ActionType.openPlaidLink) {
       return PlaidLinkAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.openAppSettings) {

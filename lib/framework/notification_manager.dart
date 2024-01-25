@@ -37,6 +37,11 @@ class NotificationManager {
     }
   }
 
+  // Returns the remote notification only when the app is opened from terminated state otherwise it'll be null
+  Future<RemoteMessage?> getInitialMessage() {
+    return FirebaseMessaging.instance.getInitialMessage();
+  }
+
   /// get the device token. This guarantees the token (if available)
   /// is the latest correct token
   Future<String?> getDeviceToken() async {
@@ -101,8 +106,8 @@ class NotificationManager {
   }
 
   void initGetInitialMessage() {
-    // This is called when the user taps on the notification and the app is opened from the terminated state
-    FirebaseMessaging.instance.getInitialMessage().then((message) {
+    // Returns the remote notification only when the app is opened from the terminated state or else it'll be null
+    getInitialMessage().then((message) {
       if (message == null) return;
 
       Ensemble.externalDataContext.addAll({
@@ -120,17 +125,15 @@ class NotificationManager {
 
   Future<void> _handleNotification() async {
     Map<String, dynamic>? messageData = Ensemble.externalDataContext['data'];
-    if (messageData?['screenId'] != null ||
-        messageData?['screenName'] != null) {
-      ScreenController().navigateToScreen(
-        Utils.globalAppKey.currentContext!,
+    // If there is a screen, it navigates to that page
+    // or else it'll open the app with the root screen and clears all the previous screens
+    final screenNotFound =
+        messageData?['screenId'] == null && messageData?['screenName'] == null;
+    ScreenController().navigateToScreen(Utils.globalAppKey.currentContext!,
         screenId: messageData!['screenId'],
         screenName: messageData['screenName'],
         pageArgs: messageData,
-      );
-    } else {
-      log('No screenId nor screenName provided on the notification. Ignoring ...');
-    }
+        routeOption: screenNotFound ? RouteOption.clearAllScreens : null);
   }
 }
 
