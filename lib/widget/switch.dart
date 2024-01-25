@@ -308,8 +308,8 @@ class TripleStateSwitch extends StatelessWidget {
             ? state == SwitchState.off
                 ? startBackgroundColor ?? SwitchColors.backgroundColor
                 : state == SwitchState.mixed
-                    ? middleBackgroundColor ?? SwitchColors.backgroundColor
-                    : endBackgroundColor ?? SwitchColors.backgroundColor
+                    ? middleBackgroundColor ?? Colors.grey
+                    : endBackgroundColor ?? Theme.of(context).primaryColor
             : SwitchColors.disableBackgroundColor,
         borderRadius: borderRadius ??
             BorderRadius.circular(
