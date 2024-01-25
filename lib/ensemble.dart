@@ -402,7 +402,7 @@ class EnsembleConfig {
     }
     Map<String, ParsedCode>? importMap = {};
     Map? globals = getResources();
-    globals?[ResourceArtifactEntry.Code.name]?.forEach((key, value) {
+    globals?[ResourceArtifactEntry.Scripts.name]?.forEach((key, value) {
       if (imports.contains(key)) {
         if (value is String) {
           try {
