@@ -136,7 +136,7 @@ class WidgetRegistry {
         PasswordInput.type: () => PasswordInput(),
         EnsembleCheckbox.type: () => EnsembleCheckbox(),
         EnsembleSwitch.type: () => EnsembleSwitch(),
-        EnsembleTripleStateSwitch.type: () => EnsembleTripleStateSwitch(),
+        EnsembleTripleSwitch.type: () => EnsembleTripleSwitch(),
         Dropdown.type: () => Dropdown(),
         Button.type: () => Button(),
         EnsembleIconButton.type: () => EnsembleIconButton(),
