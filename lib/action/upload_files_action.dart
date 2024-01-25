@@ -85,9 +85,11 @@ Future<void> uploadFiles({
       }
     });
   }
+  String rawUrl = apiDefinition['url']?.toString().trim() ??
+      apiDefinition['uri']?.toString().trim() ??
+      '';
 
-  String url =
-      HttpUtils.resolveUrl(dataContext, apiDefinition['uri'].toString().trim());
+  String url = HttpUtils.resolveUrl(dataContext, rawUrl);
   String method = apiDefinition['method']?.toString().toUpperCase() ?? 'POST';
   final fileResponse = action.id == null
       ? null
