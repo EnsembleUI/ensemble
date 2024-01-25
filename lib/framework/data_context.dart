@@ -274,6 +274,10 @@ class DataContext {
       [SourceLocation? startLoc]) {
     try {
       _contextMap['getStringValue'] = Utils.optionalString;
+      // TODO: Added temporarily because the externalDataContext datas are not exposed when it's inside the nested callback methods
+      // Ex: Not working when this (widget.dataContext.addDataContext({'messageText': 'Data - EnsembleUI'});) inside the
+      // addPostFrameCallback method in screen.dart
+      _contextMap.addAll(Ensemble.externalDataContext);
       return JSInterpreter(codeBlock, program, _contextMap).evaluate();
     } on JSException catch (e) {
       if (e.detailedError is EnsembleError) {
