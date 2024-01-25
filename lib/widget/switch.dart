@@ -242,8 +242,8 @@ class SwitchBaseController extends FormFieldController {
   Color? inactiveColor;
   Color? inactiveThumbColor;
   Color? mixedColor;
-  double? width = 100;
-  double? height = 40;
+  double? width = 80;
+  double? height = 30;
 
   framework.EnsembleAction? onChange;
 }
@@ -315,6 +315,9 @@ class TripleStateSwitch extends StatelessWidget {
             BorderRadius.circular(
               200,
             ),
+      ),
+      margin: const EdgeInsets.symmetric(
+        horizontal: 8,
       ),
       padding: const EdgeInsets.symmetric(
         horizontal: 1,
