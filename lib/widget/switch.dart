@@ -34,7 +34,11 @@ class EnsembleTripleSwitch extends SwitchBase {
   Map<String, Function> setters() => Map<String, Function>.from(super.setters())
     ..addAll({
       'value': (value) => _controller.value =
-          SwitchState.values.from(value)?.name ?? SwitchState.off.name
+          SwitchState.values.from(value)?.name ?? SwitchState.off.name,
+      'custom': (value) =>
+          _controller.custom = Utils.getBool(value, fallback: false),
+      'height': (value) => _controller.height = Utils.optionalDouble(value),
+      'width': (value) => _controller.width = Utils.optionalDouble(value),
     });
 
   void onToggle(SwitchState newValue) {
@@ -158,14 +162,23 @@ class SwitchBaseState extends FormFieldWidgetState<SwitchBase> {
       startBackgroundColor: widget._controller.activeColor,
       middleBackgroundColor: widget._controller.mixedColor,
       endBackgroundColor: widget._controller.inactiveColor,
+      width: widget._controller.width,
+      height: widget._controller.height,
       disable: widget._controller.enabled == false,
       state: switchState,
       onChanged: isEnabled()
           ? (value) {
-              (widget as EnsembleTripleSwitch?)?.onToggle(value);
-              onChange();
+              if (!widget._controller.custom) {
+                (widget as EnsembleTripleSwitch?)?.onToggle(value);
+              }
+              onChange(value.name);
             }
           : (_) {},
+      onThumbTapped: (value) {
+        if (widget._controller.custom) {
+          onChange(value.name);
+        }
+      },
     );
   }
 
@@ -202,20 +215,25 @@ class SwitchBaseState extends FormFieldWidgetState<SwitchBase> {
         onChanged: isEnabled()
             ? (value) {
                 (widget as EnsembleSwitch?)?.onToggle(value);
-                onChange();
+                onChange(value);
               }
             : null);
   }
 
-  void onChange() {
+  void onChange(dynamic value) {
     if (widget._controller.onChange != null) {
       ScreenController().executeAction(context, widget._controller.onChange!,
-          event: EnsembleEvent(widget));
+          event: EnsembleEvent(widget,
+              data:
+                  (widget._controller.custom && widget is EnsembleTripleSwitch)
+                      ? {'value': value}
+                      : null));
     }
   }
 }
 
 class SwitchBaseController extends FormFieldController {
+  bool custom = false;
   dynamic value;
   String? leadingText;
   String? trailingText;
@@ -224,6 +242,8 @@ class SwitchBaseController extends FormFieldController {
   Color? inactiveColor;
   Color? inactiveThumbColor;
   Color? mixedColor;
+  double? width = 100;
+  double? height = 40;
 
   framework.EnsembleAction? onChange;
 }
@@ -248,6 +268,7 @@ class TripleStateSwitch extends StatelessWidget {
     Key? key,
     required this.onChanged,
     required this.state,
+    this.onThumbTapped,
     this.startBackgroundColor,
     this.middleBackgroundColor,
     this.endBackgroundColor,
@@ -262,6 +283,7 @@ class TripleStateSwitch extends StatelessWidget {
   }) : super(key: key);
 
   final Function(SwitchState) onChanged;
+  final Function(SwitchState)? onThumbTapped;
   final double? width;
   final double? height;
   final BorderRadius? borderRadius;
@@ -343,26 +365,29 @@ class TripleStateSwitch extends StatelessWidget {
                 : state == SwitchState.mixed
                     ? AlignmentDirectional.center
                     : AlignmentDirectional.centerEnd,
-            child: child ??
-                Container(
-                  height: height,
-                  width: height,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: !disable!
-                        ? dotColor ?? SwitchColors.dotColor
-                        : SwitchColors.disableDotColor,
-                    boxShadow: !disable!
-                        ? [
-                            const BoxShadow(
-                              color: Colors.black,
-                              blurRadius: 10,
-                              spreadRadius: -5,
-                            ),
-                          ]
-                        : null,
+            child: InkWell(
+              onTap: () => onThumbTapped?.call(state),
+              child: child ??
+                  Container(
+                    height: height,
+                    width: height,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: !disable!
+                          ? dotColor ?? SwitchColors.dotColor
+                          : SwitchColors.disableDotColor,
+                      boxShadow: !disable!
+                          ? [
+                              const BoxShadow(
+                                color: Colors.black,
+                                blurRadius: 10,
+                                spreadRadius: -5,
+                              ),
+                            ]
+                          : null,
+                    ),
                   ),
-                ),
+            ),
           ),
         ],
       ),
