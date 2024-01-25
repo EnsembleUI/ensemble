@@ -8,14 +8,38 @@ import 'package:ensemble/framework/action.dart' as framework;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 
-class EnsembleTripleStateSwitch extends SwitchBase {
-  static const type = 'TripleStateSwitch';
-  EnsembleTripleStateSwitch({super.key});
-}
-
+/// A toggle switch (true/false) states
 class EnsembleSwitch extends SwitchBase {
   static const type = 'Switch';
   EnsembleSwitch({super.key});
+
+  @override
+  Map<String, Function> setters() => Map<String, Function>.from(super.setters())
+    ..addAll({
+      'value': (value) =>
+          _controller.value = Utils.getBool(value, fallback: false),
+    });
+
+  void onToggle(bool newValue) {
+    setProperty('value', newValue);
+  }
+}
+
+/// A triple state switch (off/mixed/on) states
+class EnsembleTripleSwitch extends SwitchBase {
+  static const type = 'TripleSwitch';
+  EnsembleTripleSwitch({super.key});
+
+  @override
+  Map<String, Function> setters() => Map<String, Function>.from(super.setters())
+    ..addAll({
+      'value': (value) => _controller.value =
+          SwitchState.values.from(value)?.name ?? SwitchState.off.name
+    });
+
+  void onToggle(SwitchState newValue) {
+    setProperty('value', newValue.name);
+  }
 }
 
 abstract class SwitchBase extends StatefulWidget
@@ -50,8 +74,7 @@ abstract class SwitchBase extends StatefulWidget
       'activeColor': (color) => _controller.activeColor = Utils.getColor(color),
       'inactiveColor': (color) =>
           _controller.inactiveColor = Utils.getColor(color),
-      'intermediateColor': (color) =>
-          _controller.intermediateColor = Utils.getColor(color),
+      'mixedColor': (color) => _controller.mixedColor = Utils.getColor(color),
       'activeThumbColor': (color) =>
           _controller.activeThumbColor = Utils.getColor(color),
       'inactiveThumbColor': (color) =>
@@ -60,28 +83,9 @@ abstract class SwitchBase extends StatefulWidget
           framework.EnsembleAction.fromYaml(definition, initiator: this)
     };
   }
-
-  void onToggle(dynamic newValue) {
-    setProperty('value', newValue);
-  }
 }
 
 class SwitchBaseState extends FormFieldWidgetState<SwitchBase> {
-  @override
-  void initState() {
-    super.initState();
-    setSwitchValue(widget._controller.value);
-  }
-
-  void setSwitchValue(dynamic value) {
-    if (widget is EnsembleSwitch) {
-      widget._controller.value = Utils.getBool(value, fallback: false);
-    } else if (widget is EnsembleTripleStateSwitch) {
-      widget._controller.value =
-          SwitchState.values.from(value)?.name ?? SwitchState.off.name;
-    }
-  }
-
   @override
   Widget buildWidget(BuildContext context) {
     // add leading/trailing text + the actual widget
@@ -94,7 +98,7 @@ class SwitchBaseState extends FormFieldWidgetState<SwitchBase> {
       )));
     }
 
-    children.add(widget is EnsembleSwitch ? switchWidget : tripleStateSwitch);
+    children.add(widget is EnsembleSwitch ? switchWidget : tripleSwitch);
 
     if (widget._controller.trailingText != null) {
       children.add(Expanded(
@@ -108,7 +112,7 @@ class SwitchBaseState extends FormFieldWidgetState<SwitchBase> {
     return InputWrapper(
       type: (widget is EnsembleSwitch)
           ? EnsembleSwitch.type
-          : EnsembleTripleStateSwitch.type,
+          : EnsembleTripleSwitch.type,
       controller: widget._controller,
       widget: FormField<bool>(
         key: validatorKey,
@@ -117,10 +121,9 @@ class SwitchBaseState extends FormFieldWidgetState<SwitchBase> {
               widget._controller.required &&
               !widget._controller.value;
 
-          final tripleStateRequiredStatus =
-              widget is EnsembleTripleStateSwitch &&
-                  widget._controller.required &&
-                  widget._controller.value == SwitchState.off.name;
+          final tripleStateRequiredStatus = widget is EnsembleTripleSwitch &&
+              widget._controller.required &&
+              widget._controller.value == SwitchState.off.name;
 
           if (switchRequiredStatus || tripleStateRequiredStatus) {
             return Utils.translateWithFallback(
@@ -146,34 +149,23 @@ class SwitchBaseState extends FormFieldWidgetState<SwitchBase> {
     );
   }
 
-  void onToggle(dynamic newValue) {
-    if (newValue is bool) {
-      widget.onToggle(newValue);
-      widget._controller.value = newValue;
-    } else if (newValue is String) {
-      final SwitchState switchState =
-          SwitchState.values.from(newValue) ?? widget._controller.value;
-      widget.onToggle(switchState.name);
-      widget._controller.value = switchState.name;
-    }
-    if (widget._controller.onChange != null) {
-      ScreenController().executeAction(context, widget._controller.onChange!,
-          event: EnsembleEvent(widget));
-    }
-  }
-
-  Widget get tripleStateSwitch {
+  Widget get tripleSwitch {
     final SwitchState switchState =
         SwitchState.values.from(widget._controller.value) ?? SwitchState.off;
     return TripleStateSwitch(
       dotColor: widget._controller.activeThumbColor,
       disableDotColor: widget._controller.inactiveThumbColor,
       startBackgroundColor: widget._controller.activeColor,
-      middleBackgroundColor: widget._controller.intermediateColor,
+      middleBackgroundColor: widget._controller.mixedColor,
       endBackgroundColor: widget._controller.inactiveColor,
       disable: widget._controller.enabled == false,
       state: switchState,
-      onChanged: isEnabled() ? (value) => onToggle(value.name) : (_) {},
+      onChanged: isEnabled()
+          ? (value) {
+              (widget as EnsembleTripleSwitch?)?.onToggle(value);
+              onChange();
+            }
+          : (_) {},
     );
   }
 
@@ -207,7 +199,19 @@ class SwitchBaseState extends FormFieldWidgetState<SwitchBase> {
         trackColor: trackColor,
         thumbColor: thumbColor,
         value: widget._controller.value,
-        onChanged: isEnabled() ? (value) => onToggle(value) : null);
+        onChanged: isEnabled()
+            ? (value) {
+                (widget as EnsembleSwitch?)?.onToggle(value);
+                onChange();
+              }
+            : null);
+  }
+
+  void onChange() {
+    if (widget._controller.onChange != null) {
+      ScreenController().executeAction(context, widget._controller.onChange!,
+          event: EnsembleEvent(widget));
+    }
   }
 }
 
@@ -219,7 +223,7 @@ class SwitchBaseController extends FormFieldController {
   Color? activeThumbColor;
   Color? inactiveColor;
   Color? inactiveThumbColor;
-  Color? intermediateColor;
+  Color? mixedColor;
 
   framework.EnsembleAction? onChange;
 }
