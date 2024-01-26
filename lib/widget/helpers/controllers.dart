@@ -1,5 +1,6 @@
 /// This class contains helper controllers for our widgets.
 import 'package:ensemble/controller/controller_mixins.dart';
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/util/utils.dart';
@@ -116,6 +117,9 @@ abstract class WidgetController extends Controller {
   // base properties applicable to all widgets
   bool expanded = false;
 
+  bool focusable = false;
+  EnsembleAction? onFocusSelect;
+
   bool visible = true;
   Duration? visibilityTransitionDuration; // in seconds
 
@@ -153,6 +157,10 @@ abstract class WidgetController extends Controller {
   Map<String, Function> getBaseSetters() {
     return {
       'expanded': (value) => expanded = Utils.getBool(value, fallback: false),
+      'focusable': (value) =>
+          focusable = Utils.getBool(value, fallback: focusable),
+      'onFocusSelect': (value) =>
+          onFocusSelect = EnsembleAction.fromYaml(value),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
       'visibilityTransitionDuration': (value) =>
           visibilityTransitionDuration = Utils.getDuration(value),

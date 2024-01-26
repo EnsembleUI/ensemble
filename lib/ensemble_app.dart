@@ -222,11 +222,13 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
         // The Page's Scaffold can handle the resizing.
         resizeToAvoidBottomInset: false,
 
-        body: Screen(
-          appProvider:
-              AppProvider(definitionProvider: config.definitionProvider),
-          screenPayload: widget.screenPayload,
-        ),
+        body: FocusTraversalGroup(
+            policy: ReadingOrderTraversalPolicy(),
+            child: Screen(
+              appProvider:
+                  AppProvider(definitionProvider: config.definitionProvider),
+              screenPayload: widget.screenPayload,
+            )),
       ),
       useInheritedMediaQuery: widget.isPreview,
       locale: widget.isPreview ? DevicePreview.locale(context) : null,

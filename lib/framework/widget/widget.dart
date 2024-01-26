@@ -8,10 +8,12 @@ import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
 import 'package:yaml/yaml.dart';
 
@@ -24,6 +26,8 @@ mixin UpdatableContainer<T extends Widget> {
 /// base class for widgets that want to participate in Ensemble layout
 abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
   ScopeManager? scopeManager;
+  FocusNode? widgetFocusNode;
+  bool hasFocus = false;
 
   @override
   Widget build(BuildContext context) {
@@ -87,13 +91,58 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
         ///    So if we put Expanded on the Column's child, layout exception will occur
         rtn = Expanded(child: rtn);
       }
+
+      if (widgetController.focusable && widgetFocusNode != null) {
+        rtn = Focus(
+            focusNode: widgetFocusNode,
+            onKey: (node, event) => _onFocusByKey(node, event, widgetController),
+            child: Container(
+                decoration: BoxDecoration(
+                    borderRadius: widgetController is BoxController
+                        ? widgetController.borderRadius?.getValue()
+                        : null,
+                    border: Border.all(
+                        color: hasFocus ? Colors.white : Colors.transparent,
+                        width: 1)),
+                child: ClipRRect(clipBehavior: Clip.hardEdge, child: rtn)));
+      }
+
       return rtn;
     }
     throw LanguageError("Wrong usage of widget controller!");
   }
 
+  KeyEventResult _onFocusByKey(FocusNode node, RawKeyEvent event, WidgetController controller) {
+    if (controller.onFocusSelect != null && event is RawKeyUpEvent && event.logicalKey == LogicalKeyboardKey.select) {
+      ScreenController().executeAction(context, controller.onFocusSelect!);
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
   /// build your widget here
   Widget buildWidget(BuildContext context);
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.controller is WidgetController &&
+        (widget.controller as WidgetController).focusable) {
+      widgetFocusNode = _initFocus();
+    }
+  }
+
+  FocusNode _initFocus() {
+    var myFocusNode = FocusNode();
+    myFocusNode.addListener(() {
+      if (myFocusNode.hasFocus != hasFocus) {
+        setState(() {
+          hasFocus = myFocusNode.hasFocus;
+        });
+      }
+    });
+    return myFocusNode;
+  }
 
   @override
   void didChangeDependencies() {
@@ -107,6 +156,7 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
     if (widget is Invokable) {
       scopeManager?.removeBindingListeners(widget as Invokable);
     }
+    widgetFocusNode?.dispose();
     super.dispose();
   }
 
