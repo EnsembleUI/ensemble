@@ -137,6 +137,7 @@ mixin TabBarAction on WidgetState<BaseTabBar> {
 class TabBarState extends WidgetState<BaseTabBar>
     with SingleTickerProviderStateMixin, TabBarAction {
   late final TabController _tabController;
+  static const focusedColor = Color(0xff272727);
 
   @override
   void initState() {
@@ -330,6 +331,14 @@ class TabBarState extends WidgetState<BaseTabBar>
               .executeAction(context, widget._controller.onTabSelection!);
         }
       },
+      overlayColor: MaterialStateProperty.resolveWith<Color?>(
+            (Set<MaterialState> states) {
+          if (states.contains(MaterialState.focused)) {
+            return focusedColor;
+          }
+          return null;
+        },
+      ),
     );
 
     if (widget._controller.tabBackgroundColor != null) {
