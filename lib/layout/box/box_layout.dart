@@ -4,6 +4,7 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/focus/custom_focus_traversal_policy.dart';
 import 'package:ensemble/framework/studio_debugger.dart';
 import 'package:ensemble/framework/view/footer.dart';
 import 'package:ensemble/framework/view/page_group.dart';
@@ -33,6 +34,7 @@ import 'box_utils.dart';
 
 class Column extends BoxLayout {
   static const type = 'Column';
+
   Column({Key? key}) : super(key: key);
 
   @override
@@ -55,6 +57,7 @@ class Column extends BoxLayout {
 
 class Row extends BoxLayout {
   static const type = 'Row';
+
   Row({Key? key}) : super(key: key);
 
   @override
@@ -65,6 +68,7 @@ class Row extends BoxLayout {
 
 class Flex extends BoxLayout {
   static const type = 'Flex';
+
   Flex({Key? key}) : super(key: key);
 
   @override
@@ -98,6 +102,7 @@ abstract class BoxLayout extends StatefulWidget
   BoxLayout({Key? key}) : super(key: key);
 
   final BoxLayoutController _controller = BoxLayoutController();
+
   @override
   BoxLayoutController get controller => _controller;
 
@@ -216,11 +221,13 @@ class BoxLayoutState extends WidgetState<BoxLayout>
         boxWidget = RequiresRowColumnFlexWidget(child: boxWidget);
       }
     } else if (widget is Row) {
-      boxWidget = flutter.Row(
-          mainAxisSize: mainAxisSize,
-          mainAxisAlignment: widget._controller.mainAxis,
-          crossAxisAlignment: widget._controller.crossAxis,
-          children: items);
+      boxWidget = FocusTraversalGroup(
+          policy: HorizontalFocusTraversalPolicy(),
+          child: flutter.Row(
+              mainAxisSize: mainAxisSize,
+              mainAxisAlignment: widget._controller.mainAxis,
+              crossAxisAlignment: widget._controller.crossAxis,
+              children: items));
       if (StudioDebugger().debugMode) {
         boxWidget = RequiresRowColumnFlexWidget(child: boxWidget);
       }
