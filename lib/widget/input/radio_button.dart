@@ -37,7 +37,12 @@ class RadioWidget extends StatefulWidget
       };
 
   @override
-  Map<String, Function> methods() => {};
+  Map<String, Function> methods() => {
+        'select': (value) {
+          CustomRadioController(controller)
+              .setGroupValue(Utils.optionalString(value) ?? '');
+        },
+      };
 }
 
 class RadioController extends FormFieldController {
