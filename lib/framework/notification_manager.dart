@@ -21,9 +21,10 @@ class NotificationManager {
   // Store the last known device token
   String? deviceToken;
 
-  Future<void> init({FirebasePayload? payload,
-    Future<void> Function(RemoteMessage)?
-    backgroundNotificationHandler}) async {
+  Future<void> init(
+      {FirebasePayload? payload,
+      Future<void> Function(RemoteMessage)?
+          backgroundNotificationHandler}) async {
     if (!_init) {
       /// if payload is not passed, Firebase configuration files
       /// are required to be added manualy to iOS and Android
@@ -43,7 +44,7 @@ class NotificationManager {
     try {
       // request permission
       NotificationSettings settings =
-      await FirebaseMessaging.instance.requestPermission(
+          await FirebaseMessaging.instance.requestPermission(
         alert: true,
         badge: true,
         sound: true,
@@ -114,7 +115,8 @@ class NotificationManager {
           method: () => _handleNotification(message));
     }).catchError((err) {
       // ignore: avoid_print
-      print("Failed to get the remote notification's initial message. Ignoring ...");
+      print(
+          "Failed to get the remote notification's initial message. Ignoring ...");
     });
   }
 
@@ -145,20 +147,20 @@ class NotificationManager {
 
 /// abstract to just the absolute must need Firebase options
 class FirebasePayload {
-  FirebasePayload({required this.apiKey,
-    required this.projectId,
-    required this.messagingSenderId,
-    required this.appId});
+  FirebasePayload(
+      {required this.apiKey,
+      required this.projectId,
+      required this.messagingSenderId,
+      required this.appId});
 
   String apiKey;
   String projectId;
   String messagingSenderId;
   String appId;
 
-  FirebaseOptions getFirebaseOptions() =>
-      FirebaseOptions(
-          apiKey: apiKey,
-          appId: appId,
-          messagingSenderId: messagingSenderId,
-          projectId: projectId);
+  FirebaseOptions getFirebaseOptions() => FirebaseOptions(
+      apiKey: apiKey,
+      appId: appId,
+      messagingSenderId: messagingSenderId,
+      projectId: projectId);
 }
