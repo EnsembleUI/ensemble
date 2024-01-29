@@ -21,10 +21,9 @@ class NotificationManager {
   // Store the last known device token
   String? deviceToken;
 
-  Future<void> init(
-      {FirebasePayload? payload,
-      Future<void> Function(RemoteMessage)?
-          backgroundNotificationHandler}) async {
+  Future<void> init({FirebasePayload? payload,
+    Future<void> Function(RemoteMessage)?
+    backgroundNotificationHandler}) async {
     if (!_init) {
       /// if payload is not passed, Firebase configuration files
       /// are required to be added manualy to iOS and Android
@@ -44,7 +43,7 @@ class NotificationManager {
     try {
       // request permission
       NotificationSettings settings =
-          await FirebaseMessaging.instance.requestPermission(
+      await FirebaseMessaging.instance.requestPermission(
         alert: true,
         badge: true,
         sound: true,
@@ -80,7 +79,7 @@ class NotificationManager {
         'body': message.notification?.body,
         'data': message.data
       });
-      _handleNotification();
+      _handleNotification(message);
     });
 
     /// when the app is in the background, we can't run UI logic.
@@ -96,7 +95,7 @@ class NotificationManager {
         'body': message.notification?.body,
         'data': message.data
       });
-      _handleNotification();
+      _handleNotification(message);
     });
   }
 
@@ -110,46 +109,55 @@ class NotificationManager {
         'body': message.notification?.body,
         'data': message.data
       });
-      Ensemble()
-          .addCallbackAfterInitialization(method: () => _handleNotification());
+      Ensemble().addCallbackAfterInitialization(
+          method: () => _handleNotification(message));
     }).catchError((err) {
       // ignore: avoid_print
       print('Failed to get the remote notification');
     });
   }
 
-  Future<void> _handleNotification() async {
-    Map<String, dynamic>? messageData = Ensemble.externalDataContext['data'];
-    if (messageData?['screenId'] != null ||
-        messageData?['screenName'] != null) {
-      ScreenController().navigateToScreen(
-        Utils.globalAppKey.currentContext!,
-        screenId: messageData!['screenId'],
-        screenName: messageData['screenName'],
-        pageArgs: messageData,
-      );
+  Future<void> _handleNotification(RemoteMessage message) async {
+    Map<String, dynamic> payload = {
+      'notificationPayload': {
+        'title': message.notification?.title,
+        'body': message.notification?.body,
+        'data': message.data,
+      }
+    };
+    if (message.data['screenId'] != null ||
+        message.data['screenName'] != null) {
+      ScreenController().navigateToScreen(Utils.globalAppKey.currentContext!,
+          screenId: message.data['screenId'],
+          screenName: message.data['screenName'],
+          pageArgs: {
+            // backward compatibility
+            ...message.data,
+            ...payload,
+          });
     } else {
-      log('No screenId nor screenName provided on the notification. Ignoring ...');
+      ScreenController().navigateToScreen(Utils.globalAppKey.currentContext!,
+          pageArgs: payload);
     }
   }
 }
 
 /// abstract to just the absolute must need Firebase options
 class FirebasePayload {
-  FirebasePayload(
-      {required this.apiKey,
-      required this.projectId,
-      required this.messagingSenderId,
-      required this.appId});
+  FirebasePayload({required this.apiKey,
+    required this.projectId,
+    required this.messagingSenderId,
+    required this.appId});
 
   String apiKey;
   String projectId;
   String messagingSenderId;
   String appId;
 
-  FirebaseOptions getFirebaseOptions() => FirebaseOptions(
-      apiKey: apiKey,
-      appId: appId,
-      messagingSenderId: messagingSenderId,
-      projectId: projectId);
+  FirebaseOptions getFirebaseOptions() =>
+      FirebaseOptions(
+          apiKey: apiKey,
+          appId: appId,
+          messagingSenderId: messagingSenderId,
+          projectId: projectId);
 }
