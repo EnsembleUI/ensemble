@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/notification_manager.dart';
 import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/error_screen.dart';
@@ -128,6 +129,7 @@ class _PageInitializerState extends State<PageInitializer>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    NotificationManager().initGetInitialMessage();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       executeCallbacks();
     });

@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -63,7 +64,8 @@ class ProcessNotificationAction extends EnsembleAction {
       }
       return ProcessNotificationAction(
           onNotification: onNotification,
-          onNoNotification: EnsembleAction.fromYaml(payload['onError']));
+          onNoNotification:
+              EnsembleAction.fromYaml(payload['onNoNotification']));
     }
     throw LanguageError("Missing inputs for getDeviceToken.}");
   }
@@ -71,21 +73,29 @@ class ProcessNotificationAction extends EnsembleAction {
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) async {
     final remoteNotification = await NotificationManager().getInitialMessage();
-    final data = {
-      'notification': {
-        'title': remoteNotification?.notification?.title,
-        'body': remoteNotification?.notification?.body,
-      },
-      'data': remoteNotification?.data,
-    };
-    if (remoteNotification != null && onNotification != null) {
+    Map<dynamic, dynamic>? payload;
+    if (remoteNotification != null) {
+      payload = {
+        'notificationPayload': {
+          'notification': {
+            'title': remoteNotification.notification?.title,
+            'body': remoteNotification.notification?.body,
+          },
+          'data': remoteNotification.data,
+        }
+      };
+    } else {
+      payload = Ensemble.externalDataContext;
+    }
+
+    if (onNotification != null) {
       return ScreenController().executeAction(context, onNotification!,
-          event: EnsembleEvent(initiator, data: data));
+          event: EnsembleEvent(initiator, data: payload));
     }
     if (remoteNotification == null && onNoNotification != null) {
       return ScreenController().executeAction(context, onNoNotification!,
           event: EnsembleEvent(initiator,
-              error: 'Unable to get the remote notification message.'));
+              error: 'Unable to get the notification payload.'));
     }
   }
 }

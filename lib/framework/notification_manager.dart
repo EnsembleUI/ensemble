@@ -81,9 +81,11 @@ class NotificationManager {
     /// This is when the app is in the foreground
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       Ensemble.externalDataContext.addAll({
-        'title': message.notification?.title,
-        'body': message.notification?.body,
-        'data': message.data
+        'notificationPayload': {
+          'title': message.notification?.title,
+          'body': message.notification?.body,
+          'data': message.data
+        }
       });
       _handleNotification();
     });
@@ -97,9 +99,11 @@ class NotificationManager {
     /// This is when the app is in the background and the user taps on the notification
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       Ensemble.externalDataContext.addAll({
-        'title': message.notification?.title,
-        'body': message.notification?.body,
-        'data': message.data
+        'notificationPayload': {
+          'title': message.notification?.title,
+          'body': message.notification?.body,
+          'data': message.data
+        }
       });
       _handleNotification();
     });
@@ -111,9 +115,11 @@ class NotificationManager {
       if (message == null) return;
 
       Ensemble.externalDataContext.addAll({
-        'title': message.notification?.title,
-        'body': message.notification?.body,
-        'data': message.data
+        'notificationPayload': {
+          'title': message.notification?.title,
+          'body': message.notification?.body,
+          'data': message.data
+        }
       });
       Ensemble()
           .addCallbackAfterInitialization(method: () => _handleNotification());
@@ -124,7 +130,8 @@ class NotificationManager {
   }
 
   Future<void> _handleNotification() async {
-    Map<String, dynamic>? messageData = Ensemble.externalDataContext['data'];
+    Map<String, dynamic>? messageData =
+        Ensemble.externalDataContext['notificationPayload']['data'];
     // If there is a screen, it navigates to that page
     // or else it'll open the app with the root screen and clears all the previous screens
     final screenNotFound =
