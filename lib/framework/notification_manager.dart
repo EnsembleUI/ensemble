@@ -113,7 +113,7 @@ class NotificationManager {
           method: () => _handleNotification(message));
     }).catchError((err) {
       // ignore: avoid_print
-      print('Failed to get the remote notification');
+      print("Failed to get the remote notification's initial message. Ignoring ...");
     });
   }
 
