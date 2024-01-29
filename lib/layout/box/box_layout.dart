@@ -213,21 +213,29 @@ class BoxLayoutState extends WidgetState<BoxLayout>
         ];
       }
       boxWidget = flutter.Column(
-          mainAxisSize: mainAxisSize,
-          mainAxisAlignment: widget._controller.mainAxis,
-          crossAxisAlignment: widget._controller.crossAxis,
-          children: items);
+              mainAxisSize: mainAxisSize,
+              mainAxisAlignment: widget._controller.mainAxis,
+              crossAxisAlignment: widget._controller.crossAxis,
+              children: items);
+      if (widget.controller.scrollable) {
+        boxWidget = FocusTraversalGroup(
+          policy: WidgetOrderTraversalPolicy(),
+            child: boxWidget);
+      }
       if (StudioDebugger().debugMode) {
         boxWidget = RequiresRowColumnFlexWidget(child: boxWidget);
       }
     } else if (widget is Row) {
-      boxWidget = FocusTraversalGroup(
-          policy: HorizontalFocusTraversalPolicy(),
-          child: flutter.Row(
+      boxWidget = flutter.Row(
               mainAxisSize: mainAxisSize,
               mainAxisAlignment: widget._controller.mainAxis,
               crossAxisAlignment: widget._controller.crossAxis,
-              children: items));
+              children: items);
+      if (widget.controller.scrollable) {
+        boxWidget = FocusTraversalGroup(
+            policy: HorizontalFocusTraversalPolicy(),
+            child: boxWidget);
+      }
       if (StudioDebugger().debugMode) {
         boxWidget = RequiresRowColumnFlexWidget(child: boxWidget);
       }

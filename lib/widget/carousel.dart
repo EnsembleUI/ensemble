@@ -2,6 +2,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/focus/custom_focus_traversal_policy.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
@@ -209,11 +210,13 @@ class CarouselState extends WidgetState<Carousel>
     bool singleView = isSingleView();
 
     List<Widget> items = buildItems();
-    Widget carousel = CarouselSlider(
+    Widget carousel = FocusTraversalGroup(
+      policy: HorizontalFocusTraversalPolicy(),
+        child: CarouselSlider(
       options: singleView ? _getSingleViewOptions() : _getMultiViewOptions(),
       items: items,
       carouselController: widget._controller._carouselController,
-    );
+    ));
 
     // show indicators
     if (widget._controller.indicatorType != null &&
