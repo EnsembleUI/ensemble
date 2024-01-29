@@ -99,6 +99,7 @@ class NotificationManager {
     });
   }
 
+  // TODO: framework should call this automatically
   void initGetInitialMessage() {
     // This is called when the user taps on the notification and the app is opened from the terminated state
     FirebaseMessaging.instance.getInitialMessage().then((message) {
