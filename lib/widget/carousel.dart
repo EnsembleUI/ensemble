@@ -78,6 +78,21 @@ class Carousel extends StatefulWidget
       'indicatorWidget': (widget) => _controller.indicatorWidget = widget,
       'selectedIndicatorWidget': (widget) =>
           _controller.selectedIndicatorWidget = widget,
+      'aspectRatio': (value) =>
+          _controller.aspectRatio = Utils.optionalDouble(value),
+      'autoPlayAnimationDuration': (value) =>
+          _controller.autoPlayAnimationDuration = Utils.optionalInt(value),
+      'autoPlayCurve': (value) =>
+          _controller.autoPlayCurve = Utils.getCurve(value),
+      'enlargeCenterPage': (value) =>
+          _controller.enlargeCenterPage = Utils.optionalBool(value),
+      'buildOnDemand': (value) =>
+          _controller.buildOnDemand = Utils.optionalBool(value),
+      'enlargeFactor': (value) =>
+          _controller.enlargeFactor = Utils.optionalDouble(value),
+      'direction': (value) =>
+          _controller.direction = Utils.optionalString(value),
+      'cacheKey': (value) => _controller.cacheKey = Utils.optionalString(value),
     };
   }
 
@@ -140,6 +155,14 @@ class MyController extends BoxController {
   bool? autoplay;
   bool? enableLoop;
   int? autoplayInterval;
+  int? autoPlayAnimationDuration;
+  double? aspectRatio;
+  double? enlargeFactor;
+  Curve? autoPlayCurve;
+  bool? enlargeCenterPage;
+  bool? buildOnDemand;
+  String? direction;
+  String? cacheKey;
 
   // Custom Widget
   dynamic indicatorWidget;
@@ -209,11 +232,22 @@ class CarouselState extends WidgetState<Carousel>
     bool singleView = isSingleView();
 
     List<Widget> items = buildItems();
-    Widget carousel = CarouselSlider(
-      options: singleView ? _getSingleViewOptions() : _getMultiViewOptions(),
-      items: items,
-      carouselController: widget._controller._carouselController,
-    );
+    bool isBuildOnDemand =
+        widget._controller.buildOnDemand == true || items.length > 5;
+
+    Widget carousel = isBuildOnDemand
+        ? CarouselSlider.builder(
+            itemCount: items.length,
+            itemBuilder: (context, itemIndex, pageIndex) => items[itemIndex],
+            options:
+                singleView ? _getSingleViewOptions() : _getMultiViewOptions(),
+          )
+        : CarouselSlider(
+            options:
+                singleView ? _getSingleViewOptions() : _getMultiViewOptions(),
+            carouselController: widget._controller._carouselController,
+            items: items,
+          );
 
     // show indicators
     if (widget._controller.indicatorType != null &&
@@ -426,6 +460,18 @@ class CarouselState extends WidgetState<Carousel>
       autoPlay: widget._controller.autoplay ?? false,
       autoPlayInterval:
           Duration(seconds: widget._controller.autoplayInterval ?? 4),
+      aspectRatio: widget._controller.aspectRatio ?? 16 / 9,
+      autoPlayAnimationDuration: Duration(
+          milliseconds: widget._controller.autoPlayAnimationDuration ?? 800),
+      autoPlayCurve: widget._controller.autoPlayCurve ?? Curves.fastOutSlowIn,
+      enlargeCenterPage: widget._controller.enlargeCenterPage,
+      enlargeFactor: widget._controller.enlargeFactor ?? 0.3,
+      scrollDirection: widget._controller.direction == Axis.vertical.name
+          ? Axis.vertical
+          : Axis.horizontal,
+      pageViewKey: widget._controller.cacheKey != null
+          ? PageStorageKey<String>(widget._controller.cacheKey!)
+          : null,
     );
   }
 
