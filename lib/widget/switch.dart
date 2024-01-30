@@ -220,7 +220,6 @@ class SwitchBaseState extends FormFieldWidgetState<SwitchBase> {
 }
 
 class SwitchBaseController extends FormFieldController {
-  bool custom = false;
   dynamic value;
   String? leadingText;
   String? trailingText;
