@@ -1,8 +1,11 @@
+import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/notification_manager.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
@@ -26,13 +29,19 @@ class NotificationUtilsMobile implements NotificationUtilsBase {
   @override
   Future<bool?> initNotifications() async {
     const initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('ic_launcher');
     const initializationSettingsIOS = DarwinInitializationSettings();
     const initializationSettings = InitializationSettings(
       android: initializationSettingsAndroid,
       iOS: initializationSettingsIOS,
     );
-    await localNotificationsPlugin.initialize(initializationSettings);
+    await localNotificationsPlugin.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse: (details) {
+        final message = RemoteMessage.fromMap(jsonDecode(details.payload!));
+        NotificationManager().handleNotification(message);
+      },
+    );
 
     return _requestPermissions();
   }
@@ -65,6 +74,7 @@ class NotificationUtilsMobile implements NotificationUtilsBase {
     String? title,
     String? body, {
     String? imageUrl,
+    String? payload,
   }) async {
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
@@ -87,7 +97,7 @@ class NotificationUtilsMobile implements NotificationUtilsBase {
       title ?? 'Notification Title',
       body ?? 'Notification Body',
       platformChannelSpecifics,
-      payload: 'notification_payload',
+      payload: payload,
     );
   }
 
