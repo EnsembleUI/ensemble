@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'dart:developer';
 import 'dart:io' show Platform;
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -33,6 +35,8 @@ class NotificationManager {
       );
       _initListener(
           backgroundNotificationHandler: backgroundNotificationHandler);
+      // local notification initialization
+      notificationUtils.initNotifications();
       _init = true;
     }
   }
@@ -80,7 +84,12 @@ class NotificationManager {
         'body': message.notification?.body,
         'data': message.data
       });
-      _handleNotification(message);
+      // _handleNotification(message);
+      notificationUtils.showNotification(
+        message.notification?.title,
+        message.notification?.body,
+        payload: jsonEncode(message.toMap()),
+      );
     });
 
     /// when the app is in the background, we can't run UI logic.
@@ -96,7 +105,7 @@ class NotificationManager {
         'body': message.notification?.body,
         'data': message.data
       });
-      _handleNotification(message);
+      handleNotification(message);
     });
   }
 
@@ -112,7 +121,7 @@ class NotificationManager {
         'data': message.data
       });
       Ensemble().addCallbackAfterInitialization(
-          method: () => _handleNotification(message));
+          method: () => handleNotification(message));
     }).catchError((err) {
       // ignore: avoid_print
       print(
@@ -120,7 +129,7 @@ class NotificationManager {
     });
   }
 
-  Future<void> _handleNotification(RemoteMessage message) async {
+  Future<void> handleNotification(RemoteMessage message) async {
     Map<String, dynamic> payload = {
       'notificationPayload': {
         'title': message.notification?.title,
