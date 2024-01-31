@@ -202,7 +202,7 @@ class SwitchBaseState extends FormFieldWidgetState<SwitchBase> {
     return Switch(
         trackColor: trackColor,
         thumbColor: thumbColor,
-        value: widget._controller.value,
+        value: widget._controller.value == true,
         onChanged: isEnabled()
             ? (value) {
                 (widget as EnsembleSwitch?)?.onToggle(value);
