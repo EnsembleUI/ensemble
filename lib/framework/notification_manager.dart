@@ -120,7 +120,8 @@ class NotificationManager {
         'body': message.notification?.body,
         'data': message.data
       });
-      Ensemble().addCallbackAfterInitialization(
+      // notification will be executed AFTER the home screen has finished rendering
+      Ensemble().addPushNotificationCallback(
           method: () => handleNotification(message));
     }).catchError((err) {
       // ignore: avoid_print

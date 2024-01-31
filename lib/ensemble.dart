@@ -53,8 +53,15 @@ class Ensemble {
     externalScreenWidgets = widgets;
   }
 
-  final Set<Function> _afterInitMethods = {};
+  // TODO: combine push callback and regular callback
+  final Set<Function> _pushNotificationCallbacks = {};
+  void addPushNotificationCallback({required Function method}) {
+    _pushNotificationCallbacks.add(method);
+  }
 
+  Set<Function> getPushNotificationCallbacks() => _pushNotificationCallbacks;
+
+  final Set<Function> _afterInitMethods = {};
   void addCallbackAfterInitialization({required Function method}) {
     _afterInitMethods.add(method);
   }
