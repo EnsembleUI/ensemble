@@ -324,10 +324,10 @@ class AppModel {
         if (value is YamlMap) {
           widgets.addAll(value.value);
         }
-      } else if (key == ResourceArtifactEntry.Code.name) {
+      } else if (key == ResourceArtifactEntry.Scripts.name) {
         if (value is YamlMap) {
           //code will be in the format -
-          // Code:
+          // Scripts:
           //  #apiUtils is the name of the code artifact
           //  apiUtils: |-
           //    function callAPI(name,payload) {
@@ -376,7 +376,7 @@ class AppModel {
 
     // finally add the widgets and code to the output
     output[ResourceArtifactEntry.Widgets.name] = widgets;
-    output[ResourceArtifactEntry.Code.name] = code;
+    output[ResourceArtifactEntry.Scripts.name] = code;
     //log(">>" + output.toString());
     //return YamlMap.wrap(output);
     return output;

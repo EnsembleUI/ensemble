@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:ensemble/ensemble.dart';
@@ -161,6 +162,20 @@ class _PageInitializerState extends State<PageInitializer>
     });
   }
 
+  Future<void> executePushNotificationCallbacks() async {
+    final callbacks = List.from(Ensemble().getPushNotificationCallbacks());
+
+    callbacks.asMap().forEach((index, function) async {
+      // Removing a method and getting the function with index to execute it
+      Ensemble().getPushNotificationCallbacks().remove(function);
+      try {
+        await Function.apply(function, null);
+      } catch (e) {
+        print('Failed to execute a method: $e');
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.pageModel is PageGroupModel && widget.pageModel.menu != null) {
@@ -184,9 +199,14 @@ class _PageInitializerState extends State<PageInitializer>
         }
       }
       return ensemble.Page(
-        dataContext: widget.dataContext,
-        pageModel: pageModel,
-      );
+          dataContext: widget.dataContext,
+          pageModel: pageModel,
+
+          // on terminated state, we want push notification's screen to load AFTER
+          // the landing screen has finished its onLoad, which may have logic to
+          // redirect to other pages. Without this, the notification's screen
+          // may load in between, causing the back button to malfunction
+          onRendered: () => executePushNotificationCallbacks());
     }
 
     throw LanguageError("Invalid Screen Definition");

@@ -23,7 +23,7 @@ enum ArtifactType {
 }
 
 // the root entries of the Resource artifact
-enum ResourceArtifactEntry { Widgets, Code, API }
+enum ResourceArtifactEntry { Widgets, Scripts, API }
 
 abstract class DefinitionProvider {
   static Map<String, dynamic> cache = {};
