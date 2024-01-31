@@ -276,11 +276,12 @@ abstract class FormFieldWidgetState<W extends HasController>
         Theme.of(context).textTheme.titleMedium ?? const TextStyle();
     if (widget.controller is FormFieldController) {
       return textStyle.copyWith(
-          fontSize:
-              (widget.controller as FormFieldController).fontSize?.toDouble(),
-          overflow: TextOverflow.ellipsis
-          // TODO: expose color, ... for all form fields here
-          );
+        fontSize:
+            (widget.controller as FormFieldController).fontSize?.toDouble(),
+        overflow: TextOverflow.ellipsis,
+        color: (widget.controller as FormFieldController).labelStyle?.color,
+        // TODO: expose color, ... for all form fields here
+      );
     }
     return textStyle;
   }
