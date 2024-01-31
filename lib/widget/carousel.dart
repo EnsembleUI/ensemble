@@ -88,6 +88,8 @@ class Carousel extends StatefulWidget
           _controller.enlargeCenterPage = Utils.optionalBool(value),
       'buildOnDemand': (value) =>
           _controller.buildOnDemand = Utils.optionalBool(value),
+      'buildOnDemandLength': (value) =>
+          _controller.buildOnDemandLength = Utils.optionalInt(value),
       'enlargeFactor': (value) =>
           _controller.enlargeFactor = Utils.optionalDouble(value),
       'direction': (value) =>
@@ -161,6 +163,7 @@ class MyController extends BoxController {
   Curve? autoPlayCurve;
   bool? enlargeCenterPage;
   bool? buildOnDemand;
+  int? buildOnDemandLength;
   String? direction;
   String? cacheKey;
 
@@ -232,8 +235,9 @@ class CarouselState extends WidgetState<Carousel>
     bool singleView = isSingleView();
 
     List<Widget> items = buildItems();
-    bool isBuildOnDemand =
-        widget._controller.buildOnDemand == true || items.length > 5;
+    int buildOnDemandLength = widget._controller.buildOnDemandLength ?? 6;
+    bool isBuildOnDemand = widget._controller.buildOnDemand == true &&
+        items.length >= buildOnDemandLength;
 
     Widget carousel = isBuildOnDemand
         ? CarouselSlider.builder(
