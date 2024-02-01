@@ -1,7 +1,9 @@
 import 'dart:math' as math;
+import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/custom_view.dart';
@@ -73,6 +75,10 @@ class ViewUtil {
         payload = item[widgetType];
       }
       def = getDefinition(item);
+      if (item.keys.length > 1) {
+        //multiple widgets found, it is probably because user used wrong indentation
+        //TODO: we'll send a warning back
+      }
     } else if (item is MapEntry) {
       widgetType = item.key as String;
       if (item.value is YamlMap) {
@@ -143,15 +149,31 @@ class ViewUtil {
         inputPayload[key] = value;
       });
     }
-
+    Map<String, EnsembleAction?> eventPayload = {};
+    if (callerPayload?['events'] is YamlMap) {
+      callerPayload!['events'].forEach((key, value) {
+        eventPayload[key] = EnsembleAction.fromYaml(value);
+      });
+    }
     WidgetModel? widgetModel;
     Map<String, dynamic> props = {};
     List<String> inputParams = [];
+    Map<String, EnsembleEvent> eventParams = {};
+    List<ParsedCode>? importedCode;
     for (MapEntry entry in (viewDefinition as YamlMap).entries) {
+      if (entry.key == PageModel.importToken) {
+        importedCode = Ensemble().getConfig()?.processImports(entry.value);
+      }
       // see if the custom widget actually declare any input parameters
       if (entry.key == 'inputs' && entry.value is YamlList) {
         for (var input in entry.value) {
           inputParams.add(input.toString());
+        }
+      }
+      if (entry.key == 'events' && entry.value is YamlMap) {
+        for (var event in entry.value.entries) {
+          eventParams[event.key] =
+              EnsembleEvent.fromYaml(event.key, event.value);
         }
       }
       // extract onLoad and other properties at the root of the Custom Widget
@@ -178,13 +200,20 @@ class ViewUtil {
     }
 
     return CustomWidgetModel(widgetModel, props,
-        inputs: inputPayload, parameters: inputParams);
+        importedCode: importedCode,
+        inputs: inputPayload,
+        parameters: inputParams,
+        actions: eventPayload,
+        events: eventParams);
   }
 
   static List<WidgetModel> buildModels(
       YamlList items, Map<String, dynamic>? customWidgetMap) {
     List<WidgetModel> rtn = [];
     for (dynamic item in items) {
+      if (item is YamlMap && item.keys.length > 1) {
+        //user has incorrectly used tabs
+      }
       rtn.add(buildModel(item, customWidgetMap));
     }
     return rtn;
@@ -193,15 +222,13 @@ class ViewUtil {
   static Widget buildBareCustomWidget(ScopeNode scopeNode,
       CustomWidgetModel customModel, Map<WidgetModel, ModelPayload> modelMap) {
     // create a new Scope (for our custom widget) and add to the parent
-    ScopeManager customScope = scopeNode.scope.createChildScope();
+    ScopeManager customScope = scopeNode.scope
+        .createChildScope(childImportedCode: customModel.importedCode);
     ScopeNode customScopeNode = ScopeNode(customScope);
     scopeNode.addChild(customScopeNode);
 
-    Widget customWidget = CustomView(
-        body: customModel.getModel(),
-        parameters: customModel.parameters,
-        scopeManager: customScope,
-        viewBehavior: customModel.getViewBehavior());
+    Widget customWidget =
+        CustomView.fromModel(model: customModel, scopeManager: customScope);
     modelMap[customModel] = ModelPayload(customWidget, customScope);
 
     return DataScopeWidget(scopeManager: customScope, child: customWidget);

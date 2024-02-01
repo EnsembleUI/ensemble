@@ -5,14 +5,12 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/layout_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/button.dart';
-import 'package:ensemble/widget/ensemble_icon.dart';
-import 'package:ensemble/widget/input/form_helper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:ensemble/widget/input/form_helper.dart';
 import 'package:ensemble/widget/widget_util.dart' as util;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart' as flutter;
 import 'package:flutter/material.dart';
-import 'package:flutter_layout_grid/flutter_layout_grid.dart';
 
 class EnsembleForm extends StatefulWidget
     with
@@ -20,9 +18,12 @@ class EnsembleForm extends StatefulWidget
         Invokable,
         HasController<FormController, FormState> {
   static const type = 'Form';
+
   EnsembleForm({Key? key}) : super(key: key);
+  final GlobalKey<flutter.FormState> _formKey = GlobalKey<flutter.FormState>();
 
   final FormController _controller = FormController();
+
   @override
   FormController get controller => _controller;
 
@@ -41,7 +42,16 @@ class EnsembleForm extends StatefulWidget
 
   @override
   Map<String, Function> methods() {
-    return {};
+    return {
+      'submit': () {
+        if (_formKey.currentContext != null) {
+          FormHelper.submitForm(_formKey.currentContext!);
+        }
+      },
+      'validate': () {
+        return _formKey.currentState?.validate() ?? false;
+      }
+    };
   }
 
   @override
@@ -53,6 +63,8 @@ class EnsembleForm extends StatefulWidget
           handleLabelPosition(Utils.optionalString(value)),
       'labelOverflow': (value) =>
           _controller.labelOverflow = Utils.optionalString(value),
+      'labelStyle': (value) =>
+          _controller.labelStyle = Utils.getTextStyle(value),
       'enabled': (value) => _controller.enabled = Utils.optionalBool(value),
       'width': (value) => _controller.width = Utils.optionalInt(value),
       'height': (value) => _controller.height = Utils.optionalInt(value),
@@ -83,6 +95,8 @@ class EnsembleForm extends StatefulWidget
   // whether a child Form field should show or hide its label
   bool get shouldFormFieldShowLabel =>
       _controller.labelPosition == LabelPosition.top;
+
+  TextStyle? get labelStyle => _controller.labelStyle;
 }
 
 class FormController extends WidgetController {
@@ -97,6 +111,7 @@ class FormController extends WidgetController {
   // labelMaxWidth applicable only to labelPosition=start
   int? labelMaxWidth;
   int? maxWidth;
+  flutter.TextStyle? labelStyle;
 
   int? width;
   int? height;
@@ -105,9 +120,8 @@ class FormController extends WidgetController {
 
 class FormState extends WidgetState<EnsembleForm>
     with HasChildren<EnsembleForm> {
-  final _formKey = GlobalKey<flutter.FormState>();
   bool validate() {
-    return _formKey.currentState!.validate();
+    return widget?._formKey.currentState!.validate() ?? false;
   }
 
   @override
@@ -128,7 +142,7 @@ class FormState extends WidgetState<EnsembleForm>
         width: widget._controller.width?.toDouble(),
         height: widget._controller.height?.toDouble(),
         child: EnsembleFormScope(
-            formState: this, child: Form(key: _formKey, child: body)));
+            formState: this, child: Form(key: widget._formKey, child: body)));
 
     if (widget._controller.maxWidth != null) {
       return ConstrainedBox(
@@ -157,6 +171,7 @@ class FormState extends WidgetState<EnsembleForm>
                   border: InputBorder.none,
                   focusedBorder: InputBorder.none,
                   enabledBorder: InputBorder.none,
+                  labelStyle: widget._controller.labelStyle,
                   labelText: widget.shouldFormFieldShowLabel
                       ? (formItem.controller as WidgetController).label
                       : null),
@@ -184,7 +199,11 @@ class FormState extends WidgetState<EnsembleForm>
           (child.controller as WidgetController).visible &&
           (child.controller as WidgetController).label != null &&
           !inExcludedList(child.controller as WidgetController)) {
-        label = buildLabel((child.controller as WidgetController).label!,
+        label = buildLabel(
+            (child.controller as WidgetController).label!,
+            (child.controller is FormFieldController
+                ? (child.controller as FormFieldController).labelStyle
+                : null),
             (child.controller as WidgetController).labelHint);
         hasAtLeastOneLabel = true;
       } else {
@@ -224,12 +243,15 @@ class FormState extends WidgetState<EnsembleForm>
     return hasAtLeastOneLabel ? Column(children: rows) : buildColumn(formItems);
   }
 
-  Widget buildLabel(String label, String? labelHint) {
+  /// Note that this is only for side-by-side. Label display on top will have
+  /// its label at the widget level
+  Widget buildLabel(String label, TextStyle? labelStyle, String? labelHint) {
     util.TextOverflow textOverflow =
         util.TextOverflow.from(widget._controller.labelOverflow);
 
     Widget labelWidget = Text(
       Utils.translate(label, context),
+      style: labelStyle ?? widget.controller.labelStyle,
       overflow: textOverflow.overflow,
       maxLines: textOverflow.maxLine,
       softWrap: textOverflow.softWrap,

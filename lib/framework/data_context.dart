@@ -8,11 +8,13 @@ import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/action/invoke_api_action.dart';
 import 'package:ensemble/action/misc_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
+import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/all_countries.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/keychain_manager.dart';
+import 'package:ensemble/framework/app_info.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble/framework/stub/auth_context_manager.dart';
@@ -44,6 +46,7 @@ import 'package:web_socket_client/web_socket_client.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:yaml/yaml.dart';
 import 'package:collection/collection.dart';
+import 'package:jsparser/jsparser.dart';
 
 /// manages Data and Invokables within the current data scope.
 /// This class can evaluate expressions based on the data scope
@@ -59,6 +62,7 @@ class DataContext {
     _contextMap['env'] = EnvConfig();
     _contextMap['secrets'] = SecretsStore();
     _contextMap['ensemble'] = NativeInvokable(buildContext);
+    _contextMap['appInfo'] = AppInfo();
 
     // auth can be selectively turned on
     if (GetIt.instance.isRegistered<AuthContextManager>()) {
@@ -71,9 +75,17 @@ class DataContext {
     }
   }
 
-  DataContext clone({BuildContext? newBuildContext}) {
+  DataContext clone(
+      {BuildContext? newBuildContext, Map<String, dynamic>? initialMap}) {
+    Map<String, dynamic> map = _contextMap;
+    if (initialMap != null) {
+      map = {};
+      map.addAll(_contextMap);
+      //we add the initialMap after the parent conextMap so that it can override parent context
+      map.addAll(initialMap);
+    }
     return DataContext(
-        buildContext: newBuildContext ?? buildContext, initialMap: _contextMap);
+        buildContext: newBuildContext ?? buildContext, initialMap: map);
   }
 
   /// copy over the additionalContext,
@@ -120,6 +132,14 @@ class DataContext {
   /// return the data context value given the ID
   dynamic getContextById(String id) {
     return _contextMap[id];
+  }
+
+  DataContext evalImports(List<ParsedCode>? imports) {
+    if (imports == null) return this;
+    for (var import in imports) {
+      evalProgram(import.program, import.code);
+    }
+    return this;
   }
 
   /// evaluate single inline binding expression (getters only) e.g Hello ${myVar.name}.
@@ -209,7 +229,7 @@ class DataContext {
     return replaced.toString();
   }
 
-  /// evaluate Typescript code block
+  /// evaluate javscript code block
   dynamic evalCode(String codeBlock, SourceSpan definition) {
     // code can have //@code <expression>
     // We don't use that here but we need to strip
@@ -229,8 +249,32 @@ class DataContext {
       return null;
     }
     try {
+      Program p = JSInterpreter.parseCode(codeBlock);
+      return evalProgram(p, codeBlock, startLoc);
+    } on JSException catch (e) {
+      if (e.detailedError is EnsembleError) {
+        throw e.detailedError.toString();
+      }
+
+      /// not all JS errors are actual errors. API binding resolving to null
+      /// may be considered a normal condition as binding may not resolved
+      /// until later e.g myAPI.value.prettyDateTime()
+      FlutterError.reportError(FlutterErrorDetails(
+        exception: CodeError(e, startLoc),
+        library: 'Javascript',
+        context: ErrorSummary(
+            'Javascript error when running code block - $codeBlock'),
+      ));
+      return null;
+    }
+  }
+
+  /// evaluate javscript code block
+  dynamic evalProgram(Program program, String codeBlock,
+      [SourceLocation? startLoc]) {
+    try {
       _contextMap['getStringValue'] = Utils.optionalString;
-      return JSInterpreter.fromCode(codeBlock, _contextMap).evaluate();
+      return JSInterpreter(codeBlock, program, _contextMap).evaluate();
     } on JSException catch (e) {
       if (e.detailedError is EnsembleError) {
         throw e.detailedError.toString();
@@ -323,7 +367,7 @@ class NativeInvokable extends ActionInvokable {
     return {
       'storage': () => EnsembleStorage(buildContext),
       'user': () => UserInfo(),
-      'formatter': () => Formatter(buildContext),
+      'formatter': () => Formatter(),
       'utils': () => EnsembleUtils(),
     };
   }
@@ -337,6 +381,7 @@ class NativeInvokable extends ActionInvokable {
           .executeAction(buildContext, NavigateScreenAction.fromMap(inputs)),
       ActionType.navigateModalScreen.name: navigateToModalScreen,
       ActionType.showDialog.name: showDialog,
+      ActionType.closeAllDialogs.name: () => closeAllDialogs(),
       ActionType.invokeAPI.name: invokeAPI,
       ActionType.openUrl.name: openUrl,
       ActionType.stopTimer.name: stopTimer,
@@ -387,6 +432,11 @@ class NativeInvokable extends ActionInvokable {
         final evalMessage = scope?.dataContext.eval(message);
         messageSocket(socketName, evalMessage);
       },
+      ActionType.dispatchEvent.name: (inputs) =>
+          ScreenController().executeAction(
+            buildContext,
+            DispatchEventAction.from(inputs),
+          ),
     });
     return methods;
   }
@@ -458,9 +508,13 @@ class NativeInvokable extends ActionInvokable {
     // how do we handle onModalDismiss in Typescript?
   }
 
+  void closeAllDialogs() {
+    ScreenController().executeAction(buildContext, CloseAllDialogsAction());
+  }
+
   void showDialog(dynamic widget) {
     ScreenController()
-        .executeAction(buildContext, ShowDialogAction(widget: widget));
+        .executeAction(buildContext, ShowDialogAction(body: widget));
   }
 
   void openUrl([dynamic inputs]) {
@@ -637,9 +691,7 @@ class EnsembleUtils with Invokable {
 }
 
 class Formatter with Invokable {
-  final BuildContext _buildContext;
-
-  Formatter(this._buildContext);
+  Formatter();
 
   @override
   Map<String, Function> getters() {

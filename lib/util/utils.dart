@@ -503,6 +503,100 @@ class Utils {
     return textAlign;
   }
 
+  static Curve? getCurve(String? curveType) {
+    Curve? curve;
+    switch (curveType) {
+      case 'bounceIn':
+        curve = Curves.bounceIn;
+      case 'bounceInOut':
+        curve = Curves.bounceInOut;
+      case 'bounceOut':
+        curve = Curves.bounceOut;
+      case 'decelerate':
+        curve = Curves.decelerate;
+      case 'ease':
+        curve = Curves.ease;
+      case 'easeIn':
+        curve = Curves.easeIn;
+      case 'easeInBack':
+        curve = Curves.easeInBack;
+      case 'easeInCirc':
+        curve = Curves.easeInCirc;
+      case 'easeInCubic':
+        curve = Curves.easeInCubic;
+      case 'easeInExpo':
+        curve = Curves.easeInExpo;
+      case 'easeInOut':
+        curve = Curves.easeInOut;
+      case 'easeInOutBack':
+        curve = Curves.easeInOutBack;
+      case 'easeInOutCirc':
+        curve = Curves.easeInOutCirc;
+      case 'easeInOutCubic':
+        curve = Curves.easeInOutCubic;
+      case 'easeInOutCubicEmphasized':
+        curve = Curves.easeInOutCubicEmphasized;
+      case 'easeInOutExpo':
+        curve = Curves.easeInOutExpo;
+      case 'easeInOutQuad':
+        curve = Curves.easeInOutQuad;
+      case 'easeInOutQuart':
+        curve = Curves.easeInOutQuart;
+      case 'easeInOutQuint':
+        curve = Curves.easeInOutQuint;
+      case 'easeInOutSine':
+        curve = Curves.easeInOutSine;
+      case 'easeInQuad':
+        curve = Curves.easeInQuad;
+      case 'easeInQuart':
+        curve = Curves.easeInQuart;
+      case 'easeInQuint':
+        curve = Curves.easeInQuint;
+      case 'easeInSine':
+        curve = Curves.easeInSine;
+      case 'easeInToLinear':
+        curve = Curves.easeInToLinear;
+      case 'easeOut':
+        curve = Curves.easeOut;
+      case 'easeOutBack':
+        curve = Curves.easeOutBack;
+      case 'easeOutCirc':
+        curve = Curves.easeOutCirc;
+      case 'easeOutCubic':
+        curve = Curves.easeOutCubic;
+      case 'easeOutExpo':
+        curve = Curves.easeOutExpo;
+      case 'easeOutQuad':
+        curve = Curves.easeOutQuad;
+      case 'easeOutQuart':
+        curve = Curves.easeOutQuart;
+      case 'easeOutQuint':
+        curve = Curves.easeOutQuint;
+      case 'easeOutSine':
+        curve = Curves.easeOutSine;
+      case 'elasticIn':
+        curve = Curves.elasticIn;
+      case 'elasticInOut':
+        curve = Curves.elasticInOut;
+      case 'elasticOut':
+        curve = Curves.elasticOut;
+      case 'fastEaseInToSlowEaseOut':
+        curve = Curves.fastEaseInToSlowEaseOut;
+      case 'fastLinearToSlowEaseIn':
+        curve = Curves.fastLinearToSlowEaseIn;
+      case 'linear':
+        curve = Curves.linear;
+      case 'linearToEaseOut':
+        curve = Curves.linearToEaseOut;
+      case 'slowMiddle':
+        curve = Curves.slowMiddle;
+      default:
+        curve = null;
+    }
+
+    return curve;
+  }
+
   static TextDecoration? getDecoration(dynamic decoration) {
     if (decoration is String) {
       switch (decoration) {
@@ -621,15 +715,13 @@ class Utils {
     return int.tryParse(value);
   }
 
-  static final onlyExpression = RegExp(
-      r'''^\${([a-z_-\d\s.,:?!$@&|<>\+/*|%^="'\(\)\[\]]+)}$''',
-      caseSensitive: false);
-  static final containExpression = RegExp(
-      r'''\${([a-z_-\d\s.,:?!$@&|<>\+/*|%^="'\(\)\[\]]+)}''',
-      caseSensitive: false);
+  static final onlyExpression =
+      RegExp(r'''^\$\{([^}]+)\}$''', caseSensitive: false);
 
-  static final i18nExpression =
-      RegExp(r'r@[a-zA-Z0-9.-_]+', caseSensitive: false);
+  static final containExpression =
+      RegExp(r'''\$\{([^}{]+(?:\{[^}{]*\}[^}{]*)*)\}''', caseSensitive: false);
+
+  static final i18nExpression = RegExp(r'\br@([\w\.]+)', caseSensitive: false);
 
   // extract only the code after the comment and expression e.g //@code <expression>\n
   static final codeAfterComment =
@@ -647,29 +739,24 @@ class Utils {
     }
     context ??= ctx;
     String rtn = val;
+    String fallbackKey = '____FALLBACK_WHEN_NOT_FOUND____';
     if (val.trim().isNotEmpty && context != null) {
       rtn = val.replaceAllMapped(i18nExpression, (match) {
-        String str =
-            match.input.substring(match.start, match.end); //get rid of the @
-        String strToAppend = '';
-        if (str.length > 2) {
-          String _s = str.substring(2);
-          if (_s.endsWith(']')) {
-            _s = _s.substring(0, _s.length - 1);
-            strToAppend = ']';
-          }
-          try {
-            str = FlutterI18n.translate(context!, _s);
-          } catch (e) {
-            //if resource is not defined
-            //log it
-            debugPrint('unable to get translated string for the ' +
-                str +
-                '; exception=' +
-                e.toString());
-          }
+        String fullMatch =
+            match.group(0) ?? ''; // Get the full match including 'r@'
+        String _s = match.group(1) ?? ''; // The captured group, excluding 'r@'
+        try {
+          _s = FlutterI18n.translate(context!, _s, fallbackKey: fallbackKey);
+        } catch (e) {
+          debugPrint(
+              'unable to get translated string for the $_s; exception=$e');
+          return fullMatch; // Return the full match as-is in case of an exception
         }
-        return str + strToAppend;
+        if (_s == fallbackKey) {
+          debugPrint('unable to get translated string for the $_s');
+          return fullMatch; // Return the full match as-is in case of an exception
+        }
+        return _s;
       });
     }
     return rtn;
