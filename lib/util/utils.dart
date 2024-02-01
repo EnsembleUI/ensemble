@@ -503,6 +503,100 @@ class Utils {
     return textAlign;
   }
 
+  static Curve? getCurve(String? curveType) {
+    Curve? curve;
+    switch (curveType) {
+      case 'bounceIn':
+        curve = Curves.bounceIn;
+      case 'bounceInOut':
+        curve = Curves.bounceInOut;
+      case 'bounceOut':
+        curve = Curves.bounceOut;
+      case 'decelerate':
+        curve = Curves.decelerate;
+      case 'ease':
+        curve = Curves.ease;
+      case 'easeIn':
+        curve = Curves.easeIn;
+      case 'easeInBack':
+        curve = Curves.easeInBack;
+      case 'easeInCirc':
+        curve = Curves.easeInCirc;
+      case 'easeInCubic':
+        curve = Curves.easeInCubic;
+      case 'easeInExpo':
+        curve = Curves.easeInExpo;
+      case 'easeInOut':
+        curve = Curves.easeInOut;
+      case 'easeInOutBack':
+        curve = Curves.easeInOutBack;
+      case 'easeInOutCirc':
+        curve = Curves.easeInOutCirc;
+      case 'easeInOutCubic':
+        curve = Curves.easeInOutCubic;
+      case 'easeInOutCubicEmphasized':
+        curve = Curves.easeInOutCubicEmphasized;
+      case 'easeInOutExpo':
+        curve = Curves.easeInOutExpo;
+      case 'easeInOutQuad':
+        curve = Curves.easeInOutQuad;
+      case 'easeInOutQuart':
+        curve = Curves.easeInOutQuart;
+      case 'easeInOutQuint':
+        curve = Curves.easeInOutQuint;
+      case 'easeInOutSine':
+        curve = Curves.easeInOutSine;
+      case 'easeInQuad':
+        curve = Curves.easeInQuad;
+      case 'easeInQuart':
+        curve = Curves.easeInQuart;
+      case 'easeInQuint':
+        curve = Curves.easeInQuint;
+      case 'easeInSine':
+        curve = Curves.easeInSine;
+      case 'easeInToLinear':
+        curve = Curves.easeInToLinear;
+      case 'easeOut':
+        curve = Curves.easeOut;
+      case 'easeOutBack':
+        curve = Curves.easeOutBack;
+      case 'easeOutCirc':
+        curve = Curves.easeOutCirc;
+      case 'easeOutCubic':
+        curve = Curves.easeOutCubic;
+      case 'easeOutExpo':
+        curve = Curves.easeOutExpo;
+      case 'easeOutQuad':
+        curve = Curves.easeOutQuad;
+      case 'easeOutQuart':
+        curve = Curves.easeOutQuart;
+      case 'easeOutQuint':
+        curve = Curves.easeOutQuint;
+      case 'easeOutSine':
+        curve = Curves.easeOutSine;
+      case 'elasticIn':
+        curve = Curves.elasticIn;
+      case 'elasticInOut':
+        curve = Curves.elasticInOut;
+      case 'elasticOut':
+        curve = Curves.elasticOut;
+      case 'fastEaseInToSlowEaseOut':
+        curve = Curves.fastEaseInToSlowEaseOut;
+      case 'fastLinearToSlowEaseIn':
+        curve = Curves.fastLinearToSlowEaseIn;
+      case 'linear':
+        curve = Curves.linear;
+      case 'linearToEaseOut':
+        curve = Curves.linearToEaseOut;
+      case 'slowMiddle':
+        curve = Curves.slowMiddle;
+      default:
+        curve = null;
+    }
+
+    return curve;
+  }
+
   static TextDecoration? getDecoration(dynamic decoration) {
     if (decoration is String) {
       switch (decoration) {
