@@ -9,6 +9,7 @@ import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/stub/location_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page.dart';
@@ -29,12 +30,14 @@ import 'package:yaml/yaml.dart';
 ///  - ViewBuilder: helper class with building widgets
 ///  - PageBindingManager: managing event bindings at the page level
 class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
-  ScopeManager(this._dataContext, this.pageData, {this.ephemeral = false});
+  ScopeManager(this._dataContext, this.pageData,
+      {this.ephemeral = false, this.importedCode});
 
   bool ephemeral;
   final DataContext _dataContext;
   final PageData pageData;
   ScopeManager? _parent;
+  List<ParsedCode>? importedCode;
 
   // TODO: have proper root scope
   RootScope rootScope = Ensemble().rootScope();
@@ -150,11 +153,32 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
     }
   }
 
-  /// create a copy of the parent's data scope
+  /// create a copy of the parent's data scope. the initialMap is generally coming from the imports
   @override
-  ScopeManager createChildScope({bool ephemeral = false}) {
-    ScopeManager childScope =
-        ScopeManager(dataContext.clone(), pageData, ephemeral: ephemeral);
+  ScopeManager createChildScope(
+      {bool ephemeral = false, List<ParsedCode>? childImportedCode}) {
+    //if the same code has been imported before in the parent scope, we will not import and evaluate it
+    //again in the child scope. This ensures that the child scope won't override variables defined in the parent
+    //scope. This is how HTML works when js is included as <script> tags i.e. if the same js file is included
+    //multiple times on the page, the vars do not override each other. However, if the same var is defined in
+    //a different js file which is included after the first one, it's var will override the first one.
+    //we'll do the same here
+    List<ParsedCode> childImports = [];
+    Set<String> importedCodeNames =
+        (importedCode ?? []).map((e) => e.libraryName).toSet();
+
+    childImports.addAll(
+      (childImportedCode ?? []).where(
+        (code) => !importedCodeNames.contains(code.libraryName),
+      ),
+    );
+    //we evaluate only the new imports in the child widget so that the older context is not overridden
+    //however we accumulate parent imports and the child imports and pass that to child so that nested
+    //widgets further down the chain get all the accumulated imports and don't re-evaluate and override
+    List<ParsedCode> combined = [...?importedCode, ...childImports];
+    ScopeManager childScope = ScopeManager(
+        dataContext.clone().evalImports(childImports), pageData,
+        ephemeral: ephemeral, importedCode: combined);
     childScope._parent = this;
     return childScope;
   }
@@ -274,6 +298,19 @@ mixin ViewBuilder on IsScopeManager {
             }
           }
         }
+        if (model.events != null && model.actions != null) {
+          for (var event in model.events!.keys) {
+            if (model.actions![event] != null) {
+              // set the Custom Widget's inputs from parent scope
+              registerEventHandler(
+                  // widget inputs are set in the parent's scope
+                  scopeManager._parent!,
+                  payload.widget as Invokable,
+                  event,
+                  model.actions![event]!);
+            }
+          }
+        }
         return;
       }
 
@@ -379,6 +416,17 @@ mixin ViewBuilder on IsScopeManager {
 
     });
   }*/
+
+  //registers the action as the eventhandler. This is done (instead of registering the action as a property value)
+  // so that when the event is dispatched,
+  //the action tied to it could be executed in the right context
+  void registerEventHandler(ScopeManager scopeManager, Invokable widget,
+      String key, EnsembleAction action) {
+    //no need to evaluate any expressions or create bindings as event handlers will get evaluated when the
+    //event occurs and bindings are not relevant
+    EnsembleEventHandler handler = EnsembleEventHandler(scopeManager, action);
+    InvokableController.setProperty(widget, key, handler);
+  }
 
   /// evaluate the value and call widget's setProperty with this value.
   /// If the value is a valid binding, we'll register to listen for changes.

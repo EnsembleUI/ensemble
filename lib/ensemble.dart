@@ -7,6 +7,7 @@ import 'package:ensemble/ensemble_provider.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/app_info.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble/framework/storage_manager.dart';
@@ -16,6 +17,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/provider.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble_ts_interpreter/parser/newjs_interpreter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -23,7 +25,7 @@ import 'package:flutter_i18n/flutter_i18n_delegate.dart';
 import 'package:yaml/yaml.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'html_shim.dart' if (dart.library.html) 'dart:html' show window;
-
+import 'package:jsparser/jsparser.dart';
 import 'framework/theme/theme_loader.dart';
 import 'layout/ensemble_page_route.dart';
 
@@ -33,19 +35,31 @@ typedef CustomBuilder = Widget Function(
 /// Singleton Controller
 class Ensemble {
   static final Ensemble _instance = Ensemble._internal();
+
   Ensemble._internal();
+
   factory Ensemble() {
     return _instance;
   }
 
   Map<String, Function> externalMethods = {};
+
   void setExternalMethods(Map<String, Function> methods) =>
       externalMethods = methods;
 
   Map<String, CustomBuilder> externalScreenWidgets = {};
+
   void setExternalScreenWidgets(Map<String, CustomBuilder> widgets) {
     externalScreenWidgets = widgets;
   }
+
+  // TODO: combine push callback and regular callback
+  final Set<Function> _pushNotificationCallbacks = {};
+  void addPushNotificationCallback({required Function method}) {
+    _pushNotificationCallbacks.add(method);
+  }
+
+  Set<Function> getPushNotificationCallbacks() => _pushNotificationCallbacks;
 
   final Set<Function> _afterInitMethods = {};
   void addCallbackAfterInitialization({required Function method}) {
@@ -65,6 +79,7 @@ class Ensemble {
   /// The actual code block to initialize the managers is guaranteed to run
   /// at most once.
   Completer<void>? _completer;
+
   Future<void> initManagers() async {
     // if currently pending or completed, wait till it finishes and do nothing.
     if (_completer != null) {
@@ -77,6 +92,7 @@ class Ensemble {
       await StorageManager().init();
       await SecretsStore().initialize();
       Device().initDeviceInfo();
+      AppInfo().initPackageInfo(_config);
       _completer!.complete();
     } catch (error) {
       _completer!.completeError(error);
@@ -142,6 +158,8 @@ class Ensemble {
         services: Services.fromYaml(yamlMap['services']),
         signInServices: SignInServices.fromYaml(yamlMap['services']),
         envOverrides: envOverrides);
+
+    AppInfo().initPackageInfo(_config);
     return _config!;
   }
 
@@ -368,13 +386,66 @@ class EnsembleConfig {
   }
 
   /// retrieve the global widgets/codes/APIs
-  YamlMap? getResources() {
+  Map? getResources() {
     return appBundle?.resources;
+  }
+
+  /* example of code
+    ensemble.storage.jslibtest = {name: {first:'apiUtils.first', last: 'apiUtils.last'}};
+    var storageName = ensemble.storage.jslibtest;
+    var apiUtilsCount = 0;
+    function callAPI(name,inputs) {
+      apiUtilsCount++;
+      console.log('apiUtilsCount='+apiUtilsCount);
+      internalCallAPI(name,inputs);
+    }
+    function internalCallAPI(name,inputs) {
+      ensemble.invokeAPI(name,{});
+    }
+   */
+  List<ParsedCode>? processImports(YamlList? imports) {
+    if (imports == null) {
+      return null;
+    }
+    Map<String, ParsedCode>? importMap = {};
+    Map? globals = getResources();
+    globals?[ResourceArtifactEntry.Scripts.name]?.forEach((key, value) {
+      if (imports.contains(key)) {
+        if (value is String) {
+          try {
+            importMap[key] =
+                ParsedCode(key, value, JSInterpreter.parseCode(value));
+          } catch (e) {
+            throw 'Error Parsing Code. Invalid code definition for $key. Detailed Message: $e';
+          }
+        } else if (value is ParsedCode) {
+          //it's already parsed so need to parse again
+          importMap[key] = value;
+        } else {
+          throw 'Invalid code definition for $key';
+        }
+      }
+    });
+    List<ParsedCode>? importList = [];
+    for (var element in imports) {
+      if (importMap[element] != null) {
+        importList.add(importMap[element]!);
+      }
+    }
+    return importList;
   }
 
   FlutterI18nDelegate getI18NDelegate() {
     return definitionProvider.getI18NDelegate();
   }
+}
+
+class ParsedCode {
+  String libraryName;
+  String code;
+  Program program;
+
+  ParsedCode(this.libraryName, this.code, this.program);
 }
 
 class I18nProps {
@@ -390,12 +461,13 @@ class AppBundle {
   AppBundle({this.theme, this.resources});
 
   YamlMap? theme; // theme
-  YamlMap? resources; // globally available widgets/codes/APIs
+  Map? resources; // globally available widgets/codes/APIs
 }
 
 /// store the App's account info (e.g. access token for maps)
 class Account {
   Account({this.firebaseConfig, this.googleMapsAPIKey});
+
   FirebaseConfig? firebaseConfig;
 
   String? googleMapsAPIKey;
@@ -415,6 +487,7 @@ class Account {
 
 class FirebaseConfig {
   FirebaseConfig._({this.iOSConfig, this.androidConfig, this.webConfig});
+
   FirebaseOptions? iOSConfig;
   FirebaseOptions? androidConfig;
   FirebaseOptions? webConfig;
@@ -458,6 +531,7 @@ class FirebaseConfig {
 /// for social sign-in and API authorization via OAuth2
 class Services {
   Services._({this.oauthCredentials});
+
   Map<OAuthService, ServiceCredential>? oauthCredentials;
 
   factory Services.fromYaml(dynamic input) {
@@ -479,6 +553,7 @@ class Services {
 
 class ServiceCredential {
   ServiceCredential._({this.config, this.credentialMap});
+
   Map<String, dynamic>? config;
   Map<DevicePlatform, OAuthCredential>? credentialMap;
 

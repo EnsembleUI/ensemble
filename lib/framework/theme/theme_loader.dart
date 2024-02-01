@@ -12,9 +12,13 @@ mixin ThemeLoader {
   final Color _buttonBorderOutlineColor = Colors.black12;
 
   ThemeData getAppTheme(YamlMap? overrides) {
+    final seedColor = Utils.getColor(overrides?['Colors']?['seed']);
+
     ThemeData defaultTheme = ThemeData(
       useMaterial3: true,
-      colorScheme: defaultColorScheme,
+      colorScheme: seedColor == null
+          ? defaultColorScheme
+          : ColorScheme.fromSeed(seedColor: seedColor),
       scaffoldBackgroundColor:
           Utils.getColor(overrides?['Screen']?['backgroundColor']) ??
               DesignSystem.scaffoldBackgroundColor,
@@ -93,13 +97,6 @@ mixin ThemeLoader {
         ),
       ),
     );
-
-    final seedColor = Utils.getColor(overrides?['Colors']?['seed']);
-
-    if (seedColor != null) {
-      defaultTheme = defaultTheme.copyWith(
-          colorScheme: ColorScheme.fromSeed(seedColor: seedColor));
-    }
 
     final customColorSchema = defaultTheme.colorScheme.copyWith(
       primary: Utils.getColor(overrides?['Colors']?['primary']),

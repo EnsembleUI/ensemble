@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:ensemble/ensemble.dart';
@@ -76,10 +77,17 @@ class _ScreenState extends State<Screen> {
   Widget renderScreen(ScreenDefinition screenDefinition) {
     PageModel pageModel =
         screenDefinition.getModel(widget.screenPayload?.arguments);
-
+    //here add the js code
+    //widget.appProvider.definitionProvider.getAppBundle().
     // build the data context
-    DataContext dataContext = DataContext(
-        buildContext: context, initialMap: widget.screenPayload?.arguments);
+    Map<String, dynamic>? initialMap = widget.screenPayload?.arguments;
+    //we add the imported code context first before adding the arguments so in case of conflict, arguments win
+    // if ( pageModel.importedCodeContext != null ) {
+    //   initialMap = Map<String,dynamic>.of(pageModel.importedCodeContext!);
+    //   initialMap.addAll(widget.screenPayload?.arguments ?? {});
+    // }
+    DataContext dataContext =
+        DataContext(buildContext: context, initialMap: initialMap);
 
     // add all the API names to our context as Invokable, even though their result
     // will be null. This is so we can always reference it API responses come back
@@ -154,6 +162,20 @@ class _PageInitializerState extends State<PageInitializer>
     });
   }
 
+  Future<void> executePushNotificationCallbacks() async {
+    final callbacks = List.from(Ensemble().getPushNotificationCallbacks());
+
+    callbacks.asMap().forEach((index, function) async {
+      // Removing a method and getting the function with index to execute it
+      Ensemble().getPushNotificationCallbacks().remove(function);
+      try {
+        await Function.apply(function, null);
+      } catch (e) {
+        print('Failed to execute a method: $e');
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.pageModel is PageGroupModel && widget.pageModel.menu != null) {
@@ -177,9 +199,14 @@ class _PageInitializerState extends State<PageInitializer>
         }
       }
       return ensemble.Page(
-        dataContext: widget.dataContext,
-        pageModel: pageModel,
-      );
+          dataContext: widget.dataContext,
+          pageModel: pageModel,
+
+          // on terminated state, we want push notification's screen to load AFTER
+          // the landing screen has finished its onLoad, which may have logic to
+          // redirect to other pages. Without this, the notification's screen
+          // may load in between, causing the back button to malfunction
+          onRendered: () => executePushNotificationCallbacks());
     }
 
     throw LanguageError("Invalid Screen Definition");
@@ -188,6 +215,7 @@ class _PageInitializerState extends State<PageInitializer>
 
 class ScreenDefinition {
   ScreenDefinition(this._content);
+
   final YamlMap _content;
 
   PageModel getModel(Map<String, dynamic>? inputParams) {

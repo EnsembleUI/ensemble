@@ -16,13 +16,12 @@ import 'package:http/http.dart' as http;
 
 class InvokeAPIAction extends EnsembleAction {
   InvokeAPIAction(
-      {Invokable? initiator,
+      {super.initiator,
       required this.apiName,
       this.id,
-      Map<String, dynamic>? inputs,
+      super.inputs,
       this.onResponse,
-      this.onError})
-      : super(initiator: initiator, inputs: inputs);
+      this.onError});
 
   String? id;
   final String apiName;

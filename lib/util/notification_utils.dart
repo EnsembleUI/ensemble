@@ -22,6 +22,7 @@ abstract class NotificationUtilsBase {
     String? title,
     String? body, {
     String? imageUrl,
+    String? payload,
   });
 
   void handleRemoteNotification();

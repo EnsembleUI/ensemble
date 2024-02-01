@@ -145,17 +145,23 @@ class CountdownController extends WidgetController {
   CountdownAction? countdownAction;
 
   TextStyleComposite? _textStyle;
+
   TextStyleComposite get textStyle => _textStyle ??= TextStyleComposite(this);
+
   set textStyle(TextStyleComposite style) => _textStyle = style;
 
   TextStyleComposite? _labelStyle;
+
   TextStyleComposite get labelStyle => _labelStyle ??= TextStyleComposite(this);
+
   set labelStyle(TextStyleComposite style) => _labelStyle = style;
 }
 
 mixin CountdownAction on WidgetState<Countdown> {
   void startTimer();
+
   void stopTimer();
+
   void resetTimer();
 }
 
@@ -184,6 +190,12 @@ class CountdownState extends WidgetState<Countdown> with CountdownAction {
     super.didChangeDependencies();
 
     widget.controller.countdownAction = this;
+  }
+
+  @override
+  void dispose() {
+    _countdownTimer?.cancel();
+    super.dispose();
   }
 
   @override

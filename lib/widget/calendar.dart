@@ -11,7 +11,6 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
-import 'package:ensemble_ts_interpreter/extensions.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -58,10 +57,14 @@ class EnsembleCalendar extends StatefulWidget
   Map<String, Function> methods() {
     return {
       'selectCell': (value) => _selectCell(value),
+      'selectStartEndCell': (start, end) => _selectCell(start, end),
       'toggleSelectCell': (value) => _toggleSelectedCell(value),
       'unSelectCell': (value) => _unSelectCell(value),
+      'unSelectStartEndCell': (start, end) => _unSelectCell(start, end),
       'markCell': (singleDate) => _markCell(singleDate),
+      'markStartEndCell': (start, end) => _markCell(start, end),
       'unMarkCell': (singleDate) => _unMarkCell(singleDate),
+      'unMarkStartEndCell': (start, end) => _unMarkCell(start, end),
       'toggleMarkCell': (singleDate) => _toggleMarkCell(singleDate),
       'disableCell': (value) => _disableCell(value),
       'enableCell': (value) => _enableCell(value),
@@ -71,6 +74,8 @@ class EnsembleCalendar extends StatefulWidget
       'next': (value) => _controller.pageController?.nextPage(
           duration: const Duration(milliseconds: 300), curve: Curves.easeOut),
       'addRowSpan': (value) => setRowSpan(value),
+      'update': () => _controller.update(),
+      'clearRange': () => clearRange(),
     };
   }
 
@@ -115,6 +120,12 @@ class EnsembleCalendar extends StatefulWidget
     };
   }
 
+  void clearRange() {
+    _controller.rangeStart = null;
+    _controller.rangeEnd = null;
+    _controller.range = null;
+  }
+
   void setRowSpanItemTemplate(dynamic rowSpanData) {
     try {
       if (rowSpanData is! Map ||
@@ -154,6 +165,18 @@ class EnsembleCalendar extends StatefulWidget
           DateTime.utc(date.year, date.month, date.day, 0, 0, 0);
     }
     _controller.tooltipTextStyle = Utils.getTextStyle(value?['textStyle']);
+  }
+
+  List<DateTime>? _getDates(DateTime? start, DateTime? end) {
+    List<DateTime> dates = [];
+
+    if (start == null || end == null || start.isAfter(end)) return null;
+
+    for (int i = 0; i <= end.difference(start).inDays; i++) {
+      dates.add(start.add(Duration(days: i)));
+    }
+
+    return dates;
   }
 
   List<DateTime>? _getDate(dynamic value) {
@@ -248,8 +271,16 @@ class EnsembleCalendar extends StatefulWidget
     _controller.disableDays.value = updatedDisabledDays;
   }
 
-  void _selectCell(dynamic value) {
-    final rawDate = _getDate(value);
+  void _selectCell(dynamic value, [dynamic end]) {
+    List<DateTime>? rawDate;
+    if (end != null) {
+      final startDate = _getDate(value)?.firstOrNull;
+      final endDate = _getDate(end)?.firstOrNull;
+
+      rawDate = _getDates(startDate, endDate);
+    } else {
+      rawDate = _getDate(value);
+    }
     if (rawDate == null) return;
 
     HashSet<DateTime> updatedDisabledDays =
@@ -265,8 +296,16 @@ class EnsembleCalendar extends StatefulWidget
     _controller.selectedDays.value = updatedDisabledDays;
   }
 
-  void _unSelectCell(dynamic value) {
-    final rawDate = _getDate(value);
+  void _unSelectCell(dynamic value, [dynamic end]) {
+    List<DateTime>? rawDate;
+    if (end != null) {
+      final startDate = _getDate(value)?.firstOrNull;
+      final endDate = _getDate(end)?.firstOrNull;
+
+      rawDate = _getDates(startDate, endDate);
+    } else {
+      rawDate = _getDate(value);
+    }
     if (rawDate == null) return;
 
     HashSet<DateTime> updatedDisabledDays =
@@ -276,9 +315,6 @@ class EnsembleCalendar extends StatefulWidget
       updatedDisabledDays.remove(date);
     }
 
-    _controller.rangeStart = null;
-    _controller.rangeEnd = null;
-    _controller.range = null;
     _controller.selectedDays.value = updatedDisabledDays;
   }
 
@@ -303,8 +339,16 @@ class EnsembleCalendar extends StatefulWidget
     _controller.selectedDays.value = updatedDisabledDays;
   }
 
-  void _unMarkCell(dynamic value) {
-    final rawDate = _getDate(value);
+  void _unMarkCell(dynamic value, [dynamic end]) {
+    List<DateTime>? rawDate;
+    if (end != null) {
+      final startDate = _getDate(value)?.firstOrNull;
+      final endDate = _getDate(end)?.firstOrNull;
+
+      rawDate = _getDates(startDate, endDate);
+    } else {
+      rawDate = _getDate(value);
+    }
     if (rawDate == null) return;
 
     HashSet<DateTime> updatedMarkDays =
@@ -324,8 +368,16 @@ class EnsembleCalendar extends StatefulWidget
     _controller.selectedDays.value = updatedSelectedDays;
   }
 
-  void _markCell(dynamic value) {
-    final rawDate = _getDate(value);
+  void _markCell(dynamic value, [dynamic end]) {
+    List<DateTime>? rawDate;
+    if (end != null) {
+      final startDate = _getDate(value)?.firstOrNull;
+      final endDate = _getDate(end)?.firstOrNull;
+
+      rawDate = _getDates(startDate, endDate);
+    } else {
+      rawDate = _getDate(value);
+    }
     if (rawDate == null) return;
 
     HashSet<DateTime> updatedMarkDays =
@@ -536,6 +588,14 @@ class CalendarController extends WidgetController {
       hashCode: getHashCode,
     ),
   );
+  CalendarState? widgetState;
+  void _bind(CalendarState state) {
+    widgetState = state;
+  }
+
+  void update() {
+    widgetState?.listener();
+  }
 }
 
 int getHashCode(DateTime key) {
@@ -677,6 +737,8 @@ class CalendarState extends WidgetState<EnsembleCalendar>
 
   @override
   Widget buildWidget(BuildContext context) {
+    widget.controller._bind(this);
+
     return Column(
       children: [
         if (widget._controller.headerVisible)
@@ -838,6 +900,8 @@ class CalendarState extends WidgetState<EnsembleCalendar>
                 final data = {
                   'day': day.day,
                   'month': day.month,
+                  'date': day,
+                  'year': day.year,
                 };
 
                 Widget? cell;
@@ -922,8 +986,9 @@ class CalendarState extends WidgetState<EnsembleCalendar>
   Widget? widgetBuilder(
       BuildContext context, dynamic item, Map<String, dynamic> data) {
     ScopeManager? parentScope = DataScopeWidget.getScope(context);
-    parentScope?.dataContext.addDataContext(data);
-    return parentScope?.buildWidgetFromDefinition(item);
+    final childScope = parentScope?.createChildScope();
+    childScope?.dataContext.addDataContext(data);
+    return childScope?.buildWidgetWithScopeFromDefinition(item);
   }
 
   Widget? cellBuilder(

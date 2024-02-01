@@ -75,8 +75,8 @@ class HttpUtils {
       }
     }
 
-    if (api["uri"] == null) {
-      throw 'URI cannot be null';
+    if (_getUrl(api).isEmpty) {
+      throw RuntimeError('URL cannot be empty');
     }
 
     // query parameter
@@ -87,7 +87,7 @@ class HttpUtils {
       });
     }
 
-    String url = resolveUrl(eContext, api['uri'].toString().trim());
+    String url = resolveUrl(eContext, _getUrl(api));
     String method = api['method']?.toString().toUpperCase() ?? 'GET';
 
     // params should be appended to the URL for GET and DELETE
@@ -138,6 +138,9 @@ class HttpUtils {
     return Response(response, isOkay ? APIState.success : APIState.error,
         apiName: apiName);
   }
+
+  static String _getUrl(YamlMap apiDef) =>
+      (apiDef['url'] ?? apiDef['uri'] ?? '').toString().trim();
 
   /// evaluate the URL, which can be prefix with ${app.baseUrl}
   static String resolveUrl(DataContext dataContext, String rawUrl) {
@@ -207,7 +210,9 @@ enum APIState {
 
 extension APIStateX on APIState {
   bool get isLoading => this == APIState.loading;
+
   bool get isSuccess => this == APIState.success;
+
   bool get isError => this == APIState.error;
 }
 
@@ -241,5 +246,5 @@ class Response {
 
   bool get isOkay =>
       statusCode != null && statusCode! >= 200 && statusCode! <= 299;
-  // bool get isError => !isSuccess;
+// bool get isError => !isSuccess;
 }

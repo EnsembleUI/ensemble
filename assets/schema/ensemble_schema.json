@@ -212,8 +212,7 @@
       "additionalProperties": {
         "type": "object",
         "required": [
-          "uri",
-          "method"
+          "url"
         ],
         "properties": {
           "inputs": {
@@ -223,7 +222,7 @@
             },
             "description": "Define the list of input names that this API accepts"
           },
-          "uri": {
+          "url": {
             "type": "string",
             "description": "The URL for this API"
           },
@@ -1602,9 +1601,19 @@
               "description": "Styling the hint text. Default to theme's bodyMedium styling",
               "$ref": "#/$defs/TextStyle"
             },
+            "multiline": {
+              "type": "boolean",
+              "description": "Specify whether this Text Input should span multiple lines."
+            },
+            "minLines": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Specify the number of lines to visually start out with, and can expand to the specified 'maxLines'. (applicable only if 'multiline' is true, or if maxLines is greater han than 1)"
+            },
             "maxLines": {
               "type": "integer",
-              "description": "max number of lines allowed in a textinput"
+              "minimum": 1,
+              "description": "Specify the max number of lines this Text Input can visually expand to show. Multi-line will also be enabled if this number is greater than 1 and the 'multiline' property is not specified."
             }            
           }
         }
@@ -1857,26 +1866,62 @@
             "trailingText": {
               "type": "string"
             },
-            "styles": {
-              "type": "object",
-              "properties": {
-                "activeColor": {
-                  "$ref": "#/$defs/type-color",
-                  "description": "The active color of the Switch Widget."
-                },
-                "inactiveColor": {
-                  "$ref": "#/$defs/type-color",
-                  "description": "The inactive color of the Switch Widget."
-                },
-                "activeThumbColor": {
-                  "$ref": "#/$defs/type-color",
-                  "description": "The active thumb color of the Switch Widget."
-                },
-                "inactiveThumbColor": {
-                  "$ref": "#/$defs/type-color",
-                  "description": "The inactive thumb color of the Switch Widget."
+             "styles": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/switchStyles"
                 }
-              }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "TripleSwitch-payload": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/FormInput-payload"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "value": {
+              "type": "string",
+              "enum": [
+                "off",
+                "mixed",
+                "on"
+              ]
+            },
+            "leadingText": {
+              "type": "string"
+            },
+            "trailingText": {
+              "type": "string"
+            },
+            "height": {
+              "type": "integer",
+              "description": "The height of the switch"
+            },
+            "width": {
+              "type": "integer",
+              "description": "The width of the switch"
+            },
+            "styles": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/switchStyles"
+                },
+                {
+                  "properties": {
+                    "mixedColor": {
+                      "$ref": "#/$defs/type-color",
+                      "description": "The mixed state color of the Switch Widget."
+                    }
+                  }
+                }
+              ]
             }
           }
         }
@@ -5945,6 +5990,18 @@
           }
         },
         {
+          "title": "TripleSwitch",
+          "required": [
+            "TripleSwitch"
+          ],
+          "properties": {
+            "TripleSwitch": {
+              "$ref": "#/$defs/TripleSwitch-payload",
+              "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/"
+            }
+          }
+        },
+        {
           "title": "Slider",
           "required": [
             "Slider"
@@ -8097,6 +8154,27 @@
           "description": "Use the kochava.com for deeplink service"
         }
       ]
+    },
+    "switchStyles": {
+      "type": "object",
+      "properties": {
+        "activeColor": {
+          "$ref": "#/$defs/type-color",
+          "description": "The active color of the Switch Widget."
+        },
+        "inactiveColor": {
+          "$ref": "#/$defs/type-color",
+          "description": "The inactive color of the Switch Widget."
+        },
+        "activeThumbColor": {
+          "$ref": "#/$defs/type-color",
+          "description": "The active thumb color of the Switch Widget."
+        },
+        "inactiveThumbColor": {
+          "$ref": "#/$defs/type-color",
+          "description": "The inactive thumb color of the Switch Widget."
+        }
+      }
     }
   }
 }

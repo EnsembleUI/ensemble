@@ -8,6 +8,7 @@ import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/bottom_nav_page_view.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
+import 'package:ensemble/framework/view/footer.dart';
 import 'package:ensemble/framework/view/has_selectable_text.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
@@ -16,7 +17,6 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/unfocus.dart';
 import 'package:flutter/material.dart';
-
 import '../widget/custom_view.dart';
 
 /// The root View. Every Ensemble page will have at least one at its root
@@ -25,6 +25,7 @@ class Page extends StatefulWidget {
     super.key,
     required DataContext dataContext,
     required SinglePageModel pageModel,
+    required this.onRendered,
   })  : _initialDataContext = dataContext,
         _pageModel = pageModel;
 
@@ -35,6 +36,8 @@ class Page extends StatefulWidget {
   /// the page load. In these cases we do not have the context to travel
   /// to the DataScopeWidget. This should only be used for this purpose.
   ScopeManager? rootScopeManager;
+
+  final Function() onRendered;
 
   //final Widget bodyWidget;
   //final Menu? menu;
@@ -141,15 +144,17 @@ class PageState extends State<Page>
   void initState() {
     WidgetsBinding.instance.addObserver(this);
     _scopeManager = ScopeManager(
-      widget._initialDataContext.clone(newBuildContext: context),
-      PageData(
-        customViewDefinitions: widget._pageModel.customViewDefinitions,
-        apiMap: widget._pageModel.apiMap,
-        socketData: widget._pageModel.socketData,
-      ),
-    );
+        widget._initialDataContext
+            .clone(newBuildContext: context)
+            //evaluate imports if any in the context of this page
+            .evalImports(widget._pageModel.importedCode),
+        PageData(
+          customViewDefinitions: widget._pageModel.customViewDefinitions,
+          apiMap: widget._pageModel.apiMap,
+          socketData: widget._pageModel.socketData,
+        ),
+        importedCode: widget._pageModel.importedCode);
     widget.rootScopeManager = _scopeManager;
-
     // if we have a menu, figure out which child page to display initially
     if (widget._pageModel.menu != null &&
         widget._pageModel.menu!.menuItems.length > 1) {
@@ -169,9 +174,14 @@ class PageState extends State<Page>
       /// Probably not ideal as we want to fire this off asap. It's the API response that
       /// needs to make sure Invokable IDs are there (through currently our code can't
       /// separate them out yet
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScreenController().executeActionWithScope(
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await ScreenController().executeActionWithScope(
             context, _scopeManager, widget._pageModel.viewBehavior.onLoad!);
+
+        // after loading all the script, execute onRendered
+        // This is not exactly right but we don't have a way to know when the page
+        // has completely rendered. This will be sufficient for most use case
+        widget.onRendered();
       });
     }
 
@@ -421,13 +431,15 @@ class PageState extends State<Page>
 
             // appBar is inside CustomScrollView if defined
             appBar: fixedAppBar,
-            body: isScrollableView
-                ? buildScrollablePageContent(hasDrawer)
-                : buildFixedPageContent(fixedAppBar != null),
+            body: FooterLayout(
+              body: isScrollableView
+                  ? buildScrollablePageContent(hasDrawer)
+                  : buildFixedPageContent(fixedAppBar != null),
+              footer: footerWidget,
+            ),
             bottomNavigationBar: _bottomNavBar,
             drawer: _drawer,
             endDrawer: _endDrawer,
-            bottomSheet: footerWidget,
             floatingActionButton: closeModalButton,
             floatingActionButtonLocation:
                 widget._pageModel.pageStyles?['navigationIconPosition'] ==

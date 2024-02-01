@@ -277,53 +277,11 @@ class InputWrapper extends StatelessWidget {
         controller.floatLabel != null && controller.floatLabel == true;
 
     Widget rtn = controller.maxWidth == null
-        ? Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (shouldShowLabel(context) &&
-                  controller.label != null &&
-                  !isFloatLabel)
-                Container(
-                  margin: const EdgeInsets.only(bottom: 8.0),
-                  child: Text(
-                    controller.label!,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ),
-              widget,
-              if (shouldShowLabel(context) && controller.description != null)
-                Container(
-                  margin: const EdgeInsets.only(top: 12.0),
-                  child: Text(controller.description!),
-                ),
-            ],
-          )
+        ? buildTextWidget(context, isFloatLabel)
         : ConstrainedBox(
             constraints:
                 BoxConstraints(maxWidth: controller.maxWidth!.toDouble()),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (shouldShowLabel(context) &&
-                    controller.label != null &&
-                    !isFloatLabel)
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 8.0),
-                    child: Text(
-                      controller.label!,
-                      style: Theme.of(context).inputDecorationTheme.labelStyle,
-                    ),
-                  ),
-                widget,
-                if (shouldShowLabel(context) && controller.description != null)
-                  Container(
-                    margin: const EdgeInsets.only(top: 12.0),
-                    child: Text(controller.description!),
-                  ),
-              ],
-            ));
+            child: buildTextWidget(context, isFloatLabel));
 
     // we'd like to use LayoutBuilder to detect layout anomaly, but certain
     // containers don't like LayoutBuilder, since it doesn't support returning
@@ -341,12 +299,43 @@ class InputWrapper extends StatelessWidget {
     return rtn;
   }
 
-  bool shouldShowLabel(BuildContext context) {
+  Widget buildTextWidget(context, bool isFloatLabel) {
+    TextStyle? formLabelStyle;
+
+    // we need to look up to the form to know whether we should show
+    // the label here, as the Form may have already showed them (side by side)
+    bool shouldShowLabel = true;
     ensemble.FormState? formState = ensemble.EnsembleForm.of(context);
     if (formState != null) {
-      return formState.widget.shouldFormFieldShowLabel;
+      shouldShowLabel = formState.widget.shouldFormFieldShowLabel;
+
+      // also see if the parent Form defined a labelStyle we can fall back to
+      formLabelStyle = formState.widget.labelStyle;
     }
-    return true;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (shouldShowLabel && controller.label != null && !isFloatLabel)
+          Container(
+            margin: const EdgeInsets.only(bottom: 8.0),
+            child: Text(
+              controller.label!,
+              // use our labelStyle and fallback to the parent Form's labelStyle
+              style: controller.labelStyle ??
+                  formLabelStyle ??
+                  Theme.of(context).inputDecorationTheme.labelStyle,
+            ),
+          ),
+        widget,
+        if (shouldShowLabel && controller.description != null)
+          Container(
+            margin: const EdgeInsets.only(top: 12.0),
+            child: Text(controller.description!),
+          ),
+      ],
+    );
   }
 }
 

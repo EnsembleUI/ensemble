@@ -17,6 +17,7 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
   EnsembleDefinitionProvider(String appId, super.i18nProps) {
     appModel = AppModel(appId);
   }
+
   late final AppModel appModel;
   FlutterI18nDelegate? _i18nDelegate;
 
@@ -98,6 +99,7 @@ class AppModel {
 
   // the cache for ID -> screen content
   Map<String, dynamic> artifactCache = {};
+
   // these are mappings from home/screen name to IDs
   Map<String, String> screenNameMappings = {};
   String? homeMapping;
@@ -111,6 +113,7 @@ class AppModel {
   /// fetch async and cache our entire App's artifacts.
   /// Plus listen for changes and update the cache
   String? listenerError;
+
   void initListeners() {
     final app = Ensemble().ensembleFirebaseApp!;
     FirebaseFirestore db = FirebaseFirestore.instanceFor(app: app);
@@ -309,8 +312,9 @@ class AppModel {
         resources: await getCombinedResources());
   }
 
-  /// combine our App's resources with imported Apps' widgets (no code/APIs fornow)
-  Future<YamlMap?> getCombinedResources() async {
+  /// combine our App's resources with imported Apps' widgets (no APIs for now)
+  Future<Map?> getCombinedResources() async {
+    Map code = {};
     Map output = {};
     Map widgets = {};
 
@@ -319,6 +323,22 @@ class AppModel {
       if (key == ResourceArtifactEntry.Widgets.name) {
         if (value is YamlMap) {
           widgets.addAll(value.value);
+        }
+      } else if (key == ResourceArtifactEntry.Scripts.name) {
+        if (value is YamlMap) {
+          //code will be in the format -
+          // Scripts:
+          //  #apiUtils is the name of the code artifact
+          //  apiUtils: |-
+          //    function callAPI(name,payload) {
+          //      ensemble.invokeAPI(name, payload);
+          //    }
+          //  #common is the name of the code artifact
+          //  common: |-
+          //    function sayHello() {
+          //      return 'hello';
+          //    }
+          code.addAll(value.value);
         }
       } else {
         // copy over non-Widgets
@@ -354,9 +374,11 @@ class AppModel {
       }
     }
 
-    // finally add the widgets to the output
+    // finally add the widgets and code to the output
     output[ResourceArtifactEntry.Widgets.name] = widgets;
+    output[ResourceArtifactEntry.Scripts.name] = code;
     //log(">>" + output.toString());
-    return YamlMap.wrap(output);
+    //return YamlMap.wrap(output);
+    return output;
   }
 }
