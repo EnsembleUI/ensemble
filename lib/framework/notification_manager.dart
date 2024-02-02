@@ -35,8 +35,6 @@ class NotificationManager {
       );
       _initListener(
           backgroundNotificationHandler: backgroundNotificationHandler);
-      // local notification initialization
-      notificationUtils.initNotifications();
       _init = true;
     }
   }
