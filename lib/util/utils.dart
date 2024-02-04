@@ -317,6 +317,20 @@ class Utils {
     return map != null ? YamlMap.wrap(map) : null;
   }
 
+  static dynamic convertYamlToDart(dynamic yaml) {
+    if (yaml is YamlMap) {
+      // Convert the YamlMap to a Map<String, dynamic>
+      return yaml.map(
+          (key, value) => MapEntry(key.toString(), convertYamlToDart(value)));
+    } else if (yaml is YamlList) {
+      // Convert the YamlList to a List
+      return yaml.map((item) => convertYamlToDart(item)).toList();
+    } else {
+      // Return the value directly if it's not a YamlMap or YamlList
+      return yaml;
+    }
+  }
+
   //this is semantically different from the methods above as it is doesn't return null when value is not a map
   static dynamic maybeYamlMap(dynamic value) {
     if (value is Map) {
