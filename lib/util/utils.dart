@@ -317,6 +317,20 @@ class Utils {
     return map != null ? YamlMap.wrap(map) : null;
   }
 
+  static dynamic convertYamlToDart(dynamic yaml) {
+    if (yaml is YamlMap) {
+      // Convert the YamlMap to a Map<String, dynamic>
+      return yaml.map(
+          (key, value) => MapEntry(key.toString(), convertYamlToDart(value)));
+    } else if (yaml is YamlList) {
+      // Convert the YamlList to a List
+      return yaml.map((item) => convertYamlToDart(item)).toList();
+    } else {
+      // Return the value directly if it's not a YamlMap or YamlList
+      return yaml;
+    }
+  }
+
   //this is semantically different from the methods above as it is doesn't return null when value is not a map
   static dynamic maybeYamlMap(dynamic value) {
     if (value is Map) {
@@ -327,6 +341,24 @@ class Utils {
 
   static Color? getColor(dynamic value) {
     if (value is String) {
+      // Check for hexadecimal color pattern (with or without alpha). It begins with #
+      RegExp hexColor = RegExp(r'^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$');
+      if (hexColor.hasMatch(value)) {
+        // Remove the '#' if it exists
+        String hexValue = value.replaceFirst('#', '');
+        // Ensure full opacity if no alpha value is provided
+        if (hexValue.length == 6) {
+          hexValue = 'FF$hexValue'; // Add full opacity for RGB values
+        }
+        // Convert to an integer and create a Color object
+        try {
+          return Color(int.parse('0x$hexValue'));
+        } catch (e) {
+          // Handle or log the error
+          print('Failed to convert hex to Color: $e');
+          return null;
+        }
+      }
       switch (value) {
         case '.transparent':
         case 'transparent':
