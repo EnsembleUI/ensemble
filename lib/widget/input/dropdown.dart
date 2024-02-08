@@ -12,7 +12,6 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/input/form_helper.dart';
-import 'package:ensemble/widget/input/form_textfield.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -44,7 +43,7 @@ abstract class SelectOne extends StatefulWidget
   State<StatefulWidget> createState() => SelectOneState();
 
   @override
-  List<String> passthroughSetters() => ['itemTemplate'];
+  List<String> passthroughSetters() => ['itemTemplate', 'createNewItem'];
 
   @override
   Map<String, Function> getters() {
@@ -93,7 +92,17 @@ abstract class SelectOne extends StatefulWidget
       'dropdownMaxHeight': (value) =>
           _controller.dropdownMaxHeight = Utils.optionalInt(value, min: 0),
       'itemTemplate': (itemTemplate) => _setItemTemplate(itemTemplate),
+      'createNewItem': (value) => _setCreateNewItem(value),
     };
+  }
+
+  void _setCreateNewItem(dynamic input) {
+    if (input is! Map) return;
+    _controller.onCreateItemTap =
+        framework.EnsembleAction.fromYaml(input['onTap']);
+
+    _controller.createNewItemIcon = Utils.getIcon(input['icon']);
+    _controller.createNewItemLabel = Utils.optionalString(input['label']);
   }
 
   void _setItemTemplate(dynamic input) {
@@ -252,6 +261,9 @@ class SelectOneController extends FormFieldController {
 
   framework.EnsembleAction? clear;
   framework.EnsembleAction? onChange;
+  framework.EnsembleAction? onCreateItemTap;
+  IconModel? createNewItemIcon;
+  String? createNewItemLabel;
 }
 
 class SelectOneState extends FormFieldWidgetState<SelectOne>
@@ -368,8 +380,12 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
               widget._controller.dropdownOffsetX?.toDouble() ?? 0,
               widget._controller.dropdownOffsetY?.toDouble() ?? 0,
             )),
-        decoration:
-            inputDecoration.copyWith(contentPadding: adjustedContentPadding));
+        decoration: inputDecoration.copyWith(
+          contentPadding: adjustedContentPadding,
+          labelText: widget.controller.floatLabel == true
+              ? widget.controller.label
+              : null,
+        ));
   }
 
   /// build the auto-complete Dropdown
@@ -379,7 +395,8 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
               focusNode: focusNode,
               textEditingController: textEditingController,
               optionsBuilder: (TextEditingValue textEditingValue) =>
-                  buildAutoCompleteOptions(textEditingValue),
+                  buildAutoCompleteOptions(
+                      textEditingValue, textEditingController),
               displayStringForOption: (SelectOneItem option) =>
                   option.label ?? option.value,
               fieldViewBuilder: (BuildContext context,
@@ -393,7 +410,11 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                       color: Colors.black, fontWeight: FontWeight.w500),
                   controller: fieldTextEditingController,
                   focusNode: fieldFocusNode,
-                  decoration: inputDecoration,
+                  decoration: inputDecoration.copyWith(
+                    labelText: widget.controller.floatLabel == true
+                        ? widget.controller.label
+                        : null,
+                  ),
                   onChanged: (value) {
                     final oldValue = widget._controller.maybeValue;
                     if (oldValue != value) {
@@ -404,6 +425,13 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                 );
               },
               onSelected: (SelectOneItem selection) {
+                if (selection is CreateSelectOneItem) {
+                  if (widget.controller.onCreateItemTap == null) return;
+                  scopeManager?.dataContext
+                      .addDataContext({'newValue': selection.value});
+                  ScreenController().executeAction(
+                      context, widget.controller.onCreateItemTap!);
+                }
                 onSelectionChanged(selection.value);
                 if (kDebugMode) {
                   print('Selected: ${selection.value}');
@@ -429,20 +457,35 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
 
   // ---------------------- Search From the List if [AUTOCOMPLETE] is true ---------------------------------
   List<SelectOneItem> buildAutoCompleteOptions(
-      TextEditingValue textEditingValue) {
-    return widget._controller.items!
+    TextEditingValue textEditingValue,
+    TextEditingController textEditingController,
+  ) {
+    final items = widget._controller.items!
         .where(
           (SelectOneItem options) => options.label == null
               ? options.value
                   .toString()
                   .toLowerCase()
-                  .startsWith(textEditingValue.text.toLowerCase())
+                  .contains(textEditingValue.text.toLowerCase())
               : options.label
                   .toString()
                   .toLowerCase()
-                  .startsWith(textEditingValue.text.toLowerCase()),
+                  .contains(textEditingValue.text.toLowerCase()),
         )
         .toList();
+
+    if (widget.controller.onCreateItemTap == null ||
+        textEditingController.text.isEmpty) {
+      return items;
+    }
+
+    items.add(CreateSelectOneItem(
+      value: textEditingController.text.trim(),
+      icon: widget._controller.createNewItemIcon,
+      label: textEditingController.text.trim(),
+    ));
+
+    return items;
   }
 
 // ---------------------------------- Build Items ListTile if [AUTOCOMPLETE] is true ---------------------------------
@@ -495,16 +538,31 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                                               10.0
                                   : 10.0,
                             ),
-                            Text(
-                              Utils.optionalString(option.label) ??
-                                  option.value,
-                            ),
+                            option is CreateSelectOneItem
+                                ? Text(
+                                    replaceValue(
+                                      widget._controller.createNewItemLabel,
+                                      option.value,
+                                    ),
+                                  )
+                                : Text(
+                                    Utils.optionalString(option.label) ??
+                                        option.value,
+                                  ),
                           ],
                         ),
                       ));
                 },
               )),
         ));
+  }
+
+  String replaceValue(String? text, String newValue) {
+    const String pattern = "\${newValue}";
+    if (text != null && text.contains(pattern)) {
+      return text.replaceAll(pattern, newValue);
+    }
+    return newValue;
   }
 
 // ---------------------------------- Build Items ListTile if [AUTOCOMPLETE] is false ---------------------------------
@@ -518,6 +576,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
         item.isIcon == true
             ? results.add(
                 DropdownMenuItem(
+                  value: item.value,
                   child: Row(
                     children: [
                       item.icon != null
@@ -541,7 +600,6 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                       ),
                     ],
                   ),
-                  value: item.value,
                 ),
               )
             : results.add(
@@ -609,6 +667,15 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
       focusNode.unfocus();
     }
   }
+}
+
+class CreateSelectOneItem extends SelectOneItem {
+  CreateSelectOneItem({
+    required super.value,
+    super.icon,
+    super.isIcon,
+    super.label,
+  });
 }
 
 /// Data Object for a SelectOne's item
