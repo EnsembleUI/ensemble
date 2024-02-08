@@ -118,6 +118,12 @@ class GetPhoneContactPhotoAction extends EnsembleAction {
         updateContactData(scopeManager, context, id!);
       }
     }, (error) {
+      if (id != null) {
+        // Sending empty list for the Image fallback to be called
+        scopeManager.dataContext.addDataContextById(
+            id!, PhoneContactPhotoResponse(image: Uint8List.fromList([])));
+        updateContactData(scopeManager, context, id!);
+      }
       throw RuntimeError('Contact Photo Error: $error');
     });
 
