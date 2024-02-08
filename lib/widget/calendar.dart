@@ -116,7 +116,9 @@ class EnsembleCalendar extends StatefulWidget
       'header': (value) => _controller.header = value,
       'tootlip': (value) => setTooltip(value),
       'showTooltip': (value) =>
-          _controller.showTooltip = Utils.getBool(value, fallback: false)
+          _controller.showTooltip = Utils.getBool(value, fallback: false),
+      'showOutsideDate': (value) =>
+          _controller.showOutsideDate = Utils.getBool(value, fallback: false),
     };
   }
 
@@ -589,6 +591,8 @@ class CalendarController extends WidgetController {
     ),
   );
   CalendarState? widgetState;
+
+  bool showOutsideDate = false;
   void _bind(CalendarState state) {
     widgetState = state;
   }
@@ -803,6 +807,11 @@ class CalendarState extends WidgetState<EnsembleCalendar>
           showTooltip: widget._controller.showTooltip,
           topMargin: widget._controller.topMargin,
           calendarBuilders: CalendarBuilders(
+            outsideBuilder: widget._controller.showOutsideDate
+                ? null
+                : (context, day, focusedDay) {
+                    return const SizedBox.shrink();
+                  },
             overlayDefaultBuilder: (context, collapsedLength, children) {
               final collapsedSpans = widget._controller.rowSpans.value
                   .where((object) => children.contains(object.id))
