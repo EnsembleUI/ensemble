@@ -404,17 +404,25 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                   FocusNode fieldFocusNode,
                   VoidCallback onFieldSubmitted) {
                 return TextField(
-                    enabled: isEnabled(),
-                    showCursor: true,
-                    style: const TextStyle(
-                        color: Colors.black, fontWeight: FontWeight.w500),
-                    controller: fieldTextEditingController,
-                    focusNode: fieldFocusNode,
-                    decoration: inputDecoration.copyWith(
-                      labelText: widget.controller.floatLabel == true
-                          ? widget.controller.label
-                          : null,
-                    ));
+                  enabled: isEnabled(),
+                  showCursor: true,
+                  style: const TextStyle(
+                      color: Colors.black, fontWeight: FontWeight.w500),
+                  controller: fieldTextEditingController,
+                  focusNode: fieldFocusNode,
+                  decoration: inputDecoration.copyWith(
+                    labelText: widget.controller.floatLabel == true
+                        ? widget.controller.label
+                        : null,
+                  ),
+                  onChanged: (value) {
+                    final oldValue = widget._controller.maybeValue;
+                    if (oldValue != value) {
+                      widget._controller.maybeValue = value;
+                      widget.onSelectionChanged(value);
+                    }
+                  },
+                );
               },
               onSelected: (SelectOneItem selection) {
                 if (selection is CreateSelectOneItem) {

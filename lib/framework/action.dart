@@ -126,17 +126,26 @@ class NavigateScreenAction extends BaseNavigateScreenAction {
 }
 
 class NavigateViewGroupAction extends EnsembleAction {
-  NavigateViewGroupAction({dynamic viewIndex}) : _viewIndex = viewIndex;
+  NavigateViewGroupAction({dynamic viewIndex, this.payload})
+      : _viewIndex = viewIndex;
 
   final dynamic _viewIndex;
+  final Map<String, dynamic>? payload;
 
   factory NavigateViewGroupAction.from({Map? payload}) {
-    return NavigateViewGroupAction(viewIndex: payload?['viewIndex']);
+    return NavigateViewGroupAction(
+      viewIndex: payload?['viewIndex'],
+      payload:
+          Utils.getMap(payload?['payload']) ?? Utils.getMap(payload?['inputs']),
+    );
   }
 
   @override
   Future execute(BuildContext context, ScopeManager scopeManager,
       {DataContext? dataContext}) {
+    if (payload != null) {
+      scopeManager.dataContext.addDataContext(payload!);
+    }
     PageGroupWidget.getPageController(context)?.jumpToPage(_viewIndex);
     viewGroupNotifier.updatePage(_viewIndex);
     return Future.value(null);

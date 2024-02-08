@@ -110,12 +110,20 @@ class Carousel extends StatefulWidget
   @override
   Map<String, Function> methods() {
     return {
-      'next': () {
-        _controller._carouselController.nextPage();
+      'next': () => _controller._carouselController.nextPage(),
+      'previous': () => _controller._carouselController.previousPage(),
+      'startAutoplay': () => _controller._carouselController.startAutoPlay(),
+      'stopAutoplay': () => _controller._carouselController.stopAutoPlay(),
+      'animateToPage': (int page, [int? duration, String? curve]) {
+        _controller._carouselController.animateToPage(
+          page,
+          duration: Utils.getDurationMs(duration) ??
+              const Duration(milliseconds: 300),
+          curve: Utils.getCurve(curve) ?? Curves.linear,
+        );
       },
-      'previous': () {
-        _controller._carouselController.previousPage();
-      }
+      'jumpToPage': (int page) =>
+          _controller._carouselController.jumpToPage(page)
     };
   }
 
