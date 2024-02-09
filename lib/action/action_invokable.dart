@@ -21,6 +21,7 @@ abstract class ActionInvokable with Invokable {
       ActionType.copyToClipboard,
       ActionType.getDeviceToken,
       ActionType.getPhoneContacts,
+      ActionType.getPhoneContactPhoto,
       ActionType.showBottomModal,
       ActionType.dismissBottomModal,
       ActionType.showDialog,
