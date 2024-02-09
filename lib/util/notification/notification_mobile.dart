@@ -44,7 +44,7 @@ class NotificationUtilsMobile implements NotificationUtilsBase {
           final message = RemoteMessage.fromMap(jsonDecode(details.payload!));
           NotificationManager().handleNotification(message);
         } on Exception catch (_) {
-          LanguageError("Failed to handle foreground notification");
+          debugPrint("Failed to handle foreground notification");
         }
       },
     );
