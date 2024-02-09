@@ -141,6 +141,7 @@ class EnsembleCalendar extends StatefulWidget
         data: rowSpanData['data'],
         name: rowSpanData['name'],
         spanTemplate: SpanTemplate(
+          rowId: rowSpanData['span']['rowId'],
           start: rowSpanData['span']['start'],
           end: rowSpanData['span']['end'],
           widget: rowSpanData['span']['widget'],
@@ -479,6 +480,7 @@ class RowSpanConfig {
   dynamic widget;
   Map? inputs;
   String id;
+  int? rowId;
 
   RowSpanConfig({
     this.startDay,
@@ -487,6 +489,7 @@ class RowSpanConfig {
     this.inputs,
     required this.id,
     this.scope,
+    this.rowId,
   });
 
   bool get isValid => startDay != null && endDay != null;
@@ -497,6 +500,7 @@ class RowSpanConfig {
       'end': endDay,
       'widget': widget,
       'inputs': inputs,
+      'rowId': rowId,
     };
   }
 }
@@ -656,6 +660,8 @@ class CalendarState extends WidgetState<EnsembleCalendar>
         rowSpanConfigs.add(
           RowSpanConfig(
               id: Utils.generateRandomId(6),
+              rowId: Utils.optionalInt(
+                  dataScope.dataContext.eval(itemTemplate.spanTemplate.rowId)),
               startDay: Utils.getDate(
                   dataScope.dataContext.eval(itemTemplate.spanTemplate.start)),
               endDay: Utils.getDate(
@@ -974,6 +980,7 @@ class CalendarState extends WidgetState<EnsembleCalendar>
           start: span.startDay!,
           end: span.endDay!,
           id: span.id,
+          rowId: span.rowId,
         ));
       }
     }
@@ -1102,6 +1109,8 @@ class SpanTemplate {
   final String start;
   final String end;
   final dynamic widget;
+  final String? rowId;
 
-  SpanTemplate({required this.start, required this.end, this.widget});
+  SpanTemplate(
+      {required this.start, required this.end, this.widget, this.rowId});
 }
