@@ -1109,7 +1109,7 @@ class SpanTemplate {
   final String start;
   final String end;
   final dynamic widget;
-  final String? rowId;
+  final dynamic rowId;
 
   SpanTemplate(
       {required this.start, required this.end, this.widget, this.rowId});
