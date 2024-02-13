@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/notification_manager.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -38,8 +39,13 @@ class NotificationUtilsMobile implements NotificationUtilsBase {
     await localNotificationsPlugin.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: (details) {
-        final message = RemoteMessage.fromMap(jsonDecode(details.payload!));
-        NotificationManager().handleNotification(message);
+        if (details.payload == null) return;
+        try {
+          final message = RemoteMessage.fromMap(jsonDecode(details.payload!));
+          NotificationManager().handleNotification(message);
+        } on Exception catch (_) {
+          debugPrint("Failed to handle foreground notification");
+        }
       },
     );
 
