@@ -59,6 +59,8 @@ abstract class BaseTabBar extends StatefulWidget
       'id': (value) => _controller.id = Utils.optionalString(value),
       'tabPosition': (position) =>
           _controller.tabPosition = Utils.optionalString(position),
+      'tabAlignment': (alignment) =>
+          _controller.tabAlignment = Utils.optionalString(alignment),
       'indicatorSize': (type) =>
           _controller.indicatorSize = Utils.optionalString(type),
       'margin': (margin) => _controller.margin = Utils.optionalInsets(margin),
@@ -95,6 +97,7 @@ abstract class BaseTabBar extends StatefulWidget
 
 class TabBarController extends BoxController {
   String? tabPosition;
+  String? tabAlignment;
   String? indicatorSize;
   String? tabType;
   EdgeInsets? tabPadding;
@@ -285,6 +288,9 @@ class TabBarState extends WidgetState<BaseTabBar>
 
     final indicatorSize =
         TabBarIndicatorSize.values.from(widget._controller.indicatorSize);
+    final tabAlignment =
+        TabAlignment.values.from(widget._controller.tabAlignment) ??
+            TabAlignment.start;
 
     Widget tabBar = TabBar(
       labelPadding: labelPadding,
@@ -302,6 +308,7 @@ class TabBarState extends WidgetState<BaseTabBar>
             ),
       controller: _tabController,
       isScrollable: labelPosition,
+      tabAlignment: tabAlignment,
       indicatorSize: indicatorSize,
       labelStyle: tabStyle,
       labelColor: widget._controller.activeTabColor ??
