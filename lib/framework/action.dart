@@ -126,17 +126,26 @@ class NavigateScreenAction extends BaseNavigateScreenAction {
 }
 
 class NavigateViewGroupAction extends EnsembleAction {
-  NavigateViewGroupAction({dynamic viewIndex}) : _viewIndex = viewIndex;
+  NavigateViewGroupAction({dynamic viewIndex, this.payload})
+      : _viewIndex = viewIndex;
 
   final dynamic _viewIndex;
+  final Map<String, dynamic>? payload;
 
   factory NavigateViewGroupAction.from({Map? payload}) {
-    return NavigateViewGroupAction(viewIndex: payload?['viewIndex']);
+    return NavigateViewGroupAction(
+      viewIndex: payload?['viewIndex'],
+      payload:
+          Utils.getMap(payload?['payload']) ?? Utils.getMap(payload?['inputs']),
+    );
   }
 
   @override
   Future execute(BuildContext context, ScopeManager scopeManager,
       {DataContext? dataContext}) {
+    if (payload != null) {
+      scopeManager.dataContext.addDataContext(payload!);
+    }
     PageGroupWidget.getPageController(context)?.jumpToPage(_viewIndex);
     viewGroupNotifier.updatePage(_viewIndex);
     return Future.value(null);
@@ -410,8 +419,13 @@ class DispatchEventAction extends EnsembleAction {
     EnsembleEventHandler? handler =
         scopeManager.dataContext.getContextById(event.name!);
     if (handler != null) {
-      return handler.handleEvent(event, context);
-      //return ScreenController().executeAction(context, action!, event: event);
+      Map? evaluatedData = event.data?.map(
+          (key, value) => MapEntry(key, scopeManager.dataContext.eval(value)));
+
+      return handler.handleEvent(
+          EnsembleEvent(event.source,
+              data: evaluatedData, error: event.error, name: event.name),
+          context);
     }
     return Future.value(null);
   }
