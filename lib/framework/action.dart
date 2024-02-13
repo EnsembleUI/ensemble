@@ -419,8 +419,13 @@ class DispatchEventAction extends EnsembleAction {
     EnsembleEventHandler? handler =
         scopeManager.dataContext.getContextById(event.name!);
     if (handler != null) {
-      return handler.handleEvent(event, context);
-      //return ScreenController().executeAction(context, action!, event: event);
+      Map? evaluatedData = event.data?.map(
+          (key, value) => MapEntry(key, scopeManager.dataContext.eval(value)));
+
+      return handler.handleEvent(
+          EnsembleEvent(event.source,
+              data: evaluatedData, error: event.error, name: event.name),
+          context);
     }
     return Future.value(null);
   }
