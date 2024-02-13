@@ -98,8 +98,7 @@ class EnsembleCalendar extends StatefulWidget
       'firstDay': (value) => _controller.firstDay = Utils.getDate(value),
       'lastDay': (value) => _controller.lastDay = Utils.getDate(value),
       'rowSpans': (value) {
-        _controller.rowSpanLimit =
-            Utils.getInt(value['spanPerRow'], fallback: -1);
+        _controller.rowSpanLimit = value['spanPerRow'];
         _controller.overlapOverflowBuilder = value['overflowWidget'];
         _controller.topMargin = Utils.getInt(value['topMargin'], fallback: 0);
 
@@ -549,7 +548,7 @@ class CalendarController extends WidgetController {
   Cell rangeEndCell = Cell();
   Cell rangeBetweenCell = Cell();
 
-  int rowSpanLimit = -1;
+  dynamic rowSpanLimit;
   int topMargin = 0;
   dynamic overlapOverflowBuilder;
 
@@ -794,7 +793,9 @@ class CalendarState extends WidgetState<EnsembleCalendar>
               widget._controller.markedDays.value.contains(day.toDate()),
           enabledDayPredicate: (day) =>
               !(widget._controller.disableDays.value.contains(day.toDate())),
-          rowSpanLimit: widget._controller.rowSpanLimit,
+          rowSpanLimit:
+              scopeManager?.dataContext.eval(widget._controller.rowSpanLimit) ??
+                  -1,
           rangeStartDay: widget._controller.rangeStart,
           rangeEndDay: widget._controller.rangeEnd,
           calendarFormat: _calendarFormat,
