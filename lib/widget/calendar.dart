@@ -35,6 +35,9 @@ class EnsembleCalendar extends StatefulWidget
   State<StatefulWidget> createState() => CalendarState();
 
   @override
+  List<String> passthroughSetters() => ['rowSpans'];
+
+  @override
   Map<String, Function> getters() {
     return {
       'selectedCell': () => _controller.selectedDays.value
