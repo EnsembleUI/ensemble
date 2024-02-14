@@ -18,6 +18,7 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/unfocus.dart';
 import 'package:flutter/material.dart';
+import 'package:pointer_interceptor/pointer_interceptor.dart';
 import '../widget/custom_view.dart';
 
 /// The root View. Every Ensemble page will have at least one at its root
@@ -474,6 +475,14 @@ class PageState extends State<Page>
               decoration: BoxDecoration(gradient: backgroundGradient),
               child: rtn));
     }
+
+    // in Web, capture the pointer if overlay on htmlelementview like Maps
+    if (Utils.optionalBool(
+            widget._pageModel.pageStyles?['captureWebPointer']) ==
+        true) {
+      rtn = PointerInterceptor(child: rtn);
+    }
+
     return rtn;
   }
 
