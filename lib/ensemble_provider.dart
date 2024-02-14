@@ -60,8 +60,9 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
     }
 
     if (content == null) {
-      throw LanguageError(
-          "Invalid screen content: ${screenId ?? screenName ?? 'Home'}");
+      throw LanguageError('invalid-content',
+          detailError:
+              "Invalid screen content: ${screenId ?? screenName ?? 'Home'}");
     }
     return ScreenDefinition(content);
   }
