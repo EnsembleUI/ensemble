@@ -396,6 +396,7 @@ class ExecuteActionGroupAction extends EnsembleAction {
       throw LanguageError(
           "${ActionType.executeActionGroup.name} requires a 'actions' list.");
     }
+
     if (payload['actions'] is! List<dynamic>) {
       throw LanguageError(
           "${ActionType.executeActionGroup.name} requires a 'actions' list.");
