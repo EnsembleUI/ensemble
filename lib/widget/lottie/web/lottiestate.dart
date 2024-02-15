@@ -219,6 +219,9 @@ class LottieState extends WidgetState<EnsembleLottie>
           }
         },
       );
+
+      iFrame.style.pointerEvents = "none";
+
       // Registering the iframe in the flutter widget tree
       ui.platformViewRegistry.registerViewFactory(
         divId,
