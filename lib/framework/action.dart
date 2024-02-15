@@ -481,29 +481,34 @@ class ExecuteConditionalActionAction extends EnsembleAction {
   @override
   Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) async {
     for (var condition in conditions) {
+      String? conditionType;
+      var result = true; // Default to true for 'else'
+
       if (condition.containsKey('if')) {
-        var result = scopeManager.dataContext.eval(condition['if']);
-        if (result == true) {
-          return _execute({
-            condition.keys.last: condition.values.last,
-          },context,scopeManager);
-        }
+        conditionType = 'if';
+        result = scopeManager.dataContext.eval(condition['if']);
       } else if (condition.containsKey('elseif')) {
-        var result = scopeManager.dataContext.eval(condition['elseif']);
-        if (result == true) {
-          return _execute({
-            condition.keys.last: condition.values.last,
-          },context,scopeManager);
-        }
+        conditionType = 'elseif';
+        result = scopeManager.dataContext.eval(condition['elseif']);
       } else if (condition.containsKey('else')) {
-        return _execute({
-          condition.keys.last: condition.values.last,
-        },context,scopeManager);
+        conditionType = 'else';
+      } else {
+        throw LanguageError(
+            "${ActionType.executeConditionalAction.name} requires a valid condition.");
+      }
+
+      if (result) {
+        Map? actionMap = condition['action'];
+        if (actionMap == null) {
+          throw LanguageError(
+              "${ActionType.executeConditionalAction.name} $conditionType condition requires a valid action.");
+        }
+        return _execute(actionMap, context, scopeManager);
       }
     }
-    return Future.value(null);
+    return Future.value(
+        null); // No conditions met or all conditions evaluated to false.
   }
-
 }
 //used to dispatch events. Used within custom widgets as custom widgets expose events to the callers
 class DispatchEventAction extends EnsembleAction {
