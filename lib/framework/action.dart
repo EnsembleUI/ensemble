@@ -388,10 +388,12 @@ class ExecuteCodeAction extends EnsembleAction {
             ViewUtil.optDefinition((payload as YamlMap).nodes['body']));
   }
 }
+
 class ExecuteActionGroupAction extends EnsembleAction {
   ExecuteActionGroupAction({super.initiator, required this.actions});
   List<EnsembleAction> actions;
-  factory ExecuteActionGroupAction.fromYaml({Invokable? initiator, Map? payload}) {
+  factory ExecuteActionGroupAction.fromYaml(
+      {Invokable? initiator, Map? payload}) {
     if (payload == null || payload['actions'] == null) {
       throw LanguageError(
           "${ActionType.executeActionGroup.name} requires a 'actions' list.");
@@ -408,9 +410,9 @@ class ExecuteActionGroupAction extends EnsembleAction {
     }
     List<EnsembleAction> ensembleActions = [];
     for (var action in actions) {
-      EnsembleAction? ensembleAction = EnsembleAction.fromYaml(action,
-          initiator: initiator);
-      if ( ensembleAction == null ) {
+      EnsembleAction? ensembleAction =
+          EnsembleAction.fromYaml(action, initiator: initiator);
+      if (ensembleAction == null) {
         throw LanguageError(
             "$action under ${ActionType.executeActionGroup.name} is not a valid action");
       }
@@ -419,8 +421,7 @@ class ExecuteActionGroupAction extends EnsembleAction {
       }
     }
     return ExecuteActionGroupAction(
-        initiator: initiator,
-        actions: ensembleActions);
+        initiator: initiator, actions: ensembleActions);
   }
   factory ExecuteActionGroupAction.from(dynamic payload) =>
       ExecuteActionGroupAction.fromYaml(payload: Utils.getYamlMap(payload));
@@ -428,58 +429,65 @@ class ExecuteActionGroupAction extends EnsembleAction {
   Future<void> execute(BuildContext context, ScopeManager scopeManager) {
     // Map each action into a Future by calling execute on it, starting all actions in parallel
     var actionFutures = actions.map((action) {
-      return ScreenController().executeActionWithScope(context, scopeManager, action);
+      return ScreenController()
+          .executeActionWithScope(context, scopeManager, action);
     });
 
     // Wait for all action Futures to complete and return the resulting Future
     return Future.wait(actionFutures);
   }
-
 }
+
 class ExecuteConditionalActionAction extends EnsembleAction {
   List<dynamic> conditions;
   ExecuteConditionalActionAction({super.initiator, required this.conditions});
-  factory ExecuteConditionalActionAction.fromYaml({Invokable? initiator, Map? payload}) {
+  factory ExecuteConditionalActionAction.fromYaml(
+      {Invokable? initiator, Map? payload}) {
     if (payload == null || payload['conditions'] == null) {
       throw LanguageError(
           "${ActionType.executeConditionalAction.name} requires a 'conditions' list.");
     }
-    if ( payload['conditions'] is! List<dynamic> ) {
+    if (payload['conditions'] is! List<dynamic>) {
       throw LanguageError(
           "${ActionType.executeConditionalAction.name} requires a 'conditions' list.");
     }
     List<dynamic> conditions = payload['conditions'] as List<dynamic>;
-    if ( conditions == null || conditions.isEmpty ) {
+    if (conditions == null || conditions.isEmpty) {
       throw LanguageError(
           "${ActionType.executeConditionalAction.name} requires a 'conditions' list.");
     }
-    if ( conditions.first.containsKey('if') == false ) {
+    if (conditions.first.containsKey('if') == false) {
       throw LanguageError(
           "${ActionType.executeConditionalAction.name} requires a 'conditions' list with the first condition being an 'if' condition.");
     }
     // Iterate over the conditions list starting from the second element
     for (int i = 1; i < conditions.length; i++) {
       if (conditions[i] is Map && conditions[i].containsKey('if')) {
-        throw LanguageError("${ActionType.executeConditionalAction.name} requires that only the first condition contains an 'if' key. Found another 'if' at position $i.");
+        throw LanguageError(
+            "${ActionType.executeConditionalAction.name} requires that only the first condition contains an 'if' key. Found another 'if' at position $i.");
       }
     }
     return ExecuteConditionalActionAction(
-        initiator: initiator,
-        conditions: conditions);
+        initiator: initiator, conditions: conditions);
   }
   factory ExecuteConditionalActionAction.from(dynamic payload) =>
-      ExecuteConditionalActionAction.fromYaml(payload: Utils.getYamlMap(payload));
+      ExecuteConditionalActionAction.fromYaml(
+          payload: Utils.getYamlMap(payload));
 
-  Future<dynamic> _execute(Map actionMap,BuildContext context, ScopeManager scopeManager) async {
+  Future<dynamic> _execute(
+      Map actionMap, BuildContext context, ScopeManager scopeManager) async {
     EnsembleAction? action = EnsembleAction.fromYaml(YamlMap.wrap(actionMap));
-    if ( action == null ) {
+    if (action == null) {
       throw LanguageError(
           "${ActionType.executeConditionalAction.name} requires a valid action.");
     }
-    return ScreenController().executeActionWithScope(context, scopeManager, action);
+    return ScreenController()
+        .executeActionWithScope(context, scopeManager, action);
   }
+
   @override
-  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) async {
+  Future<dynamic> execute(
+      BuildContext context, ScopeManager scopeManager) async {
     for (var condition in conditions) {
       String? conditionType;
       var result = true; // Default to true for 'else'
@@ -510,6 +518,7 @@ class ExecuteConditionalActionAction extends EnsembleAction {
         null); // No conditions met or all conditions evaluated to false.
   }
 }
+
 //used to dispatch events. Used within custom widgets as custom widgets expose events to the callers
 class DispatchEventAction extends EnsembleAction {
   DispatchEventAction({super.initiator, required this.event, this.onComplete});
@@ -1262,10 +1271,12 @@ abstract class EnsembleAction {
     } else if (actionType == ActionType.dispatchEvent) {
       return DispatchEventAction.fromYaml(
           initiator: initiator, payload: payload);
-    } else if ( actionType == ActionType.executeConditionalAction ) {
-      return ExecuteConditionalActionAction.fromYaml(initiator: initiator, payload: payload);
-    } else if ( actionType == ActionType.executeActionGroup ) {
-      return ExecuteActionGroupAction.fromYaml(initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.executeConditionalAction) {
+      return ExecuteConditionalActionAction.fromYaml(
+          initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.executeActionGroup) {
+      return ExecuteActionGroupAction.fromYaml(
+          initiator: initiator, payload: payload);
     }
 
     throw LanguageError("Invalid action.",
