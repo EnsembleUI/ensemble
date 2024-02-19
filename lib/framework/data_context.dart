@@ -52,6 +52,7 @@ import 'package:jsparser/jsparser.dart';
 /// This class can evaluate expressions based on the data scope
 class DataContext {
   final Map<String, dynamic> _contextMap = {};
+  get contextMap => _contextMap;
   final BuildContext buildContext;
 
   DataContext({required this.buildContext, Map<String, dynamic>? initialMap}) {
@@ -436,6 +437,16 @@ class NativeInvokable extends ActionInvokable {
           ScreenController().executeAction(
             buildContext,
             DispatchEventAction.from(inputs),
+          ),
+      ActionType.executeConditionalAction.name: (inputs) =>
+          ScreenController().executeAction(
+            buildContext,
+            ExecuteConditionalActionAction.from(inputs),
+          ),
+      ActionType.executeActionGroup.name: (inputs) =>
+          ScreenController().executeAction(
+            buildContext,
+            ExecuteActionGroupAction.from(inputs),
           ),
     });
     return methods;
