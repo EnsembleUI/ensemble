@@ -140,8 +140,7 @@ abstract class BaseTextInput extends StatefulWidget
           _controller.enableClearText = Utils.optionalBool(value),
       'obscureToggle': (value) =>
           _controller.obscureToggle = Utils.optionalBool(value),
-      'readOnly': (value) =>
-          _controller.readOnly = Utils.getBool(value, fallback: false),
+      'readOnly': (value) => _controller.readOnly = Utils.optionalBool(value),
       'selectable': (value) =>
           _controller.selectable = Utils.getBool(value, fallback: true),
       'toolbarDone': (value) =>
@@ -217,7 +216,7 @@ class TextInputController extends FormFieldController {
 
   // applicable only for Password or obscure TextInput, to toggle between plain and secure text
   bool? obscureToggle;
-  bool readOnly = false;
+  bool? readOnly;
   bool selectable = true;
   bool? toolbarDoneButton;
 
@@ -468,7 +467,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
           controller: widget.textController,
           focusNode: focusNode,
           enabled: isEnabled(),
-          readOnly: widget._controller.readOnly,
+          readOnly: widget._controller.readOnly == true,
           enableInteractiveSelection: widget._controller.selectable,
           onTap: () => showOverlay(context),
           onTapOutside: (_) => removeOverlayAndUnfocus(),

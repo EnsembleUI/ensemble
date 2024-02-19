@@ -7,6 +7,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/input/form_helper.dart';
+import 'package:ensemble/widget/input/form_textfield.dart';
 import 'package:ensemble/widget/widget_util.dart' as util;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart' as flutter;
@@ -66,6 +67,7 @@ class EnsembleForm extends StatefulWidget
       'labelStyle': (value) =>
           _controller.labelStyle = Utils.getTextStyle(value),
       'enabled': (value) => _controller.enabled = Utils.optionalBool(value),
+      'readOnly': (value) => _controller.readOnly = Utils.optionalBool(value),
       'width': (value) => _controller.width = Utils.optionalInt(value),
       'height': (value) => _controller.height = Utils.optionalInt(value),
       'gap': (value) => _controller.gap =
@@ -107,6 +109,7 @@ class FormController extends WidgetController {
   LabelPosition labelPosition = LabelPosition.top;
   String? labelOverflow;
   bool? enabled;
+  bool? readOnly;
 
   // labelMaxWidth applicable only to labelPosition=start
   int? labelMaxWidth;
@@ -158,6 +161,15 @@ class FormState extends WidgetState<EnsembleForm>
     for (Widget formItem in formItems) {
       if (formItem is HasController &&
           formItem.controller is FormFieldController) {
+        // Adding Form's readOnly value to the TextInput and PasswordInput
+        // TextInput and PasswordInput can override this value directly adding the readOnly property to itself
+        final textInputController = formItem.controller as TextInputController?;
+        if (textInputController != null &&
+            textInputController.readOnly == null) {
+          (formItem.controller as TextInputController).readOnly =
+              widget._controller.readOnly == true;
+        }
+
         items.add(formItem);
       } else if (formItem is HasController &&
           formItem.controller is WidgetController &&
