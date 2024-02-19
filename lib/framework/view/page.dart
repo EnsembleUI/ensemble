@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/devmode.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/menu.dart';
 import 'package:ensemble/framework/model.dart';
@@ -448,7 +449,7 @@ class PageState extends State<Page>
                     : FloatingActionButtonLocation.endTop),
       ),
     );
-
+    DevMode.pageDataContext = _scopeManager.dataContext;
     // selectableText at the root
     if (Utils.optionalBool(widget._pageModel.pageStyles?['selectable']) ==
         true) {
