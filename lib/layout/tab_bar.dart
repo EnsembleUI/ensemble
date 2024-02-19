@@ -289,8 +289,7 @@ class TabBarState extends WidgetState<BaseTabBar>
     final indicatorSize =
         TabBarIndicatorSize.values.from(widget._controller.indicatorSize);
     final tabAlignment =
-        TabAlignment.values.from(widget._controller.tabAlignment) ??
-            TabAlignment.start;
+        TabAlignment.values.from(widget._controller.tabAlignment);
 
     Widget tabBar = TabBar(
       labelPadding: labelPadding,
