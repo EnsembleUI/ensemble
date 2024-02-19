@@ -24,7 +24,7 @@ class EnsembleText extends StatefulWidget
   @override
   Map<String, Function> getters() {
     return {
-      'text': () => _controller.text,
+      'text': () => _controller.text ?? '',
       'textStyle': () => _controller.textStyle
     };
   }
