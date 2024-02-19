@@ -87,14 +87,12 @@ class InvokeAPIController {
       ScopeManager scopeManager, Map<String, YamlMap>? apiMap) async {
     YamlMap? apiDefinition = apiMap?[action.apiName];
     if (apiDefinition != null) {
-      ScopeManager childScope =
-          scopeManager.newCreateChildScope(ephemeral: true);
       // evaluate input arguments and add them to context
       if (apiDefinition['inputs'] is YamlList && action.inputs != null) {
         for (var input in apiDefinition['inputs']) {
-          dynamic value = childScope.dataContext.eval(action.inputs![input]);
+          dynamic value = scopeManager.dataContext.eval(action.inputs![input]);
           if (value != null) {
-            childScope.dataContext.addDataContextById(input, value);
+            scopeManager.dataContext.addDataContextById(input, value);
           }
         }
       }
@@ -109,7 +107,7 @@ class InvokeAPIController {
       dynamic errorResponse;
       try {
         final APIResponse? oldResponse =
-        scopeManager.dataContext.getContextById(action.apiName);
+            scopeManager.dataContext.getContextById(action.apiName);
         final Response? responseObj = oldResponse?.getAPIResponse();
         responseObj?.apiState = APIState.loading;
 
@@ -127,7 +125,7 @@ class InvokeAPIController {
             context, apiDefinition, scopeManager.dataContext, action.apiName);
         if (response.isOkay) {
           _onAPIComplete(
-              context, action, apiDefinition, response, apiMap, childScope);
+              context, action, apiDefinition, response, apiMap, scopeManager);
           return response;
         }
         errorResponse = response;
@@ -136,7 +134,7 @@ class InvokeAPIController {
         debugPrint(error.toString());
       }
       _onAPIError(
-          context, action, apiDefinition, errorResponse, apiMap, childScope);
+          context, action, apiDefinition, errorResponse, apiMap, scopeManager);
     } else {
       throw RuntimeError("Unable to find api definition for ${action.apiName}");
     }

@@ -155,37 +155,6 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
 
   /// create a copy of the parent's data scope. the initialMap is generally coming from the imports
   @override
-  ScopeManager newCreateChildScope(
-      {bool ephemeral = false, List<ParsedCode>? childImportedCode}) {
-    //if the same code has been imported before in the parent scope, we will not import and evaluate it
-    //again in the child scope. This ensures that the child scope won't override variables defined in the parent
-    //scope. This is how HTML works when js is included as <script> tags i.e. if the same js file is included
-    //multiple times on the page, the vars do not override each other. However, if the same var is defined in
-    //a different js file which is included after the first one, it's var will override the first one.
-    //we'll do the same here
-    List<ParsedCode> childImports = [];
-    Set<String> importedCodeNames =
-        (importedCode ?? []).map((e) => e.libraryName).toSet();
-
-    childImports.addAll(
-      (childImportedCode ?? []).where(
-        (code) => !importedCodeNames.contains(code.libraryName),
-      ),
-    );
-    //we evaluate only the new imports in the child widget so that the older context is not overridden
-    //however we accumulate parent imports and the child imports and pass that to child so that nested
-    //widgets further down the chain get all the accumulated imports and don't re-evaluate and override
-    List<ParsedCode> combined = [...?importedCode, ...childImports];
-    DataContext childContext = dataContext.createChildContext();
-    ScopeManager childScope = ScopeManager(
-        childContext.evalImports(childImports), pageData,
-        ephemeral: ephemeral, importedCode: combined);
-    childScope._parent = this;
-    return childScope;
-  }
-
-  /// create a copy of the parent's data scope. the initialMap is generally coming from the imports
-  @override
   ScopeManager createChildScope(
       {bool ephemeral = false, List<ParsedCode>? childImportedCode}) {
     //if the same code has been imported before in the parent scope, we will not import and evaluate it

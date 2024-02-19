@@ -25,7 +25,6 @@ import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/host_platform_manager.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble/util/notification_utils.dart';
-import 'package:ensemble_ts_interpreter/invokables/context.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:get_it/get_it.dart';
 
@@ -51,23 +50,14 @@ import 'package:jsparser/jsparser.dart';
 
 /// manages Data and Invokables within the current data scope.
 /// This class can evaluate expressions based on the data scope
-class DataContext implements Context {
-  static const String globalContextKey = '__internal__parent__context__';
+class DataContext {
   final Map<String, dynamic> _contextMap = {};
-
   get contextMap => _contextMap;
   final BuildContext buildContext;
 
-  DataContext(
-      {required this.buildContext,
-      Map<String, dynamic>? initialMap,
-      Map<String, dynamic>? globalContext}) {
+  DataContext({required this.buildContext, Map<String, dynamic>? initialMap}) {
     if (initialMap != null) {
       _contextMap.addAll(initialMap);
-    }
-    if (globalContext != null) {
-      _contextMap[globalContextKey] = globalContext;
-      return;
     }
     _contextMap['app'] = AppConfig();
     _contextMap['env'] = EnvConfig();
@@ -84,16 +74,6 @@ class DataContext implements Context {
     if (_contextMap['device'] == null) {
       _contextMap['device'] = Device();
     }
-  }
-
-  DataContext createChildContext(
-      {BuildContext? newBuildContext, Map<String, dynamic>? initialMap}) {
-    //if globalContext is null, this is the global context
-    Map<String, dynamic>? globalContext = getGlobalContextMap() ?? _contextMap;
-    return DataContext(
-        buildContext: newBuildContext ?? buildContext,
-        initialMap: initialMap,
-        globalContext: globalContext);
   }
 
   DataContext clone(
@@ -127,48 +107,14 @@ class DataContext implements Context {
   }
 
   // raw data (data map, api result), traversable with dot and bracket notations
-  @override
   void addDataContext(Map<String, dynamic> data) {
     _contextMap.addAll(data);
   }
 
-  Map<String, dynamic>? getGlobalContextMap() {
-    var value = _contextMap[globalContextKey];
-    if (value is Map<String, dynamic>) {
-      return value;
-    }
-    return null;
-  }
-
-  @override
   void addDataContextById(String id, dynamic value) {
-    //first we check if the id belongs to the current context
-    //if it does, simply overwrite it
-    //if it doesn't, check the global context, if it exists there, overwrite and if not, add it to local context
-    if (_contextMap.containsKey(id)) {
+    if (value != null) {
       _contextMap[id] = value;
-      return;
     }
-    // dynamic val = _contextMap[id];
-    // if ( val != null ) {
-    //   //TODO: ask Vu, null should be a valid value right?
-    //   _contextMap[id] = value;
-    //   return;
-    // }
-    Map<String, dynamic>? globalContext = getGlobalContextMap();
-    if (globalContext != null) {
-      if (globalContext.containsKey(id)) {
-        globalContext[id] = value;
-        return;
-      }
-    }
-    //so the id was neither on local context nor on global, so we create it on local
-    _contextMap[id] = value;
-  }
-
-  @override
-  Map<String, dynamic> getContextMap() {
-    return _contextMap;
   }
 
   /// invokable widget, traversable with getters, setters & methods
@@ -180,28 +126,13 @@ class DataContext implements Context {
     _contextMap[id] = widget;
   }
 
-  @override
   bool hasContext(String id) {
-    bool hasCtx = _contextMap[id] != null;
-    if (!hasCtx) {
-      // check parent context
-      final parentContext =
-          _contextMap[globalContextKey] as Map<String, dynamic>?;
-      if (parentContext != null) {
-        hasCtx = parentContext.containsKey(id);
-      }
-    }
-    return hasCtx;
+    return _contextMap[id] != null;
   }
 
   /// return the data context value given the ID
-  @override
   dynamic getContextById(String id) {
-    if (_contextMap.containsKey(id)) {
-      return _contextMap[id];
-    }
-    final parentContext = _contextMap[globalContextKey];
-    return parentContext?[id];
+    return _contextMap[id];
   }
 
   DataContext evalImports(List<ParsedCode>? imports) {
@@ -344,7 +275,7 @@ class DataContext implements Context {
       [SourceLocation? startLoc]) {
     try {
       _contextMap['getStringValue'] = Utils.optionalString;
-      return JSInterpreter(codeBlock, program, this).evaluate();
+      return JSInterpreter(codeBlock, program, _contextMap).evaluate();
     } on JSException catch (e) {
       if (e.detailedError is EnsembleError) {
         throw e.detailedError.toString();
@@ -405,7 +336,7 @@ class DataContext implements Context {
   /// Note: use eval() if your variable are surrounded by ${...}
   dynamic evalVariable(String variable) {
     try {
-      return JSInterpreter.fromCode(variable, this).evaluate();
+      return JSInterpreter.fromCode(variable, _contextMap).evaluate();
     } catch (error) {
       // TODO: we want to show errors in most case
       //  Exception: 1) API has not been loaded, 2) Custom widget input (also awaiting API)
