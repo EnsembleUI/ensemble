@@ -52,7 +52,7 @@ import 'package:jsparser/jsparser.dart';
 /// manages Data and Invokables within the current data scope.
 /// This class can evaluate expressions based on the data scope
 class DataContext implements Context {
-  static const String globalContextKey = '__internal__parent__context__';
+  static const String parentContextKey = '__internal__parent__context__';
   final Map<String, dynamic> _contextMap = {};
 
   get contextMap => _contextMap;
@@ -61,12 +61,12 @@ class DataContext implements Context {
   DataContext(
       {required this.buildContext,
       Map<String, dynamic>? initialMap,
-      Map<String, dynamic>? globalContext}) {
+      Map<String, dynamic>? parentContext}) {
     if (initialMap != null) {
       _contextMap.addAll(initialMap);
     }
-    if (globalContext != null) {
-      _contextMap[globalContextKey] = globalContext;
+    if (parentContext != null) {
+      _contextMap[parentContextKey] = parentContext;
       return;
     }
     _contextMap['app'] = AppConfig();
@@ -89,11 +89,11 @@ class DataContext implements Context {
   DataContext createChildContext(
       {BuildContext? newBuildContext, Map<String, dynamic>? initialMap}) {
     //if globalContext is null, this is the global context
-    Map<String, dynamic>? globalContext = getGlobalContextMap() ?? _contextMap;
+    //Map<String, dynamic>? globalContext = getGlobalContextMap() ?? _contextMap;
     return DataContext(
         buildContext: newBuildContext ?? buildContext,
         initialMap: initialMap,
-        globalContext: globalContext);
+        parentContext: _contextMap);
   }
 
   DataContext clone(
@@ -133,7 +133,7 @@ class DataContext implements Context {
   }
 
   Map<String, dynamic>? getGlobalContextMap() {
-    var value = _contextMap[globalContextKey];
+    var value = _contextMap[parentContextKey];
     if (value is Map<String, dynamic>) {
       return value;
     }
@@ -186,7 +186,7 @@ class DataContext implements Context {
     if (!hasCtx) {
       // check parent context
       final parentContext =
-          _contextMap[globalContextKey] as Map<String, dynamic>?;
+          _contextMap[parentContextKey] as Map<String, dynamic>?;
       if (parentContext != null) {
         hasCtx = parentContext.containsKey(id);
       }
@@ -197,13 +197,18 @@ class DataContext implements Context {
   /// return the data context value given the ID
   @override
   dynamic getContextById(String id) {
-    if (_contextMap.containsKey(id)) {
-      return _contextMap[id];
-    }
-    final parentContext = _contextMap[globalContextKey];
-    return parentContext?[id];
+    return _recursiveLookup(_contextMap,id);
   }
-
+  static dynamic _recursiveLookup(Map<String,dynamic> map, String key) {
+    if ( map.containsKey(key) ) {
+      return map[key];
+    }
+    Map<String,dynamic>? parent = map[parentContextKey];
+    if ( parent != null ) {
+      return _recursiveLookup(parent,key);
+    }
+    return null;
+  }
   DataContext evalImports(List<ParsedCode>? imports) {
     if (imports == null) return this;
     for (var import in imports) {
