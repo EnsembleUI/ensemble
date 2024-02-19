@@ -11,6 +11,7 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/device.dart';
+import 'package:ensemble/framework/devmode.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/permissions_manager.dart';
@@ -682,6 +683,8 @@ class ScreenController {
     Map<String, dynamic>? pageArgs,
     required bool isExternal,
   }) {
+    DevMode.screenId = screenId;
+    DevMode.screenName = screenName;
     PageType pageType = asModal == true ? PageType.modal : PageType.regular;
     return Screen(
       key: key,
