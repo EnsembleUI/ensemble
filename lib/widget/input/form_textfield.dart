@@ -115,9 +115,7 @@ abstract class BaseTextInput extends StatefulWidget
 
   @override
   Map<String, Function> getters() {
-    return {
-      'value': () => textController.text ?? ''
-    };
+    return {'value': () => textController.text ?? ''};
   }
 
   @override

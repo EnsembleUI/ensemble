@@ -92,7 +92,8 @@ class InvokeAPIController {
       // evaluate input arguments and add them to context
       if (apiDefinition['inputs'] is YamlList && action.inputs != null) {
         for (var input in apiDefinition['inputs']) {
-          dynamic value = apiScopeManager.dataContext.eval(action.inputs![input]);
+          dynamic value =
+              apiScopeManager.dataContext.eval(action.inputs![input]);
           if (value != null) {
             apiScopeManager.dataContext.addToThisContext(input, value);
           }
@@ -110,7 +111,7 @@ class InvokeAPIController {
       dynamic errorResponse;
       try {
         final APIResponse? oldResponse =
-        scopeManager.dataContext.getContextById(action.apiName);
+            scopeManager.dataContext.getContextById(action.apiName);
         final Response? responseObj = oldResponse?.getAPIResponse();
         responseObj?.apiState = APIState.loading;
 
@@ -124,11 +125,11 @@ class InvokeAPIController {
           APIResponse(response: responseToDispatch),
         );
 
-        Response response = await HttpUtils.invokeApi(
-            context, apiDefinition, apiScopeManager.dataContext, action.apiName);
+        Response response = await HttpUtils.invokeApi(context, apiDefinition,
+            apiScopeManager.dataContext, action.apiName);
         if (response.isOkay) {
-          _onAPIComplete(
-              context, action, apiDefinition, response, apiMap, apiScopeManager);
+          _onAPIComplete(context, action, apiDefinition, response, apiMap,
+              apiScopeManager);
           return response;
         }
         errorResponse = response;
@@ -136,8 +137,8 @@ class InvokeAPIController {
         errorResponse = error;
         debugPrint(error.toString());
       }
-      _onAPIError(
-          context, action, apiDefinition, errorResponse, apiMap, apiScopeManager);
+      _onAPIError(context, action, apiDefinition, errorResponse, apiMap,
+          apiScopeManager);
     } else {
       throw RuntimeError("Unable to find api definition for ${action.apiName}");
     }
