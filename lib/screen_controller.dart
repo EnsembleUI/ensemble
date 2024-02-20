@@ -390,7 +390,7 @@ class ScreenController {
       // It looks up the context from ScopeManager which maybe incorrect.
       // Here we adjust the correct context
       DataContext newDataContext =
-          scopeManager.dataContext.clone(newBuildContext: context);
+          scopeManager.dataContext.createChildContext(newBuildContext: context);
       newDataContext.evalCode(action.codeBlock, action.codeBlockSpan);
 
       if (action.onComplete != null) {
