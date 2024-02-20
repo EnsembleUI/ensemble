@@ -6,6 +6,7 @@ import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/framework/widget/icon.dart' as framework;
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/layout/form.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/debouncer.dart';
 import 'package:ensemble/util/input_formatter.dart';
@@ -115,9 +116,7 @@ abstract class BaseTextInput extends StatefulWidget
 
   @override
   Map<String, Function> getters() {
-    return {
-      'value': () => textController.text ?? ''
-    };
+    return {'value': () => textController.text ?? ''};
   }
 
   @override
@@ -317,6 +316,14 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
         }
       }
     });
+
+    // Checking for readOnly from parent widget and assign the value to TextInput and PasswordInput if it's readOnly property is null
+    final formController =
+        context.findAncestorWidgetOfExactType<EnsembleForm>()?.controller;
+
+    if (formController != null && widget._controller.readOnly == null) {
+      widget._controller.readOnly = formController.readOnly == true;
+    }
     super.initState();
   }
 
