@@ -145,22 +145,10 @@ class DataContext implements Context {
     //first we check if the id belongs to the current context
     //if it does, simply overwrite it
     //if it doesn't, check the global context, if it exists there, overwrite and if not, add it to local context
-    if (_contextMap.containsKey(id)) {
-      _contextMap[id] = value;
+    Map<String,dynamic>? map = _recursiveLookup(_contextMap, id);
+    if ( map != null ) {
+      map[id] = value;
       return;
-    }
-    // dynamic val = _contextMap[id];
-    // if ( val != null ) {
-    //   //TODO: ask Vu, null should be a valid value right?
-    //   _contextMap[id] = value;
-    //   return;
-    // }
-    Map<String, dynamic>? globalContext = getGlobalContextMap();
-    if (globalContext != null) {
-      if (globalContext.containsKey(id)) {
-        globalContext[id] = value;
-        return;
-      }
     }
     //so the id was neither on local context nor on global, so we create it on local
     _contextMap[id] = value;
@@ -170,7 +158,10 @@ class DataContext implements Context {
   Map<String, dynamic> getContextMap() {
     return _contextMap;
   }
-
+  @override
+  void addToThisContext(String id, dynamic value) {
+    _contextMap[id] = value;
+  }
   /// invokable widget, traversable with getters, setters & methods
   /// Note that this will change a reference to the object, meaning the
   /// parent scope will not get the changes to this.
@@ -197,11 +188,15 @@ class DataContext implements Context {
   /// return the data context value given the ID
   @override
   dynamic getContextById(String id) {
-    return _recursiveLookup(_contextMap,id);
+    Map<String,dynamic>? map = _recursiveLookup(_contextMap,id);
+    if ( map != null ) {
+      return map[id];
+    }
+    return null;
   }
-  static dynamic _recursiveLookup(Map<String,dynamic> map, String key) {
+  static Map<String,dynamic>? _recursiveLookup(Map<String,dynamic> map, String key) {
     if ( map.containsKey(key) ) {
-      return map[key];
+      return map;
     }
     Map<String,dynamic>? parent = map[parentContextKey];
     if ( parent != null ) {
