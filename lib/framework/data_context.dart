@@ -145,8 +145,8 @@ class DataContext implements Context {
     //first we check if the id belongs to the current context
     //if it does, simply overwrite it
     //if it doesn't, check the global context, if it exists there, overwrite and if not, add it to local context
-    Map<String,dynamic>? map = _recursiveLookup(_contextMap, id);
-    if ( map != null ) {
+    Map<String, dynamic>? map = _recursiveLookup(_contextMap, id);
+    if (map != null) {
       map[id] = value;
       return;
     }
@@ -158,10 +158,12 @@ class DataContext implements Context {
   Map<String, dynamic> getContextMap() {
     return _contextMap;
   }
+
   @override
   void addToThisContext(String id, dynamic value) {
     _contextMap[id] = value;
   }
+
   /// invokable widget, traversable with getters, setters & methods
   /// Note that this will change a reference to the object, meaning the
   /// parent scope will not get the changes to this.
@@ -188,22 +190,25 @@ class DataContext implements Context {
   /// return the data context value given the ID
   @override
   dynamic getContextById(String id) {
-    Map<String,dynamic>? map = _recursiveLookup(_contextMap,id);
-    if ( map != null ) {
+    Map<String, dynamic>? map = _recursiveLookup(_contextMap, id);
+    if (map != null) {
       return map[id];
     }
     return null;
   }
-  static Map<String,dynamic>? _recursiveLookup(Map<String,dynamic> map, String key) {
-    if ( map.containsKey(key) ) {
+
+  static Map<String, dynamic>? _recursiveLookup(
+      Map<String, dynamic> map, String key) {
+    if (map.containsKey(key)) {
       return map;
     }
-    Map<String,dynamic>? parent = map[parentContextKey];
-    if ( parent != null ) {
-      return _recursiveLookup(parent,key);
+    Map<String, dynamic>? parent = map[parentContextKey];
+    if (parent != null) {
+      return _recursiveLookup(parent, key);
     }
     return null;
   }
+
   DataContext evalImports(List<ParsedCode>? imports) {
     if (imports == null) return this;
     for (var import in imports) {
