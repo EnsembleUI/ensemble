@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/bindings.dart';
+import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
@@ -124,9 +125,14 @@ class InvokeAPIController {
           action,
           APIResponse(response: responseToDispatch),
         );
-
-        Response response = await HttpUtils.invokeApi(context, apiDefinition,
-            apiScopeManager.dataContext, action.apiName);
+        Response response;
+        if ( AppConfig(context,apiScopeManager.dataContext.getAppId()).isMockResponse() && apiDefinition['mockResponse'] != null ) {
+          response = await HttpUtils.invokeMockAPI(
+              apiScopeManager.dataContext, apiDefinition['mockResponse']);
+        } else {
+          response = await HttpUtils.invokeApi(context, apiDefinition,
+              apiScopeManager.dataContext, action.apiName);
+        }
         if (response.isOkay) {
           _onAPIComplete(context, action, apiDefinition, response, apiMap,
               apiScopeManager);

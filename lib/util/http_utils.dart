@@ -17,8 +17,21 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' as foundation;
 
 class HttpUtils {
+  static Future<Response> invokeMockAPI(DataContext eContext, dynamic mock) async {
+    if ( mock is Map ) {
+      mock = YamlMap.wrap(mock);
+    }
+    dynamic mockResponse = eContext.eval(mock);
+    return Response.fromBody(mockResponse['body']
+        , mockResponse['headers'],
+        mockResponse['statusCode'] ?? 200,
+        mockResponse['reasonPhrase'],
+        APIState.success);
+  }
   static Future<Response> invokeApi(BuildContext context, YamlMap api,
       DataContext eContext, String apiName) async {
+
+
     // headers
     Map<String, String> headers = {};
 
@@ -226,8 +239,7 @@ class Response {
   String apiName = '';
 
   // APIState get apiState => _apiState;
-
-  Response.fromBody(this.body, [this.headers]);
+  Response.fromBody(this.body, [this.headers, this.statusCode, this.reasonPhrase, this.apiState = APIState.idle]);
 
   Response.updateState({required this.apiState});
 
