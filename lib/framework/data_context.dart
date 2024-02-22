@@ -69,11 +69,12 @@ class DataContext implements Context {
       _contextMap[parentContextKey] = parentContext;
       return;
     }
-    _contextMap['app'] = AppConfig();
+    AppInfo appInfo = AppInfo();
+    _contextMap['app'] = AppConfig(buildContext, appInfo.appId);
     _contextMap['env'] = EnvConfig();
     _contextMap['secrets'] = SecretsStore();
     _contextMap['ensemble'] = NativeInvokable(buildContext);
-    _contextMap['appInfo'] = AppInfo();
+    _contextMap['appInfo'] = appInfo;
 
     // auth can be selectively turned on
     if (GetIt.instance.isRegistered<AuthContextManager>()) {
@@ -108,7 +109,9 @@ class DataContext implements Context {
     return DataContext(
         buildContext: newBuildContext ?? buildContext, initialMap: map);
   }
-
+  String? getAppId() {
+    return (getContextById('appInfo') as AppInfo)?.appId;
+  }
   /// copy over the additionalContext,
   /// skipping over duplicate keys if replaced is false
   void copy(DataContext additionalContext, {bool replaced = false}) {
@@ -196,7 +199,6 @@ class DataContext implements Context {
     }
     return null;
   }
-
   static Map<String, dynamic>? _recursiveLookup(
       Map<String, dynamic> map, String key) {
     if (map.containsKey(key)) {
@@ -437,10 +439,12 @@ class DataContext implements Context {
 class NativeInvokable extends ActionInvokable {
   NativeInvokable(super.buildContext);
 
+  EnsembleStorage get storage => EnsembleStorage(buildContext);
+
   @override
   Map<String, Function> getters() {
     return {
-      'storage': () => EnsembleStorage(buildContext),
+      'storage': () => storage,
       'user': () => UserInfo(),
       'formatter': () => Formatter(),
       'utils': () => EnsembleUtils(),
@@ -693,13 +697,13 @@ class EnsembleStorage with Invokable {
     return {
       'get': (String key) => StorageManager().read(key),
       'set': setProperty,
-      'delete': (key) {
-        StorageManager().remove(key);
-        ScreenController().dispatchStorageChanges(context, key, null);
-      }
+      'delete': (key) => delete(key),
     };
   }
-
+  void delete(String key) {
+    StorageManager().remove(key);
+    ScreenController().dispatchStorageChanges(context, key, null);
+  }
   @override
   Map<String, Function> setters() {
     throw UnimplementedError();
