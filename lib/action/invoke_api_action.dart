@@ -126,7 +126,9 @@ class InvokeAPIController {
           APIResponse(response: responseToDispatch),
         );
         Response response;
-        if ( AppConfig(context,apiScopeManager.dataContext.getAppId()).isMockResponse() && apiDefinition['mockResponse'] != null ) {
+        if (AppConfig(context, apiScopeManager.dataContext.getAppId())
+                .isMockResponse() &&
+            apiDefinition['mockResponse'] != null) {
           response = await HttpUtils.invokeMockAPI(
               apiScopeManager.dataContext, apiDefinition['mockResponse']);
         } else {
