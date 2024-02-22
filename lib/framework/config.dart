@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 class AppConfig with Invokable {
   BuildContext context;
   String? appId;
-  AppConfig(this.context,this.appId);
+  AppConfig(this.context, this.appId);
   static const String useMockResponse = 'useMockResponse';
   String get useMockResponseKey => '${appId ?? ''}_$useMockResponse';
   @override
@@ -16,26 +16,30 @@ class AppConfig with Invokable {
     return {
       'baseUrl': () =>
           Ensemble().getConfig()?.definitionProvider.getAppConfig()?.baseUrl,
-      'useMockResponse': () => EnsembleStorage(context).getProperty(useMockResponseKey) ?? false
+      'useMockResponse': () =>
+          EnsembleStorage(context).getProperty(useMockResponseKey) ?? false
     };
   }
+
   void exitApp() {
     EnsembleStorage(context).setProperty(useMockResponseKey, false);
   }
+
   @override
   Map<String, Function> methods() {
     return {};
   }
+
   bool isMockResponse() {
     return EnsembleStorage(context).getProperty(useMockResponseKey) ?? false;
   }
+
   @override
   Map<String, Function> setters() {
     return {
       'useMockResponse': (bool value) {
         EnsembleStorage(context).setProperty(useMockResponseKey, value);
       }
-
     };
   }
 }

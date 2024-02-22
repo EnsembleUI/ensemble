@@ -204,7 +204,9 @@ class FormState extends WidgetState<EnsembleForm>
             (child.controller is FormFieldController
                 ? (child.controller as FormFieldController).labelStyle
                 : null),
-            (child.controller as WidgetController).labelHint);
+            child.controller is FormFieldController
+                ? (child.controller as FormFieldController).labelHint
+                : null);
         hasAtLeastOneLabel = true;
       } else {
         // empty label needs special treatment to line up with other labels
