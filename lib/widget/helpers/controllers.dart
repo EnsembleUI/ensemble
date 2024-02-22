@@ -145,10 +145,9 @@ abstract class WidgetController extends Controller {
   // https://pub.dev/packages/pointer_interceptor
   bool? captureWebPointer;
 
-  // optional label/labelHint for use in Forms
-  @Deprecated("useLabelText")
+  // legacy used to show as the form label if used inside Form
+  @Deprecated("don't use anymore")
   String? label;
-  String? labelHint;
 
   @override
   Map<String, Function> getBaseGetters() {
@@ -185,7 +184,6 @@ abstract class WidgetController extends Controller {
       'captureWebPointer': (value) =>
           captureWebPointer = Utils.optionalBool(value),
       'label': (value) => label = Utils.optionalString(value),
-      'labelHint': (value) => labelHint = Utils.optionalString(value),
     };
   }
 
