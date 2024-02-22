@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/stub/ensemble_chat.dart';
+import 'package:ensemble/framework/stub/qr_code_scanner.dart';
 import 'package:ensemble/framework/view/footer.dart';
 import 'package:ensemble/layout/app_scroller.dart';
 import 'package:ensemble/layout/box/box_layout.dart';
@@ -123,6 +124,8 @@ class WidgetRegistry {
         ConnectWithMicrosoft.type: () => GetIt.instance<ConnectWithMicrosoft>(),
         SignInWithAuth0.type: () => GetIt.instance<SignInWithAuth0>(),
         EnsembleChat.type: () => GetIt.instance<EnsembleChat>(),
+        EnsembleQRCodeScanner.type: () =>
+            GetIt.instance<EnsembleQRCodeScanner>(),
         PopupMenu.type: () => PopupMenu(),
         EnsembleCalendar.type: () => EnsembleCalendar(),
         Countdown.type: () => Countdown(),
