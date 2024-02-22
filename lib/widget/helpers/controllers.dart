@@ -109,11 +109,20 @@ class TextStyleComposite extends WidgetCompositeProperty {
   }
 }
 
+enum FlexMode {
+  expanded,
+  flexible,
+}
+
 /// TODO: Legacy, transition to EnsembleWidgetController
 /// base Controller class for your Ensemble widget
 abstract class WidgetController extends Controller {
   // Note: we manage these here so the user doesn't need to do in their widgets
   // base properties applicable to all widgets
+
+  FlexMode? flexMode;
+  int? flex;
+  @Deprecated("use flexLayout/flex instead")
   bool expanded = false;
 
   bool visible = true;
@@ -137,8 +146,8 @@ abstract class WidgetController extends Controller {
   bool? captureWebPointer;
 
   // optional label/labelHint for use in Forms
+  @Deprecated("useLabelText")
   String? label;
-  String? description;
   String? labelHint;
 
   @override
@@ -152,6 +161,8 @@ abstract class WidgetController extends Controller {
   @override
   Map<String, Function> getBaseSetters() {
     return {
+      'flexMode': (value) => flexMode = FlexMode.values.from(value),
+      'flex': (value) => flex = Utils.optionalInt(value, min: 1),
       'expanded': (value) => expanded = Utils.getBool(value, fallback: false),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
       'visibilityTransitionDuration': (value) =>
@@ -174,7 +185,6 @@ abstract class WidgetController extends Controller {
       'captureWebPointer': (value) =>
           captureWebPointer = Utils.optionalBool(value),
       'label': (value) => label = Utils.optionalString(value),
-      'description': (value) => description = Utils.optionalString(value),
       'labelHint': (value) => labelHint = Utils.optionalString(value),
     };
   }
@@ -280,9 +290,8 @@ class BoxController extends WidgetController {
 
 /// Base Widget Controller
 abstract class EnsembleWidgetController extends EnsembleController {
-  // Note: we manage these here so the user doesn't need to do in their widgets
-  // base properties applicable to all widgets
-  bool expanded = false;
+  FlexMode? flexMode;
+  int? flex;
 
   bool visible = true;
   Duration? visibilityTransitionDuration; // in seconds
@@ -304,15 +313,9 @@ abstract class EnsembleWidgetController extends EnsembleController {
   // https://pub.dev/packages/pointer_interceptor
   bool? captureWebPointer;
 
-  // optional label/labelHint for use in Forms
-  String? label;
-  String? description;
-  String? labelHint;
-
   @override
   Map<String, Function> getters() {
     return {
-      'expanded': () => expanded,
       'visible': () => visible,
     };
   }
@@ -320,7 +323,8 @@ abstract class EnsembleWidgetController extends EnsembleController {
   @override
   Map<String, Function> setters() {
     return {
-      'expanded': (value) => expanded = Utils.getBool(value, fallback: false),
+      'flexMode': (value) => flexMode = FlexMode.values.from(value),
+      'flex': (value) => flex = Utils.optionalInt(value, min: 1),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
       'visibilityTransitionDuration': (value) =>
           visibilityTransitionDuration = Utils.getDuration(value),
@@ -341,9 +345,6 @@ abstract class EnsembleWidgetController extends EnsembleController {
           stackPositionRight = Utils.optionalInt(value),
       'captureWebPointer': (value) =>
           captureWebPointer = Utils.optionalBool(value),
-      'label': (value) => label = Utils.optionalString(value),
-      'description': (value) => description = Utils.optionalString(value),
-      'labelHint': (value) => labelHint = Utils.optionalString(value),
     };
   }
 

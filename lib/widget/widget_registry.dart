@@ -3,6 +3,7 @@ import 'package:ensemble/framework/view/footer.dart';
 import 'package:ensemble/layout/app_scroller.dart';
 import 'package:ensemble/layout/box/box_layout.dart';
 import 'package:ensemble/layout/box/fitted_box_layout.dart';
+import 'package:ensemble/layout/box/flex_box_layout.dart';
 import 'package:ensemble/layout/data_grid.dart';
 import 'package:ensemble/layout/flow.dart';
 import 'package:ensemble/layout/form.dart';
@@ -145,6 +146,8 @@ class WidgetRegistry {
 
         // containers
         ToggleContainer.type: () => ToggleContainer(),
+        FlexRow.type: () => FlexRow(),
+        FlexColumn.type: () => FlexColumn(),
         FittedRow.type: () => FittedRow(),
         FittedColumn.type: () => FittedColumn(),
         Column.type: () => Column(),
