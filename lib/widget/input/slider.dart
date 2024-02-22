@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/event.dart';
-import 'package:ensemble/widget/input/form_helper.dart';
+import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble/util/utils.dart';
