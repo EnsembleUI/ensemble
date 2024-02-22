@@ -8,6 +8,7 @@ import 'package:ensemble/layout/box/box_layout.dart';
 import 'package:ensemble/layout/box/box_utils.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/widget/spacer.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' as flutter;
@@ -81,6 +82,10 @@ class FittedBoxLayoutState extends WidgetState<FittedBoxLayout>
     List<Widget> items = [];
     for (int i = 0; i < widget._controller.children!.length; i++) {
       Widget child = buildChild(widget._controller.children![i]);
+      if (child is EnsembleSpacer) {
+        throw LanguageError(
+            "Spacer cannot be used inside FittedRow/FittedColumn. Use Row or Column parent instead.");
+      }
 
       // default flex is 1 if not specified
       BoxFlex flex = widget._controller.childrenFits != null &&
