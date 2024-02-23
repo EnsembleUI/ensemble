@@ -453,6 +453,14 @@ class Utils {
     return null;
   }
 
+  static BoxShadowComposite? getBoxShadow(
+      WidgetController widgetController, dynamic inputs) {
+    if (inputs is Map) {
+      return BoxShadowComposite(widgetController, inputs: inputs);
+    }
+    return null;
+  }
+
   static TextStyleComposite getTextStyleAsComposite(
       WidgetController widgetController,
       {dynamic style}) {
