@@ -82,10 +82,11 @@ class FittedBoxLayoutState extends WidgetState<FittedBoxLayout>
     List<Widget> items = [];
     for (int i = 0; i < widget._controller.children!.length; i++) {
       Widget child = buildChild(widget._controller.children![i]);
-      if (child is EnsembleSpacer) {
-        throw LanguageError(
-            "Spacer cannot be used inside FittedRow/FittedColumn. Use Row or Column parent instead.");
-      }
+      // can't do this yet because Production uses it
+      // if (child is EnsembleSpacer) {
+      //   throw LanguageError(
+      //       "Spacer cannot be used inside FittedRow/FittedColumn. Use Row or Column parent instead.");
+      // }
 
       // default flex is 1 if not specified
       BoxFlex flex = widget._controller.childrenFits != null &&
