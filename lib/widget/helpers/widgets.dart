@@ -219,15 +219,17 @@ class BoxWrapper extends StatelessWidget {
               boxShadow: !boxController.hasBoxShadow()
                   ? null
                   : <BoxShadow>[
-                      BoxShadow(
-                          color: boxController.shadowColor ??
-                              ThemeManager().getShadowColor(context),
-                          blurRadius: boxController.shadowRadius?.toDouble() ??
-                              ThemeManager().getShadowRadius(context),
-                          offset: boxController.shadowOffset ??
-                              ThemeManager().getShadowOffset(context),
-                          blurStyle: boxController.shadowStyle ??
-                              ThemeManager().getShadowStyle(context))
+                      boxController.boxShadow?.getValue(context) ??
+                          BoxShadow(
+                              color: boxController.shadowColor ??
+                                  ThemeManager().getShadowColor(context),
+                              blurRadius:
+                                  boxController.shadowRadius?.toDouble() ??
+                                      ThemeManager().getShadowRadius(context),
+                              offset: boxController.shadowOffset ??
+                                  ThemeManager().getShadowOffset(context),
+                              blurStyle: boxController.shadowStyle ??
+                                  ThemeManager().getShadowStyle(context))
                     ],
             ),
       child: backgroundImage != null
