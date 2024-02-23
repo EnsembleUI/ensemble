@@ -453,6 +453,28 @@ class Utils {
     return null;
   }
 
+  static BoxShadowComposite? getBoxShadowComposite(
+      ChangeNotifier widgetController, dynamic inputs) {
+    if (inputs is Map) {
+      return BoxShadowComposite(widgetController, inputs: inputs);
+    }
+    return null;
+  }
+
+  static BoxShadow? getBoxShadow(dynamic inputs) {
+    if (inputs is Map) {
+      return BoxShadow(
+        color: Utils.getColor(inputs['color']) ?? Colors.black,
+        offset: Utils.getOffset(inputs['offset']) ?? Offset.zero,
+        blurRadius: Utils.getInt(inputs['blur'], fallback: 0).toDouble(),
+        spreadRadius: Utils.getInt(inputs['spread'], fallback: 0).toDouble(),
+        blurStyle:
+            BlurStyle.values.from(inputs['blurStyle']) ?? BlurStyle.normal,
+      );
+    }
+    return null;
+  }
+
   static TextStyleComposite getTextStyleAsComposite(
       WidgetController widgetController,
       {dynamic style}) {
