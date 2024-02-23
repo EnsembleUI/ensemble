@@ -20,7 +20,6 @@ class ReceiveIntentManager {
   EnsembleAction? onReceive;
   EnsembleAction? onError;
 
-  List<SharedMediaFile>? _sharedFiles;
   String? sharedText;
 
   void init(BuildContext context, Invokable? invokable,
@@ -37,14 +36,13 @@ class ReceiveIntentManager {
   /// For sharing images coming from outside the app while the app is in the memory
   void receiveMediaWhenInMemory() {
     ReceiveSharingIntent.getMediaStream().listen((List<SharedMediaFile> value) {
-      _sharedFiles = value;
-      final filePath = (_sharedFiles?.map((f) => f.path).join(",") ?? "");
       if (context != null && onReceive != null) {
         ScreenController().executeAction(context!, onReceive!,
-            event: EnsembleEvent(invokable, data: {'file': filePath}));
+            event:
+                EnsembleEvent(invokable, data: {'media': _getMedias(value)}));
+        // Tell the library that we are done processing the intent.
+        ReceiveSharingIntent.reset();
       }
-      // Tell the library that we are done processing the intent.
-      ReceiveSharingIntent.reset();
     }, onError: (err) {
       if (context != null && onError != null) {
         ScreenController().executeAction(context!, onError!,
@@ -56,14 +54,10 @@ class ReceiveIntentManager {
   /// For sharing images coming from outside the app while the app is closed
   void receiveMediaWhenClosed() {
     ReceiveSharingIntent.getInitialMedia().then((List<SharedMediaFile> value) {
-      _sharedFiles = value;
-      final filePath = (_sharedFiles?.map((f) => f.path).join(",") ?? "");
-      if (context != null &&
-          onReceive != null &&
-          _sharedFiles != null &&
-          _sharedFiles!.isNotEmpty) {
+      if (context != null && onReceive != null) {
         ScreenController().executeAction(context!, onReceive!,
-            event: EnsembleEvent(invokable, data: {'file': filePath}));
+            event:
+                EnsembleEvent(invokable, data: {'media': _getMedias(value)}));
         // Tell the library that we are done processing the intent.
         ReceiveSharingIntent.reset();
       }
@@ -73,5 +67,18 @@ class ReceiveIntentManager {
             event: EnsembleEvent(invokable, data: {'error': err}));
       }
     });
+  }
+
+  List<Map<String, dynamic>>? _getMedias(List<SharedMediaFile> medias) {
+    if (medias.isEmpty) return null;
+    final datas = medias.map((e) {
+      return {
+        'data': e.path,
+        'mimeType': e.mimeType,
+        'type': e.type.name,
+        'thumbnail': e.thumbnail,
+      };
+    }).toList();
+    return datas;
   }
 }
