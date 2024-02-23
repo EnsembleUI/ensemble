@@ -2,6 +2,7 @@
 import 'package:ensemble/controller/controller_mixins.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
+import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/errors.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -12,7 +13,7 @@ import 'package:flutter/cupertino.dart';
 abstract class WidgetCompositeProperty with Invokable {
   WidgetCompositeProperty(this.widgetController);
 
-  WidgetController widgetController;
+  ChangeNotifier widgetController;
 
   @override
   void setProperty(prop, val) {
@@ -23,6 +24,62 @@ abstract class WidgetCompositeProperty with Invokable {
     } else {
       throw InvalidPropertyException("Settable property '$prop' not found.");
     }
+  }
+}
+
+class BoxShadowComposite extends WidgetCompositeProperty {
+  BoxShadowComposite(super.widgetController, {required Map inputs}) {
+    color = inputs['color'];
+    offset = inputs['offset'];
+    blur = inputs['blur'];
+    spread = inputs['spread'];
+    blurStyle = inputs['blurStyle'];
+  }
+
+  Color? _color;
+
+  set color(value) => _color = Utils.getColor(value);
+
+  Offset? _offset;
+
+  set offset(value) => _offset = Utils.getOffset(value);
+
+  int? _blur;
+
+  set blur(value) => _blur = Utils.optionalInt(value);
+
+  int? _spread;
+
+  set spread(value) => _spread = Utils.optionalInt(value);
+
+  BlurStyle? _blurStyle;
+
+  set blurStyle(value) => _blurStyle = BlurStyle.values.from(value);
+
+  @override
+  Map<String, Function> getters() => {};
+
+  @override
+  Map<String, Function> methods() => {};
+
+  @override
+  Map<String, Function> setters() {
+    return {
+      'color': (value) => color = value,
+      'offset': (value) => offset = value,
+      'blur': (value) => blur = value,
+      'spread': (value) => spread = value,
+      'blurStyle': (value) => blurStyle = value,
+    };
+  }
+
+  BoxShadow getValue(context) {
+    return BoxShadow(
+        color: _color ?? ThemeManager().getShadowColor(context),
+        offset: _offset ?? Offset.zero,
+        blurRadius: (_blur ?? 0).toDouble(),
+        spreadRadius: (_spread ?? 0).toDouble(),
+        blurStyle: _blurStyle ?? BlurStyle.normal);
   }
 }
 
@@ -209,15 +266,21 @@ class BoxController extends WidgetController {
   Color? backgroundColor;
   BackgroundImage? backgroundImage;
   LinearGradient? backgroundGradient;
-  LinearGradient? borderGradient;
 
   Color? borderColor;
   int? borderWidth;
   EBorderRadius? borderRadius;
+  LinearGradient? borderGradient;
 
+  BoxShadowComposite? boxShadow;
+
+  @Deprecated("use boxShadow")
   Color? shadowColor;
+  @Deprecated("use boxShadow")
   Offset? shadowOffset;
+  @Deprecated("use boxShadow")
   int? shadowRadius;
+  @Deprecated("use boxShadow")
   BlurStyle? shadowStyle;
 
   // some children like Image don't get clipped properly with Box's clipBehavior
@@ -245,6 +308,9 @@ class BoxController extends WidgetController {
       'borderColor': (value) => borderColor = Utils.getColor(value),
       'borderWidth': (value) => borderWidth = Utils.optionalInt(value),
       'borderRadius': (value) => borderRadius = Utils.getBorderRadius(value),
+
+      'boxShadow': (value) =>
+          boxShadow = Utils.getBoxShadowComposite(this, value),
 
       'shadowColor': (value) => shadowColor = Utils.getColor(value),
       'shadowOffset': (list) => shadowOffset = Utils.getOffset(list),
@@ -280,6 +346,7 @@ class BoxController extends WidgetController {
       borderGradient != null || borderColor != null || borderWidth != null;
 
   bool hasBoxShadow() =>
+      boxShadow != null ||
       shadowColor != null ||
       shadowOffset != null ||
       shadowRadius != null ||
@@ -369,10 +436,7 @@ class EnsembleBoxController extends EnsembleWidgetController
   int? width;
   int? height;
 
-  Color? shadowColor;
-  Offset? shadowOffset;
-  int? shadowRadius;
-  BlurStyle? shadowStyle;
+  BoxShadowComposite? boxShadow;
 
   // some children like Image don't get clipped properly with Box's clipBehavior
   bool? clipContent;
@@ -390,10 +454,8 @@ class EnsembleBoxController extends EnsembleWidgetController
         'width': (value) => width = Utils.optionalInt(value),
         'height': (value) => height = Utils.optionalInt(value),
 
-        'shadowColor': (value) => shadowColor = Utils.getColor(value),
-        'shadowOffset': (list) => shadowOffset = Utils.getOffset(list),
-        'shadowRadius': (value) => shadowRadius = Utils.optionalInt(value),
-        'shadowStyle': (value) => shadowStyle = Utils.getShadowBlurStyle(value),
+        'boxShadow': (value) =>
+            boxShadow = Utils.getBoxShadowComposite(this, value),
 
         'clipContent': (value) => clipContent = Utils.optionalBool(value)
       });
@@ -412,11 +474,8 @@ class EnsembleBoxController extends EnsembleWidgetController
   bool hasDimension() => width != null || height != null;
 
   bool hasBoxDecoration() =>
-      hasBackground() || hasBorder() || borderRadius != null || hasBoxShadow();
-
-  bool hasBoxShadow() =>
-      shadowColor != null ||
-      shadowOffset != null ||
-      shadowRadius != null ||
-      shadowStyle != null;
+      hasBackground() ||
+      hasBorder() ||
+      borderRadius != null ||
+      boxShadow != null;
 }

@@ -18,9 +18,11 @@ class ToastController {
 
   // Singleton
   static final ToastController _instance = ToastController._internal();
+
   ToastController._internal() {
     //_toast.init(Utils.globalAppKey.currentContext!);
   }
+
   factory ToastController() {
     return _instance;
   }
@@ -102,6 +104,7 @@ class ToastController {
     Color? bgColor = Utils.getColor(toastAction.styles?['backgroundColor']);
     EBorderRadius? borderRadius =
         Utils.getBorderRadius(toastAction.styles?['borderRadius']);
+    BoxShadow? boxShadow = Utils.getBoxShadow(toastAction.styles?['boxShadow']);
     Color? shadowColor = Utils.getColor(toastAction.styles?['shadowColor']);
     double? shadowRadius =
         Utils.optionalDouble(toastAction.styles?['shadowRadius'], min: 0);
@@ -172,12 +175,13 @@ class ToastController {
             borderRadius: borderRadius?.getValue() ??
                 const BorderRadius.all(Radius.circular(8)),
             boxShadow: <BoxShadow>[
-              BoxShadow(
-                blurStyle: BlurStyle.outer,
-                color: shadowColor ?? Colors.black26,
-                blurRadius: shadowRadius ?? 3,
-                offset: shadowOffset ?? const Offset(0, 0),
-              )
+              boxShadow ??
+                  BoxShadow(
+                    blurStyle: BlurStyle.outer,
+                    color: shadowColor ?? Colors.black26,
+                    blurRadius: shadowRadius ?? 3,
+                    offset: shadowOffset ?? const Offset(0, 0),
+                  )
             ]),
         child: content);
 
