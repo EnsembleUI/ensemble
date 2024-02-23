@@ -13,7 +13,7 @@ import 'package:flutter/cupertino.dart';
 abstract class WidgetCompositeProperty with Invokable {
   WidgetCompositeProperty(this.widgetController);
 
-  WidgetController widgetController;
+  ChangeNotifier widgetController;
 
   @override
   void setProperty(prop, val) {
@@ -37,18 +37,23 @@ class BoxShadowComposite extends WidgetCompositeProperty {
   }
 
   Color? _color;
+
   set color(value) => _color = Utils.getColor(value);
 
   Offset? _offset;
+
   set offset(value) => _offset = Utils.getOffset(value);
 
   int? _blur;
+
   set blur(value) => _blur = Utils.optionalInt(value);
 
   int? _spread;
+
   set spread(value) => _spread = Utils.optionalInt(value);
 
   BlurStyle? _blurStyle;
+
   set blurStyle(value) => _blurStyle = BlurStyle.values.from(value);
 
   @override
@@ -68,7 +73,7 @@ class BoxShadowComposite extends WidgetCompositeProperty {
     };
   }
 
-  BoxShadow? getValue(context) {
+  BoxShadow getValue(context) {
     return BoxShadow(
         color: _color ?? ThemeManager().getShadowColor(context),
         offset: _offset ?? Offset.zero,
@@ -304,7 +309,8 @@ class BoxController extends WidgetController {
       'borderWidth': (value) => borderWidth = Utils.optionalInt(value),
       'borderRadius': (value) => borderRadius = Utils.getBorderRadius(value),
 
-      'boxShadow': (value) => boxShadow = Utils.getBoxShadow(this, value),
+      'boxShadow': (value) =>
+          boxShadow = Utils.getBoxShadowComposite(this, value),
 
       'shadowColor': (value) => shadowColor = Utils.getColor(value),
       'shadowOffset': (list) => shadowOffset = Utils.getOffset(list),
@@ -430,10 +436,7 @@ class EnsembleBoxController extends EnsembleWidgetController
   int? width;
   int? height;
 
-  Color? shadowColor;
-  Offset? shadowOffset;
-  int? shadowRadius;
-  BlurStyle? shadowStyle;
+  BoxShadowComposite? boxShadow;
 
   // some children like Image don't get clipped properly with Box's clipBehavior
   bool? clipContent;
@@ -451,10 +454,8 @@ class EnsembleBoxController extends EnsembleWidgetController
         'width': (value) => width = Utils.optionalInt(value),
         'height': (value) => height = Utils.optionalInt(value),
 
-        'shadowColor': (value) => shadowColor = Utils.getColor(value),
-        'shadowOffset': (list) => shadowOffset = Utils.getOffset(list),
-        'shadowRadius': (value) => shadowRadius = Utils.optionalInt(value),
-        'shadowStyle': (value) => shadowStyle = Utils.getShadowBlurStyle(value),
+        'boxShadow': (value) =>
+            boxShadow = Utils.getBoxShadowComposite(this, value),
 
         'clipContent': (value) => clipContent = Utils.optionalBool(value)
       });
@@ -473,11 +474,8 @@ class EnsembleBoxController extends EnsembleWidgetController
   bool hasDimension() => width != null || height != null;
 
   bool hasBoxDecoration() =>
-      hasBackground() || hasBorder() || borderRadius != null || hasBoxShadow();
-
-  bool hasBoxShadow() =>
-      shadowColor != null ||
-      shadowOffset != null ||
-      shadowRadius != null ||
-      shadowStyle != null;
+      hasBackground() ||
+      hasBorder() ||
+      borderRadius != null ||
+      boxShadow != null;
 }

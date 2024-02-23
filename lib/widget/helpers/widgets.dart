@@ -104,19 +104,9 @@ class EnsembleBoxWrapper extends StatelessWidget {
                           width: boxController.borderWidth?.toDouble() ??
                               ThemeManager().getBorderThickness(context)),
               borderRadius: _borderRadius?.getValue(),
-              boxShadow: !boxController.hasBoxShadow()
+              boxShadow: boxController.boxShadow == null
                   ? null
-                  : <BoxShadow>[
-                      BoxShadow(
-                          color: boxController.shadowColor ??
-                              ThemeManager().getShadowColor(context),
-                          blurRadius: boxController.shadowRadius?.toDouble() ??
-                              ThemeManager().getShadowRadius(context),
-                          offset: boxController.shadowOffset ??
-                              ThemeManager().getShadowOffset(context),
-                          blurStyle: boxController.shadowStyle ??
-                              ThemeManager().getShadowStyle(context))
-                    ],
+                  : <BoxShadow>[boxController.boxShadow!.getValue(context)],
             ),
       child: backgroundImage != null
           ? Stack(

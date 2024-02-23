@@ -11,6 +11,7 @@ import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
+import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/material.dart';
 
 class BottomNavBarItem {
@@ -309,6 +310,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
                   ?.getValue(),
           color: unselectedColor,
           selectedColor: selectedColor,
+          boxShadow: Utils.getBoxShadow(widget.menu.styles?['boxShadow']),
           shadowColor: Utils.getColor(widget.menu.styles?['shadowColor']),
           shadowRadius:
               Utils.optionalDouble(widget.menu.styles?['shadowRadius']),
@@ -377,6 +379,7 @@ class EnsembleBottomAppBar extends StatefulWidget {
     this.margin,
     this.padding,
     this.borderRadius,
+    this.boxShadow,
     this.shadowColor,
     this.shadowRadius,
     this.shadowBlurRadius,
@@ -394,6 +397,7 @@ class EnsembleBottomAppBar extends StatefulWidget {
   }) {
     // assert(items.length == 2 || items.length == 4);
   }
+
   final List<BottomNavBarItem> items;
   final int selectedIndex;
   final double? height;
@@ -404,10 +408,18 @@ class EnsembleBottomAppBar extends StatefulWidget {
   final Color backgroundColor;
   final Color color;
   final Color selectedColor;
+
+  final BoxShadow? boxShadow;
+
+  @Deprecated("Use boxShadow")
   final Color? shadowColor;
+  @Deprecated("Use boxShadow")
   final double? shadowRadius;
+  @Deprecated("Use boxShadow")
   final double? shadowBlurRadius;
+  @Deprecated("Use boxShadow")
   final BlurStyle? shadowStyle;
+
   final bool isFloating;
   final FloatingAlignment floatingAlignment;
   final NotchedShape notchedShape;
@@ -486,14 +498,15 @@ class EnsembleBottomAppBarState extends State<EnsembleBottomAppBar> {
         margin: Utils.optionalInsets(widget.margin) ?? EdgeInsets.zero,
         decoration: BoxDecoration(
           borderRadius: widget.borderRadius ?? BorderRadius.zero,
-          boxShadow: widget.shadowColor != null
+          boxShadow: widget.boxShadow != null || widget.shadowColor != null
               ? [
-                  BoxShadow(
-                    color: widget.shadowColor!,
-                    spreadRadius: widget.shadowRadius ?? 0.0,
-                    blurRadius: widget.shadowBlurRadius ?? 0.0,
-                    blurStyle: widget.shadowStyle ?? BlurStyle.normal,
-                  ),
+                  widget.boxShadow ??
+                      BoxShadow(
+                        color: widget.shadowColor!,
+                        spreadRadius: widget.shadowRadius ?? 0.0,
+                        blurRadius: widget.shadowBlurRadius ?? 0.0,
+                        blurStyle: widget.shadowStyle ?? BlurStyle.normal,
+                      ),
                 ]
               : [],
         ),
