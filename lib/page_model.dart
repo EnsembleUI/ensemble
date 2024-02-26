@@ -1,5 +1,3 @@
-import 'dart:developer';
-import 'dart:ui';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
@@ -15,11 +13,8 @@ import 'package:ensemble/layout/stack.dart';
 import 'package:ensemble/provider.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_registry.dart';
-import 'package:ensemble_ts_interpreter/errors.dart';
-import 'package:ensemble_ts_interpreter/parser/newjs_interpreter.dart';
 import 'package:source_span/source_span.dart';
 import 'package:yaml/yaml.dart';
-import 'package:jsparser/jsparser.dart';
 import 'framework/scope.dart';
 
 abstract class PageModel {
@@ -365,7 +360,7 @@ class WidgetModel implements SupportsThemes {
   final SourceSpan definition;
   final String type;
   Map<String, dynamic> styles;
-  //list of named styles
+  //list of named styles, a widget may have a list of class names delimited by spaces like css
   List<String>? classList;
   final Map<String, dynamic> props;
 
