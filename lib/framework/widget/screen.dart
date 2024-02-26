@@ -79,7 +79,10 @@ class _ScreenState extends State<Screen> {
     PageModel pageModel =
         screenDefinition.getModel(widget.screenPayload?.arguments);
     //theme will get applied if one exists
-    EnsembleThemeManager().applyTheme(context, pageModel);
+    if (pageModel is SupportsThemes) {
+      EnsembleThemeManager().applyTheme(context, pageModel as SupportsThemes,
+          (pageModel as SupportsThemes).getStyles());
+    }
     //here add the js code
     //widget.appProvider.definitionProvider.getAppBundle().
     // build the data context

@@ -92,7 +92,7 @@ class ViewUtil {
     // if this is a custom widget
     if (customWidgetMap?[widgetType] != null) {
       WidgetModel? customModel = buildCustomModel(
-          payload, customWidgetMap![widgetType]!, customWidgetMap);
+          payload, customWidgetMap![widgetType]!, widgetType!, customWidgetMap);
       if (customModel == null) {
         throw LanguageError("Unable to build the Custom Widget");
       }
@@ -141,8 +141,11 @@ class ViewUtil {
         children: children, itemTemplate: itemTemplate);
   }
 
-  static WidgetModel? buildCustomModel(YamlMap? callerPayload,
-      dynamic viewDefinition, Map<String, dynamic> customWidgetMap) {
+  static WidgetModel? buildCustomModel(
+      YamlMap? callerPayload,
+      dynamic viewDefinition,
+      String widgetType,
+      Map<String, dynamic> customWidgetMap) {
     // the custom definition may just have another widget name (with zero other information)
     if (viewDefinition is String) {
       return buildModel(viewDefinition, customWidgetMap);
@@ -204,7 +207,7 @@ class ViewUtil {
       throw LanguageError("Custom Widget requires a child widget");
     }
 
-    return CustomWidgetModel(widgetModel, props,
+    return CustomWidgetModel(widgetModel, widgetType, props,
         importedCode: importedCode,
         inputs: inputPayload,
         parameters: inputParams,

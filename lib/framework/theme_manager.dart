@@ -22,23 +22,32 @@ class EnsembleThemeManager {
       _themes[theme.key] = _parseTheme(theme.value);
     }
   }
+
   EnsembleTheme _parseTheme(YamlMap yamlTheme) {
     dynamic theme = _yamlToDart(yamlTheme);
     _convertKeysToCamelCase(theme['InheritableStyles']);
     _convertKeysToCamelCase(theme['Styles']);
     return EnsembleTheme(
-      tokens: theme['Tokens']??{},
-      styles: theme['Styles']??{},
-      inheritableStyles: theme['InheritableStyles']??{},
+      tokens: theme['Tokens'] ?? {},
+      styles: theme['Styles'] ?? {},
+      inheritableStyles: theme['InheritableStyles'] ?? {},
     );
   }
-  PageModel applyTheme(BuildContext context, PageModel model) {
-    _themes[_currentThemeName]?.apply(context, model);
+
+  SupportsThemes applyTheme(BuildContext context, SupportsThemes model,
+      Map<String, dynamic>? parentStyles) {
+    _themes[_currentThemeName]?.apply(context, model, parentStyles ?? {});
     return model;
   }
+
+  EnsembleTheme? currentTheme() {
+    return _themes[_currentThemeName];
+  }
+
   static dynamic _yamlToDart(dynamic yamlElement) {
     if (yamlElement is YamlMap) {
-      return yamlElement.map((key, value) => MapEntry(key.toString(), _yamlToDart(value)));
+      return yamlElement
+          .map((key, value) => MapEntry(key.toString(), _yamlToDart(value)));
     } else if (yamlElement is YamlList) {
       return yamlElement.map((value) => _yamlToDart(value)).toList();
     }
@@ -89,23 +98,28 @@ class EnsembleTheme {
   Map<String, dynamic> styles;
   Map<String, dynamic> inheritableStyles;
   bool areTokensResolved = false;
-  EnsembleTheme({
-    required this.tokens,
-    required this.styles,
-    required this.inheritableStyles
-  });
-  void apply(BuildContext context, PageModel pageModel) {
-    DataContext dataContext = DataContext(buildContext: context, initialMap: tokens);
-    if ( !areTokensResolved ) {
+
+  EnsembleTheme(
+      {required this.tokens,
+      required this.styles,
+      required this.inheritableStyles});
+
+  void apply(BuildContext context, SupportsThemes model,
+      Map<String, dynamic> inheritedStyles) {
+    DataContext dataContext =
+        DataContext(buildContext: context, initialMap: tokens);
+    if (!areTokensResolved) {
       _resolveTokens(dataContext);
     }
-    if ( pageModel is SupportsThemes ) {
-      (pageModel as SupportsThemes).applyTheme(this, dataContext,styles['View']);
-    }
+    model.applyTheme(dataContext, inheritedStyles);
   }
+
   Map<String, dynamic> getInheritableStyles(Map<String, dynamic> styles) {
     Map<String, dynamic> inheritedStyles = {};
-    void inheritStyles(Map<String, dynamic> currentStyles, Map<String, dynamic> currentInheritable, Map<String, dynamic> currentInherited) {
+    void inheritStyles(
+        Map<String, dynamic> currentStyles,
+        Map<String, dynamic> currentInheritable,
+        Map<String, dynamic> currentInherited) {
       currentStyles.forEach((key, value) {
         // Check if the current key is inheritable
         if (currentInheritable.containsKey(key)) {
@@ -129,8 +143,14 @@ class EnsembleTheme {
   void applyStylesToWidget(WidgetModel model, DataContext dataContext, Map<String,dynamic> inheritedStyles) {
     //first we will merge the associated styles from theme - styles specified with id overwrite the ones specified with widget type
     String? widgetId = model.props['id'];
-    Map<String,dynamic> idStyles = (widgetId == null)? {} : styles['#$widgetId'];
-    model.styles = resolveStyles(dataContext,model.styles,model.classList, mergeMaps(styles[model.type],idStyles),inheritedStyles);
+    Map<String, dynamic>? idStyles =
+        (widgetId == null) ? {} : styles['#$widgetId'];
+    model.styles = resolveStyles(
+        dataContext,
+        model.styles,
+        model.classList,
+        mergeMaps(styles[model.type], idStyles),
+        getInheritableStyles(inheritedStyles));
   }
   ///classList is a list of class names
   Map<String, dynamic> resolveClassList(List<String>? classList) {
