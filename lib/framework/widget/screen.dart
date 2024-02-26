@@ -78,6 +78,7 @@ class _ScreenState extends State<Screen> {
   Widget renderScreen(ScreenDefinition screenDefinition) {
     PageModel pageModel =
         screenDefinition.getModel(widget.screenPayload?.arguments);
+    //theme will get applied if one exists
     EnsembleThemeManager().applyTheme(context, pageModel);
     //here add the js code
     //widget.appProvider.definitionProvider.getAppBundle().
