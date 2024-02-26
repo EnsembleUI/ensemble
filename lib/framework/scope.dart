@@ -249,6 +249,14 @@ mixin ViewBuilder on IsScopeManager {
     return buildWidget(ViewUtil.buildModel(item, customViewDefinitions));
   }
 
+  Widget buildWidgetFromModel(WidgetModel model) {
+    return buildWidget(model);
+  }
+
+  WidgetModel buildWidgetModelFromDefinition(dynamic item) {
+    return ViewUtil.buildModel(item, customViewDefinitions);
+  }
+
   /// build a widget from the item YAML, and wrap it inside a DataScopeWidget
   /// This enables the widget to travel up and get its data context
   DataScopeWidget buildWidgetWithScopeFromDefinition(dynamic item) {

@@ -168,8 +168,13 @@ class PageGroupModel extends PageModel {
   }
 }
 abstract class SupportsThemes {
-  void applyTheme(EnsembleTheme theme,DataContext context, Map<String,dynamic> inheritedStyles);
+  void applyTheme(DataContext context, Map<String, dynamic> inheritedStyles);
+
+  Map<String, dynamic> getStyles();
+
+  void setStyles(Map<String, dynamic> styles);
 }
+
 /// represents an individual screen translated from the YAML definition
 class SinglePageModel extends PageModel implements SupportsThemes {
   SinglePageModel._init(YamlMap docMap) {
@@ -178,8 +183,9 @@ class SinglePageModel extends PageModel implements SupportsThemes {
 
   ViewBehavior viewBehavior = ViewBehavior();
   HeaderModel? headerModel;
-
+  final String type = 'View';
   Map<String, dynamic>? pageStyles;
+
   //just like css, Ensemble widgets can have named styles as well.
   // In case both a className and inline styles are specified, styles specified by the styleName are applied first and then the inline styles are applied.
   List<String>? classList;
@@ -284,16 +290,26 @@ class SinglePageModel extends PageModel implements SupportsThemes {
           classList: classList);
     }
   }
+
   @override
-  void applyTheme(EnsembleTheme theme,DataContext dataContext, Map<String,dynamic> inheritedStyles) {
-    pageStyles = theme.resolveStyles(dataContext,pageStyles, classList, inheritedStyles, {});
-    Map<String,dynamic> inheritableParentStyles = theme.getInheritableStyles(pageStyles??{});
-    headerModel?.styles = theme.resolveStyles(dataContext,headerModel?.styles, headerModel?.classList, inheritableParentStyles, {});
-    headerModel?.titleWidget?.applyTheme(theme, dataContext, theme.getInheritableStyles(headerModel!.styles??{}));
-    footer?.styles = theme.resolveStyles(dataContext,footer?.styles, footer?.classList, inheritableParentStyles, {});
-    footer?.footerWidgetModel?.applyTheme(theme, dataContext, theme.getInheritableStyles(footer!.styles??{}));
-    rootWidgetModel?.applyTheme(theme, dataContext, inheritableParentStyles);
+  void applyTheme(
+      DataContext dataContext, Map<String, dynamic> inheritedStyles) {
+    EnsembleTheme? theme = EnsembleThemeManager().currentTheme();
+    if (theme == null) return;
+    pageStyles = theme
+        .resolveStyles(dataContext, pageStyles, classList, inheritedStyles, {});
+    Map<String, dynamic> inheritableParentStyles =
+        theme.getInheritableStyles(pageStyles ?? {});
+    headerModel?.styles = theme.resolveStyles(dataContext, headerModel?.styles,
+        headerModel?.classList, inheritableParentStyles, {});
+    headerModel?.titleWidget
+        ?.applyTheme(dataContext, headerModel!.styles ?? {});
+    footer?.styles = theme.resolveStyles(dataContext, footer?.styles,
+        footer?.classList, inheritableParentStyles, {});
+    footer?.footerWidgetModel?.applyTheme(dataContext, footer!.styles ?? {});
+    rootWidgetModel?.applyTheme(dataContext, inheritableParentStyles);
   }
+
   // Root View is special and can have many attributes,
   // where as the root body (e.g Column) should be more restrictive
   // (e.g the whole body shouldn't be click-enable)
@@ -354,6 +370,16 @@ class SinglePageModel extends PageModel implements SupportsThemes {
 
      */
   }
+
+  @override
+  Map<String, dynamic> getStyles() {
+    return pageStyles ?? {};
+  }
+
+  @override
+  void setStyles(Map<String, dynamic> styles) {
+    pageStyles = styles;
+  }
 }
 
 class WidgetModel implements SupportsThemes {
@@ -372,27 +398,40 @@ class WidgetModel implements SupportsThemes {
       {this.children, this.itemTemplate});
 
   @override
-  void applyTheme(EnsembleTheme theme,DataContext dataContext, Map<String,dynamic> inheritedStyles) {
-    theme.applyStylesToWidget(this, dataContext, inheritedStyles);
-    if ( children != null ) {
+  void applyTheme(
+      DataContext dataContext, Map<String, dynamic> inheritedStyles) {
+    if (EnsembleThemeManager().currentTheme() == null) return;
+    EnsembleThemeManager()
+        .currentTheme()
+        ?.applyStylesToWidget(this, dataContext, inheritedStyles);
+    if (children != null) {
       for (var childModel in children!) {
-        childModel.applyTheme(theme, dataContext, theme.getInheritableStyles(styles));
+        childModel.applyTheme(dataContext, styles);
       }
     }
-    if ( itemTemplate != null ) {
-      itemTemplate!.template?.applyTheme(theme, dataContext, theme.getInheritableStyles(styles));
-    }
+    //itemTemplates are handled later as at this stage itemTemplate.template may just be a yamlmap
+    itemTemplate?.inheritedStyles = styles;
+  }
+
+  @override
+  Map<String, dynamic> getStyles() {
+    return styles;
+  }
+
+  @override
+  void setStyles(Map<String, dynamic> styles) {
+    this.styles = styles;
   }
 }
 
 class CustomWidgetModel extends WidgetModel {
-  CustomWidgetModel(this.widgetModel, Map<String, dynamic> props,
+  CustomWidgetModel(this.widgetModel, String type, Map<String, dynamic> props,
       {this.importedCode,
       this.parameters,
       this.inputs,
       this.actions,
       this.events})
-      : super(widgetModel.definition, '', {}, [], props);
+      : super(widgetModel.definition, type, {}, [], props);
 
   List<ParsedCode>? importedCode;
   WidgetModel widgetModel;
@@ -403,6 +442,16 @@ class CustomWidgetModel extends WidgetModel {
 
   WidgetModel getModel() {
     return widgetModel;
+  }
+
+  //a customWidget is nothing but a simple wrapper on the widgetModel, as such it doesn't have any styles or classList
+  @override
+  void applyTheme(
+      DataContext dataContext, Map<String, dynamic> inheritedStyles) {
+    EnsembleThemeManager()
+        .currentTheme()
+        ?.applyStylesToWidget(this, dataContext, inheritedStyles);
+    widgetModel.applyTheme(dataContext, styles);
   }
 
   ViewBehavior getViewBehavior() {
@@ -425,12 +474,14 @@ class ItemTemplate {
   final String name;
   final dynamic template;
   List<dynamic>? initialValue;
+  Map<String, dynamic>? inheritedStyles;
 
   ItemTemplate(
     this.data,
     this.name,
     this.template, {
     this.initialValue,
+    this.inheritedStyles,
   });
 }
 
