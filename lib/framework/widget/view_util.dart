@@ -107,16 +107,20 @@ class ViewUtil {
     // Let's build the model now
     // no payload, simple widget e.g Spacer or Spacer:
     if (payload == null) {
-      return WidgetModel(def, widgetType, {}, {});
+      return WidgetModel(def, widgetType, {}, [], {});
     }
 
     List<WidgetModel>? children;
     ItemTemplate? itemTemplate;
     Map<String, dynamic> props = {};
     Map<String, dynamic> styles = {};
+    List<String>? classList;
 
     payload.forEach((key, value) {
       if (value != null) {
+        if ( key == 'class') {
+          classList = (value as String?)?.split(RegExp('\\s+'));
+        }
         if (key == 'styles' && value is YamlMap) {
           value.forEach((styleKey, styleValue) {
             styles[styleKey] = styleValue;
@@ -132,7 +136,7 @@ class ViewUtil {
       }
     });
 
-    return WidgetModel(def, widgetType, styles, props,
+    return WidgetModel(def, widgetType, styles, classList, props,
         children: children, itemTemplate: itemTemplate);
   }
 

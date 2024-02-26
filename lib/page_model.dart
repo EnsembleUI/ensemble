@@ -6,6 +6,7 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/menu.dart';
+import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/layout/app_scroller.dart';
@@ -171,9 +172,11 @@ class PageGroupModel extends PageModel {
     menu = Menu.fromYaml(docMap['ViewGroup'], customViewDefinitions);
   }
 }
-
+abstract class SupportsThemes {
+  void applyTheme(EnsembleTheme theme,DataContext context, Map<String,dynamic> inheritedStyles);
+}
 /// represents an individual screen translated from the YAML definition
-class SinglePageModel extends PageModel {
+class SinglePageModel extends PageModel implements SupportsThemes {
   SinglePageModel._init(YamlMap docMap) {
     _processModel(docMap);
   }
@@ -182,6 +185,9 @@ class SinglePageModel extends PageModel {
   HeaderModel? headerModel;
 
   Map<String, dynamic>? pageStyles;
+  //just like css, Ensemble widgets can have named styles as well.
+  // In case both a className and inline styles are specified, styles specified by the styleName are applied first and then the inline styles are applied.
+  List<String>? classList;
   ScreenOptions? screenOptions;
   WidgetModel? rootWidgetModel;
   FooterItems? footer;
@@ -216,7 +222,7 @@ class SinglePageModel extends PageModel {
             pageStyles![key] = value;
           });
         }
-
+        classList = (viewMap['class'] as String?)?.split(RegExp('\\s+'));
         if (viewMap['footer'] != null &&
             viewMap['footer']['children'] != null) {
           Map<String, dynamic>? dragOptionsMap =
@@ -233,6 +239,7 @@ class SinglePageModel extends PageModel {
               Utils.getMap(
                 viewMap['footer']['styles'],
               ),
+              (viewMap['footer']['class'] as String?)?.split(RegExp('\\s+')),
               dragOptionsMap,
               fixedContent,
               ViewUtil.buildModel(footerYamlMap, customViewDefinitions));
@@ -250,6 +257,7 @@ class SinglePageModel extends PageModel {
     String? titleText = legacyTitle;
     WidgetModel? background;
     Map<String, dynamic>? styles;
+    List<String>? classList;
 
     if (headerData != null) {
       if (ViewUtil.isViewModel(headerData['title'], customViewDefinitions)) {
@@ -265,20 +273,32 @@ class SinglePageModel extends PageModel {
       }
 
       styles = ViewUtil.getMap(headerData['styles']);
+      classList = (headerData['class'] as String?)?.split(RegExp('\\s+'));
     }
 
     if (titleWidget != null ||
         titleText != null ||
         background != null ||
-        styles != null) {
+        styles != null ||
+        classList != null) {
       headerModel = HeaderModel(
           titleText: titleText,
           titleWidget: titleWidget,
           flexibleBackground: background,
-          styles: styles);
+          styles: styles,
+          classList: classList);
     }
   }
-
+  @override
+  void applyTheme(EnsembleTheme theme,DataContext dataContext, Map<String,dynamic> inheritedStyles) {
+    pageStyles = theme.resolveStyles(dataContext,pageStyles, classList, inheritedStyles, {});
+    Map<String,dynamic> inheritableParentStyles = theme.getInheritableStyles(pageStyles??{});
+    headerModel?.styles = theme.resolveStyles(dataContext,headerModel?.styles, headerModel?.classList, inheritableParentStyles, {});
+    headerModel?.titleWidget?.applyTheme(theme, dataContext, theme.getInheritableStyles(headerModel!.styles??{}));
+    footer?.styles = theme.resolveStyles(dataContext,footer?.styles, footer?.classList, inheritableParentStyles, {});
+    footer?.footerWidgetModel?.applyTheme(theme, dataContext, theme.getInheritableStyles(footer!.styles??{}));
+    rootWidgetModel?.applyTheme(theme, dataContext, inheritableParentStyles);
+  }
   // Root View is special and can have many attributes,
   // where as the root body (e.g Column) should be more restrictive
   // (e.g the whole body shouldn't be click-enable)
@@ -341,18 +361,33 @@ class SinglePageModel extends PageModel {
   }
 }
 
-class WidgetModel {
+class WidgetModel implements SupportsThemes {
   final SourceSpan definition;
   final String type;
-  final Map<String, dynamic> styles;
+  Map<String, dynamic> styles;
+  //list of named styles
+  List<String>? classList;
   final Map<String, dynamic> props;
 
   // a layout can either have children or itemTemplate, but not both
   final List<WidgetModel>? children;
   final ItemTemplate? itemTemplate;
 
-  WidgetModel(this.definition, this.type, this.styles, this.props,
+  WidgetModel(this.definition, this.type, this.styles, this.classList, this.props,
       {this.children, this.itemTemplate});
+
+  @override
+  void applyTheme(EnsembleTheme theme,DataContext dataContext, Map<String,dynamic> inheritedStyles) {
+    theme.applyStylesToWidget(this, dataContext, inheritedStyles);
+    if ( children != null ) {
+      for (var childModel in children!) {
+        childModel.applyTheme(theme, dataContext, theme.getInheritableStyles(styles));
+      }
+    }
+    if ( itemTemplate != null ) {
+      itemTemplate!.template?.applyTheme(theme, dataContext, theme.getInheritableStyles(styles));
+    }
+  }
 }
 
 class CustomWidgetModel extends WidgetModel {
@@ -362,7 +397,7 @@ class CustomWidgetModel extends WidgetModel {
       this.inputs,
       this.actions,
       this.events})
-      : super(widgetModel.definition, '', {}, props);
+      : super(widgetModel.definition, '', {}, [], props);
 
   List<ParsedCode>? importedCode;
   WidgetModel widgetModel;
@@ -406,7 +441,7 @@ class ItemTemplate {
 
 class HeaderModel {
   HeaderModel(
-      {this.titleText, this.titleWidget, this.flexibleBackground, this.styles});
+      {this.titleText, this.titleWidget, this.flexibleBackground, this.styles, this.classList});
 
   // header title can be text or a widget
   String? titleText;
@@ -414,16 +449,18 @@ class HeaderModel {
 
   WidgetModel? flexibleBackground;
   Map<String, dynamic>? styles;
+  List<String>? classList;
 }
 
 class FooterItems {
   final List<WidgetModel> children;
-  final Map<String, dynamic>? styles;
+  Map<String, dynamic>? styles;
+  final List<String>? classList;
   final Map<String, dynamic>? dragOptions;
   final WidgetModel? fixedContent;
   final WidgetModel? footerWidgetModel;
 
-  FooterItems(this.children, this.styles, this.dragOptions, this.fixedContent,
+  FooterItems(this.children, this.styles, this.classList, this.dragOptions, this.fixedContent,
       this.footerWidgetModel);
 }
 
