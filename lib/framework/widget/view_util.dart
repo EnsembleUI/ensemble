@@ -114,11 +114,12 @@ class ViewUtil {
     ItemTemplate? itemTemplate;
     Map<String, dynamic> props = {};
     Map<String, dynamic> styles = {};
-    List<String>? classList;
+    List<String>?
+        classList; //space delimited list of classes such as .myClass1 .myClass2
 
     payload.forEach((key, value) {
       if (value != null) {
-        if ( key == 'class') {
+        if (key == 'class') {
           classList = (value as String?)?.split(RegExp('\\s+'));
         }
         if (key == 'styles' && value is YamlMap) {
