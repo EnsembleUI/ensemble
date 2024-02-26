@@ -4,10 +4,13 @@ import 'package:flutter/cupertino.dart';
 import 'package:yaml/yaml.dart';
 
 class EnsembleThemeManager {
-  static final EnsembleThemeManager _instance = EnsembleThemeManager._internal();
+  static final EnsembleThemeManager _instance =
+      EnsembleThemeManager._internal();
   static final Map<String, EnsembleTheme> _themes = {};
-  String _currentThemeName = 'root';
+  String _currentThemeName =
+      'root'; //temporary name till we support multiple themes
   EnsembleThemeManager._internal();
+
   factory EnsembleThemeManager() {
     return _instance;
   }
@@ -15,7 +18,7 @@ class EnsembleThemeManager {
   /// this is name/value map. name being the name of the theme and value being the theme map
   void init(Map<String, YamlMap> themeMap, String currentThemeName) {
     _currentThemeName = currentThemeName;
-    for ( var theme in themeMap.entries ) {
+    for (var theme in themeMap.entries) {
       _themes[theme.key] = _parseTheme(theme.value);
     }
   }
@@ -42,11 +45,16 @@ class EnsembleThemeManager {
     return yamlElement;
   }
 
+  //recursively convert keys to camel case except for the ones that start with . or #
   void _convertKeysToCamelCase(dynamic value) {
     if (value is Map) {
       final keys = value.keys.toList(growable: false);
       for (final key in keys) {
-        final newKey = _toCamelCase(key);
+        String newKey = key;
+        //we don't want to convert keys that start with . or # as they are used for class and id
+        if (!key.startsWith('.') && !key.startsWith('#')) {
+          newKey = _toCamelCase(key);
+        }
         final val = value[key];
         value.remove(key);
         value[newKey] = val;
@@ -59,8 +67,6 @@ class EnsembleThemeManager {
     }
   }
   String _toCamelCase(String str) {
-    //if it is a named style, just return
-    if (str.startsWith('.')) return str;
     return str
         .split('-')
         .asMap()
