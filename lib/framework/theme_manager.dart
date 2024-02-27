@@ -24,7 +24,7 @@ class EnsembleThemeManager {
   }
 
   EnsembleTheme _parseTheme(YamlMap yamlTheme) {
-    dynamic theme = _yamlToDart(yamlTheme);
+    dynamic theme = yamlToDart(yamlTheme);
     _convertKeysToCamelCase(theme['InheritableStyles']);
     _convertKeysToCamelCase(theme['Styles']);
     return EnsembleTheme(
@@ -44,12 +44,12 @@ class EnsembleThemeManager {
     return _themes[_currentThemeName];
   }
 
-  static dynamic _yamlToDart(dynamic yamlElement) {
+  static dynamic yamlToDart(dynamic yamlElement) {
     if (yamlElement is YamlMap) {
       return yamlElement
-          .map((key, value) => MapEntry(key.toString(), _yamlToDart(value)));
+          .map((key, value) => MapEntry(key.toString(), yamlToDart(value)));
     } else if (yamlElement is YamlList) {
-      return yamlElement.map((value) => _yamlToDart(value)).toList();
+      return yamlElement.map((value) => yamlToDart(value)).toList();
     }
     return yamlElement;
   }

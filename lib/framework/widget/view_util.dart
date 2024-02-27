@@ -5,6 +5,7 @@ import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/custom_view.dart';
 import 'package:ensemble/framework/view/page.dart';
@@ -124,7 +125,7 @@ class ViewUtil {
         }
         if (key == 'styles' && value is YamlMap) {
           value.forEach((styleKey, styleValue) {
-            styles[styleKey] = styleValue;
+            styles[styleKey] = EnsembleThemeManager.yamlToDart(styleValue);
           });
         } else if (key == 'children' && value is YamlList) {
           children = ViewUtil.buildModels(value, customWidgetMap);
