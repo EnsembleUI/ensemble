@@ -266,6 +266,8 @@ class SinglePageModel extends PageModel implements SupportsThemes {
       if (headerData['titleWidget'] != null) {
         titleWidget = ViewUtil.buildModel(
             headerData['titleWidget'], customViewDefinitions);
+      } else if (headerData['titleText'] != null) {
+        titleText = headerData['titleText'].toString();
       } else {
         // we used to overload title as text or widget
         if (ViewUtil.isViewModel(headerData['title'], customViewDefinitions)) {
