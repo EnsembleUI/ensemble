@@ -125,6 +125,8 @@ abstract class WidgetController extends Controller {
 
   String? id; // do we need this?
 
+  String? testId;
+
   // wrap widget inside an Align widget
   Alignment? alignment;
 
@@ -292,6 +294,8 @@ abstract class EnsembleWidgetController extends EnsembleController {
   EBorderRadius? elevationBorderRadius;
 
   String? id; // do we need this?
+
+  String? testId;
 
   // wrap widget inside an Align widget
   Alignment? alignment;

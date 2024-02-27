@@ -97,6 +97,14 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
         ///    So if we put Expanded on the Column's child, layout exception will occur
         rtn = Expanded(child: rtn);
       }
+
+      if (widgetController.testId != null || widgetController.id != null) {
+        rtn = Semantics(
+          label: widgetController.testId ?? widgetController.id,
+          child: rtn,
+        );
+      }
+
       return rtn;
     }
     throw LanguageError("Wrong usage of widget controller!");
