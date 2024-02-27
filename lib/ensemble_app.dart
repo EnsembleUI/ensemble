@@ -217,7 +217,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
       navigatorObservers: [Ensemble.routeObserver],
       debugShowCheckedModeBanner: false,
       navigatorKey: Utils.globalAppKey,
-      //theme: config.getAppTheme(),
+      theme: config.getAppTheme(),
       localizationsDelegates: [
         config.getI18NDelegate(),
         GlobalMaterialLocalizations.delegate,
