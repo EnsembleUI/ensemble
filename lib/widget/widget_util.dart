@@ -41,22 +41,6 @@ class WidgetUtils {
     }
     return false;
   }
-
-  /// check if a widget is an Expanded or Flexible
-  static bool isExpandedOrFlexible(Widget widget) {
-    if (widget is HasController) {
-      if (widget.controller is WidgetController) {
-        return (widget.controller as WidgetController).flex != null ||
-            (widget.controller as WidgetController).flexMode != null ||
-            (widget.controller as WidgetController).expanded;
-      }
-      if (widget.controller is EnsembleWidgetController) {
-        return (widget.controller as EnsembleWidgetController).flex != null ||
-            (widget.controller as EnsembleWidgetController).flexMode != null;
-      }
-    }
-    return false;
-  }
 }
 
 class GenericTextController extends BoxController {
