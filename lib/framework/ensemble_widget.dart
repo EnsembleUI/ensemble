@@ -93,12 +93,14 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
             child: rtn);
       } else if (widgetController.flex != null ||
           widgetController.flexMode != null) {
-        if (StudioDebugger().debugMode) {
-          rtn = StudioDebugger().assertHasColumnRowFlexWrapper(rtn, context);
+        rtn = StudioDebugger().assertHasFlexBoxParent(context, rtn);
+
+        if (widgetController.flexMode == null ||
+            widgetController.flexMode == FlexMode.expanded) {
+          rtn = Expanded(flex: widgetController.flex ?? 1, child: rtn);
+        } else if (widgetController.flexMode == FlexMode.flexible) {
+          rtn = Flexible(flex: widgetController.flex ?? 1, child: rtn);
         }
-        rtn = widgetController.flexMode == FlexMode.flexible
-            ? Flexible(flex: widgetController.flex ?? 1, child: rtn)
-            : Expanded(flex: widgetController.flex ?? 1, child: rtn);
       }
       return rtn;
     }

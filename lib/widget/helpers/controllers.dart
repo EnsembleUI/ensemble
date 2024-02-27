@@ -167,8 +167,9 @@ class TextStyleComposite extends WidgetCompositeProperty {
 }
 
 enum FlexMode {
-  expanded,
+  expanded, // default
   flexible,
+  none,
 }
 
 /// TODO: Legacy, transition to EnsembleWidgetController
