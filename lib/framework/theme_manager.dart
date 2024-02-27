@@ -45,14 +45,30 @@ class EnsembleThemeManager {
   }
 
   static dynamic yamlToDart(dynamic yamlElement) {
+    // Convert YamlMap to Dart Map
     if (yamlElement is YamlMap) {
-      return yamlElement
-          .map((key, value) => MapEntry(key.toString(), yamlToDart(value)));
-    } else if (yamlElement is YamlList) {
+      return yamlElement.map((key, value) => MapEntry(key.toString(), yamlToDart(value)));
+    }
+    // Convert YamlList to Dart List
+    else if (yamlElement is YamlList) {
       return yamlElement.map((value) => yamlToDart(value)).toList();
     }
+    // Convert Dart Map to a new Map with converted values
+    else if (yamlElement is Map) {
+      var newMap = <String, dynamic>{};
+      yamlElement.forEach((key, value) {
+        newMap[key.toString()] = yamlToDart(value);
+      });
+      return newMap;
+    }
+    // Convert Dart List to a new List with converted values
+    else if (yamlElement is List) {
+      return yamlElement.map((value) => yamlToDart(value)).toList();
+    }
+    // Return the element directly if it's neither a YamlMap, YamlList, Map, nor List
     return yamlElement;
   }
+
 
   //recursively convert keys to camel case except for the ones that start with . or #
   void _convertKeysToCamelCase(dynamic value) {

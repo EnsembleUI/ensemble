@@ -220,7 +220,7 @@ class SinglePageModel extends PageModel implements SupportsThemes {
         if (viewMap['styles'] is YamlMap) {
           pageStyles = {};
           (viewMap['styles'] as YamlMap).forEach((key, value) {
-            pageStyles![key] = value;
+            pageStyles![key] = EnsembleThemeManager.yamlToDart(value);;
           });
         }
         classList = (viewMap['class'] as String?)?.split(RegExp('\\s+'));
@@ -237,7 +237,7 @@ class SinglePageModel extends PageModel implements SupportsThemes {
           footer = FooterItems(
               ViewUtil.buildModels(
                   viewMap['footer']['children'], customViewDefinitions),
-              Utils.getMap(
+              EnsembleThemeManager.yamlToDart(
                 viewMap['footer']['styles'],
               ),
               (viewMap['footer']['class'] as String?)?.split(RegExp('\\s+')),
@@ -273,7 +273,7 @@ class SinglePageModel extends PageModel implements SupportsThemes {
             headerData['flexibleBackground'], customViewDefinitions);
       }
 
-      styles = ViewUtil.getMap(headerData['styles']);
+      styles = EnsembleThemeManager.yamlToDart(headerData['styles']);
       classList = (headerData['class'] as String?)?.split(RegExp('\\s+'));
     }
 
