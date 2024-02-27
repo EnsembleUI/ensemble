@@ -209,7 +209,8 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
     StorageManager().setIsPreview(widget.isPreview);
     //TODO: Khurram: change this to multiple themes when we have those
     //even of there is no theme passed in, we still call init as thememanager would initialize with default styles
-    if (config.appBundle?.theme?['cssStyling'] == true) {//this is a temporary feature toggle during testing
+    if (config.appBundle?.theme?['cssStyling'] == true) {
+      //this is a temporary feature toggle during testing
       EnsembleThemeManager()
           .init({'root': config.appBundle?.theme ?? YamlMap()}, 'root');
     }
