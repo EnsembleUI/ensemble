@@ -77,12 +77,15 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
             child: rtn);
       } else if (widgetController.flex != null ||
           widgetController.flexMode != null) {
-        if (StudioDebugger().debugMode) {
-          rtn = StudioDebugger().assertHasColumnRowFlexWrapper(rtn, context);
+        rtn = StudioDebugger().assertHasFlexBoxParent(context, rtn);
+
+        if (widgetController.flexMode == null ||
+            widgetController.flexMode == FlexMode.expanded) {
+          rtn = Expanded(flex: widgetController.flex ?? 1, child: rtn);
+        } else if (widgetController.flexMode == FlexMode.flexible) {
+          rtn = Flexible(flex: widgetController.flex ?? 1, child: rtn);
         }
-        rtn = widgetController.flexMode == FlexMode.flexible
-            ? Flexible(flex: widgetController.flex ?? 1, child: rtn)
-            : Expanded(flex: widgetController.flex ?? 1, child: rtn);
+        // don't do anything for FlexMode.none
       } else if (widgetController.expanded == true) {
         if (StudioDebugger().debugMode) {
           rtn = StudioDebugger().assertHasColumnRowFlexWrapper(rtn, context);
