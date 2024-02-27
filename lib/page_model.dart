@@ -263,11 +263,17 @@ class SinglePageModel extends PageModel implements SupportsThemes {
     List<String>? classList;
 
     if (headerData != null) {
-      if (ViewUtil.isViewModel(headerData['title'], customViewDefinitions)) {
+      if (headerData['titleWidget'] != null) {
         titleWidget =
-            ViewUtil.buildModel(headerData['title'], customViewDefinitions);
+            ViewUtil.buildModel(headerData['titleWidget'], customViewDefinitions);
       } else {
-        titleText = headerData['title']?.toString() ?? legacyTitle;
+        // we used to overload title as text or widget
+        if (ViewUtil.isViewModel(headerData['title'], customViewDefinitions)) {
+          titleWidget =
+              ViewUtil.buildModel(headerData['title'], customViewDefinitions);
+        } else {
+          titleText = headerData['title']?.toString() ?? legacyTitle;
+        }
       }
 
       if (headerData['flexibleBackground'] != null) {
