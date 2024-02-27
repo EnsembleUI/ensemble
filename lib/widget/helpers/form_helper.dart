@@ -15,10 +15,17 @@ import 'package:flutter/material.dart';
 
 /// Controls attributes applicable for all Form Field widgets.
 class FormFieldController extends WidgetController {
-  bool? enabled;
+  String? labelText;
+  String? labelHint;
+  TextStyle? labelStyle;
   bool? floatLabel;
-  bool required = false;
+  TextStyle? floatingLabelStyle;
+
+  String? description;
   String? hintText;
+
+  bool? enabled;
+  bool required = false;
   IconModel? icon;
   int? fontSize;
   int? maxWidth;
@@ -35,8 +42,6 @@ class FormFieldController extends WidgetController {
   Color? errorBorderColor;
   Color? focusedBorderColor;
   Color? focusedErrorBorderColor;
-  TextStyle? labelStyle;
-  TextStyle? floatingLabelStyle;
 
   @override
   Map<String, Function> getBaseGetters() {
@@ -56,7 +61,6 @@ class FormFieldController extends WidgetController {
       'floatLabel': (value) =>
           floatLabel = Utils.getBool(value, fallback: false),
       'required': (value) => required = Utils.getBool(value, fallback: false),
-      'hintText': (value) => hintText = Utils.optionalString(value),
       'icon': (value) => icon = Utils.getIcon(value),
       'fontSize': (value) => fontSize = Utils.optionalInt(value),
       'maxWidth': (value) =>
@@ -80,6 +84,11 @@ class FormFieldController extends WidgetController {
       'labelStyle': (style) => labelStyle = Utils.getTextStyle(style),
       'floatingLabelStyle': (style) =>
           floatingLabelStyle = Utils.getTextStyle(style),
+      'label': (value) => label = Utils.optionalString(value),
+      'labelText': (value) => labelText = Utils.optionalString(value),
+      'labelHint': (value) => labelHint = Utils.optionalString(value),
+      'description': (value) => description = Utils.optionalString(value),
+      'hintText': (value) => hintText = Utils.optionalString(value),
     });
     return setters;
   }
@@ -275,12 +284,14 @@ abstract class FormFieldWidgetState<W extends HasController>
     TextStyle textStyle =
         Theme.of(context).textTheme.titleMedium ?? const TextStyle();
     if (widget.controller is FormFieldController) {
+      final formController = (widget.controller as FormFieldController);
       return textStyle.copyWith(
-          fontSize:
-              (widget.controller as FormFieldController).fontSize?.toDouble(),
-          overflow: TextOverflow.ellipsis
-          // TODO: expose color, ... for all form fields here
-          );
+        fontSize: formController.fontSize?.toDouble(),
+        overflow: formController.labelStyle?.overflow ?? TextOverflow.ellipsis,
+        color: formController.labelStyle?.color,
+        fontWeight: formController.labelStyle?.fontWeight,
+        // TODO: expose color, ... for all form fields here
+      );
     }
     return textStyle;
   }

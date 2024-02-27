@@ -1,5 +1,6 @@
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/studio_debugger.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -90,12 +91,16 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
             left: widgetController.stackPositionLeft?.toDouble(),
             right: widgetController.stackPositionRight?.toDouble(),
             child: rtn);
-      } else if (widgetController.expanded == true) {
-        /// Important notes:
-        /// 1. If the Column/Row is scrollable, putting Expanded on the child will cause layout exception
-        /// 2. If Column/Row is inside a parent without height/width constraint, it will collapse its size.
-        ///    So if we put Expanded on the Column's child, layout exception will occur
-        rtn = Expanded(child: rtn);
+      } else if (widgetController.flex != null ||
+          widgetController.flexMode != null) {
+        rtn = StudioDebugger().assertHasFlexBoxParent(context, rtn);
+
+        if (widgetController.flexMode == null ||
+            widgetController.flexMode == FlexMode.expanded) {
+          rtn = Expanded(flex: widgetController.flex ?? 1, child: rtn);
+        } else if (widgetController.flexMode == FlexMode.flexible) {
+          rtn = Flexible(flex: widgetController.flex ?? 1, child: rtn);
+        }
       }
 
       if (widgetController.testId != null || widgetController.id != null) {

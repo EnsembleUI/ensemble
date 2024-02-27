@@ -3,7 +3,7 @@ import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
-import 'package:ensemble/widget/input/form_helper.dart';
+import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble/framework/action.dart' as framework;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
@@ -34,7 +34,9 @@ class EnsembleTripleSwitch extends SwitchBase {
   Map<String, Function> setters() => Map<String, Function>.from(super.setters())
     ..addAll({
       'value': (value) => _controller.value =
-          SwitchState.values.from(value)?.name ?? SwitchState.off.name
+          SwitchState.values.from(value)?.name ?? SwitchState.off.name,
+      'height': (value) => _controller.height = Utils.optionalDouble(value),
+      'width': (value) => _controller.width = Utils.optionalDouble(value),
     });
 
   void onToggle(SwitchState newValue) {
@@ -158,6 +160,8 @@ class SwitchBaseState extends FormFieldWidgetState<SwitchBase> {
       startBackgroundColor: widget._controller.activeColor,
       middleBackgroundColor: widget._controller.mixedColor,
       endBackgroundColor: widget._controller.inactiveColor,
+      width: widget._controller.width,
+      height: widget._controller.height,
       disable: widget._controller.enabled == false,
       state: switchState,
       onChanged: isEnabled()
@@ -198,7 +202,7 @@ class SwitchBaseState extends FormFieldWidgetState<SwitchBase> {
     return Switch(
         trackColor: trackColor,
         thumbColor: thumbColor,
-        value: widget._controller.value,
+        value: widget._controller.value == true,
         onChanged: isEnabled()
             ? (value) {
                 (widget as EnsembleSwitch?)?.onToggle(value);
@@ -224,6 +228,8 @@ class SwitchBaseController extends FormFieldController {
   Color? inactiveColor;
   Color? inactiveThumbColor;
   Color? mixedColor;
+  double? width = 80;
+  double? height = 30;
 
   framework.EnsembleAction? onChange;
 }
@@ -286,13 +292,16 @@ class TripleStateSwitch extends StatelessWidget {
             ? state == SwitchState.off
                 ? startBackgroundColor ?? SwitchColors.backgroundColor
                 : state == SwitchState.mixed
-                    ? middleBackgroundColor ?? SwitchColors.backgroundColor
-                    : endBackgroundColor ?? SwitchColors.backgroundColor
+                    ? middleBackgroundColor ?? Colors.grey
+                    : endBackgroundColor ?? Theme.of(context).primaryColor
             : SwitchColors.disableBackgroundColor,
         borderRadius: borderRadius ??
             BorderRadius.circular(
               200,
             ),
+      ),
+      margin: const EdgeInsets.symmetric(
+        horizontal: 8,
       ),
       padding: const EdgeInsets.symmetric(
         horizontal: 1,

@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/devmode.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/menu.dart';
 import 'package:ensemble/framework/model.dart';
@@ -25,6 +26,7 @@ class Page extends StatefulWidget {
     super.key,
     required DataContext dataContext,
     required SinglePageModel pageModel,
+    required this.onRendered,
   })  : _initialDataContext = dataContext,
         _pageModel = pageModel;
 
@@ -35,6 +37,8 @@ class Page extends StatefulWidget {
   /// the page load. In these cases we do not have the context to travel
   /// to the DataScopeWidget. This should only be used for this purpose.
   ScopeManager? rootScopeManager;
+
+  final Function() onRendered;
 
   //final Widget bodyWidget;
   //final Menu? menu;
@@ -171,9 +175,14 @@ class PageState extends State<Page>
       /// Probably not ideal as we want to fire this off asap. It's the API response that
       /// needs to make sure Invokable IDs are there (through currently our code can't
       /// separate them out yet
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScreenController().executeActionWithScope(
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await ScreenController().executeActionWithScope(
             context, _scopeManager, widget._pageModel.viewBehavior.onLoad!);
+
+        // after loading all the script, execute onRendered
+        // This is not exactly right but we don't have a way to know when the page
+        // has completely rendered. This will be sufficient for most use case
+        widget.onRendered();
       });
     }
 
@@ -440,7 +449,7 @@ class PageState extends State<Page>
                     : FloatingActionButtonLocation.endTop),
       ),
     );
-
+    DevMode.pageDataContext = _scopeManager.dataContext;
     // selectableText at the root
     if (Utils.optionalBool(widget._pageModel.pageStyles?['selectable']) ==
         true) {

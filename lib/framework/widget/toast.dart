@@ -18,9 +18,11 @@ class ToastController {
 
   // Singleton
   static final ToastController _instance = ToastController._internal();
+
   ToastController._internal() {
     //_toast.init(Utils.globalAppKey.currentContext!);
   }
+
   factory ToastController() {
     return _instance;
   }
@@ -53,12 +55,46 @@ class ToastController {
       toastGravity = ToastGravity.TOP_RIGHT;
     }
     _toast.showToast(
-        gravity: toastGravity,
-        toastDuration: toastAction.duration != null
-            ? Duration(seconds: toastAction.duration!)
-            : const Duration(days: 99),
-        child: _getToastWidget(
-            context, dataContext, toastAction, customToastBody));
+      positionedToastBuilder: (context, child) {
+        return _getPostionWidgetBasedOnGravity(context, child, toastGravity);
+      },
+      toastDuration: toastAction.duration != null
+          ? Duration(seconds: toastAction.duration!)
+          : const Duration(days: 99),
+      child: Align(
+        alignment: toastAction.alignment ?? Alignment.center,
+        child:
+            _getToastWidget(context, dataContext, toastAction, customToastBody),
+      ),
+    );
+  }
+
+  Widget _getPostionWidgetBasedOnGravity(
+      BuildContext context, Widget child, ToastGravity? gravity) {
+    switch (gravity) {
+      case ToastGravity.TOP:
+        return Positioned(top: 100.0, left: 24.0, right: 24.0, child: child);
+      case ToastGravity.TOP_LEFT:
+        return Positioned(top: 100.0, left: 24.0, right: 0.0, child: child);
+      case ToastGravity.TOP_RIGHT:
+        return Positioned(top: 100.0, right: 24.0, left: 0.0, child: child);
+      case ToastGravity.CENTER:
+        return Positioned(
+            top: 50.0, bottom: 50.0, left: 24.0, right: 24.0, child: child);
+      case ToastGravity.CENTER_LEFT:
+        return Positioned(
+            top: 50.0, bottom: 50.0, left: 24.0, right: 0.0, child: child);
+      case ToastGravity.CENTER_RIGHT:
+        return Positioned(
+            top: 50.0, bottom: 50.0, right: 24.0, left: 0.0, child: child);
+      case ToastGravity.BOTTOM_LEFT:
+        return Positioned(bottom: 50.0, left: 24.0, right: 0.0, child: child);
+      case ToastGravity.BOTTOM_RIGHT:
+        return Positioned(bottom: 50.0, right: 24.0, left: 0.0, child: child);
+      case ToastGravity.BOTTOM:
+      default:
+        return Positioned(bottom: 50.0, left: 24.0, right: 24.0, child: child);
+    }
   }
 
   Widget _getToastWidget(BuildContext context, DataContext? dataContext,
@@ -68,6 +104,7 @@ class ToastController {
     Color? bgColor = Utils.getColor(toastAction.styles?['backgroundColor']);
     EBorderRadius? borderRadius =
         Utils.getBorderRadius(toastAction.styles?['borderRadius']);
+    BoxShadow? boxShadow = Utils.getBoxShadow(toastAction.styles?['boxShadow']);
     Color? shadowColor = Utils.getColor(toastAction.styles?['shadowColor']);
     double? shadowRadius =
         Utils.optionalDouble(toastAction.styles?['shadowRadius'], min: 0);
@@ -112,7 +149,7 @@ class ToastController {
           if (message != null && message.isNotEmpty)
             Flexible(
               child: Text(
-                message!,
+                message,
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -138,12 +175,13 @@ class ToastController {
             borderRadius: borderRadius?.getValue() ??
                 const BorderRadius.all(Radius.circular(8)),
             boxShadow: <BoxShadow>[
-              BoxShadow(
-                blurStyle: BlurStyle.outer,
-                color: shadowColor ?? Colors.black26,
-                blurRadius: shadowRadius ?? 3,
-                offset: shadowOffset ?? const Offset(0, 0),
-              )
+              boxShadow ??
+                  BoxShadow(
+                    blurStyle: BlurStyle.outer,
+                    color: shadowColor ?? Colors.black26,
+                    blurRadius: shadowRadius ?? 3,
+                    offset: shadowOffset ?? const Offset(0, 0),
+                  )
             ]),
         child: content);
 

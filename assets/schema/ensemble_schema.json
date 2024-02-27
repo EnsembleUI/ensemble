@@ -1877,7 +1877,7 @@
         }
       ]
     },
-    "TripleStateSwitch-payload": {
+    "TripleSwitch-payload": {
       "type": "object",
       "allOf": [
         {
@@ -1887,13 +1887,26 @@
           "type": "object",
           "properties": {
             "value": {
-              "type": "boolean"
+              "type": "string",
+              "enum": [
+                "off",
+                "mixed",
+                "on"
+              ]
             },
             "leadingText": {
               "type": "string"
             },
             "trailingText": {
               "type": "string"
+            },
+            "height": {
+              "type": "integer",
+              "description": "The height of the switch"
+            },
+            "width": {
+              "type": "integer",
+              "description": "The width of the switch"
             },
             "styles": {
               "allOf": [
@@ -1902,9 +1915,9 @@
                 },
                 {
                   "properties": {
-                    "intermediateColor": {
+                    "mixedColor": {
                       "$ref": "#/$defs/type-color",
-                      "description": "The middle state color of the Switch Widget."
+                      "description": "The mixed state color of the Switch Widget."
                     }
                   }
                 }
@@ -5977,13 +5990,13 @@
           }
         },
         {
-          "title": "TripleStateSwitch",
+          "title": "TripleSwitch",
           "required": [
-            "TripleStateSwitch"
+            "TripleSwitch"
           ],
           "properties": {
-            "TripleStateSwitch": {
-              "$ref": "#/$defs/TripleStateSwitch-payload",
+            "TripleSwitch": {
+              "$ref": "#/$defs/TripleSwitch-payload",
               "description": "Kitchen Sink Example: https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screen/"
             }
           }

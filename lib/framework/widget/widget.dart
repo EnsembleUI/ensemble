@@ -27,6 +27,7 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
 
   @override
   Widget build(BuildContext context) {
+    Widget rtn = buildWidget(context);
     if (widget.controller is WidgetController) {
       WidgetController widgetController = widget.controller as WidgetController;
 
@@ -35,8 +36,6 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
           widgetController.visibilityTransitionDuration == null) {
         return const SizedBox.shrink();
       }
-
-      Widget rtn = buildWidget(context);
 
       if (widgetController.elevation != null) {
         rtn = Material(
@@ -76,6 +75,17 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
             left: widgetController.stackPositionLeft?.toDouble(),
             right: widgetController.stackPositionRight?.toDouble(),
             child: rtn);
+      } else if (widgetController.flex != null ||
+          widgetController.flexMode != null) {
+        rtn = StudioDebugger().assertHasFlexBoxParent(context, rtn);
+
+        if (widgetController.flexMode == null ||
+            widgetController.flexMode == FlexMode.expanded) {
+          rtn = Expanded(flex: widgetController.flex ?? 1, child: rtn);
+        } else if (widgetController.flexMode == FlexMode.flexible) {
+          rtn = Flexible(flex: widgetController.flex ?? 1, child: rtn);
+        }
+        // don't do anything for FlexMode.none
       } else if (widgetController.expanded == true) {
         if (StudioDebugger().debugMode) {
           rtn = StudioDebugger().assertHasColumnRowFlexWrapper(rtn, context);
@@ -97,7 +107,7 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
 
       return rtn;
     }
-    throw LanguageError("Wrong usage of widget controller!");
+    return rtn;
   }
 
   /// build your widget here

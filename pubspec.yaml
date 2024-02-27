@@ -67,7 +67,7 @@ dependencies:
   flutter_svg: ^2.0.7
   flutter_svg_provider: ^1.0.4
   qr_flutter: ^4.1.0
-  device_info_plus: ^8.2.2
+  device_info_plus: ^9.1.2
   flutter_map: ^4.0.0
   carousel_slider: ^4.1.1
   fluttertoast: 8.2.2
@@ -79,7 +79,6 @@ dependencies:
   url_launcher: ^6.1.11
   provider: ^6.0.3
   cloud_firestore: 4.14.0
-  geolocator: ^9.0.2
   get_storage: ^2.0.3
   flutter_html: ^3.0.0-beta.1 # flutter_html ^2.0.0 requires flutter_svg <1.0.0, conflicts with ours
   webview_flutter: ^4.2.0
@@ -109,7 +108,7 @@ dependencies:
   youtube_player_iframe: ^4.0.4
   web_socket_client: ^0.1.0
   app_links: ^3.4.3
-  share_plus: ^6.3.4
+  share_plus: ^7.2.2
   rate_my_app: ^2.0.0
   table_calendar:
     git:
@@ -130,7 +129,6 @@ dependencies:
   dropdown_button2: ^2.3.9
   collection: ^1.17.1
   package_info_plus: ^3.1.2
-
 
 dev_dependencies:
   flutter_test:

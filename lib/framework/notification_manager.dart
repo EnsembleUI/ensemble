@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'dart:developer';
 import 'dart:io' show Platform;
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -80,7 +82,12 @@ class NotificationManager {
         'body': message.notification?.body,
         'data': message.data
       });
-      _handleNotification();
+      // _handleNotification(message);
+      notificationUtils.showNotification(
+        message.notification?.title,
+        message.notification?.body,
+        payload: jsonEncode(message.toMap()),
+      );
     });
 
     /// when the app is in the background, we can't run UI logic.
@@ -96,10 +103,11 @@ class NotificationManager {
         'body': message.notification?.body,
         'data': message.data
       });
-      _handleNotification();
+      handleNotification(message);
     });
   }
 
+  // TODO: framework should call this automatically
   void initGetInitialMessage() {
     // This is called when the user taps on the notification and the app is opened from the terminated state
     FirebaseMessaging.instance.getInitialMessage().then((message) {
@@ -110,26 +118,37 @@ class NotificationManager {
         'body': message.notification?.body,
         'data': message.data
       });
-      Ensemble()
-          .addCallbackAfterInitialization(method: () => _handleNotification());
+      // notification will be executed AFTER the home screen has finished rendering
+      Ensemble().addPushNotificationCallback(
+          method: () => handleNotification(message));
     }).catchError((err) {
       // ignore: avoid_print
-      print('Failed to get the remote notification');
+      print(
+          "Failed to get the remote notification's initial message. Ignoring ...");
     });
   }
 
-  Future<void> _handleNotification() async {
-    Map<String, dynamic>? messageData = Ensemble.externalDataContext['data'];
-    if (messageData?['screenId'] != null ||
-        messageData?['screenName'] != null) {
-      ScreenController().navigateToScreen(
-        Utils.globalAppKey.currentContext!,
-        screenId: messageData!['screenId'],
-        screenName: messageData['screenName'],
-        pageArgs: messageData,
-      );
+  Future<void> handleNotification(RemoteMessage message) async {
+    Map<String, dynamic> payload = {
+      'notificationPayload': {
+        'title': message.notification?.title,
+        'body': message.notification?.body,
+        'data': message.data,
+      }
+    };
+    if (message.data['screenId'] != null ||
+        message.data['screenName'] != null) {
+      ScreenController().navigateToScreen(Utils.globalAppKey.currentContext!,
+          screenId: message.data['screenId'],
+          screenName: message.data['screenName'],
+          pageArgs: {
+            // backward compatibility
+            ...message.data,
+            ...payload,
+          });
     } else {
-      log('No screenId nor screenName provided on the notification. Ignoring ...');
+      ScreenController().navigateToScreen(Utils.globalAppKey.currentContext!,
+          pageArgs: payload);
     }
   }
 }

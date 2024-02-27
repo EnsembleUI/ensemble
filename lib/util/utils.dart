@@ -317,6 +317,20 @@ class Utils {
     return map != null ? YamlMap.wrap(map) : null;
   }
 
+  static dynamic convertYamlToDart(dynamic yaml) {
+    if (yaml is YamlMap) {
+      // Convert the YamlMap to a Map<String, dynamic>
+      return yaml.map(
+          (key, value) => MapEntry(key.toString(), convertYamlToDart(value)));
+    } else if (yaml is YamlList) {
+      // Convert the YamlList to a List
+      return yaml.map((item) => convertYamlToDart(item)).toList();
+    } else {
+      // Return the value directly if it's not a YamlMap or YamlList
+      return yaml;
+    }
+  }
+
   //this is semantically different from the methods above as it is doesn't return null when value is not a map
   static dynamic maybeYamlMap(dynamic value) {
     if (value is Map) {
@@ -327,6 +341,24 @@ class Utils {
 
   static Color? getColor(dynamic value) {
     if (value is String) {
+      // Check for hexadecimal color pattern (with or without alpha). It begins with #
+      RegExp hexColor = RegExp(r'^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$');
+      if (hexColor.hasMatch(value)) {
+        // Remove the '#' if it exists
+        String hexValue = value.replaceFirst('#', '');
+        // Ensure full opacity if no alpha value is provided
+        if (hexValue.length == 6) {
+          hexValue = 'FF$hexValue'; // Add full opacity for RGB values
+        }
+        // Convert to an integer and create a Color object
+        try {
+          return Color(int.parse('0x$hexValue'));
+        } catch (e) {
+          // Handle or log the error
+          print('Failed to convert hex to Color: $e');
+          return null;
+        }
+      }
       switch (value) {
         case '.transparent':
         case 'transparent':
@@ -421,6 +453,28 @@ class Utils {
     return null;
   }
 
+  static BoxShadowComposite? getBoxShadowComposite(
+      ChangeNotifier widgetController, dynamic inputs) {
+    if (inputs is Map) {
+      return BoxShadowComposite(widgetController, inputs: inputs);
+    }
+    return null;
+  }
+
+  static BoxShadow? getBoxShadow(dynamic inputs) {
+    if (inputs is Map) {
+      return BoxShadow(
+        color: Utils.getColor(inputs['color']) ?? Colors.black,
+        offset: Utils.getOffset(inputs['offset']) ?? Offset.zero,
+        blurRadius: Utils.getInt(inputs['blur'], fallback: 0).toDouble(),
+        spreadRadius: Utils.getInt(inputs['spread'], fallback: 0).toDouble(),
+        blurStyle:
+            BlurStyle.values.from(inputs['blurStyle']) ?? BlurStyle.normal,
+      );
+    }
+    return null;
+  }
+
   static TextStyleComposite getTextStyleAsComposite(
       WidgetController widgetController,
       {dynamic style}) {
@@ -501,6 +555,100 @@ class Utils {
         break;
     }
     return textAlign;
+  }
+
+  static Curve? getCurve(String? curveType) {
+    Curve? curve;
+    switch (curveType) {
+      case 'bounceIn':
+        curve = Curves.bounceIn;
+      case 'bounceInOut':
+        curve = Curves.bounceInOut;
+      case 'bounceOut':
+        curve = Curves.bounceOut;
+      case 'decelerate':
+        curve = Curves.decelerate;
+      case 'ease':
+        curve = Curves.ease;
+      case 'easeIn':
+        curve = Curves.easeIn;
+      case 'easeInBack':
+        curve = Curves.easeInBack;
+      case 'easeInCirc':
+        curve = Curves.easeInCirc;
+      case 'easeInCubic':
+        curve = Curves.easeInCubic;
+      case 'easeInExpo':
+        curve = Curves.easeInExpo;
+      case 'easeInOut':
+        curve = Curves.easeInOut;
+      case 'easeInOutBack':
+        curve = Curves.easeInOutBack;
+      case 'easeInOutCirc':
+        curve = Curves.easeInOutCirc;
+      case 'easeInOutCubic':
+        curve = Curves.easeInOutCubic;
+      case 'easeInOutCubicEmphasized':
+        curve = Curves.easeInOutCubicEmphasized;
+      case 'easeInOutExpo':
+        curve = Curves.easeInOutExpo;
+      case 'easeInOutQuad':
+        curve = Curves.easeInOutQuad;
+      case 'easeInOutQuart':
+        curve = Curves.easeInOutQuart;
+      case 'easeInOutQuint':
+        curve = Curves.easeInOutQuint;
+      case 'easeInOutSine':
+        curve = Curves.easeInOutSine;
+      case 'easeInQuad':
+        curve = Curves.easeInQuad;
+      case 'easeInQuart':
+        curve = Curves.easeInQuart;
+      case 'easeInQuint':
+        curve = Curves.easeInQuint;
+      case 'easeInSine':
+        curve = Curves.easeInSine;
+      case 'easeInToLinear':
+        curve = Curves.easeInToLinear;
+      case 'easeOut':
+        curve = Curves.easeOut;
+      case 'easeOutBack':
+        curve = Curves.easeOutBack;
+      case 'easeOutCirc':
+        curve = Curves.easeOutCirc;
+      case 'easeOutCubic':
+        curve = Curves.easeOutCubic;
+      case 'easeOutExpo':
+        curve = Curves.easeOutExpo;
+      case 'easeOutQuad':
+        curve = Curves.easeOutQuad;
+      case 'easeOutQuart':
+        curve = Curves.easeOutQuart;
+      case 'easeOutQuint':
+        curve = Curves.easeOutQuint;
+      case 'easeOutSine':
+        curve = Curves.easeOutSine;
+      case 'elasticIn':
+        curve = Curves.elasticIn;
+      case 'elasticInOut':
+        curve = Curves.elasticInOut;
+      case 'elasticOut':
+        curve = Curves.elasticOut;
+      case 'fastEaseInToSlowEaseOut':
+        curve = Curves.fastEaseInToSlowEaseOut;
+      case 'fastLinearToSlowEaseIn':
+        curve = Curves.fastLinearToSlowEaseIn;
+      case 'linear':
+        curve = Curves.linear;
+      case 'linearToEaseOut':
+        curve = Curves.linearToEaseOut;
+      case 'slowMiddle':
+        curve = Curves.slowMiddle;
+      default:
+        curve = null;
+    }
+
+    return curve;
   }
 
   static TextDecoration? getDecoration(dynamic decoration) {
