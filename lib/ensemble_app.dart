@@ -11,6 +11,7 @@ import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble/framework/storage_manager.dart';
+import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/widget/error_screen.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/ios_deep_link_manager.dart';
@@ -23,6 +24,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:workmanager/workmanager.dart';
+import 'package:yaml/yaml.dart';
 
 const String backgroundUploadTask = 'backgroundUploadTask';
 const String ensembleMethodChannelName = 'com.ensembleui.host.platform';
@@ -205,12 +207,17 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
     }
 
     StorageManager().setIsPreview(widget.isPreview);
-
+    //TODO: Khurram: change this to multiple themes when we have those
+    //even of there is no theme passed in, we still call init as thememanager would initialize with default styles
+    if (config.appBundle?.theme?['cssStyling'] == true) {//this is a temporary feature toggle during testing
+      EnsembleThemeManager()
+          .init({'root': config.appBundle?.theme ?? YamlMap()}, 'root');
+    }
     return MaterialApp(
       navigatorObservers: [Ensemble.routeObserver],
       debugShowCheckedModeBanner: false,
       navigatorKey: Utils.globalAppKey,
-      theme: config.getAppTheme(),
+      //theme: config.getAppTheme(),
       localizationsDelegates: [
         config.getI18NDelegate(),
         GlobalMaterialLocalizations.delegate,
