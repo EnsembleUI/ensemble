@@ -32,12 +32,11 @@ class WidgetUtils {
     final isWidgetController =
         view is HasController && (view.controller is WidgetController);
     if (isWidgetController) {
-      final visibleChild = (view.controller as WidgetController).visible;
-      return visibleChild;
+      return (view.controller as WidgetController).visible != false;
     }
     // new widget renderer
     if (view is EnsembleWidget && view.controller is EnsembleWidgetController) {
-      return (view.controller as EnsembleWidgetController).visible;
+      return (view.controller as EnsembleWidgetController).visible != false;
     }
     return false;
   }
