@@ -167,6 +167,7 @@ class PageGroupModel extends PageModel {
     menu = Menu.fromYaml(docMap['ViewGroup'], customViewDefinitions);
   }
 }
+
 abstract class SupportsThemes {
   void applyTheme(DataContext context, Map<String, dynamic> inheritedStyles);
 
@@ -220,7 +221,8 @@ class SinglePageModel extends PageModel implements SupportsThemes {
         if (viewMap['styles'] is YamlMap) {
           pageStyles = {};
           (viewMap['styles'] as YamlMap).forEach((key, value) {
-            pageStyles![key] = EnsembleThemeManager.yamlToDart(value);;
+            pageStyles![key] = EnsembleThemeManager.yamlToDart(value);
+            ;
           });
         }
         classList = (viewMap['class'] as String?)?.split(RegExp('\\s+'));
@@ -261,11 +263,19 @@ class SinglePageModel extends PageModel implements SupportsThemes {
     List<String>? classList;
 
     if (headerData != null) {
-      if (ViewUtil.isViewModel(headerData['title'], customViewDefinitions)) {
-        titleWidget =
-            ViewUtil.buildModel(headerData['title'], customViewDefinitions);
+      if (headerData['titleWidget'] != null) {
+        titleWidget = ViewUtil.buildModel(
+            headerData['titleWidget'], customViewDefinitions);
+      } else if (headerData['titleText'] != null) {
+        titleText = headerData['titleText'].toString();
       } else {
-        titleText = headerData['title']?.toString() ?? legacyTitle;
+        // we used to overload title as text or widget
+        if (ViewUtil.isViewModel(headerData['title'], customViewDefinitions)) {
+          titleWidget =
+              ViewUtil.buildModel(headerData['title'], customViewDefinitions);
+        } else {
+          titleText = headerData['title']?.toString() ?? legacyTitle;
+        }
       }
 
       if (headerData['flexibleBackground'] != null) {
@@ -394,7 +404,8 @@ class WidgetModel implements SupportsThemes {
   final List<WidgetModel>? children;
   final ItemTemplate? itemTemplate;
 
-  WidgetModel(this.definition, this.type, this.styles, this.classList, this.props,
+  WidgetModel(
+      this.definition, this.type, this.styles, this.classList, this.props,
       {this.children, this.itemTemplate});
 
   @override
@@ -487,7 +498,11 @@ class ItemTemplate {
 
 class HeaderModel {
   HeaderModel(
-      {this.titleText, this.titleWidget, this.flexibleBackground, this.styles, this.classList});
+      {this.titleText,
+      this.titleWidget,
+      this.flexibleBackground,
+      this.styles,
+      this.classList});
 
   // header title can be text or a widget
   String? titleText;
@@ -506,8 +521,8 @@ class FooterItems {
   final WidgetModel? fixedContent;
   final WidgetModel? footerWidgetModel;
 
-  FooterItems(this.children, this.styles, this.classList, this.dragOptions, this.fixedContent,
-      this.footerWidgetModel);
+  FooterItems(this.children, this.styles, this.classList, this.dragOptions,
+      this.fixedContent, this.footerWidgetModel);
 }
 
 enum PageType { regular, modal }

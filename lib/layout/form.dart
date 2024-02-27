@@ -196,7 +196,7 @@ class FormState extends WidgetState<EnsembleForm>
       Widget label;
       if (child is HasController &&
           child.controller is WidgetController &&
-          (child.controller as WidgetController).visible &&
+          (child.controller as WidgetController).visible != false &&
           (child.controller as WidgetController).label != null &&
           !inExcludedList(child.controller as WidgetController)) {
         label = buildLabel(
