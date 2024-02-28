@@ -38,7 +38,9 @@ class WidgetUtils {
     if (view is EnsembleWidget && view.controller is EnsembleWidgetController) {
       return (view.controller as EnsembleWidgetController).visible != false;
     }
-    return false;
+    // if we don't understand what this widget is, we probably want to
+    // say that it is visible. Should we?
+    return true;
   }
 }
 
