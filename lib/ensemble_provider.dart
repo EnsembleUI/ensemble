@@ -218,7 +218,8 @@ class AppModel {
         log("Invalid YAML for doc '${doc.id}'\n${e.toString()}");
         // throw error right away for resources
         if (doc.id == ArtifactType.resources.name) {
-          throw LanguageError("Invalid YAML for 'resources': \n${e.toString()}");
+          throw LanguageError(
+              "Invalid YAML for 'resources': \n${e.toString()}");
         }
       }
     }
