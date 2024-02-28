@@ -32,28 +32,11 @@ class WidgetUtils {
     final isWidgetController =
         view is HasController && (view.controller is WidgetController);
     if (isWidgetController) {
-      final visibleChild = (view.controller as WidgetController).visible;
-      return visibleChild;
+      return (view.controller as WidgetController).visible != false;
     }
     // new widget renderer
     if (view is EnsembleWidget && view.controller is EnsembleWidgetController) {
-      return (view.controller as EnsembleWidgetController).visible;
-    }
-    return false;
-  }
-
-  /// check if a widget is an Expanded or Flexible
-  static bool isExpandedOrFlexible(Widget widget) {
-    if (widget is HasController) {
-      if (widget.controller is WidgetController) {
-        return (widget.controller as WidgetController).flex != null ||
-            (widget.controller as WidgetController).flexMode != null ||
-            (widget.controller as WidgetController).expanded;
-      }
-      if (widget.controller is EnsembleWidgetController) {
-        return (widget.controller as EnsembleWidgetController).flex != null ||
-            (widget.controller as EnsembleWidgetController).flexMode != null;
-      }
+      return (view.controller as EnsembleWidgetController).visible != false;
     }
     return false;
   }

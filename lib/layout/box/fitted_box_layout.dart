@@ -1,6 +1,7 @@
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/model.dart';
+import 'package:ensemble/framework/studio_debugger.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/box/base_box_layout.dart';
@@ -82,9 +83,9 @@ class FittedBoxLayoutState extends WidgetState<FittedBoxLayout>
     List<Widget> items = [];
     for (int i = 0; i < widget._controller.children!.length; i++) {
       Widget child = buildChild(widget._controller.children![i]);
-      if (child is EnsembleSpacer) {
+      if (StudioDebugger().debugMode && child is EnsembleSpacer) {
         throw LanguageError(
-            "Spacer cannot be used inside FittedRow/FittedColumn. Use Row or Column parent instead.");
+            "Spacer cannot be used inside FittedRow/FittedColumn. Use FlexRow or FlexColumn parent instead.");
       }
 
       // default flex is 1 if not specified

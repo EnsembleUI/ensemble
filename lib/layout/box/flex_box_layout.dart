@@ -85,9 +85,9 @@ class FlexBoxLayoutState extends WidgetState<FlexBoxLayout>
     List<Widget> items = [];
     for (int i = 0; i < widget._controller.children!.length; i++) {
       Widget child = buildChild(widget._controller.children![i]);
-      // by default each child is an Expanded inside our container
-      // so wrap it if not already a Flexible/Expanded
-      if (!WidgetUtils.isExpandedOrFlexible(child)) {
+      // this child is not marked as a FlexBox, so we force
+      // it to be an Expanded by default as a child of this container
+      if (!hasFlex(child)) {
         items.add(Expanded(child: child));
       } else {
         items.add(child);
@@ -112,34 +112,25 @@ class FlexBoxLayoutState extends WidgetState<FlexBoxLayout>
         children: items,
       );
     }
-    Widget rtn =
-        BoxLayoutWrapper(boxWidget: boxWidget, controller: widget._controller);
+    Widget rtn = StudioDebugger()
+        .assertCorrectUseOfFlexBox(boxWidget, widget.isVertical());
+    return BoxLayoutWrapper(boxWidget: rtn, controller: widget._controller);
+  }
 
-    // handle invalid layout in Studio
-    if (StudioDebugger().debugMode) {
-      rtn = RequiresRowColumnFlexWidget(child: rtn);
-
-      // Layout builder is finicking, and some containers which required children
-      // to have intrinsic size will have issues with this.
-      return LayoutBuilder(builder: (context, constraints) {
-        if (widget.isVertical()) {
-          // if the parent has unbounded height, using FittedColumn is bad
-          if (!constraints.hasBoundedHeight) {
-            throw LanguageError(
-                "FlexColumn stretches vertically to fill its parent, which causes an issue when the parent (such as Column) calculates its height based on the children, or when the parent is scrollable (such as ListView).",
-                recovery: "Consider using Column to fix this problem.");
-          }
-        } else {
-          // if the parent has unbounded width, using FittedRow is bad
-          if (!constraints.hasBoundedWidth) {
-            throw LanguageError(
-                "FlexRow stretches horizontally to fill its parent, which causes an issue when the parent (such as Row) calculates its width based on the children, or when the parent is a horizontal scrollable.",
-                recovery: "Consider using Row to fix this problem.");
-          }
-        }
-        return rtn;
-      });
+  /// check if a widget have flex or flexMode set. This essentially means the
+  /// widget already handles this themselves already
+  bool hasFlex(Widget widget) {
+    if (widget is HasController) {
+      if (widget.controller is WidgetController) {
+        return (widget.controller as WidgetController).flex != null ||
+            (widget.controller as WidgetController).flexMode != null ||
+            (widget.controller as WidgetController).expanded;
+      }
+      if (widget.controller is EnsembleWidgetController) {
+        return (widget.controller as EnsembleWidgetController).flex != null ||
+            (widget.controller as EnsembleWidgetController).flexMode != null;
+      }
     }
-    return rtn;
+    return false;
   }
 }

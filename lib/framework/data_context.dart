@@ -109,9 +109,11 @@ class DataContext implements Context {
     return DataContext(
         buildContext: newBuildContext ?? buildContext, initialMap: map);
   }
+
   String? getAppId() {
     return (getContextById('appInfo') as AppInfo)?.appId;
   }
+
   /// copy over the additionalContext,
   /// skipping over duplicate keys if replaced is false
   void copy(DataContext additionalContext, {bool replaced = false}) {
@@ -199,6 +201,7 @@ class DataContext implements Context {
     }
     return null;
   }
+
   static Map<String, dynamic>? _recursiveLookup(
       Map<String, dynamic> map, String key) {
     if (map.containsKey(key)) {
@@ -700,10 +703,12 @@ class EnsembleStorage with Invokable {
       'delete': (key) => delete(key),
     };
   }
+
   void delete(String key) {
     StorageManager().remove(key);
     ScreenController().dispatchStorageChanges(context, key, null);
   }
+
   @override
   Map<String, Function> setters() {
     throw UnimplementedError();
