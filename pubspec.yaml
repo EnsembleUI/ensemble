@@ -112,7 +112,7 @@ dependencies:
   rate_my_app: ^2.0.0
   table_calendar:
     git:
-      url: https://github.com/snehmehta/table_calendar
+      url: https://github.com/EnsembleUI/table_calendar
       ref: master
 
   flutter_app_badger: ^1.5.0
