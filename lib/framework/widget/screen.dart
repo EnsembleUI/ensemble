@@ -54,12 +54,6 @@ class _ScreenState extends State<Screen> {
             builder: (context, snapshot) {
               // show error
               if (snapshot.hasError) {
-                final langError = snapshot.error as LanguageError?;
-                if (langError != null) {
-                  if (langError.error == 'invalid-content') {
-                    return const SizedBox();
-                  }
-                }
                 return ErrorScreen(LanguageError(
                     "I'm not able to read your page definition",
                     detailError: snapshot.error.toString()));
