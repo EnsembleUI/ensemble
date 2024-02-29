@@ -1,15 +1,28 @@
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/app_info.dart';
+import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:flutter/material.dart';
 
 /// App Configuration
 class AppConfig with Invokable {
+  BuildContext context;
+  String? appId;
+  AppConfig(this.context, this.appId);
+  static const String useMockResponse = 'useMockResponse';
+  String get useMockResponseKey => '${appId ?? ''}_$useMockResponse';
   @override
   Map<String, Function> getters() {
     return {
-      //'baseUrl': () => Ensemble().getConfig()?.getUserAppConfig()?.baseUrl
       'baseUrl': () =>
-          Ensemble().getConfig()?.definitionProvider.getAppConfig()?.baseUrl
+          Ensemble().getConfig()?.definitionProvider.getAppConfig()?.baseUrl,
+      'useMockResponse': () =>
+          EnsembleStorage(context).getProperty(useMockResponseKey) ?? false
     };
+  }
+
+  void exitApp() {
+    EnsembleStorage(context).setProperty(useMockResponseKey, false);
   }
 
   @override
@@ -17,9 +30,17 @@ class AppConfig with Invokable {
     return {};
   }
 
+  bool isMockResponse() {
+    return EnsembleStorage(context).getProperty(useMockResponseKey) ?? false;
+  }
+
   @override
   Map<String, Function> setters() {
-    return {};
+    return {
+      'useMockResponse': (bool value) {
+        EnsembleStorage(context).setProperty(useMockResponseKey, value);
+      }
+    };
   }
 }
 

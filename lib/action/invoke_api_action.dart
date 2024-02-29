@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/bindings.dart';
+import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
@@ -87,18 +88,22 @@ class InvokeAPIController {
       ScopeManager scopeManager, Map<String, YamlMap>? apiMap) async {
     YamlMap? apiDefinition = apiMap?[action.apiName];
     if (apiDefinition != null) {
+      ScopeManager apiScopeManager =
+          scopeManager.newCreateChildScope(ephemeral: true);
       // evaluate input arguments and add them to context
       if (apiDefinition['inputs'] is YamlList && action.inputs != null) {
         for (var input in apiDefinition['inputs']) {
-          dynamic value = scopeManager.dataContext.eval(action.inputs![input]);
+          dynamic value =
+              apiScopeManager.dataContext.eval(action.inputs![input]);
           if (value != null) {
-            scopeManager.dataContext.addDataContextById(input, value);
+            apiScopeManager.dataContext.addToThisContext(input, value);
           }
         }
       }
 
       // if invokeAPI has an ID, add it to context so we can bind to it
       // This is useful when the API is called in a loop, so binding to its API name won't work properly
+      //this is added to the parent so that the id of the API is visible outside the API block
       if (action.id != null &&
           !scopeManager.dataContext.hasContext(action.id!)) {
         scopeManager.dataContext.addInvokableContext(action.id!, APIResponse());
@@ -120,12 +125,19 @@ class InvokeAPIController {
           action,
           APIResponse(response: responseToDispatch),
         );
-
-        Response response = await HttpUtils.invokeApi(
-            context, apiDefinition, scopeManager.dataContext, action.apiName);
+        Response response;
+        if (AppConfig(context, apiScopeManager.dataContext.getAppId())
+                .isMockResponse() &&
+            apiDefinition['mockResponse'] != null) {
+          response = await HttpUtils.invokeMockAPI(
+              apiScopeManager.dataContext, apiDefinition['mockResponse']);
+        } else {
+          response = await HttpUtils.invokeApi(context, apiDefinition,
+              apiScopeManager.dataContext, action.apiName);
+        }
         if (response.isOkay) {
-          _onAPIComplete(
-              context, action, apiDefinition, response, apiMap, scopeManager);
+          _onAPIComplete(context, action, apiDefinition, response, apiMap,
+              apiScopeManager);
           return response;
         }
         errorResponse = response;
@@ -133,8 +145,8 @@ class InvokeAPIController {
         errorResponse = error;
         debugPrint(error.toString());
       }
-      _onAPIError(
-          context, action, apiDefinition, errorResponse, apiMap, scopeManager);
+      _onAPIError(context, action, apiDefinition, errorResponse, apiMap,
+          apiScopeManager);
     } else {
       throw RuntimeError("Unable to find api definition for ${action.apiName}");
     }

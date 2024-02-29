@@ -5,6 +5,7 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/theme/theme_loader.dart';
+import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/error_screen.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
@@ -83,6 +84,11 @@ class _ScreenState extends State<Screen> {
   Widget renderScreen(ScreenDefinition screenDefinition) {
     PageModel pageModel =
         screenDefinition.getModel(widget.screenPayload?.arguments);
+    //theme will get applied if one exists
+    if (pageModel is SupportsThemes) {
+      EnsembleThemeManager().applyTheme(context, pageModel as SupportsThemes,
+          (pageModel as SupportsThemes).getStyles());
+    }
     //here add the js code
     //widget.appProvider.definitionProvider.getAppBundle().
     // build the data context
@@ -228,15 +234,23 @@ class ScreenDefinition {
     YamlMap output = _content;
 
     /// manipulate the screen definition to account for custom widget
-    if (_content.keys.length == 1 && _content['Widget'] != null) {
-      output = _getWidgetAsScreen(_content['Widget'], inputParams);
+    if ((_content.keys.length == 1 && _content['Widget'] != null) ||
+        (_content.keys.length == 2 &&
+            _content.containsKey(PageModel.importToken) &&
+            _content.containsKey('Widget'))) {
+      output = _getWidgetAsScreen(_content, inputParams);
     }
+
     return PageModel.fromYaml(output);
   }
 
   /// wrap a widget so it can be displayed as if it's an actual Screen
+  /// the widgetContent is the full yaml map that contains Widget and optional Import as keys.
   YamlMap _getWidgetAsScreen(
-      YamlMap widgetContent, Map<String, dynamic>? inputParams) {
+      YamlMap widgetYaml, Map<String, dynamic>? inputParams) {
+    YamlList? imports = widgetYaml[PageModel.importToken] as YamlList?;
+    YamlMap widgetContent = widgetYaml['Widget'] as YamlMap;
+
     /// build the input map if specified
     Map<String, dynamic>? inputMap;
     if (widgetContent['inputs'] is List) {
@@ -250,7 +264,7 @@ class ScreenDefinition {
     // use random name so we don't accidentally collide with other names
     String randomWidgetName = "Widget${Random().nextInt(100)}";
 
-    return YamlMap.wrap({
+    Map widgetContentMap = {
       'View': {
         'styles': {'useSafeArea': true},
         'body': {
@@ -258,7 +272,11 @@ class ScreenDefinition {
         }
       },
       randomWidgetName: widgetContent
-    });
+    };
+    if (imports != null) {
+      widgetContentMap[PageModel.importToken] = imports;
+    }
+    return YamlMap.wrap(widgetContentMap);
   }
 }
 
