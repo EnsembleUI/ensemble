@@ -221,6 +221,7 @@ class ListViewState extends WidgetState<ListView>
           }
         }
         if (itemWidget != null) {
+          itemWidget = KeepAliveListItem(itemWidget: itemWidget);
           return widget._controller.onItemTap == null
               ? itemWidget
               : flutter.InkWell(
@@ -294,4 +295,24 @@ class ListViewState extends WidgetState<ListView>
 
     ScreenController().executeAction(context, widget._controller.onScrollEnd!);
   }
+}
+
+class KeepAliveListItem extends StatefulWidget {
+  final Widget itemWidget;
+  const KeepAliveListItem({super.key, required this.itemWidget});
+
+  @override
+  State<KeepAliveListItem> createState() => _KeepAliveListItemState();
+}
+
+class _KeepAliveListItemState extends State<KeepAliveListItem>
+    with AutomaticKeepAliveClientMixin<KeepAliveListItem> {
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.itemWidget;
+  }
+
+  @override
+  bool get wantKeepAlive => true;
 }
