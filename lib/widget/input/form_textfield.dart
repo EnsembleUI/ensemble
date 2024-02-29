@@ -316,14 +316,16 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
         }
       }
     });
-
     // Checking for readOnly from parent widget and assign the value to TextInput and PasswordInput if it's readOnly property is null
-    final formController =
-        context.findAncestorWidgetOfExactType<EnsembleForm>()?.controller;
+    if (widget._controller.readOnly == null) {
+      final formController =
+          context.findAncestorWidgetOfExactType<EnsembleForm>()?.controller;
 
-    if (formController != null && widget._controller.readOnly == null) {
-      widget._controller.readOnly = formController.readOnly == true;
+      if (formController != null) {
+        widget._controller.readOnly = formController.readOnly == true;
+      }
     }
+
     super.initState();
   }
 
