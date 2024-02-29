@@ -215,6 +215,12 @@ class AppModel {
       } on Exception catch (e) {
         // invalid YAML need to be suppressed until we actually reach the page,
         // so we'll just ignore this error here
+        log("Invalid YAML for doc '${doc.id}'\n${e.toString()}");
+        // throw error right away for resources
+        if (doc.id == ArtifactType.resources.name) {
+          throw LanguageError(
+              "Invalid YAML for 'resources': \n${e.toString()}");
+        }
       }
     }
     // non-screen (i.e. theme is perfectly fine to be null)

@@ -219,6 +219,9 @@ class LottieState extends WidgetState<EnsembleLottie>
           }
         },
       );
+
+      iFrame.style.pointerEvents = "none";
+
       // Registering the iframe in the flutter widget tree
       ui.platformViewRegistry.registerViewFactory(
         divId,
@@ -228,7 +231,9 @@ class LottieState extends WidgetState<EnsembleLottie>
       return SizedBox(
         width: width + 24,
         height: height + 16,
-        child: HtmlElementView(viewType: divId), // Rendering the iframe
+        child: AbsorbPointer(
+          child: HtmlElementView(viewType: divId),
+        ), // Rendering the iframe
       );
     }
     return blankPlaceholder();
