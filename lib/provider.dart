@@ -74,6 +74,9 @@ class LocalDefinitionProvider extends DefinitionProvider {
     var pageStr = await rootBundle.loadString(
         '$path${screenId ?? screenName ?? appHome}.yaml',
         cache: foundation.kReleaseMode);
+    if (pageStr.isEmpty) {
+      return ScreenDefinition(YamlMap());
+    }
     return ScreenDefinition(loadYaml(pageStr));
   }
 
@@ -150,7 +153,7 @@ class RemoteDefinitionProvider extends DefinitionProvider {
       }
       completer.complete(res);
     } else {
-      completer.completeError("Error loading Remote screen $screen");
+      completer.complete(ScreenDefinition(YamlMap()));
     }
     return completer.future;
   }
@@ -236,8 +239,7 @@ class LegacyDefinitionProvider extends DefinitionProvider {
       }
       completer.complete(res);
     } else {
-      completer.completeError(
-          "Error loading Ensemble page: ${screenId ?? screenName ?? 'Home'}");
+      completer.complete(ScreenDefinition(YamlMap()));
     }
     return completer.future;
   }

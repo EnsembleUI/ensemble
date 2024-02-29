@@ -250,8 +250,6 @@ class SinglePageModel extends PageModel implements SupportsThemes {
 
         rootWidgetModel = buildRootModel(viewMap, customViewDefinitions);
       }
-    } else {
-      throw (LanguageError("Please add View"));
     }
   }
 
