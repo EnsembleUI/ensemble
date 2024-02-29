@@ -274,10 +274,15 @@ class CarouselState extends WidgetState<Carousel>
                 widget._controller.indicatorPosition ?? Alignment.bottomCenter,
             child: Padding(
               padding: widget._controller.indicatorPadding ?? EdgeInsets.zero,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: indicators,
-              ),
+              child: widget._controller.direction == Axis.vertical.name
+                  ? Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: indicators,
+                    )
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: indicators,
+                    ),
             ),
           ),
         )

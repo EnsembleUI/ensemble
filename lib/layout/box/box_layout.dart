@@ -188,11 +188,6 @@ class BoxLayoutState extends WidgetState<BoxLayout>
       return const SizedBox.shrink();
     }
 
-    // default to max but user can always change it to min
-    MainAxisSize mainAxisSize = widget._controller.mainAxisSize == 'min'
-        ? MainAxisSize.min
-        : MainAxisSize.max;
-
     Widget boxWidget;
     if (widget is Column) {
       // wrapping SingleChildScrollView around a Column has performance issue in HTML renderer.
@@ -208,7 +203,7 @@ class BoxLayoutState extends WidgetState<BoxLayout>
         ];
       }
       boxWidget = flutter.Column(
-          mainAxisSize: mainAxisSize,
+          mainAxisSize: widget._controller.mainAxisSize,
           mainAxisAlignment: widget._controller.mainAxis,
           crossAxisAlignment: widget._controller.crossAxis,
           children: items);
@@ -217,7 +212,7 @@ class BoxLayoutState extends WidgetState<BoxLayout>
       }
     } else if (widget is Row) {
       boxWidget = flutter.Row(
-          mainAxisSize: mainAxisSize,
+          mainAxisSize: widget._controller.mainAxisSize,
           mainAxisAlignment: widget._controller.mainAxis,
           crossAxisAlignment: widget._controller.crossAxis,
           children: items);
@@ -227,7 +222,7 @@ class BoxLayoutState extends WidgetState<BoxLayout>
     } else if (widget is Flex) {
       boxWidget = flutter.Flex(
           direction: widget.isVertical() ? Axis.vertical : Axis.horizontal,
-          mainAxisSize: mainAxisSize,
+          mainAxisSize: widget._controller.mainAxisSize,
           mainAxisAlignment: widget._controller.mainAxis,
           crossAxisAlignment: widget._controller.crossAxis,
           children: items);

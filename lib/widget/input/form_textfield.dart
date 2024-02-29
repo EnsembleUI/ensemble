@@ -11,7 +11,7 @@ import 'package:ensemble/util/debouncer.dart';
 import 'package:ensemble/util/input_formatter.dart';
 import 'package:ensemble/util/input_validator.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/input/form_helper.dart';
+import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:flutter/cupertino.dart';
@@ -115,9 +115,7 @@ abstract class BaseTextInput extends StatefulWidget
 
   @override
   Map<String, Function> getters() {
-    return {
-      'value': () => textController.text ?? ''
-    };
+    return {'value': () => textController.text ?? ''};
   }
 
   @override
