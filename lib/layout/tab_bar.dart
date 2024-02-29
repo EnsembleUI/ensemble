@@ -202,7 +202,7 @@ class TabBarState extends WidgetState<BaseTabBar>
   /// override to handle Expanded properly
   @override
   Widget build(BuildContext context) {
-    if (!widget._controller.visible || widget._controller._items.isEmpty) {
+    if (widget._controller._items.isEmpty) {
       return const SizedBox.shrink();
     }
 
