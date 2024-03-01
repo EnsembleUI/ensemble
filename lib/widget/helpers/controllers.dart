@@ -192,7 +192,7 @@ abstract class WidgetController extends Controller {
 
   String? id; // do we need this?
 
-  String? testId;
+  String? automationId;
 
   // wrap widget inside an Align widget
   Alignment? alignment;
@@ -370,7 +370,7 @@ abstract class EnsembleWidgetController extends EnsembleController {
 
   String? id; // do we need this?
 
-  String? testId;
+  String? automationId;
 
   // wrap widget inside an Align widget
   Alignment? alignment;

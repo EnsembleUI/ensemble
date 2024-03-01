@@ -103,9 +103,10 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
         }
       }
 
-      if (widgetController.testId != null || widgetController.id != null) {
+      if (widgetController.automationId != null ||
+          widgetController.id != null) {
         rtn = Semantics(
-          label: widgetController.testId ?? widgetController.id,
+          label: widgetController.automationId ?? widgetController.id,
           child: rtn,
         );
       }
