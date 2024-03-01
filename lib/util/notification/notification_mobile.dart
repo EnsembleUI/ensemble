@@ -30,7 +30,7 @@ class NotificationUtilsMobile implements NotificationUtilsBase {
   @override
   Future<bool?> initNotifications() async {
     const initializationSettingsAndroid =
-        AndroidInitializationSettings('ic_launcher');
+        AndroidInitializationSettings('@mipmap/ic_launcher');
     const initializationSettingsIOS = DarwinInitializationSettings();
     const initializationSettings = InitializationSettings(
       android: initializationSettingsAndroid,
