@@ -167,8 +167,9 @@ class TextStyleComposite extends WidgetCompositeProperty {
 }
 
 enum FlexMode {
-  expanded,
+  expanded, // default
   flexible,
+  none,
 }
 
 /// TODO: Legacy, transition to EnsembleWidgetController
@@ -182,7 +183,7 @@ abstract class WidgetController extends Controller {
   @Deprecated("use flexLayout/flex instead")
   bool expanded = false;
 
-  bool visible = true;
+  bool? visible;
   Duration? visibilityTransitionDuration; // in seconds
 
   int? elevation;
@@ -210,7 +211,7 @@ abstract class WidgetController extends Controller {
   Map<String, Function> getBaseGetters() {
     return {
       'expanded': () => expanded,
-      'visible': () => visible,
+      'visible': () => visible != false,
     };
   }
 
@@ -358,7 +359,7 @@ abstract class EnsembleWidgetController extends EnsembleController {
   FlexMode? flexMode;
   int? flex;
 
-  bool visible = true;
+  bool? visible;
   Duration? visibilityTransitionDuration; // in seconds
 
   int? elevation;
@@ -381,7 +382,7 @@ abstract class EnsembleWidgetController extends EnsembleController {
   @override
   Map<String, Function> getters() {
     return {
-      'visible': () => visible,
+      'visible': () => visible != false,
     };
   }
 
