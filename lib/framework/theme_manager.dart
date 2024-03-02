@@ -24,6 +24,7 @@ class EnsembleThemeManager {
     _currentThemeName = currentThemeName;
     for (var theme in themeMap.entries) {
       _themes[theme.key] = _parseTheme(theme.value, context);
+
     }
   }
 
@@ -35,7 +36,7 @@ class EnsembleThemeManager {
         tokens: theme['Tokens'] ?? {},
         styles: theme['Styles'] ?? {},
         inheritableStyles: {} //turning off inheritance as it is handled by the containers
-        );
+        ).init(context);
   }
 
   EnsembleTheme? currentTheme() {
