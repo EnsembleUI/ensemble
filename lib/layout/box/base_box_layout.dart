@@ -29,9 +29,9 @@ class BoxLayoutWrapper extends StatelessWidget {
     Widget rtn = BoxWrapper(
       boxController: controller,
       widget: DefaultTextStyle.merge(
-          style: TextStyle(
-              fontFamily: controller.fontFamily,
-              fontSize: controller.fontSize?.toDouble()),
+          style: controller._textStyle?.getTextStyle(),
+          textAlign: controller._textStyle?.textAlign,
+          maxLines: controller.maxLines,
           child: boxWidget),
       ignoresMargin: true,
     );
@@ -106,6 +106,8 @@ abstract class BaseBoxLayoutController extends BoxController {
   // TODO: think through this. Need more style overrides.
   String? fontFamily;
   int? fontSize;
+  TextStyleComposite? _textStyle;
+  int? maxLines;
 
   @override
   Map<String, Function> getBaseSetters() {
@@ -120,7 +122,24 @@ abstract class BaseBoxLayoutController extends BoxController {
       'gap': (value) => gap = Utils.optionalInt(value),
       'fontFamily': (value) => fontFamily = Utils.optionalString(value),
       'fontSize': (value) => fontSize = Utils.optionalInt(value),
+      'maxLines': (value) => maxLines = Utils.optionalInt(value, min: 1),
+      'textStyle': (style) => _textStyle =
+          Utils.getTextStyleAsComposite(this, style: style),
     });
     return setters;
+  }
+  @override
+  Map<String, Function> getBaseGetters() {
+    Map<String, Function> getters = super.getBaseGetters();
+    getters.addAll({
+      'mainAxisSize': () => mainAxisSize,
+      'mainAxis': () => mainAxis,
+      'crossAxis': () => crossAxis,
+      'gap': () => gap,
+      'fontFamily': () => fontFamily,
+      'fontSize': () => fontSize,
+      'textStyle': () => _textStyle,
+    });
+    return getters;
   }
 }

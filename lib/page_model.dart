@@ -175,7 +175,32 @@ abstract class SupportsThemes {
 
   void setStyles(Map<String, dynamic> styles);
 }
-
+mixin HasStyles {
+  //resolved styles specified in the theme directly on the type e.g. Text or Button and/or with id
+  Map<String,dynamic>? _themeStyles;
+  Map<String,dynamic>? get themeStyles => _themeStyles;
+  set themeStyles(Map<String,dynamic>? styles) {
+    _themeStyles = styles;
+  }
+  //these are the inline styles set directly on the widget
+  Map<String, dynamic>? _inlineStyles;
+  Map<String, dynamic>? get inlineStyles => _inlineStyles;
+  set inlineStyles(Map<String, dynamic>? styles) {
+    _inlineStyles = styles;
+  }
+  //list of named styles, a widget may have a list of class names delimited by spaces like css
+  List<String>? _classList;
+  List<String>? get classList => _classList;
+  set classList(List<String>? classList) {
+    _classList = classList;
+  }
+  //these are the styles resolved with what's set at the theme level and inline styles
+  Map<String, dynamic>? _runtimeStyles;
+  Map<String, dynamic>? get runtimeStyles => _runtimeStyles;
+  set runtimeStyles(Map<String, dynamic>? styles) {
+    _runtimeStyles = styles;
+  }
+}
 /// represents an individual screen translated from the YAML definition
 class SinglePageModel extends PageModel implements SupportsThemes {
   SinglePageModel._init(YamlMap docMap) {
@@ -185,11 +210,14 @@ class SinglePageModel extends PageModel implements SupportsThemes {
   ViewBehavior viewBehavior = ViewBehavior();
   HeaderModel? headerModel;
   final String type = 'View';
-  Map<String, dynamic>? pageStyles;
+  Map<String, dynamic>? runtimeStyles;
 
   //just like css, Ensemble widgets can have named styles as well.
   // In case both a className and inline styles are specified, styles specified by the styleName are applied first and then the inline styles are applied.
+  Map<String, dynamic>? widgetTypeStyles;
+  //list of named styles, a widget may have a list of class names delimited by spaces like css
   List<String>? classList;
+  Map<String,dynamic>? inlineStyles;
   ScreenOptions? screenOptions;
   WidgetModel? rootWidgetModel;
   FooterItems? footer;
@@ -219,13 +247,13 @@ class SinglePageModel extends PageModel implements SupportsThemes {
         }
 
         if (viewMap['styles'] is YamlMap) {
-          pageStyles = {};
+          inlineStyles = {};
           (viewMap['styles'] as YamlMap).forEach((key, value) {
-            pageStyles![key] = EnsembleThemeManager.yamlToDart(value);
-            ;
+            inlineStyles![key] = EnsembleThemeManager.yamlToDart(value);
           });
         }
         classList = (viewMap['class'] as String?)?.split(RegExp('\\s+'));
+        widgetTypeStyles = EnsembleThemeManager().currentTheme()?.getWidgetTypeStyles(type);
         if (viewMap['footer'] != null &&
             viewMap['footer']['children'] != null) {
           Map<String, dynamic>? dragOptionsMap =
@@ -306,10 +334,10 @@ class SinglePageModel extends PageModel implements SupportsThemes {
       DataContext dataContext, Map<String, dynamic> inheritedStyles) {
     EnsembleTheme? theme = EnsembleThemeManager().currentTheme();
     if (theme == null) return;
-    pageStyles = theme
-        .resolveStyles(dataContext, pageStyles, classList, inheritedStyles, {});
+    runtimeStyles = theme
+        .resolveStyles(dataContext, runtimeStyles, classList, inheritedStyles, {});
     Map<String, dynamic> inheritableParentStyles =
-        theme.getInheritableStyles(pageStyles ?? {});
+        theme.getInheritableStyles(runtimeStyles ?? {});
     headerModel?.styles = theme.resolveStyles(dataContext, headerModel?.styles,
         headerModel?.classList, inheritableParentStyles, {});
     headerModel?.titleWidget
@@ -383,55 +411,58 @@ class SinglePageModel extends PageModel implements SupportsThemes {
 
   @override
   Map<String, dynamic> getStyles() {
-    return pageStyles ?? {};
+    return runtimeStyles ?? {};
   }
 
   @override
   void setStyles(Map<String, dynamic> styles) {
-    pageStyles = styles;
+    runtimeStyles = styles;
   }
 }
 
 class WidgetModel implements SupportsThemes {
   final SourceSpan definition;
   final String type;
-  Map<String, dynamic> styles;
+  //styles specified in themes directly on the type e.g. Text or Button and/or with id
+  Map<String, dynamic>? themeStyles;
+  Map<String, dynamic>? runtimeStyles;
   //list of named styles, a widget may have a list of class names delimited by spaces like css
   List<String>? classList;
+  Map<String,dynamic>? inlineStyles;
   final Map<String, dynamic> props;
+
 
   // a layout can either have children or itemTemplate, but not both
   final List<WidgetModel>? children;
   final ItemTemplate? itemTemplate;
 
   WidgetModel(
-      this.definition, this.type, this.styles, this.classList, this.props,
+      this.definition, this.type, this.themeStyles, this.inlineStyles, this.classList, this.props,
       {this.children, this.itemTemplate});
 
   @override
   void applyTheme(
       DataContext dataContext, Map<String, dynamic> inheritedStyles) {
-    if (EnsembleThemeManager().currentTheme() == null) return;
     EnsembleThemeManager()
         .currentTheme()
         ?.applyStylesToWidget(this, dataContext, inheritedStyles);
     if (children != null) {
       for (var childModel in children!) {
-        childModel.applyTheme(dataContext, styles);
+        childModel.applyTheme(dataContext, runtimeStyles);
       }
     }
     //itemTemplates are handled later as at this stage itemTemplate.template may just be a yamlmap
-    itemTemplate?.inheritedStyles = styles;
+    itemTemplate?.inheritedStyles = runtimeStyles;
   }
 
   @override
   Map<String, dynamic> getStyles() {
-    return styles;
+    return runtimeStyles;
   }
 
   @override
   void setStyles(Map<String, dynamic> styles) {
-    this.styles = styles;
+    this.runtimeStyles = styles;
   }
 }
 
@@ -462,7 +493,7 @@ class CustomWidgetModel extends WidgetModel {
     EnsembleThemeManager()
         .currentTheme()
         ?.applyStylesToWidget(this, dataContext, inheritedStyles);
-    widgetModel.applyTheme(dataContext, styles);
+    widgetModel.applyTheme(dataContext, runtimeStyles);
   }
 
   ViewBehavior getViewBehavior() {

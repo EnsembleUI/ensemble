@@ -11,6 +11,7 @@ import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/stub/location_manager.dart';
+import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
@@ -356,10 +357,19 @@ mixin ViewBuilder on IsScopeManager {
       //WidgetModel model = inputModel is CustomWidgetModel ? inputModel.getModel() : inputModel;
 
       Invokable? invokable;
+      HasStyles? hasStyles;
       if (payload.widget is EnsembleWidget) {
         invokable = (payload.widget as EnsembleWidget).controller;
+        hasStyles = (payload.widget as EnsembleWidget).controller is HasStyles
+            ? (payload.widget as EnsembleWidget).controller as HasStyles
+            : null;
       } else if (payload.widget is Invokable) {
         invokable = payload.widget as Invokable;
+        if ( payload.widget is HasController ) {
+          hasStyles = (payload.widget as HasController).controller is HasStyles
+              ? (payload.widget as HasController).controller as HasStyles
+              : null;
+        }
       }
       if (invokable != null) {
         // set props and styles on the widget. At this stage the widget
@@ -375,15 +385,30 @@ mixin ViewBuilder on IsScopeManager {
             }
           }
         }
-        for (String key in model.styles.keys) {
-          if (InvokableController.getSettableProperties(invokable)
-              .contains(key)) {
-            if (_isPassthroughProperty(key, invokable)) {
-              InvokableController.setProperty(
-                  invokable, key, model.styles[key]);
-            } else {
-              evalPropertyAndRegisterBinding(
-                  scopeManager, invokable, key, model.styles[key]);
+        if (hasStyles != null) {
+          hasStyles.themeStyles = model.themeStyles;
+          hasStyles.classList = model.classList;
+          hasStyles.inlineStyles = model.inlineStyles;
+          if (EnsembleThemeManager().currentTheme() == null) {
+            //looks like there is no theme, so we'll just use the styles as is
+            hasStyles.runtimeStyles = hasStyles.inlineStyles;
+          } else {
+            hasStyles.runtimeStyles =
+                EnsembleThemeManager().currentTheme()?.resolveStyles(
+                    scopeManager.dataContext, hasStyles);
+          }
+        }
+        if (hasStyles?.runtimeStyles != null) {
+          for (String key in hasStyles!.runtimeStyles!.keys) {
+            if (InvokableController.getSettableProperties(invokable)
+                .contains(key)) {
+              if (_isPassthroughProperty(key, invokable)) {
+                InvokableController.setProperty(
+                    invokable, key, hasStyles!.runtimeStyles![key]);
+              } else {
+                evalPropertyAndRegisterBinding(
+                    scopeManager, invokable, key, hasStyles!.runtimeStyles![key]);
+              }
             }
           }
         }

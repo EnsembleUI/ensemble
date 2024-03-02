@@ -122,6 +122,7 @@ class ViewUtil {
       if (value != null) {
         if (key == 'class') {
           classList = (value as String?)?.split(RegExp('\\s+'));
+          props['classList'] = classList;
         }
         if (key == 'styles' && value is YamlMap) {
           value.forEach((styleKey, styleValue) {
@@ -138,7 +139,7 @@ class ViewUtil {
       }
     });
 
-    return WidgetModel(def, widgetType, styles, classList, props,
+    return WidgetModel(def, widgetType, EnsembleThemeManager().currentTheme()?.styles, classList, props,
         children: children, itemTemplate: itemTemplate);
   }
 
