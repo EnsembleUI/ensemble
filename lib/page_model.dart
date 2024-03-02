@@ -225,12 +225,12 @@ mixin HasStyles {
   bool stylesNeedResolving = false;
 
   void resolveStyles(ScopeManager scopeManager, Invokable invokable) {
-    //if (stylesNeedResolving) {
-    EnsembleThemeManager()
-        .currentTheme()
-        ?.resolveAndApplyStyles(scopeManager, this, invokable);
-    stylesNeedResolving = false;
-    //}
+    if (stylesNeedResolving) {
+      EnsembleThemeManager()
+          .currentTheme()
+          ?.resolveAndApplyStyles(scopeManager, this, invokable);
+      stylesNeedResolving = false;
+    }
   }
 }
 /// represents an individual screen translated from the YAML definition
