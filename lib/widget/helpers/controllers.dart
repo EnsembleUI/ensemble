@@ -213,6 +213,8 @@ abstract class WidgetController extends Controller with HasStyles {
     return {
       'expanded': () => expanded,
       'visible': () => visible != false,
+      'className': () => className,
+      'classList': () => classList,
     };
   }
 
@@ -244,6 +246,7 @@ abstract class WidgetController extends Controller with HasStyles {
           captureWebPointer = Utils.optionalBool(value),
       'label': (value) => label = Utils.optionalString(value),
       'classList': (value) => classList = value,
+      'className': (value) => className = value
     };
   }
 
@@ -385,6 +388,8 @@ abstract class EnsembleWidgetController extends EnsembleController with HasStyle
   Map<String, Function> getters() {
     return {
       'visible': () => visible != false,
+      'className': () => className,
+      'classList': () => classList,
     };
   }
 
@@ -414,6 +419,7 @@ abstract class EnsembleWidgetController extends EnsembleController with HasStyle
       'captureWebPointer': (value) =>
           captureWebPointer = Utils.optionalBool(value),
       'classList': (value) => classList = value,
+      'className': (value) => className = value
     };
   }
 

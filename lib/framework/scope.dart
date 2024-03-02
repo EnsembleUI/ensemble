@@ -318,6 +318,20 @@ mixin ViewBuilder on IsScopeManager {
     return widget;*/
   }
 
+  void setProperties(ScopeManager scopeManager, Map<String, dynamic> map,
+      Invokable invokable) {
+    for (String key in map.keys) {
+      if (InvokableController.getSettableProperties(invokable).contains(key)) {
+        if (_isPassthroughProperty(key, invokable)) {
+          InvokableController.setProperty(invokable, key, map[key]);
+        } else {
+          evalPropertyAndRegisterBinding(
+              scopeManager, invokable, key, map[key]);
+        }
+      }
+    }
+  }
+
   void _updateWidgetBindings(Map<WidgetModel, ModelPayload> modelMap) {
     modelMap.forEach((model, payload) {
       ScopeManager scopeManager = payload.scopeManager;
@@ -374,44 +388,27 @@ mixin ViewBuilder on IsScopeManager {
       if (invokable != null) {
         // set props and styles on the widget. At this stage the widget
         // has not been attached, so no worries about ValueNotifier
-        for (String key in model.props.keys) {
-          if (InvokableController.getSettableProperties(invokable)
-              .contains(key)) {
-            if (_isPassthroughProperty(key, invokable)) {
-              InvokableController.setProperty(invokable, key, model.props[key]);
-            } else {
-              evalPropertyAndRegisterBinding(
-                  scopeManager, invokable, key, model.props[key]);
-            }
-          }
-        }
+        setProperties(scopeManager, model.props, invokable);
         if (hasStyles != null) {
+          //we have to set all these so we can resolve when styles change at runtime through app logic
           hasStyles.themeStyles = model.themeStyles;
           hasStyles.classList = model.classList;
           hasStyles.inlineStyles = model.inlineStyles;
           if (EnsembleThemeManager().currentTheme() == null) {
-            //looks like there is no theme, so we'll just use the styles as is
+            //looks like there is no theme, so we'll just use the inline styles as is
             hasStyles.runtimeStyles = hasStyles.inlineStyles;
           } else {
-            hasStyles.runtimeStyles =
-                EnsembleThemeManager().currentTheme()?.resolveStyles(
-                    scopeManager.dataContext, hasStyles);
+            hasStyles.runtimeStyles = EnsembleThemeManager()
+                .currentTheme()
+                ?.resolveStyles(scopeManager.dataContext, hasStyles);
           }
         }
         if (hasStyles?.runtimeStyles != null) {
-          for (String key in hasStyles!.runtimeStyles!.keys) {
-            if (InvokableController.getSettableProperties(invokable)
-                .contains(key)) {
-              if (_isPassthroughProperty(key, invokable)) {
-                InvokableController.setProperty(
-                    invokable, key, hasStyles!.runtimeStyles![key]);
-              } else {
-                evalPropertyAndRegisterBinding(
-                    scopeManager, invokable, key, hasStyles!.runtimeStyles![key]);
-              }
-            }
-          }
+          setProperties(scopeManager, hasStyles!.runtimeStyles!, invokable);
+          //not so lovely but now we set the styleOverrides to null because setting the properties could have set them
+          hasStyles?.styleOverrides = null;
         }
+        hasStyles?.stylesNeedResolving = false;
       }
 
       if (payload.widget is UpdatableContainer) {
@@ -436,7 +433,7 @@ mixin ViewBuilder on IsScopeManager {
   ///    variable evaluation can be done inside the widget
   /// 3. Special properties like children and item-template are excluded
   ///    automatically and don't need to be specified here
-  bool _isPassthroughProperty(String property, dynamic widget) =>
+  static bool _isPassthroughProperty(String property, dynamic widget) =>
       property.startsWith('on') ||
       (widget is HasController &&
           widget.passthroughSetters().contains(property)) ||

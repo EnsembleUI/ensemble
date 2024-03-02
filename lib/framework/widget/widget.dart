@@ -28,12 +28,16 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
 
   void resolveStylesIfUnresolved() {
     if ( widget.controller is HasStyles ) {
-      ScopeManager? scopeManager =
-          DataScopeWidget.getScope(context) ?? PageGroupWidget.getScope(context);
-      HasStyles controllerWithStyles = widget.controller as HasStyles;
-      if ( scopeManager != null &&
-          controllerWithStyles.runtimeStyles == null || controllerWithStyles.runtimeStyles!.isEmpty) {
-        EnsembleThemeManager().currentTheme()?.resolveStyles(scopeManager!.dataContext, controllerWithStyles);
+      ScopeManager? scopeManager = DataScopeWidget.getScope(context) ??
+          PageGroupWidget.getScope(context);
+      Invokable? invokable;
+      if (widget.controller is Invokable) {
+        invokable = widget.controller as Invokable;
+      } else if (widget is Invokable) {
+        invokable = widget as Invokable;
+      }
+      if (scopeManager != null && invokable != null) {
+        (widget.controller as HasStyles).resolveStyles(scopeManager, invokable);
       }
     }
   }
