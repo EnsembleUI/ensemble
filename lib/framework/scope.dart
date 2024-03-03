@@ -390,18 +390,8 @@ mixin ViewBuilder on IsScopeManager {
         // has not been attached, so no worries about ValueNotifier
         setProperties(scopeManager, model.props, invokable);
         if (hasStyles != null) {
-          //we have to set all these so we can resolve when styles change at runtime through app logic
-          hasStyles.themeStyles = model.themeStyles;
-          hasStyles.classList = model.classList;
-          hasStyles.inlineStyles = model.inlineStyles;
-          if (EnsembleThemeManager().currentTheme() == null) {
-            //looks like there is no theme, so we'll just use the inline styles as is
-            hasStyles.runtimeStyles = hasStyles.inlineStyles;
-          } else {
-            hasStyles.runtimeStyles = EnsembleThemeManager()
-                .currentTheme()
-                ?.resolveStyles(scopeManager.dataContext, hasStyles);
-          }
+          EnsembleThemeManager()
+              .configureStyles(scopeManager.dataContext, model, hasStyles);
           if (hasStyles?.runtimeStyles != null) {
             setProperties(scopeManager, hasStyles!.runtimeStyles!, invokable);
             //not so lovely but now we set the styleOverrides to null because setting the properties could have set them

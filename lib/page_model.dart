@@ -349,7 +349,7 @@ class SinglePageModel extends PageModel with HasStyles {
           titleText: titleText,
           titleWidget: titleWidget,
           flexibleBackground: background,
-          styles: styles,
+          inlineStyles: styles,
           classList: classList);
     }
   }
@@ -518,33 +518,34 @@ class ItemTemplate {
   });
 }
 
-class HeaderModel {
+class HeaderModel extends Object with HasStyles {
   HeaderModel(
       {this.titleText,
       this.titleWidget,
       this.flexibleBackground,
-      this.styles,
-      this.classList});
+      inlineStyles,
+      classList}) {
+    this.inlineStyles = inlineStyles;
+    this.classList = classList;
+  }
 
   // header title can be text or a widget
   String? titleText;
   WidgetModel? titleWidget;
 
   WidgetModel? flexibleBackground;
-  Map<String, dynamic>? styles;
-  List<String>? classList;
 }
 
-class FooterItems {
+class FooterItems extends Object with HasStyles {
   final List<WidgetModel> children;
-  Map<String, dynamic>? styles;
+  Map<String, dynamic>? inlineStyles;
   final List<String>? classList;
   final Map<String, dynamic>? dragOptions;
   final WidgetModel? fixedContent;
   final WidgetModel? footerWidgetModel;
 
-  FooterItems(this.children, this.styles, this.classList, this.dragOptions,
-      this.fixedContent, this.footerWidgetModel);
+  FooterItems(this.children, this.inlineStyles, this.classList,
+      this.dragOptions, this.fixedContent, this.footerWidgetModel);
 }
 
 enum PageType { regular, modal }

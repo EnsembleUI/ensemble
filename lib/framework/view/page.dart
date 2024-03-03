@@ -7,6 +7,7 @@ import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/menu.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/view/bottom_nav_page_view.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/footer.dart';
@@ -173,7 +174,6 @@ class PageState extends State<Page>
           context, _scopeManager, widget._pageModel.viewBehavior.onResume!);
     }
   }
-
   @override
   void initState() {
     WidgetsBinding.instance.addObserver(this);
@@ -296,8 +296,8 @@ class PageState extends State<Page>
       backgroundWidget =
           _scopeManager.buildWidget(headerModel.flexibleBackground!);
     }
-
-    final evaluatedHeader = _scopeManager.dataContext.eval(headerModel.styles);
+    final evaluatedHeader = EnsembleThemeManager()
+        .getRuntimeStyles(_scopeManager.dataContext, headerModel);
 
     bool centerTitle =
         Utils.getBool(evaluatedHeader?['centerTitle'], fallback: true);

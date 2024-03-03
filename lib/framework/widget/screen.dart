@@ -90,10 +90,10 @@ class _ScreenState extends State<Screen> {
     DataContext dataContext =
         DataContext(buildContext: context, initialMap: initialMap);
     //theme will get applied if one exists
+
     if (pageModel is HasStyles) {
       (pageModel as HasStyles).runtimeStyles = EnsembleThemeManager()
-          .currentTheme()
-          ?.resolveStyles(dataContext, pageModel as HasStyles);
+          .getRuntimeStyles(dataContext, pageModel as HasStyles);
     }
 
     // add all the API names to our context as Invokable, even though their result

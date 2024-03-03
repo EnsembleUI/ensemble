@@ -18,13 +18,30 @@ class EnsembleThemeManager {
     return _instance;
   }
 
+  Map<String, dynamic>? getRuntimeStyles(
+      DataContext context, HasStyles hasStyles) {
+    if (currentTheme() == null) {
+      //looks like there is no theme, so we'll just use the inline styles as is
+      return hasStyles.inlineStyles;
+    }
+    return currentTheme()?.resolveStyles(context, hasStyles);
+  }
+
+  void configureStyles(
+      DataContext dataContext, HasStyles model, HasStyles hasStyles) {
+    //we have to set all these so we can resolve when styles change at runtime through app logic
+    hasStyles.themeStyles = model.themeStyles;
+    hasStyles.classList = model.classList;
+    hasStyles.inlineStyles = model.inlineStyles;
+    hasStyles.runtimeStyles = getRuntimeStyles(dataContext, hasStyles);
+  }
+
   /// this is name/value map. name being the name of the theme and value being the theme map
   void init(BuildContext context, Map<String, YamlMap> themeMap,
       String currentThemeName) {
     _currentThemeName = currentThemeName;
     for (var theme in themeMap.entries) {
       _themes[theme.key] = _parseTheme(theme.value, context);
-
     }
   }
 
