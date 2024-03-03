@@ -188,8 +188,9 @@ mixin HasStyles {
 
   List<String>? get classList => _classList;
 
-  set classList(List<String>? classList) {
-    _classList = classList;
+  set classList(List<String>? cl) {
+    if ( _classList == cl ) return;
+    _classList = cl;
     stylesNeedResolving = true;
   }
 
@@ -199,8 +200,7 @@ mixin HasStyles {
   }
 
   set className(String? className) {
-    _classList = className?.split(RegExp('\\s+'));
-    stylesNeedResolving = true;
+    classList = className?.split(RegExp('\\s+'));
   }
 
   //these are the styles resolved with what's set at the theme level and inline styles

@@ -402,13 +402,17 @@ mixin ViewBuilder on IsScopeManager {
                 .currentTheme()
                 ?.resolveStyles(scopeManager.dataContext, hasStyles);
           }
+          if (hasStyles?.runtimeStyles != null) {
+            setProperties(scopeManager, hasStyles!.runtimeStyles!, invokable);
+            //not so lovely but now we set the styleOverrides to null because setting the properties could have set them
+            hasStyles?.styleOverrides = null;
+          }
+          hasStyles?.stylesNeedResolving = false;
+        } else {
+          if (model.inlineStyles != null) {
+            setProperties(scopeManager, model.inlineStyles!, invokable);
+          }
         }
-        if (hasStyles?.runtimeStyles != null) {
-          setProperties(scopeManager, hasStyles!.runtimeStyles!, invokable);
-          //not so lovely but now we set the styleOverrides to null because setting the properties could have set them
-          hasStyles?.styleOverrides = null;
-        }
-        hasStyles?.stylesNeedResolving = false;
       }
 
       if (payload.widget is UpdatableContainer) {
