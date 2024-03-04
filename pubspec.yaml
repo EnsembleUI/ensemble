@@ -27,8 +27,9 @@ dependencies:
 
   device_preview:
     git:
-      url: https://github.com/vinothvino42/flutter_device_preview.git
+      url: https://github.com/EnsembleUI/flutter_device_preview.git
       ref: develop
+      path: device_preview
 
   yaml: ^3.1.2
   font_awesome_flutter: ^9.2.0
@@ -112,7 +113,7 @@ dependencies:
   rate_my_app: ^2.0.0
   table_calendar:
     git:
-      url: https://github.com/snehmehta/table_calendar
+      url: https://github.com/EnsembleUI/table_calendar
       ref: master
 
   flutter_app_badger: ^1.5.0
