@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -38,7 +39,7 @@ class EnsembleSpacer extends StatefulWidget
   /// NOTE: Spacer should not take expanded into account
 }
 
-class SpacerController extends Controller {
+class SpacerController extends Controller with HasStyles {
   int? size;
   int? flex;
 }
