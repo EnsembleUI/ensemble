@@ -3,6 +3,7 @@ import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/studio_debugger.dart';
+import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
@@ -20,13 +21,29 @@ mixin UpdatableContainer<T extends Widget> {
   void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate});
 }
 
-/// Deprecated. Use EnsembleWidgetState
+/// Deprecated. Use [EnsembleWidgetState] instead
 /// base class for widgets that want to participate in Ensemble layout
 abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
   ScopeManager? scopeManager;
 
+  void resolveStylesIfUnresolved() {
+    if ( widget.controller is HasStyles ) {
+      ScopeManager? scopeManager = DataScopeWidget.getScope(context) ??
+          PageGroupWidget.getScope(context);
+      Invokable? invokable;
+      if (widget.controller is Invokable) {
+        invokable = widget.controller as Invokable;
+      } else if (widget is Invokable) {
+        invokable = widget as Invokable;
+      }
+      if (scopeManager != null && invokable != null) {
+        (widget.controller as HasStyles).resolveStyles(scopeManager, invokable);
+      }
+    }
+  }
   @override
   Widget build(BuildContext context) {
+    resolveStylesIfUnresolved();
     Widget rtn = buildWidget(context);
     if (widget.controller is WidgetController) {
       WidgetController widgetController = widget.controller as WidgetController;
