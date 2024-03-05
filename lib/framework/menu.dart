@@ -19,8 +19,12 @@ abstract class Menu {
   static Menu fromYaml(
       dynamic menu, Map<String, dynamic>? customViewDefinitions) {
     if (menu is YamlMap) {
-      MenuDisplay? menuType = MenuDisplay.values.from(menu.keys.first);
-      YamlMap payload = menu[menu.keys.first];
+      final keys = menu.keys.toList();
+      if (keys.contains('onLoad')) {
+        keys.remove('onLoad');
+      }
+      MenuDisplay? menuType = MenuDisplay.values.from(keys.first);
+      YamlMap payload = menu[keys.first];
       WidgetModel? customIconModel;
       WidgetModel? customActiveIconModel;
 

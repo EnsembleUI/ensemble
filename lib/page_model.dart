@@ -160,10 +160,18 @@ class PageGroupModel extends PageModel {
     _processModel(docMap);
   }
 
+  ViewBehavior viewBehavior = ViewBehavior();
+
   @override
   void _processModel(YamlMap docMap) {
     super._processModel(docMap);
 
+    try {
+      if (docMap['ViewGroup'].containsKey('onLoad')) {
+        viewBehavior.onLoad =
+            EnsembleAction.fromYaml(docMap['ViewGroup']['onLoad']);
+      }
+    } on Exception catch (_) {}
     menu = Menu.fromYaml(docMap['ViewGroup'], customViewDefinitions);
   }
 }

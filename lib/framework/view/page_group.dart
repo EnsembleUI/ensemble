@@ -20,12 +20,15 @@ import 'bottom_nav_page_group.dart';
 
 /// a collection of pages grouped under a navigation menu
 class PageGroup extends StatefulWidget {
-  const PageGroup(
-      {super.key,
-      required this.initialDataContext,
-      required this.model,
-      required this.menu,
-      this.pageArgs});
+  const PageGroup({
+    super.key,
+    required this.initialDataContext,
+    required this.model,
+    required this.menu,
+    this.pageArgs,
+    this.viewBehavior,
+    this.onRendered,
+  });
 
   // keep it simple, all pages under PageGroup receives the same
   // input arguments that the PageGroup is getting
@@ -34,6 +37,8 @@ class PageGroup extends StatefulWidget {
   final DataContext initialDataContext;
   final PageGroupModel model;
   final Menu menu;
+  final ViewBehavior? viewBehavior;
+  final VoidCallback? onRendered;
 
   @override
   State<StatefulWidget> createState() => PageGroupState();
@@ -114,6 +119,20 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
       if (selected == true || selected == 'true') {
         viewGroupNotifier.updatePage(i, isReload: false);
       }
+    }
+    // execute view behavior
+    if (widget.viewBehavior?.onLoad != null) {
+      // CAUTION: even our view is the Invokable IDs will not be in,
+      // as it depends on Page to be loaded
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await ScreenController().executeActionWithScope(
+            context, _scopeManager, widget.viewBehavior!.onLoad!);
+
+        // after loading all the script, execute onRendered
+        // This is not exactly right but we don't have a way to know when the page
+        // has completely rendered. This will be sufficient for most use case
+        widget.onRendered?.call();
+      });
     }
   }
 

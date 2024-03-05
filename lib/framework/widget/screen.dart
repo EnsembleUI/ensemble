@@ -188,10 +188,13 @@ class _PageInitializerState extends State<PageInitializer>
       final pageModel = widget.pageModel as PageGroupModel;
 
       return PageGroup(
-          pageArgs: widget.screenPayload?.arguments,
-          initialDataContext: widget.dataContext,
-          model: pageModel,
-          menu: pageModel.menu!);
+        pageArgs: widget.screenPayload?.arguments,
+        initialDataContext: widget.dataContext,
+        model: pageModel,
+        menu: pageModel.menu!,
+        viewBehavior: pageModel.viewBehavior,
+        onRendered: () => executePushNotificationCallbacks(),
+      );
     } else if (widget.pageModel is SinglePageModel) {
       final pageModel = widget.pageModel as SinglePageModel;
 
