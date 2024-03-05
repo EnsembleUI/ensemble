@@ -199,6 +199,38 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
         }));
   }
 
+  void configureThemes(YamlMap doc) {
+    Map<String, YamlMap> themes = {};
+    String? defaultTheme;
+    if (doc["Themes"] != null) {
+      for (var theme in doc['Themes']) {
+        String? themeName;
+        if (theme is YamlMap) {
+          themeName = theme.keys.first;
+          YamlMap? themeMap = theme[themeName];
+          if (themeMap != null) {
+            if (themeMap.containsKey('default') &&
+                themeMap['default'] == true) {
+              defaultTheme = themeName;
+            }
+          }
+        } else {
+          themeName = theme;
+        }
+        themes[themeName!] = doc[themeName] ?? YamlMap();
+      }
+    }
+    if (themes.isNotEmpty && defaultTheme == null) {
+      defaultTheme = themes.keys.first;
+    }
+    defaultTheme ??= 'root';
+    if (themes.isEmpty) {
+      //no themes defined, we'll assume eveyrthing is in the root
+      themes[defaultTheme] = doc;
+    }
+    EnsembleThemeManager().init(context, themes, defaultTheme);
+  }
+
   Widget renderApp(EnsembleConfig config) {
     // notify external app once of EnsembleApp loading status
     if (widget.onAppLoad != null && !notifiedAppLoad) {
@@ -207,12 +239,13 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
     }
 
     StorageManager().setIsPreview(widget.isPreview);
-    //TODO: Khurram: change this to multiple themes when we have those
     //even of there is no theme passed in, we still call init as thememanager would initialize with default styles
-    if (config.appBundle?.theme?['cssStyling'] == true) {
-      //this is a temporary feature toggle during testing
-      EnsembleThemeManager().init(
-          context, {'root': config.appBundle?.theme ?? YamlMap()}, 'root');
+    if (config.appBundle?.theme?['cssStyling'] != false) {
+      // Corrected to specifically check for 'default: true'
+      YamlMap? doc = config.appBundle?.theme;
+      if (doc != null) {
+        configureThemes(doc);
+      }
     }
     return MaterialApp(
       navigatorObservers: [Ensemble.routeObserver],
