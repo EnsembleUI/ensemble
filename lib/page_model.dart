@@ -169,11 +169,17 @@ class PageGroupModel extends PageModel {
   }
 }
 mixin HasStyles {
-  //resolved styles specified in the theme directly on the type e.g. Text or Button and/or with id
-  Map<String,dynamic>? _themeStyles;
-  Map<String,dynamic>? get themeStyles => _themeStyles;
-  set themeStyles(Map<String,dynamic>? styles) {
-    _themeStyles = styles;
+  //styles specified in the theme directly on the type e.g. Text or Button
+  Map<String,dynamic>? _widgetTypeStyles;
+  Map<String,dynamic>? get widgetTypeStyles => _widgetTypeStyles;
+  set widgetTypeStyles(Map<String,dynamic>? styles) {
+    _widgetTypeStyles = styles;
+  }
+  //styles defined in the theme for a specific id e.g. #submitBtn where submitBtn is the id of the widget
+  Map<String,dynamic>? _idStyles;
+  Map<String,dynamic>? get idStyles => _idStyles;
+  set idStyles(Map<String,dynamic>? styles) {
+    _idStyles = styles;
   }
   //these are the inline styles set directly on the widget
   Map<String, dynamic>? _inlineStyles;
@@ -277,8 +283,8 @@ class SinglePageModel extends PageModel with HasStyles {
           });
         }
         classList = (viewMap['class'] as String?)?.split(RegExp('\\s+'));
-        themeStyles =
-            EnsembleThemeManager().currentTheme()?.getThemeStyles(null, type);
+        widgetTypeStyles =
+            EnsembleThemeManager().currentTheme()?.getWidgetTypeStyles(type);
         if (viewMap['footer'] != null &&
             viewMap['footer']['children'] != null) {
           Map<String, dynamic>? dragOptionsMap =
@@ -458,10 +464,11 @@ class WidgetModel extends Object with HasStyles {
     return props['id'];
   }
 
-  WidgetModel(this.definition, this.type, Map<String, dynamic>? themeStyles,
+  WidgetModel(this.definition, this.type, Map<String, dynamic>? widgetTypeStyles, Map<String,dynamic>? idStyles,
       Map<String, dynamic>? inlineStyles, List<String>? classList, this.props,
       {this.children, this.itemTemplate}) {
-    this.themeStyles = themeStyles;
+    this.idStyles = idStyles;
+    this.widgetTypeStyles = widgetTypeStyles;
     this.inlineStyles = inlineStyles;
     this.classList = classList;
   }
@@ -474,7 +481,7 @@ class CustomWidgetModel extends WidgetModel {
       this.inputs,
       this.actions,
       this.events})
-      : super(widgetModel.definition, type, {}, {}, [], props);
+      : super(widgetModel.definition, type, {}, {}, {}, [], props);
 
   List<ParsedCode>? importedCode;
   WidgetModel widgetModel;
