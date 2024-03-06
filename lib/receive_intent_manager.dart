@@ -40,8 +40,7 @@ class ReceiveIntentManager {
       if (context != null && onReceive != null) {
         final medias = _getMedias(value);
         _addToContext(context!, medias);
-        ScreenController().executeAction(context!, onReceive!,
-            event: EnsembleEvent(invokable, data: {'media': medias}));
+        ScreenController().executeAction(context!, onReceive!);
         // Tell the library that we are done processing the intent.
         ReceiveSharingIntent.reset();
       }
@@ -59,8 +58,7 @@ class ReceiveIntentManager {
       if (context != null && onReceive != null) {
         final medias = _getMedias(value);
         _addToContext(context!, medias);
-        ScreenController().executeAction(context!, onReceive!,
-            event: EnsembleEvent(invokable, data: {'media': medias}));
+        ScreenController().executeAction(context!, onReceive!);
         // Tell the library that we are done processing the intent.
         ReceiveSharingIntent.reset();
       }
@@ -74,7 +72,7 @@ class ReceiveIntentManager {
 
   void _addToContext(BuildContext context, List<Map<String, dynamic>>? medias) {
     Ensemble.externalDataContext.addAll({
-      'receiveIntentData': {'media': medias}
+      'receiveIntentData': {'medias': medias}
     });
     ScreenController()
         .getScopeManager(context)
