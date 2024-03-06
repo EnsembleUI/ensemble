@@ -108,7 +108,7 @@ class ViewUtil {
     // Let's build the model now
     // no payload, simple widget e.g Spacer or Spacer:
     if (payload == null) {
-      return WidgetModel(def, widgetType, {}, {}, [], {});
+      return WidgetModel(def, widgetType, {}, {}, {}, [], {});
     }
 
     List<WidgetModel>? children;
@@ -141,9 +141,8 @@ class ViewUtil {
     return WidgetModel(
         def,
         widgetType,
-        EnsembleThemeManager()
-            .currentTheme()
-            ?.getThemeStyles(props['id'], widgetType),
+        EnsembleThemeManager().currentTheme()?.getWidgetTypeStyles(widgetType),
+        EnsembleThemeManager().currentTheme()?.getIDStyles(props['id']),
         styles,
         classList,
         props,
