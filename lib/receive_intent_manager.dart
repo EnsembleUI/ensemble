@@ -1,3 +1,4 @@
+import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -37,9 +38,10 @@ class ReceiveIntentManager {
   void receiveMediaWhenInMemory() {
     ReceiveSharingIntent.getMediaStream().listen((List<SharedMediaFile> value) {
       if (context != null && onReceive != null) {
+        final medias = _getMedias(value);
+        _addToContext(context!, medias);
         ScreenController().executeAction(context!, onReceive!,
-            event:
-                EnsembleEvent(invokable, data: {'media': _getMedias(value)}));
+            event: EnsembleEvent(invokable, data: {'media': medias}));
         // Tell the library that we are done processing the intent.
         ReceiveSharingIntent.reset();
       }
@@ -55,9 +57,10 @@ class ReceiveIntentManager {
   void receiveMediaWhenClosed() {
     ReceiveSharingIntent.getInitialMedia().then((List<SharedMediaFile> value) {
       if (context != null && onReceive != null) {
+        final medias = _getMedias(value);
+        _addToContext(context!, medias);
         ScreenController().executeAction(context!, onReceive!,
-            event:
-                EnsembleEvent(invokable, data: {'media': _getMedias(value)}));
+            event: EnsembleEvent(invokable, data: {'media': medias}));
         // Tell the library that we are done processing the intent.
         ReceiveSharingIntent.reset();
       }
@@ -67,6 +70,16 @@ class ReceiveIntentManager {
             event: EnsembleEvent(invokable, data: {'error': err}));
       }
     });
+  }
+
+  void _addToContext(BuildContext context, List<Map<String, dynamic>>? medias) {
+    Ensemble.externalDataContext.addAll({
+      'receiveIntentData': {'media': medias}
+    });
+    ScreenController()
+        .getScopeManager(context)
+        ?.dataContext
+        .addDataContext(Ensemble.externalDataContext);
   }
 
   List<Map<String, dynamic>>? _getMedias(List<SharedMediaFile> medias) {
