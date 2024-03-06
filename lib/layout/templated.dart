@@ -73,8 +73,6 @@ mixin TemplatedWidgetState<W extends StatefulWidget> on State<W> {
     templatedScope.dataContext.addDataContextById(itemTemplate.name, itemData);
     WidgetModel model =
         templatedScope.buildWidgetModelFromDefinition(itemTemplate.template);
-    model.applyTheme(
-        templatedScope.dataContext, itemTemplate.inheritedStyles ?? {});
     Widget templatedWidget = templatedScope.buildWidgetFromModel(model);
     // Widget templatedWidget =
     //     templatedScope.buildWidgetFromDefinition(itemTemplate.template);

@@ -13,6 +13,7 @@ import 'package:ensemble/layout/stack.dart';
 import 'package:ensemble/provider.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_registry.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:source_span/source_span.dart';
 import 'package:yaml/yaml.dart';
 import 'framework/scope.dart';
@@ -167,17 +168,73 @@ class PageGroupModel extends PageModel {
     menu = Menu.fromYaml(docMap['ViewGroup'], customViewDefinitions);
   }
 }
+mixin HasStyles {
+  //resolved styles specified in the theme directly on the type e.g. Text or Button and/or with id
+  Map<String,dynamic>? _themeStyles;
+  Map<String,dynamic>? get themeStyles => _themeStyles;
+  set themeStyles(Map<String,dynamic>? styles) {
+    _themeStyles = styles;
+  }
+  //these are the inline styles set directly on the widget
+  Map<String, dynamic>? _inlineStyles;
+  Map<String, dynamic>? get inlineStyles => _inlineStyles;
 
-abstract class SupportsThemes {
-  void applyTheme(DataContext context, Map<String, dynamic> inheritedStyles);
+  set inlineStyles(Map<String, dynamic>? styles) {
+    _inlineStyles = styles;
+  }
 
-  Map<String, dynamic> getStyles();
+  //list of named styles, a widget may have a list of class names delimited by spaces like css
+  List<String>? _classList;
 
-  void setStyles(Map<String, dynamic> styles);
+  List<String>? get classList => _classList;
+
+  set classList(List<String>? cl) {
+    if ( _classList == cl ) return;
+    _classList = cl;
+    stylesNeedResolving = true;
+  }
+
+  //a string of class names delimited by spaces
+  String? get className {
+    return _classList?.join(' ');
+  }
+
+  set className(String? className) {
+    classList = className?.split(RegExp('\\s+'));
+  }
+
+  //these are the styles resolved with what's set at the theme level and inline styles
+  Map<String, dynamic>? _runtimeStyles;
+
+  Map<String, dynamic>? get runtimeStyles => _runtimeStyles;
+
+  set runtimeStyles(Map<String, dynamic>? styles) {
+    _runtimeStyles = styles;
+  }
+
+  //styles that are overridden at runtime by the app code and were not in the original yaml or themes
+  Map<String, dynamic>? _styleOverrides;
+
+  Map<String, dynamic>? get styleOverrides => _styleOverrides;
+
+  set styleOverrides(Map<String, dynamic>? styles) {
+    _styleOverrides = styles;
+  }
+
+  //set this to true when the styles need to be resolved again. Main example is when classList is changed in app code. This is read in the buildWidget method of the widget state
+  bool stylesNeedResolving = false;
+
+  void resolveStyles(ScopeManager scopeManager, Invokable invokable) {
+    if (stylesNeedResolving) {
+      EnsembleThemeManager()
+          .currentTheme()
+          ?.resolveAndApplyStyles(scopeManager, this, invokable);
+      stylesNeedResolving = false;
+    }
+  }
 }
-
 /// represents an individual screen translated from the YAML definition
-class SinglePageModel extends PageModel implements SupportsThemes {
+class SinglePageModel extends PageModel with HasStyles {
   SinglePageModel._init(YamlMap docMap) {
     _processModel(docMap);
   }
@@ -185,11 +242,6 @@ class SinglePageModel extends PageModel implements SupportsThemes {
   ViewBehavior viewBehavior = ViewBehavior();
   HeaderModel? headerModel;
   final String type = 'View';
-  Map<String, dynamic>? pageStyles;
-
-  //just like css, Ensemble widgets can have named styles as well.
-  // In case both a className and inline styles are specified, styles specified by the styleName are applied first and then the inline styles are applied.
-  List<String>? classList;
   ScreenOptions? screenOptions;
   WidgetModel? rootWidgetModel;
   FooterItems? footer;
@@ -219,13 +271,14 @@ class SinglePageModel extends PageModel implements SupportsThemes {
         }
 
         if (viewMap['styles'] is YamlMap) {
-          pageStyles = {};
+          inlineStyles = {};
           (viewMap['styles'] as YamlMap).forEach((key, value) {
-            pageStyles![key] = EnsembleThemeManager.yamlToDart(value);
-            ;
+            inlineStyles![key] = EnsembleThemeManager.yamlToDart(value);
           });
         }
         classList = (viewMap['class'] as String?)?.split(RegExp('\\s+'));
+        themeStyles =
+            EnsembleThemeManager().currentTheme()?.getThemeStyles(null, type);
         if (viewMap['footer'] != null &&
             viewMap['footer']['children'] != null) {
           Map<String, dynamic>? dragOptionsMap =
@@ -296,7 +349,7 @@ class SinglePageModel extends PageModel implements SupportsThemes {
           titleText: titleText,
           titleWidget: titleWidget,
           flexibleBackground: background,
-          styles: styles,
+          inlineStyles: styles,
           classList: classList);
     }
   }
@@ -306,18 +359,18 @@ class SinglePageModel extends PageModel implements SupportsThemes {
       DataContext dataContext, Map<String, dynamic> inheritedStyles) {
     EnsembleTheme? theme = EnsembleThemeManager().currentTheme();
     if (theme == null) return;
-    pageStyles = theme
-        .resolveStyles(dataContext, pageStyles, classList, inheritedStyles, {});
-    Map<String, dynamic> inheritableParentStyles =
-        theme.getInheritableStyles(pageStyles ?? {});
-    headerModel?.styles = theme.resolveStyles(dataContext, headerModel?.styles,
-        headerModel?.classList, inheritableParentStyles, {});
-    headerModel?.titleWidget
-        ?.applyTheme(dataContext, headerModel!.styles ?? {});
-    footer?.styles = theme.resolveStyles(dataContext, footer?.styles,
-        footer?.classList, inheritableParentStyles, {});
-    footer?.footerWidgetModel?.applyTheme(dataContext, footer!.styles ?? {});
-    rootWidgetModel?.applyTheme(dataContext, inheritableParentStyles);
+    // runtimeStyles = theme
+    //     .resolveStyles(dataContext, runtimeStyles, classList, inheritedStyles, {});
+    // Map<String, dynamic> inheritableParentStyles =
+    //     theme.getInheritableStyles(runtimeStyles ?? {});
+    // headerModel?.styles = theme.resolveStyles(dataContext, headerModel?.styles,
+    //     headerModel?.classList, inheritableParentStyles, {});
+    // headerModel?.titleWidget
+    //     ?.applyTheme(dataContext, headerModel!.styles ?? {});
+    // footer?.styles = theme.resolveStyles(dataContext, footer?.styles,
+    //     footer?.classList, inheritableParentStyles, {});
+    // footer?.footerWidgetModel?.applyTheme(dataContext, footer!.styles ?? {});
+    // rootWidgetModel?.applyTheme(dataContext, inheritableParentStyles);
   }
 
   // Root View is special and can have many attributes,
@@ -383,55 +436,34 @@ class SinglePageModel extends PageModel implements SupportsThemes {
 
   @override
   Map<String, dynamic> getStyles() {
-    return pageStyles ?? {};
+    return runtimeStyles ?? {};
   }
 
   @override
   void setStyles(Map<String, dynamic> styles) {
-    pageStyles = styles;
+    runtimeStyles = styles;
   }
 }
 
-class WidgetModel implements SupportsThemes {
+class WidgetModel extends Object with HasStyles {
   final SourceSpan definition;
   final String type;
-  Map<String, dynamic> styles;
-  //list of named styles, a widget may have a list of class names delimited by spaces like css
-  List<String>? classList;
   final Map<String, dynamic> props;
 
   // a layout can either have children or itemTemplate, but not both
   final List<WidgetModel>? children;
   final ItemTemplate? itemTemplate;
 
-  WidgetModel(
-      this.definition, this.type, this.styles, this.classList, this.props,
-      {this.children, this.itemTemplate});
-
-  @override
-  void applyTheme(
-      DataContext dataContext, Map<String, dynamic> inheritedStyles) {
-    if (EnsembleThemeManager().currentTheme() == null) return;
-    EnsembleThemeManager()
-        .currentTheme()
-        ?.applyStylesToWidget(this, dataContext, inheritedStyles);
-    if (children != null) {
-      for (var childModel in children!) {
-        childModel.applyTheme(dataContext, styles);
-      }
-    }
-    //itemTemplates are handled later as at this stage itemTemplate.template may just be a yamlmap
-    itemTemplate?.inheritedStyles = styles;
+  String? getId() {
+    return props['id'];
   }
 
-  @override
-  Map<String, dynamic> getStyles() {
-    return styles;
-  }
-
-  @override
-  void setStyles(Map<String, dynamic> styles) {
-    this.styles = styles;
+  WidgetModel(this.definition, this.type, Map<String, dynamic>? themeStyles,
+      Map<String, dynamic>? inlineStyles, List<String>? classList, this.props,
+      {this.children, this.itemTemplate}) {
+    this.themeStyles = themeStyles;
+    this.inlineStyles = inlineStyles;
+    this.classList = classList;
   }
 }
 
@@ -442,7 +474,7 @@ class CustomWidgetModel extends WidgetModel {
       this.inputs,
       this.actions,
       this.events})
-      : super(widgetModel.definition, type, {}, [], props);
+      : super(widgetModel.definition, type, {}, {}, [], props);
 
   List<ParsedCode>? importedCode;
   WidgetModel widgetModel;
@@ -453,16 +485,6 @@ class CustomWidgetModel extends WidgetModel {
 
   WidgetModel getModel() {
     return widgetModel;
-  }
-
-  //a customWidget is nothing but a simple wrapper on the widgetModel, as such it doesn't have any styles or classList
-  @override
-  void applyTheme(
-      DataContext dataContext, Map<String, dynamic> inheritedStyles) {
-    EnsembleThemeManager()
-        .currentTheme()
-        ?.applyStylesToWidget(this, dataContext, inheritedStyles);
-    widgetModel.applyTheme(dataContext, styles);
   }
 
   ViewBehavior getViewBehavior() {
@@ -496,33 +518,34 @@ class ItemTemplate {
   });
 }
 
-class HeaderModel {
+class HeaderModel extends Object with HasStyles {
   HeaderModel(
       {this.titleText,
       this.titleWidget,
       this.flexibleBackground,
-      this.styles,
-      this.classList});
+      inlineStyles,
+      classList}) {
+    this.inlineStyles = inlineStyles;
+    this.classList = classList;
+  }
 
   // header title can be text or a widget
   String? titleText;
   WidgetModel? titleWidget;
 
   WidgetModel? flexibleBackground;
-  Map<String, dynamic>? styles;
-  List<String>? classList;
 }
 
-class FooterItems {
+class FooterItems extends Object with HasStyles {
   final List<WidgetModel> children;
-  Map<String, dynamic>? styles;
+  Map<String, dynamic>? inlineStyles;
   final List<String>? classList;
   final Map<String, dynamic>? dragOptions;
   final WidgetModel? fixedContent;
   final WidgetModel? footerWidgetModel;
 
-  FooterItems(this.children, this.styles, this.classList, this.dragOptions,
-      this.fixedContent, this.footerWidgetModel);
+  FooterItems(this.children, this.inlineStyles, this.classList,
+      this.dragOptions, this.fixedContent, this.footerWidgetModel);
 }
 
 enum PageType { regular, modal }
