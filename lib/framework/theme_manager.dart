@@ -34,7 +34,8 @@ class EnsembleThemeManager {
   void configureStyles(
       DataContext dataContext, HasStyles model, HasStyles hasStyles) {
     //we have to set all these so we can resolve when styles change at runtime through app logic
-    hasStyles.themeStyles = model.themeStyles;
+    hasStyles.widgetTypeStyles = model.widgetTypeStyles;
+    hasStyles.idStyles = model.idStyles;
     hasStyles.classList = model.classList;
     hasStyles.inlineStyles = model.inlineStyles;
     hasStyles.runtimeStyles = getRuntimeStyles(dataContext, hasStyles);
@@ -166,7 +167,9 @@ class EnsembleTheme {
     initialized = true;
     return this;
   }
-
+  Map<String,dynamic>? getIDStyles(String? id) {
+    return (id == null) ? {} : styles['#$id'];
+  }
   Map<String, dynamic>? getThemeStyles(String? id, String type) {
     Map<String, dynamic>? idStyles = (id == null) ? {} : styles['#$id'];
     return mergeMaps(styles[type], idStyles);
@@ -215,8 +218,8 @@ class EnsembleTheme {
   }
 
   Map<String, dynamic> resolveStyles(DataContext context, HasStyles widget) {
-    return _resolveStyles(context, widget.styleOverrides, widget.inlineStyles,
-        widget.classList, widget.themeStyles, null);
+    return _resolveStyles(context, widget.styleOverrides, widget.inlineStyles, widget.idStyles,
+        widget.classList, widget.widgetTypeStyles, null);
   }
 
   ///classList is a list of class names
@@ -266,16 +269,21 @@ class EnsembleTheme {
       //styles overriden in app logic (e.g. through js)
       Map<String, dynamic>?
       inlineStyles, //inline styles specified on the widget
+      Map<String, dynamic>? idStyles,
       List<String>? classList, //namedstyles specified on the widget
       Map<String, dynamic>?
-      themeStyles, //styles specified in themes - could be by widget type or id
+      widgetTypeStyles, //styles specified in themes - could be by widget type or id
       Map<String, dynamic>? inheritedStyles
       //styles inherited from ancestors that are inheritable styles
       ) {
     Map<String, dynamic> resolvedStyles = resolveClassList(classList);
     Map<String, dynamic> combinedStyles = mergeMaps(
         mergeMaps(
-            mergeMaps(mergeMaps(inheritedStyles, themeStyles), resolvedStyles),
+          mergeMaps(
+            mergeMaps(
+                  mergeMaps(inheritedStyles, widgetTypeStyles),
+                resolvedStyles),
+              idStyles),
             inlineStyles),
         styleOverrides);
     context.eval(combinedStyles);
