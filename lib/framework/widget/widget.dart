@@ -26,8 +26,8 @@ mixin UpdatableContainer<T extends Widget> {
 abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
   ScopeManager? scopeManager;
 
-  void resolveStylesIfUnresolved() {
-    if ( widget.controller is HasStyles ) {
+  void resolveStylesIfUnresolved(BuildContext context) {
+    if (widget.controller is HasStyles) {
       ScopeManager? scopeManager = DataScopeWidget.getScope(context) ??
           PageGroupWidget.getScope(context);
       Invokable? invokable;
@@ -37,13 +37,14 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
         invokable = widget as Invokable;
       }
       if (scopeManager != null && invokable != null) {
-        (widget.controller as HasStyles).resolveStyles(scopeManager, invokable);
+        (widget.controller as HasStyles)
+            .resolveStyles(scopeManager, invokable, context);
       }
     }
   }
   @override
   Widget build(BuildContext context) {
-    resolveStylesIfUnresolved();
+    resolveStylesIfUnresolved(context);
     Widget rtn = buildWidget(context);
     if (widget.controller is WidgetController) {
       WidgetController widgetController = widget.controller as WidgetController;

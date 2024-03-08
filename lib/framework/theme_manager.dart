@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/page_model.dart';
@@ -8,9 +9,13 @@ import 'package:yaml/yaml.dart';
 
 class EnsembleThemeManager {
   static final EnsembleThemeManager _instance =
-      EnsembleThemeManager._internal();
+  EnsembleThemeManager._internal();
   static final Map<String, EnsembleTheme> _themes = {};
-  String _currentThemeName = 'root';
+  static const defaultThemeWhenNoneSpecified = '__ensemble__default__theme';
+  String _currentThemeName = defaultThemeWhenNoneSpecified;
+
+  String get currentThemeName => _currentThemeName;
+  bool initialized = false;
 
   EnsembleThemeManager._internal();
 
@@ -18,12 +23,26 @@ class EnsembleThemeManager {
     return _instance;
   }
 
+  List<String> getThemeNames() {
+    return _themes.keys.toList();
+  }
+
   EnsembleTheme? getTheme(String theme) {
     return _themes[theme];
   }
 
-  Map<String, dynamic>? getRuntimeStyles(
-      DataContext context, HasStyles hasStyles) {
+  void setTheme(String theme) {
+    if (_currentThemeName != theme) {
+      if (_themes[theme] != null) {
+        _currentThemeName = theme;
+        //notify all listeners
+        AppEventBus().eventBus.fire(ThemeChangeEvent(theme));
+      }
+    }
+  }
+
+  Map<String, dynamic>? getRuntimeStyles(DataContext context,
+      HasStyles hasStyles) {
     if (currentTheme() == null) {
       //looks like there is no theme, so we'll just use the inline styles as is
       return hasStyles.inlineStyles;
@@ -31,8 +50,7 @@ class EnsembleThemeManager {
     return currentTheme()?.resolveStyles(context, hasStyles);
   }
 
-  void configureStyles(
-      DataContext dataContext, HasStyles model, HasStyles hasStyles) {
+  void configureStyles(DataContext dataContext, HasStyles model, HasStyles hasStyles) {
     //we have to set all these so we can resolve when styles change at runtime through app logic
     hasStyles.themeStyles = model.themeStyles;
     hasStyles.classList = model.classList;
@@ -42,15 +60,15 @@ class EnsembleThemeManager {
 
   /// this is name/value map. name being the name of the theme and value being the theme map
   void init(BuildContext context, Map<String, YamlMap> themeMap,
-      String currentThemeName) {
-    _currentThemeName = currentThemeName;
+      String defaultThemeName) {
+    _currentThemeName = defaultThemeName;
     for (var theme in themeMap.entries) {
       _themes[theme.key] = _parseAndInitTheme(theme.key, theme.value, context);
     }
+    initialized = true;
   }
 
-  EnsembleTheme _parseAndInitTheme(
-      String name, YamlMap yamlTheme, BuildContext context) {
+  EnsembleTheme _parseAndInitTheme(String name, YamlMap yamlTheme, BuildContext context) {
     dynamic theme = yamlToDart(yamlTheme);
     //_convertKeysToCamelCase(theme['InheritableStyles']);
     _convertKeysToCamelCase(theme['Styles']);
@@ -62,7 +80,7 @@ class EnsembleThemeManager {
         tokens: theme['Tokens'] ?? {},
         styles: theme['Styles'] ?? {},
         inheritableStyles: {} //turning off inheritance as it is handled by the containers
-        ).init(context);
+    ).init(context);
   }
 
   EnsembleTheme? currentTheme() {
@@ -122,7 +140,7 @@ class EnsembleThemeManager {
         .split('-')
         .asMap()
         .map((index, word) => MapEntry(index,
-            index > 0 ? word[0].toUpperCase() + word.substring(1) : word))
+        index > 0 ? word[0].toUpperCase() + word.substring(1) : word))
         .values
         .join('');
   }
@@ -136,14 +154,13 @@ class EnsembleTheme {
   Map<String, dynamic> inheritableStyles;
   bool initialized = false;
 
-  EnsembleTheme(
-      {required this.name,
-      required this.label,
-      this.description,
-      this.inheritsFrom,
-      required this.tokens,
-      required this.styles,
-      required this.inheritableStyles});
+  EnsembleTheme({required this.name,
+    required this.label,
+    this.description,
+    this.inheritsFrom,
+    required this.tokens,
+    required this.styles,
+    required this.inheritableStyles});
 
   EnsembleTheme init(BuildContext context) {
     if (initialized) {
@@ -151,7 +168,7 @@ class EnsembleTheme {
     }
     if (inheritsFrom != null) {
       EnsembleTheme? parentTheme =
-          EnsembleThemeManager().getTheme(inheritsFrom!);
+      EnsembleThemeManager().getTheme(inheritsFrom!);
       if (parentTheme != null) {
         parentTheme.init(context);
         tokens = mergeMaps(parentTheme.tokens, tokens);
@@ -161,7 +178,7 @@ class EnsembleTheme {
       }
     }
     DataContext dataContext =
-        DataContext(buildContext: context, initialMap: tokens);
+    DataContext(buildContext: context, initialMap: tokens);
     _resolveTokens(dataContext);
     initialized = true;
     return this;
@@ -287,5 +304,19 @@ class EnsembleTheme {
     for (var key in styles.keys) {
       styles[key] = dataContext.eval(styles[key]);
     }
+  }
+}
+
+class ThemeProvider extends InheritedWidget {
+  final EnsembleTheme theme;
+
+  const ThemeProvider({super.key, required Widget child, required this.theme})
+      : super(child: child);
+
+  @override
+  bool updateShouldNotify(ThemeProvider oldWidget) => theme != oldWidget.theme;
+
+  static ThemeProvider? of(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<ThemeProvider>();
   }
 }
