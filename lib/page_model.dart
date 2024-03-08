@@ -15,6 +15,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:source_span/source_span.dart';
+import 'package:flutter/material.dart' as flutter;
 import 'package:yaml/yaml.dart';
 import 'framework/scope.dart';
 
@@ -169,20 +170,37 @@ class PageGroupModel extends PageModel {
   }
 }
 mixin HasStyles {
+  String? _currentTheme;
+
+  set currentTheme(String? theme) {
+    if (theme == _currentTheme) {
+      return;
+    }
+    _currentTheme = theme;
+    stylesNeedResolving = true;
+  }
+
   //styles specified in the theme directly on the type e.g. Text or Button
-  Map<String,dynamic>? _widgetTypeStyles;
-  Map<String,dynamic>? get widgetTypeStyles => _widgetTypeStyles;
-  set widgetTypeStyles(Map<String,dynamic>? styles) {
+  Map<String, dynamic>? _widgetTypeStyles;
+
+  Map<String, dynamic>? get widgetTypeStyles => _widgetTypeStyles;
+
+  set widgetTypeStyles(Map<String, dynamic>? styles) {
     _widgetTypeStyles = styles;
   }
+
   //styles defined in the theme for a specific id e.g. #submitBtn where submitBtn is the id of the widget
-  Map<String,dynamic>? _idStyles;
-  Map<String,dynamic>? get idStyles => _idStyles;
-  set idStyles(Map<String,dynamic>? styles) {
+  Map<String, dynamic>? _idStyles;
+
+  Map<String, dynamic>? get idStyles => _idStyles;
+
+  set idStyles(Map<String, dynamic>? styles) {
     _idStyles = styles;
   }
+
   //these are the inline styles set directly on the widget
   Map<String, dynamic>? _inlineStyles;
+
   Map<String, dynamic>? get inlineStyles => _inlineStyles;
 
   set inlineStyles(Map<String, dynamic>? styles) {
@@ -228,13 +246,15 @@ mixin HasStyles {
   }
 
   //set this to true when the styles need to be resolved again. Main example is when classList is changed in app code. This is read in the buildWidget method of the widget state
-  bool stylesNeedResolving = false;
+  bool stylesNeedResolving = true;
 
-  void resolveStyles(ScopeManager scopeManager, Invokable invokable) {
+  void resolveStyles(ScopeManager scopeManager, Invokable invokable,
+      flutter.BuildContext context) {
+    EnsembleTheme? theme = ThemeProvider.of(context)?.theme;
+    currentTheme = theme?.name;
     if (stylesNeedResolving) {
-      EnsembleThemeManager()
-          .currentTheme()
-          ?.resolveAndApplyStyles(scopeManager, this, invokable);
+      theme?.resolveAndApplyStyles(scopeManager, this, invokable);
+      currentTheme = theme?.name;
       stylesNeedResolving = false;
     }
   }
