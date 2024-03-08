@@ -19,7 +19,7 @@ class AppConfig with Invokable {
           Ensemble().getConfig()?.definitionProvider.getAppConfig()?.baseUrl,
       'useMockResponse': () =>
           EnsembleStorage(context).getProperty(useMockResponseKey) ?? false,
-      'currentTheme': () => EnsembleThemeManager().currentThemeName,
+      'theme': () => EnsembleThemeManager().currentThemeName,
       'themes': () => EnsembleThemeManager().getThemeNames(),
     };
   }
