@@ -3,6 +3,7 @@ import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/parser/newjs_interpreter.dart';
+import 'package:event_bus/event_bus.dart';
 
 /// Binding source represents the binding expression
 /// ${myText.text}
@@ -247,4 +248,25 @@ class ModelChangeEvent {
   String toString() {
     return "ModelChangeEvent(${source.modelId}, ${source.property}, scope: $bindingScope)";
   }
+}
+
+class AppEventBus {
+  static final AppEventBus _instance = AppEventBus._internal();
+
+  factory AppEventBus() {
+    return _instance;
+  }
+
+  final EventBus? _eventBus;
+
+  EventBus get eventBus => _eventBus!;
+
+  AppEventBus._internal() : _eventBus = EventBus();
+}
+
+/// dispatching a theme change event
+class ThemeChangeEvent {
+  ThemeChangeEvent(this.theme);
+
+  String theme;
 }
