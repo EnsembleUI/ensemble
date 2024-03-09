@@ -302,7 +302,7 @@ class SinglePageModel extends PageModel with HasStyles {
             inlineStyles![key] = EnsembleThemeManager.yamlToDart(value);
           });
         }
-        classList = (viewMap['class'] as String?)?.split(RegExp('\\s+'));
+        classList = (viewMap[ViewUtil.classNameAttribute] as String?)?.split(RegExp('\\s+'));
         widgetTypeStyles =
             EnsembleThemeManager().currentTheme()?.getWidgetTypeStyles(type);
         if (viewMap['footer'] != null &&
@@ -321,7 +321,7 @@ class SinglePageModel extends PageModel with HasStyles {
               EnsembleThemeManager.yamlToDart(
                 viewMap['footer']['styles'],
               ),
-              (viewMap['footer']['class'] as String?)?.split(RegExp('\\s+')),
+              (viewMap['footer'][ViewUtil.classNameAttribute] as String?)?.split(RegExp('\\s+')),
               dragOptionsMap,
               fixedContent,
               ViewUtil.buildModel(footerYamlMap, customViewDefinitions));
@@ -363,7 +363,7 @@ class SinglePageModel extends PageModel with HasStyles {
       }
 
       styles = EnsembleThemeManager.yamlToDart(headerData['styles']);
-      classList = (headerData['class'] as String?)?.split(RegExp('\\s+'));
+      classList = (headerData[ViewUtil.classNameAttribute] as String?)?.split(RegExp('\\s+'));
     }
 
     if (titleWidget != null ||
