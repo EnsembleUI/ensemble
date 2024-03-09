@@ -20,6 +20,7 @@ import 'package:yaml/yaml.dart';
 import 'package:source_span/source_span.dart';
 
 class ViewUtil {
+  static const classNameAttribute = "className";
   static bool isViewModel(dynamic item, Map<String, dynamic>? customWidgetMap) {
     if (item != null) {
       return customWidgetMap?[item.toString()] != null || item is YamlMap;
@@ -120,7 +121,7 @@ class ViewUtil {
 
     payload.forEach((key, value) {
       if (value != null) {
-        if (key == 'class') {
+        if (key == classNameAttribute) {
           classList = (value as String?)?.split(RegExp('\\s+'));
         }
         if (key == 'styles' && value is YamlMap) {
