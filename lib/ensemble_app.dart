@@ -6,7 +6,9 @@ import 'dart:async';
 import 'package:device_preview/device_preview.dart';
 import 'package:ensemble/deep_link_manager.dart';
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/app_info.dart';
 import 'package:ensemble/framework/bindings.dart';
+import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -206,12 +208,14 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
         }));
   }
 
-  void configureThemes(YamlMap doc) {
+  void configureThemes(YamlMap doc, AppConfig config) {
     if (EnsembleThemeManager().initialized) {
       return;
     }
     Map<String, YamlMap> themes = {};
     String? defaultTheme;
+    String? savedTheme = config.getSavedTheme();
+    bool foundSelectedTheme = false;
     if (doc["Themes"] != null) {
       for (var theme in doc['Themes']) {
         String? themeName;
@@ -228,6 +232,11 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
           themeName = theme;
         }
         themes[themeName!] = doc[themeName] ?? YamlMap();
+        if (savedTheme != null &&
+            themeName == savedTheme &&
+            !foundSelectedTheme) {
+          foundSelectedTheme = true;
+        }
       }
     }
     if (themes.isNotEmpty && defaultTheme == null) {
@@ -238,6 +247,9 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
       //no themes defined, we'll assume eveyrthing is in the root
       themes[defaultTheme] = doc;
     }
+    if (foundSelectedTheme && savedTheme != null) {
+      defaultTheme = savedTheme;
+    }
     EnsembleThemeManager().init(context, themes, defaultTheme);
   }
 
@@ -246,7 +258,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
     if (config.appBundle?.theme?['cssStyling'] != false) {
       YamlMap? doc = config.appBundle?.theme;
       if (doc != null) {
-        configureThemes(doc);
+        configureThemes(doc, AppConfig(context, AppInfo().appId));
       }
     }
     // notify external app once of EnsembleApp loading status
