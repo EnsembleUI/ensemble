@@ -9,9 +9,16 @@ import 'package:flutter/material.dart';
 class AppConfig with Invokable {
   BuildContext context;
   String? appId;
+
   AppConfig(this.context, this.appId);
+
   static const String useMockResponse = 'useMockResponse';
+  static const String theme = 'theme';
+
+  String get themeKey => '${appId ?? ''}_$theme';
+
   String get useMockResponseKey => '${appId ?? ''}_$useMockResponse';
+
   @override
   Map<String, Function> getters() {
     return {
@@ -28,9 +35,19 @@ class AppConfig with Invokable {
     EnsembleStorage(context).setProperty(useMockResponseKey, false);
   }
 
+  String? getSavedTheme() {
+    return EnsembleStorage(context).getProperty(themeKey);
+  }
+
   @override
   Map<String, Function> methods() {
-    return {};
+    return {
+      'saveTheme': (String theme) {
+        EnsembleStorage(context).setProperty(themeKey, theme);
+      },
+      'getSavedTheme': () => getSavedTheme(),
+      'removeSavedTheme': () => EnsembleStorage(context).delete(themeKey),
+    };
   }
 
   bool isMockResponse() {
