@@ -45,7 +45,7 @@ dependencies:
 
   ensemble_icons:
     git:
-      url: https://github.com/sharjeelyunus/ensemble.git
+      url: https://github.com/sharjeelyunus/ensemble_icons.git
       ref: main
 
   ensemble_ts_interpreter:
