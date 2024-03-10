@@ -10,6 +10,7 @@ import 'package:ensemble/action/misc_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/action/notification_action.dart';
 import 'package:ensemble/action/phone_contact_action.dart';
+import 'package:ensemble/action/play_audio.dart';
 import 'package:ensemble/action/sign_in_out_action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -1104,7 +1105,12 @@ enum ActionType {
   signOut,
   dispatchEvent,
   executeConditionalAction,
-  executeActionGroup
+  executeActionGroup,
+  playAudio,
+  stopAudio,
+  pauseAudio,
+  resumeAudio,
+  seekAudio,
 }
 
 enum ToastType { success, error, warning, info }
@@ -1255,6 +1261,16 @@ abstract class EnsembleAction {
       return ClearKeychain.fromYaml(payload: payload);
     } else if (actionType == ActionType.invokeHaptic) {
       return HapticAction.from(payload);
+    } else if (actionType == ActionType.playAudio) {
+      return PlayAudio.from(payload);
+    } else if (actionType == ActionType.pauseAudio) {
+      return PauseAudio();
+    } else if (actionType == ActionType.stopAudio) {
+      return PauseAudio();
+    } else if (actionType == ActionType.resumeAudio) {
+      return ResumeAudio();
+    } else if (actionType == ActionType.seekAudio) {
+      return SeekAudio.from(payload);
     } else if (actionType == ActionType.deeplinkInit) {
       return DeepLinkInitAction.fromMap(payload: payload);
     } else if (actionType == ActionType.createDeeplink) {
