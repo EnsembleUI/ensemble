@@ -104,8 +104,8 @@ class SeekAudio extends EnsembleAction {
     if (inputs is! Map) payload = Utils.getYamlMap(inputs);
     if (inputs is Map) payload = inputs;
 
-    if (payload == null || payload['audio'] == null) {
-      throw LanguageError("${ActionType.playAudio.name} requires 'position'");
+    if (payload == null || payload['position'] == null) {
+      throw LanguageError("${ActionType.seekAudio.name} requires 'position'");
     }
 
     return SeekAudio(
