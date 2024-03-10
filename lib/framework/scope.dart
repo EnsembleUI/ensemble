@@ -379,7 +379,7 @@ mixin ViewBuilder on IsScopeManager {
             : null;
       } else if (payload.widget is Invokable) {
         invokable = payload.widget as Invokable;
-        if ( payload.widget is HasController ) {
+        if (payload.widget is HasController) {
           hasStyles = (payload.widget as HasController).controller is HasStyles
               ? (payload.widget as HasController).controller as HasStyles
               : null;

@@ -360,7 +360,8 @@ class BoxController extends WidgetController {
 }
 
 /// Base Widget Controller
-abstract class EnsembleWidgetController extends EnsembleController with HasStyles {
+abstract class EnsembleWidgetController extends EnsembleController
+    with HasStyles {
   FlexMode? flexMode;
   int? flex;
 
