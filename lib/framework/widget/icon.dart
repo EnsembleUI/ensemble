@@ -28,7 +28,7 @@ class Icon extends flutter.Icon {
         library.toString().trim().isEmpty) {
       return _defaultIcons[name];
     } else if (library == 'fontAwesome') {
-      return FontAwesomeIcons.iconMap[name];
+      return FontAwesome.iconMap[name];
     } else if (library == 'remix') {
       return Remix.iconMap[name];
     }
