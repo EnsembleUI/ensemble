@@ -31,6 +31,8 @@ abstract class DeferredLinkManager {
     DeferredDeepLink? onLinkReceived,
   });
 
+  void handleDeferredLink(String url, DeferredDeepLink onLinkReceived);
+
   Future<DeferredLinkResponse?> createDeepLink(
       {required DeepLinkProvider provider,
       Map<String, dynamic>? universalProps,
@@ -43,6 +45,12 @@ class DeferredLinkManagerStub extends DeferredLinkManager {
       {required DeepLinkProvider provider,
       Map<String, dynamic>? options,
       DeferredDeepLink? onLinkReceived}) {
+    throw ConfigError(
+        "Deferred Link Service is not enabled. Please review the Ensemble documentation.");
+  }
+
+  @override
+  void handleDeferredLink(String url, DeferredDeepLink onLinkReceived) {
     throw ConfigError(
         "Deferred Link Service is not enabled. Please review the Ensemble documentation.");
   }
