@@ -105,8 +105,6 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
           child: rtn,
         );
       }
-
-      return rtn;
     }
     return rtn;
   }
