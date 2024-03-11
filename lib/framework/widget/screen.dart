@@ -78,11 +78,6 @@ class _ScreenState extends State<Screen> {
   Widget renderScreen(ScreenDefinition screenDefinition) {
     PageModel pageModel =
         screenDefinition.getModel(widget.screenPayload?.arguments);
-    //theme will get applied if one exists
-    if (pageModel is SupportsThemes) {
-      EnsembleThemeManager().applyTheme(context, pageModel as SupportsThemes,
-          (pageModel as SupportsThemes).getStyles());
-    }
     //here add the js code
     //widget.appProvider.definitionProvider.getAppBundle().
     // build the data context
@@ -94,6 +89,12 @@ class _ScreenState extends State<Screen> {
     // }
     DataContext dataContext =
         DataContext(buildContext: context, initialMap: initialMap);
+    //theme will get applied if one exists
+
+    if (pageModel is HasStyles) {
+      (pageModel as HasStyles).runtimeStyles = EnsembleThemeManager()
+          .getRuntimeStyles(dataContext, pageModel as HasStyles);
+    }
 
     // add all the API names to our context as Invokable, even though their result
     // will be null. This is so we can always reference it API responses come back

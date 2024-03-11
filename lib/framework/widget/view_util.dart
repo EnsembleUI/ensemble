@@ -20,6 +20,7 @@ import 'package:yaml/yaml.dart';
 import 'package:source_span/source_span.dart';
 
 class ViewUtil {
+  static const classNameAttribute = "className";
   static bool isViewModel(dynamic item, Map<String, dynamic>? customWidgetMap) {
     if (item != null) {
       return customWidgetMap?[item.toString()] != null || item is YamlMap;
@@ -108,7 +109,7 @@ class ViewUtil {
     // Let's build the model now
     // no payload, simple widget e.g Spacer or Spacer:
     if (payload == null) {
-      return WidgetModel(def, widgetType, {}, [], {});
+      return WidgetModel(def, widgetType, {}, {}, {}, [], {});
     }
 
     List<WidgetModel>? children;
@@ -120,7 +121,7 @@ class ViewUtil {
 
     payload.forEach((key, value) {
       if (value != null) {
-        if (key == 'class') {
+        if (key == classNameAttribute) {
           classList = (value as String?)?.split(RegExp('\\s+'));
         }
         if (key == 'styles' && value is YamlMap) {
@@ -138,8 +139,16 @@ class ViewUtil {
       }
     });
 
-    return WidgetModel(def, widgetType, styles, classList, props,
-        children: children, itemTemplate: itemTemplate);
+    return WidgetModel(
+        def,
+        widgetType,
+        EnsembleThemeManager().currentTheme()?.getWidgetTypeStyles(widgetType),
+        EnsembleThemeManager().currentTheme()?.getIDStyles(props['id']),
+        styles,
+        classList,
+        props,
+        children: children,
+        itemTemplate: itemTemplate);
   }
 
   static WidgetModel? buildCustomModel(
