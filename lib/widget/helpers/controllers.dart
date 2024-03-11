@@ -222,6 +222,7 @@ abstract class WidgetController extends Controller {
     return {
       'flexMode': (value) => flexMode = FlexMode.values.from(value),
       'flex': (value) => flex = Utils.optionalInt(value, min: 1),
+      'automationId': (value) => automationId = Utils.optionalString(value),
       'expanded': (value) => expanded = Utils.getBool(value, fallback: false),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
       'visibilityTransitionDuration': (value) =>
@@ -395,6 +396,7 @@ abstract class EnsembleWidgetController extends EnsembleController {
     return {
       'flexMode': (value) => flexMode = FlexMode.values.from(value),
       'flex': (value) => flex = Utils.optionalInt(value, min: 1),
+      'automationId': (value) => automationId = Utils.optionalString(value),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
       'visibilityTransitionDuration': (value) =>
           visibilityTransitionDuration = Utils.getDuration(value),
