@@ -70,6 +70,58 @@ class DeepLinkInitAction extends EnsembleAction {
   }
 }
 
+class DeepLinkHandleAction extends EnsembleAction {
+  DeepLinkHandleAction({
+    super.initiator,
+    required this.url,
+    required this.onLinkReceived,
+    this.onError,
+  });
+
+  String? url;
+  EnsembleAction? onSuccess;
+  EnsembleAction? onLinkReceived;
+  EnsembleAction? onError;
+
+  factory DeepLinkHandleAction.fromMap({dynamic payload}) {
+    if (payload is Map) {
+      String? url = Utils.optionalString(payload['url']);
+      if (url == null) {
+        throw LanguageError('url is required for handleDeepLink action');
+      }
+
+      EnsembleAction? onLinkReceivedAction =
+          EnsembleAction.fromYaml(payload['onLinkReceived']);
+      if (onLinkReceivedAction == null) {
+        throw LanguageError(
+            'onLinkReceived() is required for handleDeepLink action');
+      }
+
+      return DeepLinkHandleAction(
+        url: url,
+        onLinkReceived: onLinkReceivedAction,
+        onError: EnsembleAction.fromYaml(payload['onError']),
+      );
+    }
+    throw LanguageError('DeferredDeepLink: Missing inputs for handleDeepLink');
+  }
+
+  @override
+  Future execute(BuildContext context, ScopeManager scopeManager) async {
+    try {
+      GetIt.I<DeferredLinkManager>().handleDeferredLink(url!, (linkData) {
+        return ScreenController().executeAction(context, onLinkReceived!,
+            event: EnsembleEvent(initiator, data: {'link': linkData}));
+      });
+    } catch (e) {
+      return ScreenController().executeAction(context, onError!,
+          event: EnsembleEvent(initiator,
+              error:
+                  'DeferredDeepLink: Unable to handle deeplink - Reason: $e'));
+    }
+  }
+}
+
 class CreateDeeplinkAction extends EnsembleAction {
   CreateDeeplinkAction({
     super.initiator,
