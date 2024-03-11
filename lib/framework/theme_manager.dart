@@ -1,43 +1,87 @@
+import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:yaml/yaml.dart';
 
 class EnsembleThemeManager {
   static final EnsembleThemeManager _instance =
-      EnsembleThemeManager._internal();
+  EnsembleThemeManager._internal();
   static final Map<String, EnsembleTheme> _themes = {};
-  String _currentThemeName =
-      'root'; //temporary name till we support multiple themes
+  static const defaultThemeWhenNoneSpecified = '__ensemble__default__theme';
+  String _currentThemeName = defaultThemeWhenNoneSpecified;
+
+  String get currentThemeName => _currentThemeName;
+  bool initialized = false;
+
   EnsembleThemeManager._internal();
 
   factory EnsembleThemeManager() {
     return _instance;
   }
 
-  /// this is name/value map. name being the name of the theme and value being the theme map
-  void init(Map<String, YamlMap> themeMap, String currentThemeName) {
-    _currentThemeName = currentThemeName;
-    for (var theme in themeMap.entries) {
-      _themes[theme.key] = _parseTheme(theme.value);
+  List<String> getThemeNames() {
+    return _themes.keys.toList();
+  }
+
+  EnsembleTheme? getTheme(String theme) {
+    return _themes[theme];
+  }
+
+  void setTheme(String theme) {
+    if (_currentThemeName != theme) {
+      if (_themes[theme] != null) {
+        _currentThemeName = theme;
+        //notify all listeners
+        AppEventBus().eventBus.fire(ThemeChangeEvent(theme));
+      }
     }
   }
 
-  EnsembleTheme _parseTheme(YamlMap yamlTheme) {
-    dynamic theme = yamlToDart(yamlTheme);
-    _convertKeysToCamelCase(theme['InheritableStyles']);
-    _convertKeysToCamelCase(theme['Styles']);
-    return EnsembleTheme(
-      tokens: theme['Tokens'] ?? {},
-      styles: theme['Styles'] ?? {},
-      inheritableStyles: theme['InheritableStyles'] ?? {},
-    );
+  Map<String, dynamic>? getRuntimeStyles(DataContext context,
+      HasStyles hasStyles) {
+    if (currentTheme() == null) {
+      //looks like there is no theme, so we'll just use the inline styles as is
+      return hasStyles.inlineStyles;
+    }
+    return currentTheme()?.resolveStyles(context, hasStyles);
   }
 
-  SupportsThemes applyTheme(BuildContext context, SupportsThemes model,
-      Map<String, dynamic>? parentStyles) {
-    _themes[_currentThemeName]?.apply(context, model, parentStyles ?? {});
-    return model;
+  void configureStyles(DataContext dataContext, HasStyles model, HasStyles hasStyles) {
+    //we have to set all these so we can resolve when styles change at runtime through app logic
+    hasStyles.widgetTypeStyles = model.widgetTypeStyles;
+    hasStyles.idStyles = model.idStyles;
+    hasStyles.classList = model.classList;
+    hasStyles.inlineStyles = model.inlineStyles;
+    hasStyles.runtimeStyles = getRuntimeStyles(dataContext, hasStyles);
+  }
+
+  /// this is name/value map. name being the name of the theme and value being the theme map
+  void init(BuildContext context, Map<String, YamlMap> themeMap,
+      String defaultThemeName) {
+    _currentThemeName = defaultThemeName;
+    for (var theme in themeMap.entries) {
+      _themes[theme.key] = _parseAndInitTheme(theme.key, theme.value, context);
+    }
+    initialized = true;
+  }
+
+  EnsembleTheme _parseAndInitTheme(String name, YamlMap yamlTheme, BuildContext context) {
+    dynamic theme = yamlToDart(yamlTheme);
+    //_convertKeysToCamelCase(theme['InheritableStyles']);
+    _convertKeysToCamelCase(theme['Styles']);
+    return EnsembleTheme(
+        name: name,
+        label: theme['Label'] ?? '',
+        description: theme['description'],
+        inheritsFrom: theme['inheritsFrom'],
+        tokens: theme['Tokens'] ?? {},
+        styles: theme['Styles'] ?? {},
+        inheritableStyles: {} //turning off inheritance as it is handled by the containers
+    ).init(context);
   }
 
   EnsembleTheme? currentTheme() {
@@ -47,7 +91,8 @@ class EnsembleThemeManager {
   static dynamic yamlToDart(dynamic yamlElement) {
     // Convert YamlMap to Dart Map
     if (yamlElement is YamlMap) {
-      return yamlElement.map((key, value) => MapEntry(key.toString(), yamlToDart(value)));
+      return yamlElement
+          .map((key, value) => MapEntry(key.toString(), yamlToDart(value)));
     }
     // Convert YamlList to Dart List
     else if (yamlElement is YamlList) {
@@ -68,7 +113,6 @@ class EnsembleThemeManager {
     // Return the element directly if it's neither a YamlMap, YamlList, Map, nor List
     return yamlElement;
   }
-
 
   //recursively convert keys to camel case except for the ones that start with . or #
   void _convertKeysToCamelCase(dynamic value) {
@@ -91,83 +135,112 @@ class EnsembleThemeManager {
       }
     }
   }
+
   String _toCamelCase(String str) {
     return str
         .split('-')
         .asMap()
-        .map((index, word) => MapEntry(index, index > 0 ? word[0].toUpperCase() + word.substring(1) : word))
+        .map((index, word) => MapEntry(index,
+        index > 0 ? word[0].toUpperCase() + word.substring(1) : word))
         .values
         .join('');
   }
 }
 
-class StyleResolver {
-  final EnsembleTheme theme;
-  final Map<String, dynamic> screenDefinition;
-  StyleResolver(this.theme, this.screenDefinition);
-
-  void applyStyles() {}
-}
-
 class EnsembleTheme {
-  Map<String,dynamic> tokens;
+  String name, label;
+  String? inheritsFrom, description;
+  Map<String, dynamic> tokens;
   Map<String, dynamic> styles;
   Map<String, dynamic> inheritableStyles;
-  bool areTokensResolved = false;
+  bool initialized = false;
 
-  EnsembleTheme(
-      {required this.tokens,
-      required this.styles,
-      required this.inheritableStyles});
+  EnsembleTheme({required this.name,
+    required this.label,
+    this.description,
+    this.inheritsFrom,
+    required this.tokens,
+    required this.styles,
+    required this.inheritableStyles});
 
-  void apply(BuildContext context, SupportsThemes model,
-      Map<String, dynamic> inheritedStyles) {
+  EnsembleTheme init(BuildContext context) {
+    if (initialized) {
+      return this;
+    }
+    if (inheritsFrom != null) {
+      EnsembleTheme? parentTheme =
+      EnsembleThemeManager().getTheme(inheritsFrom!);
+      if (parentTheme != null) {
+        parentTheme.init(context);
+        tokens = mergeMaps(parentTheme.tokens, tokens);
+        styles = mergeMaps(parentTheme.styles, styles);
+        inheritableStyles =
+            mergeMaps(parentTheme.inheritableStyles, inheritableStyles);
+      }
+    }
     DataContext dataContext =
-        DataContext(buildContext: context, initialMap: tokens);
-    if (!areTokensResolved) {
-      _resolveTokens(dataContext);
-    }
-    model.applyTheme(dataContext, inheritedStyles);
+    DataContext(buildContext: context, initialMap: tokens);
+    _resolveTokens(dataContext);
+    initialized = true;
+    return this;
   }
 
-  Map<String, dynamic> getInheritableStyles(Map<String, dynamic> styles) {
-    Map<String, dynamic> inheritedStyles = {};
-    void inheritStyles(
-        Map<String, dynamic> currentStyles,
-        Map<String, dynamic> currentInheritable,
-        Map<String, dynamic> currentInherited) {
-      currentStyles.forEach((key, value) {
-        // Check if the current key is inheritable
-        if (currentInheritable.containsKey(key)) {
-          // If the value is also a map, we need to recurse
-          if (value is Map<String, dynamic> && currentInheritable[key] is Map<String, dynamic>) {
-            Map<String, dynamic> newNestedInherited = {};
-            inheritStyles(value, currentInheritable[key], newNestedInherited);
-            if (newNestedInherited.isNotEmpty) {
-              currentInherited[key] = newNestedInherited;
-            }
-          } else {
-            // Otherwise, directly inherit the style
-            currentInherited[key] = value;
-          }
-        }
-      });
-    }
-    inheritStyles(styles, inheritableStyles, inheritedStyles);
-    return inheritedStyles;
+  Map<String,dynamic>? getIDStyles(String? id) {
+    return (id == null) ? {} : styles['#$id'];
   }
-  void applyStylesToWidget(WidgetModel model, DataContext dataContext, Map<String,dynamic> inheritedStyles) {
-    //first we will merge the associated styles from theme - styles specified with id overwrite the ones specified with widget type
-    String? widgetId = model.props['id'];
-    Map<String, dynamic>? idStyles =
-        (widgetId == null) ? {} : styles['#$widgetId'];
-    model.styles = resolveStyles(
-        dataContext,
-        model.styles,
-        model.classList,
-        mergeMaps(styles[model.type], idStyles),
-        getInheritableStyles(inheritedStyles));
+
+  Map<String, dynamic>? getThemeStyles(String? id, String type) {
+    Map<String, dynamic>? idStyles = (id == null) ? {} : styles['#$id'];
+    return mergeMaps(styles[type], idStyles);
   }
+
+  Map<String, dynamic> getInheritableStyles(Map<String, dynamic>? styles) {
+    //turning off inheritance
+    return {};
+    // Map<String, dynamic> inheritedStyles = {};
+    // void inheritStyles(
+    //     Map<String, dynamic> currentStyles,
+    //     Map<String, dynamic> currentInheritable,
+    //     Map<String, dynamic> currentInherited) {
+    //   currentStyles.forEach((key, value) {
+    //     // Check if the current key is inheritable
+    //     if (currentInheritable.containsKey(key)) {
+    //       // If the value is also a map, we need to recurse
+    //       if (value is Map<String, dynamic> &&
+    //           currentInheritable[key] is Map<String, dynamic>) {
+    //         Map<String, dynamic> newNestedInherited = {};
+    //         inheritStyles(value, currentInheritable[key], newNestedInherited);
+    //         if (newNestedInherited.isNotEmpty) {
+    //           currentInherited[key] = newNestedInherited;
+    //         }
+    //       } else {
+    //         // Otherwise, directly inherit the style
+    //         currentInherited[key] = value;
+    //       }
+    //     }
+    //   });
+    // }
+    //
+    // inheritStyles(styles, inheritableStyles, inheritedStyles);
+    // return inheritedStyles;
+  }
+
+  Map<String, dynamic>? getWidgetTypeStyles(String widgetType) {
+    return styles[widgetType];
+  }
+
+  void resolveAndApplyStyles(ScopeManager scopeManager, HasStyles controller, Invokable widget) {
+    Map<String, dynamic> resolvedStyles =
+    resolveStyles(scopeManager.dataContext, controller);
+    controller.runtimeStyles = resolvedStyles;
+    scopeManager.setProperties(scopeManager, controller.runtimeStyles!, widget);
+  }
+
+  Map<String, dynamic> resolveStyles(DataContext context, HasStyles widget) {
+    return _resolveStyles(context, widget.styleOverrides, widget.inlineStyles, widget.idStyles,
+        widget.classList, widget.widgetTypeStyles, null);
+  }
+
   ///classList is a list of class names
   Map<String, dynamic> resolveClassList(List<String>? classList) {
     Map<String, dynamic> resolvedStyles = {};
@@ -183,6 +256,7 @@ class EnsembleTheme {
     }
     return resolvedStyles;
   }
+
   ///remember styles could be nested (for example textStyles under styles) so we have to merge them recursively at the style property level
   Map<String, dynamic> mergeMaps(Map<String, dynamic>? map1, Map<String, dynamic>? map2) {
     Map<String, dynamic> result = {};
@@ -197,7 +271,8 @@ class EnsembleTheme {
       map2.forEach((key, value) {
         // If both maps contain a Map for the same key, merge them recursively
         if (result[key] != null && result[key] is Map && value is Map) {
-          result[key] = mergeMaps(result[key] as Map<String, dynamic>, value as Map<String,dynamic>);
+          result[key] = mergeMaps(result[key] as Map<String, dynamic>,
+              value as Map<String, dynamic>);
         } else {
           // Otherwise, just set/overwrite the value
           result[key] = value;
@@ -206,33 +281,52 @@ class EnsembleTheme {
     }
     return result;
   }
+
   //precedence order is exactly in the order of arguments in this method
-  Map<String,dynamic> resolveStyles(DataContext context,
-      Map<String,dynamic>? inlineStyles, //inline styles specified on the widget
+  Map<String, dynamic> _resolveStyles(DataContext context,
+      Map<String, dynamic>? styleOverrides,
+      //styles overriden in app logic (e.g. through js)
+      Map<String, dynamic>?
+      inlineStyles, //inline styles specified on the widget
+      Map<String, dynamic>? idStyles,
       List<String>? classList, //namedstyles specified on the widget
-      Map<String,dynamic>? themeStyles, //styles specified in themes - could be by widget type or id
-      Map<String,dynamic>? inheritedStyles //styles inherited from ancestors that are inheritable styles
+      Map<String, dynamic>?
+      widgetTypeStyles, //styles specified in themes - could be by widget type or id
+      Map<String, dynamic>? inheritedStyles
+      //styles inherited from ancestors that are inheritable styles
       ) {
-    Map<String,dynamic> resolvedStyles = resolveClassList(classList);
-    //return {...?inheritedStyles, ...resolvedStyles, ...?inlineStyles}; //I SOOOOO LOVE this syntax but can't use it here
-    Map<String, dynamic> combinedStyles =
+    Map<String, dynamic> resolvedStyles = resolveClassList(classList);
+    Map<String, dynamic> combinedStyles = mergeMaps(
         mergeMaps(
             mergeMaps(
                 mergeMaps(
-                    inheritedStyles, themeStyles
-                ),
-                resolvedStyles
-            ), inlineStyles
-        );
+                    mergeMaps(inheritedStyles, widgetTypeStyles),
+                    resolvedStyles),
+                idStyles),
+            inlineStyles),
+        styleOverrides);
     context.eval(combinedStyles);
     return combinedStyles;
   }
+
   void _resolveTokens(DataContext dataContext) {
     // resolve tokens
-    for ( var key in styles.keys ) {
+    for (var key in styles.keys) {
       styles[key] = dataContext.eval(styles[key]);
     }
-    areTokensResolved = true;
   }
+}
 
+class ThemeProvider extends InheritedWidget {
+  final EnsembleTheme theme;
+
+  const ThemeProvider({super.key, required Widget child, required this.theme})
+      : super(child: child);
+
+  @override
+  bool updateShouldNotify(ThemeProvider oldWidget) => theme != oldWidget.theme;
+
+  static ThemeProvider? of(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<ThemeProvider>();
+  }
 }

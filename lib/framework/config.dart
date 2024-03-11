@@ -1,6 +1,7 @@
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/app_info.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 
@@ -8,16 +9,25 @@ import 'package:flutter/material.dart';
 class AppConfig with Invokable {
   BuildContext context;
   String? appId;
+
   AppConfig(this.context, this.appId);
+
   static const String useMockResponse = 'useMockResponse';
+  static const String theme = 'theme';
+
+  String get themeKey => '${appId ?? ''}_$theme';
+
   String get useMockResponseKey => '${appId ?? ''}_$useMockResponse';
+
   @override
   Map<String, Function> getters() {
     return {
       'baseUrl': () =>
           Ensemble().getConfig()?.definitionProvider.getAppConfig()?.baseUrl,
       'useMockResponse': () =>
-          EnsembleStorage(context).getProperty(useMockResponseKey) ?? false
+          EnsembleStorage(context).getProperty(useMockResponseKey) ?? false,
+      'theme': () => EnsembleThemeManager().currentThemeName,
+      'themes': () => EnsembleThemeManager().getThemeNames(),
     };
   }
 
@@ -25,9 +35,19 @@ class AppConfig with Invokable {
     EnsembleStorage(context).setProperty(useMockResponseKey, false);
   }
 
+  String? getSavedTheme() {
+    return EnsembleStorage(context).getProperty(themeKey);
+  }
+
   @override
   Map<String, Function> methods() {
-    return {};
+    return {
+      'saveTheme': (String theme) {
+        EnsembleStorage(context).setProperty(themeKey, theme);
+      },
+      'getSavedTheme': () => getSavedTheme(),
+      'removeSavedTheme': () => EnsembleStorage(context).delete(themeKey),
+    };
   }
 
   bool isMockResponse() {
@@ -39,6 +59,9 @@ class AppConfig with Invokable {
     return {
       'useMockResponse': (bool value) {
         EnsembleStorage(context).setProperty(useMockResponseKey, value);
+      },
+      'theme': (String theme) {
+        EnsembleThemeManager().setTheme(theme);
       }
     };
   }
