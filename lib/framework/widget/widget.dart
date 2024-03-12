@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:ensemble/framework/action.dart' as action;
 import 'package:ensemble/framework/bindings.dart';
+import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/studio_debugger.dart';
@@ -114,6 +117,16 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
         /// 2. If Column/Row is inside a parent without height/width constraint, it will collapse its size.
         ///    So if we put Expanded on the Column's child, layout exception will occur
         rtn = Expanded(child: rtn);
+      }
+
+      final isTestMode = EnvConfig().isTestMode;
+
+      if (isTestMode &&
+          (widgetController.testId != null || widgetController.id != null)) {
+        rtn = Semantics(
+          label: widgetController.testId ?? widgetController.id,
+          child: rtn,
+        );
       }
     }
     return rtn;
