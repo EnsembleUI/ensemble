@@ -193,7 +193,7 @@ abstract class WidgetController extends Controller with HasStyles {
 
   String? id; // do we need this?
 
-  String? automationId;
+  String? testId;
 
   // wrap widget inside an Align widget
   Alignment? alignment;
@@ -225,7 +225,7 @@ abstract class WidgetController extends Controller with HasStyles {
     return {
       'flexMode': (value) => flexMode = FlexMode.values.from(value),
       'flex': (value) => flex = Utils.optionalInt(value, min: 1),
-      'automationId': (value) => automationId = Utils.optionalString(value),
+      'testId': (value) => testId = Utils.optionalString(value),
       'expanded': (value) => expanded = Utils.getBool(value, fallback: false),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
       'visibilityTransitionDuration': (value) =>
@@ -363,7 +363,8 @@ class BoxController extends WidgetController {
 }
 
 /// Base Widget Controller
-abstract class EnsembleWidgetController extends EnsembleController with HasStyles {
+abstract class EnsembleWidgetController extends EnsembleController
+    with HasStyles {
   FlexMode? flexMode;
   int? flex;
 
@@ -374,9 +375,10 @@ abstract class EnsembleWidgetController extends EnsembleController with HasStyle
   Color? elevationShadowColor;
   EBorderRadius? elevationBorderRadius;
 
+  @override
   String? id; // do we need this?
 
-  String? automationId;
+  String? testId;
 
   // wrap widget inside an Align widget
   Alignment? alignment;
@@ -403,7 +405,7 @@ abstract class EnsembleWidgetController extends EnsembleController with HasStyle
     return {
       'flexMode': (value) => flexMode = FlexMode.values.from(value),
       'flex': (value) => flex = Utils.optionalInt(value, min: 1),
-      'automationId': (value) => automationId = Utils.optionalString(value),
+      'testId': (value) => testId = Utils.optionalString(value),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
       'visibilityTransitionDuration': (value) =>
           visibilityTransitionDuration = Utils.getDuration(value),

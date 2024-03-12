@@ -42,6 +42,7 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
       }
     }
   }
+
   @override
   Widget build(BuildContext context) {
     resolveStylesIfUnresolved(context);
@@ -115,10 +116,9 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
         rtn = Expanded(child: rtn);
       }
 
-      if (widgetController.automationId != null ||
-          widgetController.id != null) {
+      if (widgetController.testId != null || widgetController.id != null) {
         rtn = Semantics(
-          label: widgetController.automationId ?? widgetController.id,
+          label: widgetController.testId ?? widgetController.id,
           child: rtn,
         );
       }
