@@ -109,15 +109,19 @@ class DeepLinkHandleAction extends EnsembleAction {
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) async {
     try {
-      GetIt.I<DeferredLinkManager>().handleDeferredLink(url!, (linkData) {
-        return ScreenController().executeAction(context, onLinkReceived!,
-            event: EnsembleEvent(initiator, data: {'link': linkData}));
-      });
+      if (url != null && onLinkReceived != null) {
+        GetIt.I<DeferredLinkManager>().handleDeferredLink(url!, (linkData) {
+          return ScreenController().executeAction(context, onLinkReceived!,
+              event: EnsembleEvent(initiator, data: {'link': linkData}));
+        });
+      }
     } catch (e) {
-      return ScreenController().executeAction(context, onError!,
-          event: EnsembleEvent(initiator,
-              error:
-                  'DeferredDeepLink: Unable to handle deeplink - Reason: $e'));
+      if (onError != null) {
+        return ScreenController().executeAction(context, onError!,
+            event: EnsembleEvent(initiator,
+                error:
+                    'DeferredDeepLink: Unable to handle deeplink - Reason: $e'));
+      }
     }
   }
 }
