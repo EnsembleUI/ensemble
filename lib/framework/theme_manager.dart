@@ -167,9 +167,11 @@ class EnsembleTheme {
     initialized = true;
     return this;
   }
-  Map<String,dynamic>? getIDStyles(String? id) {
+
+  Map<String, dynamic>? getIDStyles(String? id) {
     return (id == null) ? {} : styles['#$id'];
   }
+
   Map<String, dynamic>? getThemeStyles(String? id, String type) {
     Map<String, dynamic>? idStyles = (id == null) ? {} : styles['#$id'];
     return mergeMaps(styles[type], idStyles);
@@ -210,16 +212,17 @@ class EnsembleTheme {
     return styles[widgetType];
   }
 
-  void resolveAndApplyStyles(ScopeManager scopeManager, HasStyles controller, Invokable widget) {
+  void resolveAndApplyStyles(
+      ScopeManager scopeManager, HasStyles controller, Invokable widget) {
     Map<String, dynamic> resolvedStyles =
-    resolveStyles(scopeManager.dataContext, controller);
+        resolveStyles(scopeManager.dataContext, controller);
     controller.runtimeStyles = resolvedStyles;
     scopeManager.setProperties(scopeManager, controller.runtimeStyles!, widget);
   }
 
   Map<String, dynamic> resolveStyles(DataContext context, HasStyles widget) {
-    return _resolveStyles(context, widget.styleOverrides, widget.inlineStyles, widget.idStyles,
-        widget.classList, widget.widgetTypeStyles, null);
+    return _resolveStyles(context, widget.styleOverrides, widget.inlineStyles,
+        widget.idStyles, widget.classList, widget.widgetTypeStyles, null);
   }
 
   ///classList is a list of class names
@@ -239,7 +242,8 @@ class EnsembleTheme {
   }
 
   ///remember styles could be nested (for example textStyles under styles) so we have to merge them recursively at the style property level
-  Map<String, dynamic> mergeMaps(Map<String, dynamic>? map1, Map<String, dynamic>? map2) {
+  Map<String, dynamic> mergeMaps(
+      Map<String, dynamic>? map1, Map<String, dynamic>? map2) {
     Map<String, dynamic> result = {};
 
     // Add all values from the first map to the result
@@ -264,26 +268,26 @@ class EnsembleTheme {
   }
 
   //precedence order is exactly in the order of arguments in this method
-  Map<String, dynamic> _resolveStyles(DataContext context,
+  Map<String, dynamic> _resolveStyles(
+      DataContext context,
       Map<String, dynamic>? styleOverrides,
       //styles overriden in app logic (e.g. through js)
       Map<String, dynamic>?
-      inlineStyles, //inline styles specified on the widget
+          inlineStyles, //inline styles specified on the widget
       Map<String, dynamic>? idStyles,
       List<String>? classList, //namedstyles specified on the widget
       Map<String, dynamic>?
-      widgetTypeStyles, //styles specified in themes - could be by widget type or id
+          widgetTypeStyles, //styles specified in themes - could be by widget type or id
       Map<String, dynamic>? inheritedStyles
       //styles inherited from ancestors that are inheritable styles
       ) {
     Map<String, dynamic> resolvedStyles = resolveClassList(classList);
     Map<String, dynamic> combinedStyles = mergeMaps(
         mergeMaps(
-          mergeMaps(
             mergeMaps(
-                  mergeMaps(inheritedStyles, widgetTypeStyles),
-                resolvedStyles),
-              idStyles),
+                mergeMaps(mergeMaps(inheritedStyles, widgetTypeStyles),
+                    resolvedStyles),
+                idStyles),
             inlineStyles),
         styleOverrides);
     context.eval(combinedStyles);

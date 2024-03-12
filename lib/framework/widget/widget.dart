@@ -27,7 +27,7 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
   ScopeManager? scopeManager;
 
   void resolveStylesIfUnresolved() {
-    if ( widget.controller is HasStyles ) {
+    if (widget.controller is HasStyles) {
       ScopeManager? scopeManager = DataScopeWidget.getScope(context) ??
           PageGroupWidget.getScope(context);
       Invokable? invokable;
@@ -41,6 +41,7 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
       }
     }
   }
+
   @override
   Widget build(BuildContext context) {
     resolveStylesIfUnresolved();

@@ -168,19 +168,22 @@ class PageGroupModel extends PageModel {
     menu = Menu.fromYaml(docMap['ViewGroup'], customViewDefinitions);
   }
 }
+
 mixin HasStyles {
   //styles specified in the theme directly on the type e.g. Text or Button
-  Map<String,dynamic>? _widgetTypeStyles;
-  Map<String,dynamic>? get widgetTypeStyles => _widgetTypeStyles;
-  set widgetTypeStyles(Map<String,dynamic>? styles) {
+  Map<String, dynamic>? _widgetTypeStyles;
+  Map<String, dynamic>? get widgetTypeStyles => _widgetTypeStyles;
+  set widgetTypeStyles(Map<String, dynamic>? styles) {
     _widgetTypeStyles = styles;
   }
+
   //styles defined in the theme for a specific id e.g. #submitBtn where submitBtn is the id of the widget
-  Map<String,dynamic>? _idStyles;
-  Map<String,dynamic>? get idStyles => _idStyles;
-  set idStyles(Map<String,dynamic>? styles) {
+  Map<String, dynamic>? _idStyles;
+  Map<String, dynamic>? get idStyles => _idStyles;
+  set idStyles(Map<String, dynamic>? styles) {
     _idStyles = styles;
   }
+
   //these are the inline styles set directly on the widget
   Map<String, dynamic>? _inlineStyles;
   Map<String, dynamic>? get inlineStyles => _inlineStyles;
@@ -195,7 +198,7 @@ mixin HasStyles {
   List<String>? get classList => _classList;
 
   set classList(List<String>? cl) {
-    if ( _classList == cl ) return;
+    if (_classList == cl) return;
     _classList = cl;
     stylesNeedResolving = true;
   }
@@ -239,6 +242,7 @@ mixin HasStyles {
     }
   }
 }
+
 /// represents an individual screen translated from the YAML definition
 class SinglePageModel extends PageModel with HasStyles {
   SinglePageModel._init(YamlMap docMap) {
@@ -464,9 +468,16 @@ class WidgetModel extends Object with HasStyles {
     return props['id'];
   }
 
-  WidgetModel(this.definition, this.type, Map<String, dynamic>? widgetTypeStyles, Map<String,dynamic>? idStyles,
-      Map<String, dynamic>? inlineStyles, List<String>? classList, this.props,
-      {this.children, this.itemTemplate}) {
+  WidgetModel(
+      this.definition,
+      this.type,
+      Map<String, dynamic>? widgetTypeStyles,
+      Map<String, dynamic>? idStyles,
+      Map<String, dynamic>? inlineStyles,
+      List<String>? classList,
+      this.props,
+      {this.children,
+      this.itemTemplate}) {
     this.idStyles = idStyles;
     this.widgetTypeStyles = widgetTypeStyles;
     this.inlineStyles = inlineStyles;
