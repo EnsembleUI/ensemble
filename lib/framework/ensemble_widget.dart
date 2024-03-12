@@ -105,7 +105,8 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
       }
 
       // To enable test mode, we need to add --dart-define="testmode=true"
-      const isTestMode = String.fromEnvironment("testmode") == "true";
+      final envString = const String.fromEnvironment("testmode").toLowerCase();
+      final isTestMode = envString == "true";
 
       if (isTestMode &&
           (widgetController.testId != null || widgetController.id != null)) {
