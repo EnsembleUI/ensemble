@@ -153,8 +153,8 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
         rtn = Expanded(child: rtn);
       }
 
-      // To enable test mode, we need to add --dart-define="TEST_MODE=true"
-      const isTestMode = String.fromEnvironment("TEST_MODE") == "true";
+      // To enable test mode, we need to add --dart-define="testmode=true"
+      const isTestMode = String.fromEnvironment("testmode") == "true";
 
       if (isTestMode &&
           (widgetController.testId != null || widgetController.id != null)) {
