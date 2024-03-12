@@ -68,13 +68,12 @@ class AppConfig with Invokable {
 }
 
 class EnvConfig with Invokable {
-  EnvConfig._();
+  static final EnvConfig _instance = EnvConfig._internal();
 
-  static EnvConfig? _instance;
+  EnvConfig._internal();
 
-  static EnvConfig get instance {
-    _instance ??= EnvConfig._();
-    return _instance!;
+  factory EnvConfig() {
+    return _instance;
   }
 
   // To enable test mode, we need to add --dart-define="testmode=true"

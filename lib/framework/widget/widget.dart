@@ -154,7 +154,7 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
         rtn = Expanded(child: rtn);
       }
 
-      final isTestMode = EnvConfig.instance.isTestMode;
+      final isTestMode = EnvConfig().isTestMode;
 
       if (isTestMode &&
           (widgetController.testId != null || widgetController.id != null)) {

@@ -105,7 +105,7 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
         }
       }
 
-      final isTestMode = EnvConfig.instance.isTestMode;
+      final isTestMode = EnvConfig().isTestMode;
 
       if (isTestMode &&
           (widgetController.testId != null || widgetController.id != null)) {
