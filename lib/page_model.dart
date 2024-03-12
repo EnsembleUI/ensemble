@@ -169,6 +169,7 @@ class PageGroupModel extends PageModel {
     menu = Menu.fromYaml(docMap['ViewGroup'], customViewDefinitions);
   }
 }
+
 mixin HasStyles {
   String? _currentTheme;
 
@@ -213,7 +214,7 @@ mixin HasStyles {
   List<String>? get classList => _classList;
 
   set classList(List<String>? cl) {
-    if ( _classList == cl ) return;
+    if (_classList == cl) return;
     _classList = cl;
     stylesNeedResolving = true;
   }
@@ -259,6 +260,7 @@ mixin HasStyles {
     }
   }
 }
+
 /// represents an individual screen translated from the YAML definition
 class SinglePageModel extends PageModel with HasStyles {
   SinglePageModel._init(YamlMap docMap) {
@@ -302,7 +304,8 @@ class SinglePageModel extends PageModel with HasStyles {
             inlineStyles![key] = EnsembleThemeManager.yamlToDart(value);
           });
         }
-        classList = (viewMap[ViewUtil.classNameAttribute] as String?)?.split(RegExp('\\s+'));
+        classList = (viewMap[ViewUtil.classNameAttribute] as String?)
+            ?.split(RegExp('\\s+'));
         widgetTypeStyles =
             EnsembleThemeManager().currentTheme()?.getWidgetTypeStyles(type);
         if (viewMap['footer'] != null &&
@@ -321,7 +324,8 @@ class SinglePageModel extends PageModel with HasStyles {
               EnsembleThemeManager.yamlToDart(
                 viewMap['footer']['styles'],
               ),
-              (viewMap['footer'][ViewUtil.classNameAttribute] as String?)?.split(RegExp('\\s+')),
+              (viewMap['footer'][ViewUtil.classNameAttribute] as String?)
+                  ?.split(RegExp('\\s+')),
               dragOptionsMap,
               fixedContent,
               ViewUtil.buildModel(footerYamlMap, customViewDefinitions));
@@ -363,7 +367,8 @@ class SinglePageModel extends PageModel with HasStyles {
       }
 
       styles = EnsembleThemeManager.yamlToDart(headerData['styles']);
-      classList = (headerData[ViewUtil.classNameAttribute] as String?)?.split(RegExp('\\s+'));
+      classList = (headerData[ViewUtil.classNameAttribute] as String?)
+          ?.split(RegExp('\\s+'));
     }
 
     if (titleWidget != null ||
@@ -484,9 +489,16 @@ class WidgetModel extends Object with HasStyles {
     return props['id'];
   }
 
-  WidgetModel(this.definition, this.type, Map<String, dynamic>? widgetTypeStyles, Map<String,dynamic>? idStyles,
-      Map<String, dynamic>? inlineStyles, List<String>? classList, this.props,
-      {this.children, this.itemTemplate}) {
+  WidgetModel(
+      this.definition,
+      this.type,
+      Map<String, dynamic>? widgetTypeStyles,
+      Map<String, dynamic>? idStyles,
+      Map<String, dynamic>? inlineStyles,
+      List<String>? classList,
+      this.props,
+      {this.children,
+      this.itemTemplate}) {
     this.idStyles = idStyles;
     this.widgetTypeStyles = widgetTypeStyles;
     this.inlineStyles = inlineStyles;

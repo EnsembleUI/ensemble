@@ -42,6 +42,7 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
       }
     }
   }
+
   @override
   Widget build(BuildContext context) {
     resolveStylesIfUnresolved(context);
