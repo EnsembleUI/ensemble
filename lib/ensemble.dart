@@ -403,6 +403,20 @@ class EnsembleConfig {
       ensemble.invokeAPI(name,{});
     }
    */
+
+  ParsedCode? getGlobalfunction(String library) {
+    Map? globals = getResources();
+
+    final scripts = globals?[ResourceArtifactEntry.Scripts.name];
+    if (scripts is! Map) return null;
+    if (!scripts.containsKey(library)) return null;
+
+    final libraryCode = scripts[library];
+    final code =
+        ParsedCode(library, libraryCode, JSInterpreter.parseCode(libraryCode));
+    return code;
+  }
+
   List<ParsedCode>? processImports(YamlList? imports) {
     if (imports == null) {
       return null;
