@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/studio_debugger.dart';
@@ -104,9 +105,7 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
         }
       }
 
-      // To enable test mode, we need to add --dart-define="testmode=true"
-      final envString = const String.fromEnvironment("testmode").toLowerCase();
-      final isTestMode = envString == "true";
+      final isTestMode = EnvConfig.instance.isTestMode;
 
       if (isTestMode &&
           (widgetController.testId != null || widgetController.id != null)) {

@@ -67,8 +67,22 @@ class AppConfig with Invokable {
   }
 }
 
-// Environment Configuration
 class EnvConfig with Invokable {
+  EnvConfig._();
+
+  static EnvConfig? _instance;
+
+  static EnvConfig get instance {
+    _instance ??= EnvConfig._();
+    return _instance!;
+  }
+
+  // To enable test mode, we need to add --dart-define="testmode=true"
+  bool get isTestMode {
+    final envString = const String.fromEnvironment("testmode").toLowerCase();
+    return envString == "true";
+  }
+
   // ignore since we override getProperty
   @override
   Map<String, Function> getters() {
