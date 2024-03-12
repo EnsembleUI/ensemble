@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:ensemble/framework/action.dart' as action;
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -26,6 +28,38 @@ mixin UpdatableContainer<T extends Widget> {
 abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
   ScopeManager? scopeManager;
 
+  @override
+  void changeState() {
+    super.changeState();
+    // dispatch changes, so anything binding to this will be notified
+    if (widget.controller.lastSetterProperty != null) {
+      if (scopeManager != null &&
+          widget is Invokable &&
+          (widget as Invokable).id != null) {
+        scopeManager!.dispatch(ModelChangeEvent(
+            WidgetBindingSource((widget as Invokable).id!,
+                property: widget.controller.lastSetterProperty!.key),
+            widget.controller.lastSetterProperty!.value));
+      }
+      widget.controller.lastSetterProperty = null;
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    scopeManager =
+        DataScopeWidget.getScope(context) ?? PageGroupWidget.getScope(context);
+  }
+
+  @override
+  void dispose() {
+    if (widget is Invokable) {
+      scopeManager?.removeBindingListeners(widget as Invokable);
+    }
+    super.dispose();
+  }
+
   void resolveStylesIfUnresolved(BuildContext context) {
     if (widget.controller is HasStyles) {
       ScopeManager? scopeManager = DataScopeWidget.getScope(context) ??
@@ -42,6 +76,9 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
       }
     }
   }
+
+  /// build your widget here
+  Widget buildWidget(BuildContext context);
 
   @override
   Widget build(BuildContext context) {
@@ -116,7 +153,11 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
         rtn = Expanded(child: rtn);
       }
 
-      if (widgetController.testId != null || widgetController.id != null) {
+      // To enable test mode, we need to add --dart-define="TEST_MODE=true"
+      const isTestMode = String.fromEnvironment("TEST_MODE") == "true";
+
+      if (isTestMode &&
+          (widgetController.testId != null || widgetController.id != null)) {
         rtn = Semantics(
           label: widgetController.testId ?? widgetController.id,
           child: rtn,
@@ -124,41 +165,6 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
       }
     }
     return rtn;
-  }
-
-  /// build your widget here
-  Widget buildWidget(BuildContext context);
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    scopeManager =
-        DataScopeWidget.getScope(context) ?? PageGroupWidget.getScope(context);
-  }
-
-  @override
-  void dispose() {
-    if (widget is Invokable) {
-      scopeManager?.removeBindingListeners(widget as Invokable);
-    }
-    super.dispose();
-  }
-
-  @override
-  void changeState() {
-    super.changeState();
-    // dispatch changes, so anything binding to this will be notified
-    if (widget.controller.lastSetterProperty != null) {
-      if (scopeManager != null &&
-          widget is Invokable &&
-          (widget as Invokable).id != null) {
-        scopeManager!.dispatch(ModelChangeEvent(
-            WidgetBindingSource((widget as Invokable).id!,
-                property: widget.controller.lastSetterProperty!.key),
-            widget.controller.lastSetterProperty!.value));
-      }
-      widget.controller.lastSetterProperty = null;
-    }
   }
 }
 
