@@ -1,8 +1,12 @@
+// ignore_for_file: avoid_print
+
 import 'dart:convert';
 import 'dart:developer';
 import 'dart:io' show Platform;
 
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/widget/toast.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble/util/utils.dart';
@@ -103,7 +107,7 @@ class NotificationManager {
         'body': message.notification?.body,
         'data': message.data
       });
-      handleNotification(message);
+      handleNotification(jsonEncode(message.toMap()));
     });
   }
 
@@ -120,37 +124,66 @@ class NotificationManager {
       });
       // notification will be executed AFTER the home screen has finished rendering
       Ensemble().addPushNotificationCallback(
-          method: () => handleNotification(message));
+          method: () => handleNotification(jsonEncode(message.toMap())));
     }).catchError((err) {
-      // ignore: avoid_print
       print(
           "Failed to get the remote notification's initial message. Ignoring ...");
     });
   }
 
-  Future<void> handleNotification(RemoteMessage message) async {
-    Map<String, dynamic> payload = {
-      'notificationPayload': {
-        'title': message.notification?.title,
-        'body': message.notification?.body,
-        'data': message.data,
+  Future<void> handleNotification(String message) async {
+    const key = 'ensemble_notification_handler';
+    dynamic payload;
+    try {
+      final env = Ensemble()
+          .getConfig()
+          ?.definitionProvider
+          .getAppConfig()
+          ?.envVariables;
+
+      if (env != null && env.containsKey(key)) {
+        final value = env[key];
+        if (!_validateFormat(value)) {
+          print('Please specify $key properly in script.function syntax');
+          return;
+        }
+        final data = env[key]!.split('.');
+
+        final library = data[0];
+        final function = data[1];
+        final codeBlock = "$function($message)";
+        payload = ScreenController().executeGlobalFunction(
+            Utils.globalAppKey.currentContext!, library, codeBlock);
+      } else {
+        print("$key not found in environment variables");
       }
-    };
-    if (message.data['screenId'] != null ||
-        message.data['screenName'] != null) {
-      ScreenController().navigateToScreen(Utils.globalAppKey.currentContext!,
-          screenId: message.data['screenId'],
-          screenName: message.data['screenName'],
-          pageArgs: {
-            // backward compatibility
-            ...message.data,
-            ...payload,
-          });
-    } else {
-      ScreenController().navigateToScreen(Utils.globalAppKey.currentContext!,
-          pageArgs: payload);
+    } on Exception catch (e) {
+      print("Error receiving notification: $e");
     }
+    if (payload is! Map) return;
+    if (payload.containsKey('status') &&
+        (payload['status'] as String).toLowerCase() == 'error') {
+      print('Error while running js function');
+    }
+    final action = NavigateScreenAction.fromMap(payload);
+
+    ScreenController().navigateToScreen(Utils.globalAppKey.currentContext!,
+        screenName: action.screenName,
+        asModal: action.asModal,
+        isExternal: action.isExternal,
+        transition: action.transition,
+        pageArgs: {
+          ...payload,
+        });
   }
+}
+
+bool _validateFormat(String? value) {
+  if (value == null) {
+    return false;
+  }
+  List<String> parts = value.split(".");
+  return parts.length == 2 && parts[0].isNotEmpty && parts[1].isNotEmpty;
 }
 
 /// abstract to just the absolute must need Firebase options
