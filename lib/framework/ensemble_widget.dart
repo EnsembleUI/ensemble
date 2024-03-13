@@ -108,9 +108,10 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
       final isTestMode = EnvConfig().isTestMode;
 
       if (isTestMode &&
-          (widgetController.testId != null || widgetController.id != null)) {
+          widgetController.testId != null &&
+          widgetController.testId!.isNotEmpty) {
         rtn = Semantics(
-          label: widgetController.testId ?? widgetController.id,
+          label: '${widgetController.testId!}: ',
           child: rtn,
         );
       }

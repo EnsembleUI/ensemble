@@ -122,9 +122,11 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
       final isTestMode = EnvConfig().isTestMode;
 
       if (isTestMode &&
-          (widgetController.testId != null || widgetController.id != null)) {
+          widgetController.testId != null &&
+          widgetController.testId!.isNotEmpty) {
         rtn = Semantics(
-          label: widgetController.testId ?? widgetController.id,
+          //identifier: 'ID#${widgetController.testId!}',//can't use it till we move to flutter 3.19
+          label: '${widgetController.testId!}: ',
           child: rtn,
         );
       }
