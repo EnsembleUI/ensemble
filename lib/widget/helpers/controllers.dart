@@ -3,6 +3,7 @@ import 'package:ensemble/controller/controller_mixins.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
+import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/errors.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -171,10 +172,9 @@ enum FlexMode {
   flexible,
   none,
 }
-
-/// TODO: Legacy, transition to EnsembleWidgetController
+/// TODO: Legacy, transition to [EnsembleWidgetController]
 /// base Controller class for your Ensemble widget
-abstract class WidgetController extends Controller {
+abstract class WidgetController extends Controller with HasStyles {
   // Note: we manage these here so the user doesn't need to do in their widgets
   // base properties applicable to all widgets
 
@@ -206,12 +206,23 @@ abstract class WidgetController extends Controller {
   // legacy used to show as the form label if used inside Form
   @Deprecated("don't use anymore")
   String? label;
+  String? _testId;
+
+  String? get testId {
+    String? _ = _testId ?? id;
+    return _;
+  }
+
+  set testId(value) => _testId = value;
 
   @override
   Map<String, Function> getBaseGetters() {
     return {
       'expanded': () => expanded,
       'visible': () => visible != false,
+      'className': () => className,
+      'classList': () => classList,
+      'testId': () => testId,
     };
   }
 
@@ -220,6 +231,7 @@ abstract class WidgetController extends Controller {
     return {
       'flexMode': (value) => flexMode = FlexMode.values.from(value),
       'flex': (value) => flex = Utils.optionalInt(value, min: 1),
+      'testId': (value) => testId = Utils.optionalString(value),
       'expanded': (value) => expanded = Utils.getBool(value, fallback: false),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
       'visibilityTransitionDuration': (value) =>
@@ -242,6 +254,8 @@ abstract class WidgetController extends Controller {
       'captureWebPointer': (value) =>
           captureWebPointer = Utils.optionalBool(value),
       'label': (value) => label = Utils.optionalString(value),
+      'classList': (value) => classList = value,
+      'className': (value) => className = value
     };
   }
 
@@ -355,7 +369,8 @@ class BoxController extends WidgetController {
 }
 
 /// Base Widget Controller
-abstract class EnsembleWidgetController extends EnsembleController {
+abstract class EnsembleWidgetController extends EnsembleController
+    with HasStyles {
   FlexMode? flexMode;
   int? flex;
 
@@ -366,7 +381,17 @@ abstract class EnsembleWidgetController extends EnsembleController {
   Color? elevationShadowColor;
   EBorderRadius? elevationBorderRadius;
 
+  @override
   String? id; // do we need this?
+
+  String? _testId;
+
+  String? get testId {
+    String? _ = _testId ?? id;
+    return _;
+  }
+
+  set testId(value) => _testId = value;
 
   // wrap widget inside an Align widget
   Alignment? alignment;
@@ -383,6 +408,8 @@ abstract class EnsembleWidgetController extends EnsembleController {
   Map<String, Function> getters() {
     return {
       'visible': () => visible != false,
+      'className': () => className,
+      'classList': () => classList,
     };
   }
 
@@ -391,6 +418,7 @@ abstract class EnsembleWidgetController extends EnsembleController {
     return {
       'flexMode': (value) => flexMode = FlexMode.values.from(value),
       'flex': (value) => flex = Utils.optionalInt(value, min: 1),
+      'testId': (value) => testId = Utils.optionalString(value),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
       'visibilityTransitionDuration': (value) =>
           visibilityTransitionDuration = Utils.getDuration(value),
@@ -411,6 +439,8 @@ abstract class EnsembleWidgetController extends EnsembleController {
           stackPositionRight = Utils.optionalInt(value),
       'captureWebPointer': (value) =>
           captureWebPointer = Utils.optionalBool(value),
+      'classList': (value) => classList = value,
+      'className': (value) => className = value
     };
   }
 
