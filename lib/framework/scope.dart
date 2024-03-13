@@ -11,6 +11,7 @@ import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/stub/location_manager.dart';
+import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
@@ -317,6 +318,20 @@ mixin ViewBuilder on IsScopeManager {
     return widget;*/
   }
 
+  void setProperties(ScopeManager scopeManager, Map<String, dynamic> map,
+      Invokable invokable) {
+    for (String key in map.keys) {
+      if (InvokableController.getSettableProperties(invokable).contains(key)) {
+        if (_isPassthroughProperty(key, invokable)) {
+          InvokableController.setProperty(invokable, key, map[key]);
+        } else {
+          evalPropertyAndRegisterBinding(
+              scopeManager, invokable, key, map[key]);
+        }
+      }
+    }
+  }
+
   void _updateWidgetBindings(Map<WidgetModel, ModelPayload> modelMap) {
     modelMap.forEach((model, payload) {
       ScopeManager scopeManager = payload.scopeManager;
@@ -356,35 +371,36 @@ mixin ViewBuilder on IsScopeManager {
       //WidgetModel model = inputModel is CustomWidgetModel ? inputModel.getModel() : inputModel;
 
       Invokable? invokable;
+      HasStyles? hasStyles;
       if (payload.widget is EnsembleWidget) {
         invokable = (payload.widget as EnsembleWidget).controller;
+        hasStyles = (payload.widget as EnsembleWidget).controller is HasStyles
+            ? (payload.widget as EnsembleWidget).controller as HasStyles
+            : null;
       } else if (payload.widget is Invokable) {
         invokable = payload.widget as Invokable;
+        if (payload.widget is HasController) {
+          hasStyles = (payload.widget as HasController).controller is HasStyles
+              ? (payload.widget as HasController).controller as HasStyles
+              : null;
+        }
       }
       if (invokable != null) {
         // set props and styles on the widget. At this stage the widget
         // has not been attached, so no worries about ValueNotifier
-        for (String key in model.props.keys) {
-          if (InvokableController.getSettableProperties(invokable)
-              .contains(key)) {
-            if (_isPassthroughProperty(key, invokable)) {
-              InvokableController.setProperty(invokable, key, model.props[key]);
-            } else {
-              evalPropertyAndRegisterBinding(
-                  scopeManager, invokable, key, model.props[key]);
-            }
+        setProperties(scopeManager, model.props, invokable);
+        if (hasStyles != null) {
+          EnsembleThemeManager()
+              .configureStyles(scopeManager.dataContext, model, hasStyles);
+          if (hasStyles?.runtimeStyles != null) {
+            setProperties(scopeManager, hasStyles!.runtimeStyles!, invokable);
+            //not so lovely but now we set the styleOverrides to null because setting the properties could have set them
+            hasStyles?.styleOverrides = null;
           }
-        }
-        for (String key in model.styles.keys) {
-          if (InvokableController.getSettableProperties(invokable)
-              .contains(key)) {
-            if (_isPassthroughProperty(key, invokable)) {
-              InvokableController.setProperty(
-                  invokable, key, model.styles[key]);
-            } else {
-              evalPropertyAndRegisterBinding(
-                  scopeManager, invokable, key, model.styles[key]);
-            }
+          hasStyles?.stylesNeedResolving = false;
+        } else {
+          if (model.inlineStyles != null) {
+            setProperties(scopeManager, model.inlineStyles!, invokable);
           }
         }
       }
@@ -411,7 +427,7 @@ mixin ViewBuilder on IsScopeManager {
   ///    variable evaluation can be done inside the widget
   /// 3. Special properties like children and item-template are excluded
   ///    automatically and don't need to be specified here
-  bool _isPassthroughProperty(String property, dynamic widget) =>
+  static bool _isPassthroughProperty(String property, dynamic widget) =>
       property.startsWith('on') ||
       (widget is HasController &&
           widget.passthroughSetters().contains(property)) ||
