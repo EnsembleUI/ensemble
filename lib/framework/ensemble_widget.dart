@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/studio_debugger.dart';
@@ -101,6 +104,18 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
           rtn = Flexible(flex: widgetController.flex ?? 1, child: rtn);
         }
       }
+
+      final isTestMode = EnvConfig().isTestMode;
+
+      if (isTestMode &&
+          widgetController.testId != null &&
+          widgetController.testId!.isNotEmpty) {
+        rtn = Semantics(
+          label: '${widgetController.testId!}: ',
+          child: rtn,
+        );
+      }
+
       return rtn;
     }
     throw LanguageError("Wrong usage of widget controller!");
