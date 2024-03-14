@@ -223,15 +223,13 @@ abstract class WidgetController extends Controller with HasStyles {
       'visible': () => visible != false,
       'className': () => className,
       'classList': () => classList,
-      'testId': () => testId,
-      'id': () => id,
+      'testId': () => testId
     };
   }
 
   @override
   Map<String, Function> getBaseSetters() {
     return {
-      'id': (value) => id = Utils.optionalString(value),
       'testId': (value) => testId = Utils.optionalString(value),
       'flexMode': (value) => flexMode = FlexMode.values.from(value),
       'flex': (value) => flex = Utils.optionalInt(value, min: 1),
@@ -413,15 +411,13 @@ abstract class EnsembleWidgetController extends EnsembleController
       'visible': () => visible != false,
       'className': () => className,
       'classList': () => classList,
-      'testId': () => testId,
-      'id': () => id,
+      'testId': () => testId
     };
   }
 
   @override
   Map<String, Function> setters() {
     return {
-      'id': (value) => id = Utils.optionalString(value),
       'testId': (value) => testId = Utils.optionalString(value),
       'flexMode': (value) => flexMode = FlexMode.values.from(value),
       'flex': (value) => flex = Utils.optionalInt(value, min: 1),
