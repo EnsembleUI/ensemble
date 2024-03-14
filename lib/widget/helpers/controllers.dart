@@ -172,6 +172,7 @@ enum FlexMode {
   flexible,
   none,
 }
+
 /// TODO: Legacy, transition to [EnsembleWidgetController]
 /// base Controller class for your Ensemble widget
 abstract class WidgetController extends Controller with HasStyles {
