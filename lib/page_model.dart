@@ -333,8 +333,6 @@ class SinglePageModel extends PageModel with HasStyles {
 
         rootWidgetModel = buildRootModel(viewMap, customViewDefinitions);
       }
-    } else {
-      throw (LanguageError("Please add View"));
     }
   }
 
