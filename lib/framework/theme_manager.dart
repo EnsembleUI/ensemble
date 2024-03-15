@@ -3,7 +3,6 @@ import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:yaml/yaml.dart';
 
@@ -30,11 +29,13 @@ class EnsembleThemeManager {
   EnsembleTheme? getTheme(String theme) {
     return _themes[theme];
   }
-  void reset () {
+
+  void reset() {
     _themes.clear();
     _currentThemeName = defaultThemeWhenNoneSpecified;
     initialized = false;
   }
+
   void setTheme(String theme) {
     if (_currentThemeName != theme) {
       if (_themes[theme] != null) {
@@ -300,8 +301,8 @@ class EnsembleTheme {
           inlineStyles, //inline styles specified on the widget
       Map<String, dynamic>? idStyles,
       List<String>? classList, //namedstyles specified on the widget
-      Map<String, dynamic>?
-          widgetTypeStyles, //styles specified in themes - could be by widget type or id
+      Map<String, dynamic>? widgetTypeStyles,
+      //styles specified in themes - could be by widget type or id
       Map<String, dynamic>? inheritedStyles
       //styles inherited from ancestors that are inheritable styles
       ) {
