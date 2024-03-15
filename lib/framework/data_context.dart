@@ -3,12 +3,12 @@ import 'dart:developer';
 import 'dart:io' as io;
 import 'dart:ui';
 import 'package:ensemble/action/action_invokable.dart';
+import 'package:ensemble/action/audio_player.dart';
 import 'package:ensemble/action/bottom_modal_action.dart';
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/action/invoke_api_action.dart';
 import 'package:ensemble/action/misc_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
-import 'package:ensemble/action/play_audio.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/all_countries.dart';
 import 'package:ensemble/framework/config.dart';
@@ -480,11 +480,11 @@ class NativeInvokable extends ActionInvokable {
       ActionType.playAudio.name: (inputs) => ScreenController()
           .executeAction(buildContext, PlayAudio.from(inputs)),
       ActionType.pauseAudio.name: (inputs) =>
-          ScreenController().executeAction(buildContext, PauseAudio()),
+          ScreenController().executeAction(buildContext, PauseAudio.from(inputs)),
       ActionType.stopAudio.name: (inputs) =>
-          ScreenController().executeAction(buildContext, StopAudio()),
+          ScreenController().executeAction(buildContext, StopAudio.from(inputs)),
       ActionType.resumeAudio.name: (inputs) =>
-          ScreenController().executeAction(buildContext, ResumeAudio()),
+          ScreenController().executeAction(buildContext, ResumeAudio.from(inputs)),
       ActionType.seekAudio.name: (inputs) => ScreenController()
           .executeAction(buildContext, SeekAudio.from(inputs)),
       'debug': (value) => debugPrint('Debug: $value'),

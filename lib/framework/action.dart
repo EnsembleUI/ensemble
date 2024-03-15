@@ -11,7 +11,6 @@ import 'package:ensemble/action/misc_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/action/notification_action.dart';
 import 'package:ensemble/action/phone_contact_action.dart';
-import 'package:ensemble/action/play_audio.dart';
 import 'package:ensemble/action/sign_in_out_action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -1265,11 +1264,11 @@ abstract class EnsembleAction {
     } else if (actionType == ActionType.playAudio) {
       return PlayAudio.from(payload);
     } else if (actionType == ActionType.pauseAudio) {
-      return PauseAudio();
+      return PauseAudio.from(payload);
     } else if (actionType == ActionType.stopAudio) {
-      return PauseAudio();
+      return PauseAudio.from(payload);
     } else if (actionType == ActionType.resumeAudio) {
-      return ResumeAudio();
+      return ResumeAudio.from(payload);
     } else if (actionType == ActionType.seekAudio) {
       return SeekAudio.from(payload);
     } else if (actionType == ActionType.deeplinkInit) {
