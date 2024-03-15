@@ -7,8 +7,7 @@ import 'package:get_it/get_it.dart';
 abstract class AuthModule {}
 
 class AuthModuleStub implements AuthModule {
-  @override
-  void init() {
+  AuthModuleStub() {
     GetIt.I
         .registerFactory<SignInWithGoogle>(() => const SignInWithGoogleStub());
     GetIt.I.registerFactory<SignInWithApple>(() => const SignInWithAppleStub());
