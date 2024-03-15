@@ -30,7 +30,11 @@ class EnsembleThemeManager {
   EnsembleTheme? getTheme(String theme) {
     return _themes[theme];
   }
-
+  void reset () {
+    _themes.clear();
+    _currentThemeName = defaultThemeWhenNoneSpecified;
+    initialized = false;
+  }
   void setTheme(String theme) {
     if (_currentThemeName != theme) {
       if (_themes[theme] != null) {
