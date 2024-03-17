@@ -29,6 +29,7 @@ abstract class DefinitionProvider {
   static Map<String, dynamic> cache = {};
   final I18nProps i18nProps;
   bool cacheEnabled = false;
+  String? appId;
   DefinitionProvider(this.i18nProps, {this.cacheEnabled = false});
   Future<ScreenDefinition> getDefinition(
       {String? screenId, String? screenName});

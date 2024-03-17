@@ -15,6 +15,7 @@ import 'package:flutter_i18n/flutter_i18n.dart';
 /// Connecting to Ensemble-hosted definitions
 class EnsembleDefinitionProvider extends DefinitionProvider {
   EnsembleDefinitionProvider(String appId, super.i18nProps) {
+    super.appId = appId;
     appModel = AppModel(appId);
   }
 
