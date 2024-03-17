@@ -190,11 +190,14 @@ class Ensemble {
       options = config.webConfig;
     }
     if ( options == null ) {
-      throw ConfigError('Firebase configuration for platform $defaultTargetPlatform not found.');
+      //we won't throw an error, instead we will just print a message and continue
+      print('Firebase configuration for platform $defaultTargetPlatform not found.');
+      return;
     }
     LogProvider provider = FirebaseAnalyticsProvider(options,appId);
     await provider.init();
     LogManager().addProviderForAllLevels(LogType.appAnalytics, provider);
+    print("firebase analytics provider initialized");
   }
   /// return the definition provider (local, remote, or Ensemble)
   DefinitionProvider _createDefinitionProvider(YamlMap yamlMap) {
