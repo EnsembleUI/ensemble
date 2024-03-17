@@ -301,6 +301,8 @@ class EnsembleTheme {
           inlineStyles, //inline styles specified on the widget
       Map<String, dynamic>? idStyles,
       List<String>? classList, //namedstyles specified on the widget
+      Map<String, dynamic>? widgetTypeStyles,
+      //styles specified in themes - could be by widget type or id
       Map<String, dynamic>? inheritedStyles
       //styles inherited from ancestors that are inheritable styles
       ) {
