@@ -37,5 +37,6 @@ class FirebaseAnalyticsProvider extends LogProvider {
   Future<void> log(String event, Map<String, dynamic> parameters, LogLevel level) async {
     // Use _firebaseApp for logging...
     _analytics.logEvent(name: event, parameters: parameters);
+    print('Firebase: Logged event: $event with parameters: $parameters');
   }
 }

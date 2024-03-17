@@ -9,8 +9,8 @@ import 'package:flutter/cupertino.dart';
 
 class LogEvent extends EnsembleAction {
   final String eventName;
-  final Map<String, dynamic>? parameters;
-  final LogLevel logLevel;
+  final Map<dynamic, dynamic>? parameters;
+  final String logLevel;
   LogEvent({super.initiator,required this.eventName,required this.logLevel,this.parameters});
 
   factory LogEvent.from({Invokable? initiator, Map? payload}) {
@@ -20,11 +20,10 @@ class LogEvent extends EnsembleAction {
       throw LanguageError(
           "${ActionType.logEvent.name} requires the event name");
     }
-    LogLevel level = stringToLogLevel(payload?['logLevel']);
 
     return LogEvent(initiator: initiator, eventName: eventName,
         parameters: payload?['parameters'] is  Map ? payload!['parameters'] : null,
-        logLevel: level);
+        logLevel: payload?['logLevel']?? LogLevel.info.name);
   }
   static LogLevel stringToLogLevel(String? levelStr) {
     // If the level string is null, default to LogLevel.info
@@ -40,7 +39,9 @@ class LogEvent extends EnsembleAction {
   }
   @override
   Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
-    LogManager().log(LogType.appAnalytics, logLevel, eventName, parameters ?? {});
+    LogManager().log(LogType.appAnalytics, stringToLogLevel(scopeManager.dataContext.eval(logLevel)),
+        scopeManager.dataContext.eval(eventName),
+        scopeManager.dataContext.eval(parameters) ?? {});
     return Future.value();//instead of awaiting, we'll let LogManager figure it out as we don't want to block the UI
   }
 
