@@ -119,17 +119,12 @@ class PlayAudio extends EnsembleAction {
   @override
   Future<dynamic> execute(
       BuildContext context, ScopeManager scopeManager) async {
-    if (!(source.startsWith('https://') || source.startsWith('http://'))) {
-      print((await rootBundle.load(Utils.getLocalAssetFullPath(source)))
-          .toString());
-    }
+    AudioCache.instance = AudioCache(prefix: '');
+
     final parsedSource =
         source.startsWith('https://') || source.startsWith('http://')
             ? UrlSource(source)
-            : DeviceFileSource(
-                (await rootBundle.load(Utils.getLocalAssetFullPath(source)))
-                    .toString(),
-              );
+            : AssetSource(Utils.getLocalAssetFullPath(source));
 
     await SingletonAudioPlayer.instance.play(
       id: id,
