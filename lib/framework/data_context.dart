@@ -479,12 +479,12 @@ class NativeInvokable extends ActionInvokable {
           .executeAction(buildContext, HapticAction.from(inputs)),
       ActionType.playAudio.name: (inputs) => ScreenController()
           .executeAction(buildContext, PlayAudio.from(inputs)),
-      ActionType.pauseAudio.name: (inputs) =>
-          ScreenController().executeAction(buildContext, PauseAudio.from(inputs)),
-      ActionType.stopAudio.name: (inputs) =>
-          ScreenController().executeAction(buildContext, StopAudio.from(inputs)),
-      ActionType.resumeAudio.name: (inputs) =>
-          ScreenController().executeAction(buildContext, ResumeAudio.from(inputs)),
+      ActionType.pauseAudio.name: (inputs) => ScreenController()
+          .executeAction(buildContext, PauseAudio.from(inputs)),
+      ActionType.stopAudio.name: (inputs) => ScreenController()
+          .executeAction(buildContext, StopAudio.from(inputs)),
+      ActionType.resumeAudio.name: (inputs) => ScreenController()
+          .executeAction(buildContext, ResumeAudio.from(inputs)),
       ActionType.seekAudio.name: (inputs) => ScreenController()
           .executeAction(buildContext, SeekAudio.from(inputs)),
       'debug': (value) => debugPrint('Debug: $value'),
