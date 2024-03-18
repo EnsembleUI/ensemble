@@ -155,6 +155,7 @@ class NotificationManager {
         payload = ScreenController().executeGlobalFunction(
             Utils.globalAppKey.currentContext!, library, codeBlock);
       } else {
+        _legacyNotificationHandler(message);
         print("$key not found in environment variables");
       }
     } on Exception catch (e) {
@@ -175,6 +176,39 @@ class NotificationManager {
         pageArgs: {
           ...payload,
         });
+  }
+}
+
+Future<void> _legacyNotificationHandler(dynamic remoteMessage) async {
+  RemoteMessage? message;
+  if (remoteMessage is String) {
+    try {
+      final payload = jsonDecode(remoteMessage);
+      message = RemoteMessage.fromMap(payload);
+    } catch (_) {
+      return;
+    }
+  }
+  if (message == null) return;
+  Map<String, dynamic> payload = {
+    'notificationPayload': {
+      'title': message.notification?.title,
+      'body': message.notification?.body,
+      'data': message.data,
+    }
+  };
+  if (message.data['screenId'] != null || message.data['screenName'] != null) {
+    ScreenController().navigateToScreen(Utils.globalAppKey.currentContext!,
+        screenId: message.data['screenId'],
+        screenName: message.data['screenName'],
+        pageArgs: {
+          // backward compatibility
+          ...message.data,
+          ...payload,
+        });
+  } else {
+    ScreenController().navigateToScreen(Utils.globalAppKey.currentContext!,
+        pageArgs: payload);
   }
 }
 
