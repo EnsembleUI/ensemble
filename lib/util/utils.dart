@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math';
 import 'dart:ui';
+import 'package:ensemble/framework/stub/location_manager.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:path/path.dart' as p;
 
@@ -14,7 +15,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:yaml/yaml.dart';
 
 class Utils {
@@ -227,14 +227,14 @@ class Utils {
     return source.startsWith('https://') || source.startsWith('http://');
   }
 
-  static LatLng? getLatLng(dynamic value) {
+  static LocationData? getLatLng(dynamic value) {
     if (value is String) {
       List<String> tokens = value.split(RegExp('\\s+'));
       if (tokens.length == 2) {
         double? lat = double.tryParse(tokens[0]);
         double? lng = double.tryParse(tokens[1]);
         if (lat != null && lng != null) {
-          return LatLng(lat, lng);
+          return LocationData(latitude: lat, longitude: lng);
         }
       }
     }

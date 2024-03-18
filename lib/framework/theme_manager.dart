@@ -1,8 +1,8 @@
+import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:yaml/yaml.dart';
 
@@ -10,7 +10,11 @@ class EnsembleThemeManager {
   static final EnsembleThemeManager _instance =
       EnsembleThemeManager._internal();
   static final Map<String, EnsembleTheme> _themes = {};
-  String _currentThemeName = 'root';
+  static const defaultThemeWhenNoneSpecified = '__ensemble__default__theme';
+  String _currentThemeName = defaultThemeWhenNoneSpecified;
+
+  String get currentThemeName => _currentThemeName;
+  bool initialized = false;
 
   EnsembleThemeManager._internal();
 
@@ -18,8 +22,28 @@ class EnsembleThemeManager {
     return _instance;
   }
 
+  List<String> getThemeNames() {
+    return _themes.keys.toList();
+  }
+
   EnsembleTheme? getTheme(String theme) {
     return _themes[theme];
+  }
+
+  void reset() {
+    _themes.clear();
+    _currentThemeName = defaultThemeWhenNoneSpecified;
+    initialized = false;
+  }
+
+  void setTheme(String theme) {
+    if (_currentThemeName != theme) {
+      if (_themes[theme] != null) {
+        _currentThemeName = theme;
+        //notify all listeners
+        AppEventBus().eventBus.fire(ThemeChangeEvent(theme));
+      }
+    }
   }
 
   Map<String, dynamic>? getRuntimeStyles(
@@ -43,11 +67,12 @@ class EnsembleThemeManager {
 
   /// this is name/value map. name being the name of the theme and value being the theme map
   void init(BuildContext context, Map<String, YamlMap> themeMap,
-      String currentThemeName) {
-    _currentThemeName = currentThemeName;
+      String defaultThemeName) {
+    _currentThemeName = defaultThemeName;
     for (var theme in themeMap.entries) {
       _themes[theme.key] = _parseAndInitTheme(theme.key, theme.value, context);
     }
+    initialized = true;
   }
 
   EnsembleTheme _parseAndInitTheme(
@@ -276,8 +301,8 @@ class EnsembleTheme {
           inlineStyles, //inline styles specified on the widget
       Map<String, dynamic>? idStyles,
       List<String>? classList, //namedstyles specified on the widget
-      Map<String, dynamic>?
-          widgetTypeStyles, //styles specified in themes - could be by widget type or id
+      Map<String, dynamic>? widgetTypeStyles,
+      //styles specified in themes - could be by widget type or id
       Map<String, dynamic>? inheritedStyles
       //styles inherited from ancestors that are inheritable styles
       ) {
@@ -299,5 +324,19 @@ class EnsembleTheme {
     for (var key in styles.keys) {
       styles[key] = dataContext.eval(styles[key]);
     }
+  }
+}
+
+class ThemeProvider extends InheritedWidget {
+  final EnsembleTheme theme;
+
+  const ThemeProvider({super.key, required Widget child, required this.theme})
+      : super(child: child);
+
+  @override
+  bool updateShouldNotify(ThemeProvider oldWidget) => theme != oldWidget.theme;
+
+  static ThemeProvider? of(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<ThemeProvider>();
   }
 }

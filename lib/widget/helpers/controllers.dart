@@ -207,6 +207,14 @@ abstract class WidgetController extends Controller with HasStyles {
   // legacy used to show as the form label if used inside Form
   @Deprecated("don't use anymore")
   String? label;
+  String? _testId;
+
+  String? get testId {
+    String? _ = _testId ?? id;
+    return _;
+  }
+
+  set testId(value) => _testId = value;
 
   @override
   Map<String, Function> getBaseGetters() {
@@ -215,12 +223,14 @@ abstract class WidgetController extends Controller with HasStyles {
       'visible': () => visible != false,
       'className': () => className,
       'classList': () => classList,
+      'testId': () => testId
     };
   }
 
   @override
   Map<String, Function> getBaseSetters() {
     return {
+      'testId': (value) => testId = Utils.optionalString(value),
       'flexMode': (value) => flexMode = FlexMode.values.from(value),
       'flex': (value) => flex = Utils.optionalInt(value, min: 1),
       'expanded': (value) => expanded = Utils.getBool(value, fallback: false),
@@ -372,7 +382,17 @@ abstract class EnsembleWidgetController extends EnsembleController
   Color? elevationShadowColor;
   EBorderRadius? elevationBorderRadius;
 
+  @override
   String? id; // do we need this?
+
+  String? _testId;
+
+  String? get testId {
+    String? _ = _testId ?? id;
+    return _;
+  }
+
+  set testId(value) => _testId = value;
 
   // wrap widget inside an Align widget
   Alignment? alignment;
@@ -391,12 +411,14 @@ abstract class EnsembleWidgetController extends EnsembleController
       'visible': () => visible != false,
       'className': () => className,
       'classList': () => classList,
+      'testId': () => testId
     };
   }
 
   @override
   Map<String, Function> setters() {
     return {
+      'testId': (value) => testId = Utils.optionalString(value),
       'flexMode': (value) => flexMode = FlexMode.values.from(value),
       'flex': (value) => flex = Utils.optionalInt(value, min: 1),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
