@@ -72,8 +72,13 @@ class ShareAction extends EnsembleAction {
 
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) {
-    Share.share(scopeManager.dataContext.eval(_text),
-        subject: Utils.optionalString(scopeManager.dataContext.eval(_title)));
+    final box = context.findRenderObject() as RenderBox?;
+
+    Share.share(
+      scopeManager.dataContext.eval(_text),
+      subject: Utils.optionalString(scopeManager.dataContext.eval(_title)),
+      sharePositionOrigin: box!.localToGlobal(Offset.zero) & box.size,
+    );
     return Future.value(null);
   }
 }

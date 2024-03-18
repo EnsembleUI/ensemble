@@ -15,6 +15,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:source_span/source_span.dart';
+import 'package:flutter/material.dart' as flutter;
 import 'package:yaml/yaml.dart';
 import 'framework/scope.dart';
 
@@ -168,21 +169,39 @@ class PageGroupModel extends PageModel {
     menu = Menu.fromYaml(docMap['ViewGroup'], customViewDefinitions);
   }
 }
+
 mixin HasStyles {
+  String? _currentTheme;
+
+  set currentTheme(String? theme) {
+    if (theme == _currentTheme) {
+      return;
+    }
+    _currentTheme = theme;
+    stylesNeedResolving = true;
+  }
+
   //styles specified in the theme directly on the type e.g. Text or Button
-  Map<String,dynamic>? _widgetTypeStyles;
-  Map<String,dynamic>? get widgetTypeStyles => _widgetTypeStyles;
-  set widgetTypeStyles(Map<String,dynamic>? styles) {
+  Map<String, dynamic>? _widgetTypeStyles;
+
+  Map<String, dynamic>? get widgetTypeStyles => _widgetTypeStyles;
+
+  set widgetTypeStyles(Map<String, dynamic>? styles) {
     _widgetTypeStyles = styles;
   }
+
   //styles defined in the theme for a specific id e.g. #submitBtn where submitBtn is the id of the widget
-  Map<String,dynamic>? _idStyles;
-  Map<String,dynamic>? get idStyles => _idStyles;
-  set idStyles(Map<String,dynamic>? styles) {
+  Map<String, dynamic>? _idStyles;
+
+  Map<String, dynamic>? get idStyles => _idStyles;
+
+  set idStyles(Map<String, dynamic>? styles) {
     _idStyles = styles;
   }
+
   //these are the inline styles set directly on the widget
   Map<String, dynamic>? _inlineStyles;
+
   Map<String, dynamic>? get inlineStyles => _inlineStyles;
 
   set inlineStyles(Map<String, dynamic>? styles) {
@@ -195,7 +214,7 @@ mixin HasStyles {
   List<String>? get classList => _classList;
 
   set classList(List<String>? cl) {
-    if ( _classList == cl ) return;
+    if (_classList == cl) return;
     _classList = cl;
     stylesNeedResolving = true;
   }
@@ -228,17 +247,20 @@ mixin HasStyles {
   }
 
   //set this to true when the styles need to be resolved again. Main example is when classList is changed in app code. This is read in the buildWidget method of the widget state
-  bool stylesNeedResolving = false;
+  bool stylesNeedResolving = true;
 
-  void resolveStyles(ScopeManager scopeManager, Invokable invokable) {
+  void resolveStyles(ScopeManager scopeManager, Invokable invokable,
+      flutter.BuildContext context) {
+    EnsembleTheme? theme = ThemeProvider.of(context)?.theme;
+    currentTheme = theme?.name;
     if (stylesNeedResolving) {
-      EnsembleThemeManager()
-          .currentTheme()
-          ?.resolveAndApplyStyles(scopeManager, this, invokable);
+      theme?.resolveAndApplyStyles(scopeManager, this, invokable);
+      currentTheme = theme?.name;
       stylesNeedResolving = false;
     }
   }
 }
+
 /// represents an individual screen translated from the YAML definition
 class SinglePageModel extends PageModel with HasStyles {
   SinglePageModel._init(YamlMap docMap) {
@@ -282,7 +304,8 @@ class SinglePageModel extends PageModel with HasStyles {
             inlineStyles![key] = EnsembleThemeManager.yamlToDart(value);
           });
         }
-        classList = (viewMap['class'] as String?)?.split(RegExp('\\s+'));
+        classList = (viewMap[ViewUtil.classNameAttribute] as String?)
+            ?.split(RegExp('\\s+'));
         widgetTypeStyles =
             EnsembleThemeManager().currentTheme()?.getWidgetTypeStyles(type);
         if (viewMap['footer'] != null &&
@@ -301,7 +324,8 @@ class SinglePageModel extends PageModel with HasStyles {
               EnsembleThemeManager.yamlToDart(
                 viewMap['footer']['styles'],
               ),
-              (viewMap['footer']['class'] as String?)?.split(RegExp('\\s+')),
+              (viewMap['footer'][ViewUtil.classNameAttribute] as String?)
+                  ?.split(RegExp('\\s+')),
               dragOptionsMap,
               fixedContent,
               ViewUtil.buildModel(footerYamlMap, customViewDefinitions));
@@ -309,8 +333,6 @@ class SinglePageModel extends PageModel with HasStyles {
 
         rootWidgetModel = buildRootModel(viewMap, customViewDefinitions);
       }
-    } else {
-      throw (LanguageError("Please add View"));
     }
   }
 
@@ -343,7 +365,8 @@ class SinglePageModel extends PageModel with HasStyles {
       }
 
       styles = EnsembleThemeManager.yamlToDart(headerData['styles']);
-      classList = (headerData['class'] as String?)?.split(RegExp('\\s+'));
+      classList = (headerData[ViewUtil.classNameAttribute] as String?)
+          ?.split(RegExp('\\s+'));
     }
 
     if (titleWidget != null ||
@@ -464,9 +487,16 @@ class WidgetModel extends Object with HasStyles {
     return props['id'];
   }
 
-  WidgetModel(this.definition, this.type, Map<String, dynamic>? widgetTypeStyles, Map<String,dynamic>? idStyles,
-      Map<String, dynamic>? inlineStyles, List<String>? classList, this.props,
-      {this.children, this.itemTemplate}) {
+  WidgetModel(
+      this.definition,
+      this.type,
+      Map<String, dynamic>? widgetTypeStyles,
+      Map<String, dynamic>? idStyles,
+      Map<String, dynamic>? inlineStyles,
+      List<String>? classList,
+      this.props,
+      {this.children,
+      this.itemTemplate}) {
     this.idStyles = idStyles;
     this.widgetTypeStyles = widgetTypeStyles;
     this.inlineStyles = inlineStyles;

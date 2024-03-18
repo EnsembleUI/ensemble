@@ -32,7 +32,6 @@ dependencies:
       path: device_preview
 
   yaml: ^3.1.2
-  font_awesome_flutter: ^9.2.0
   intl: ^0.18.0
 
   # The following adds the Cupertino Icons font to your application.
@@ -69,7 +68,6 @@ dependencies:
   flutter_svg_provider: ^1.0.4
   qr_flutter: ^4.1.0
   device_info_plus: ^9.1.2
-  flutter_map: ^4.0.0
   carousel_slider: ^4.1.1
   fluttertoast: 8.2.2
   video_player: ^2.6.1
@@ -91,7 +89,6 @@ dependencies:
   walletconnect_dart: ^0.0.11
   http_parser: ^4.0.2
   shared_preferences: ^2.1.1
-  google_maps_flutter: ^2.2.6
   workmanager: ^0.5.1
   flutter_local_notifications: ^16.1.0
   flutter_i18n: ^0.33.0
@@ -125,6 +122,7 @@ dependencies:
   dropdown_button2: ^2.3.9
   collection: ^1.17.1
   package_info_plus: ^3.1.2
+  audioplayers: ^5.2.1
 
 dev_dependencies:
   flutter_test:
