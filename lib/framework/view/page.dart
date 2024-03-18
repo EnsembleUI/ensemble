@@ -174,6 +174,7 @@ class PageState extends State<Page>
           context, _scopeManager, widget._pageModel.viewBehavior.onResume!);
     }
   }
+
   @override
   void initState() {
     WidgetsBinding.instance.addObserver(this);
@@ -517,8 +518,8 @@ class PageState extends State<Page>
 
     // backward compatible with legacy attribute
     if (useSafeArea == null) {
-      bool? ignoreSafeArea =
-          Utils.optionalBool(widget._pageModel.runtimeStyles?['ignoreSafeArea']);
+      bool? ignoreSafeArea = Utils.optionalBool(
+          widget._pageModel.runtimeStyles?['ignoreSafeArea']);
       if (ignoreSafeArea != null) {
         useSafeArea = !ignoreSafeArea;
       }

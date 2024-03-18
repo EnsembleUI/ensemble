@@ -24,6 +24,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:event_bus/event_bus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -132,6 +133,9 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
     AppEventBus().eventBus.on<ThemeChangeEvent>().listen((event) {
       setState(() {});
     });
+    if (EnvConfig().isTestMode) {
+      SemanticsBinding.instance.ensureSemantics();
+    }
   }
 
   @override

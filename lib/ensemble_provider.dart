@@ -59,11 +59,9 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
       content = await appModel.getHomeScreen();
     }
 
-    if (content == null) {
-      throw LanguageError(
-          "Invalid screen content: ${screenId ?? screenName ?? 'Home'}");
-    }
-    return ScreenDefinition(content);
+    return content != null
+        ? ScreenDefinition(content)
+        : ScreenDefinition(YamlMap());
   }
 
   @override

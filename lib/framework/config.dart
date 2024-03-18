@@ -4,6 +4,8 @@ import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
+import 'config/url_parser_native.dart'
+    if (dart.library.html) 'config/url_parser_web.dart';
 
 /// App Configuration
 class AppConfig with Invokable {
@@ -67,8 +69,21 @@ class AppConfig with Invokable {
   }
 }
 
-// Environment Configuration
 class EnvConfig with Invokable {
+  static final EnvConfig _instance = EnvConfig._internal();
+
+  EnvConfig._internal();
+
+  factory EnvConfig() {
+    return _instance;
+  }
+
+  // To enable test mode, we need to add --dart-define="testmode=true"
+  //or in the browser set testmode=true in the URL as a query parameter
+  bool get isTestMode {
+    return getTestMode();
+  }
+
   // ignore since we override getProperty
   @override
   Map<String, Function> getters() {
