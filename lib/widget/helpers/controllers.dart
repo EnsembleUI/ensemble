@@ -172,6 +172,7 @@ enum FlexMode {
   flexible,
   none,
 }
+
 /// TODO: Legacy, transition to [EnsembleWidgetController]
 /// base Controller class for your Ensemble widget
 abstract class WidgetController extends Controller with HasStyles {
@@ -222,16 +223,16 @@ abstract class WidgetController extends Controller with HasStyles {
       'visible': () => visible != false,
       'className': () => className,
       'classList': () => classList,
-      'testId': () => testId,
+      'testId': () => testId
     };
   }
 
   @override
   Map<String, Function> getBaseSetters() {
     return {
+      'testId': (value) => testId = Utils.optionalString(value),
       'flexMode': (value) => flexMode = FlexMode.values.from(value),
       'flex': (value) => flex = Utils.optionalInt(value, min: 1),
-      'testId': (value) => testId = Utils.optionalString(value),
       'expanded': (value) => expanded = Utils.getBool(value, fallback: false),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
       'visibilityTransitionDuration': (value) =>
@@ -410,15 +411,16 @@ abstract class EnsembleWidgetController extends EnsembleController
       'visible': () => visible != false,
       'className': () => className,
       'classList': () => classList,
+      'testId': () => testId
     };
   }
 
   @override
   Map<String, Function> setters() {
     return {
+      'testId': (value) => testId = Utils.optionalString(value),
       'flexMode': (value) => flexMode = FlexMode.values.from(value),
       'flex': (value) => flex = Utils.optionalInt(value, min: 1),
-      'testId': (value) => testId = Utils.optionalString(value),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
       'visibilityTransitionDuration': (value) =>
           visibilityTransitionDuration = Utils.getDuration(value),
