@@ -123,11 +123,12 @@ abstract class BaseBoxLayoutController extends BoxController {
       'fontFamily': (value) => fontFamily = Utils.optionalString(value),
       'fontSize': (value) => fontSize = Utils.optionalInt(value),
       'maxLines': (value) => maxLines = Utils.optionalInt(value, min: 1),
-      'textStyle': (style) => _textStyle =
-          Utils.getTextStyleAsComposite(this, style: style),
+      'textStyle': (style) =>
+          _textStyle = Utils.getTextStyleAsComposite(this, style: style),
     });
     return setters;
   }
+
   @override
   Map<String, Function> getBaseGetters() {
     Map<String, Function> getters = super.getBaseGetters();

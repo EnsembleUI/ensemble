@@ -63,11 +63,9 @@ class HostCachedEnsembleProvider extends EnsembleDefinitionProvider {
       content = hostCache.getString(appModel.homeMapping!);
     }
 
-    if (content == null) {
-      throw LanguageError(
-          "Invalid screen content: ${screenId ?? screenName ?? 'Home'}");
-    }
-    return ScreenDefinition(loadYaml(content));
+    return content != null
+        ? ScreenDefinition(loadYaml(content))
+        : ScreenDefinition(YamlMap());
   }
 
   _syncArtifactsToHostCache() {
