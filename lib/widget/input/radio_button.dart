@@ -32,8 +32,8 @@ class RadioWidget extends StatefulWidget
             controller.activeColor = Utils.getColor(value),
         'horizontalSpace': (value) =>
             controller.horizontalSpace = Utils.getDouble(value, fallback: 10),
-        'radioValue': (text) =>
-            controller.radioValue = Utils.getString(text, fallback: "Radio1"),
+        'value': (text) =>
+            controller.value = Utils.getString(text, fallback: "Radio1"),
       };
 
   @override
@@ -47,7 +47,7 @@ class RadioWidget extends StatefulWidget
 
 class RadioController extends FormFieldController {
   String groupId = "";
-  String radioValue = "";
+  String value = "";
   String? title;
   double horizontalSpace = 10;
   Color? activeColor;
@@ -57,7 +57,7 @@ class RadioState extends FormFieldWidgetState<RadioWidget> {
   @override
   Widget buildWidget(BuildContext context) {
     String titleText = widget.controller.title == null
-        ? widget.controller.radioValue
+        ? widget.controller.value
         : widget.controller.title!;
     return InputWrapper(
       type: RadioWidget.type,
@@ -87,11 +87,11 @@ class RadioState extends FormFieldWidgetState<RadioWidget> {
                 create: (context) => CustomRadioController(widget.controller),
                 child: Consumer<CustomRadioController>(
                   builder: (context, ref, child) => Radio.adaptive(
-                    value: widget.controller.radioValue,
+                    value: widget.controller.value,
                     activeColor: widget.controller.activeColor,
                     groupValue: ref.selectedValue,
                     onChanged: (String? value) => ref.setGroupValue(
-                      widget.controller.radioValue,
+                      widget.controller.value,
                     ),
                   ),
                 ),
