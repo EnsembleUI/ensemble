@@ -1100,6 +1100,7 @@ enum ActionType {
   invokeHaptic,
   callNativeMethod,
   deeplinkInit,
+  handleDeeplink,
   createDeeplink,
   verifySignIn,
   signOut,
@@ -1273,6 +1274,8 @@ abstract class EnsembleAction {
       return SeekAudio.from(payload);
     } else if (actionType == ActionType.deeplinkInit) {
       return DeepLinkInitAction.fromMap(payload: payload);
+    } else if (actionType == ActionType.handleDeeplink) {
+      return DeepLinkHandleAction.fromMap(payload: payload);
     } else if (actionType == ActionType.createDeeplink) {
       return CreateDeeplinkAction.fromMap(payload: payload);
     } else if (actionType == ActionType.verifySignIn) {
