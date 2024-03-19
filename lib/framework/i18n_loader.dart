@@ -1,25 +1,37 @@
-import 'package:flutter_i18n/loaders/file_content.dart';
+import 'dart:ui';
+
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_i18n/loaders/translation_loader.dart';
 
 /// extension of flutter_i18n package. This will load the translations
 /// from memory (cache from Firestore)
 class DataTranslationLoader extends TranslationLoader {
-  DataTranslationLoader({this.defaultLocaleMap, this.fallbackLocaleMap});
-  Map? defaultLocaleMap;
-  Map? fallbackLocaleMap;
+  DataTranslationLoader(
+      {required this.getTranslationMap,
+      required this.defaultLocale,
+      this.forcedLocale});
+
+  final Map? Function(Locale) getTranslationMap;
+
+  // use this fallback locale if the user locale is not supported
+  final Locale defaultLocale;
+
+  // force to use this Locale regardless of user locale or default local
+  // This should be used for demonstration purposes only (e.g. select a locale to preview)
+  final Locale? forcedLocale;
 
   /// Note that we don't have yet the mechanism to support reloading locale
   /// so changes to translation will need to kill the app first.
   @override
-  Future<Map> load() {
-    Map result = {};
-    if (defaultLocaleMap != null) {
-      result.addAll(defaultLocaleMap!);
+  Future<Map> load() async {
+    // use this for Preview purposes only
+    if (forcedLocale != null) {
+      return getTranslationMap(forcedLocale!) ?? {};
     }
-    if (fallbackLocaleMap != null) {
-      result = _deepMergeMaps(fallbackLocaleMap!, result);
-    }
-    return Future.value(result);
+    return getTranslationMap(await findDeviceLocale()) ??
+        getTranslationMap(defaultLocale) ??
+        {};
   }
 
   /// copied from FileTranslationLoader
