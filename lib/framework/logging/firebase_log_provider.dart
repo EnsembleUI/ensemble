@@ -14,7 +14,13 @@ class FirebaseAnalyticsProvider extends LogProvider {
 
   @override
   Future<void> init() async {
-    bool isFirebaseAppInitialized = Firebase.apps.any((app) => app.name == Firebase.app().name);
+    bool isFirebaseAppInitialized = false;
+    try {
+      isFirebaseAppInitialized = Firebase.apps.any((app) => app.name == Firebase.app().name);
+    } catch (e) {
+      /// Firebase flutter web implementation throws error of uninitialized project
+      /// When project is no initialized which means we just catch the error and ignore it
+    }
     //we have to first check if the default app has been initialized or not and if the default app has the
     //same appId as the one passed in configuration. Throw an exception if this is not true.
     if ( !isFirebaseAppInitialized ) {
