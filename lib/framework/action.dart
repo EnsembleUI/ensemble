@@ -1,4 +1,5 @@
 import 'package:app_settings/app_settings.dart';
+import 'package:ensemble/action/audio_player.dart';
 import 'package:ensemble/action/Log_event_action.dart';
 import 'package:ensemble/action/badge_action.dart';
 import 'package:ensemble/action/bottom_modal_action.dart';
@@ -1100,12 +1101,18 @@ enum ActionType {
   invokeHaptic,
   callNativeMethod,
   deeplinkInit,
+  handleDeeplink,
   createDeeplink,
   verifySignIn,
   signOut,
   dispatchEvent,
   executeConditionalAction,
   executeActionGroup,
+  playAudio,
+  stopAudio,
+  pauseAudio,
+  resumeAudio,
+  seekAudio,
   logEvent
 }
 
@@ -1257,8 +1264,20 @@ abstract class EnsembleAction {
       return ClearKeychain.fromYaml(payload: payload);
     } else if (actionType == ActionType.invokeHaptic) {
       return HapticAction.from(payload);
+    } else if (actionType == ActionType.playAudio) {
+      return PlayAudio.from(payload);
+    } else if (actionType == ActionType.pauseAudio) {
+      return PauseAudio.from(payload);
+    } else if (actionType == ActionType.stopAudio) {
+      return PauseAudio.from(payload);
+    } else if (actionType == ActionType.resumeAudio) {
+      return ResumeAudio.from(payload);
+    } else if (actionType == ActionType.seekAudio) {
+      return SeekAudio.from(payload);
     } else if (actionType == ActionType.deeplinkInit) {
       return DeepLinkInitAction.fromMap(payload: payload);
+    } else if (actionType == ActionType.handleDeeplink) {
+      return DeepLinkHandleAction.fromMap(payload: payload);
     } else if (actionType == ActionType.createDeeplink) {
       return CreateDeeplinkAction.fromMap(payload: payload);
     } else if (actionType == ActionType.verifySignIn) {

@@ -1,3 +1,4 @@
+import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -20,7 +21,6 @@ class ReceiveIntentManager {
   EnsembleAction? onReceive;
   EnsembleAction? onError;
 
-  List<SharedMediaFile>? _sharedFiles;
   String? sharedText;
 
   void init(BuildContext context, Invokable? invokable,
@@ -32,18 +32,17 @@ class ReceiveIntentManager {
 
     receiveMediaWhenInMemory();
     receiveMediaWhenClosed();
-    receiveTextUrlWhenInMemory();
-    receiveTextUrlWhenClosed();
   }
 
   /// For sharing images coming from outside the app while the app is in the memory
   void receiveMediaWhenInMemory() {
     ReceiveSharingIntent.getMediaStream().listen((List<SharedMediaFile> value) {
-      _sharedFiles = value;
-      final filePath = (_sharedFiles?.map((f) => f.path).join(",") ?? "");
       if (context != null && onReceive != null) {
-        ScreenController().executeAction(context!, onReceive!,
-            event: EnsembleEvent(invokable, data: {'file': filePath}));
+        final medias = _getMedias(value);
+        _addToContext(context!, medias);
+        ScreenController().executeAction(context!, onReceive!);
+        // Tell the library that we are done processing the intent.
+        ReceiveSharingIntent.reset();
       }
     }, onError: (err) {
       if (context != null && onError != null) {
@@ -56,14 +55,12 @@ class ReceiveIntentManager {
   /// For sharing images coming from outside the app while the app is closed
   void receiveMediaWhenClosed() {
     ReceiveSharingIntent.getInitialMedia().then((List<SharedMediaFile> value) {
-      _sharedFiles = value;
-      final filePath = (_sharedFiles?.map((f) => f.path).join(",") ?? "");
-      if (context != null &&
-          onReceive != null &&
-          _sharedFiles != null &&
-          _sharedFiles!.isNotEmpty) {
-        ScreenController().executeAction(context!, onReceive!,
-            event: EnsembleEvent(invokable, data: {'file': filePath}));
+      if (context != null && onReceive != null) {
+        final medias = _getMedias(value);
+        _addToContext(context!, medias);
+        ScreenController().executeAction(context!, onReceive!);
+        // Tell the library that we are done processing the intent.
+        ReceiveSharingIntent.reset();
       }
     }, onError: (err) {
       if (context != null && onError != null) {
@@ -73,35 +70,26 @@ class ReceiveIntentManager {
     });
   }
 
-  /// For sharing or opening urls/text coming from outside the app while the app is in the memory
-  void receiveTextUrlWhenInMemory() {
-    ReceiveSharingIntent.getTextStream().listen((String value) {
-      sharedText = value;
-      if (context != null && onReceive != null && value.isNotEmpty) {
-        ScreenController().executeAction(context!, onReceive!,
-            event: EnsembleEvent(invokable, data: {'text': sharedText}));
-      }
-    }, onError: (err) {
-      if (context != null && onError != null) {
-        ScreenController().executeAction(context!, onError!,
-            event: EnsembleEvent(invokable, data: {'error': err}));
-      }
+  void _addToContext(BuildContext context, List<Map<String, dynamic>>? medias) {
+    Ensemble.externalDataContext.addAll({
+      'receiveIntentData': {'medias': medias}
     });
+    ScreenController()
+        .getScopeManager(context)
+        ?.dataContext
+        .addDataContext(Ensemble.externalDataContext);
   }
 
-  /// For sharing or opening urls/text coming from outside the app while the app is closed
-  void receiveTextUrlWhenClosed() {
-    ReceiveSharingIntent.getInitialText().then((String? value) {
-      sharedText = value;
-      if (context != null && onReceive != null && value != null) {
-        ScreenController().executeAction(context!, onReceive!,
-            event: EnsembleEvent(invokable, data: {'text': sharedText}));
-      }
-    }, onError: (err) {
-      if (context != null && onError != null) {
-        ScreenController().executeAction(context!, onError!,
-            event: EnsembleEvent(invokable, data: {'error': err}));
-      }
-    });
+  List<Map<String, dynamic>>? _getMedias(List<SharedMediaFile> medias) {
+    if (medias.isEmpty) return null;
+    final datas = medias.map((e) {
+      return {
+        'data': e.path,
+        'mimeType': e.mimeType,
+        'type': e.type.name,
+        'thumbnail': e.thumbnail,
+      };
+    }).toList();
+    return datas;
   }
 }

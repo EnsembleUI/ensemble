@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:developer';
+import 'dart:ui' as ui;
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/i18n_loader.dart';
@@ -7,6 +8,7 @@ import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:yaml/yaml.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ensemble/provider.dart';
@@ -66,14 +68,17 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
   }
 
   @override
-  FlutterI18nDelegate getI18NDelegate() {
+  FlutterI18nDelegate getI18NDelegate({Locale? forcedLocale}) {
     _i18nDelegate ??= FlutterI18nDelegate(
         translationLoader: DataTranslationLoader(
-            defaultLocaleMap:
-                appModel.artifactCache[i18nPrefix + i18nProps.defaultLocale],
-            fallbackLocaleMap:
-                appModel.artifactCache[i18nPrefix + i18nProps.fallbackLocale]));
+            getTranslationMap: getTranslationMap,
+            defaultLocale: Locale(appModel.defaultLocale ?? 'en'),
+            forcedLocale: forcedLocale));
     return _i18nDelegate!;
+  }
+
+  Map? getTranslationMap(Locale locale) {
+    return appModel.artifactCache[i18nPrefix + locale.languageCode];
   }
 
   @override
@@ -103,6 +108,7 @@ class AppModel {
   Map<String, String> screenNameMappings = {};
   String? homeMapping;
   String? themeMapping;
+  String? defaultLocale;
   UserAppConfig? appConfig;
   Map<String, String>? secrets;
 
@@ -168,6 +174,13 @@ class AppModel {
         homeMapping = doc.id;
       } else if (doc.data()?['type'] == ArtifactType.theme.name) {
         themeMapping = doc.id;
+      } else if (doc.data()?['type'] == ArtifactType.i18n.name &&
+          doc.data()?['defaultLocale'] == true) {
+        String id = doc.id;
+        if (id.startsWith(EnsembleDefinitionProvider.i18nPrefix)) {
+          defaultLocale =
+              id.substring(EnsembleDefinitionProvider.i18nPrefix.length);
+        }
       } else if (doc.data()?['type'] == ArtifactType.config.name) {
         // environment variable
         Map<String, dynamic>? envVariables;

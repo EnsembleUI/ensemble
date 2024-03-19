@@ -60,6 +60,7 @@ class Ensemble {
 
   // TODO: combine push callback and regular callback
   final Set<Function> _pushNotificationCallbacks = {};
+
   void addPushNotificationCallback({required Function method}) {
     _pushNotificationCallbacks.add(method);
   }
@@ -67,6 +68,7 @@ class Ensemble {
   Set<Function> getPushNotificationCallbacks() => _pushNotificationCallbacks;
 
   final Set<Function> _afterInitMethods = {};
+
   void addCallbackAfterInitialization({required Function method}) {
     _afterInitMethods.add(method);
   }
@@ -386,7 +388,8 @@ class EnsembleConfig {
       this.services,
       this.signInServices,
       this.envOverrides,
-      this.appBundle});
+      this.appBundle,
+      this.forcedLocale});
 
   final DefinitionProvider definitionProvider;
   Account? account;
@@ -400,6 +403,9 @@ class EnsembleConfig {
   // to pass it in via the constructor, as Ensemble can be pre-load
   // with initialize() which does all the async processing.
   AppBundle? appBundle;
+
+  // always use this locale. Should be for preview purpose only (e.g Preview different locales)
+  Locale? forcedLocale;
 
   /// Update the appBundle using our definitionProvider
   /// return the same EnsembleConfig once completed for convenience
@@ -472,7 +478,7 @@ class EnsembleConfig {
   }
 
   FlutterI18nDelegate getI18NDelegate() {
-    return definitionProvider.getI18NDelegate();
+    return definitionProvider.getI18NDelegate(forcedLocale: forcedLocale);
   }
 }
 

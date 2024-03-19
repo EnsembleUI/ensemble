@@ -4,6 +4,7 @@ import 'dart:io' as io;
 import 'dart:ui';
 import 'package:ensemble/action/Log_event_action.dart';
 import 'package:ensemble/action/action_invokable.dart';
+import 'package:ensemble/action/audio_player.dart';
 import 'package:ensemble/action/bottom_modal_action.dart';
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/action/invoke_api_action.dart';
@@ -477,6 +478,16 @@ class NativeInvokable extends ActionInvokable {
       ActionType.uploadFiles.name: uploadFiles,
       ActionType.invokeHaptic.name: (inputs) => ScreenController()
           .executeAction(buildContext, HapticAction.from(inputs)),
+      ActionType.playAudio.name: (inputs) => ScreenController()
+          .executeAction(buildContext, PlayAudio.from(inputs)),
+      ActionType.pauseAudio.name: (inputs) => ScreenController()
+          .executeAction(buildContext, PauseAudio.from(inputs)),
+      ActionType.stopAudio.name: (inputs) => ScreenController()
+          .executeAction(buildContext, StopAudio.from(inputs)),
+      ActionType.resumeAudio.name: (inputs) => ScreenController()
+          .executeAction(buildContext, ResumeAudio.from(inputs)),
+      ActionType.seekAudio.name: (inputs) => ScreenController()
+          .executeAction(buildContext, SeekAudio.from(inputs)),
       'debug': (value) => debugPrint('Debug: $value'),
       'initNotification': () => notificationUtils.initNotifications(),
       'updateSystemAuthorizationToken': (token) =>
