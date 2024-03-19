@@ -17,6 +17,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 enum ArtifactType {
   screen,
   theme,
+  i18n,
   resources, // global widgets/codes/APIs/
   config, // app config
   secrets
@@ -29,10 +30,13 @@ abstract class DefinitionProvider {
   static Map<String, dynamic> cache = {};
   final I18nProps i18nProps;
   bool cacheEnabled = false;
+
   DefinitionProvider(this.i18nProps, {this.cacheEnabled = false});
+
   Future<ScreenDefinition> getDefinition(
       {String? screenId, String? screenName});
-  FlutterI18nDelegate getI18NDelegate();
+
+  FlutterI18nDelegate getI18NDelegate({Locale? forcedLocale});
 
   // get the home screen + the App Bundle (theme, translation, custom assets, ...)
   Future<AppBundle> getAppBundle({bool? bypassCache = false});
@@ -53,14 +57,15 @@ class LocalDefinitionProvider extends DefinitionProvider {
   UserAppConfig? appConfig;
 
   FlutterI18nDelegate? _i18nDelegate;
+
   @override
-  FlutterI18nDelegate getI18NDelegate() {
+  FlutterI18nDelegate getI18NDelegate({Locale? forcedLocale}) {
     _i18nDelegate ??= FlutterI18nDelegate(
         translationLoader: FileTranslationLoader(
       useCountryCode: false,
       fallbackFile: i18nProps.fallbackLocale,
       basePath: i18nProps.path,
-      forcedLocale: Locale(i18nProps.defaultLocale),
+      forcedLocale: forcedLocale,
       decodeStrategies: [YamlDecodeStrategy()],
     ));
     return _i18nDelegate!;
@@ -122,12 +127,13 @@ class RemoteDefinitionProvider extends DefinitionProvider {
   final String path;
   final String appHome;
   FlutterI18nDelegate? _i18nDelegate;
+
   @override
-  FlutterI18nDelegate getI18NDelegate() {
+  FlutterI18nDelegate getI18NDelegate({Locale? forcedLocale}) {
     _i18nDelegate ??= FlutterI18nDelegate(
         translationLoader: NetworkFileTranslationLoader(
             baseUri: Uri.parse(i18nProps.path),
-            forcedLocale: Locale(i18nProps.defaultLocale),
+            forcedLocale: forcedLocale,
             fallbackFile: i18nProps.fallbackLocale,
             useCountryCode: i18nProps.useCountryCode,
             decodeStrategies: [YamlDecodeStrategy()]));
@@ -200,11 +206,11 @@ class LegacyDefinitionProvider extends DefinitionProvider {
   FlutterI18nDelegate? _i18nDelegate;
 
   @override
-  FlutterI18nDelegate getI18NDelegate() {
+  FlutterI18nDelegate getI18NDelegate({Locale? forcedLocale}) {
     _i18nDelegate ??= FlutterI18nDelegate(
         translationLoader: NetworkFileTranslationLoader(
             baseUri: Uri.parse(i18nProps.path),
-            forcedLocale: Locale(i18nProps.defaultLocale),
+            forcedLocale: forcedLocale,
             fallbackFile: i18nProps.fallbackLocale,
             useCountryCode: i18nProps.useCountryCode,
             decodeStrategies: [YamlDecodeStrategy()]));
