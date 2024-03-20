@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:developer';
 import 'dart:math' as math;
 
@@ -8,6 +9,10 @@ import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/app_info.dart';
+import 'package:ensemble/framework/logging/console_log_provider.dart';
+import 'package:ensemble/framework/logging/firebase_log_provider.dart';
+import 'package:ensemble/framework/logging/log_manager.dart';
+import 'package:ensemble/framework/logging/log_provider.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble/framework/storage_manager.dart';
@@ -131,6 +136,15 @@ class Ensemble {
         await rootBundle.loadString('ensemble/ensemble-config.yaml');
     final YamlMap yamlMap = loadYaml(yamlString);
 
+    Account account = Account.fromYaml(yamlMap['accounts']);
+    dynamic analyticsConfig = yamlMap['analytics'];
+    if ( analyticsConfig != null
+        && analyticsConfig is Map
+        && analyticsConfig['enabled'] == true
+    ) {
+      await initializeAnalyticsProviders(
+          account, analyticsConfig["provider"], appId: getAppId(yamlMap));
+    }
     // init Firebase
     if (yamlMap['definitions']?['from'] == 'ensemble') {
       // These are not secrets so OK to include here.
@@ -151,12 +165,11 @@ class Ensemble {
       envOverrides = {};
       env.forEach((key, value) => envOverrides![key.toString()] = value);
     }
-
     DefinitionProvider definitionProvider = _createDefinitionProvider(yamlMap);
     _config = EnsembleConfig(
         definitionProvider: definitionProvider,
         appBundle: await definitionProvider.getAppBundle(),
-        account: Account.fromYaml(yamlMap['accounts']),
+        account: account,
         services: Services.fromYaml(yamlMap['services']),
         signInServices: SignInServices.fromYaml(yamlMap['services']),
         envOverrides: envOverrides);
@@ -164,7 +177,38 @@ class Ensemble {
     AppInfo().initPackageInfo(_config);
     return _config!;
   }
-
+  String? getAppId(YamlMap yamlMap) {
+    return yamlMap['definitions']?['ensemble']?['appId'];
+  }
+  Future<void> initializeAnalyticsProviders(Account account, String? analyticsProvider, {String? appId}) async {
+    if ( analyticsProvider?.toLowerCase() == 'firebase' ) {
+      await initializeFirebaseAnalyticsProvider(account.firebaseConfig,appId: appId);
+    }
+    //we always initialize the console log provider
+    LogProvider provider = ConsoleLogProvider(appId: appId)
+                            ..init();
+    LogManager().addProviderForAllLevels(LogType.appAnalytics, provider);
+  }
+  Future<void> initializeFirebaseAnalyticsProvider(FirebaseConfig? config, {String? appId}) async {
+    FirebaseOptions? options;
+    if ( config != null ) {
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        options = config.iOSConfig;
+      } else if (defaultTargetPlatform == TargetPlatform.android) {
+        options = config.androidConfig;
+      } else if (kIsWeb) {
+        options = config.webConfig;
+      }
+    }
+    if ( options == null ) {
+      //we won't throw an error, instead we will just print a message and continue
+      print('Initializing FirebaseLogProvider: Firebase configuration for platform $defaultTargetPlatform not found, will attempt to initialize the default app');
+    }
+    LogProvider provider = FirebaseAnalyticsProvider(options,appId);
+    await provider.init();
+    LogManager().addProviderForAllLevels(LogType.appAnalytics, provider);
+    print("firebase analytics provider initialized");
+  }
   /// return the definition provider (local, remote, or Ensemble)
   DefinitionProvider _createDefinitionProvider(YamlMap yamlMap) {
     // locale
@@ -530,7 +574,11 @@ class FirebaseConfig {
         apiKey: entry['apiKey'],
         appId: entry['appId'],
         messagingSenderId: entry['messagingSenderId'].toString(),
-        projectId: entry['projectId']);
+        projectId: entry['projectId'],
+        authDomain: entry['authDomain'],
+        storageBucket: entry['storageBucket'],
+        measurementId: entry['measurementId']
+    );
   }
 }
 

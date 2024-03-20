@@ -31,6 +31,7 @@ abstract class DefinitionProvider {
   final I18nProps i18nProps;
   bool cacheEnabled = false;
 
+  String? appId;
   DefinitionProvider(this.i18nProps, {this.cacheEnabled = false});
 
   Future<ScreenDefinition> getDefinition(
