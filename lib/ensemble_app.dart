@@ -98,7 +98,8 @@ class EnsembleApp extends StatefulWidget {
       this.externalMethods,
       this.isPreview = false,
       this.placeholderBackgroundColor,
-      this.onAppLoad});
+      this.onAppLoad,
+      this.forcedLocale});
 
   final ScreenPayload? screenPayload;
   final EnsembleConfig? ensembleConfig;
@@ -110,6 +111,8 @@ class EnsembleApp extends StatefulWidget {
 
   /// use this as the placeholder background while Ensemble is loading
   final Color? placeholderBackgroundColor;
+
+  final Locale? forcedLocale;
 
   @override
   State<StatefulWidget> createState() => EnsembleAppState();
@@ -278,7 +281,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
       navigatorKey: Utils.globalAppKey,
       theme: config.getAppTheme(),
       localizationsDelegates: [
-        config.getI18NDelegate(),
+        config.getI18NDelegate(forcedLocale: widget.forcedLocale),
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate
       ],
