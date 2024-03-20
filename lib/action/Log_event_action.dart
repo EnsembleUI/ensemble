@@ -11,7 +11,11 @@ class LogEvent extends EnsembleAction {
   final String eventName;
   final Map<dynamic, dynamic>? parameters;
   final String logLevel;
-  LogEvent({super.initiator,required this.eventName,required this.logLevel,this.parameters});
+  LogEvent(
+      {super.initiator,
+      required this.eventName,
+      required this.logLevel,
+      this.parameters});
 
   factory LogEvent.from({Invokable? initiator, Map? payload}) {
     payload = Utils.convertYamlToDart(payload);
@@ -21,9 +25,12 @@ class LogEvent extends EnsembleAction {
           "${ActionType.logEvent.name} requires the event name");
     }
 
-    return LogEvent(initiator: initiator, eventName: eventName,
-        parameters: payload?['parameters'] is  Map ? payload!['parameters'] : null,
-        logLevel: payload?['logLevel']?? LogLevel.info.name);
+    return LogEvent(
+        initiator: initiator,
+        eventName: eventName,
+        parameters:
+            payload?['parameters'] is Map ? payload!['parameters'] : null,
+        logLevel: payload?['logLevel'] ?? LogLevel.info.name);
   }
   static LogLevel stringToLogLevel(String? levelStr) {
     // If the level string is null, default to LogLevel.info
@@ -37,12 +44,15 @@ class LogEvent extends EnsembleAction {
     // Default to LogLevel.info if no match is found
     return LogLevel.info;
   }
+
   @override
   Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
-    LogManager().log(LogType.appAnalytics, stringToLogLevel(scopeManager.dataContext.eval(logLevel)),
+    LogManager().log(
+        LogType.appAnalytics,
+        stringToLogLevel(scopeManager.dataContext.eval(logLevel)),
         scopeManager.dataContext.eval(eventName),
         scopeManager.dataContext.eval(parameters) ?? {});
-    return Future.value();//instead of awaiting, we'll let LogManager figure it out as we don't want to block the UI
+    return Future
+        .value(); //instead of awaiting, we'll let LogManager figure it out as we don't want to block the UI
   }
-
 }
