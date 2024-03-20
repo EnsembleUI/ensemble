@@ -102,6 +102,7 @@ dependencies:
   app_settings: ^5.0.0
   firebase_messaging: ^14.7.10
   firebase_core: ^2.24.2
+  firebase_analytics: ^10.8.10
   custom_refresh_indicator: ^2.2.1
   youtube_player_iframe: ^4.0.4
   web_socket_client: ^0.1.0
