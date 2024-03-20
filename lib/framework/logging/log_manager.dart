@@ -18,7 +18,8 @@ class LogManager {
     }
   }
 
-  Future<void> log(LogType type, LogLevel level, String event, Map<String, dynamic> parameters) async {
+  Future<void> log(LogType type, LogLevel level, String event,
+      Map<String, dynamic> parameters) async {
     final levelProviders = _providers[type]?[level];
     if (levelProviders == null) return;
 

@@ -2,13 +2,16 @@ import 'package:ensemble/framework/logging/log_provider.dart';
 
 class ConsoleLogProvider extends LogProvider {
   String? appId;
-  ConsoleLogProvider({bool shouldAwait = false, this.appId}) : super(shouldAwait: shouldAwait);
+  ConsoleLogProvider({bool shouldAwait = false, this.appId})
+      : super(shouldAwait: shouldAwait);
 
   @override
-  Future<void> log(String event, Map<String, dynamic> parameters, LogLevel level) async {
+  Future<void> log(
+      String event, Map<String, dynamic> parameters, LogLevel level) async {
     // Construct a log message string
     final StringBuffer logMessage = StringBuffer()
-      ..write("[${level.toString().split('.').last}] ") // Extracts enum value name
+      ..write(
+          "[${level.toString().split('.').last}] ") // Extracts enum value name
       ..write(event)
       ..write(' - ')
       ..write(parameters.entries.map((e) => '${e.key}: ${e.value}').join(', '));

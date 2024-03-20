@@ -541,8 +541,7 @@ class NativeInvokable extends ActionInvokable {
             buildContext,
             ExecuteActionGroupAction.from(inputs),
           ),
-      ActionType.logEvent.name: (inputs) =>
-          ScreenController().executeAction(
+      ActionType.logEvent.name: (inputs) => ScreenController().executeAction(
             buildContext,
             LogEvent.from(payload: inputs),
           ),
