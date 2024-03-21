@@ -17,6 +17,7 @@ import 'package:flutter_i18n/flutter_i18n.dart';
 /// Connecting to Ensemble-hosted definitions
 class EnsembleDefinitionProvider extends DefinitionProvider {
   EnsembleDefinitionProvider(String appId, super.i18nProps) {
+    super.appId = appId;
     appModel = AppModel(appId);
   }
 
@@ -68,12 +69,11 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
 
   @override
   FlutterI18nDelegate getI18NDelegate({Locale? forcedLocale}) {
-    _i18nDelegate ??= FlutterI18nDelegate(
+    return FlutterI18nDelegate(
         translationLoader: DataTranslationLoader(
             getTranslationMap: getTranslationMap,
             defaultLocale: Locale(appModel.defaultLocale ?? 'en'),
             forcedLocale: forcedLocale));
-    return _i18nDelegate!;
   }
 
   Map? getTranslationMap(Locale locale) {

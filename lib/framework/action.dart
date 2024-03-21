@@ -1,5 +1,6 @@
 import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/action/audio_player.dart';
+import 'package:ensemble/action/Log_event_action.dart';
 import 'package:ensemble/action/badge_action.dart';
 import 'package:ensemble/action/bottom_modal_action.dart';
 import 'package:ensemble/action/deep_link_action.dart';
@@ -1112,6 +1113,7 @@ enum ActionType {
   pauseAudio,
   resumeAudio,
   seekAudio,
+  logEvent
 }
 
 enum ToastType { success, error, warning, info }
@@ -1296,6 +1298,8 @@ abstract class EnsembleAction {
     } else if (actionType == ActionType.executeActionGroup) {
       return ExecuteActionGroupAction.fromYaml(
           initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.logEvent) {
+      return LogEvent.from(initiator: initiator, payload: payload);
     }
 
     throw LanguageError("Invalid action.",
