@@ -137,14 +137,14 @@ class ConditionalState extends WidgetState<Conditional> {
   }
 
   Widget _buildWidget(ScopeManager scopeManager, dynamic condition) {
-    var widgetDefination = YamlMap.wrap({
+    var widgetDefinition = YamlMap.wrap({
       condition.keys.last: condition.values.last,
     });
 
-    if (widgetDefination.containsKey('widget')) {
-      widgetDefination = widgetDefination['widget'];
+    if (widgetDefinition.containsKey('widget')) {
+      widgetDefinition = widgetDefinition['widget'];
     }
 
-    return scopeManager.buildWidgetFromDefinition(widgetDefination);
+    return scopeManager.buildWidgetFromDefinition(widgetDefinition);
   }
 }
