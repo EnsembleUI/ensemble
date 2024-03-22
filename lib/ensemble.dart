@@ -10,7 +10,6 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/app_info.dart';
 import 'package:ensemble/framework/logging/console_log_provider.dart';
-import 'package:ensemble/framework/logging/firebase_log_provider.dart';
 import 'package:ensemble/framework/logging/log_manager.dart';
 import 'package:ensemble/framework/logging/log_provider.dart';
 import 'package:ensemble/framework/scope.dart';
@@ -27,6 +26,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_i18n/flutter_i18n_delegate.dart';
+import 'package:get_it/get_it.dart';
 import 'package:yaml/yaml.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'html_shim.dart' if (dart.library.html) 'dart:html' show window;
@@ -139,10 +139,17 @@ class Ensemble {
     Account account = Account.fromYaml(yamlMap['accounts']);
     dynamic analyticsConfig = yamlMap['analytics'];
     if (analyticsConfig != null &&
-        analyticsConfig is Map &&
-        analyticsConfig['enabled'] == true) {
-      await initializeAnalyticsProviders(account, analyticsConfig["provider"],
-          appId: getAppId(yamlMap));
+        analyticsConfig is Map ) {
+      String? appId = getAppId(yamlMap);
+      if ( analyticsConfig['enabled'] == true) {
+        await initializeAnalyticsProvider(
+            yamlMap['accounts'],
+            analyticsConfig["provider"],
+            appId: appId);
+      }
+      if ( analyticsConfig['enableConsoleLogs'] == true) {
+        initializeConsoleLogProvider(appId);
+      }
     }
     // init Firebase
     if (yamlMap['definitions']?['from'] == 'ensemble') {
@@ -180,40 +187,20 @@ class Ensemble {
   String? getAppId(YamlMap yamlMap) {
     return yamlMap['definitions']?['ensemble']?['appId'];
   }
-
-  Future<void> initializeAnalyticsProviders(
-      Account account, String? analyticsProvider,
-      {String? appId}) async {
-    if (analyticsProvider?.toLowerCase() == 'firebase') {
-      await initializeFirebaseAnalyticsProvider(account.firebaseConfig,
-          appId: appId);
-    }
-    //we always initialize the console log provider
-    LogProvider provider = ConsoleLogProvider(appId: appId)..init();
+  void initializeConsoleLogProvider(String? appId) {
+    LogProvider provider = ConsoleLogProvider()..init(ensembleAppId: appId);
     LogManager().addProviderForAllLevels(LogType.appAnalytics, provider);
   }
-
-  Future<void> initializeFirebaseAnalyticsProvider(FirebaseConfig? config,
+  Future<void> initializeAnalyticsProvider(
+      YamlMap? accounts, String? analyticsProvider,
       {String? appId}) async {
-    FirebaseOptions? options;
-    if (config != null) {
-      if (defaultTargetPlatform == TargetPlatform.iOS) {
-        options = config.iOSConfig;
-      } else if (defaultTargetPlatform == TargetPlatform.android) {
-        options = config.androidConfig;
-      } else if (kIsWeb) {
-        options = config.webConfig;
-      }
+    if ( analyticsProvider != null ) {
+      LogProvider provider = GetIt.instance<LogProvider>();
+      await provider.init(options: accounts?[analyticsProvider], ensembleAppId: appId);
+      LogManager().addProviderForAllLevels(LogType.appAnalytics, provider);
+      print("$analyticsProvider analytics provider initialized");
     }
-    if (options == null) {
-      //we won't throw an error, instead we will just print a message and continue
-      print(
-          'Initializing FirebaseLogProvider: Firebase configuration for platform $defaultTargetPlatform not found, will attempt to initialize the default app');
-    }
-    LogProvider provider = FirebaseAnalyticsProvider(options, appId);
-    await provider.init();
-    LogManager().addProviderForAllLevels(LogType.appAnalytics, provider);
-    print("firebase analytics provider initialized");
+
   }
 
   /// return the definition provider (local, remote, or Ensemble)

@@ -5,15 +5,14 @@ enum LogType {
 }
 
 abstract class LogProvider {
-  final bool shouldAwait;
-
-  LogProvider({this.shouldAwait = false});
-
+  bool shouldAwait = false;
+  Map? options;
+  String? ensembleAppId;
   Future<void> log(
       String event, Map<String, dynamic> parameters, LogLevel level);
 
   //init function to be implemented by subclasses
-  Future<void> init();
+  Future<void> init({Map? options,String? ensembleAppId,bool shouldAwait = false});
 }
 
 enum LogLevel {
