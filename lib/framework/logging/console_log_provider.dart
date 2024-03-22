@@ -1,9 +1,6 @@
 import 'package:ensemble/framework/logging/log_provider.dart';
 
 class ConsoleLogProvider extends LogProvider {
-  String? appId;
-  ConsoleLogProvider({bool shouldAwait = false, this.appId})
-      : super(shouldAwait: shouldAwait);
 
   @override
   Future<void> log(
@@ -21,7 +18,8 @@ class ConsoleLogProvider extends LogProvider {
   }
 
   @override
-  Future<void> init() async {
+  Future<void> init({Map? options,String? ensembleAppId,bool shouldAwait = false}) async {
+    this.ensembleAppId = ensembleAppId;
     // Initialization logic for ConsoleLogProvider, if any.
     // Since this is a console logger, we might not need any initialization.
     print('ConsoleLogProvider initialized.');
