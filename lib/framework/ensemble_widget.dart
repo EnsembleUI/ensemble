@@ -111,7 +111,7 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
           widgetController.testId != null &&
           widgetController.testId!.isNotEmpty) {
         rtn = Semantics(
-          label: '${widgetController.testId!}: ',
+          identifier: '${widgetController.testId!}: ',
           child: rtn,
         );
       }
