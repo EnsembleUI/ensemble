@@ -533,10 +533,14 @@ class DispatchEventAction extends EnsembleAction {
       throw LanguageError(
           "${ActionType.dispatchEvent.name} requires one and only one 'event' to dispatch.");
     }
+    YamlMap? data;
+    if (payload.values.first != null) {
+      data = payload.values.first as YamlMap;
+    }
     return DispatchEventAction(
         initiator: initiator,
         event: EnsembleEvent.fromYaml(
-            payload.keys.first, payload.values.first as YamlMap),
+            payload.keys.first, data),
         onComplete: EnsembleAction.fromYaml(payload['onComplete']));
   }
 
