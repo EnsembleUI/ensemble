@@ -4,10 +4,10 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/stub/location_manager.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 /// non-interactive Google Map as an image
 class StaticMap extends EnsembleWidget<StaticMapController> {
@@ -25,7 +25,7 @@ class StaticMap extends EnsembleWidget<StaticMapController> {
 class StaticMapController extends EnsembleBoxController {
   int? mapWidth;
   int? mapHeight;
-  LatLng? center;
+  LocationData? center;
   int? zoom;
   List<StaticMapMarker>? markers;
 
@@ -100,7 +100,7 @@ class StaticMapState extends EnsembleWidgetState<StaticMap> {
   }
 
   /// return in format lat,lng
-  String _toLatLngString(LatLng position) =>
+  String _toLatLngString(LocationData position) =>
       '${position.latitude},${position.longitude}';
 }
 
@@ -143,7 +143,7 @@ class StaticMapMarker {
       '0x${color.value.toRadixString(16).padLeft(8, '0').substring(2)}';
 
   String toGoogleLatLngOrAddress(String location) {
-    LatLng? latLng = Utils.getLatLng(location);
+    LocationData? latLng = Utils.getLatLng(location);
     if (latLng != null) {
       return '${latLng.latitude},${latLng.longitude}';
     }

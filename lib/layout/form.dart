@@ -6,7 +6,7 @@ import 'package:ensemble/util/layout_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
-import 'package:ensemble/widget/input/form_helper.dart';
+import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble/widget/widget_util.dart' as util;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart' as flutter;
@@ -66,6 +66,7 @@ class EnsembleForm extends StatefulWidget
       'labelStyle': (value) =>
           _controller.labelStyle = Utils.getTextStyle(value),
       'enabled': (value) => _controller.enabled = Utils.optionalBool(value),
+      'readOnly': (value) => _controller.readOnly = Utils.optionalBool(value),
       'width': (value) => _controller.width = Utils.optionalInt(value),
       'height': (value) => _controller.height = Utils.optionalInt(value),
       'gap': (value) => _controller.gap =
@@ -107,6 +108,7 @@ class FormController extends WidgetController {
   LabelPosition labelPosition = LabelPosition.top;
   String? labelOverflow;
   bool? enabled;
+  bool? readOnly;
 
   // labelMaxWidth applicable only to labelPosition=start
   int? labelMaxWidth;
@@ -196,7 +198,7 @@ class FormState extends WidgetState<EnsembleForm>
       Widget label;
       if (child is HasController &&
           child.controller is WidgetController &&
-          (child.controller as WidgetController).visible &&
+          (child.controller as WidgetController).visible != false &&
           (child.controller as WidgetController).label != null &&
           !inExcludedList(child.controller as WidgetController)) {
         label = buildLabel(
@@ -204,7 +206,9 @@ class FormState extends WidgetState<EnsembleForm>
             (child.controller is FormFieldController
                 ? (child.controller as FormFieldController).labelStyle
                 : null),
-            (child.controller as WidgetController).labelHint);
+            child.controller is FormFieldController
+                ? (child.controller as FormFieldController).labelHint
+                : null);
         hasAtLeastOneLabel = true;
       } else {
         // empty label needs special treatment to line up with other labels

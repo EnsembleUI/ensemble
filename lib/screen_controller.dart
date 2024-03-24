@@ -11,6 +11,7 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/device.dart';
+import 'package:ensemble/framework/devmode.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/permissions_manager.dart';
@@ -389,7 +390,7 @@ class ScreenController {
       // It looks up the context from ScopeManager which maybe incorrect.
       // Here we adjust the correct context
       DataContext newDataContext =
-          scopeManager.dataContext.clone(newBuildContext: context);
+          scopeManager.dataContext.createChildContext(newBuildContext: context);
       newDataContext.evalCode(action.codeBlock, action.codeBlockSpan);
 
       if (action.onComplete != null) {
@@ -682,6 +683,8 @@ class ScreenController {
     Map<String, dynamic>? pageArgs,
     required bool isExternal,
   }) {
+    DevMode.screenId = screenId;
+    DevMode.screenName = screenName;
     PageType pageType = asModal == true ? PageType.modal : PageType.regular;
     return Screen(
       key: key,

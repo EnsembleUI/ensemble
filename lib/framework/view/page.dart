@@ -2,22 +2,55 @@ import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/devmode.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/menu.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/view/bottom_nav_page_view.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/footer.dart';
 import 'package:ensemble/framework/view/has_selectable_text.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
+import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/unfocus.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import '../widget/custom_view.dart';
+
+class SinglePageController extends WidgetController {
+  TextStyleComposite? _textStyle;
+  int? maxLines;
+
+  SinglePageController(SinglePageModel model) {
+    setStyles(model.runtimeStyles ?? {});
+  }
+
+  void setStyles(Map<String, dynamic> pageStyles) {
+    getBaseSetters().forEach((key, value) {
+      if (pageStyles.containsKey(key)) {
+        value(pageStyles[key]);
+      }
+    });
+  }
+
+  @override
+  Map<String, Function> getBaseSetters() {
+    Map<String, Function> setters = super.getBaseSetters();
+    setters.addAll({
+      'maxLines': (value) => maxLines = Utils.optionalInt(value, min: 1),
+      'textStyle': (style) =>
+          _textStyle = Utils.getTextStyleAsComposite(this, style: style),
+    });
+    return setters;
+  }
+}
 
 /// The root View. Every Ensemble page will have at least one at its root
 class Page extends StatefulWidget {
@@ -25,16 +58,21 @@ class Page extends StatefulWidget {
     super.key,
     required DataContext dataContext,
     required SinglePageModel pageModel,
+    required this.onRendered,
   })  : _initialDataContext = dataContext,
-        _pageModel = pageModel;
+        _pageModel = pageModel,
+        _controller = SinglePageController(pageModel);
 
   final DataContext _initialDataContext;
   final SinglePageModel _pageModel;
+  final SinglePageController _controller;
 
   /// The reference to DataContext is needed for API invoked before
   /// the page load. In these cases we do not have the context to travel
   /// to the DataScopeWidget. This should only be used for this purpose.
   ScopeManager? rootScopeManager;
+
+  final Function() onRendered;
 
   //final Widget bodyWidget;
   //final Menu? menu;
@@ -171,9 +209,14 @@ class PageState extends State<Page>
       /// Probably not ideal as we want to fire this off asap. It's the API response that
       /// needs to make sure Invokable IDs are there (through currently our code can't
       /// separate them out yet
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScreenController().executeActionWithScope(
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await ScreenController().executeActionWithScope(
             context, _scopeManager, widget._pageModel.viewBehavior.onLoad!);
+
+        // after loading all the script, execute onRendered
+        // This is not exactly right but we don't have a way to know when the page
+        // has completely rendered. This will be sufficient for most use case
+        widget.onRendered();
       });
     }
 
@@ -207,7 +250,7 @@ class PageState extends State<Page>
     if (pageModel.headerModel != null) {
       dynamic appBar = _buildAppBar(pageModel.headerModel!,
           scrollableView: true,
-          showNavigationIcon: pageModel.pageStyles?['showNavigationIcon']);
+          showNavigationIcon: pageModel.runtimeStyles?['showNavigationIcon']);
       if (appBar is SliverAppBar) {
         return appBar;
       }
@@ -224,7 +267,7 @@ class PageState extends State<Page>
     if (pageModel.headerModel != null) {
       dynamic appBar = _buildAppBar(pageModel.headerModel!,
           scrollableView: false,
-          showNavigationIcon: pageModel.pageStyles?['showNavigationIcon']);
+          showNavigationIcon: pageModel.runtimeStyles?['showNavigationIcon']);
       if (appBar is PreferredSizeWidget) {
         return appBar;
       }
@@ -254,8 +297,8 @@ class PageState extends State<Page>
       backgroundWidget =
           _scopeManager.buildWidget(headerModel.flexibleBackground!);
     }
-
-    final evaluatedHeader = _scopeManager.dataContext.eval(headerModel.styles);
+    final evaluatedHeader = EnsembleThemeManager()
+        .getRuntimeStyles(_scopeManager.dataContext, headerModel);
 
     bool centerTitle =
         Utils.getBool(evaluatedHeader?['centerTitle'], fallback: true);
@@ -366,13 +409,13 @@ class PageState extends State<Page>
     }
 
     LinearGradient? backgroundGradient = Utils.getBackgroundGradient(
-        widget._pageModel.pageStyles?['backgroundGradient']);
+        widget._pageModel.runtimeStyles?['backgroundGradient']);
     Color? backgroundColor = Utils.getColor(_scopeManager.dataContext
-        .eval(widget._pageModel.pageStyles?['backgroundColor']));
+        .eval(widget._pageModel.runtimeStyles?['backgroundColor']));
     // if we have a background image, set the background color to transparent
     // since our image is outside the Scaffold
     dynamic evaluatedBackgroundImg = _scopeManager.dataContext
-        .eval(widget._pageModel.pageStyles?['backgroundImage']);
+        .eval(widget._pageModel.runtimeStyles?['backgroundImage']);
     BackgroundImage? backgroundImage =
         Utils.getBackgroundImage(evaluatedBackgroundImg);
     if (backgroundImage != null || backgroundGradient != null) {
@@ -381,7 +424,7 @@ class PageState extends State<Page>
 
     // whether to usse CustomScrollView for the entire page
     bool isScrollableView =
-        widget._pageModel.pageStyles?['scrollableView'] == true;
+        widget._pageModel.runtimeStyles?['scrollableView'] == true;
 
     PreferredSizeWidget? fixedAppBar;
     if (!isScrollableView) {
@@ -391,7 +434,7 @@ class PageState extends State<Page>
     // whether we have a header and if the close button is already there-
     bool hasHeader = widget._pageModel.headerModel != null || hasDrawer;
     bool? showNavigationIcon =
-        widget._pageModel.pageStyles?['showNavigationIcon'];
+        widget._pageModel.runtimeStyles?['showNavigationIcon'];
 
     // add close button for modal page
     Widget? closeModalButton;
@@ -413,7 +456,7 @@ class PageState extends State<Page>
     Widget rtn = DataScopeWidget(
       scopeManager: _scopeManager,
       child: Unfocus(
-        isUnfocus: Utils.getBool(widget._pageModel.pageStyles?['unfocus'],
+        isUnfocus: Utils.getBool(widget._pageModel.runtimeStyles?['unfocus'],
             fallback: false),
         child: Scaffold(
             resizeToAvoidBottomInset: true,
@@ -434,15 +477,15 @@ class PageState extends State<Page>
             endDrawer: _endDrawer,
             floatingActionButton: closeModalButton,
             floatingActionButtonLocation:
-                widget._pageModel.pageStyles?['navigationIconPosition'] ==
+                widget._pageModel.runtimeStyles?['navigationIconPosition'] ==
                         'start'
                     ? FloatingActionButtonLocation.startTop
                     : FloatingActionButtonLocation.endTop),
       ),
     );
-
+    DevMode.pageDataContext = _scopeManager.dataContext;
     // selectableText at the root
-    if (Utils.optionalBool(widget._pageModel.pageStyles?['selectable']) ==
+    if (Utils.optionalBool(widget._pageModel.runtimeStyles?['selectable']) ==
         true) {
       rtn = HasSelectableText(child: rtn);
     }
@@ -471,12 +514,12 @@ class PageState extends State<Page>
   /// determine if we should wraps the body in a SafeArea or not
   bool useSafeArea() {
     bool? useSafeArea =
-        Utils.optionalBool(widget._pageModel.pageStyles?['useSafeArea']);
+        Utils.optionalBool(widget._pageModel.runtimeStyles?['useSafeArea']);
 
     // backward compatible with legacy attribute
     if (useSafeArea == null) {
-      bool? ignoreSafeArea =
-          Utils.optionalBool(widget._pageModel.pageStyles?['ignoreSafeArea']);
+      bool? ignoreSafeArea = Utils.optionalBool(
+          widget._pageModel.runtimeStyles?['ignoreSafeArea']);
       if (ignoreSafeArea != null) {
         useSafeArea = !ignoreSafeArea;
       }
@@ -510,7 +553,6 @@ class PageState extends State<Page>
   Widget getBody(bool hasAppBar) {
     // ignore safe area is only applicable if we don't have an AppBar
     bool _useSafeArea = !hasAppBar && useSafeArea();
-
     if (widget._pageModel.menu is SidebarMenu) {
       SidebarMenu sidebarMenu = widget._pageModel.menu as SidebarMenu;
 
@@ -599,12 +641,18 @@ class PageState extends State<Page>
       content.add(Expanded(
           child: SafeArea(
               top: _useSafeArea, bottom: _useSafeArea, child: rootWidget)));
-
-      return Row(
-          crossAxisAlignment: CrossAxisAlignment.start, children: content);
+      return DefaultTextStyle.merge(
+          style: widget._controller._textStyle?.getTextStyle(),
+          maxLines: widget._controller.maxLines,
+          child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start, children: content));
     }
 
-    return SafeArea(top: _useSafeArea, bottom: _useSafeArea, child: rootWidget);
+    return DefaultTextStyle.merge(
+        style: widget._controller._textStyle?.getTextStyle(),
+        maxLines: widget._controller.maxLines,
+        child: SafeArea(
+            top: _useSafeArea, bottom: _useSafeArea, child: rootWidget));
   }
 
   Drawer? _buildDrawer(BuildContext context, DrawerMenu menu) {

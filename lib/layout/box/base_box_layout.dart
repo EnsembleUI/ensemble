@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/model/pull_to_refresh.dart';
 import 'package:ensemble/page_model.dart';
@@ -28,9 +29,9 @@ class BoxLayoutWrapper extends StatelessWidget {
     Widget rtn = BoxWrapper(
       boxController: controller,
       widget: DefaultTextStyle.merge(
-          style: TextStyle(
-              fontFamily: controller.fontFamily,
-              fontSize: controller.fontSize?.toDouble()),
+          style: controller._textStyle?.getTextStyle(),
+          textAlign: controller._textStyle?.textAlign,
+          maxLines: controller.maxLines,
           child: boxWidget),
       ignoresMargin: true,
     );
@@ -47,6 +48,9 @@ class BoxLayoutWrapper extends StatelessWidget {
     return rtn;
   }
 }
+
+// controller for FlexRow/FlexColumn
+class FlexBoxLayoutController extends BaseBoxLayoutController {}
 
 /// controller for FittedRow/FittedColumn
 class FittedBoxLayoutController extends BaseBoxLayoutController {
@@ -69,7 +73,6 @@ class BoxLayoutController extends BaseBoxLayoutController
 
   bool scrollable = false;
   bool autoFit = false;
-  String? mainAxisSize;
   int? maxWidth;
   int? maxHeight;
 
@@ -83,7 +86,6 @@ class BoxLayoutController extends BaseBoxLayoutController
       'scrollable': (value) =>
           scrollable = Utils.getBool(value, fallback: false),
       'autoFit': (value) => autoFit = Utils.getBool(value, fallback: false),
-      'mainAxisSize': (value) => mainAxisSize = Utils.optionalString(value),
       'maxWidth': (value) => maxWidth = Utils.optionalInt(value),
       'maxHeight': (value) => maxHeight = Utils.optionalInt(value),
     });
@@ -96,6 +98,7 @@ abstract class BaseBoxLayoutController extends BoxController {
   EnsembleAction? onTap;
   EnsembleAction? onItemTap;
 
+  MainAxisSize mainAxisSize = MainAxisSize.max;
   MainAxisAlignment mainAxis = MainAxisAlignment.start;
   CrossAxisAlignment crossAxis = CrossAxisAlignment.start;
   int? gap;
@@ -103,11 +106,15 @@ abstract class BaseBoxLayoutController extends BoxController {
   // TODO: think through this. Need more style overrides.
   String? fontFamily;
   int? fontSize;
+  TextStyleComposite? _textStyle;
+  int? maxLines;
 
   @override
   Map<String, Function> getBaseSetters() {
     Map<String, Function> setters = super.getBaseSetters();
     setters.addAll({
+      'mainAxisSize': (value) =>
+          mainAxisSize = MainAxisSize.values.from(value) ?? mainAxisSize,
       'mainAxis': (value) =>
           mainAxis = LayoutUtils.getMainAxisAlignment(value) ?? mainAxis,
       'crossAxis': (value) =>
@@ -115,7 +122,25 @@ abstract class BaseBoxLayoutController extends BoxController {
       'gap': (value) => gap = Utils.optionalInt(value),
       'fontFamily': (value) => fontFamily = Utils.optionalString(value),
       'fontSize': (value) => fontSize = Utils.optionalInt(value),
+      'maxLines': (value) => maxLines = Utils.optionalInt(value, min: 1),
+      'textStyle': (style) =>
+          _textStyle = Utils.getTextStyleAsComposite(this, style: style),
     });
     return setters;
+  }
+
+  @override
+  Map<String, Function> getBaseGetters() {
+    Map<String, Function> getters = super.getBaseGetters();
+    getters.addAll({
+      'mainAxisSize': () => mainAxisSize,
+      'mainAxis': () => mainAxis,
+      'crossAxis': () => crossAxis,
+      'gap': () => gap,
+      'fontFamily': () => fontFamily,
+      'fontSize': () => fontSize,
+      'textStyle': () => _textStyle,
+    });
+    return getters;
   }
 }

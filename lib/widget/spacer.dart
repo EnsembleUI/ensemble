@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -29,14 +30,18 @@ class EnsembleSpacer extends StatefulWidget
 
   @override
   Map<String, Function> setters() {
-    return {'size': (value) => _controller.size = Utils.optionalInt(value)};
+    return {
+      'size': (value) => _controller.size = Utils.optionalInt(value),
+      'flex': (value) => _controller.flex = Utils.optionalInt(value, min: 1),
+    };
   }
 
   /// NOTE: Spacer should not take expanded into account
 }
 
-class SpacerController extends WidgetController {
+class SpacerController extends Controller with HasStyles {
   int? size;
+  int? flex;
 }
 
 class SpacerState extends WidgetState<EnsembleSpacer> {
@@ -47,6 +52,6 @@ class SpacerState extends WidgetState<EnsembleSpacer> {
           width: widget._controller.size!.toDouble(),
           height: widget._controller.size!.toDouble());
     }
-    return const Spacer();
+    return Spacer(flex: widget._controller.flex ?? 1);
   }
 }

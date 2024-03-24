@@ -4,6 +4,7 @@ import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/page_model.dart';
@@ -70,9 +71,11 @@ mixin TemplatedWidgetState<W extends StatefulWidget> on State<W> {
     // create a new scope for each item template
     ScopeManager templatedScope = parentScope.createChildScope();
     templatedScope.dataContext.addDataContextById(itemTemplate.name, itemData);
-
-    Widget templatedWidget =
-        templatedScope.buildWidgetFromDefinition(itemTemplate.template);
+    WidgetModel model =
+        templatedScope.buildWidgetModelFromDefinition(itemTemplate.template);
+    Widget templatedWidget = templatedScope.buildWidgetFromModel(model);
+    // Widget templatedWidget =
+    //     templatedScope.buildWidgetFromDefinition(itemTemplate.template);
 
     // wraps the templated widget inside a DataScopeWidget so we can constrain the data scope
     return DataScopeWidget(

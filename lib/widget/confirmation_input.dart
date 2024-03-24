@@ -30,6 +30,7 @@ class ConfirmationInput extends StatefulWidget
   @override
   Map<String, Function> setters() {
     return {
+      'text': (value) => _controller.text = Utils.optionalString(value),
       'fieldType': (input) =>
           _controller.fieldType = Utils.optionalString(input),
       'inputType': (type) => _controller.inputType = Utils.optionalString(type),
@@ -167,6 +168,7 @@ class ConfirmationInputState extends framework.WidgetState<ConfirmationInput>
   Widget buildTextInput(ConfirmationInputController controller) {
     return OtpPinField(
       key: _otpPinFieldController,
+      value: widget._controller.text ?? '',
       otpPinFieldStyle: OtpPinFieldStyle(
         textStyle: controller.textStyle.getTextStyle(),
         defaultFieldBorderColor:
