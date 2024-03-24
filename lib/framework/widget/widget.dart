@@ -126,7 +126,7 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
           widgetController.testId!.isNotEmpty) {
         rtn = Semantics(
           //identifier: 'ID#${widgetController.testId!}',//can't use it till we move to flutter 3.19
-          label: '${widgetController.testId!}: ',
+          identifier: '${widgetController.testId!}: ',
           child: rtn,
         );
       }

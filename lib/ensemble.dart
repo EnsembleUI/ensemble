@@ -138,16 +138,14 @@ class Ensemble {
 
     Account account = Account.fromYaml(yamlMap['accounts']);
     dynamic analyticsConfig = yamlMap['analytics'];
-    if (analyticsConfig != null &&
-        analyticsConfig is Map ) {
+    if (analyticsConfig != null && analyticsConfig is Map) {
       String? appId = getAppId(yamlMap);
-      if ( analyticsConfig['enabled'] == true) {
+      if (analyticsConfig['enabled'] == true) {
         await initializeAnalyticsProvider(
-            yamlMap['accounts'],
-            analyticsConfig["provider"],
+            yamlMap['accounts'], analyticsConfig["provider"],
             appId: appId);
       }
-      if ( analyticsConfig['enableConsoleLogs'] == true) {
+      if (analyticsConfig['enableConsoleLogs'] == true) {
         initializeConsoleLogProvider(appId);
       }
     }
@@ -187,20 +185,22 @@ class Ensemble {
   String? getAppId(YamlMap yamlMap) {
     return yamlMap['definitions']?['ensemble']?['appId'];
   }
+
   void initializeConsoleLogProvider(String? appId) {
     LogProvider provider = ConsoleLogProvider()..init(ensembleAppId: appId);
     LogManager().addProviderForAllLevels(LogType.appAnalytics, provider);
   }
+
   Future<void> initializeAnalyticsProvider(
       YamlMap? accounts, String? analyticsProvider,
       {String? appId}) async {
-    if ( analyticsProvider != null ) {
+    if (analyticsProvider != null) {
       LogProvider provider = GetIt.instance<LogProvider>();
-      await provider.init(options: accounts?[analyticsProvider], ensembleAppId: appId);
+      await provider.init(
+          options: accounts?[analyticsProvider], ensembleAppId: appId);
       LogManager().addProviderForAllLevels(LogType.appAnalytics, provider);
       print("$analyticsProvider analytics provider initialized");
     }
-
   }
 
   /// return the definition provider (local, remote, or Ensemble)
