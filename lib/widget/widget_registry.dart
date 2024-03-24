@@ -1,8 +1,10 @@
 import 'package:ensemble/framework/stub/ensemble_chat.dart';
+import 'package:ensemble/framework/stub/qr_code_scanner.dart';
 import 'package:ensemble/framework/view/footer.dart';
 import 'package:ensemble/layout/app_scroller.dart';
 import 'package:ensemble/layout/box/box_layout.dart';
 import 'package:ensemble/layout/box/fitted_box_layout.dart';
+import 'package:ensemble/layout/box/flex_box_layout.dart';
 import 'package:ensemble/layout/data_grid.dart';
 import 'package:ensemble/layout/flow.dart';
 import 'package:ensemble/layout/form.dart';
@@ -11,6 +13,7 @@ import 'package:ensemble/layout/list_view.dart';
 import 'package:ensemble/layout/stack.dart';
 import 'package:ensemble/layout/tab_bar.dart';
 import 'package:ensemble/layout/toggle_container.dart';
+import 'package:ensemble/module/location_module.dart';
 import 'package:ensemble/widget/Toggle.dart';
 import 'package:ensemble/widget/address.dart';
 import 'package:ensemble/widget/avatar.dart';
@@ -18,7 +21,7 @@ import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/calendar.dart';
 import 'package:ensemble/widget/checkbox.dart';
 import 'package:ensemble/widget/countdown.dart';
-import 'package:ensemble/widget/maps/static_map.dart';
+import 'package:ensemble/widget/static_map.dart';
 import 'package:ensemble/widget/shape.dart';
 import 'package:ensemble/widget/carousel.dart';
 import 'package:ensemble/widget/chart_highcharts_builder.dart';
@@ -39,7 +42,6 @@ import 'package:ensemble/widget/input/form_time.dart';
 import 'package:ensemble/widget/input/slider.dart';
 import 'package:ensemble/widget/loading_container.dart';
 import 'package:ensemble/widget/lottie/lottie.dart';
-import 'package:ensemble/widget/maps/maps.dart';
 import 'package:ensemble/widget/markdown.dart';
 import 'package:ensemble/widget/popup_menu.dart';
 import 'package:ensemble/widget/progress_indicator.dart';
@@ -107,8 +109,8 @@ class WidgetRegistry {
         EnsembleWebView.type: () => EnsembleWebView(),
         QRCode.type: () => QRCode(),
         EnsembleProgressIndicator.type: () => EnsembleProgressIndicator(),
-        EnsembleMap.type: () => EnsembleMap(),
-        'Maps': () => EnsembleMap(), // backward compatible
+        EnsembleMap.type: () => GetIt.instance<EnsembleMap>(),
+        'Maps': () => GetIt.instance<EnsembleMap>(), // backward compatible
         Carousel.type: () => Carousel(),
         Video.type: () => Video(),
         YouTube.type: () => YouTube(),
@@ -122,6 +124,8 @@ class WidgetRegistry {
         ConnectWithMicrosoft.type: () => GetIt.instance<ConnectWithMicrosoft>(),
         SignInWithAuth0.type: () => GetIt.instance<SignInWithAuth0>(),
         EnsembleChat.type: () => GetIt.instance<EnsembleChat>(),
+        EnsembleQRCodeScanner.type: () =>
+            GetIt.instance<EnsembleQRCodeScanner>(),
         PopupMenu.type: () => PopupMenu(),
         EnsembleCalendar.type: () => EnsembleCalendar(),
         Countdown.type: () => Countdown(),
@@ -136,6 +140,7 @@ class WidgetRegistry {
         PasswordInput.type: () => PasswordInput(),
         EnsembleCheckbox.type: () => EnsembleCheckbox(),
         EnsembleSwitch.type: () => EnsembleSwitch(),
+        EnsembleTripleSwitch.type: () => EnsembleTripleSwitch(),
         Dropdown.type: () => Dropdown(),
         Button.type: () => Button(),
         EnsembleIconButton.type: () => EnsembleIconButton(),
@@ -144,6 +149,8 @@ class WidgetRegistry {
 
         // containers
         ToggleContainer.type: () => ToggleContainer(),
+        FlexRow.type: () => FlexRow(),
+        FlexColumn.type: () => FlexColumn(),
         FittedRow.type: () => FittedRow(),
         FittedColumn.type: () => FittedColumn(),
         Column.type: () => Column(),

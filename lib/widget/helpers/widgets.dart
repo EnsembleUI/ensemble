@@ -7,7 +7,7 @@ import 'package:ensemble/framework/studio_debugger.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/form.dart' as ensemble;
-import 'package:ensemble/widget/input/form_helper.dart';
+import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:flutter/cupertino.dart';
@@ -104,19 +104,9 @@ class EnsembleBoxWrapper extends StatelessWidget {
                           width: boxController.borderWidth?.toDouble() ??
                               ThemeManager().getBorderThickness(context)),
               borderRadius: _borderRadius?.getValue(),
-              boxShadow: !boxController.hasBoxShadow()
+              boxShadow: boxController.boxShadow == null
                   ? null
-                  : <BoxShadow>[
-                      BoxShadow(
-                          color: boxController.shadowColor ??
-                              ThemeManager().getShadowColor(context),
-                          blurRadius: boxController.shadowRadius?.toDouble() ??
-                              ThemeManager().getShadowRadius(context),
-                          offset: boxController.shadowOffset ??
-                              ThemeManager().getShadowOffset(context),
-                          blurStyle: boxController.shadowStyle ??
-                              ThemeManager().getShadowStyle(context))
-                    ],
+                  : <BoxShadow>[boxController.boxShadow!.getValue(context)],
             ),
       child: backgroundImage != null
           ? Stack(
@@ -219,15 +209,17 @@ class BoxWrapper extends StatelessWidget {
               boxShadow: !boxController.hasBoxShadow()
                   ? null
                   : <BoxShadow>[
-                      BoxShadow(
-                          color: boxController.shadowColor ??
-                              ThemeManager().getShadowColor(context),
-                          blurRadius: boxController.shadowRadius?.toDouble() ??
-                              ThemeManager().getShadowRadius(context),
-                          offset: boxController.shadowOffset ??
-                              ThemeManager().getShadowOffset(context),
-                          blurStyle: boxController.shadowStyle ??
-                              ThemeManager().getShadowStyle(context))
+                      boxController.boxShadow?.getValue(context) ??
+                          BoxShadow(
+                              color: boxController.shadowColor ??
+                                  ThemeManager().getShadowColor(context),
+                              blurRadius:
+                                  boxController.shadowRadius?.toDouble() ??
+                                      ThemeManager().getShadowRadius(context),
+                              offset: boxController.shadowOffset ??
+                                  ThemeManager().getShadowOffset(context),
+                              blurStyle: boxController.shadowStyle ??
+                                  ThemeManager().getShadowStyle(context))
                     ],
             ),
       child: backgroundImage != null

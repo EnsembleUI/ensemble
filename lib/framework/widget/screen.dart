@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/theme/theme_loader.dart';
+import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/error_screen.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
@@ -87,6 +89,12 @@ class _ScreenState extends State<Screen> {
     // }
     DataContext dataContext =
         DataContext(buildContext: context, initialMap: initialMap);
+    //theme will get applied if one exists
+
+    if (pageModel is HasStyles) {
+      (pageModel as HasStyles).runtimeStyles = EnsembleThemeManager()
+          .getRuntimeStyles(dataContext, pageModel as HasStyles);
+    }
 
     // add all the API names to our context as Invokable, even though their result
     // will be null. This is so we can always reference it API responses come back
@@ -161,6 +169,20 @@ class _PageInitializerState extends State<PageInitializer>
     });
   }
 
+  Future<void> executePushNotificationCallbacks() async {
+    final callbacks = List.from(Ensemble().getPushNotificationCallbacks());
+
+    callbacks.asMap().forEach((index, function) async {
+      // Removing a method and getting the function with index to execute it
+      Ensemble().getPushNotificationCallbacks().remove(function);
+      try {
+        await Function.apply(function, null);
+      } catch (e) {
+        print('Failed to execute a method: $e');
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.pageModel is PageGroupModel && widget.pageModel.menu != null) {
@@ -184,9 +206,14 @@ class _PageInitializerState extends State<PageInitializer>
         }
       }
       return ensemble.Page(
-        dataContext: widget.dataContext,
-        pageModel: pageModel,
-      );
+          dataContext: widget.dataContext,
+          pageModel: pageModel,
+
+          // on terminated state, we want push notification's screen to load AFTER
+          // the landing screen has finished its onLoad, which may have logic to
+          // redirect to other pages. Without this, the notification's screen
+          // may load in between, causing the back button to malfunction
+          onRendered: () => executePushNotificationCallbacks());
     }
 
     throw LanguageError("Invalid Screen Definition");
@@ -202,15 +229,23 @@ class ScreenDefinition {
     YamlMap output = _content;
 
     /// manipulate the screen definition to account for custom widget
-    if (_content.keys.length == 1 && _content['Widget'] != null) {
-      output = _getWidgetAsScreen(_content['Widget'], inputParams);
+    if ((_content.keys.length == 1 && _content['Widget'] != null) ||
+        (_content.keys.length == 2 &&
+            _content.containsKey(PageModel.importToken) &&
+            _content.containsKey('Widget'))) {
+      output = _getWidgetAsScreen(_content, inputParams);
     }
+
     return PageModel.fromYaml(output);
   }
 
   /// wrap a widget so it can be displayed as if it's an actual Screen
+  /// the widgetContent is the full yaml map that contains Widget and optional Import as keys.
   YamlMap _getWidgetAsScreen(
-      YamlMap widgetContent, Map<String, dynamic>? inputParams) {
+      YamlMap widgetYaml, Map<String, dynamic>? inputParams) {
+    YamlList? imports = widgetYaml[PageModel.importToken] as YamlList?;
+    YamlMap widgetContent = widgetYaml['Widget'] as YamlMap;
+
     /// build the input map if specified
     Map<String, dynamic>? inputMap;
     if (widgetContent['inputs'] is List) {
@@ -224,7 +259,7 @@ class ScreenDefinition {
     // use random name so we don't accidentally collide with other names
     String randomWidgetName = "Widget${Random().nextInt(100)}";
 
-    return YamlMap.wrap({
+    Map widgetContentMap = {
       'View': {
         'styles': {'useSafeArea': true},
         'body': {
@@ -232,7 +267,11 @@ class ScreenDefinition {
         }
       },
       randomWidgetName: widgetContent
-    });
+    };
+    if (imports != null) {
+      widgetContentMap[PageModel.importToken] = imports;
+    }
+    return YamlMap.wrap(widgetContentMap);
   }
 }
 

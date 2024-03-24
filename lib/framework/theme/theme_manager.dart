@@ -43,7 +43,7 @@ class ThemeManager with ThemeLoader {
   }
 
   getShadowRadius(BuildContext context) {
-    return 0;
+    return 0.0;
   }
 
   getShadowOffset(BuildContext context) {

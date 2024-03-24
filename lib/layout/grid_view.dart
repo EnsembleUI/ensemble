@@ -109,6 +109,7 @@ class GridViewController extends BoxController with HasPullToRefresh {
   bool reverse = false;
   ScrollController? scrollController;
   String? direction;
+
   // single number, 3 numbers (small, medium, large), or 5 numbers (xSmall, small, medium, large, xLarge)
   // min 1, max 5
   setHorizontalTileCount(dynamic value) {
@@ -169,31 +170,25 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
       else if (tileCount.length == 3) {
         if (constraints.isSmallOrLess()) {
           return tileCount[0];
-        }
-        if (constraints.isMedium()) {
-          return tileCount[1];
-        }
-        if (constraints.isLargeOrMore()) {
+        } else if (constraints.isLargeOrMore()) {
           return tileCount[2];
         }
+        // medium
+        return tileCount[1];
       }
       // five numbers = xSmall / small / medium / large / xLarge
       else if (tileCount.length == 5) {
         if (constraints.isXSmall()) {
           return tileCount[0];
-        }
-        if (constraints.isSmall()) {
+        } else if (constraints.isSmall()) {
           return tileCount[1];
-        }
-        if (constraints.isMedium()) {
-          return tileCount[2];
-        }
-        if (constraints.isLarge()) {
+        } else if (constraints.isLarge()) {
           return tileCount[3];
-        }
-        if (constraints.isXLarge()) {
+        } else if (constraints.isXLarge()) {
           return tileCount[4];
         }
+        // medium
+        return tileCount[2];
       }
     }
     throw LanguageError(

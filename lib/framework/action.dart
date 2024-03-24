@@ -1,4 +1,6 @@
 import 'package:app_settings/app_settings.dart';
+import 'package:ensemble/action/audio_player.dart';
+import 'package:ensemble/action/Log_event_action.dart';
 import 'package:ensemble/action/badge_action.dart';
 import 'package:ensemble/action/bottom_modal_action.dart';
 import 'package:ensemble/action/deep_link_action.dart';
@@ -126,17 +128,26 @@ class NavigateScreenAction extends BaseNavigateScreenAction {
 }
 
 class NavigateViewGroupAction extends EnsembleAction {
-  NavigateViewGroupAction({dynamic viewIndex}) : _viewIndex = viewIndex;
+  NavigateViewGroupAction({dynamic viewIndex, this.payload})
+      : _viewIndex = viewIndex;
 
   final dynamic _viewIndex;
+  final Map<String, dynamic>? payload;
 
   factory NavigateViewGroupAction.from({Map? payload}) {
-    return NavigateViewGroupAction(viewIndex: payload?['viewIndex']);
+    return NavigateViewGroupAction(
+      viewIndex: payload?['viewIndex'],
+      payload:
+          Utils.getMap(payload?['payload']) ?? Utils.getMap(payload?['inputs']),
+    );
   }
 
   @override
   Future execute(BuildContext context, ScopeManager scopeManager,
       {DataContext? dataContext}) {
+    if (payload != null) {
+      scopeManager.dataContext.addDataContext(payload!);
+    }
     PageGroupWidget.getPageController(context)?.jumpToPage(_viewIndex);
     viewGroupNotifier.updatePage(_viewIndex);
     return Future.value(null);
@@ -380,6 +391,136 @@ class ExecuteCodeAction extends EnsembleAction {
   }
 }
 
+class ExecuteActionGroupAction extends EnsembleAction {
+  ExecuteActionGroupAction({super.initiator, required this.actions});
+  List<EnsembleAction> actions;
+  factory ExecuteActionGroupAction.fromYaml(
+      {Invokable? initiator, Map? payload}) {
+    if (payload == null || payload['actions'] == null) {
+      throw LanguageError(
+          "${ActionType.executeActionGroup.name} requires a 'actions' list.");
+    }
+
+    if (payload['actions'] is! List<dynamic>) {
+      throw LanguageError(
+          "${ActionType.executeActionGroup.name} requires a 'actions' list.");
+    }
+    List<dynamic> actions = payload['actions'] as List<dynamic>;
+    if (actions == null || actions.isEmpty) {
+      throw LanguageError(
+          "${ActionType.executeActionGroup.name} requires a 'actions' list.");
+    }
+    List<EnsembleAction> ensembleActions = [];
+    for (var action in actions) {
+      EnsembleAction? ensembleAction =
+          EnsembleAction.fromYaml(action, initiator: initiator);
+      if (ensembleAction == null) {
+        throw LanguageError(
+            "$action under ${ActionType.executeActionGroup.name} is not a valid action");
+      }
+      if (ensembleAction != null) {
+        ensembleActions.add(ensembleAction);
+      }
+    }
+    return ExecuteActionGroupAction(
+        initiator: initiator, actions: ensembleActions);
+  }
+  factory ExecuteActionGroupAction.from(dynamic payload) =>
+      ExecuteActionGroupAction.fromYaml(payload: Utils.getYamlMap(payload));
+  @override
+  Future<void> execute(BuildContext context, ScopeManager scopeManager) {
+    // Map each action into a Future by calling execute on it, starting all actions in parallel
+    var actionFutures = actions.map((action) {
+      return ScreenController()
+          .executeActionWithScope(context, scopeManager, action);
+    });
+
+    // Wait for all action Futures to complete and return the resulting Future
+    return Future.wait(actionFutures);
+  }
+}
+
+class ExecuteConditionalActionAction extends EnsembleAction {
+  List<dynamic> conditions;
+  ExecuteConditionalActionAction({super.initiator, required this.conditions});
+  factory ExecuteConditionalActionAction.fromYaml(
+      {Invokable? initiator, Map? payload}) {
+    if (payload == null || payload['conditions'] == null) {
+      throw LanguageError(
+          "${ActionType.executeConditionalAction.name} requires a 'conditions' list.");
+    }
+    if (payload['conditions'] is! List<dynamic>) {
+      throw LanguageError(
+          "${ActionType.executeConditionalAction.name} requires a 'conditions' list.");
+    }
+    List<dynamic> conditions = payload['conditions'] as List<dynamic>;
+    if (conditions == null || conditions.isEmpty) {
+      throw LanguageError(
+          "${ActionType.executeConditionalAction.name} requires a 'conditions' list.");
+    }
+    if (conditions.first.containsKey('if') == false) {
+      throw LanguageError(
+          "${ActionType.executeConditionalAction.name} requires a 'conditions' list with the first condition being an 'if' condition.");
+    }
+    // Iterate over the conditions list starting from the second element
+    for (int i = 1; i < conditions.length; i++) {
+      if (conditions[i] is Map && conditions[i].containsKey('if')) {
+        throw LanguageError(
+            "${ActionType.executeConditionalAction.name} requires that only the first condition contains an 'if' key. Found another 'if' at position $i.");
+      }
+    }
+    return ExecuteConditionalActionAction(
+        initiator: initiator, conditions: conditions);
+  }
+  factory ExecuteConditionalActionAction.from(dynamic payload) =>
+      ExecuteConditionalActionAction.fromYaml(
+          payload: Utils.getYamlMap(payload));
+
+  Future<dynamic> _execute(
+      Map actionMap, BuildContext context, ScopeManager scopeManager) async {
+    EnsembleAction? action = EnsembleAction.fromYaml(YamlMap.wrap(actionMap));
+    if (action == null) {
+      throw LanguageError(
+          "${ActionType.executeConditionalAction.name} requires a valid action.");
+    }
+    return ScreenController()
+        .executeActionWithScope(context, scopeManager, action);
+  }
+
+  @override
+  Future<dynamic> execute(
+      BuildContext context, ScopeManager scopeManager) async {
+    for (var condition in conditions) {
+      String? conditionType;
+      var result = true; // Default to true for 'else'
+
+      if (condition.containsKey('if')) {
+        conditionType = 'if';
+        result = scopeManager.dataContext.eval(condition['if']);
+      } else if (condition.containsKey('elseif')) {
+        conditionType = 'elseif';
+        result = scopeManager.dataContext.eval(condition['elseif']);
+      } else if (condition.containsKey('else')) {
+        conditionType = 'else';
+      } else {
+        throw LanguageError(
+            "${ActionType.executeConditionalAction.name} requires a valid condition.");
+      }
+
+      if (result) {
+        Map? actionMap = condition['action'];
+        if (actionMap == null) {
+          throw LanguageError(
+              "${ActionType.executeConditionalAction.name} $conditionType condition requires a valid action.");
+        }
+        return _execute(actionMap, context, scopeManager);
+      }
+    }
+    return Future.value(
+        null); // No conditions met or all conditions evaluated to false.
+  }
+}
+
 //used to dispatch events. Used within custom widgets as custom widgets expose events to the callers
 class DispatchEventAction extends EnsembleAction {
   DispatchEventAction({super.initiator, required this.event, this.onComplete});
@@ -410,8 +551,13 @@ class DispatchEventAction extends EnsembleAction {
     EnsembleEventHandler? handler =
         scopeManager.dataContext.getContextById(event.name!);
     if (handler != null) {
-      return handler.handleEvent(event, context);
-      //return ScreenController().executeAction(context, action!, event: event);
+      Map? evaluatedData = event.data?.map(
+          (key, value) => MapEntry(key, scopeManager.dataContext.eval(value)));
+
+      return handler.handleEvent(
+          EnsembleEvent(event.source,
+              data: evaluatedData, error: event.error, name: event.name),
+          context);
     }
     return Future.value(null);
   }
@@ -955,10 +1101,19 @@ enum ActionType {
   invokeHaptic,
   callNativeMethod,
   deeplinkInit,
+  handleDeeplink,
   createDeeplink,
   verifySignIn,
   signOut,
-  dispatchEvent
+  dispatchEvent,
+  executeConditionalAction,
+  executeActionGroup,
+  playAudio,
+  stopAudio,
+  pauseAudio,
+  resumeAudio,
+  seekAudio,
+  logEvent
 }
 
 enum ToastType { success, error, warning, info }
@@ -1109,8 +1264,20 @@ abstract class EnsembleAction {
       return ClearKeychain.fromYaml(payload: payload);
     } else if (actionType == ActionType.invokeHaptic) {
       return HapticAction.from(payload);
+    } else if (actionType == ActionType.playAudio) {
+      return PlayAudio.from(payload);
+    } else if (actionType == ActionType.pauseAudio) {
+      return PauseAudio.from(payload);
+    } else if (actionType == ActionType.stopAudio) {
+      return PauseAudio.from(payload);
+    } else if (actionType == ActionType.resumeAudio) {
+      return ResumeAudio.from(payload);
+    } else if (actionType == ActionType.seekAudio) {
+      return SeekAudio.from(payload);
     } else if (actionType == ActionType.deeplinkInit) {
       return DeepLinkInitAction.fromMap(payload: payload);
+    } else if (actionType == ActionType.handleDeeplink) {
+      return DeepLinkHandleAction.fromMap(payload: payload);
     } else if (actionType == ActionType.createDeeplink) {
       return CreateDeeplinkAction.fromMap(payload: payload);
     } else if (actionType == ActionType.verifySignIn) {
@@ -1125,6 +1292,14 @@ abstract class EnsembleAction {
     } else if (actionType == ActionType.dispatchEvent) {
       return DispatchEventAction.fromYaml(
           initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.executeConditionalAction) {
+      return ExecuteConditionalActionAction.fromYaml(
+          initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.executeActionGroup) {
+      return ExecuteActionGroupAction.fromYaml(
+          initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.logEvent) {
+      return LogEvent.from(initiator: initiator, payload: payload);
     }
 
     throw LanguageError("Invalid action.",

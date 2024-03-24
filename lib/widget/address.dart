@@ -1,7 +1,4 @@
 import 'dart:convert';
-import 'dart:developer';
-
-import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -12,19 +9,19 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:get_it/get_it.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 
 class Address extends StatefulWidget
     with Invokable, HasController<AddressController, AddressState> {
   static const type = 'Address';
+
   Address({super.key});
 
   final AddressController _controller = AddressController();
+
   @override
   get controller => _controller;
 
@@ -67,6 +64,7 @@ class AddressController extends WidgetController with LocationCapability {
   bool showRecent = true;
 
   List<String>? _countryFilter;
+
   set countryFilter(List<String>? items) {
     if (items != null && items.length > 5) {
       throw LanguageError(
@@ -76,9 +74,10 @@ class AddressController extends WidgetController with LocationCapability {
   }
 
   int? proximitySearchRadius;
-  LatLng? proximitySearchCenter;
+  LocationData? proximitySearchCenter;
 
   bool _proximitySearchEnabled = true;
+
   set proximitySearchEnabled(bool value) {
     _proximitySearchEnabled = value;
     if (value) {
@@ -96,12 +95,13 @@ class AddressState extends WidgetState<Address> {
   Future<List<PlaceSummary>> _getSearchResults(String query) async {
     if (query.isNotEmpty) {
       // location bias
-      LatLng? center = widget._controller.proximitySearchCenter;
+      LocationData? center = widget._controller.proximitySearchCenter;
       if (center == null &&
           widget._controller._proximitySearchEnabled &&
           widget._controller.getLastLocation() != null) {
-        center = LatLng(widget._controller.getLastLocation()!.latitude,
-            widget._controller.getLastLocation()!.longitude);
+        center = LocationData(
+            latitude: widget._controller.getLastLocation()!.latitude,
+            longitude: widget._controller.getLastLocation()!.longitude);
       }
       String locationBiasStr = '';
       if (center != null) {
@@ -228,6 +228,7 @@ class AddressState extends WidgetState<Address> {
 
 class PlaceSummary {
   PlaceSummary({required this.placeId, required this.address});
+
   String placeId;
   String address;
 }
@@ -240,6 +241,7 @@ class Place extends PlaceSummary {
       required this.lng,
       this.types,
       this.bounds});
+
   double lat;
   double lng;
   List<String>? types;

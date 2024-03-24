@@ -1,8 +1,12 @@
+import 'dart:io';
+
 import 'package:ensemble/framework/action.dart' as action;
 import 'package:ensemble/framework/bindings.dart';
+import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/studio_debugger.dart';
+import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
@@ -20,23 +24,34 @@ mixin UpdatableContainer<T extends Widget> {
   void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate});
 }
 
-/// Deprecated. Use EnsembleWidgetState
+/// Deprecated. Use [EnsembleWidgetState] instead
 /// base class for widgets that want to participate in Ensemble layout
 abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
   ScopeManager? scopeManager;
 
+  void resolveStylesIfUnresolved(BuildContext context) {
+    if (widget.controller is HasStyles) {
+      ScopeManager? scopeManager = DataScopeWidget.getScope(context) ??
+          PageGroupWidget.getScope(context);
+      Invokable? invokable;
+      if (widget.controller is Invokable) {
+        invokable = widget.controller as Invokable;
+      } else if (widget is Invokable) {
+        invokable = widget as Invokable;
+      }
+      if (scopeManager != null && invokable != null) {
+        (widget.controller as HasStyles)
+            .resolveStyles(scopeManager, invokable, context);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    resolveStylesIfUnresolved(context);
+    Widget rtn = buildWidget(context);
     if (widget.controller is WidgetController) {
       WidgetController widgetController = widget.controller as WidgetController;
-
-      // if there is not visible transition, we rather not show the widget
-      if (!widgetController.visible &&
-          widgetController.visibilityTransitionDuration == null) {
-        return const SizedBox.shrink();
-      }
-
-      Widget rtn = buildWidget(context);
 
       if (widgetController.elevation != null) {
         rtn = Material(
@@ -56,12 +71,17 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
         rtn = Align(alignment: widgetController.alignment!, child: rtn);
       }
 
-      // if visibility transition is specified, wrap in Opacity to animate
+      // handle visibility
       if (widgetController.visibilityTransitionDuration != null) {
         rtn = AnimatedOpacity(
-            opacity: widgetController.visible ? 1 : 0,
+            opacity: widgetController.visible != false ? 1 : 0,
             duration: widgetController.visibilityTransitionDuration!,
             child: rtn);
+      }
+      // only wrap around Visibility if visible flag is specified,
+      // since we don't want this on all widgets unnecessary
+      else if (widgetController.visible != null) {
+        rtn = Visibility(visible: widgetController.visible!, child: rtn);
       }
 
       // Note that Positioned or expanded below has to be used directly inside
@@ -76,6 +96,17 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
             left: widgetController.stackPositionLeft?.toDouble(),
             right: widgetController.stackPositionRight?.toDouble(),
             child: rtn);
+      } else if (widgetController.flex != null ||
+          widgetController.flexMode != null) {
+        rtn = StudioDebugger().assertHasFlexBoxParent(context, rtn);
+
+        if (widgetController.flexMode == null ||
+            widgetController.flexMode == FlexMode.expanded) {
+          rtn = Expanded(flex: widgetController.flex ?? 1, child: rtn);
+        } else if (widgetController.flexMode == FlexMode.flexible) {
+          rtn = Flexible(flex: widgetController.flex ?? 1, child: rtn);
+        }
+        // don't do anything for FlexMode.none
       } else if (widgetController.expanded == true) {
         if (StudioDebugger().debugMode) {
           rtn = StudioDebugger().assertHasColumnRowFlexWrapper(rtn, context);
@@ -87,9 +118,20 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
         ///    So if we put Expanded on the Column's child, layout exception will occur
         rtn = Expanded(child: rtn);
       }
-      return rtn;
+
+      final isTestMode = EnvConfig().isTestMode;
+
+      if (isTestMode &&
+          widgetController.testId != null &&
+          widgetController.testId!.isNotEmpty) {
+        rtn = Semantics(
+          //identifier: 'ID#${widgetController.testId!}',//can't use it till we move to flutter 3.19
+          label: '${widgetController.testId!}: ',
+          child: rtn,
+        );
+      }
     }
-    throw LanguageError("Wrong usage of widget controller!");
+    return rtn;
   }
 
   /// build your widget here

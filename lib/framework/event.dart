@@ -14,7 +14,11 @@ class EnsembleEvent extends Object with Invokable {
 
   EnsembleEvent(this.source, {this.data = const {}, this.error, this.name});
 
-  static EnsembleEvent fromYaml(String name, YamlMap? map) {
+  static EnsembleEvent fromYaml(String name, YamlMap? yamlMap) {
+    Map? map;
+    if (yamlMap != null) {
+      map = Utils.convertYamlToDart(yamlMap);
+    }
     return EnsembleEvent(null, name: name, data: map?['data']);
   }
 

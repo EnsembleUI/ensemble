@@ -11,6 +11,7 @@ import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/stub/location_manager.dart';
+import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
@@ -155,6 +156,37 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
 
   /// create a copy of the parent's data scope. the initialMap is generally coming from the imports
   @override
+  ScopeManager newCreateChildScope(
+      {bool ephemeral = false, List<ParsedCode>? childImportedCode}) {
+    //if the same code has been imported before in the parent scope, we will not import and evaluate it
+    //again in the child scope. This ensures that the child scope won't override variables defined in the parent
+    //scope. This is how HTML works when js is included as <script> tags i.e. if the same js file is included
+    //multiple times on the page, the vars do not override each other. However, if the same var is defined in
+    //a different js file which is included after the first one, it's var will override the first one.
+    //we'll do the same here
+    List<ParsedCode> childImports = [];
+    Set<String> importedCodeNames =
+        (importedCode ?? []).map((e) => e.libraryName).toSet();
+
+    childImports.addAll(
+      (childImportedCode ?? []).where(
+        (code) => !importedCodeNames.contains(code.libraryName),
+      ),
+    );
+    //we evaluate only the new imports in the child widget so that the older context is not overridden
+    //however we accumulate parent imports and the child imports and pass that to child so that nested
+    //widgets further down the chain get all the accumulated imports and don't re-evaluate and override
+    List<ParsedCode> combined = [...?importedCode, ...childImports];
+    DataContext childContext = dataContext.createChildContext();
+    ScopeManager childScope = ScopeManager(
+        childContext.evalImports(childImports), pageData,
+        ephemeral: ephemeral, importedCode: combined);
+    childScope._parent = this;
+    return childScope;
+  }
+
+  /// create a copy of the parent's data scope. the initialMap is generally coming from the imports
+  @override
   ScopeManager createChildScope(
       {bool ephemeral = false, List<ParsedCode>? childImportedCode}) {
     //if the same code has been imported before in the parent scope, we will not import and evaluate it
@@ -218,6 +250,14 @@ mixin ViewBuilder on IsScopeManager {
     return buildWidget(ViewUtil.buildModel(item, customViewDefinitions));
   }
 
+  Widget buildWidgetFromModel(WidgetModel model) {
+    return buildWidget(model);
+  }
+
+  WidgetModel buildWidgetModelFromDefinition(dynamic item) {
+    return ViewUtil.buildModel(item, customViewDefinitions);
+  }
+
   /// build a widget from the item YAML, and wrap it inside a DataScopeWidget
   /// This enables the widget to travel up and get its data context
   DataScopeWidget buildWidgetWithScopeFromDefinition(dynamic item) {
@@ -278,6 +318,20 @@ mixin ViewBuilder on IsScopeManager {
     return widget;*/
   }
 
+  void setProperties(ScopeManager scopeManager, Map<String, dynamic> map,
+      Invokable invokable) {
+    for (String key in map.keys) {
+      if (InvokableController.getSettableProperties(invokable).contains(key)) {
+        if (_isPassthroughProperty(key, invokable)) {
+          InvokableController.setProperty(invokable, key, map[key]);
+        } else {
+          evalPropertyAndRegisterBinding(
+              scopeManager, invokable, key, map[key]);
+        }
+      }
+    }
+  }
+
   void _updateWidgetBindings(Map<WidgetModel, ModelPayload> modelMap) {
     modelMap.forEach((model, payload) {
       ScopeManager scopeManager = payload.scopeManager;
@@ -317,35 +371,36 @@ mixin ViewBuilder on IsScopeManager {
       //WidgetModel model = inputModel is CustomWidgetModel ? inputModel.getModel() : inputModel;
 
       Invokable? invokable;
+      HasStyles? hasStyles;
       if (payload.widget is EnsembleWidget) {
         invokable = (payload.widget as EnsembleWidget).controller;
+        hasStyles = (payload.widget as EnsembleWidget).controller is HasStyles
+            ? (payload.widget as EnsembleWidget).controller as HasStyles
+            : null;
       } else if (payload.widget is Invokable) {
         invokable = payload.widget as Invokable;
+        if (payload.widget is HasController) {
+          hasStyles = (payload.widget as HasController).controller is HasStyles
+              ? (payload.widget as HasController).controller as HasStyles
+              : null;
+        }
       }
       if (invokable != null) {
         // set props and styles on the widget. At this stage the widget
         // has not been attached, so no worries about ValueNotifier
-        for (String key in model.props.keys) {
-          if (InvokableController.getSettableProperties(invokable)
-              .contains(key)) {
-            if (_isPassthroughProperty(key, invokable)) {
-              InvokableController.setProperty(invokable, key, model.props[key]);
-            } else {
-              evalPropertyAndRegisterBinding(
-                  scopeManager, invokable, key, model.props[key]);
-            }
+        setProperties(scopeManager, model.props, invokable);
+        if (hasStyles != null) {
+          EnsembleThemeManager()
+              .configureStyles(scopeManager.dataContext, model, hasStyles);
+          if (hasStyles?.runtimeStyles != null) {
+            setProperties(scopeManager, hasStyles!.runtimeStyles!, invokable);
+            //not so lovely but now we set the styleOverrides to null because setting the properties could have set them
+            hasStyles?.styleOverrides = null;
           }
-        }
-        for (String key in model.styles.keys) {
-          if (InvokableController.getSettableProperties(invokable)
-              .contains(key)) {
-            if (_isPassthroughProperty(key, invokable)) {
-              InvokableController.setProperty(
-                  invokable, key, model.styles[key]);
-            } else {
-              evalPropertyAndRegisterBinding(
-                  scopeManager, invokable, key, model.styles[key]);
-            }
+          hasStyles?.stylesNeedResolving = false;
+        } else {
+          if (model.inlineStyles != null) {
+            setProperties(scopeManager, model.inlineStyles!, invokable);
           }
         }
       }
@@ -372,7 +427,7 @@ mixin ViewBuilder on IsScopeManager {
   ///    variable evaluation can be done inside the widget
   /// 3. Special properties like children and item-template are excluded
   ///    automatically and don't need to be specified here
-  bool _isPassthroughProperty(String property, dynamic widget) =>
+  static bool _isPassthroughProperty(String property, dynamic widget) =>
       property.startsWith('on') ||
       (widget is HasController &&
           widget.passthroughSetters().contains(property)) ||

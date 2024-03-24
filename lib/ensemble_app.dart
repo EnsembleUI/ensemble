@@ -6,23 +6,30 @@ import 'dart:async';
 import 'package:device_preview/device_preview.dart';
 import 'package:ensemble/deep_link_manager.dart';
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/app_info.dart';
+import 'package:ensemble/framework/bindings.dart';
+import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble/framework/storage_manager.dart';
+import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/widget/error_screen.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/ios_deep_link_manager.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:event_bus/event_bus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:workmanager/workmanager.dart';
+import 'package:yaml/yaml.dart';
 
 const String backgroundUploadTask = 'backgroundUploadTask';
 const String ensembleMethodChannelName = 'com.ensembleui.host.platform';
@@ -91,7 +98,8 @@ class EnsembleApp extends StatefulWidget {
       this.externalMethods,
       this.isPreview = false,
       this.placeholderBackgroundColor,
-      this.onAppLoad});
+      this.onAppLoad,
+      this.forcedLocale});
 
   final ScreenPayload? screenPayload;
   final EnsembleConfig? ensembleConfig;
@@ -104,6 +112,8 @@ class EnsembleApp extends StatefulWidget {
   /// use this as the placeholder background while Ensemble is loading
   final Color? placeholderBackgroundColor;
 
+  final Locale? forcedLocale;
+
   @override
   State<StatefulWidget> createState() => EnsembleAppState();
 }
@@ -111,6 +121,7 @@ class EnsembleApp extends StatefulWidget {
 class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
   bool notifiedAppLoad = false;
   late Future<EnsembleConfig> config;
+  EventBus appEventBus = EventBus();
 
   @override
   void initState() {
@@ -121,6 +132,12 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
     if (!kIsWeb) {
       Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
       initDeepLink(AppLifecycleState.resumed);
+    }
+    AppEventBus().eventBus.on<ThemeChangeEvent>().listen((event) {
+      setState(() {});
+    });
+    if (EnvConfig().isTestMode) {
+      SemanticsBinding.instance.ensureSemantics();
     }
   }
 
@@ -143,6 +160,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    AppEventBus().eventBus.destroy();
     super.dispose();
   }
 
@@ -197,7 +215,59 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
         }));
   }
 
+  void configureThemes(YamlMap doc, AppConfig config) {
+    if (EnsembleThemeManager().initialized) {
+      return;
+    }
+    Map<String, YamlMap> themes = {};
+    String? defaultTheme;
+    String? savedTheme = config.getSavedTheme();
+    bool foundSelectedTheme = false;
+    if (doc["Themes"] != null) {
+      for (var theme in doc['Themes']) {
+        String? themeName;
+        if (theme is YamlMap) {
+          themeName = theme.keys.first;
+          YamlMap? themeMap = theme[themeName];
+          if (themeMap != null) {
+            if (themeMap.containsKey('default') &&
+                themeMap['default'] == true) {
+              defaultTheme = themeName;
+            }
+          }
+        } else {
+          themeName = theme;
+        }
+        themes[themeName!] = doc[themeName] ?? YamlMap();
+        if (savedTheme != null &&
+            themeName == savedTheme &&
+            !foundSelectedTheme) {
+          foundSelectedTheme = true;
+        }
+      }
+    }
+    if (themes.isNotEmpty && defaultTheme == null) {
+      defaultTheme = themes.keys.first;
+    }
+    defaultTheme ??= EnsembleThemeManager.defaultThemeWhenNoneSpecified;
+    if (themes.isEmpty) {
+      //no themes defined, we'll assume eveyrthing is in the root
+      themes[defaultTheme] = doc;
+    }
+    if (foundSelectedTheme && savedTheme != null) {
+      defaultTheme = savedTheme;
+    }
+    EnsembleThemeManager().init(context, themes, defaultTheme);
+  }
+
   Widget renderApp(EnsembleConfig config) {
+    //even of there is no theme passed in, we still call init as thememanager would initialize with default styles
+    if (config.appBundle?.theme?['cssStyling'] != false) {
+      YamlMap? doc = config.appBundle?.theme;
+      if (doc != null) {
+        configureThemes(doc, AppConfig(context, AppInfo().appId));
+      }
+    }
     // notify external app once of EnsembleApp loading status
     if (widget.onAppLoad != null && !notifiedAppLoad) {
       widget.onAppLoad!.call();
@@ -205,14 +275,13 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
     }
 
     StorageManager().setIsPreview(widget.isPreview);
-
-    return MaterialApp(
+    Widget app = MaterialApp(
       navigatorObservers: [Ensemble.routeObserver],
       debugShowCheckedModeBanner: false,
       navigatorKey: Utils.globalAppKey,
       theme: config.getAppTheme(),
       localizationsDelegates: [
-        config.getI18NDelegate(),
+        config.getI18NDelegate(forcedLocale: widget.forcedLocale),
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate
       ],
@@ -236,6 +305,11 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
       // TODO: this case translation issue on hot loading. Address this for RTL support
       //builder: (context, widget) => FlutterI18n.rootAppBuilder().call(context, widget)
     );
+    if (EnsembleThemeManager().currentTheme() != null) {
+      app = ThemeProvider(
+          theme: EnsembleThemeManager().currentTheme()!, child: app);
+    }
+    return app;
   }
 
   /// we are at the root here. Error/Spinner widgets need

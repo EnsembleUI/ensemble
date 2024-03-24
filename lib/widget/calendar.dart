@@ -35,6 +35,9 @@ class EnsembleCalendar extends StatefulWidget
   State<StatefulWidget> createState() => CalendarState();
 
   @override
+  List<String> passthroughSetters() => ['rowSpans'];
+
+  @override
   Map<String, Function> getters() {
     return {
       'selectedCell': () => _controller.selectedDays.value
@@ -75,6 +78,7 @@ class EnsembleCalendar extends StatefulWidget
           duration: const Duration(milliseconds: 300), curve: Curves.easeOut),
       'addRowSpan': (value) => setRowSpan(value),
       'update': () => _controller.update(),
+      'clearRange': () => clearRange(),
     };
   }
 
@@ -94,8 +98,7 @@ class EnsembleCalendar extends StatefulWidget
       'firstDay': (value) => _controller.firstDay = Utils.getDate(value),
       'lastDay': (value) => _controller.lastDay = Utils.getDate(value),
       'rowSpans': (value) {
-        _controller.rowSpanLimit =
-            Utils.getInt(value['spanPerRow'], fallback: -1);
+        _controller.rowSpanLimit = value['spanPerRow'];
         _controller.overlapOverflowBuilder = value['overflowWidget'];
         _controller.topMargin = Utils.getInt(value['topMargin'], fallback: 0);
 
@@ -115,8 +118,16 @@ class EnsembleCalendar extends StatefulWidget
       'header': (value) => _controller.header = value,
       'tootlip': (value) => setTooltip(value),
       'showTooltip': (value) =>
-          _controller.showTooltip = Utils.getBool(value, fallback: false)
+          _controller.showTooltip = Utils.getBool(value, fallback: false),
+      'showOutsideDate': (value) =>
+          _controller.showOutsideDate = Utils.getBool(value, fallback: false),
     };
+  }
+
+  void clearRange() {
+    _controller.rangeStart = null;
+    _controller.rangeEnd = null;
+    _controller.range = null;
   }
 
   void setRowSpanItemTemplate(dynamic rowSpanData) {
@@ -132,6 +143,7 @@ class EnsembleCalendar extends StatefulWidget
         data: rowSpanData['data'],
         name: rowSpanData['name'],
         spanTemplate: SpanTemplate(
+          rowId: rowSpanData['span']['rowId'],
           start: rowSpanData['span']['start'],
           end: rowSpanData['span']['end'],
           widget: rowSpanData['span']['widget'],
@@ -308,9 +320,6 @@ class EnsembleCalendar extends StatefulWidget
       updatedDisabledDays.remove(date);
     }
 
-    _controller.rangeStart = null;
-    _controller.rangeEnd = null;
-    _controller.range = null;
     _controller.selectedDays.value = updatedDisabledDays;
   }
 
@@ -473,6 +482,7 @@ class RowSpanConfig {
   dynamic widget;
   Map? inputs;
   String id;
+  int? rowId;
 
   RowSpanConfig({
     this.startDay,
@@ -481,6 +491,7 @@ class RowSpanConfig {
     this.inputs,
     required this.id,
     this.scope,
+    this.rowId,
   });
 
   bool get isValid => startDay != null && endDay != null;
@@ -491,6 +502,7 @@ class RowSpanConfig {
       'end': endDay,
       'widget': widget,
       'inputs': inputs,
+      'rowId': rowId,
     };
   }
 }
@@ -536,7 +548,7 @@ class CalendarController extends WidgetController {
   Cell rangeEndCell = Cell();
   Cell rangeBetweenCell = Cell();
 
-  int rowSpanLimit = -1;
+  dynamic rowSpanLimit;
   int topMargin = 0;
   dynamic overlapOverflowBuilder;
 
@@ -585,6 +597,8 @@ class CalendarController extends WidgetController {
     ),
   );
   CalendarState? widgetState;
+
+  bool showOutsideDate = false;
   void _bind(CalendarState state) {
     widgetState = state;
   }
@@ -648,6 +662,8 @@ class CalendarState extends WidgetState<EnsembleCalendar>
         rowSpanConfigs.add(
           RowSpanConfig(
               id: Utils.generateRandomId(6),
+              rowId: Utils.optionalInt(
+                  dataScope.dataContext.eval(itemTemplate.spanTemplate.rowId)),
               startDay: Utils.getDate(
                   dataScope.dataContext.eval(itemTemplate.spanTemplate.start)),
               endDay: Utils.getDate(
@@ -777,7 +793,9 @@ class CalendarState extends WidgetState<EnsembleCalendar>
               widget._controller.markedDays.value.contains(day.toDate()),
           enabledDayPredicate: (day) =>
               !(widget._controller.disableDays.value.contains(day.toDate())),
-          rowSpanLimit: widget._controller.rowSpanLimit,
+          rowSpanLimit:
+              scopeManager?.dataContext.eval(widget._controller.rowSpanLimit) ??
+                  -1,
           rangeStartDay: widget._controller.rangeStart,
           rangeEndDay: widget._controller.rangeEnd,
           calendarFormat: _calendarFormat,
@@ -799,6 +817,11 @@ class CalendarState extends WidgetState<EnsembleCalendar>
           showTooltip: widget._controller.showTooltip,
           topMargin: widget._controller.topMargin,
           calendarBuilders: CalendarBuilders(
+            outsideBuilder: widget._controller.showOutsideDate
+                ? null
+                : (context, day, focusedDay) {
+                    return const SizedBox.shrink();
+                  },
             overlayDefaultBuilder: (context, collapsedLength, children) {
               final collapsedSpans = widget._controller.rowSpans.value
                   .where((object) => children.contains(object.id))
@@ -961,6 +984,7 @@ class CalendarState extends WidgetState<EnsembleCalendar>
           start: span.startDay!,
           end: span.endDay!,
           id: span.id,
+          rowId: span.rowId,
         ));
       }
     }
@@ -1089,6 +1113,8 @@ class SpanTemplate {
   final String start;
   final String end;
   final dynamic widget;
+  final dynamic rowId;
 
-  SpanTemplate({required this.start, required this.end, this.widget});
+  SpanTemplate(
+      {required this.start, required this.end, this.widget, this.rowId});
 }
