@@ -1,7 +1,6 @@
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
-import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -130,18 +129,22 @@ class ConditionalState extends WidgetState<Conditional> {
 
   bool _evaluateCondition(ScopeManager scopeManager, String expression) {
     try {
-      final _expression = scopeManager.dataContext.eval(expression);
-      return _expression is bool ? _expression : false;
+      final expression0 = scopeManager.dataContext.eval(expression);
+      return expression0 is bool ? expression0 : false;
     } catch (e) {
       throw LanguageError('Failed to eval $expression');
     }
   }
 
   Widget _buildWidget(ScopeManager scopeManager, dynamic condition) {
-    final widgetDefination = YamlMap.wrap({
+    var widgetDefinition = YamlMap.wrap({
       condition.keys.last: condition.values.last,
     });
 
-    return scopeManager.buildWidgetFromDefinition(widgetDefination);
+    if (widgetDefinition.containsKey('widget')) {
+      widgetDefinition = widgetDefinition['widget'];
+    }
+
+    return scopeManager.buildWidgetFromDefinition(widgetDefinition);
   }
 }
