@@ -12,7 +12,8 @@ abstract class LogProvider {
       String event, Map<String, dynamic> parameters, LogLevel level);
 
   //init function to be implemented by subclasses
-  Future<void> init({Map? options,String? ensembleAppId,bool shouldAwait = false});
+  Future<void> init(
+      {Map? options, String? ensembleAppId, bool shouldAwait = false});
 }
 
 enum LogLevel {
