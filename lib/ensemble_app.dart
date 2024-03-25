@@ -121,7 +121,6 @@ class EnsembleApp extends StatefulWidget {
 class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
   bool notifiedAppLoad = false;
   late Future<EnsembleConfig> config;
-  EventBus appEventBus = EventBus();
 
   @override
   void initState() {
@@ -160,7 +159,6 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    AppEventBus().eventBus.destroy();
     super.dispose();
   }
 
