@@ -18,20 +18,22 @@ class DataTranslationLoader extends TranslationLoader {
   final Locale defaultLocale;
 
   // force to use this Locale regardless of user locale or default local
-  // This should be used for demonstration purposes only (e.g. select a locale to preview)
   final Locale? forcedLocale;
 
   /// Note that we don't have yet the mechanism to support reloading locale
   /// so changes to translation will need to kill the app first.
   @override
   Future<Map> load() async {
-    // use this for Preview purposes only
-    if (forcedLocale != null) {
-      return getTranslationMap(forcedLocale!) ?? {};
-    }
-    return getTranslationMap(await findDeviceLocale()) ??
-        getTranslationMap(defaultLocale) ??
-        {};
+    locale = forcedLocale ?? await findDeviceLocale();
+    return getTranslationMap(locale!) ?? getTranslationMap(defaultLocale) ?? {};
+
+    // // use this for Preview purposes only
+    // if (forcedLocale != null) {
+    //   return getTranslationMap(forcedLocale!) ?? {};
+    // }
+    // return getTranslationMap(await findDeviceLocale()) ??
+    //     getTranslationMap(defaultLocale) ??
+    //     {};
   }
 
   /// copied from FileTranslationLoader

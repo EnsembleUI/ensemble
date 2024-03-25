@@ -5,6 +5,7 @@ import 'dart:math' as math;
 
 import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/ensemble_provider.dart';
+import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
@@ -367,6 +368,19 @@ class Ensemble {
         duration: duration,
       ),
     );
+  }
+
+  bool setLocale(String locale) {
+    // format: en or en_US (the latter is not yet supported as locale)
+    if (locale.length == 2 || locale.length == 5) {
+      AppEventBus().eventBus.fire(LocaleChangeEvent(Locale(locale)));
+      return true;
+    }
+    return false;
+  }
+
+  void clearLocale() {
+    AppEventBus().eventBus.fire(LocaleChangeEvent(null));
   }
 
   /// concat into the format root/folder/

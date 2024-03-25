@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/util/utils.dart';
@@ -269,4 +271,10 @@ class ThemeChangeEvent {
   ThemeChangeEvent(this.theme);
 
   String theme;
+}
+
+// changing locale at run time
+class LocaleChangeEvent {
+  LocaleChangeEvent(this.locale);
+  Locale? locale;
 }

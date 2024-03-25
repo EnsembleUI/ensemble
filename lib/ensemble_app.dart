@@ -122,12 +122,21 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
   bool notifiedAppLoad = false;
   late Future<EnsembleConfig> config;
   EventBus appEventBus = EventBus();
+  Locale? forcedLocale;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     config = initApp();
+
+    // locale can be changed at run time
+    forcedLocale = widget.forcedLocale;
+    AppEventBus().eventBus.on<LocaleChangeEvent>().listen((event) {
+      forcedLocale = event.locale;
+      setState(() {});
+    });
+
     // Initialize native features.
     if (!kIsWeb) {
       Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
@@ -281,7 +290,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
       navigatorKey: Utils.globalAppKey,
       theme: config.getAppTheme(),
       localizationsDelegates: [
-        config.getI18NDelegate(forcedLocale: widget.forcedLocale),
+        config.getI18NDelegate(forcedLocale: forcedLocale),
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate
       ],

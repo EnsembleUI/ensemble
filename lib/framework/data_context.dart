@@ -745,6 +745,12 @@ class EnsembleUtils with Invokable {
         'findCountry': (value) {
           String val = Utils.getString(value, fallback: "");
           return findCountry(val);
+        },
+        'setLocale': (value) {
+          return Ensemble().setLocale(value);
+        },
+        'clearLocale': () {
+          Ensemble().clearLocale();
         }
       };
 
