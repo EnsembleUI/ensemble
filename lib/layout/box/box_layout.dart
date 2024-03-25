@@ -4,7 +4,7 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
-import 'package:ensemble/framework/studio_debugger.dart';
+import 'package:ensemble/framework/studio/studio_debugger.dart';
 import 'package:ensemble/framework/view/footer.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
@@ -232,6 +232,17 @@ class BoxLayoutState extends WidgetState<BoxLayout>
     } else {
       throw LanguageError(
           "Invalid box widget. Column, Row, or Flex is required.");
+    }
+
+    // Row/Column does pass the crossAxis's constraint down, but only if it receives it from its parent.
+    // When it doesn't, e.g. VerticalDivider inside Row inside a Column, all children HAS to be able to
+    // calculate its own height otherwise it won't show up in the Row.
+    // This property is an expensive operation, but it will calculate the constraint from the largest child
+    // (that is at least 1 child has to have a size), and pass it down to all children.
+    if (widget._controller.crossAxisConstraint == CrossAxisConstraint.largestChild) {
+      boxWidget = widget.isVertical()
+          ? IntrinsicWidth(child: boxWidget)
+          : IntrinsicHeight(child: boxWidget);
     }
 
     // when we have a child (e.g Divider) that doesn't have an explicit size but stretches to
