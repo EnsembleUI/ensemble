@@ -5,6 +5,7 @@ import 'package:ensemble/layout/box/box_layout.dart';
 import 'package:ensemble/layout/box/flex_box_layout.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:logger/logger.dart';
 
 class StudioDebugger {
   static final StudioDebugger _instance = StudioDebugger._internal();
@@ -14,6 +15,8 @@ class StudioDebugger {
   factory StudioDebugger() {
     return _instance;
   }
+
+  final logger = Logger();
 
   /// studio mode will enable extra friendly debugging information
   /// to enable this add --dart-define=studio=true
@@ -64,34 +67,58 @@ class StudioDebugger {
     });
   }
 
-  /// for widgets that have no intrinsic dimension and rely to the parent for sizing. e.g. Google Maps
-  /// If the parent doesn't constraint the size (Column/Row) we'll have an issue, so this will warn the user
-  Widget assertHasBoundedDimensionParent(Widget widget) {
+  /// for widgets that have no width/height and rely to the parent for sizing. e.g. Google Maps
+  Widget assertHasBoundedWidthHeight(Widget widget, String widgetName,
+      {bool warningOnly = false}) {
+    return _assertHasBoundedDimension(widget, widgetName,
+        assertBoundedWidth: true,
+        assertBoundedHeight: true,
+        warningOnly: warningOnly);
+  }
+
+  Widget assertHasBoundedWidth(Widget widget, String widgetName,
+      {bool warningOnly = false}) {
+    return _assertHasBoundedDimension(widget, widgetName,
+        assertBoundedWidth: true, warningOnly: warningOnly);
+  }
+
+  Widget assertHasBoundedHeight(Widget widget, String widgetName,
+      {bool warningOnly = false}) {
+    return _assertHasBoundedDimension(widget, widgetName,
+        assertBoundedHeight: true, warningOnly: warningOnly);
+  }
+
+  Widget _assertHasBoundedDimension(
+    Widget widget,
+    String widgetName, {
+    bool assertBoundedWidth = false,
+    bool assertBoundedHeight = false,
+    bool warningOnly = false,
+  }) {
     if (!debugMode) return widget;
 
     return LayoutBuilder(builder: (context, constraints) {
-      if (!constraints.hasBoundedWidth) {
-
+      if (!constraints.hasBoundedWidth && assertBoundedWidth) {
+        if (warningOnly) {
+          logger.w(
+              "'$widgetName' requires a width. See ${StudioError.getDocUrl('no-bounded-width')}");
+        } else {
+          throw StudioError("'$widgetName' requires a width.",
+              errorId: 'no-bounded-width');
+        }
       }
-      if (!constraints.hasBoundedHeight) {
-
+      if (!constraints.hasBoundedHeight && assertBoundedHeight) {
+        if (warningOnly) {
+          logger.w(
+              "'$widgetName' requires a height. See ${StudioError.getDocUrl('no-bounded-height')}");
+        } else {
+          throw StudioError("'$widgetName' requires a height.",
+              errorId: 'no-bounded-height');
+        }
       }
       return widget;
     });
   }
-
-  /// wrap the widget inside a LayoutBuilder to assert unbounded height
-  /// Use this only when debugMode=true
-  Widget assertHasBoundedWidthWrapper(Widget widget, String widgetName) =>
-      LayoutBuilder(builder: (context, constraints) {
-        if (!constraints.hasBoundedWidth) {
-          throw LanguageError(
-              "$widgetName cannot be inside a parent with infinite width.",
-              recovery:
-                  "1. If the parent is a Row, consider setting the $widgetName's expanded to true or give the $widgetName a width.\n2. If the parent is a Stack, use stackPosition's attributes to constraint the width.");
-        }
-        return widget;
-      });
 
   Widget assertHasColumnRowFlexWrapper(Widget widget, BuildContext context) {
     RequiresRowColumnFlexWidget? requiresRowColumnFlexWidget = context

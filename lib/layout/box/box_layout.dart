@@ -239,7 +239,8 @@ class BoxLayoutState extends WidgetState<BoxLayout>
     // calculate its own height otherwise it won't show up in the Row.
     // This property is an expensive operation, but it will calculate the constraint from the largest child
     // (that is at least 1 child has to have a size), and pass it down to all children.
-    if (widget._controller.crossAxisConstraint == CrossAxisConstraint.largestChild) {
+    if (widget._controller.crossAxisConstraint ==
+        CrossAxisConstraint.largestChild) {
       boxWidget = widget.isVertical()
           ? IntrinsicWidth(child: boxWidget)
           : IntrinsicHeight(child: boxWidget);

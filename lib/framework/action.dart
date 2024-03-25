@@ -539,8 +539,7 @@ class DispatchEventAction extends EnsembleAction {
     }
     return DispatchEventAction(
         initiator: initiator,
-        event: EnsembleEvent.fromYaml(
-            payload.keys.first, data),
+        event: EnsembleEvent.fromYaml(payload.keys.first, data),
         onComplete: EnsembleAction.fromYaml(payload['onComplete']));
   }
 
