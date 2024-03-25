@@ -2,7 +2,7 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/model.dart';
-import 'package:ensemble/framework/studio_debugger.dart';
+import 'package:ensemble/framework/studio/studio_debugger.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/box/base_box_layout.dart';
@@ -112,6 +112,16 @@ class FlexBoxLayoutState extends WidgetState<FlexBoxLayout>
         children: items,
       );
     }
+    // when FlexRow doesn't get the cross axis constraint from its parent, we
+    // can calculate by its children's dimension (if at least 1 is set) and set
+    // the constraint. This way if any children without sizes will work
+    if (widget._controller.crossAxisConstraint == CrossAxisConstraint.largestChild) {
+      boxWidget = widget.isVertical()
+          ? IntrinsicWidth(child: boxWidget)
+          : IntrinsicHeight(child: boxWidget);
+    }
+
+
     Widget rtn = StudioDebugger()
         .assertCorrectUseOfFlexBox(boxWidget, widget.isVertical());
     return BoxLayoutWrapper(boxWidget: rtn, controller: widget._controller);

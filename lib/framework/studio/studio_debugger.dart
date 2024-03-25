@@ -64,6 +64,22 @@ class StudioDebugger {
     });
   }
 
+  /// for widgets that have no intrinsic dimension and rely to the parent for sizing. e.g. Google Maps
+  /// If the parent doesn't constraint the size (Column/Row) we'll have an issue, so this will warn the user
+  Widget assertHasBoundedDimensionParent(Widget widget) {
+    if (!debugMode) return widget;
+
+    return LayoutBuilder(builder: (context, constraints) {
+      if (!constraints.hasBoundedWidth) {
+
+      }
+      if (!constraints.hasBoundedHeight) {
+
+      }
+      return widget;
+    });
+  }
+
   /// wrap the widget inside a LayoutBuilder to assert unbounded height
   /// Use this only when debugMode=true
   Widget assertHasBoundedWidthWrapper(Widget widget, String widgetName) =>

@@ -1,7 +1,7 @@
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/model.dart';
-import 'package:ensemble/framework/studio_debugger.dart';
+import 'package:ensemble/framework/studio/studio_debugger.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/box/base_box_layout.dart';

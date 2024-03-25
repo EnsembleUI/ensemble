@@ -1,5 +1,5 @@
 import 'package:ensemble/framework/error_handling.dart';
-import 'package:ensemble/framework/studio_debugger.dart';
+import 'package:ensemble/framework/studio/studio_debugger.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
