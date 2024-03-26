@@ -74,8 +74,7 @@ class DividerState extends WidgetState<EnsembleDivider> {
           indent: (widget._controller.indent ?? 0).toDouble(),
           endIndent: (widget._controller.endIndent ?? 0).toDouble(),
           color: widget._controller.color ?? const Color(0xFFD3D3D3));
-      rtn =
-          StudioDebugger().assertHasBoundedWidth(rtn, EnsembleDivider.type);
+      rtn = StudioDebugger().assertHasBoundedWidth(rtn, EnsembleDivider.type);
     }
 
     if (widget._controller.margin != null) {
