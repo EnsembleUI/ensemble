@@ -6,6 +6,7 @@ import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/framework/widget/icon.dart' as framework;
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/layout/form.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/debouncer.dart';
 import 'package:ensemble/util/input_formatter.dart';
@@ -138,10 +139,9 @@ abstract class BaseTextInput extends StatefulWidget
           _controller.enableClearText = Utils.optionalBool(value),
       'obscureToggle': (value) =>
           _controller.obscureToggle = Utils.optionalBool(value),
-      'readOnly': (value) =>
-          _controller.readOnly = Utils.getBool(value, fallback: false),
+      'readOnly': (value) => _controller.readOnly = Utils.optionalBool(value),
       'selectable': (value) =>
-          _controller.selectable = Utils.optionalBool(value),
+          _controller.selectable = Utils.getBool(value, fallback: true),
       'toolbarDone': (value) =>
           _controller.toolbarDoneButton = Utils.optionalBool(value),
       'keyboardAction': (value) =>
@@ -215,8 +215,8 @@ class TextInputController extends FormFieldController {
 
   // applicable only for Password or obscure TextInput, to toggle between plain and secure text
   bool? obscureToggle;
-  bool readOnly = false;
-  bool? selectable;
+  bool? readOnly;
+  bool selectable = true;
   bool? toolbarDoneButton;
 
   model.InputValidator? validator;
@@ -316,6 +316,16 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
         }
       }
     });
+    // Checking for readOnly from parent widget and assign the value to TextInput and PasswordInput if it's readOnly property is null
+    if (widget._controller.readOnly == null) {
+      final formController =
+          context.findAncestorWidgetOfExactType<EnsembleForm>()?.controller;
+
+      if (formController != null) {
+        widget._controller.readOnly = formController.readOnly == true;
+      }
+    }
+
     super.initState();
   }
 
@@ -466,7 +476,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
           controller: widget.textController,
           focusNode: focusNode,
           enabled: isEnabled(),
-          readOnly: widget._controller.readOnly,
+          readOnly: widget._controller.readOnly == true,
           enableInteractiveSelection: widget._controller.selectable,
           onTap: () => showOverlay(context),
           onTapOutside: (_) => removeOverlayAndUnfocus(),

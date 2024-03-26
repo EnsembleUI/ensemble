@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:developer';
 import 'dart:math' as math;
 
@@ -8,6 +9,9 @@ import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/app_info.dart';
+import 'package:ensemble/framework/logging/console_log_provider.dart';
+import 'package:ensemble/framework/logging/log_manager.dart';
+import 'package:ensemble/framework/logging/log_provider.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble/framework/storage_manager.dart';
@@ -22,6 +26,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_i18n/flutter_i18n_delegate.dart';
+import 'package:get_it/get_it.dart';
 import 'package:yaml/yaml.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'html_shim.dart' if (dart.library.html) 'dart:html' show window;
@@ -55,6 +60,7 @@ class Ensemble {
 
   // TODO: combine push callback and regular callback
   final Set<Function> _pushNotificationCallbacks = {};
+
   void addPushNotificationCallback({required Function method}) {
     _pushNotificationCallbacks.add(method);
   }
@@ -62,6 +68,7 @@ class Ensemble {
   Set<Function> getPushNotificationCallbacks() => _pushNotificationCallbacks;
 
   final Set<Function> _afterInitMethods = {};
+
   void addCallbackAfterInitialization({required Function method}) {
     _afterInitMethods.add(method);
   }
@@ -129,6 +136,19 @@ class Ensemble {
         await rootBundle.loadString('ensemble/ensemble-config.yaml');
     final YamlMap yamlMap = loadYaml(yamlString);
 
+    Account account = Account.fromYaml(yamlMap['accounts']);
+    dynamic analyticsConfig = yamlMap['analytics'];
+    if (analyticsConfig != null && analyticsConfig is Map) {
+      String? appId = getAppId(yamlMap);
+      if (analyticsConfig['enabled'] == true) {
+        await initializeAnalyticsProvider(
+            yamlMap['accounts'], analyticsConfig["provider"],
+            appId: appId);
+      }
+      if (analyticsConfig['enableConsoleLogs'] == true) {
+        initializeConsoleLogProvider(appId);
+      }
+    }
     // init Firebase
     if (yamlMap['definitions']?['from'] == 'ensemble') {
       // These are not secrets so OK to include here.
@@ -149,18 +169,38 @@ class Ensemble {
       envOverrides = {};
       env.forEach((key, value) => envOverrides![key.toString()] = value);
     }
-
     DefinitionProvider definitionProvider = _createDefinitionProvider(yamlMap);
     _config = EnsembleConfig(
         definitionProvider: definitionProvider,
         appBundle: await definitionProvider.getAppBundle(),
-        account: Account.fromYaml(yamlMap['accounts']),
+        account: account,
         services: Services.fromYaml(yamlMap['services']),
         signInServices: SignInServices.fromYaml(yamlMap['services']),
         envOverrides: envOverrides);
 
     AppInfo().initPackageInfo(_config);
     return _config!;
+  }
+
+  String? getAppId(YamlMap yamlMap) {
+    return yamlMap['definitions']?['ensemble']?['appId'];
+  }
+
+  void initializeConsoleLogProvider(String? appId) {
+    LogProvider provider = ConsoleLogProvider()..init(ensembleAppId: appId);
+    LogManager().addProviderForAllLevels(LogType.appAnalytics, provider);
+  }
+
+  Future<void> initializeAnalyticsProvider(
+      YamlMap? accounts, String? analyticsProvider,
+      {String? appId}) async {
+    if (analyticsProvider != null) {
+      LogProvider provider = GetIt.instance<LogProvider>();
+      await provider.init(
+          options: accounts?[analyticsProvider], ensembleAppId: appId);
+      LogManager().addProviderForAllLevels(LogType.appAnalytics, provider);
+      print("$analyticsProvider analytics provider initialized");
+    }
   }
 
   /// return the definition provider (local, remote, or Ensemble)
@@ -449,8 +489,8 @@ class EnsembleConfig {
     return importList;
   }
 
-  FlutterI18nDelegate getI18NDelegate() {
-    return definitionProvider.getI18NDelegate();
+  FlutterI18nDelegate getI18NDelegate({Locale? forcedLocale}) {
+    return definitionProvider.getI18NDelegate(forcedLocale: forcedLocale);
   }
 }
 
@@ -538,7 +578,10 @@ class FirebaseConfig {
         apiKey: entry['apiKey'],
         appId: entry['appId'],
         messagingSenderId: entry['messagingSenderId'].toString(),
-        projectId: entry['projectId']);
+        projectId: entry['projectId'],
+        authDomain: entry['authDomain'],
+        storageBucket: entry['storageBucket'],
+        measurementId: entry['measurementId']);
   }
 }
 

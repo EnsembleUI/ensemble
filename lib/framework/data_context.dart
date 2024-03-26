@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer';
 import 'dart:io' as io;
 import 'dart:ui';
+import 'package:ensemble/action/Log_event_action.dart';
 import 'package:ensemble/action/action_invokable.dart';
 import 'package:ensemble/action/audio_player.dart';
 import 'package:ensemble/action/bottom_modal_action.dart';
@@ -539,6 +540,10 @@ class NativeInvokable extends ActionInvokable {
           ScreenController().executeAction(
             buildContext,
             ExecuteActionGroupAction.from(inputs),
+          ),
+      ActionType.logEvent.name: (inputs) => ScreenController().executeAction(
+            buildContext,
+            LogEvent.from(payload: inputs),
           ),
     });
     return methods;
