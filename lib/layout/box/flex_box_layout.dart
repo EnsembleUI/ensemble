@@ -123,7 +123,7 @@ class FlexBoxLayoutState extends WidgetState<FlexBoxLayout>
     }
 
     Widget rtn = StudioDebugger()
-        .assertCorrectUseOfFlexBox(boxWidget, widget.isVertical());
+        .assertFlexBoxHasBoundedDimension(boxWidget, widget.isVertical());
     return BoxLayoutWrapper(boxWidget: rtn, controller: widget._controller);
   }
 

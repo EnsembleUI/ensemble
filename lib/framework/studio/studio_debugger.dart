@@ -2,9 +2,9 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/view/footer.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/box/box_layout.dart';
-import 'package:ensemble/layout/box/flex_box_layout.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 
 class StudioDebugger {
@@ -143,29 +143,23 @@ class StudioDebugger {
     return widget;
   }
 
-  /// assertion for the correct usage of FlexRow / FlexColumn
-  Widget assertCorrectUseOfFlexBox(Widget flexBox, bool isVertical) {
-    if (!StudioDebugger().debugMode) {
-      return flexBox;
-    }
+  /// assert FlexRow / FlexColumn either have a width/height or the parent constrain their dimension
+  Widget assertFlexBoxHasBoundedDimension(Widget flexBox, bool isVertical) {
+    if (!StudioDebugger().debugMode) return flexBox;
+
     // wrap the FlexBox so its children can assure they are being used inside the Flexbox only
+    // Note that this is for the children to assert correct-ness, not for the Flexbox itself (but we use this function for both purposes)
     Widget rtn = HasFlexBox(child: flexBox);
 
     return LayoutBuilder(builder: (context, constraints) {
-      if (isVertical) {
-        if (!constraints.hasBoundedHeight) {
-          throw LanguageError(
-              "FlexColumn always expand vertically to fit its parent, but the parent in this case does not pass down a height constraint.\n",
-              recovery:
-                  "1. If the parent is a Column, consider switching it to FlexColumn.\n2. If the parent or an ancestor is scrollable, remove the scrollable.");
-        }
-      } else {
-        if (!constraints.hasBoundedWidth) {
-          throw LanguageError(
-              "FlexRow always expand horizontally to fit its parent, but the parent in this case does not pass down a width constraint.\n",
-              recovery:
-                  "1. If the parent is a Row, consider switching it to FlexRow.\n2. If the parent or an ancestor is scrollable, remove the scrollable.");
-        }
+      if (!constraints.hasBoundedHeight && isVertical) {
+        throw StudioError(
+            "FlexColumn requires a height for child distribution.",
+            errorId: 'flexcolumn-no-bounded-height');
+      }
+      if (!constraints.hasBoundedWidth && !isVertical) {
+        throw StudioError("FlexRow requires a width for child distribution",
+            errorId: 'flexrow-no-bounded-width');
       }
       return rtn;
     });
