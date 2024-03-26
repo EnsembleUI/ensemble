@@ -66,7 +66,7 @@ class DividerState extends WidgetState<EnsembleDivider> {
           endIndent: (widget._controller.endIndent ?? 0).toDouble(),
           color: widget._controller.color ?? const Color(0xFFD3D3D3));
       rtn = StudioDebugger()
-          .assertHasBoundedHeight(widget, "${EnsembleDivider.type} (vertical)");
+          .assertHasBoundedHeight(rtn, "${EnsembleDivider.type} (vertical)");
     } else {
       rtn = Divider(
           height: (widget._controller.thickness ?? 1).toDouble(),
@@ -75,7 +75,7 @@ class DividerState extends WidgetState<EnsembleDivider> {
           endIndent: (widget._controller.endIndent ?? 0).toDouble(),
           color: widget._controller.color ?? const Color(0xFFD3D3D3));
       rtn =
-          StudioDebugger().assertHasBoundedWidth(widget, EnsembleDivider.type);
+          StudioDebugger().assertHasBoundedWidth(rtn, EnsembleDivider.type);
     }
 
     if (widget._controller.margin != null) {
