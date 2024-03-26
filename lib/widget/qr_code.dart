@@ -36,6 +36,11 @@ class QRCode extends StatefulWidget
       'value': (value) => _controller.value = Utils.optionalString(value),
       'size': (value) => _controller.size = Utils.optionalInt(value),
       'color': (color) => _controller.color = Utils.getColor(color),
+      'dataModuleShape': (value) => _controller.dataModuleShape =
+          QrDataModuleShape.values.asNameMap()[value] ??
+              QrDataModuleShape.square,
+      'eyeShape': (value) => _controller.eyeShape =
+          QrEyeShape.values.asNameMap()[value] ?? QrEyeShape.square,
     };
   }
 }
@@ -44,6 +49,8 @@ class QRCodeController extends BoxController {
   String? value;
   int? size;
   Color? color;
+  QrDataModuleShape dataModuleShape = QrDataModuleShape.square;
+  QrEyeShape eyeShape = QrEyeShape.square;
 }
 
 class QRCodeState extends WidgetState<QRCode> {
@@ -67,11 +74,11 @@ class QRCodeState extends WidgetState<QRCode> {
                 widget._controller.backgroundColor ?? Colors.transparent,
             dataModuleStyle: QrDataModuleStyle(
               color: widget._controller.color ?? Colors.black,
-              dataModuleShape: QrDataModuleShape.square,
+              dataModuleShape: widget._controller.dataModuleShape,
             ),
             eyeStyle: QrEyeStyle(
               color: widget._controller.color ?? Colors.black,
-              eyeShape: QrEyeShape.square,
+              eyeShape: widget._controller.eyeShape,
             )),
         boxController: widget._controller,
         ignoresDimension: true // width/height doesn't apply here
