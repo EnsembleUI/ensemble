@@ -122,8 +122,8 @@ class FittedBoxLayoutState extends WidgetState<FittedBoxLayout>
         children: items,
       );
     }
-    boxWidget = BoxLayoutWrapper(
-        boxWidget: boxWidget, controller: widget._controller);
+    boxWidget =
+        BoxLayoutWrapper(boxWidget: boxWidget, controller: widget._controller);
 
     // TODO: is there a better way than using LayoutBuilder just to catch these errors?
     // Layout builder is finicking, and some containers which required children
