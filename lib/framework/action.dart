@@ -533,10 +533,13 @@ class DispatchEventAction extends EnsembleAction {
       throw LanguageError(
           "${ActionType.dispatchEvent.name} requires one and only one 'event' to dispatch.");
     }
+    YamlMap? data;
+    if (payload.values.first != null) {
+      data = payload.values.first as YamlMap;
+    }
     return DispatchEventAction(
         initiator: initiator,
-        event: EnsembleEvent.fromYaml(
-            payload.keys.first, payload.values.first as YamlMap),
+        event: EnsembleEvent.fromYaml(payload.keys.first, data),
         onComplete: EnsembleAction.fromYaml(payload['onComplete']));
   }
 
@@ -851,13 +854,15 @@ class RequestNotificationAction extends EnsembleAction {
 class ShowNotificationAction extends EnsembleAction {
   late String title;
   late String body;
+  Map? payload;
 
-  ShowNotificationAction({this.title = '', this.body = ''});
+  ShowNotificationAction({this.title = '', this.body = '', this.payload});
 
   factory ShowNotificationAction.fromYaml({Map? payload}) {
     return ShowNotificationAction(
       title: Utils.getString(payload?['title'], fallback: ''),
       body: Utils.getString(payload?['body'], fallback: ''),
+      payload: Utils.getMap(payload?['payload']),
     );
   }
 }

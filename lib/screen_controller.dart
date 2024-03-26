@@ -1,6 +1,7 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/action/navigation_action.dart';
@@ -32,6 +33,8 @@ import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble_ts_interpreter/invokables/context.dart';
+import 'package:ensemble_ts_interpreter/parser/newjs_interpreter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -74,6 +77,18 @@ class ScreenController {
     scopeManager ??= PageGroupWidget.getScope(context);
 
     return scopeManager;
+  }
+
+  dynamic executeGlobalFunction(
+      BuildContext buildContext, String libraryName, String codeBlock) {
+    final parsedCode = Ensemble().getConfig()?.getGlobalfunction(libraryName);
+    DataContext context =
+        DataContext(buildContext: buildContext, initialMap: {});
+
+    JSInterpreter(parsedCode!.code, parsedCode.program, context).evaluate();
+    var p = JSInterpreter.parseCode(codeBlock);
+
+    return JSInterpreter(codeBlock, p, context).evaluate();
   }
 
   /// handle Action e.g invokeAPI
@@ -488,6 +503,7 @@ class ScreenController {
       notificationUtils.showNotification(
         scopeManager.dataContext.eval(action.title),
         scopeManager.dataContext.eval(action.body),
+        payload: jsonEncode(scopeManager.dataContext.eval(action.payload)),
       );
     } else if (action is RequestNotificationAction) {
       final isEnabled = await notificationUtils.initNotifications() ?? false;

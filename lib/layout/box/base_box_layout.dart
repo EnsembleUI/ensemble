@@ -20,6 +20,7 @@ class BoxLayoutWrapper extends StatelessWidget {
       required this.boxWidget,
       required this.controller,
       this.ignoresMargin = false});
+
   final Widget boxWidget;
   final BaseBoxLayoutController controller;
   final bool ignoresMargin;
@@ -101,6 +102,7 @@ abstract class BaseBoxLayoutController extends BoxController {
   MainAxisSize mainAxisSize = MainAxisSize.max;
   MainAxisAlignment mainAxis = MainAxisAlignment.start;
   CrossAxisAlignment crossAxis = CrossAxisAlignment.start;
+  CrossAxisConstraint crossAxisConstraint = CrossAxisConstraint.none;
   int? gap;
 
   // TODO: think through this. Need more style overrides.
@@ -119,6 +121,8 @@ abstract class BaseBoxLayoutController extends BoxController {
           mainAxis = LayoutUtils.getMainAxisAlignment(value) ?? mainAxis,
       'crossAxis': (value) =>
           crossAxis = LayoutUtils.getCrossAxisAlignment(value) ?? crossAxis,
+      'crossAxisConstraint': (value) => crossAxisConstraint =
+          CrossAxisConstraint.values.from(value) ?? crossAxisConstraint,
       'gap': (value) => gap = Utils.optionalInt(value),
       'fontFamily': (value) => fontFamily = Utils.optionalString(value),
       'fontSize': (value) => fontSize = Utils.optionalInt(value),
@@ -143,4 +147,14 @@ abstract class BaseBoxLayoutController extends BoxController {
     });
     return getters;
   }
+}
+
+// whether to wrap the Row/Column inside an IntrinsicHeight/IntrinsicWidth.
+// Usecase: vertical divider inside Row. If the Row is now inside a Column, the divider wont' show
+// Since the Column doesn't pass the height constraint down, the Row can't pass the height constraint
+// down to each child. The other children can decide their height so they'll work, not vertical divider
+enum CrossAxisConstraint {
+  none,
+  // Expensive. Measure all children's sizes so children without sizes can stretch to it.
+  largestChild,
 }

@@ -39,13 +39,7 @@ class NotificationUtilsMobile implements NotificationUtilsBase {
     await localNotificationsPlugin.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: (details) {
-        if (details.payload == null) return;
-        try {
-          final message = RemoteMessage.fromMap(jsonDecode(details.payload!));
-          NotificationManager().handleNotification(message);
-        } on Exception catch (_) {
-          debugPrint("Failed to handle foreground notification");
-        }
+        NotificationManager().handleNotification(details.payload ?? '');
       },
     );
 
