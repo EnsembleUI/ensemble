@@ -1,5 +1,6 @@
 import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/action/audio_player.dart';
+import 'package:ensemble/action/Log_event_action.dart';
 import 'package:ensemble/action/badge_action.dart';
 import 'package:ensemble/action/bottom_modal_action.dart';
 import 'package:ensemble/action/deep_link_action.dart';
@@ -532,10 +533,13 @@ class DispatchEventAction extends EnsembleAction {
       throw LanguageError(
           "${ActionType.dispatchEvent.name} requires one and only one 'event' to dispatch.");
     }
+    YamlMap? data;
+    if (payload.values.first != null) {
+      data = payload.values.first as YamlMap;
+    }
     return DispatchEventAction(
         initiator: initiator,
-        event: EnsembleEvent.fromYaml(
-            payload.keys.first, payload.values.first as YamlMap),
+        event: EnsembleEvent.fromYaml(payload.keys.first, data),
         onComplete: EnsembleAction.fromYaml(payload['onComplete']));
   }
 
@@ -1102,6 +1106,7 @@ enum ActionType {
   invokeHaptic,
   callNativeMethod,
   deeplinkInit,
+  handleDeeplink,
   createDeeplink,
   verifySignIn,
   signOut,
@@ -1113,6 +1118,7 @@ enum ActionType {
   pauseAudio,
   resumeAudio,
   seekAudio,
+  logEvent
 }
 
 enum ToastType { success, error, warning, info }
@@ -1275,6 +1281,8 @@ abstract class EnsembleAction {
       return SeekAudio.from(payload);
     } else if (actionType == ActionType.deeplinkInit) {
       return DeepLinkInitAction.fromMap(payload: payload);
+    } else if (actionType == ActionType.handleDeeplink) {
+      return DeepLinkHandleAction.fromMap(payload: payload);
     } else if (actionType == ActionType.createDeeplink) {
       return CreateDeeplinkAction.fromMap(payload: payload);
     } else if (actionType == ActionType.verifySignIn) {
@@ -1295,6 +1303,8 @@ abstract class EnsembleAction {
     } else if (actionType == ActionType.executeActionGroup) {
       return ExecuteActionGroupAction.fromYaml(
           initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.logEvent) {
+      return LogEvent.from(initiator: initiator, payload: payload);
     }
 
     throw LanguageError("Invalid action.",

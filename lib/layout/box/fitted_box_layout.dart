@@ -1,7 +1,7 @@
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/model.dart';
-import 'package:ensemble/framework/studio_debugger.dart';
+import 'package:ensemble/framework/studio/studio_debugger.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/box/base_box_layout.dart';
@@ -16,6 +16,7 @@ import 'package:flutter/material.dart' as flutter;
 
 class FittedRow extends FittedBoxLayout {
   static const type = 'FittedRow';
+
   FittedRow({super.key});
 
   @override
@@ -24,6 +25,7 @@ class FittedRow extends FittedBoxLayout {
 
 class FittedColumn extends FittedBoxLayout {
   static const type = 'FittedColumn';
+
   FittedColumn({super.key});
 
   @override
@@ -38,6 +40,7 @@ abstract class FittedBoxLayout extends StatefulWidget
   FittedBoxLayout({super.key});
 
   final FittedBoxLayoutController _controller = FittedBoxLayoutController();
+
   @override
   FittedBoxLayoutController get controller => _controller;
 
@@ -122,24 +125,22 @@ class FittedBoxLayoutState extends WidgetState<FittedBoxLayout>
     // TODO: is there a better way than using LayoutBuilder just to catch these errors?
     // Layout builder is finicking, and some containers which required children
     // to have intrinsic size will have issues with this.
-    return LayoutBuilder(builder: (context, constraints) {
-      if (widget.isVertical()) {
-        // if the parent has unbounded height, using FittedColumn is bad
-        if (!constraints.hasBoundedHeight) {
-          throw LanguageError(
-              "FittedColumn stretches vertically to fill its parent, which causes an issue when the parent (such as Column) calculates its height based on the children, or when the parent is scrollable (such as ListView).",
-              recovery: "Consider using Column to fix this problem.");
+    if (StudioDebugger().debugMode) {
+      boxWidget = LayoutBuilder(builder: (context, constraints) {
+        if (!constraints.hasBoundedHeight && widget.isVertical()) {
+          throw StudioError(
+              "FittedColumn requires a height for child distribution.",
+              errorId: 'flexcolumn-no-bounded-height');
         }
-      } else {
-        // if the parent has unbounded width, using FittedRow is bad
-        if (!constraints.hasBoundedWidth) {
-          throw LanguageError(
-              "FittedRow stretches horizontally to fill its parent, which causes an issue when the parent (such as Row) calculates its width based on the children, or when the parent is a horizontal scrollable.",
-              recovery: "Consider using Row to fix this problem.");
+        if (!constraints.hasBoundedWidth && !widget.isVertical()) {
+          throw StudioError("FittedRow requires a width for child distribution",
+              errorId: 'flexrow-no-bounded-width');
         }
-      }
-      return BoxLayoutWrapper(
-          boxWidget: boxWidget, controller: widget._controller);
-    });
+        return boxWidget;
+      });
+    }
+
+    return BoxLayoutWrapper(
+        boxWidget: boxWidget, controller: widget._controller);
   }
 }
