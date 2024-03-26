@@ -122,11 +122,14 @@ class FittedBoxLayoutState extends WidgetState<FittedBoxLayout>
         children: items,
       );
     }
+    boxWidget = BoxLayoutWrapper(
+        boxWidget: boxWidget, controller: widget._controller);
+
     // TODO: is there a better way than using LayoutBuilder just to catch these errors?
     // Layout builder is finicking, and some containers which required children
     // to have intrinsic size will have issues with this.
     if (StudioDebugger().debugMode) {
-      boxWidget = LayoutBuilder(builder: (context, constraints) {
+      return LayoutBuilder(builder: (context, constraints) {
         if (!constraints.hasBoundedHeight && widget.isVertical()) {
           throw StudioError(
               "FittedColumn requires a height for child distribution.",
@@ -140,7 +143,6 @@ class FittedBoxLayoutState extends WidgetState<FittedBoxLayout>
       });
     }
 
-    return BoxLayoutWrapper(
-        boxWidget: boxWidget, controller: widget._controller);
+    return boxWidget;
   }
 }
