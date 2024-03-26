@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/studio/studio_debugger.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
@@ -9,9 +10,11 @@ import 'package:flutter/src/widgets/framework.dart';
 class EnsembleDivider extends StatefulWidget
     with Invokable, HasController<DividerController, DividerState> {
   static const type = 'Divider';
+
   EnsembleDivider({Key? key}) : super(key: key);
 
   final DividerController _controller = DividerController();
+
   @override
   DividerController get controller => _controller;
 
@@ -62,6 +65,8 @@ class DividerState extends WidgetState<EnsembleDivider> {
           indent: (widget._controller.indent ?? 0).toDouble(),
           endIndent: (widget._controller.endIndent ?? 0).toDouble(),
           color: widget._controller.color ?? const Color(0xFFD3D3D3));
+      rtn = StudioDebugger()
+          .assertHasBoundedHeight(rtn, "${EnsembleDivider.type} (vertical)");
     } else {
       rtn = Divider(
           height: (widget._controller.thickness ?? 1).toDouble(),
@@ -69,6 +74,7 @@ class DividerState extends WidgetState<EnsembleDivider> {
           indent: (widget._controller.indent ?? 0).toDouble(),
           endIndent: (widget._controller.endIndent ?? 0).toDouble(),
           color: widget._controller.color ?? const Color(0xFFD3D3D3));
+      rtn = StudioDebugger().assertHasBoundedWidth(rtn, EnsembleDivider.type);
     }
 
     if (widget._controller.margin != null) {

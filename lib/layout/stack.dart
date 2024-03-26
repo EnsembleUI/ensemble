@@ -1,4 +1,4 @@
-import 'package:ensemble/framework/studio_debugger.dart';
+import 'package:ensemble/framework/studio/studio_debugger.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
