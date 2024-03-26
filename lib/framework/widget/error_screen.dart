@@ -154,7 +154,7 @@ class _ErrorScreenState extends State<ErrorScreen> {
           child: ElevatedButton(
               onPressed: () => launchUrl(Uri.parse(widget.docUrl!),
                   mode: LaunchMode.externalApplication),
-              child: const Text("View Documentation"))));
+              child: const Text("How to fix this?"))));
     }
     // show the detail error message
     else if (widget.detailError != null && kDebugMode) {
