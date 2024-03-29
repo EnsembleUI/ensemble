@@ -1,17 +1,29 @@
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
+import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:yaml/yaml.dart';
 
-abstract class Menu {
+abstract class Menu extends Object with HasStyles, Invokable {
   Menu(this.menuItems,
-      {this.styles, this.headerModel, this.footerModel, this.reloadView});
+      {Map<String, dynamic>? widgetTypeStyles,
+      Map<String, dynamic>? idStyles,
+      Map<String, dynamic>? inlineStyles,
+      List<String>? classList,
+      this.headerModel,
+      this.footerModel,
+      this.reloadView}) {
+    this.widgetTypeStyles = widgetTypeStyles;
+    this.idStyles = idStyles;
+    this.inlineStyles = inlineStyles;
+    this.classList = classList;
+  }
 
   List<MenuItem> menuItems;
-  Map<String, dynamic>? styles;
   WidgetModel? headerModel;
   WidgetModel? footerModel;
   bool? reloadView = true;
@@ -23,7 +35,10 @@ abstract class Menu {
       YamlMap payload = menu[menu.keys.first];
       WidgetModel? customIconModel;
       WidgetModel? customActiveIconModel;
-
+      //   EnsembleThemeManager().currentTheme()?.getWidgetTypeStyles(widgetType),
+      // EnsembleThemeManager().currentTheme()?.getIDStyles(props['id']),
+      // styles,
+      // classList,
       // build menu items
       List<MenuItem> menuItems = [];
       if (payload['items'] is YamlList) {
@@ -96,27 +111,44 @@ abstract class Menu {
         menuFooterModel =
             ViewUtil.buildModel(payload['footer'], customViewDefinitions);
       }
-
+      List<String>? classList;
+      if (payload[ViewUtil.classNameAttribute] != null) {
+        classList = (payload[ViewUtil.classNameAttribute] as String?)
+            ?.split(RegExp('\\s+'));
+      }
+      String? id = payload['id'] as String?;
       Map<String, dynamic>? styles = Utils.getMap(payload['styles']);
       final isReloadView = payload['reloadView'] as bool? ?? true;
       if (menuType == MenuDisplay.BottomNavBar) {
-        return BottomNavBarMenu.fromYaml(
-            menuItems: menuItems, styles: styles, reloadView: isReloadView);
+        return BottomNavBarMenu(menuItems,
+            widgetTypeStyles: EnsembleThemeManager()
+                .currentTheme()
+                ?.getWidgetTypeStyles(menuType!.name),
+            idStyles: EnsembleThemeManager().currentTheme()?.getIDStyles(id),
+            inlineStyles: styles,
+            classList: classList,
+            reloadView: isReloadView);
       } else if (menuType == MenuDisplay.Drawer ||
           menuType == MenuDisplay.EndDrawer) {
-        return DrawerMenu.fromYaml(
-            menuItems: menuItems,
-            styles: styles,
-            atStart: menuType != MenuDisplay.EndDrawer,
+        return DrawerMenu(menuItems, menuType != MenuDisplay.EndDrawer,
+            widgetTypeStyles: EnsembleThemeManager()
+                .currentTheme()
+                ?.getWidgetTypeStyles(menuType!.name),
+            idStyles: EnsembleThemeManager().currentTheme()?.getIDStyles(id),
+            inlineStyles: styles,
+            classList: classList,
             headerModel: menuHeaderModel,
             footerModel: menuFooterModel,
             reloadView: isReloadView);
       } else if (menuType == MenuDisplay.Sidebar ||
           menuType == MenuDisplay.EndSidebar) {
-        return SidebarMenu.fromYaml(
-            menuItems: menuItems,
-            styles: styles,
-            atStart: menuType != MenuDisplay.EndSidebar,
+        return SidebarMenu(menuItems, menuType != MenuDisplay.EndSidebar,
+            widgetTypeStyles: EnsembleThemeManager()
+                .currentTheme()
+                ?.getWidgetTypeStyles(menuType!.name),
+            idStyles: EnsembleThemeManager().currentTheme()?.getIDStyles(id),
+            inlineStyles: styles,
+            classList: classList,
             headerModel: menuHeaderModel,
             footerModel: menuFooterModel,
             reloadView: isReloadView);
@@ -128,56 +160,84 @@ abstract class Menu {
 }
 
 class BottomNavBarMenu extends Menu {
-  BottomNavBarMenu._(super.menuItems, {super.styles, super.reloadView});
+  BottomNavBarMenu(super.menuItems,
+      {super.widgetTypeStyles,
+      super.idStyles,
+      super.inlineStyles,
+      super.classList,
+      super.reloadView});
 
-  factory BottomNavBarMenu.fromYaml(
-      {required List<MenuItem> menuItems,
-      Map<String, dynamic>? styles,
-      bool? reloadView}) {
-    return BottomNavBarMenu._(menuItems,
-        styles: styles, reloadView: reloadView);
+  @override
+  Map<String, Function> getters() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
   }
 }
 
 class DrawerMenu extends Menu {
-  DrawerMenu._(super.menuItems, this.atStart,
-      {super.styles, super.headerModel, super.footerModel, super.reloadView});
+  DrawerMenu(super.menuItems, this.atStart,
+      {super.widgetTypeStyles,
+      super.idStyles,
+      super.inlineStyles,
+      super.classList,
+      super.headerModel,
+      super.footerModel,
+      super.reloadView});
+
   // show the drawer at start (left for LTR languages) or at the end
   bool atStart = true;
 
-  factory DrawerMenu.fromYaml(
-      {required List<MenuItem> menuItems,
-      required bool atStart,
-      Map<String, dynamic>? styles,
-      WidgetModel? headerModel,
-      WidgetModel? footerModel,
-      bool? reloadView}) {
-    return DrawerMenu._(menuItems, atStart,
-        styles: styles,
-        headerModel: headerModel,
-        footerModel: footerModel,
-        reloadView: reloadView);
+  @override
+  Map<String, Function> getters() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
   }
 }
 
 class SidebarMenu extends Menu {
-  SidebarMenu._(super.menuItems, this.atStart,
-      {super.styles, super.headerModel, super.footerModel, super.reloadView});
+  SidebarMenu(super.menuItems, this.atStart,
+      {super.widgetTypeStyles,
+      super.idStyles,
+      super.inlineStyles,
+      super.classList,
+      super.headerModel,
+      super.footerModel,
+      super.reloadView});
+
   // show the sidebar at start (left for LTR languages) or at the end
   bool atStart = true;
 
-  factory SidebarMenu.fromYaml(
-      {required List<MenuItem> menuItems,
-      required bool atStart,
-      Map<String, dynamic>? styles,
-      WidgetModel? headerModel,
-      WidgetModel? footerModel,
-      bool? reloadView}) {
-    return SidebarMenu._(menuItems, atStart,
-        styles: styles,
-        headerModel: headerModel,
-        footerModel: footerModel,
-        reloadView: reloadView);
+  @override
+  Map<String, Function> getters() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
   }
 }
 
