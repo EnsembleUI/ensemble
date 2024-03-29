@@ -3,7 +3,7 @@
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
-import 'package:ensemble/framework/studio_debugger.dart';
+import 'package:ensemble/framework/studio/studio_debugger.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/form.dart' as ensemble;
@@ -285,7 +285,7 @@ class InputWrapper extends StatelessWidget {
       // InputWidget takes the parent width, so if the parent is a Row
       // it'll caused an error. Assert against this in Studio's debugMode
       if (StudioDebugger().debugMode) {
-        return StudioDebugger().assertHasBoundedWidthWrapper(rtn, type);
+        return StudioDebugger().assertHasBoundedWidth(rtn, type);
       }
     }
     return rtn;

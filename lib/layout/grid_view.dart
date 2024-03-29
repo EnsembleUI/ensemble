@@ -5,7 +5,7 @@ import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
-import 'package:ensemble/framework/studio_debugger.dart';
+import 'package:ensemble/framework/studio/studio_debugger.dart';
 import 'package:ensemble/framework/view/footer.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/templated.dart';
@@ -235,7 +235,11 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
               ? flutter.Axis.horizontal
               : flutter.Axis.vertical,
           cacheExtent: cachedPixels,
-          padding: widget._controller.padding,
+          // if used inside CustomScrollView (scrollableView=true), the Grid will inject the top padding
+          // to account for the titleBar's height https://github.com/flutter/flutter/issues/108222
+          // We handle the titleBar ourselves already, so making sure the padding
+          // is zero (NOT null) if not explicitly set
+          padding: widget._controller.padding ?? EdgeInsets.zero,
           itemBuilder: (context, index) => _buildItem(index));
     });
     if (StudioDebugger().debugMode) {
