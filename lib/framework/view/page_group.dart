@@ -5,6 +5,7 @@ import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/menu.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/page_model.dart';
@@ -119,6 +120,8 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
 
   @override
   Widget build(BuildContext context) {
+    EnsembleThemeManager()
+        .configureStyles(_scopeManager.dataContext, widget.menu, widget.menu);
     // skip rendering the menu if only 1 menu item, just the content itself
     if (widget.menu.menuItems.length == 1) {
       return pageWidgets[0];
@@ -139,9 +142,9 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
             child: widget.menu.reloadView == true
                 ? pageWidgets[viewGroupNotifier.viewIndex]
                 : IndexedStack(
-                    index: viewGroupNotifier.viewIndex,
-                    children: pageWidgets,
-                  ),
+              index: viewGroupNotifier.viewIndex,
+              children: pageWidgets,
+            ),
           ),
         );
       } else if (widget.menu is SidebarMenu) {
@@ -219,7 +222,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     List<NavigationRailDestination> navItems = [];
     for (var item in menu.menuItems) {
       navItems.add(NavigationRailDestination(
-          padding: Utils.getInsets(menu.styles?['itemPadding']),
+          padding: Utils.getInsets(menu.runtimeStyles?['itemPadding']),
           icon: item.icon != null
               ? ensemble.Icon.fromModel(item.icon!)
               : const SizedBox.shrink(),
@@ -238,9 +241,10 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     }
 
     // misc styles
-    Color? menuBackground = Utils.getColor(menu.styles?['backgroundColor']);
+    Color? menuBackground =
+        Utils.getColor(menu.runtimeStyles?['backgroundColor']);
     MenuItemDisplay itemDisplay =
-        MenuItemDisplay.values.from(menu.styles?['itemDisplay']) ??
+        MenuItemDisplay.values.from(menu.runtimeStyles?['itemDisplay']) ??
             MenuItemDisplay.stacked;
 
     // stacked's min gap seems to be 72 regardless of what we set. For side by side optimal min gap is around 40
@@ -249,7 +253,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
 
     // minExtendedWidth is applicable only for side by side, and should never be below minWidth (or exception)
     int minWidth =
-        Utils.optionalInt(menu.styles?['minWidth'], min: minGap) ?? 200;
+        Utils.optionalInt(menu.runtimeStyles?['minWidth'], min: minGap) ?? 200;
 
     return ListenableBuilder(
       listenable: viewGroupNotifier,
@@ -274,8 +278,8 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
   }
 
   Widget? _buildSidebarSeparator(Menu menu) {
-    Color? borderColor = Utils.getColor(menu.styles?['borderColor']);
-    int? borderWidth = Utils.optionalInt(menu.styles?['borderWidth']);
+    Color? borderColor = Utils.getColor(menu.runtimeStyles?['borderColor']);
+    int? borderWidth = Utils.optionalInt(menu.runtimeStyles?['borderWidth']);
     if (borderColor != null || borderWidth != null) {
       return VerticalDivider(
           thickness: (borderWidth ?? 1).toDouble(),
@@ -345,7 +349,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
           }));
     }
     return Drawer(
-      backgroundColor: Utils.getColor(menu.styles?['backgroundColor']),
+      backgroundColor: Utils.getColor(menu.runtimeStyles?['backgroundColor']),
       child: ListView(
         children: navItems,
       ),
