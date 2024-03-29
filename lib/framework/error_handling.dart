@@ -24,6 +24,18 @@ class LayoutError extends EnsembleError {
   String toString() => 'Layout Error: $error\n$recovery';
 }
 
+class StudioError extends EnsembleError {
+  StudioError(super.error,
+      {required this.errorId, super.recovery, super.detailError});
+
+  // the error id to be constructed into an external URL
+  String errorId;
+
+  get docUrl => getDocUrl(errorId);
+
+  static getDocUrl(errorId) => 'https://docs.ensembleui.com/error/$errorId';
+}
+
 class CodeError extends EnsembleError {
   CodeError(JSException exception, SourceLocation? yamlLocation)
       : super(exception.message,

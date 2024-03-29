@@ -1,11 +1,13 @@
 import 'package:ensemble/framework/error_handling.dart';
-import 'package:ensemble/framework/studio_debugger.dart';
+import 'package:ensemble/framework/studio/studio_debugger.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ErrorScreen extends StatefulWidget {
-  const ErrorScreen._init(this.errorText, {this.recovery, this.detailError});
+  const ErrorScreen._init(this.errorText,
+      {this.recovery, this.detailError, this.docUrl});
 
   factory ErrorScreen(Object error, {Key? key}) {
     Object myError = error;
@@ -24,7 +26,8 @@ class ErrorScreen extends StatefulWidget {
 
       return ErrorScreen._init(myError.error,
           recovery: myError.recovery,
-          detailError: join(myError.detailError, stackTrace?.toString()));
+          detailError: join(myError.detailError, stackTrace?.toString()),
+          docUrl: myError is StudioError ? myError.docUrl : null);
     } else if (myError is Error) {
       return ErrorScreen._init(myError.toString(),
           detailError:
@@ -39,6 +42,7 @@ class ErrorScreen extends StatefulWidget {
   final String errorText;
   final String? recovery;
   final String? detailError;
+  final String? docUrl; // URL to a more detailed documentation
 
   static String join(String? first, String? second) {
     List<String> list = [];
@@ -143,8 +147,17 @@ class _ErrorScreenState extends State<ErrorScreen> {
       ],
     ));
 
-    // add detail
-    if (widget.detailError != null && kDebugMode) {
+    // show external link to documentation
+    if (widget.docUrl != null) {
+      children.add(Padding(
+          padding: const EdgeInsets.only(top: 30),
+          child: ElevatedButton(
+              onPressed: () => launchUrl(Uri.parse(widget.docUrl!),
+                  mode: LaunchMode.externalApplication),
+              child: const Text("How to fix this?"))));
+    }
+    // show the detail error message
+    else if (widget.detailError != null && kDebugMode) {
       children.add(Column(children: [
         const SizedBox(height: 30),
         const Text('DETAILS',
