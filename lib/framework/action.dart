@@ -149,7 +149,7 @@ class NavigateViewGroupAction extends EnsembleAction {
       scopeManager.dataContext.addDataContext(payload!);
     }
     PageGroupWidget.getPageController(context)?.jumpToPage(_viewIndex);
-    viewGroupNotifier.updatePage(_viewIndex);
+    viewGroupNotifier.updatePage(_viewIndex, payload: payload);
     return Future.value(null);
   }
 }
