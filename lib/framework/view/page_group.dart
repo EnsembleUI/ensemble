@@ -87,6 +87,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
   late ScopeManager _scopeManager;
 
   // managing the list of pages
+  List<ScreenPayload> pagePayloads = [];
   List<Widget> pageWidgets = [];
 
   @override
@@ -104,6 +105,13 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     // init the pages (TODO: need to update if definition changes)
     for (int i = 0; i < widget.menu.menuItems.length; i++) {
       MenuItem menuItem = widget.menu.menuItems[i];
+      pagePayloads.add(
+        ScreenPayload(
+          screenName: menuItem.page,
+          arguments: widget.pageArgs,
+          isExternal: menuItem.isExternal,
+        ),
+      );
       pageWidgets.add(ScreenController().getScreen(
         key: UniqueKey(),
         // ensure each screen is different for Flutter not to optimize
@@ -135,17 +143,26 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
         bool atStart = (widget.menu as DrawerMenu).atStart;
         return ListenableBuilder(
           listenable: viewGroupNotifier,
-          builder: (context, _) => PageGroupWidget(
-            scopeManager: _scopeManager,
-            navigationDrawer: atStart ? drawer : null,
-            navigationEndDrawer: !atStart ? drawer : null,
-            child: widget.menu.reloadView == true
-                ? pageWidgets[viewGroupNotifier.viewIndex]
-                : IndexedStack(
-              index: viewGroupNotifier.viewIndex,
-              children: pageWidgets,
-            ),
-          ),
+          builder: (context, _) {
+            final screenPayload = pagePayloads[viewGroupNotifier.viewIndex];
+            final screen = ScreenController().getScreen(
+              key: UniqueKey(),
+              screenName: screenPayload.screenName,
+              isExternal: screenPayload.isExternal,
+              pageArgs: viewGroupNotifier.payload ?? screenPayload.arguments,
+            );
+            return PageGroupWidget(
+              scopeManager: _scopeManager,
+              navigationDrawer: atStart ? drawer : null,
+              navigationEndDrawer: !atStart ? drawer : null,
+              child: widget.menu.reloadView == true
+                  ? screen
+                  : IndexedStack(
+                      index: viewGroupNotifier.viewIndex,
+                      children: pageWidgets,
+                    ),
+            );
+          },
         );
       } else if (widget.menu is SidebarMenu) {
         return PageGroupWidget(
@@ -158,6 +175,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
               scopeManager: _scopeManager,
               selectedPage: viewGroupNotifier.viewIndex,
               menu: widget.menu,
+              screenPayload: pagePayloads,
               children: pageWidgets,
             ));
       }
@@ -172,10 +190,21 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     Widget content = Expanded(
       child: ListenableBuilder(
         listenable: viewGroupNotifier,
-        builder: (context, _) => menu.reloadView == true
-            ? pageWidgets[viewGroupNotifier.viewIndex]
-            : IndexedStack(
-                index: viewGroupNotifier.viewIndex, children: pageWidgets),
+        builder: (context, _) {
+          final screenPayload = pagePayloads[viewGroupNotifier.viewIndex];
+          final screen = ScreenController().getScreen(
+            key: UniqueKey(),
+            screenName: screenPayload.screenName,
+            isExternal: screenPayload.isExternal,
+            pageArgs: viewGroupNotifier.payload ?? screenPayload.arguments,
+          );
+          return menu.reloadView == true
+              ? screen
+              : IndexedStack(
+                  index: viewGroupNotifier.viewIndex,
+                  children: pageWidgets,
+                );
+        },
       ),
     );
     // figuring out the direction to lay things out
@@ -377,11 +406,15 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
 
 class ViewGroupNotifier extends ChangeNotifier {
   int _viewIndex = 0;
+  Map<String, dynamic>? _payload;
 
   int get viewIndex => _viewIndex;
+  Map<String, dynamic>? get payload => _payload;
 
-  void updatePage(int index, {bool isReload = true}) {
+  void updatePage(int index,
+      {bool isReload = true, Map<String, dynamic>? payload}) {
     _viewIndex = index;
+    _payload = payload;
     if (isReload) {
       notifyListeners();
     }
