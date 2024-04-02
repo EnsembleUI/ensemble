@@ -173,8 +173,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
       final floatingItemColor =
           Utils.getColor(widget.menu.runtimeStyles?['floatingIconColor']) ??
               Theme.of(context).colorScheme.onSecondary;
-      final floatingBackgroundColor =
-          Utils.getColor(
+      final floatingBackgroundColor = Utils.getColor(
               widget.menu.runtimeStyles?['floatingBackgroundColor']) ??
           Theme.of(context).colorScheme.secondary;
 

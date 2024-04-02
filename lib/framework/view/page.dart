@@ -389,8 +389,9 @@ class PageState extends State<Page>
     bool hasDrawer = _drawer != null || _endDrawer != null;
 
     Widget? _bottomNavBar;
-    if ( widget._pageModel.menu != null ) {
-      EnsembleThemeManager().configureStyles(_scopeManager.dataContext, widget._pageModel.menu!, widget._pageModel.menu!);
+    if (widget._pageModel.menu != null) {
+      EnsembleThemeManager().configureStyles(_scopeManager.dataContext,
+          widget._pageModel.menu!, widget._pageModel.menu!);
     }
     // build the navigation menu (bottom nav bar or drawer). Note that menu is not applicable on modal pages
     if (widget._pageModel.menu != null &&
@@ -593,8 +594,7 @@ class PageState extends State<Page>
         );
       }
 
-      MenuItemDisplay itemDisplay =
-          MenuItemDisplay.values
+      MenuItemDisplay itemDisplay = MenuItemDisplay.values
               .from(sidebarMenu.runtimeStyles?['itemDisplay']) ??
           MenuItemDisplay.stacked;
 
