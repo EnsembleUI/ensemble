@@ -9,6 +9,7 @@ import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/bottom_nav_page_view.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page_group.dart';
+import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
@@ -92,11 +93,13 @@ class BottomNavPageGroup extends StatefulWidget {
     required this.menu,
     required this.selectedPage,
     required this.children,
+    required this.screenPayload,
   });
 
   final ScopeManager scopeManager;
   final Menu menu;
   final int selectedPage;
+  final List<ScreenPayload> screenPayload;
   final List<Widget> children;
 
   @override
@@ -170,8 +173,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
       final floatingItemColor =
           Utils.getColor(widget.menu.runtimeStyles?['floatingIconColor']) ??
               Theme.of(context).colorScheme.onSecondary;
-      final floatingBackgroundColor =
-          Utils.getColor(
+      final floatingBackgroundColor = Utils.getColor(
               widget.menu.runtimeStyles?['floatingBackgroundColor']) ??
           Theme.of(context).colorScheme.secondary;
 
@@ -234,8 +236,18 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
         body: widget.menu.reloadView == true
             ? ListenableBuilder(
                 listenable: viewGroupNotifier,
-                builder: (_, __) =>
-                    widget.children[viewGroupNotifier.viewIndex])
+                builder: (_, __) {
+                  final screenPayload =
+                      widget.screenPayload[viewGroupNotifier.viewIndex];
+                  final screen = ScreenController().getScreen(
+                    key: UniqueKey(),
+                    screenName: screenPayload.screenName,
+                    pageArgs:
+                        viewGroupNotifier.payload ?? screenPayload.arguments,
+                    isExternal: screenPayload.isExternal,
+                  );
+                  return screen;
+                })
             : Builder(
                 builder: (context) {
                   final controller = PageGroupWidget.getPageController(context);
