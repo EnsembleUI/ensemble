@@ -35,7 +35,6 @@ import 'package:get_it/get_it.dart';
 
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/screen_controller.dart';
-import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
 import 'package:ensemble_ts_interpreter/parser/newjs_interpreter.dart';

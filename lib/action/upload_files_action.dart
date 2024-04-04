@@ -13,7 +13,6 @@ import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/toast.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/extensions.dart';
-import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/foundation.dart';
