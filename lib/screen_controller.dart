@@ -1,4 +1,4 @@
-// ignore_for_file: use_build_context_synchronously
+// ignore_for_file: use_build_context_synchronously, avoid_print
 
 import 'dart:async';
 import 'dart:convert';
@@ -79,13 +79,50 @@ class ScreenController {
     return scopeManager;
   }
 
+  bool _validateFormat(String? value) {
+    if (value == null) {
+      return false;
+    }
+    List<String> parts = value.split(".");
+    return parts.length == 2 && parts[0].isNotEmpty && parts[1].isNotEmpty;
+  }
+
+  dynamic runGlobalScriptHandler(String key, String inputs) {
+    dynamic payload;
+    final env =
+        Ensemble().getConfig()?.definitionProvider.getAppConfig()?.envVariables;
+
+    if (env != null && env.containsKey(key)) {
+      final value = env[key];
+      if (!_validateFormat(value)) {
+        print('Please specify $key properly in script.function syntax');
+        return;
+      }
+      final data = env[key]!.split('.');
+
+      final library = data[0];
+      final function = data[1];
+      final codeBlock = "$function($inputs)";
+      payload = executeGlobalFunction(
+          Utils.globalAppKey.currentContext!, library, codeBlock);
+      return payload;
+    } else {
+      print("$key not found in environment variables");
+    }
+    return null;
+  }
+
   dynamic executeGlobalFunction(
       BuildContext buildContext, String libraryName, String codeBlock) {
     final parsedCode = Ensemble().getConfig()?.getGlobalfunction(libraryName);
+    if (parsedCode == null) {
+      print('GlobalScript: Failed to find $libraryName.$codeBlock');
+      return;
+    }
     DataContext context =
         DataContext(buildContext: buildContext, initialMap: {});
 
-    JSInterpreter(parsedCode!.code, parsedCode.program, context).evaluate();
+    JSInterpreter(parsedCode.code, parsedCode.program, context).evaluate();
     var p = JSInterpreter.parseCode(codeBlock);
 
     return JSInterpreter(codeBlock, p, context).evaluate();
