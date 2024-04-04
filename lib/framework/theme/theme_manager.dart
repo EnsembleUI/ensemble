@@ -10,7 +10,9 @@ import 'package:flutter/rendering.dart';
 /// when the App starts for the first time
 class ThemeManager with ThemeLoader {
   static final ThemeManager _instance = ThemeManager._internal();
+
   ThemeManager._internal();
+
   factory ThemeManager() {
     return _instance;
   }
@@ -36,6 +38,12 @@ class ThemeManager with ThemeLoader {
     return Theme.of(context).brightness == Brightness.light
         ? const Color(0xff000000)
         : const Color(0xffffffff);
+  }
+
+  Color getMapMarkerIconBackgroundColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.light
+        ? const Color(0xffffffff)
+        : const Color(0xff000000);
   }
 
   Color defaultTextColor() {
@@ -69,11 +77,16 @@ enum ResponsiveBreakpoint { xSmall, small, medium, large, xLarge }
 
 extension BoxConstraintsExtension on BoxConstraints {
   bool isXSmall() => maxWidth <= 480;
+
   bool isSmall() => maxWidth > 480 && maxWidth <= 800;
+
   bool isMedium() => maxWidth > 800 && maxWidth <= 1200;
+
   bool isLarge() => maxWidth > 1200 && maxWidth <= 1600;
+
   bool isXLarge() => maxWidth > 1600;
 
   bool isSmallOrLess() => isSmall() || isXSmall();
+
   bool isLargeOrMore() => isLarge() || isXLarge();
 }
