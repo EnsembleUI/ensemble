@@ -135,31 +135,13 @@ class NotificationManager {
     const key = 'ensemble_notification_handler';
     dynamic payload;
     try {
-      final env = Ensemble()
-          .getConfig()
-          ?.definitionProvider
-          .getAppConfig()
-          ?.envVariables;
+      payload = ScreenController().runGlobalScriptHandler(key, message);
 
-      if (env != null && env.containsKey(key)) {
-        final value = env[key];
-        if (!_validateFormat(value)) {
-          print('Please specify $key properly in script.function syntax');
-          return;
-        }
-        final data = env[key]!.split('.');
-
-        final library = data[0];
-        final function = data[1];
-        final codeBlock = "$function($message)";
-        payload = ScreenController().executeGlobalFunction(
-            Utils.globalAppKey.currentContext!, library, codeBlock);
-      } else {
+      if (payload == null) {
         _legacyNotificationHandler(message);
-        print("$key not found in environment variables");
       }
     } on Exception catch (e) {
-      print("Error receiving notification: $e");
+      print("NotificationManager: Error receiving notification: $e");
     }
     if (payload is! Map) return;
     if (payload.containsKey('status') &&
@@ -210,14 +192,6 @@ Future<void> _legacyNotificationHandler(dynamic remoteMessage) async {
     ScreenController().navigateToScreen(Utils.globalAppKey.currentContext!,
         pageArgs: payload);
   }
-}
-
-bool _validateFormat(String? value) {
-  if (value == null) {
-    return false;
-  }
-  List<String> parts = value.split(".");
-  return parts.length == 2 && parts[0].isNotEmpty && parts[1].isNotEmpty;
 }
 
 /// abstract to just the absolute must need Firebase options

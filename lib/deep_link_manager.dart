@@ -1,12 +1,48 @@
+// ignore_for_file: avoid_print
+
+import 'dart:convert';
 import 'dart:developer';
 
 import 'package:app_links/app_links.dart';
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 
 class DeepLinkNavigator {
   /// navigate to screen if the deep link specifies a screenId param
   void navigateToScreen(Uri uri) {
+    const key = 'ensemble_deeplink_handler';
+    dynamic payload;
+    try {
+      final data = {'link': uri};
+      payload =
+          ScreenController().runGlobalScriptHandler(key, jsonEncode(data));
+
+      if (payload == null) {
+        _legacyDeepLinkHander(uri);
+      }
+    } on Exception catch (e) {
+      print("DeepLinkManager: Error receiving deeplink: $e");
+    }
+    if (payload is! Map) return;
+    if (payload.containsKey('status') &&
+        (payload['status'] as String).toLowerCase() == 'error') {
+      print('DeepLinkManager: Error while running js function');
+    }
+
+    final action = NavigateScreenAction.fromMap(payload);
+
+    ScreenController().navigateToScreen(Utils.globalAppKey.currentContext!,
+        screenName: action.screenName,
+        asModal: action.asModal,
+        isExternal: action.isExternal,
+        transition: action.transition,
+        pageArgs: {
+          ...payload,
+        });
+  }
+
+  void _legacyDeepLinkHander(Uri uri) {
     String? screenId =
         (uri.queryParameters['screenId'] ?? uri.queryParameters['screenid'])
             ?.toString();
@@ -18,6 +54,9 @@ class DeepLinkNavigator {
           screenId: screenId,
           screenName: screenName,
           pageArgs: uri.queryParameters);
+    } else {
+      print(
+          'DeepLinkManager: Failed to navigate while running deeplink handler\nuri: $uri');
     }
   }
 }
