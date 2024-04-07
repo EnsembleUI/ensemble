@@ -1,4 +1,4 @@
-import 'package:ensemble/framework/apiproviders/firestore_api_provider.dart';
+import 'package:ensemble/framework/apiproviders/firestore/firestore_api_provider.dart';
 import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:flutter/widgets.dart';
