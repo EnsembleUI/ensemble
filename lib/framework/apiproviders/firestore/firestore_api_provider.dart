@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
+import 'package:ensemble/framework/apiproviders/firestore/firestore_app.dart';
 import 'package:ensemble/framework/apiproviders/firestore/firestore_types.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:flutter/widgets.dart';
@@ -15,6 +16,7 @@ class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
   FirebaseApp? _app;
   FirebaseFirestore get firestore => FirebaseFirestore.instanceFor(app: _app!);
   List<StreamSubscription<QuerySnapshot>> _subscriptions = [];
+  late FirestoreApp firestoreApp;
 
   @override
   Future<void> init(String appId, Map<String, dynamic> config) async {
@@ -62,6 +64,7 @@ class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
       print('Initialized new Firebase app: ${app.name}');
       _app = app;
     }
+    firestoreApp = FirestoreApp(firestore);
   }
   //we are evaluating ourselves recursively as the key can itself be dynamic and not just the value
   dynamic evaluate(dynamic original, DataContext eContext) {
@@ -83,149 +86,6 @@ class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
   }
 
 
-  Query getQuery(Map api) {
-    String path = api['path'];
-    CollectionReference collection =
-        firestore.collection(path);
-    Query query = collection;
-
-    // Check if queries are provided and apply them
-    Map? queryMap = api['query'];
-    if (queryMap != null) {
-      List? whereMap = queryMap['where'];
-      if ( whereMap != null ) {
-        for (var q in whereMap) {
-          q.forEach((field, condition) {
-            final operator = condition['operator'];
-            final value = condition['value'];
-            if (![
-              'array-contains',
-              'array-contains-any',
-              'in',
-              'not-in',
-              '==',
-              '!=',
-              '>',
-              '>=',
-              '<',
-              '<=',
-              'isNull'
-            ].contains(operator)) {
-              throw ArgumentError('Unsupported operator: $operator');
-            }
-            switch (operator) {
-              case 'array-contains':
-                query = query.where(field, arrayContains: value);
-                break;
-              case 'array-contains-any':
-                query = query.where(field, arrayContainsAny: value);
-                break;
-              case 'in':
-                query = query.where(field, whereIn: value);
-                break;
-              case 'not-in':
-                query = query.where(field, whereNotIn: value);
-                break;
-              case '==':
-                query = query.where(field, isEqualTo: value);
-                break;
-              case '!=':
-                query = query.where(field, isNotEqualTo: value);
-                break;
-              case '>':
-                query = query.where(field, isGreaterThan: value);
-                break;
-              case '>=':
-                query = query.where(field, isGreaterThanOrEqualTo: value);
-                break;
-              case '<':
-                query = query.where(field, isLessThan: value);
-                break;
-              case '<=':
-                query = query.where(field, isLessThanOrEqualTo: value);
-                break;
-              case 'isNull':
-                query = query.where(field, isNull: value);
-                break;
-            // Add more operators if needed
-              default:
-                throw ArgumentError('Unsupported operator: $operator');
-            }
-          });
-        }
-      }
-      // Apply 'orderBy' clauses
-      if (queryMap.containsKey('orderBy')) {
-        List orderByClauses = queryMap['orderBy'];
-        for (var order in orderByClauses) {
-          // Check if the orderBy clause is a string or a map
-          if (order is String) {
-            // If it's a string, orderBy this field in ascending order by default
-            query = query.orderBy(order);
-          } else if (order is Map) {
-            // If it's a map, extract the field and descending flag
-            String field = order.keys.first;
-            bool descending = order[field]['descending'] ?? false;
-            query = query.orderBy(field, descending: descending);
-          }
-        }
-      }
-      // Apply limit if present
-      if (queryMap.containsKey('limit')) {
-        query = query.limit(queryMap['limit']);
-      }
-
-      // Apply pagination constraints if present
-      if (queryMap.containsKey('startAfter')) {
-        query = query.startAfter(queryMap['startAfter']);
-      }
-      if (queryMap.containsKey('startAt')) {
-        query = query.startAt(queryMap['startAt']);
-      }
-      if (queryMap.containsKey('endBefore')) {
-        query = query.endBefore(queryMap['endBefore']);
-      }
-      if (queryMap.containsKey('endAt')) {
-        query = query.endAt(queryMap['endAt']);
-      }
-      // Apply limitToLast if present
-      if (queryMap.containsKey('limitToLast')) {
-        query = query.limitToLast(queryMap['limitToLast']);
-      }
-    }
-    return query;
-  }
-  Future<QuerySnapshot> performGetOperation(Map evaluatedApi) async {
-    Query query = getQuery(evaluatedApi);
-    return await query.get();
-  }
-
-  Future<DocumentReference> performAddOperation(Map evaluatedApi) async {
-    String path = evaluatedApi['path'];
-    Map<String, dynamic> data = evaluatedApi['data'];
-    CollectionReference collection = firestore.collection(path);
-    return await collection.add(data);
-  }
-
-  Future<void> performSetOperation(Map evaluatedApi) async {
-    String path = evaluatedApi['path'];
-    Map<String, dynamic> data = evaluatedApi['data'];
-    DocumentReference docRef = firestore.doc(path);
-    return await docRef.set(data);
-  }
-
-  Future<void> performUpdateOperation(Map evaluatedApi) async {
-    String path = evaluatedApi['path'];
-    Map<String, dynamic> data = evaluatedApi['data'];
-    DocumentReference docRef = firestore.doc(path);
-    return await docRef.update(data);
-  }
-
-  Future<void> performDeleteOperation(Map evaluatedApi) async {
-    String path = evaluatedApi['path'];
-    DocumentReference docRef = firestore.doc(path);
-    return await docRef.delete();
-  }
 
   @override
   Future<FirestoreResponse> invokeApi(BuildContext context, YamlMap apiMap, DataContext eContext, String apiName) async {
@@ -238,19 +98,19 @@ class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
 
       switch (operation) {
         case 'get':
-          final QuerySnapshot snapshot = await performGetOperation(api);
+          final dynamic snapshot = await firestoreApp.performGetOperation(api);
           return getOKResponse(apiName, snapshot);
         case 'add':
-          final DocumentReference docRef = await performAddOperation(api);
+          final DocumentReference docRef = await firestoreApp.performAddOperation(api);
           return getOKResponse(apiName, docRef);
         case 'set':
-          await performSetOperation(api);
+          await firestoreApp.performSetOperation(api);
           break;
         case 'update':
-          await performUpdateOperation(api);
+          await firestoreApp.performUpdateOperation(api);
           break;
         case 'delete':
-          await performDeleteOperation(api);
+          await firestoreApp.performDeleteOperation(api);
           break;
         default:
           throw UnimplementedError('$operation is not supported in this context.');
@@ -381,7 +241,7 @@ class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
       // Handle set, update, delete accordingly
       throw UnimplementedError('$operation is not supported in this context.');
     }
-    Query query = getQuery(api);
+    Query query = firestoreApp.getQuery(api);
     _subscriptions.add(query.snapshots().listen((QuerySnapshot snapshot) {
       listener.call(getOKResponse(apiName, snapshot));
     }));
