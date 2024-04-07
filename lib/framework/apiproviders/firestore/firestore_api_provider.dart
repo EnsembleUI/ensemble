@@ -271,6 +271,7 @@ class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
   APIProvider clone() {
     FirestoreAPIProvider provider = FirestoreAPIProvider();
     provider._app = _app;
+    provider.firestoreApp = firestoreApp;
     return provider;
   }
 }
