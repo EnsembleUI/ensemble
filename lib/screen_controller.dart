@@ -9,6 +9,7 @@ import 'package:ensemble/action/phone_contact_action.dart';
 import 'package:ensemble/action/upload_files_action.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/device.dart';
@@ -712,7 +713,7 @@ class ScreenController {
         pageType: pageType,
         arguments: pageArgs,
         isExternal: isExternal,
-      ),
+      ), apiProviders: APIProviders.clone(Ensemble().getConfig()!.apiProviders??{})
     );
   }
 

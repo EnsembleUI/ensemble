@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/data_context.dart';
@@ -8,12 +9,13 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/screen_controller.dart';
-import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:yaml/yaml.dart';
 import 'package:http/http.dart' as http;
+
+import '../framework/apiproviders/api_provider.dart';
 
 class InvokeAPIAction extends EnsembleAction {
   InvokeAPIAction(
@@ -62,7 +64,7 @@ class InvokeAPIAction extends EnsembleAction {
 }
 
 class InvokeAPIController {
-  Future<Response?> executeWithContext(
+  Future<Response> executeWithContext(
       BuildContext context, InvokeAPIAction action,
       {Map<String, dynamic>? additionalInputs}) {
     ScopeManager? foundScopeManager =
@@ -78,13 +80,16 @@ class InvokeAPIController {
         dataContext.addDataContext(additionalInputs);
       }
 
-      return execute(
+      execute(
           action, context, scopeManager, scopeManager.pageData.apiMap);
     }
     throw Exception('Unable to execute API from context');
   }
-
-  Future<Response?> execute(InvokeAPIAction action, BuildContext context,
+  APIProvider getAPIProvider(BuildContext context, YamlMap apiDefinition) {
+    String? provider = apiDefinition['type'];
+    return APIProviders.of(context).getProvider(provider);
+  }
+  Future<Response> execute(InvokeAPIAction action, BuildContext context,
       ScopeManager scopeManager, Map<String, YamlMap>? apiMap) async {
     YamlMap? apiDefinition = apiMap?[action.apiName];
     if (apiDefinition != null) {
@@ -119,34 +124,52 @@ class InvokeAPIController {
         final isSameAPIRequest = action.apiName == responseObj?.apiName;
         final responseToDispatch = (isSameAPIRequest && responseObj != null)
             ? responseObj
-            : Response.updateState(apiState: APIState.loading);
+            : HttpResponse.updateState(apiState: APIState.loading);
         dispatchAPIChanges(
           scopeManager,
           action,
           APIResponse(response: responseToDispatch),
         );
         Response response;
+        responseListener(Response response) {
+          if (response.isOkay) {
+            _onAPIComplete(context, action, apiDefinition, response, apiMap,
+                apiScopeManager);
+          } else {
+            _onAPIError(context, action, apiDefinition, errorResponse, apiMap,
+                apiScopeManager);
+          }
+        }
+        APIProvider apiProvider = getAPIProvider(context,apiDefinition);
         if (AppConfig(context, apiScopeManager.dataContext.getAppId())
                 .isMockResponse() &&
             apiDefinition['mockResponse'] != null) {
-          response = await HttpUtils.invokeMockAPI(
+          response = await apiProvider.invokeMockAPI(
               apiScopeManager.dataContext, apiDefinition['mockResponse']);
+        } else if (apiDefinition['listenForChanges'] == true && apiProvider is LiveAPIProvider) {
+          response = await (apiProvider as LiveAPIProvider).subscribeToApi(
+              context, apiDefinition, apiScopeManager.dataContext,
+              action.apiName,
+              responseListener);
         } else {
-          response = await HttpUtils.invokeApi(context, apiDefinition,
+          response = await getAPIProvider(context,apiDefinition).invokeApi(context, apiDefinition,
               apiScopeManager.dataContext, action.apiName);
         }
-        if (response.isOkay) {
-          _onAPIComplete(context, action, apiDefinition, response, apiMap,
-              apiScopeManager);
-          return response;
-        }
-        errorResponse = response;
+        responseListener(response);
+        return response;
+        // if (response.isOkay) {
+        //   _onAPIComplete(context, action, apiDefinition, response, apiMap,
+        //       apiScopeManager);
+        //   return response;
+        // }
+        // errorResponse = response;
       } catch (error) {
         errorResponse = error;
+        _onAPIError(context, action, apiDefinition, errorResponse, apiMap,
+            apiScopeManager);
         debugPrint(error.toString());
+        return errorResponse;
       }
-      _onAPIError(context, action, apiDefinition, errorResponse, apiMap,
-          apiScopeManager);
     } else {
       throw RuntimeError("Unable to find api definition for ${action.apiName}");
     }
@@ -242,7 +265,7 @@ class InvokeAPIController {
 
     String? errorStr;
     dynamic data;
-    if (errorResponse is Response) {
+    if (errorResponse is HttpResponse) {
       errorResponse.apiState = APIState.error;
       APIResponse apiResponse = APIResponse(response: errorResponse);
       scopeManager.dataContext.addInvokableContext('response', apiResponse);

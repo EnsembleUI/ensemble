@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'dart:ui';
 import 'dart:async';
 
 import 'package:device_preview/device_preview.dart';
 import 'package:ensemble/deep_link_manager.dart';
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'package:ensemble/framework/app_info.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/config.dart';
@@ -181,6 +183,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
       if (widget.ensembleConfig!.appBundle == null) {
         return widget.ensembleConfig!.updateAppBundle();
       }
+      await Ensemble.initializeAPIProviders(widget.ensembleConfig!);
       return Future<EnsembleConfig>.value(widget.ensembleConfig);
     }
     // else init from config file
@@ -213,7 +216,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
         }));
   }
 
-  void configureThemes(YamlMap doc, AppConfig config) {
+  void configureThemes(YamlMap doc, AppConfig config)  {
     if (EnsembleThemeManager().initialized) {
       return;
     }
@@ -257,8 +260,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
     }
     EnsembleThemeManager().init(context, themes, defaultTheme);
   }
-
-  Widget renderApp(EnsembleConfig config) {
+  Widget renderApp(EnsembleConfig config)  {
     //even of there is no theme passed in, we still call init as thememanager would initialize with default styles
     if (config.appBundle?.theme?['cssStyling'] != false) {
       YamlMap? doc = config.appBundle?.theme;
@@ -293,6 +295,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
           appProvider:
               AppProvider(definitionProvider: config.definitionProvider),
           screenPayload: widget.screenPayload,
+          apiProviders: APIProviders.clone(config.apiProviders??{}),
         ),
       ),
       useInheritedMediaQuery: widget.isPreview,
@@ -307,6 +310,12 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
       app = ThemeProvider(
           theme: EnsembleThemeManager().currentTheme()!, child: app);
     }
+    // if ( config.apiProviders != null ) {
+    //   app = APIProviders(
+    //     providers: config.apiProviders!,
+    //     child: app,
+    //   );
+    // }
     return app;
   }
 
