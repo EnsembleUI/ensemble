@@ -1,7 +1,8 @@
 import 'dart:async';
 
+import 'package:ensemble/framework/apiproviders/api_provider.dart';
+import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
 import 'package:ensemble/framework/data_context.dart' hide MediaType;
-import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/util/notification_utils.dart';
 import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
@@ -16,7 +17,7 @@ int getInt(String id) {
 }
 
 class UploadUtils {
-  static Future<Response?> uploadFiles({
+  static Future<HttpResponse?> uploadFiles({
     required String taskId,
     required String method,
     required String url,
@@ -80,7 +81,7 @@ class UploadUtils {
 
       if (response.statusCode >= 200 && response.statusCode <= 300) {
         final res = await http.Response.fromStream(response);
-        return Response(res, APIState.success);
+        return HttpResponse(res, APIState.success);
       } else {
         throw Exception('Failed to upload file');
       }
