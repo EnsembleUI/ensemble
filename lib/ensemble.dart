@@ -5,6 +5,7 @@ import 'dart:math' as math;
 
 import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/ensemble_provider.dart';
+import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
@@ -179,13 +180,54 @@ class Ensemble {
         envOverrides: envOverrides);
 
     AppInfo().initPackageInfo(_config);
+    await initializeAPIProviders(_config!);
     return _config!;
   }
 
   String? getAppId(YamlMap yamlMap) {
     return yamlMap['definitions']?['ensemble']?['appId'];
   }
+  //configure firebase if it has been configured in the config
+  static Future<void> initializeAPIProviders(EnsembleConfig config) async {
+    Map<String,APIProvider> providers = {};
+    //from the config.definitionProvider.getAppConfig() get the environmentVariables
+    //check if there is an enviroment variable named api_providers
+    //if yes, it is a comma separated list of api providers
+    //for each item in the list, append _config to it and search for its config in the environmentVariables
+    //if found, initialize the provider with the config
+    //if not found, initialize the provider with an empty map
+    UserAppConfig? appConfig = config.definitionProvider.getAppConfig();
+    if (appConfig != null) {
+      String? apiProviders = appConfig.envVariables?['api_providers'];
+      if (apiProviders != null) {
+        List<String> providerList = apiProviders.split(',');
+        for (String provider in providerList) {
+          String providerConfig = '${provider}_config';
+          Map<String,dynamic> providerConfigMap = {};
+          if ( appConfig.envVariables?[providerConfig] != null ) {
+            try {
+              providerConfigMap =
+                  json.decode(appConfig.envVariables?[providerConfig]);
+            } catch (e) {
+              print('Error decoding provider config for $provider');
+            }
+          }
+          APIProvider? apiProvider = APIProviders.initProvider(provider);
+          if (apiProvider != null) {
+            await apiProvider.init(config.definitionProvider.appId??generateRandomString(10), providerConfigMap);
+            providers[provider] = apiProvider;
+          }
+        }
+      }
+    }
+    config.apiProviders = providers;
+  }
+  static String generateRandomString(int length) {
+    const String chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    math.Random random = math.Random();
 
+    return List.generate(length, (index) => chars[random.nextInt(chars.length)]).join('');
+  }
   void initializeConsoleLogProvider(String? appId) {
     LogProvider provider = ConsoleLogProvider()..init(ensembleAppId: appId);
     LogManager().addProviderForAllLevels(LogType.appAnalytics, provider);
@@ -390,12 +432,14 @@ class EnsembleConfig {
       this.services,
       this.signInServices,
       this.envOverrides,
-      this.appBundle});
+      this.appBundle,
+      this.apiProviders});
 
   final DefinitionProvider definitionProvider;
   Account? account;
   Services? services;
   SignInServices? signInServices;
+  Map<String,APIProvider>? apiProviders;
 
   // environment variable overrides
   Map<String, dynamic>? envOverrides;
@@ -531,7 +575,7 @@ class Account {
     String? googleMapsAPIKey;
 
     if (input != null && input is Map) {
-      firebaseConfig = FirebaseConfig.fromYaml(input['firebase']);
+      firebaseConfig = FirebaseConfig.fromMap(input['firebase']);
       googleMapsAPIKey = Utils.optionalString(input['googleMaps']?['apiKey']);
     }
     return Account(
@@ -546,21 +590,23 @@ class FirebaseConfig {
   FirebaseOptions? androidConfig;
   FirebaseOptions? webConfig;
 
-  factory FirebaseConfig.fromYaml(dynamic input) {
+  factory FirebaseConfig.fromMap(dynamic input) {
     FirebaseOptions? iOSConfig;
     FirebaseOptions? androidConfig;
     FirebaseOptions? webConfig;
 
     try {
       if (input is Map) {
-        if (input['iOS'] != null) {
-          iOSConfig = _getPlatformConfig(input['iOS']);
+        Map<String, dynamic> lowercaseInput = input.map((key, value) =>
+            MapEntry(key.toString().toLowerCase(), value));
+        if (lowercaseInput['ios'] != null) {
+          iOSConfig = _getPlatformConfig(lowercaseInput['ios']);
         }
-        if (input['android'] != null) {
-          androidConfig = _getPlatformConfig(input['android']);
+        if (lowercaseInput['android'] != null) {
+          androidConfig = _getPlatformConfig(lowercaseInput['android']);
         }
-        if (input['web'] != null) {
-          webConfig = _getPlatformConfig(input['web']);
+        if (lowercaseInput['web'] != null) {
+          webConfig = _getPlatformConfig(lowercaseInput['web']);
         }
       }
       return FirebaseConfig._(
