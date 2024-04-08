@@ -7,6 +7,7 @@ import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'package:ensemble/framework/apiproviders/firestore/firestore_app.dart';
 import 'package:ensemble/framework/apiproviders/firestore/firestore_types.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:flutter/widgets.dart';
 import 'package:yaml/yaml.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -17,9 +18,16 @@ class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
   FirebaseFirestore get firestore => FirebaseFirestore.instanceFor(app: _app!);
   List<StreamSubscription<QuerySnapshot>> _subscriptions = [];
   late FirestoreApp firestoreApp;
-
+  void addGlobalContext() {
+    Map<String,dynamic> context = {
+      'Timestamp': TimestampInitializer()
+    };
+    GlobalContext.addGlobals(context, 'Firestore');
+  }
   @override
   Future<void> init(String appId, Map<String, dynamic> config) async {
+    //add global types
+    addGlobalContext();
     FirebaseConfig firebaseConfig = FirebaseConfig.fromMap(config);
 
     // Function to compare FirebaseOptions

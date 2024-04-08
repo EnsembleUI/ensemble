@@ -147,6 +147,24 @@ class FirestoreGeoPoint with Invokable {
   }
 }
 
+class TimestampInitializer with Invokable {
+  @override
+  Map<String, Function> getters() => {};
+
+  @override
+  Map<String, Function> setters() => {};
+
+  @override
+  Map<String, Function> methods() {
+    return {
+      'init': (seconds,nanoSeconds) => FirestoreTimestamp(Timestamp(seconds, nanoSeconds)),
+      'fromMillisecondsSinceEpoch': (int milliseconds) => FirestoreTimestamp(Timestamp.fromMillisecondsSinceEpoch(milliseconds)),
+      'fromMicrosecondsSinceEpoch': (int microseconds) => FirestoreTimestamp(Timestamp.fromMicrosecondsSinceEpoch(microseconds)),
+      'now': () => FirestoreTimestamp(Timestamp.now()),
+      'fromDate': (Date date) => FirestoreTimestamp(Timestamp.fromDate(date.dateTime))
+    };
+  }
+}
 class FirestoreTimestamp with Invokable {
   final Timestamp timestamp;
 
@@ -160,7 +178,10 @@ class FirestoreTimestamp with Invokable {
       'toDate': () => Date(timestamp.toDate()),
     };
   }
-
+  @override
+  bool operator ==(Object other) =>
+      other is FirestoreTimestamp &&
+      other.timestamp == timestamp;
   @override
   Map<String, Function> setters() => {};
 
@@ -170,4 +191,82 @@ class FirestoreTimestamp with Invokable {
       'toDate': () => Date(timestamp.toDate()),
     };
   }
+  @override
+  int compareTo(FirestoreTimestamp other) {
+    return timestamp.compareTo(other.timestamp);
+  }
+
+  @override
+  String toString() {
+    return timestamp.toString();
+  }
+  @override
+  int get hashCode => Object.hash(timestamp.seconds, timestamp.nanoseconds);
+
+}
+class FieldValueInitializer with Invokable {
+  FieldValueInitializer();
+
+  static FirestoreFieldValue serverTimestamp() => FirestoreFieldValue(FieldValue.serverTimestamp());
+
+  static FirestoreFieldValue increment(num value) => FirestoreFieldValue(FieldValue.increment(value));
+
+  static FirestoreFieldValue arrayUnion(List<dynamic> elements) =>
+      FirestoreFieldValue(FieldValue.arrayUnion(elements));
+
+  static FirestoreFieldValue arrayRemove(List<dynamic> elements) =>
+      FirestoreFieldValue(FieldValue.arrayRemove(elements));
+
+  static FieldValue delete() => FieldValue.delete();
+
+  @override
+  Map<String, Function> methods() {
+    return {
+      'serverTimestamp': serverTimestamp,
+      'increment': increment,
+      'arrayUnion': arrayUnion,
+      'arrayRemove': arrayRemove,
+      'delete': delete,
+    };
+  }
+
+  @override
+  Map<String, Function> getters() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
+  }
+}
+class FirestoreFieldValue with Invokable {
+  final FieldValue fieldValue;
+
+  FirestoreFieldValue(this.fieldValue);
+
+  @override
+  Map<String, Function> getters() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> setters() => {};
+
+  @override
+  Map<String, Function> methods() {
+    return {
+      'toString': () => fieldValue.toString()
+    };
+  }
+  @override
+  String toString() {
+    return fieldValue.toString();
+  }
+  @override
+  bool operator ==(Object other) =>
+      other is FirestoreFieldValue &&
+      other.fieldValue == fieldValue;
+  @override
+  int get hashCode => fieldValue.hashCode;
 }
