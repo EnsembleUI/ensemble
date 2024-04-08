@@ -110,6 +110,7 @@ class DateState extends FormFieldWidgetState<Date> {
                       child: ClearableInput(
                           text: selectedValue,
                           textStyle: formFieldTextStyle,
+                          enabled: widget._controller.enabled ?? true,
                           onCleared: () {
                             setState(() {
                               widget._controller.value = null;

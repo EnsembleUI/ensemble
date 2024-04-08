@@ -337,10 +337,15 @@ class InputWrapper extends StatelessWidget {
 /// is the responsibility of the parent widget who uses this.
 class ClearableInput extends StatelessWidget {
   const ClearableInput(
-      {super.key, required this.text, required this.onCleared, this.textStyle});
+      {super.key,
+      required this.text,
+      required this.onCleared,
+      this.textStyle,
+      this.enabled = false});
 
   final String text;
   final TextStyle? textStyle;
+  final bool enabled;
   final dynamic onCleared;
 
   @override
@@ -351,7 +356,10 @@ class ClearableInput extends StatelessWidget {
     return Row(mainAxisSize: MainAxisSize.min, children: [
       Flexible(child: Text(text, maxLines: 1, style: textStyle)),
       const SizedBox(width: 4),
-      InkWell(onTap: onCleared, child: const Icon(Icons.close, size: 20))
+      InkWell(
+        onTap: enabled ? onCleared : null,
+        child: const Icon(Icons.close, size: 20),
+      )
     ]);
   }
 }
