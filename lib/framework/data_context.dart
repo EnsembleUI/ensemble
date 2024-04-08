@@ -12,6 +12,8 @@ import 'package:ensemble/action/misc_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/all_countries.dart';
+import 'package:ensemble/framework/apiproviders/api_provider.dart';
+import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -33,7 +35,6 @@ import 'package:get_it/get_it.dart';
 
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/screen_controller.dart';
-import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
 import 'package:ensemble_ts_interpreter/parser/newjs_interpreter.dart';
@@ -1170,9 +1171,9 @@ class ModifiableAPIResponse extends APIResponse {
   Map<String, Function> setters() {
     return {
       'body': (newBody) =>
-          _response!.body = HttpUtils.parseResponsePayload(newBody),
+          _response!.body = HTTPAPIProvider.parseResponsePayload(newBody),
       'headers': (newHeaders) =>
-          _response!.headers = HttpUtils.parseResponsePayload(newHeaders)
+          _response!.headers = HTTPAPIProvider.parseResponsePayload(newHeaders)
     };
   }
 
