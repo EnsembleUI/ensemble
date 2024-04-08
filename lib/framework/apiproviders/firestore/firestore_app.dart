@@ -3,10 +3,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class FirestoreApp {
   final FirebaseFirestore firestore;
   FirestoreApp(this.firestore);
-  Query getQuery(Map api, {bool isCollectionGroup = false}){
+  Query getQuery(Map api, {bool isCollectionGroup = false}) {
     String path = api['path'];
     Query collection;
-    if ( isCollectionGroup ) {
+    if (isCollectionGroup) {
       collection = firestore.collectionGroup(path);
     } else {
       collection = firestore.collection(path);
@@ -17,7 +17,7 @@ class FirestoreApp {
     Map? queryMap = api['query'];
     if (queryMap != null) {
       List? whereMap = queryMap['where'];
-      if ( whereMap != null ) {
+      if (whereMap != null) {
         for (var condition in whereMap) {
           final field = condition['field'];
           final operator = condition['operator'];
@@ -71,7 +71,7 @@ class FirestoreApp {
             case 'isNull':
               query = query.where(field, isNull: value);
               break;
-          // Add more operators if needed
+            // Add more operators if needed
             default:
               throw ArgumentError('Unsupported operator: $operator');
           }
@@ -133,7 +133,8 @@ class FirestoreApp {
       }
       return docSnapshot;
     }
-    Query query = getQuery(evaluatedApi,isCollectionGroup:evaluatedApi['isCollectionGroup'] ?? false);
+    Query query = getQuery(evaluatedApi,
+        isCollectionGroup: evaluatedApi['isCollectionGroup'] ?? false);
     return await query.get();
   }
 

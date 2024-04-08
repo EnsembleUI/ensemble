@@ -1,9 +1,9 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'dart:math' show asin, cos, pi, sin, sqrt;
 
 import 'package:ensemble_ts_interpreter/invokables/invokablecommons.dart';
+
 class FirestoreDocumentReference with Invokable {
   final DocumentReference reference;
 
@@ -15,7 +15,6 @@ class FirestoreDocumentReference with Invokable {
       'path': () => reference.path,
       'id': () => reference.id,
       'parent': () => FirestoreCollectionReference(reference.parent),
-
     };
   }
 
@@ -48,19 +47,30 @@ class FirestoreQuery with Invokable {
   @override
   Map<String, Function> methods() {
     return {
-      'where': (List<dynamic> arguments) => FirestoreQuery(query.where(arguments[0], isEqualTo: arguments.length > 1 ? arguments[1] : null)),
-      'orderBy': (List<dynamic> arguments) => FirestoreQuery(query.orderBy(arguments[0], descending: arguments.length > 1 ? arguments[1] : false)),
-      'limit': (List<dynamic> arguments) => FirestoreQuery(query.limit(arguments[0])),
-      'limitToLast': (List<dynamic> arguments) => FirestoreQuery(query.limitToLast(arguments[0])),
-      'startAt': (List<dynamic> arguments) => FirestoreQuery(query.startAt(arguments)),
-      'startAfter': (List<dynamic> arguments) => FirestoreQuery(query.startAfter(arguments)),
-      'endBefore': (List<dynamic> arguments) => FirestoreQuery(query.endBefore(arguments)),
-      'endAt': (List<dynamic> arguments) => FirestoreQuery(query.endAt(arguments)),
+      'where': (List<dynamic> arguments) => FirestoreQuery(query.where(
+          arguments[0],
+          isEqualTo: arguments.length > 1 ? arguments[1] : null)),
+      'orderBy': (List<dynamic> arguments) => FirestoreQuery(query.orderBy(
+          arguments[0],
+          descending: arguments.length > 1 ? arguments[1] : false)),
+      'limit': (List<dynamic> arguments) =>
+          FirestoreQuery(query.limit(arguments[0])),
+      'limitToLast': (List<dynamic> arguments) =>
+          FirestoreQuery(query.limitToLast(arguments[0])),
+      'startAt': (List<dynamic> arguments) =>
+          FirestoreQuery(query.startAt(arguments)),
+      'startAfter': (List<dynamic> arguments) =>
+          FirestoreQuery(query.startAfter(arguments)),
+      'endBefore': (List<dynamic> arguments) =>
+          FirestoreQuery(query.endBefore(arguments)),
+      'endAt': (List<dynamic> arguments) =>
+          FirestoreQuery(query.endAt(arguments)),
       'snapshots': () => query.snapshots(),
       'get': () async => await query.get(),
     };
   }
 }
+
 class FirestoreCollectionReference extends FirestoreQuery {
   FirestoreCollectionReference(CollectionReference collectionReference)
       : super(collectionReference);
@@ -74,7 +84,9 @@ class FirestoreCollectionReference extends FirestoreQuery {
     // Add or override with CollectionReference specific getters
     base.addAll({
       'id': () => collection.id,
-      'parent': () => collection.parent != null ? FirestoreDocumentReference(collection.parent!) : null,
+      'parent': () => collection.parent != null
+          ? FirestoreDocumentReference(collection.parent!)
+          : null,
     });
     return base;
   }
@@ -85,7 +97,8 @@ class FirestoreCollectionReference extends FirestoreQuery {
     // Add or override with CollectionReference specific methods
     methods.addAll({
       'add': (Map<String, dynamic> data) async => await collection.add(data),
-      'doc': (String? documentPath) => FirestoreDocumentReference(collection.doc(documentPath)),
+      'doc': (String? documentPath) =>
+          FirestoreDocumentReference(collection.doc(documentPath)),
     });
     return methods;
   }
@@ -115,9 +128,9 @@ class FirestoreGeoPoint with Invokable {
       'distanceTo': (FirestoreGeoPoint other) {
         const double earthRadiusKm = 6371;
         double dLat =
-        _degreesToRadians(other.geoPoint.latitude - geoPoint.latitude);
+            _degreesToRadians(other.geoPoint.latitude - geoPoint.latitude);
         double dLon =
-        _degreesToRadians(other.geoPoint.longitude - geoPoint.longitude);
+            _degreesToRadians(other.geoPoint.longitude - geoPoint.longitude);
         double lat1 = _degreesToRadians(geoPoint.latitude);
         double lat2 = _degreesToRadians(other.geoPoint.latitude);
 

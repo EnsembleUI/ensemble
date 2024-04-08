@@ -187,9 +187,10 @@ class Ensemble {
   String? getAppId(YamlMap yamlMap) {
     return yamlMap['definitions']?['ensemble']?['appId'];
   }
+
   //configure firebase if it has been configured in the config
   static Future<void> initializeAPIProviders(EnsembleConfig config) async {
-    Map<String,APIProvider> providers = {};
+    Map<String, APIProvider> providers = {};
     //from the config.definitionProvider.getAppConfig() get the environmentVariables
     //check if there is an enviroment variable named api_providers
     //if yes, it is a comma separated list of api providers
@@ -203,8 +204,8 @@ class Ensemble {
         List<String> providerList = apiProviders.split(',');
         for (String provider in providerList) {
           String providerConfig = '${provider}_config';
-          Map<String,dynamic> providerConfigMap = {};
-          if ( appConfig.envVariables?[providerConfig] != null ) {
+          Map<String, dynamic> providerConfigMap = {};
+          if (appConfig.envVariables?[providerConfig] != null) {
             try {
               providerConfigMap =
                   json.decode(appConfig.envVariables?[providerConfig]);
@@ -214,7 +215,9 @@ class Ensemble {
           }
           APIProvider? apiProvider = APIProviders.initProvider(provider);
           if (apiProvider != null) {
-            await apiProvider.init(config.definitionProvider.appId??generateRandomString(10), providerConfigMap);
+            await apiProvider.init(
+                config.definitionProvider.appId ?? generateRandomString(10),
+                providerConfigMap);
             providers[provider] = apiProvider;
           }
         }
@@ -222,12 +225,15 @@ class Ensemble {
     }
     config.apiProviders = providers;
   }
+
   static String generateRandomString(int length) {
     const String chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
     math.Random random = math.Random();
 
-    return List.generate(length, (index) => chars[random.nextInt(chars.length)]).join('');
+    return List.generate(length, (index) => chars[random.nextInt(chars.length)])
+        .join('');
   }
+
   void initializeConsoleLogProvider(String? appId) {
     LogProvider provider = ConsoleLogProvider()..init(ensembleAppId: appId);
     LogManager().addProviderForAllLevels(LogType.appAnalytics, provider);
@@ -439,7 +445,7 @@ class EnsembleConfig {
   Account? account;
   Services? services;
   SignInServices? signInServices;
-  Map<String,APIProvider>? apiProviders;
+  Map<String, APIProvider>? apiProviders;
 
   // environment variable overrides
   Map<String, dynamic>? envOverrides;
@@ -597,8 +603,8 @@ class FirebaseConfig {
 
     try {
       if (input is Map) {
-        Map<String, dynamic> lowercaseInput = input.map((key, value) =>
-            MapEntry(key.toString().toLowerCase(), value));
+        Map<String, dynamic> lowercaseInput = input
+            .map((key, value) => MapEntry(key.toString().toLowerCase(), value));
         if (lowercaseInput['ios'] != null) {
           iOSConfig = _getPlatformConfig(lowercaseInput['ios']);
         }

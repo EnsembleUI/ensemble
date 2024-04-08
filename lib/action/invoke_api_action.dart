@@ -80,15 +80,16 @@ class InvokeAPIController {
         dataContext.addDataContext(additionalInputs);
       }
 
-      execute(
-          action, context, scopeManager, scopeManager.pageData.apiMap);
+      execute(action, context, scopeManager, scopeManager.pageData.apiMap);
     }
     throw Exception('Unable to execute API from context');
   }
+
   APIProvider getAPIProvider(BuildContext context, YamlMap apiDefinition) {
     String? provider = apiDefinition['type'];
     return APIProviders.of(context).getProvider(provider);
   }
+
   Future<Response> execute(InvokeAPIAction action, BuildContext context,
       ScopeManager scopeManager, Map<String, YamlMap>? apiMap) async {
     YamlMap? apiDefinition = apiMap?[action.apiName];
@@ -140,20 +141,27 @@ class InvokeAPIController {
                 apiScopeManager);
           }
         }
-        APIProvider apiProvider = getAPIProvider(context,apiDefinition);
+
+        APIProvider apiProvider = getAPIProvider(context, apiDefinition);
         if (AppConfig(context, apiScopeManager.dataContext.getAppId())
                 .isMockResponse() &&
             apiDefinition['mockResponse'] != null) {
           response = await apiProvider.invokeMockAPI(
               apiScopeManager.dataContext, apiDefinition['mockResponse']);
-        } else if (apiDefinition['listenForChanges'] == true && apiProvider is LiveAPIProvider) {
+        } else if (apiDefinition['listenForChanges'] == true &&
+            apiProvider is LiveAPIProvider) {
           response = await (apiProvider as LiveAPIProvider).subscribeToApi(
-              context, apiDefinition, apiScopeManager.dataContext,
+              context,
+              apiDefinition,
+              apiScopeManager.dataContext,
               action.apiName,
               responseListener);
         } else {
-          response = await getAPIProvider(context,apiDefinition).invokeApi(context, apiDefinition,
-              apiScopeManager.dataContext, action.apiName);
+          response = await getAPIProvider(context, apiDefinition).invokeApi(
+              context,
+              apiDefinition,
+              apiScopeManager.dataContext,
+              action.apiName);
         }
         responseListener(response);
         return response;
