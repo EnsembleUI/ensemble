@@ -7,7 +7,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:convert';
 
-
 const firebaseConfig = {
   "web": {
     "apiKey": "AIzaSyAd-VSCqozXsd1FCH4UJy1DxgzTutqPJ2g",
@@ -45,16 +44,20 @@ Map<String, FirebaseOptions> initFirebaseOptions(Map<String, dynamic> config) {
       messagingSenderId: value['messagingSenderId'],
       projectId: value['projectId'],
       authDomain: value.containsKey('authDomain') ? value['authDomain'] : null,
-      storageBucket: value.containsKey('storageBucket') ? value['storageBucket'] : null,
-      measurementId: value.containsKey('measurementId') ? value['measurementId'] : null,
-      iosBundleId: value.containsKey('iosBundleId') ? value['iosBundleId'] : null,
+      storageBucket:
+          value.containsKey('storageBucket') ? value['storageBucket'] : null,
+      measurementId:
+          value.containsKey('measurementId') ? value['measurementId'] : null,
+      iosBundleId:
+          value.containsKey('iosBundleId') ? value['iosBundleId'] : null,
     );
   });
 
   return options;
 }
 
-FirebaseOptions getCurrentPlatformFirebaseOptions(Map<String, FirebaseOptions> options) {
+FirebaseOptions getCurrentPlatformFirebaseOptions(
+    Map<String, FirebaseOptions> options) {
   if (kIsWeb) {
     return options['web']!;
   } else if (Platform.isAndroid) {
@@ -62,7 +65,8 @@ FirebaseOptions getCurrentPlatformFirebaseOptions(Map<String, FirebaseOptions> o
   } else if (Platform.isIOS) {
     return options['ios']!;
   } else {
-    throw UnsupportedError('Your platform is not supported for Firebase Initialization.');
+    throw UnsupportedError(
+        'Your platform is not supported for Firebase Initialization.');
   }
 }
 
@@ -70,14 +74,18 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Step 1: Initialize FirebaseOptions
-  Map<String, FirebaseOptions> firebaseOptions = initFirebaseOptions(firebaseConfig);
+  Map<String, FirebaseOptions> firebaseOptions =
+      initFirebaseOptions(firebaseConfig);
 
   // Step 2: Get the FirebaseOptions for the current platform
-  FirebaseOptions currentPlatformOptions = getCurrentPlatformFirebaseOptions(firebaseOptions);
+  FirebaseOptions currentPlatformOptions =
+      getCurrentPlatformFirebaseOptions(firebaseOptions);
 
   // Initialize Firebase with the selected options
-  FirebaseApp app = await Firebase.initializeApp(options: currentPlatformOptions);
-  FirestoreApp firestore = FirestoreApp(FirebaseFirestore.instanceFor(app: app));
+  FirebaseApp app =
+      await Firebase.initializeApp(options: currentPlatformOptions);
+  FirestoreApp firestore =
+      FirestoreApp(FirebaseFirestore.instanceFor(app: app));
   // await generateTestData(firestore);
   //
   // print('Test data generation complete.');
@@ -92,9 +100,22 @@ void main() async {
 }
 
 Future<void> generateTestData(FirestoreApp apiProvider) async {
-  final List<String> venues = ['Venue A', 'Venue B', 'Venue C', 'Venue D', 'Venue E'];
-  final List<List<String>> teams = List.generate(30, (index) => ['Team ${index * 2 + 1}', 'Team ${index * 2 + 2}']);
-  final List<String> eventNames = ['Goal', 'Red Card', 'Yellow Card', 'Injury', 'Timeout'];
+  final List<String> venues = [
+    'Venue A',
+    'Venue B',
+    'Venue C',
+    'Venue D',
+    'Venue E'
+  ];
+  final List<List<String>> teams = List.generate(
+      30, (index) => ['Team ${index * 2 + 1}', 'Team ${index * 2 + 2}']);
+  final List<String> eventNames = [
+    'Goal',
+    'Red Card',
+    'Yellow Card',
+    'Injury',
+    'Timeout'
+  ];
 
   print('Starting test data generation...');
 
@@ -111,7 +132,8 @@ Future<void> generateTestData(FirestoreApp apiProvider) async {
     for (int j = 0; j < 10; j++) {
       List<String> matchTeams = teams[Random().nextInt(teams.length)];
       String matchVenue = venues[Random().nextInt(venues.length)];
-      DateTime matchTime = DateTime.now().add(Duration(days: Random().nextInt(365)));
+      DateTime matchTime =
+          DateTime.now().add(Duration(days: Random().nextInt(365)));
 
       DocumentReference matchRef = await apiProvider.performAddOperation({
         'path': 'sports/soccer/competitions/$competitionId/matches',
@@ -122,7 +144,8 @@ Future<void> generateTestData(FirestoreApp apiProvider) async {
         },
       });
 
-      int eventsCount = Random().nextInt(1) + 10; // Generating between 100 and 1000 events
+      int eventsCount =
+          Random().nextInt(1) + 10; // Generating between 100 and 1000 events
       for (int k = 0; k < eventsCount; k++) {
         String eventName = eventNames[Random().nextInt(eventNames.length)];
         String teamInvolved = matchTeams[Random().nextInt(matchTeams.length)];
@@ -140,7 +163,8 @@ Future<void> generateTestData(FirestoreApp apiProvider) async {
         };
 
         await apiProvider.performAddOperation({
-          'path': 'sports/soccer/competitions/$competitionId/matches/${matchRef.id}/events',
+          'path':
+              'sports/soccer/competitions/$competitionId/matches/${matchRef.id}/events',
           'data': {
             'name': eventName,
             'payload': payload,
@@ -148,9 +172,9 @@ Future<void> generateTestData(FirestoreApp apiProvider) async {
         });
       }
 
-       // Print progress every 100 matches
-        print('Match $j created for competition: $competitionName with ${eventsCount} events');
-
+      // Print progress every 100 matches
+      print(
+          'Match $j created for competition: $competitionName with ${eventsCount} events');
     }
     print('Finished creating matches for competition: $competitionName');
   }
@@ -159,13 +183,15 @@ Future<void> generateTestData(FirestoreApp apiProvider) async {
 
 Future<void> testUpdateOperation(FirestoreApp apiProvider) async {
   String competitionId = 'comp_1'; // Example for one competition
-  String matchPath = 'sports/soccer/competitions/$competitionId/matches/8c1UXnBgNupqfFVeK7U6';
+  String matchPath =
+      'sports/soccer/competitions/$competitionId/matches/8c1UXnBgNupqfFVeK7U6';
 
   // Fetch the match before update
   dynamic beforeUpdateSnapshot = await apiProvider.performGetOperation({
     'path': matchPath,
   });
-  var beforeUpdateData = (beforeUpdateSnapshot as DocumentSnapshot).data() as Map<String, dynamic>;
+  var beforeUpdateData =
+      (beforeUpdateSnapshot as DocumentSnapshot).data() as Map<String, dynamic>;
   print('Venue before update: ${beforeUpdateData['venue']}');
 
   String time = DateTime.now().toString();
@@ -179,7 +205,8 @@ Future<void> testUpdateOperation(FirestoreApp apiProvider) async {
   dynamic afterUpdateSnapshot = await apiProvider.performGetOperation({
     'path': matchPath,
   });
-  var afterUpdateData = (afterUpdateSnapshot as DocumentSnapshot).data() as Map<String, dynamic>;
+  var afterUpdateData =
+      (afterUpdateSnapshot as DocumentSnapshot).data() as Map<String, dynamic>;
   print('Venue after update: ${afterUpdateData['venue']}');
 
   // Validation
@@ -189,18 +216,22 @@ Future<void> testUpdateOperation(FirestoreApp apiProvider) async {
     print('Update validation failed.');
   }
 }
+
 Future<void> testDeleteOperation(FirestoreApp apiProvider) async {
   String competitionId = 'comp_2'; // Example for one competition
   String matchId = 'UJzdR6ozKzKq8R2SZ5eh';
   String eventId = 'BG0yxqMGcT7KzJDvwo9l';
-  String eventPath = 'sports/soccer/competitions/$competitionId/matches/$matchId/events/$eventId';
+  String eventPath =
+      'sports/soccer/competitions/$competitionId/matches/$matchId/events/$eventId';
 
   // Verify the event exists before deletion
   dynamic beforeDeleteSnapshot = await apiProvider.performGetOperation({
-    'path': 'sports/soccer/competitions/$competitionId/matches/$matchId/events/$eventId'
+    'path':
+        'sports/soccer/competitions/$competitionId/matches/$matchId/events/$eventId'
   });
 
-  if (beforeDeleteSnapshot == null || !(beforeDeleteSnapshot as DocumentSnapshot).exists){
+  if (beforeDeleteSnapshot == null ||
+      !(beforeDeleteSnapshot as DocumentSnapshot).exists) {
     print('Event already does not exist.');
     return;
   }
@@ -210,16 +241,19 @@ Future<void> testDeleteOperation(FirestoreApp apiProvider) async {
 
   // Verify the event does not exist after deletion
   dynamic afterDeleteSnapshot = await apiProvider.performGetOperation({
-    'path': 'sports/soccer/competitions/$competitionId/matches/$matchId/events/$eventId',
+    'path':
+        'sports/soccer/competitions/$competitionId/matches/$matchId/events/$eventId',
   });
 
   // Validation
-  if (afterDeleteSnapshot == null || !(afterDeleteSnapshot as DocumentSnapshot).exists) {
+  if (afterDeleteSnapshot == null ||
+      !(afterDeleteSnapshot as DocumentSnapshot).exists) {
     print('Delete validation successful.');
   } else {
     print('Delete validation failed.');
   }
 }
+
 Future<void> testArrayContainsQuery(FirestoreApp apiProvider) async {
   Map evaluatedApi = {
     'path': 'sports/soccer/competitions/comp_1/matches',
@@ -235,8 +269,10 @@ Future<void> testArrayContainsQuery(FirestoreApp apiProvider) async {
   };
 
   var results = await apiProvider.performGetOperation(evaluatedApi);
-  print("Test Array Contains Query: Found ${results.docs.length} matches with Germany.");
+  print(
+      "Test Array Contains Query: Found ${results.docs.length} matches with Germany.");
 }
+
 Future<void> testOrderByAndLimitQuery(FirestoreApp apiProvider) async {
   Map evaluatedApi = {
     'path': 'sports/soccer/competitions/comp_1/matches',
@@ -249,8 +285,10 @@ Future<void> testOrderByAndLimitQuery(FirestoreApp apiProvider) async {
   };
 
   var results = await apiProvider.performGetOperation(evaluatedApi);
-  print("Test OrderBy and Limit Query: Found ${results.docs.length} matches, ordered by matchTime.");
+  print(
+      "Test OrderBy and Limit Query: Found ${results.docs.length} matches, ordered by matchTime.");
 }
+
 Future<void> testMultipleWhereQuery(FirestoreApp apiProvider) async {
   Map evaluatedApi = {
     'path': 'sports/soccer/competitions/comp_1/matches',
@@ -271,10 +309,12 @@ Future<void> testMultipleWhereQuery(FirestoreApp apiProvider) async {
   };
 
   var results = await apiProvider.performGetOperation(evaluatedApi);
-  print("Test Multiple Where Query: Found ${results.docs.length} matches in Berlin Stadium with Germany.");
+  print(
+      "Test Multiple Where Query: Found ${results.docs.length} matches in Berlin Stadium with Germany.");
 }
 
-Future<void> testCollectionGroupQueryForTeamsWithPerformGetOperation(FirestoreApp apiProvider) async {
+Future<void> testCollectionGroupQueryForTeamsWithPerformGetOperation(
+    FirestoreApp apiProvider) async {
   Map queryMap = {
     'path': 'matches',
     'isCollectionGroup': true,
@@ -294,13 +334,7 @@ Future<void> testCollectionGroupQueryForTeamsWithPerformGetOperation(FirestoreAp
   // Assuming querySnapshot is correctly typed as QuerySnapshot or has a similar structure
   print('Found ${querySnapshot.docs.length} matches with Team 23 or Team 24');
   for (var doc in querySnapshot.docs) {
-    print(doc.data()); // Adjust based on how you wish to output or use the document data
+    print(doc
+        .data()); // Adjust based on how you wish to output or use the document data
   }
 }
-
-
-
-
-
-
-
