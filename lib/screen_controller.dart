@@ -741,17 +741,18 @@ class ScreenController {
     DevMode.screenName = screenName;
     PageType pageType = asModal == true ? PageType.modal : PageType.regular;
     return Screen(
-      key: key,
-      appProvider: AppProvider(
-          definitionProvider: Ensemble().getConfig()!.definitionProvider),
-      screenPayload: ScreenPayload(
-        screenId: screenId,
-        screenName: screenName,
-        pageType: pageType,
-        arguments: pageArgs,
-        isExternal: isExternal,
-      ), apiProviders: APIProviders.clone(Ensemble().getConfig()!.apiProviders??{})
-    );
+        key: key,
+        appProvider: AppProvider(
+            definitionProvider: Ensemble().getConfig()!.definitionProvider),
+        screenPayload: ScreenPayload(
+          screenId: screenId,
+          screenName: screenName,
+          pageType: pageType,
+          arguments: pageArgs,
+          isExternal: isExternal,
+        ),
+        apiProviders:
+            APIProviders.clone(Ensemble().getConfig()!.apiProviders ?? {}));
   }
 
   void executeGetLocationAction(ScopeManager scopeManager,
