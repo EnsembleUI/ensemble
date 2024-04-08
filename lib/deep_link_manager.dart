@@ -10,16 +10,30 @@ import 'package:ensemble/util/utils.dart';
 
 class DeepLinkNavigator {
   /// navigate to screen if the deep link specifies a screenId param
-  void navigateToScreen(Uri uri) {
+  void navigateToScreen(dynamic data) {
+    if (data is Map) {
+      _globalHandler(data);
+    } else if (data is Uri) {
+      _legacyDeepLinkHander(data);
+    }
+  }
+
+  void _globalHandler(dynamic inputs) {
     const key = 'ensemble_deeplink_handler';
     dynamic payload;
     try {
-      final data = {'link': uri};
+      final event = {
+        'data': {
+          'link': inputs,
+        },
+      };
       payload =
-          ScreenController().runGlobalScriptHandler(key, jsonEncode(data));
+          ScreenController().runGlobalScriptHandler(key, jsonEncode(event));
 
       if (payload == null) {
-        _legacyDeepLinkHander(uri);
+        print(
+            'DeepLinkManager: Failed to run global function with data $event');
+        return;
       }
     } on Exception catch (e) {
       print("DeepLinkManager: Error receiving deeplink: $e");
@@ -32,14 +46,14 @@ class DeepLinkNavigator {
 
     final action = NavigateScreenAction.fromMap(payload);
 
-    ScreenController().navigateToScreen(Utils.globalAppKey.currentContext!,
-        screenName: action.screenName,
-        asModal: action.asModal,
-        isExternal: action.isExternal,
-        transition: action.transition,
-        pageArgs: {
-          ...payload,
-        });
+    ScreenController().navigateToScreen(
+      Utils.globalAppKey.currentContext!,
+      screenName: action.screenName,
+      asModal: action.asModal,
+      isExternal: action.isExternal,
+      transition: action.transition,
+      pageArgs: action.payload,
+    );
   }
 
   void _legacyDeepLinkHander(Uri uri) {

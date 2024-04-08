@@ -193,7 +193,7 @@ abstract class BaseNavigateScreenAction extends EnsembleAction {
   Map<String, dynamic>? transition;
   final Map<String, dynamic>? options;
   final bool isExternal;
-  Map? payload;
+  Map<String, dynamic>? payload;
 }
 
 class PlaidLinkAction extends EnsembleAction {
