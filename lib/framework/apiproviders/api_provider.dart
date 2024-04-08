@@ -5,30 +5,24 @@ import 'package:flutter/widgets.dart';
 import 'package:yaml/yaml.dart';
 
 abstract class APIProvider {
-  Future<void> init(String appId, Map<String,dynamic> config);
+  Future<void> init(String appId, Map<String, dynamic> config);
   Future<Response> invokeApi(
-      BuildContext context,
-      YamlMap api,
-      DataContext eContext,
-      String apiName
-      );
-  Future<Response> invokeMockAPI(
-      DataContext eContext, dynamic mock);
+      BuildContext context, YamlMap api, DataContext eContext, String apiName);
+  Future<Response> invokeMockAPI(DataContext eContext, dynamic mock);
   APIProvider clone();
   dispose();
 }
-mixin LiveAPIProvider {
-  Future<Response> subscribeToApi(
-      BuildContext context,
-      YamlMap api,
-      DataContext eContext,
-      String apiName,
-      ResponseListener listener);
-}
-class APIProviders extends InheritedWidget{
-  Map<String,APIProvider> providers;
 
-  APIProviders({super.key, required Widget child,required this.providers}) : super(child: child);
+mixin LiveAPIProvider {
+  Future<Response> subscribeToApi(BuildContext context, YamlMap api,
+      DataContext eContext, String apiName, ResponseListener listener);
+}
+
+class APIProviders extends InheritedWidget {
+  Map<String, APIProvider> providers;
+
+  APIProviders({super.key, required Widget child, required this.providers})
+      : super(child: child);
   APIProvider getProvider(String? provider) {
     if (provider == null) {
       return httpProvider;
@@ -36,17 +30,21 @@ class APIProviders extends InheritedWidget{
       return providers[provider] ?? httpProvider;
     }
   }
-  static Map<String,APIProvider> clone(Map<String,APIProvider> providers) {
-    Map<String,APIProvider> newProviders = {};
+
+  static Map<String, APIProvider> clone(Map<String, APIProvider> providers) {
+    Map<String, APIProvider> newProviders = {};
     providers.forEach((key, value) {
       newProviders[key] = value.clone();
     });
     return newProviders;
   }
-  HTTPAPIProvider get httpProvider => providers['http'] as HTTPAPIProvider? ?? HTTPAPIProvider();
+
+  HTTPAPIProvider get httpProvider =>
+      providers['http'] as HTTPAPIProvider? ?? HTTPAPIProvider();
   static APIProviders of(BuildContext context) {
     return context.dependOnInheritedWidgetOfExactType<APIProviders>()!;
   }
+
   static APIProvider? initProvider(String type) {
     switch (type) {
       case 'http':
@@ -57,9 +55,12 @@ class APIProviders extends InheritedWidget{
         return null;
     }
   }
+
   @override
-  bool updateShouldNotify(covariant APIProviders oldProviders) => oldProviders.providers != providers;
+  bool updateShouldNotify(covariant APIProviders oldProviders) =>
+      oldProviders.providers != providers;
 }
+
 abstract class Response {
   APIState apiState = APIState.idle;
   dynamic body;
@@ -69,6 +70,7 @@ abstract class Response {
   set isOkay(bool value) {
     _isOkay = value;
   }
+
   Map<String, dynamic>? headers;
   int? statusCode;
   String? reasonPhrase;
@@ -76,13 +78,10 @@ abstract class Response {
     apiState = apiState;
   }
 }
+
 typedef ResponseListener = void Function(Response response);
-enum APIState {
-  idle,
-  loading,
-  success,
-  error
-}
+
+enum APIState { idle, loading, success, error }
 
 extension APIStateX on APIState {
   bool get isLoading => this == APIState.loading;

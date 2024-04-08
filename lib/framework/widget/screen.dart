@@ -16,11 +16,15 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:yaml/yaml.dart';
 
 class Screen extends StatefulWidget {
-  const Screen({super.key, required this.appProvider, this.screenPayload, required this.apiProviders});
+  const Screen(
+      {super.key,
+      required this.appProvider,
+      this.screenPayload,
+      required this.apiProviders});
 
   final AppProvider appProvider;
   final ScreenPayload? screenPayload;
-  final Map<String,APIProvider> apiProviders;
+  final Map<String, APIProvider> apiProviders;
 
   @override
   State<Screen> createState() => _ScreenState();
@@ -74,9 +78,12 @@ class _ScreenState extends State<Screen> {
                                 ?.loadingScreenIndicatorColor)));
               }
 
-              return APIProviders(providers: widget.apiProviders??{}, child: renderScreen(snapshot.data!));
+              return APIProviders(
+                  providers: widget.apiProviders ?? {},
+                  child: renderScreen(snapshot.data!));
             });
   }
+
   @override
   void dispose() {
     super.dispose();
@@ -84,6 +91,7 @@ class _ScreenState extends State<Screen> {
       value.dispose();
     });
   }
+
   Widget renderScreen(ScreenDefinition screenDefinition) {
     PageModel pageModel =
         screenDefinition.getModel(widget.screenPayload?.arguments);

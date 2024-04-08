@@ -66,6 +66,7 @@ class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
     }
     firestoreApp = FirestoreApp(firestore);
   }
+
   //we are evaluating ourselves recursively as the key can itself be dynamic and not just the value
   dynamic evaluate(dynamic original, DataContext eContext) {
     if (original == null) return null;
@@ -85,23 +86,24 @@ class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
     }
   }
 
-
-
   @override
-  Future<FirestoreResponse> invokeApi(BuildContext context, YamlMap apiMap, DataContext eContext, String apiName) async {
+  Future<FirestoreResponse> invokeApi(BuildContext context, YamlMap apiMap,
+      DataContext eContext, String apiName) async {
     if (_app == null) {
       throw ArgumentError('Firebase app not initialized');
     }
     Map api = evaluate(apiMap, eContext);
     try {
-      final operation = evaluate(api['operation'], eContext) ?? 'get'; // Default to 'get'
+      final operation =
+          evaluate(api['operation'], eContext) ?? 'get'; // Default to 'get'
 
       switch (operation) {
         case 'get':
           final dynamic snapshot = await firestoreApp.performGetOperation(api);
           return getOKResponse(apiName, snapshot);
         case 'add':
-          final DocumentReference docRef = await firestoreApp.performAddOperation(api);
+          final DocumentReference docRef =
+              await firestoreApp.performAddOperation(api);
           return getOKResponse(apiName, docRef);
         case 'set':
           await firestoreApp.performSetOperation(api);
@@ -113,7 +115,8 @@ class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
           await firestoreApp.performDeleteOperation(api);
           break;
         default:
-          throw UnimplementedError('$operation is not supported in this context.');
+          throw UnimplementedError(
+              '$operation is not supported in this context.');
       }
 
       // For operations that don't inherently return a result (set, update, delete), return a success message
@@ -162,11 +165,11 @@ class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
     );
   }
 
-
   List<Map<String, dynamic>> getDocuments(QuerySnapshot snapshot) {
     return snapshot.docs.map((doc) {
       // Create a new map from the document data
-      Map<String, dynamic> data = convertFirestoreTypes(doc.data() as Map<String, dynamic>);
+      Map<String, dynamic> data =
+          convertFirestoreTypes(doc.data() as Map<String, dynamic>);
       // Add the document ID under a reserved/special key
       data['_documentId'] = doc.id;
       return data;
@@ -186,7 +189,7 @@ class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
         } else if (value is DocumentReference) {
           // Convert DocumentReference to FirestoreReference
           newMap[key] = FirestoreDocumentReference(value);
-        } else if (value is CollectionReference ) {
+        } else if (value is CollectionReference) {
           // Convert CollectionReference to FirestoreCollectionReference
           newMap[key] = FirestoreCollectionReference(value);
         } else if (value is Map<String, dynamic>) {
@@ -204,7 +207,7 @@ class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
             } else if (item is DocumentReference) {
               // Convert DocumentReference to FirestoreReference
               return FirestoreDocumentReference(item);
-            } else if ( item is CollectionReference ) {
+            } else if (item is CollectionReference) {
               // Convert CollectionReference to FirestoreCollectionReference
               return FirestoreCollectionReference(item);
             } else {

@@ -18,14 +18,9 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' as foundation;
 
 class HTTPAPIProvider extends APIProvider {
-
   @override
-  Future<HttpResponse> invokeApi(
-    BuildContext context,
-    YamlMap api,
-    DataContext eContext,
-    String apiName
-  ) async {
+  Future<HttpResponse> invokeApi(BuildContext context, YamlMap api,
+      DataContext eContext, String apiName) async {
     // headers
     Map<String, String> headers = {};
 
@@ -170,11 +165,11 @@ class HTTPAPIProvider extends APIProvider {
       UserAppConfig? appConfig =
           Ensemble().getConfig()?.definitionProvider.getAppConfig();
 
-    // non-Web will need the baseUrl
+      // non-Web will need the baseUrl
       String? baseUrl = appConfig?.baseUrl;
 
-    // on Web we can get the base url from the browser even if baseUrl is not set.
-    // Furthermore if told to use browser url, we'll get it and override the baseUrl
+      // on Web we can get the base url from the browser even if baseUrl is not set.
+      // Furthermore if told to use browser url, we'll get it and override the baseUrl
       if (kIsWeb &&
           (baseUrl == null ||
               baseUrl.isEmpty ||
@@ -227,8 +222,9 @@ class HTTPAPIProvider extends APIProvider {
   }
   @override
   HTTPAPIProvider clone() {
-    return this;//configless so nothing to close
+    return this; //configless so nothing to close
   }
+
   @override
   dispose() {
     // nothing to dispose
@@ -237,17 +233,12 @@ class HTTPAPIProvider extends APIProvider {
 
 /// a wrapper class around the http Response
 class HttpResponse extends Response {
-
-
   HttpResponse.updateState({required apiState}) {
     super.updateState(apiState: apiState);
   }
 // APIState get apiState => _apiState;
   HttpResponse.fromBody(dynamic body,
-      [headers,
-      statusCode,
-      reasonPhrase,
-      apiState = APIState.idle]) {
+      [headers, statusCode, reasonPhrase, apiState = APIState.idle]) {
     super.body = body;
     super.headers = headers;
     super.statusCode = statusCode;

@@ -216,7 +216,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
         }));
   }
 
-  void configureThemes(YamlMap doc, AppConfig config)  {
+  void configureThemes(YamlMap doc, AppConfig config) {
     if (EnsembleThemeManager().initialized) {
       return;
     }
@@ -260,7 +260,8 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
     }
     EnsembleThemeManager().init(context, themes, defaultTheme);
   }
-  Widget renderApp(EnsembleConfig config)  {
+
+  Widget renderApp(EnsembleConfig config) {
     //even of there is no theme passed in, we still call init as thememanager would initialize with default styles
     if (config.appBundle?.theme?['cssStyling'] != false) {
       YamlMap? doc = config.appBundle?.theme;
@@ -295,7 +296,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
           appProvider:
               AppProvider(definitionProvider: config.definitionProvider),
           screenPayload: widget.screenPayload,
-          apiProviders: APIProviders.clone(config.apiProviders??{}),
+          apiProviders: APIProviders.clone(config.apiProviders ?? {}),
         ),
       ),
       useInheritedMediaQuery: widget.isPreview,

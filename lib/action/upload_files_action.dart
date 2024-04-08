@@ -299,7 +299,7 @@ Future<void> _setBackgroundUploadTask({
     if (data.containsKey('responseBody')) {
       final taskId = data['taskId'];
       final response =
-        HttpResponse.fromBody(data['responseBody'], data['responseHeaders']);
+          HttpResponse.fromBody(data['responseBody'], data['responseHeaders']);
       fileResponse?.setBody(taskId, response.body);
       fileResponse?.setHeaders(taskId, response.headers);
       fileResponse?.setStatus(taskId, UploadStatus.completed);
