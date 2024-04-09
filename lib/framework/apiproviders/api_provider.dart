@@ -75,7 +75,7 @@ abstract class Response {
   int? statusCode;
   String? reasonPhrase;
   updateState({required apiState}) {
-    apiState = apiState;
+    this.apiState = apiState;
   }
 }
 
