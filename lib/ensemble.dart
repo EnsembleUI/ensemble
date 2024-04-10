@@ -257,7 +257,8 @@ class Ensemble {
     I18nProps i18nProps = I18nProps(
         yamlMap['i18n']?['defaultLocale'] ?? '',
         yamlMap['i18n']?['fallbackLocale'] ?? 'en',
-        yamlMap['i18n']?['useCountryCode'] ?? false);
+        yamlMap['i18n']?['useCountryCode'] ?? false,
+        forcedLocale: yamlMap['i18n']?['forcedLocale']);
 
     // Ensemble-powered apps
     String? definitionType = yamlMap['definitions']?['from'];
@@ -553,12 +554,16 @@ class ParsedCode {
 }
 
 class I18nProps {
+  // use this locale regardless of User's detected locale
+  String? forcedLocale;
+
   String defaultLocale;
   String fallbackLocale;
   bool useCountryCode;
   late String path;
 
-  I18nProps(this.defaultLocale, this.fallbackLocale, this.useCountryCode);
+  I18nProps(this.defaultLocale, this.fallbackLocale, this.useCountryCode,
+      {this.forcedLocale});
 }
 
 class AppBundle {
