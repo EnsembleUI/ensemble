@@ -32,6 +32,7 @@ abstract class DefinitionProvider {
   bool cacheEnabled = false;
 
   String? appId;
+
   DefinitionProvider(this.i18nProps, {this.cacheEnabled = false});
 
   Future<ScreenDefinition> getDefinition(
@@ -66,7 +67,8 @@ class LocalDefinitionProvider extends DefinitionProvider {
       useCountryCode: false,
       fallbackFile: i18nProps.fallbackLocale,
       basePath: i18nProps.path,
-      forcedLocale: forcedLocale,
+      // use the forcedLocale passed in at the App level, then use the forcedLocale in the config
+      forcedLocale: forcedLocale ?? i18nProps.forcedLocale,
       decodeStrategies: [YamlDecodeStrategy()],
     ));
     return _i18nDelegate!;
