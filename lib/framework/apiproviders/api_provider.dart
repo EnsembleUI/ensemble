@@ -42,10 +42,12 @@ class APIProviders extends InheritedWidget {
   HTTPAPIProvider get httpProvider =>
       providers['http'] as HTTPAPIProvider? ?? HTTPAPIProvider();
   static APIProviders of(BuildContext context) {
-    APIProviders? providers = context.dependOnInheritedWidgetOfExactType<APIProviders>();
-    if ( providers == null) {
+    APIProviders? providers =
+        context.dependOnInheritedWidgetOfExactType<APIProviders>();
+    if (providers == null) {
       //just return http provider for now, this should not happen but we don't want to crash the app
-      return APIProviders(providers: {'http': HTTPAPIProvider()}, child: Container());
+      return APIProviders(
+          providers: {'http': HTTPAPIProvider()}, child: Container());
     }
     return providers!;
   }
