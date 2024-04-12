@@ -102,6 +102,8 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
       ),
     );
 
+    int? selectedIndex = Utils.optionalInt(widget.pageArgs?["viewIndex"],
+        min: 0, max: widget.menu.menuItems.length - 1);
     // init the pages (TODO: need to update if definition changes)
     for (int i = 0; i < widget.menu.menuItems.length; i++) {
       MenuItem menuItem = widget.menu.menuItems[i];
@@ -119,10 +121,17 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
         pageArgs: widget.pageArgs,
         isExternal: menuItem.isExternal,
       ));
-      dynamic selected = _scopeManager.dataContext.eval(menuItem.selected);
-      if (selected == true || selected == 'true') {
-        viewGroupNotifier.updatePage(i, isReload: false);
+      // mark as selected only if selectedIndex is not passed
+      if (selectedIndex == null) {
+        dynamic selected = _scopeManager.dataContext.eval(menuItem.selected);
+        if (selected == true || selected == 'true') {
+          viewGroupNotifier.updatePage(i, isReload: false);
+        }
       }
+    }
+    // select a page if passed via argument
+    if (selectedIndex != null) {
+      viewGroupNotifier.updatePage(selectedIndex, isReload: false);
     }
   }
 
@@ -409,6 +418,7 @@ class ViewGroupNotifier extends ChangeNotifier {
   Map<String, dynamic>? _payload;
 
   int get viewIndex => _viewIndex;
+
   Map<String, dynamic>? get payload => _payload;
 
   void updatePage(int index,
