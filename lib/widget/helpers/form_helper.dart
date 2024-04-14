@@ -34,9 +34,11 @@ class FormFieldController extends WidgetController {
   EdgeInsets? contentPadding;
   bool? filled;
   Color? fillColor;
+
   EBorderRadius? borderRadius;
   int? borderWidth;
   Color? borderColor;
+
   Color? enabledBorderColor;
   Color? disabledBorderColor;
   Color? errorBorderColor;
