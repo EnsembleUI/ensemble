@@ -68,25 +68,6 @@ mixin ThemeLoader {
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8.0))),
       ),
-      checkboxTheme: CheckboxThemeData(
-        side: BorderSide(color: DesignSystem.inputDarkBorder, width: 2),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(4.0),
-        ),
-        checkColor: MaterialStateProperty.resolveWith<Color?>((states) {
-          if (states.contains(MaterialState.disabled)) {
-            return DesignSystem.disableColor;
-          }
-          return DesignSystem.primary;
-        }),
-        fillColor: MaterialStateProperty.resolveWith<Color?>(
-            (Set<MaterialState> states) {
-          if (states.contains(MaterialState.error)) {
-            return DesignSystem.inputErrorColor;
-          }
-          return DesignSystem.inputFillColor;
-        }),
-      ),
       tabBarTheme: TabBarTheme(
         labelColor: DesignSystem.primary,
       ),
@@ -98,7 +79,7 @@ mixin ThemeLoader {
       ),
     );
 
-    final customColorSchema = defaultTheme.colorScheme.copyWith(
+    final customColorScheme = defaultTheme.colorScheme.copyWith(
       primary: Utils.getColor(overrides?['Colors']?['primary']),
       onPrimary: Utils.getColor(overrides?['Colors']?['onPrimary']),
       secondary: Utils.getColor(overrides?['Colors']?['secondary']),
@@ -107,33 +88,30 @@ mixin ThemeLoader {
 
     final customTheme = defaultTheme.copyWith(
       useMaterial3: Utils.getBool(overrides?['material3'], fallback: true),
-      colorScheme: customColorSchema,
+      colorScheme: customColorScheme,
       disabledColor: Utils.getColor(overrides?['Colors']?['disabled']),
       textTheme: _buildTextTheme(overrides?['Text']),
       inputDecorationTheme: _buildInputTheme(overrides?['Widgets']?['Input'],
-          colorScheme: customColorSchema),
+          colorScheme: customColorScheme),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: _buildButtonTheme(overrides?['Widgets']?['Button'],
-                isOutline: true, colorScheme: customColorSchema) ??
+                isOutline: true, colorScheme: customColorScheme) ??
             defaultTheme.outlinedButtonTheme.style,
       ),
       textButtonTheme: TextButtonThemeData(
         style: _buildButtonTheme(overrides?['Widgets']?['Button'],
-                isOutline: true, colorScheme: customColorSchema) ??
+                isOutline: true, colorScheme: customColorScheme) ??
             defaultTheme.outlinedButtonTheme.style,
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: _buildButtonTheme(overrides?['Widgets']?['Button'],
-                isOutline: false, colorScheme: customColorSchema) ??
+                isOutline: false, colorScheme: customColorScheme) ??
             defaultTheme.filledButtonTheme.style,
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(),
       switchTheme: const SwitchThemeData(),
-      checkboxTheme: CheckboxThemeData(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(4.0),
-        ),
-      ),
+      checkboxTheme: _buildCheckboxTheme(
+          overrides?['Widgets']['Checkbox'], customColorScheme),
     );
 
     // extends ThemeData
@@ -408,9 +386,71 @@ mixin ThemeLoader {
     }
   }
 
+  CheckboxThemeData _buildCheckboxTheme(
+      YamlMap? input, ColorScheme colorSchema) {
+    Color borderColor =
+        Utils.getColor(input?['borderColor']) ?? colorSchema.onSurface;
+    Color? fillColor = Utils.getColor(input?["fillColor"]);
+    Color? activeColor = Utils.getColor(input?["activeColor"]);
+    Color? checkColor = Utils.getColor(input?["checkColor"]);
+    int borderWidth = Utils.optionalInt(input?['borderWidth'], min: 0) ?? 2;
+
+    var checkboxTheme = CheckboxThemeData(
+      side: MaterialStateBorderSide.resolveWith((states) {
+        if (states.contains(MaterialState.disabled)) {
+          return BorderSide(
+              width: borderWidth.toDouble(), color: DesignSystem.disableColor);
+        }
+        if (!states.contains(MaterialState.selected) &&
+            !states.contains(MaterialState.error)) {
+          return BorderSide(width: borderWidth.toDouble(), color: borderColor);
+        }
+        // use default
+        return null;
+      }),
+      shape: RoundedRectangleBorder(
+          borderRadius:
+              Utils.getBorderRadius(input?['borderRadius'])?.getValue() ??
+                  BorderRadius.circular(4)),
+      checkColor: checkColor == null
+          ? null
+          : MaterialStateProperty.resolveWith<Color?>(
+              (Set<MaterialState> states) {
+              if (states.contains(MaterialState.disabled)) {
+                return DesignSystem.disableColor;
+              }
+              return states.contains(MaterialState.selected)
+                  ? checkColor
+                  : null;
+            }),
+      fillColor: MaterialStateProperty.resolveWith<Color?>(
+          (Set<MaterialState> states) {
+        // default non-selected state
+        if (states.isEmpty && fillColor != null) {
+          return fillColor;
+        }
+        if (states.contains(MaterialState.selected) && activeColor != null) {
+          return activeColor;
+        }
+        return null;
+      }),
+    );
+    checkboxTheme.size = Utils.optionalInt(input?["size"]);
+    return checkboxTheme;
+  }
+
   ///------------  publicly available theme getters -------------
   BorderRadius getInputDefaultBorderRadius(InputVariant? variant) =>
       BorderRadius.all(Radius.circular(variant == InputVariant.box ? 8 : 0));
+}
+
+// add more data to checkbox theme
+extension CheckboxThemeDataExtension on CheckboxThemeData {
+  static int? _size;
+
+  set size(int? value) => _size = value;
+
+  int? get size => _size;
 }
 
 /// extend Theme to add our own special color parameters
@@ -451,3 +491,5 @@ class EnsembleThemeExtension extends ThemeExtension<EnsembleThemeExtension> {
 }
 
 enum InputVariant { box, underline }
+
+enum WidgetVariant { cupertino, material }
