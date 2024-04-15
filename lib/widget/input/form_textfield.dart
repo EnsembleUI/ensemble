@@ -12,6 +12,7 @@ import 'package:ensemble/util/debouncer.dart';
 import 'package:ensemble/util/input_formatter.dart';
 import 'package:ensemble/util/input_validator.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/HasTextPlaceholder.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
@@ -116,13 +117,16 @@ abstract class BaseTextInput extends StatefulWidget
 
   @override
   Map<String, Function> getters() {
-    return {'value': () => textController.text ?? ''};
+    var getters = _controller.textPlaceholderGetters;
+    getters.addAll({'value': () => textController.text ?? ''});
+    return getters;
   }
 
   @override
   Map<String, Function> setters() {
+    var setters = _controller.textPlaceholderSetters;
     // set value is not specified here for safety in case of PasswordInput
-    return {
+    setters.addAll({
       'validateOnUserInteraction': (value) => _controller
               .validateOnUserInteraction =
           Utils.getBool(value, fallback: _controller.validateOnUserInteraction),
@@ -152,8 +156,8 @@ abstract class BaseTextInput extends StatefulWidget
       'maxLines': (value) =>
           _controller.maxLines = Utils.optionalInt(value, min: 1),
       'textStyle': (style) => _controller.textStyle = Utils.getTextStyle(style),
-      'hintStyle': (style) => _controller.hintStyle = Utils.getTextStyle(style),
-    };
+    });
+    return setters;
   }
 
   @override
@@ -197,7 +201,7 @@ mixin TextInputFieldAction on FormFieldWidgetState<BaseTextInput> {
 }
 
 /// controller for both TextField and Password
-class TextInputController extends FormFieldController {
+class TextInputController extends FormFieldController with HasTextPlaceholder {
   TextInputFieldAction? inputFieldAction;
   EnsembleAction? onChange;
   EnsembleAction? onKeyPress;
@@ -224,7 +228,6 @@ class TextInputController extends FormFieldController {
   String? inputType;
   String? mask;
   TextStyle? textStyle;
-  TextStyle? hintStyle;
 
   bool? multiline;
   int? minLines;
@@ -358,17 +361,14 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
 
   @override
   Widget buildWidget(BuildContext context) {
-    // for password, show the toggle plain text/obscure text
-    InputDecoration decoration = inputDecoration.copyWith(
-      hintStyle: widget._controller.hintStyle,
-    );
-
+    InputDecoration decoration = inputDecoration;
     if (widget._controller.floatLabel == true) {
       decoration = decoration.copyWith(
         labelText: widget._controller.label,
       );
     }
 
+    // for password, show the toggle plain text/obscure text
     if ((widget.isPassword() || widget._controller.obscureText == true) &&
         widget._controller.obscureToggle == true) {
       decoration = decoration.copyWith(

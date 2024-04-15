@@ -9,7 +9,9 @@ import 'package:ensemble/layout/form.dart';
 import 'package:ensemble/layout/form.dart' as ensemble;
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/HasTextPlaceholder.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:ensemble/widget/input/form_textfield.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 
@@ -22,7 +24,6 @@ class FormFieldController extends WidgetController {
   TextStyle? floatingLabelStyle;
 
   String? description;
-  String? hintText;
 
   bool? enabled;
   bool required = false;
@@ -90,7 +91,6 @@ class FormFieldController extends WidgetController {
       'labelText': (value) => labelText = Utils.optionalString(value),
       'labelHint': (value) => labelHint = Utils.optionalString(value),
       'description': (value) => description = Utils.optionalString(value),
-      'hintText': (value) => hintText = Utils.optionalString(value),
     });
     return setters;
   }
@@ -190,7 +190,12 @@ abstract class FormFieldWidgetState<W extends HasController>
           filled: filled,
           fillColor: myController.fillColor,
           // labelText: shouldShowLabel() ? myController.label : null,
-          hintText: myController.hintText,
+          hintText: myController is HasTextPlaceholder
+              ? myController.placeholder ?? myController.hintText
+              : null,
+          hintStyle: myController is HasTextPlaceholder
+              ? myController.placeholderStyle ?? myController.hintStyle
+              : null,
           prefixIcon: myController.icon == null
               ? null
               : framework.Icon(
@@ -246,15 +251,14 @@ abstract class FormFieldWidgetState<W extends HasController>
                   borderRadius: borderRadius,
                   borderColor: myController.focusedBorderColor ??
                       themeDecoration.focusedBorder?.borderSide.color),
-          focusedErrorBorder:
-              myController.focusedErrorBorderColor == null && !redrawAllBorders
-                  ? null
-                  : ThemeManager().getInputBorder(
-                      variant: variant,
-                      borderWidth: borderWidth,
-                      borderRadius: borderRadius,
-                      borderColor: myController.focusedErrorBorderColor ??
-                          themeDecoration.focusedErrorBorder?.borderSide.color),
+          focusedErrorBorder: myController.focusedErrorBorderColor == null && !redrawAllBorders
+              ? null
+              : ThemeManager().getInputBorder(
+                  variant: variant,
+                  borderWidth: borderWidth,
+                  borderRadius: borderRadius,
+                  borderColor: myController.focusedErrorBorderColor ??
+                      themeDecoration.focusedErrorBorder?.borderSide.color),
           labelStyle: myController.labelStyle,
           floatingLabelStyle: myController.floatingLabelStyle);
     }
