@@ -403,7 +403,8 @@ mixin ThemeLoader {
         }
         if (states.contains(MaterialState.error)) {
           return BorderSide(
-              width: borderWidth.toDouble(), color: DesignSystem.inputErrorColor);
+              width: borderWidth.toDouble(),
+              color: DesignSystem.inputErrorColor);
         }
         if (!states.contains(MaterialState.selected)) {
           return BorderSide(width: borderWidth.toDouble(), color: borderColor);
@@ -432,7 +433,8 @@ mixin ThemeLoader {
           return activeColor;
         }
         // use the default color
-        if (states.contains(MaterialState.error) || states.contains(MaterialState.disabled)) {
+        if (states.contains(MaterialState.error) ||
+            states.contains(MaterialState.disabled)) {
           return null;
         }
         // fillColor if specified should be the same for most states
