@@ -108,7 +108,7 @@ class CheckboxState extends FormFieldWidgetState<EnsembleCheckbox> {
     children.add(buildCheckbox(context));
 
     if (widget._controller.trailingText != null) {
-      children.add(Expanded(
+      children.add(Flexible(
           child: Text(
         widget._controller.trailingText!,
         style: formFieldTextStyle,
@@ -139,7 +139,9 @@ class CheckboxState extends FormFieldWidgetState<EnsembleCheckbox> {
                 focusedBorder: InputBorder.none,
                 errorText: field.errorText),
             child: Row(
-                mainAxisAlignment: MainAxisAlignment.start, children: children),
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: children),
           );
         },
       ),
@@ -194,10 +196,14 @@ class CheckboxState extends FormFieldWidgetState<EnsembleCheckbox> {
     if (widget._controller.size != null || theme.checkboxTheme.size != null) {
       int newSize = (widget._controller.size ?? theme.checkboxTheme.size)!;
       if (newSize != Checkbox.width.toInt()) {
-        checkbox = Transform.scale(
-          scale: newSize / Checkbox.width,
-          child: checkbox,
-        );
+        // SizedBox around Transform to ensure correct spacing
+        checkbox = SizedBox(
+            width: newSize.toDouble(),
+            height: newSize.toDouble(),
+            child: Transform.scale(
+              scale: newSize / Checkbox.width,
+              child: checkbox,
+            ));
       }
     }
     return checkbox;
