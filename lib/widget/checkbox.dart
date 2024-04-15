@@ -37,21 +37,20 @@ class EnsembleCheckbox extends StatefulWidget
   Map<String, Function> setters() {
     return {
       'value': (value) =>
-      _controller.value = Utils.getBool(value, fallback: false),
+          _controller.value = Utils.getBool(value, fallback: false),
       'leadingText': (text) =>
-      _controller.leadingText = Utils.optionalString(text),
+          _controller.leadingText = Utils.optionalString(text),
       'trailingText': (text) =>
-      _controller.trailingText = Utils.optionalString(text),
+          _controller.trailingText = Utils.optionalString(text),
       'size': (value) => _controller.size = Utils.optionalInt(value, min: 0),
-      'onChange': (definition) =>
-      _controller.onChange =
+      'onChange': (definition) => _controller.onChange =
           framework.EnsembleAction.fromYaml(definition, initiator: this),
 
       // deprecated - for backward compatible
       'selectedColor': (color) =>
-      _controller.selectedColor = Utils.getColor(color),
+          _controller.selectedColor = Utils.getColor(color),
       'unSelectedColor': (color) =>
-      _controller.unSelectedColor = Utils.getColor(color),
+          _controller.unSelectedColor = Utils.getColor(color),
 
       // borderColor/fillColor is on super controller
       'activeColor': (color) => _controller.activeColor = Utils.getColor(color),
@@ -101,9 +100,9 @@ class CheckboxState extends FormFieldWidgetState<EnsembleCheckbox> {
     if (widget._controller.leadingText != null) {
       children.add(Flexible(
           child: Text(
-            widget._controller.leadingText!,
-            style: formFieldTextStyle,
-          )));
+        widget._controller.leadingText!,
+        style: formFieldTextStyle,
+      )));
     }
 
     children.add(buildCheckbox(context));
@@ -111,9 +110,9 @@ class CheckboxState extends FormFieldWidgetState<EnsembleCheckbox> {
     if (widget._controller.trailingText != null) {
       children.add(Expanded(
           child: Text(
-            widget._controller.trailingText!,
-            style: formFieldTextStyle,
-          )));
+        widget._controller.trailingText!,
+        style: formFieldTextStyle,
+      )));
     }
 
     // wraps around FormField to get all the form effects
@@ -163,33 +162,32 @@ class CheckboxState extends FormFieldWidgetState<EnsembleCheckbox> {
         side: MaterialStateBorderSide.resolveWith((states) {
           if (!states.contains(MaterialState.selected) &&
               !states.contains(MaterialState.disabled) &&
-              !states.contains(MaterialState.error)
-          ) {
-          return BorderSide(width: borderWidth.toDouble(), color: borderColor);
+              !states.contains(MaterialState.error)) {
+            return BorderSide(
+                width: borderWidth.toDouble(), color: borderColor);
           }
           // fallback to theme, which fallback to default
-          return
-          null;
+          return null;
         }),
         shape: widget._controller.borderRadius == null
             ? null
             : RoundedRectangleBorder(
-            borderRadius: widget._controller.borderRadius!.getValue(),
-            side: BorderSide(
-                width: borderWidth.toDouble(), color: borderColor)),
+                borderRadius: widget._controller.borderRadius!.getValue(),
+                side: BorderSide(
+                    width: borderWidth.toDouble(), color: borderColor)),
         activeColor: activeColor,
         checkColor: widget._controller.checkColor,
         fillColor: MaterialStateProperty.resolveWith<Color?>(
-                (Set<MaterialState> states) {
-              // show the fillColor when not in any states
-              if (widget._controller.fillColor != null && states.isEmpty) {
-                return widget._controller.fillColor;
-              }
-              return null;
-            }),
+            (Set<MaterialState> states) {
+          // show the fillColor when not in any states
+          if (widget._controller.fillColor != null && states.isEmpty) {
+            return widget._controller.fillColor;
+          }
+          return null;
+        }),
         value: widget._controller.value,
         onChanged:
-        isEnabled() ? (bool? value) => onToggle(value ?? false) : null);
+            isEnabled() ? (bool? value) => onToggle(value ?? false) : null);
 
     // if the size is specified and different than the default size, need to scale it
     if (widget._controller.size != null || theme.checkboxTheme.size != null) {
