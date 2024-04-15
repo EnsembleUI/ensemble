@@ -179,11 +179,12 @@ class CheckboxState extends FormFieldWidgetState<EnsembleCheckbox> {
         checkColor: widget._controller.checkColor,
         fillColor: MaterialStateProperty.resolveWith<Color?>(
             (Set<MaterialState> states) {
-          // show the fillColor when not in any states
-          if (widget._controller.fillColor != null && states.isEmpty) {
-            return widget._controller.fillColor;
+          if (states.contains(MaterialState.selected) ||
+              states.contains(MaterialState.error) ||
+              states.contains(MaterialState.disabled)) {
+            return null;
           }
-          return null;
+          return widget._controller.fillColor;
         }),
         value: widget._controller.value,
         onChanged:

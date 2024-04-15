@@ -111,7 +111,7 @@ mixin ThemeLoader {
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(),
       switchTheme: const SwitchThemeData(),
       checkboxTheme: _buildCheckboxTheme(
-          overrides?['Widgets']['Checkbox'], customColorScheme),
+          overrides?['Widgets']?['Checkbox'], customColorScheme),
     );
 
     // extends ThemeData
@@ -401,8 +401,11 @@ mixin ThemeLoader {
           return BorderSide(
               width: borderWidth.toDouble(), color: DesignSystem.disableColor);
         }
-        if (!states.contains(MaterialState.selected) &&
-            !states.contains(MaterialState.error)) {
+        if (states.contains(MaterialState.error)) {
+          return BorderSide(
+              width: borderWidth.toDouble(), color: DesignSystem.inputErrorColor);
+        }
+        if (!states.contains(MaterialState.selected)) {
           return BorderSide(width: borderWidth.toDouble(), color: borderColor);
         }
         // use default
@@ -425,14 +428,15 @@ mixin ThemeLoader {
             }),
       fillColor: MaterialStateProperty.resolveWith<Color?>(
           (Set<MaterialState> states) {
-        // default non-selected state
-        if (states.isEmpty && fillColor != null) {
-          return fillColor;
-        }
-        if (states.contains(MaterialState.selected) && activeColor != null) {
+        if (states.contains(MaterialState.selected)) {
           return activeColor;
         }
-        return null;
+        // use the default color
+        if (states.contains(MaterialState.error) || states.contains(MaterialState.disabled)) {
+          return null;
+        }
+        // fillColor if specified should be the same for most states
+        return fillColor;
       }),
     );
     checkboxTheme.size = Utils.optionalInt(input?["size"]);
