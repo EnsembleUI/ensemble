@@ -10,6 +10,7 @@ import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/HasTextPlaceholder.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -47,9 +48,11 @@ abstract class SelectOne extends StatefulWidget
 
   @override
   Map<String, Function> getters() {
-    return {
+    var getters = _controller.textPlaceholderGetters;
+    getters.addAll({
       'value': () => getValue(),
-    };
+    });
+    return getters;
   }
 
   void setItemsFromString(dynamic strValues, [dynamic delimiter = ',']) {
@@ -68,7 +71,8 @@ abstract class SelectOne extends StatefulWidget
 
   @override
   Map<String, Function> setters() {
-    return {
+    var setters = _controller.textPlaceholderSetters;
+    setters.addAll({
       'value': (value) => _controller.maybeValue = value,
       'items': (values) => updateItems(values),
       'onChange': (definition) => _controller.onChange =
@@ -93,7 +97,8 @@ abstract class SelectOne extends StatefulWidget
           _controller.dropdownMaxHeight = Utils.optionalInt(value, min: 0),
       'itemTemplate': (itemTemplate) => _setItemTemplate(itemTemplate),
       'createNewItem': (value) => _setCreateNewItem(value),
-    };
+    });
+    return setters;
   }
 
   void _setCreateNewItem(dynamic input) {
@@ -237,7 +242,7 @@ mixin SelectOneInputFieldAction on FormFieldWidgetState<SelectOne> {
   void unfocusInputField();
 }
 
-class SelectOneController extends FormFieldController {
+class SelectOneController extends FormFieldController with HasTextPlaceholder {
   SelectOneInputFieldAction? inputFieldAction;
   List<SelectOneItem>? items;
 
@@ -341,6 +346,9 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
       }
     }
 
+    String? placeholder =
+        widget._controller.placeholder ?? widget._controller.hintText;
+
     return DropdownButtonFormField2<dynamic>(
         key: validatorKey,
         validator: (value) {
@@ -350,9 +358,9 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
           }
           return null;
         },
-        hint: widget._controller.hintText == null
+        hint: placeholder == null
             ? null
-            : Text(widget._controller.hintText!),
+            : Text(placeholder, style: widget._controller.placeholderStyle),
         value: widget.getValue(),
         items: buildItems(widget._controller.items,
             widget._controller.itemTemplate, dataList),
