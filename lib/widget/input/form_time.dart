@@ -1,24 +1,23 @@
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/event.dart';
-import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/HasTextPlaceholder.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
-import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:intl/intl.dart';
 import 'package:ensemble/util/extensions.dart';
 
 class Time extends StatefulWidget
     with Invokable, HasController<TimeController, TimeState> {
   static const type = 'Time';
+
   Time({Key? key}) : super(key: key);
 
   final TimeController _controller = TimeController();
+
   @override
   TimeController get controller => _controller;
 
@@ -27,9 +26,11 @@ class Time extends StatefulWidget
 
   @override
   Map<String, Function> getters() {
-    return {
+    var getters = _controller.textPlaceholderGetters;
+    getters.addAll({
       'value': () => _controller.value?.toIso8601TimeString(),
-    };
+    });
+    return getters;
   }
 
   @override
@@ -39,19 +40,27 @@ class Time extends StatefulWidget
 
   @override
   Map<String, Function> setters() {
-    return {
+    var setters = _controller.textPlaceholderSetters;
+    setters.addAll({
       'initialValue': (value) =>
           _controller.initialValue = Utils.getTimeOfDay(value),
       'onChange': (definition) => _controller.onChange =
           EnsembleAction.fromYaml(definition, initiator: this)
-    };
+    });
+    return setters;
   }
 }
 
-class TimeController extends FormFieldController {
+class TimeController extends FormFieldController with HasTextPlaceholder {
   TimeOfDay? value;
-  String prettyValue(BuildContext context) {
-    return value?.format(context) ?? hintText ?? 'Select a time';
+
+  Text prettyValue(BuildContext context) {
+    if (value != null) {
+      return Text(value!.format(context),
+          style: TextStyle(fontSize: fontSize?.toDouble()));
+    } else {
+      return Text(placeholder ?? 'Select a time', style: placeholderStyle);
+    }
   }
 
   TimeOfDay? initialValue;
@@ -126,8 +135,7 @@ class TimeState extends FormFieldWidgetState<Time> {
       children: [
         const Icon(Icons.alarm, color: Colors.black54),
         const SizedBox(width: 5),
-        Text(widget._controller.prettyValue(context),
-            style: TextStyle(fontSize: widget._controller.fontSize?.toDouble()))
+        widget._controller.prettyValue(context)
       ],
     );
     if (!isEnabled()) {
