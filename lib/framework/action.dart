@@ -157,6 +157,9 @@ class NavigateViewGroupAction extends EnsembleAction {
         // TODO: this is wrong. Can't mutate the scope like this
         scopeManager.dataContext.addDataContext(payload);
       }
+      // TODO: refactor the below. Both are needed when reloadView=false, but only
+      //  viewGroupNotifier is needed without. Doesn't make any sense
+      PageGroupWidget.getPageController(context)?.jumpToPage(viewIndex);
       viewGroupNotifier.updatePage(viewIndex, payload: payload);
     }
     return Future.value(null);
