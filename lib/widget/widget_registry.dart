@@ -17,6 +17,7 @@ import 'package:ensemble/module/location_module.dart';
 import 'package:ensemble/widget/Toggle.dart';
 import 'package:ensemble/widget/address.dart';
 import 'package:ensemble/widget/avatar.dart';
+import 'package:ensemble/widget/bracket.dart';
 import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/calendar.dart';
 import 'package:ensemble/widget/checkbox.dart';
@@ -80,6 +81,7 @@ class WidgetRegistry {
     Avatar.type: Avatar.build,
     Shape.type: Shape.build,
     StaticMap.type: StaticMap.build,
+    Bracket.type: Bracket.build,
   };
 
   /// register or override a widget
