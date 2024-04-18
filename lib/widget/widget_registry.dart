@@ -11,6 +11,7 @@ import 'package:ensemble/layout/form.dart';
 import 'package:ensemble/layout/grid_view.dart';
 import 'package:ensemble/layout/list_view.dart';
 import 'package:ensemble/layout/stack.dart';
+import 'package:ensemble/layout/tab/scrollable_tab_bar.dart';
 import 'package:ensemble/layout/tab_bar.dart';
 import 'package:ensemble/layout/toggle_container.dart';
 import 'package:ensemble/module/location_module.dart';
@@ -167,6 +168,7 @@ class WidgetRegistry {
         EnsembleDataRow.type: () => EnsembleDataRow(),
         TabBarOnly.type: () => TabBarOnly(),
         TabBarContainer.type: () => TabBarContainer(),
+        ScrollableTabBar.type: () => ScrollableTabBar(),
         AppScroller.type: () => AppScroller(),
         LoadingContainer.type: () => LoadingContainer(),
 
