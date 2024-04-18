@@ -1,10 +1,13 @@
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/layout/tab/base_tab_bar.dart';
 import 'package:ensemble/layout/tab/tab_bar_controller.dart';
 import 'package:ensemble/layout/tab_bar.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'dart:developer';
+import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 
 class ScrollableTabBar extends BaseTabBar {
   static const type = 'ScrollableTabBar';
@@ -19,17 +22,56 @@ class ScrollableTabBar extends BaseTabBar {
 
   @override
   Map<String, Function> getters() {
-    return {};
+    return {
+      'selectedIndex': () => _controller.selectedIndex,
+    };
   }
 
   @override
   Map<String, Function> methods() {
-    return {};
+    return {
+      'changeTabItem': (index) => _controller.tabBarAction?.changeTab(index),
+    };
   }
 
   @override
   Map<String, Function> setters() {
-    return {};
+    return {
+      'id': (value) => _controller.id = Utils.optionalString(value),
+      'tabPosition': (position) =>
+          _controller.tabPosition = Utils.optionalString(position),
+      'tabAlignment': (alignment) =>
+          _controller.tabAlignment = Utils.optionalString(alignment),
+      'indicatorSize': (type) =>
+          _controller.indicatorSize = Utils.optionalString(type),
+      'margin': (margin) => _controller.margin = Utils.optionalInsets(margin),
+      'tabPadding': (padding) =>
+          _controller.tabPadding = Utils.optionalInsets(padding),
+      'tabFontSize': (fontSize) =>
+          _controller.tabFontSize = Utils.optionalInt(fontSize),
+      'tabFontWeight': (fontWeight) =>
+          _controller.tabFontWeight = Utils.getFontWeight(fontWeight),
+      'tabBackgroundColor': (bgColor) =>
+          _controller.tabBackgroundColor = Utils.getColor(bgColor),
+      'activeTabColor': (color) =>
+          _controller.activeTabColor = Utils.getColor(color),
+      'inactiveTabColor': (color) =>
+          _controller.inactiveTabColor = Utils.getColor(color),
+      'activeTabBackgroundColor': (color) =>
+          _controller.activeTabBackgroundColor = Utils.getColor(color),
+      'dividerColor': (color) =>
+          _controller.dividerColor = Utils.getColor(color),
+      'indicatorColor': (color) =>
+          _controller.indicatorColor = Utils.getColor(color),
+      'indicatorThickness': (thickness) =>
+          _controller.indicatorThickness = Utils.optionalInt(thickness),
+      'selectedIndex': (index) =>
+          _controller.selectedIndex = Utils.getInt(index, min: 0, fallback: 0),
+      'onTabSelection': (action) => _controller.onTabSelection =
+          EnsembleAction.fromYaml(action, initiator: this),
+      'onTabSelectionHaptic': (value) =>
+          _controller.onTabSelectionHaptic = Utils.optionalString(value),
+    };
   }
 }
 
@@ -161,4 +203,25 @@ class ScrollableTabBarState extends BaseTabBarState {
               controller: _scrollController, slivers: tabWidgets))
     ]);
   }
+
+// @override
+// Widget buildTabBar() {
+//   return TabBar(
+//       controller: tabController,
+//       onTap: onTabChanged,
+//       tabs: widget.controller.items.map((tabItem) {
+//         return Tab(
+//           icon: tabItem.icon == null
+//               ? null
+//               : ensemble.Icon.fromModel(tabItem.icon!),
+//           text: tabItem.label,
+//         );
+//       }).toList(),
+//
+//       tabAlignment: TabAlignment.startOffset,
+//       isScrollable: true,
+//
+//
+//   );
+// }
 }
