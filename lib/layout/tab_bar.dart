@@ -8,7 +8,9 @@ import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/framework/widget/widget.dart';
-import 'package:ensemble/framework/widget/icon.dart' as ensemble;
+
+import 'package:ensemble/layout/tab/base_tab_bar.dart';
+import 'package:ensemble/layout/tab/tab_bar_controller.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
@@ -49,7 +51,7 @@ abstract class BaseTabBar extends StatefulWidget
   @override
   Map<String, Function> methods() {
     return {
-      'changeTabItem': (index) => _controller.tabBarAction?.onTabChange(index),
+      'changeTabItem': (index) => _controller.tabBarAction?.changeTab(index),
     };
   }
 
@@ -90,80 +92,34 @@ abstract class BaseTabBar extends StatefulWidget
           EnsembleAction.fromYaml(action, initiator: this),
       'onTabSelectionHaptic': (value) =>
           _controller.onTabSelectionHaptic = Utils.optionalString(value),
-      'items': (items) => _controller.items = items,
     };
   }
 }
 
-class TabBarController extends BoxController {
-  String? tabPosition;
-  String? tabAlignment;
-  String? indicatorSize;
-  String? tabType;
-  EdgeInsets? tabPadding;
-  int? tabFontSize;
-  FontWeight? tabFontWeight;
-  Color? tabBackgroundColor;
-  Color? activeTabColor;
-  Color? inactiveTabColor;
-  Color? activeTabBackgroundColor;
-  Color? indicatorColor;
-  Color? dividerColor;
-  int? indicatorThickness;
-
-  EnsembleAction? onTabSelection;
-  String? onTabSelectionHaptic;
-  TabBarAction? tabBarAction;
-
-  int selectedIndex = 0;
-  final List<TabItem> _items = [];
-
-  set items(dynamic items) {
-    if (items is YamlList) {
-      for (YamlMap item in items) {
-        _items.add(TabItem(
-          Utils.getString(item['label'], fallback: ''),
-          item['widget'] ??
-              item['body'], // item['body'] for backward compatibility
-          item['tabItem'],
-          icon: Utils.getIcon(item['icon']),
-        ));
-      }
-    }
-  }
-}
-
-mixin TabBarAction on WidgetState<BaseTabBar> {
-  void onTabChange(int index);
-}
-
-class TabBarState extends WidgetState<BaseTabBar>
-    with SingleTickerProviderStateMixin, TabBarAction {
-  late final TabController _tabController;
-
+class TabBarState extends BaseTabBarState {
   @override
   void initState() {
     // ensure the selectedIndex is valid, otherwise reset
-    if (widget._controller.selectedIndex >= widget._controller._items.length) {
+    if (widget._controller.selectedIndex >= widget._controller.items.length) {
       widget._controller.selectedIndex = 0;
     }
-    _tabController = TabController(
+    tabController = TabController(
         initialIndex: widget._controller.selectedIndex,
-        length: widget._controller._items.length,
+        length: widget._controller.items.length,
         vsync: this);
-    _tabController.addListener(notifyListener);
+    tabController.addListener(notifyListener);
     super.initState();
   }
 
   void notifyListener() {
     ScopeManager? scopeManager = ScreenController().getScopeManager(context);
-    if (widget._controller.selectedIndex == _tabController.index ||
+    if (widget._controller.selectedIndex == tabController.index ||
         scopeManager == null ||
         widget._controller.id == null) return;
     scopeManager.dispatch(
       ModelChangeEvent(
         WidgetBindingSource(widget._controller.id!, property: 'selectedIndex'),
-        _tabController.index,
+        tabController.index,
         bindingScope: scopeManager,
       ),
     );
@@ -171,8 +127,8 @@ class TabBarState extends WidgetState<BaseTabBar>
 
   @override
   void dispose() {
-    _tabController.removeListener(notifyListener);
-    _tabController.dispose();
+    tabController.removeListener(notifyListener);
+    tabController.dispose();
     super.dispose();
   }
 
@@ -188,12 +144,37 @@ class TabBarState extends WidgetState<BaseTabBar>
     widget.controller.tabBarAction = this;
   }
 
+  // extra logic when a tab has been changed
   @override
-  void onTabChange(int index) {
+  void onTabChanged(int index) {
+    if (widget.controller.selectedIndex == index) {
+      return;
+    }
+    setState(() {
+      widget.controller.selectedIndex = index;
+    });
+    if (widget.controller.onTabSelection != null) {
+      if (widget.controller.onTabSelectionHaptic != null) {
+        ScreenController().executeAction(
+          context,
+          HapticAction(
+            type: widget.controller.onTabSelectionHaptic!,
+            onComplete: null,
+          ),
+        );
+      }
+      ScreenController()
+          .executeAction(context, widget.controller.onTabSelection!);
+    }
+  }
+
+  // request to change tab programmatically
+  @override
+  void changeTab(int index) {
     if (widget._controller.selectedIndex == index) {
       return;
     }
-    _tabController.animateTo(index);
+    tabController.animateTo(index);
     setState(() {
       widget._controller.selectedIndex = index;
     });
@@ -202,7 +183,7 @@ class TabBarState extends WidgetState<BaseTabBar>
   /// override to handle Expanded properly
   @override
   Widget build(BuildContext context) {
-    if (widget._controller._items.isEmpty) {
+    if (widget._controller.items.isEmpty) {
       return const SizedBox.shrink();
     }
 
@@ -264,141 +245,13 @@ class TabBarState extends WidgetState<BaseTabBar>
     throw UnimplementedError();
   }
 
-  /// build the Tab Bar navigation part
-  Widget buildTabBar() {
-    TextStyle? tabStyle = TextStyle(
-        fontSize: widget._controller.tabFontSize?.toDouble(),
-        fontWeight: widget._controller.tabFontWeight);
-
-    EdgeInsets labelPadding = widget._controller.tabPadding ??
-        const EdgeInsets.only(left: 0, right: 30, top: 0, bottom: 0);
-    // default indicator is finicky and doesn't line up when label has padding.
-    // Also we shouldn't allow vertical padding for indicator
-
-    // It's disabled due to underline indicator shrinking problem
-    // EdgeInsets indicatorPadding = const EdgeInsets.only(bottom: 0);
-
-    // TODO: center-align labels in its compact form
-    // Only stretch or left-align currently
-    bool labelPosition =
-        widget._controller.tabPosition == 'stretch' ? false : true;
-
-    double indicatorThickness =
-        widget._controller.indicatorThickness?.toDouble() ?? 2;
-
-    final indicatorSize =
-        TabBarIndicatorSize.values.from(widget._controller.indicatorSize);
-    final tabAlignment =
-        TabAlignment.values.from(widget._controller.tabAlignment) ??
-            TabAlignment.start;
-
-    Widget tabBar = TabBar(
-      labelPadding: labelPadding,
-      dividerColor: widget._controller.dividerColor ?? Colors.transparent,
-      indicator: indicatorThickness == 0
-          ? BoxDecoration(
-              color: widget.controller.activeTabBackgroundColor ??
-                  Colors.transparent,
-            )
-          : UnderlineTabIndicator(
-              borderSide: BorderSide(
-                  width: indicatorThickness,
-                  color: widget._controller.indicatorColor ??
-                      Theme.of(context).colorScheme.primary),
-            ),
-      controller: _tabController,
-      isScrollable: labelPosition,
-      tabAlignment: tabAlignment,
-      indicatorSize: indicatorSize,
-      labelStyle: tabStyle,
-      labelColor: widget._controller.activeTabColor ??
-          Theme.of(context).colorScheme.primary,
-      unselectedLabelColor:
-          widget._controller.inactiveTabColor ?? Colors.black87,
-      tabs: _buildTabs(widget._controller._items),
-      onTap: (index) {
-        if (widget._controller.selectedIndex == index) {
-          return;
-        }
-        setState(() {
-          widget._controller.selectedIndex = index;
-        });
-        if (widget._controller.onTabSelection != null) {
-          if (widget._controller.onTabSelectionHaptic != null) {
-            ScreenController().executeAction(
-              context,
-              HapticAction(
-                type: widget._controller.onTabSelectionHaptic!,
-                onComplete: null,
-              ),
-            );
-          }
-          ScreenController()
-              .executeAction(context, widget._controller.onTabSelection!);
-        }
-      },
-    );
-
-    if (widget._controller.tabBackgroundColor != null) {
-      tabBar = ColoredBox(
-          color: widget._controller.tabBackgroundColor!, child: tabBar);
-    }
-
-    if (widget._controller.borderRadius != null) {
-      final borderRadius = widget._controller.borderRadius?.getValue();
-      tabBar = ClipRRect(
-        borderRadius: borderRadius ?? BorderRadius.zero,
-        child: tabBar,
-      );
-    }
-
-    return tabBar;
-  }
-
-  List<Widget> _buildTabs(List<TabItem> items) {
-    List<Widget> tabItems = [];
-    for (final tabItem in items) {
-      ScopeManager? scopeManager = DataScopeWidget.getScope(context);
-      tabItems.add(_buildTabWidget(scopeManager, tabItem));
-    }
-    return tabItems;
-  }
-
-  Widget _buildTabWidget(ScopeManager? scopeManager, TabItem tabItem) {
-    final tabWidget = tabItem.tabWidget;
-    if (scopeManager != null && tabWidget != null) {
-      final customWidget = scopeManager.buildWidgetFromDefinition(tabWidget);
-      return Tab(
-        child: customWidget,
-      );
-    }
-    return Tab(
-      text: tabItem.label,
-      icon:
-          tabItem.icon != null ? ensemble.Icon.fromModel(tabItem.icon!) : null,
-    );
-  }
-
   Widget buildSelectedTab() {
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
     if (scopeManager != null) {
       TabItem selectedTab =
-          widget._controller._items[widget._controller.selectedIndex];
-      return scopeManager.buildWidgetFromDefinition(selectedTab.widget);
+          widget._controller.items[widget._controller.selectedIndex];
+      return scopeManager.buildWidgetFromDefinition(selectedTab.bodyWidget);
     }
     return const Text("Unknown widget for this Tab");
   }
-}
-
-class TabItem {
-  TabItem(this.label, this.widget, this.tabWidget, {this.icon}) {
-    if (widget == null) {
-      throw LanguageError('Tab item requires a widget.');
-    }
-  }
-
-  String label;
-  dynamic tabWidget;
-  dynamic widget;
-  IconModel? icon;
 }
