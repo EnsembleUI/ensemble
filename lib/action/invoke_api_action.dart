@@ -137,6 +137,7 @@ class InvokeAPIController {
             _onAPIComplete(context, action, apiDefinition, response, apiMap,
                 apiScopeManager);
           } else {
+            errorResponse = response;
             _onAPIError(context, action, apiDefinition, errorResponse, apiMap,
                 apiScopeManager);
           }
