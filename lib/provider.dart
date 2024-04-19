@@ -68,7 +68,10 @@ class LocalDefinitionProvider extends DefinitionProvider {
       fallbackFile: i18nProps.fallbackLocale,
       basePath: i18nProps.path,
       // use the forcedLocale passed in at the App level, then use the forcedLocale in the config
-      forcedLocale: forcedLocale ?? i18nProps.forcedLocale,
+      forcedLocale: forcedLocale ??
+          (i18nProps.forcedLocale != null
+              ? Locale(i18nProps.forcedLocale!)
+              : null),
       decodeStrategies: [YamlDecodeStrategy()],
     ));
     return _i18nDelegate!;
