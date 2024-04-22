@@ -5,6 +5,7 @@ import 'package:ensemble/layout/box/box_layout.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:logger/logger.dart';
 
 class StudioDebugger {
@@ -132,9 +133,8 @@ class StudioDebugger {
   }
 
   Widget assertHasStackWrapper(Widget widget, BuildContext context) {
-    RequireStackWidget? requireStackWidget =
-        context.dependOnInheritedWidgetOfExactType<RequireStackWidget>();
-    if (requireStackWidget == null) {
+    // context.widget is used to get the direct parent widget of the current context
+    if (context.widget is! Stack) {
       throw LanguageError(
           "stackPosition* is applicable only with Stack as the parent widget",
           recovery:
