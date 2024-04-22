@@ -133,8 +133,18 @@ class StudioDebugger {
   }
 
   Widget assertHasStackWrapper(Widget widget, BuildContext context) {
-    // context.widget is used to get the direct parent widget of the current context
-    if (context.widget is! Stack) {
+    bool isStack = false;
+    context.visitAncestorElements((element) {
+      if (element.widget.runtimeType == Stack) {
+        isStack = true;
+      }
+
+      // This will ensure that it doesnt check for any other parent widgets
+      return false;
+    });
+
+    print(isStack);
+    if (!isStack) {
       throw LanguageError(
           "stackPosition* is applicable only with Stack as the parent widget",
           recovery:
