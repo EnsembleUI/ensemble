@@ -10,14 +10,18 @@ import 'package:yaml/yaml.dart';
 
 abstract class Menu extends Object with HasStyles, Invokable {
   Menu(this.menuItems,
-      {Map<String, dynamic>? widgetTypeStyles,
-      Map<String, dynamic>? idStyles,
-      Map<String, dynamic>? inlineStyles,
-      List<String>? classList,
-      this.headerModel,
-      this.footerModel,
-      this.reloadView}) {
+      {String? widgetType,
+        Map<String, dynamic>? widgetTypeStyles,
+        String? widgetId,
+        Map<String, dynamic>? idStyles,
+        Map<String, dynamic>? inlineStyles,
+        List<String>? classList,
+        this.headerModel,
+        this.footerModel,
+        this.reloadView}) {
+    this.widgetType = widgetType;
     this.widgetTypeStyles = widgetTypeStyles;
+    this.widgetId = widgetId;
     this.idStyles = idStyles;
     this.inlineStyles = inlineStyles;
     this.classList = classList;
@@ -121,9 +125,11 @@ abstract class Menu extends Object with HasStyles, Invokable {
       final isReloadView = payload['reloadView'] as bool? ?? true;
       if (menuType == MenuDisplay.BottomNavBar) {
         return BottomNavBarMenu(menuItems,
+            widgetType: menuType!.name,
             widgetTypeStyles: EnsembleThemeManager()
                 .currentTheme()
                 ?.getWidgetTypeStyles(menuType!.name),
+            widgetId: id,
             idStyles: EnsembleThemeManager().currentTheme()?.getIDStyles(id),
             inlineStyles: styles,
             classList: classList,
@@ -131,9 +137,11 @@ abstract class Menu extends Object with HasStyles, Invokable {
       } else if (menuType == MenuDisplay.Drawer ||
           menuType == MenuDisplay.EndDrawer) {
         return DrawerMenu(menuItems, menuType != MenuDisplay.EndDrawer,
+            widgetType: menuType!.name,
             widgetTypeStyles: EnsembleThemeManager()
                 .currentTheme()
                 ?.getWidgetTypeStyles(menuType!.name),
+            widgetId: id,
             idStyles: EnsembleThemeManager().currentTheme()?.getIDStyles(id),
             inlineStyles: styles,
             classList: classList,
@@ -143,9 +151,11 @@ abstract class Menu extends Object with HasStyles, Invokable {
       } else if (menuType == MenuDisplay.Sidebar ||
           menuType == MenuDisplay.EndSidebar) {
         return SidebarMenu(menuItems, menuType != MenuDisplay.EndSidebar,
+            widgetType: menuType!.name,
             widgetTypeStyles: EnsembleThemeManager()
                 .currentTheme()
                 ?.getWidgetTypeStyles(menuType!.name),
+            widgetId: id,
             idStyles: EnsembleThemeManager().currentTheme()?.getIDStyles(id),
             inlineStyles: styles,
             classList: classList,
@@ -161,11 +171,13 @@ abstract class Menu extends Object with HasStyles, Invokable {
 
 class BottomNavBarMenu extends Menu {
   BottomNavBarMenu(super.menuItems,
-      {super.widgetTypeStyles,
-      super.idStyles,
-      super.inlineStyles,
-      super.classList,
-      super.reloadView});
+      { super.widgetType,
+        super.widgetTypeStyles,
+        super.widgetId,
+        super.idStyles,
+        super.inlineStyles,
+        super.classList,
+        super.reloadView});
 
   @override
   Map<String, Function> getters() {
@@ -185,7 +197,9 @@ class BottomNavBarMenu extends Menu {
 
 class DrawerMenu extends Menu {
   DrawerMenu(super.menuItems, this.atStart,
-      {super.widgetTypeStyles,
+      { super.widgetType,
+        super.widgetTypeStyles,
+        super.widgetId,
       super.idStyles,
       super.inlineStyles,
       super.classList,
@@ -214,13 +228,15 @@ class DrawerMenu extends Menu {
 
 class SidebarMenu extends Menu {
   SidebarMenu(super.menuItems, this.atStart,
-      {super.widgetTypeStyles,
-      super.idStyles,
-      super.inlineStyles,
-      super.classList,
-      super.headerModel,
-      super.footerModel,
-      super.reloadView});
+      { super.widgetType,
+        super.widgetTypeStyles,
+        super.widgetId,
+        super.idStyles,
+        super.inlineStyles,
+        super.classList,
+        super.headerModel,
+        super.footerModel,
+        super.reloadView});
 
   // show the sidebar at start (left for LTR languages) or at the end
   bool atStart = true;

@@ -58,7 +58,9 @@ class EnsembleThemeManager {
   void configureStyles(
       DataContext dataContext, HasStyles model, HasStyles hasStyles) {
     //we have to set all these so we can resolve when styles change at runtime through app logic
+    hasStyles.widgetType = model.widgetType;
     hasStyles.widgetTypeStyles = model.widgetTypeStyles;
+    hasStyles.widgetId = model.widgetId;
     hasStyles.idStyles = model.idStyles;
     hasStyles.classList = model.classList;
     hasStyles.inlineStyles = model.inlineStyles;
@@ -233,8 +235,8 @@ class EnsembleTheme {
     // return inheritedStyles;
   }
 
-  Map<String, dynamic>? getWidgetTypeStyles(String widgetType) {
-    return styles[widgetType];
+  Map<String, dynamic>? getWidgetTypeStyles(String? widgetType) {
+    return widgetType != null ? styles[widgetType] : null;
   }
 
   void resolveAndApplyStyles(
@@ -246,8 +248,14 @@ class EnsembleTheme {
   }
 
   Map<String, dynamic> resolveStyles(DataContext context, HasStyles widget) {
-    return _resolveStyles(context, widget.styleOverrides, widget.inlineStyles,
-        widget.idStyles, widget.classList, widget.widgetTypeStyles, null);
+    return _resolveStyles(
+        context,
+        widget.styleOverrides,
+        widget.inlineStyles,
+        getIDStyles(widget.widgetId),
+        widget.classList,
+        getWidgetTypeStyles(widget.widgetType),
+        null);
   }
 
   ///classList is a list of class names
