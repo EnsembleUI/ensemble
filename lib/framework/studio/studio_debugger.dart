@@ -142,7 +142,6 @@ class StudioDebugger {
       return false;
     });
 
-    print(isStack);
     if (!isStack) {
       throw LanguageError(
           "stackPosition* is applicable only with Stack as the parent widget",
