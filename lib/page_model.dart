@@ -190,7 +190,9 @@ mixin HasStyles {
   set widgetTypeStyles(Map<String, dynamic>? styles) {
     _widgetTypeStyles = styles;
   }
-  String? widgetId;//I know this is a potential repeat of the id field but this keeps it clean here
+
+  String?
+      widgetId; //I know this is a potential repeat of the id field but this keeps it clean here
   //styles defined in the theme for a specific id e.g. #submitBtn where submitBtn is the id of the widget
   Map<String, dynamic>? _idStyles;
 
