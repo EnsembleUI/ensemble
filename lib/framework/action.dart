@@ -8,6 +8,7 @@ import 'package:ensemble/action/call_external_method.dart';
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/action/call_native_method.dart';
 import 'package:ensemble/action/invoke_api_action.dart';
+import 'package:ensemble/action/biometric_auth_action.dart';
 import 'package:ensemble/action/misc_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/action/notification_action.dart';
@@ -1125,6 +1126,7 @@ enum ActionType {
   invokeHaptic,
   callNativeMethod,
   deeplinkInit,
+  biometricAuth,
   handleDeeplink,
   createDeeplink,
   verifySignIn,
@@ -1304,6 +1306,8 @@ abstract class EnsembleAction {
       return SeekAudio.from(payload);
     } else if (actionType == ActionType.deeplinkInit) {
       return DeepLinkInitAction.fromMap(payload: payload);
+    } else if (actionType == ActionType.biometricAuth) {
+      return BiometricAuthAction.fromMap(payload: payload);
     } else if (actionType == ActionType.handleDeeplink) {
       return DeepLinkHandleAction.fromMap(payload: payload);
     } else if (actionType == ActionType.createDeeplink) {
