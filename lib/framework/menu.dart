@@ -11,14 +11,14 @@ import 'package:yaml/yaml.dart';
 abstract class Menu extends Object with HasStyles, Invokable {
   Menu(this.menuItems,
       {String? widgetType,
-        Map<String, dynamic>? widgetTypeStyles,
-        String? widgetId,
-        Map<String, dynamic>? idStyles,
-        Map<String, dynamic>? inlineStyles,
-        List<String>? classList,
-        this.headerModel,
-        this.footerModel,
-        this.reloadView}) {
+      Map<String, dynamic>? widgetTypeStyles,
+      String? widgetId,
+      Map<String, dynamic>? idStyles,
+      Map<String, dynamic>? inlineStyles,
+      List<String>? classList,
+      this.headerModel,
+      this.footerModel,
+      this.reloadView}) {
     this.widgetType = widgetType;
     this.widgetTypeStyles = widgetTypeStyles;
     this.widgetId = widgetId;
@@ -171,13 +171,13 @@ abstract class Menu extends Object with HasStyles, Invokable {
 
 class BottomNavBarMenu extends Menu {
   BottomNavBarMenu(super.menuItems,
-      { super.widgetType,
-        super.widgetTypeStyles,
-        super.widgetId,
-        super.idStyles,
-        super.inlineStyles,
-        super.classList,
-        super.reloadView});
+      {super.widgetType,
+      super.widgetTypeStyles,
+      super.widgetId,
+      super.idStyles,
+      super.inlineStyles,
+      super.classList,
+      super.reloadView});
 
   @override
   Map<String, Function> getters() {
@@ -197,9 +197,9 @@ class BottomNavBarMenu extends Menu {
 
 class DrawerMenu extends Menu {
   DrawerMenu(super.menuItems, this.atStart,
-      { super.widgetType,
-        super.widgetTypeStyles,
-        super.widgetId,
+      {super.widgetType,
+      super.widgetTypeStyles,
+      super.widgetId,
       super.idStyles,
       super.inlineStyles,
       super.classList,
@@ -228,15 +228,15 @@ class DrawerMenu extends Menu {
 
 class SidebarMenu extends Menu {
   SidebarMenu(super.menuItems, this.atStart,
-      { super.widgetType,
-        super.widgetTypeStyles,
-        super.widgetId,
-        super.idStyles,
-        super.inlineStyles,
-        super.classList,
-        super.headerModel,
-        super.footerModel,
-        super.reloadView});
+      {super.widgetType,
+      super.widgetTypeStyles,
+      super.widgetId,
+      super.idStyles,
+      super.inlineStyles,
+      super.classList,
+      super.headerModel,
+      super.footerModel,
+      super.reloadView});
 
   // show the sidebar at start (left for LTR languages) or at the end
   bool atStart = true;
