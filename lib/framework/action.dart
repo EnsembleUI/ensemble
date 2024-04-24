@@ -13,6 +13,7 @@ import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/action/notification_action.dart';
 import 'package:ensemble/action/phone_contact_action.dart';
 import 'package:ensemble/action/sign_in_out_action.dart';
+import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
@@ -128,28 +129,39 @@ class NavigateScreenAction extends BaseNavigateScreenAction {
 }
 
 class NavigateViewGroupAction extends EnsembleAction {
-  NavigateViewGroupAction({dynamic viewIndex, this.payload})
-      : _viewIndex = viewIndex;
+  NavigateViewGroupAction(this.data);
 
-  final dynamic _viewIndex;
-  final Map<String, dynamic>? payload;
-
-  factory NavigateViewGroupAction.from({Map? payload}) {
-    return NavigateViewGroupAction(
-      viewIndex: payload?['viewIndex'],
-      payload:
-          Utils.getMap(payload?['payload']) ?? Utils.getMap(payload?['inputs']),
-    );
-  }
+  final Map? data;
 
   @override
   Future execute(BuildContext context, ScopeManager scopeManager,
       {DataContext? dataContext}) {
-    if (payload != null) {
-      scopeManager.dataContext.addDataContext(payload!);
+    String? screenName =
+        Utils.optionalString(eval(data?["name"], scopeManager));
+    int? viewIndex = Utils.optionalInt(eval(data?["viewIndex"], scopeManager));
+    if (screenName == null && viewIndex == null) {
+      throw LanguageError(
+          "${ActionType.navigateViewGroup} requires either 'name' or 'viewIndex'.");
     }
-    PageGroupWidget.getPageController(context)?.jumpToPage(_viewIndex);
-    viewGroupNotifier.updatePage(_viewIndex, payload: payload);
+
+    Map<String, dynamic>? payload = Utils.getMap(data?["payload"]);
+
+    if (screenName != null) {
+      if (viewIndex != null) {
+        (payload ??= {})["viewIndex"] = viewIndex;
+      }
+      ScreenController()
+          .navigateToScreen(context, screenName: screenName, pageArgs: payload);
+    } else if (viewIndex != null) {
+      if (payload != null) {
+        // TODO: this is wrong. Can't mutate the scope like this
+        scopeManager.dataContext.addDataContext(payload);
+      }
+      // TODO: refactor the below. Both are needed when reloadView=false, but only
+      //  viewGroupNotifier is needed without. Doesn't make any sense
+      PageGroupWidget.getPageController(context)?.jumpToPage(viewIndex);
+      viewGroupNotifier.updatePage(viewIndex, payload: payload);
+    }
     return Future.value(null);
   }
 }
@@ -393,7 +405,9 @@ class ExecuteCodeAction extends EnsembleAction {
 
 class ExecuteActionGroupAction extends EnsembleAction {
   ExecuteActionGroupAction({super.initiator, required this.actions});
+
   List<EnsembleAction> actions;
+
   factory ExecuteActionGroupAction.fromYaml(
       {Invokable? initiator, Map? payload}) {
     if (payload == null || payload['actions'] == null) {
@@ -425,8 +439,10 @@ class ExecuteActionGroupAction extends EnsembleAction {
     return ExecuteActionGroupAction(
         initiator: initiator, actions: ensembleActions);
   }
+
   factory ExecuteActionGroupAction.from(dynamic payload) =>
       ExecuteActionGroupAction.fromYaml(payload: Utils.getYamlMap(payload));
+
   @override
   Future<void> execute(BuildContext context, ScopeManager scopeManager) {
     // Map each action into a Future by calling execute on it, starting all actions in parallel
@@ -442,7 +458,9 @@ class ExecuteActionGroupAction extends EnsembleAction {
 
 class ExecuteConditionalActionAction extends EnsembleAction {
   List<dynamic> conditions;
+
   ExecuteConditionalActionAction({super.initiator, required this.conditions});
+
   factory ExecuteConditionalActionAction.fromYaml(
       {Invokable? initiator, Map? payload}) {
     if (payload == null || payload['conditions'] == null) {
@@ -472,6 +490,7 @@ class ExecuteConditionalActionAction extends EnsembleAction {
     return ExecuteConditionalActionAction(
         initiator: initiator, conditions: conditions);
   }
+
   factory ExecuteConditionalActionAction.from(dynamic payload) =>
       ExecuteConditionalActionAction.fromYaml(
           payload: Utils.getYamlMap(payload));
@@ -1131,6 +1150,10 @@ abstract class EnsembleAction {
   Invokable? initiator;
   Map? inputs;
 
+  // evaluate the data based on the given scope
+  dynamic eval(dynamic data, ScopeManager scopeManager) =>
+      scopeManager.dataContext.eval(data);
+
   /// TODO: each Action does all the execution in here
   /// use DataContext to eval properties. ScopeManager should be refactored
   /// so it contains the update data context (its DataContext might not have
@@ -1173,7 +1196,7 @@ abstract class EnsembleAction {
       return NavigateExternalScreen.from(
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.navigateViewGroup) {
-      return NavigateViewGroupAction.from(payload: payload);
+      return NavigateViewGroupAction(payload);
     } else if (actionType == ActionType.navigateModalScreen) {
       return NavigateModalScreenAction.fromYaml(
           initiator: initiator, payload: payload);

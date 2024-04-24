@@ -5,6 +5,7 @@ import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/HasTextPlaceholder.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/widget_registry.dart';
@@ -17,9 +18,11 @@ import 'package:ensemble/util/extensions.dart';
 class Date extends StatefulWidget
     with Invokable, HasController<DateController, DateState> {
   static const type = 'Date';
+
   Date({Key? key}) : super(key: key);
 
   final DateController _controller = DateController();
+
   @override
   DateController get controller => _controller;
 
@@ -28,9 +31,11 @@ class Date extends StatefulWidget
 
   @override
   Map<String, Function> getters() {
-    return {
+    var getters = _controller.textPlaceholderGetters;
+    getters.addAll({
       'value': () => _controller.value?.toIso8601DateString(),
-    };
+    });
+    return getters;
   }
 
   @override
@@ -40,7 +45,8 @@ class Date extends StatefulWidget
 
   @override
   Map<String, Function> setters() {
-    return {
+    var setters = _controller.textPlaceholderSetters;
+    setters.addAll({
       'initialValue': (value) => _controller.value ??= Utils.getDate(value),
       'firstDate': (value) => _controller.firstDate = Utils.getDate(value),
       'lastDate': (value) => _controller.lastDate = Utils.getDate(value),
@@ -48,11 +54,12 @@ class Date extends StatefulWidget
           _controller.showCalendarIcon = Utils.optionalBool(shouldShow),
       'onChange': (definition) => _controller.onChange =
           EnsembleAction.fromYaml(definition, initiator: this)
-    };
+    });
+    return setters;
   }
 }
 
-class DateController extends FormFieldController {
+class DateController extends FormFieldController with HasTextPlaceholder {
   DateTime? value;
 
   // first and last available dates to be selected
@@ -94,7 +101,8 @@ class DateState extends FormFieldWidgetState<Date> {
                       isEmpty: widget._controller.value == null,
                       decoration: inputDecoration.copyWith(
                           errorText: field.errorText,
-                          hintText: widget._controller.hintText ??
+                          hintText: widget._controller.placeholder ??
+                              widget._controller.hintText ??
                               Utils.translateWithFallback(
                                   'ensemble.input.date.placeholder',
                                   'Select a date'),

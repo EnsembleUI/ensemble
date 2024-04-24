@@ -1,4 +1,6 @@
 import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/theme/theme_loader.dart';
+import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
@@ -10,9 +12,11 @@ import 'package:flutter/material.dart';
 class EnsembleCheckbox extends StatefulWidget
     with Invokable, HasController<CheckboxController, CheckboxState> {
   static const type = 'Checkbox';
+
   EnsembleCheckbox({Key? key}) : super(key: key);
 
   final CheckboxController _controller = CheckboxController();
+
   @override
   CheckboxController get controller => _controller;
 
@@ -38,13 +42,19 @@ class EnsembleCheckbox extends StatefulWidget
           _controller.leadingText = Utils.optionalString(text),
       'trailingText': (text) =>
           _controller.trailingText = Utils.optionalString(text),
-      'unselectedColor': (color) =>
-          _controller.unselectedColor = Utils.getColor(color),
+      'size': (value) => _controller.size = Utils.optionalInt(value, min: 0),
+      'onChange': (definition) => _controller.onChange =
+          framework.EnsembleAction.fromYaml(definition, initiator: this),
+
+      // deprecated - for backward compatible
       'selectedColor': (color) =>
           _controller.selectedColor = Utils.getColor(color),
+      'unSelectedColor': (color) =>
+          _controller.unSelectedColor = Utils.getColor(color),
+
+      // borderColor/fillColor is on super controller
+      'activeColor': (color) => _controller.activeColor = Utils.getColor(color),
       'checkColor': (color) => _controller.checkColor = Utils.getColor(color),
-      'onChange': (definition) => _controller.onChange =
-          framework.EnsembleAction.fromYaml(definition, initiator: this)
     };
   }
 
@@ -54,12 +64,20 @@ class EnsembleCheckbox extends StatefulWidget
 }
 
 class CheckboxController extends FormFieldController {
+  int? size;
+
   bool value = false;
   String? leadingText;
   String? trailingText;
-  Color? unselectedColor;
-  Color? selectedColor;
   Color? checkColor;
+
+  // the color when the checkbox is selected
+  Color? activeColor;
+  @Deprecated("use activeColor instead")
+  Color? selectedColor;
+
+  @Deprecated("use borderColor instead")
+  Color? unSelectedColor;
 
   framework.EnsembleAction? onChange;
 }
@@ -87,10 +105,10 @@ class CheckboxState extends FormFieldWidgetState<EnsembleCheckbox> {
       )));
     }
 
-    children.add(checkboxWidget);
+    children.add(buildCheckbox(context));
 
     if (widget._controller.trailingText != null) {
-      children.add(Expanded(
+      children.add(Flexible(
           child: Text(
         widget._controller.trailingText!,
         style: formFieldTextStyle,
@@ -121,27 +139,73 @@ class CheckboxState extends FormFieldWidgetState<EnsembleCheckbox> {
                 focusedBorder: InputBorder.none,
                 errorText: field.errorText),
             child: Row(
-                mainAxisAlignment: MainAxisAlignment.start, children: children),
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: children),
           );
         },
       ),
     );
   }
 
-  Widget get checkboxWidget {
-    return SizedBox(
-        width: 40,
-        height: 40,
-        child: Checkbox(
-            side: widget._controller.unselectedColor != null
-                ? BorderSide(
-                    width: 2.0, color: widget._controller.unselectedColor!)
-                : null,
-            value: widget._controller.value,
-            activeColor: widget._controller.selectedColor,
-            checkColor: widget._controller.checkColor,
-            onChanged: isEnabled()
-                ? (bool? value) => onToggle(value ?? false)
-                : null));
+  Widget buildCheckbox(BuildContext context) {
+    var theme = Theme.of(context);
+    int borderWidth = widget._controller.borderWidth ??
+        theme.checkboxTheme.side?.width.toInt() ??
+        2;
+    Color borderColor = widget._controller.borderColor ??
+        widget._controller.unSelectedColor ??
+        theme.checkboxTheme.side?.color ??
+        ThemeManager().getBorderColor(context);
+    Color? activeColor =
+        widget._controller.activeColor ?? widget._controller.selectedColor;
+
+    Widget checkbox = Checkbox(
+        side: MaterialStateBorderSide.resolveWith((states) {
+          if (!states.contains(MaterialState.selected) &&
+              !states.contains(MaterialState.disabled) &&
+              !states.contains(MaterialState.error)) {
+            return BorderSide(
+                width: borderWidth.toDouble(), color: borderColor);
+          }
+          // fallback to theme, which fallback to default
+          return null;
+        }),
+        shape: widget._controller.borderRadius == null
+            ? null
+            : RoundedRectangleBorder(
+                borderRadius: widget._controller.borderRadius!.getValue(),
+                side: BorderSide(
+                    width: borderWidth.toDouble(), color: borderColor)),
+        activeColor: activeColor,
+        checkColor: widget._controller.checkColor,
+        fillColor: MaterialStateProperty.resolveWith<Color?>(
+            (Set<MaterialState> states) {
+          if (states.contains(MaterialState.selected) ||
+              states.contains(MaterialState.error) ||
+              states.contains(MaterialState.disabled)) {
+            return null;
+          }
+          return widget._controller.fillColor;
+        }),
+        value: widget._controller.value,
+        onChanged:
+            isEnabled() ? (bool? value) => onToggle(value ?? false) : null);
+
+    // if the size is specified and different than the default size, need to scale it
+    if (widget._controller.size != null || theme.checkboxTheme.size != null) {
+      int newSize = (widget._controller.size ?? theme.checkboxTheme.size)!;
+      if (newSize != Checkbox.width.toInt()) {
+        // SizedBox around Transform to ensure correct spacing
+        checkbox = SizedBox(
+            width: newSize.toDouble(),
+            height: newSize.toDouble(),
+            child: Transform.scale(
+              scale: newSize / Checkbox.width,
+              child: checkbox,
+            ));
+      }
+    }
+    return checkbox;
   }
 }
