@@ -81,7 +81,7 @@ dependencies:
   flutter_markdown: ^0.6.10+5
   url_launcher: ^6.1.11
   provider: ^6.0.3
-  cloud_firestore: 4.14.0
+  cloud_firestore: ^4.14.0
   get_storage: ^2.0.3
   flutter_html: ^3.0.0-beta.1 # flutter_html ^2.0.0 requires flutter_svg <1.0.0, conflicts with ours
   webview_flutter: ^4.2.0
@@ -128,6 +128,7 @@ dependencies:
   package_info_plus: ^3.1.2
   audioplayers: ^5.2.1
   logger: ^2.2.0
+  visibility_detector: ^0.4.0+2
 
 
 dev_dependencies:

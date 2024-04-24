@@ -97,7 +97,8 @@
       "type": "object",
       "properties": {
         "Input": { "$ref": "#/$defs/Input-theme" },
-        "Button": { "$ref": "#/$defs/Button-theme" }
+        "Button": { "$ref": "#/$defs/Button-theme" },
+        "Checkbox": { "$ref": "#/$defs/Checkbox-theme" }
       }
     },
     "Transitions": {
@@ -232,7 +233,41 @@
         "padding": {
           "type": ["integer", "string"],
           "description": "Button padding in CSS-style notation e.g. padding: 5 20 5"
-
+        }
+      }
+    },
+    "Checkbox-theme": {
+      "type": "object",
+      "properties": {
+        "size": {
+          "type": "integer",
+          "description": "Adjust the size (width/height) of the checkbox",
+          "minimum": 0
+        },
+        "borderRadius": {
+          "$ref": "#/$defs/BorderRadius",
+          "description": "The border radius for this Input widget. This property can be defined in the theme to apply to all Input widgets."
+        },
+        "borderWidth": {
+          "type": "integer",
+          "description": "The border width for this Input widget. This property can be defined in the theme to apply to all Input widgets.",
+          "minimum": 0
+        },
+        "borderColor": {
+          "$ref": "#/$defs/Color",
+          "description": "The border color for this input widget. This property can be defined in the theme to apply to all Input widgets."
+        },
+        "fillColor": {
+          "$ref": "#/$defs/Color",
+          "description": "The fill color for this input field. This property can be defined in the theme to apply to all Input widgets."
+        },
+        "activeColor": {
+          "$ref": "#/$defs/Color",
+          "description": "The background color of the checkbox when selected"
+        },
+        "checkColor": {
+          "$ref": "#/$defs/Color",
+          "description": "The color of the check icon"
         }
       }
     },
@@ -343,6 +378,22 @@
           "type": "integer"
         }
       }
+    },
+    "BorderRadius": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/positiveInteger"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "description": "Border Radius with CSS-like notation (1 to 4 integers)",
+      "uiType": "borderRadius"
+    },
+    "positiveInteger": {
+      "type": "integer",
+      "minimum": 0
     },
     "type-fontWeight": {
       "type": "string",
