@@ -17,7 +17,6 @@ import 'package:ensemble/module/location_module.dart';
 import 'package:ensemble/widget/Toggle.dart';
 import 'package:ensemble/widget/address.dart';
 import 'package:ensemble/widget/avatar.dart';
-import 'package:ensemble/widget/bracket.dart';
 import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/calendar.dart';
 import 'package:ensemble/widget/checkbox.dart';
@@ -64,6 +63,7 @@ import 'package:ensemble/widget/visualization/topology_chart.dart';
 import 'package:ensemble/widget/webview/webview.dart';
 import 'package:ensemble/widget/youtube/youtube.dart';
 import 'package:ensemble/widget/weeklyscheduler.dart';
+import 'package:ensemble_bracket/ensemble_bracket.dart';
 import 'package:get_it/get_it.dart';
 
 import 'fintech/tabapayconnect.dart';
