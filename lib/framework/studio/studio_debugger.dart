@@ -132,9 +132,17 @@ class StudioDebugger {
   }
 
   Widget assertHasStackWrapper(Widget widget, BuildContext context) {
-    RequireStackWidget? requireStackWidget =
-        context.dependOnInheritedWidgetOfExactType<RequireStackWidget>();
-    if (requireStackWidget == null) {
+    bool isStack = false;
+    context.visitAncestorElements((element) {
+      if (element.widget.runtimeType == Stack) {
+        isStack = true;
+      }
+
+      // This will ensure that it doesnt check for any other parent widgets
+      return false;
+    });
+
+    if (!isStack) {
       throw LanguageError(
           "stackPosition* is applicable only with Stack as the parent widget",
           recovery:

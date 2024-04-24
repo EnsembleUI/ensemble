@@ -181,6 +181,7 @@ mixin HasStyles {
     stylesNeedResolving = true;
   }
 
+  String? widgetType;
   //styles specified in the theme directly on the type e.g. Text or Button
   Map<String, dynamic>? _widgetTypeStyles;
 
@@ -190,6 +191,8 @@ mixin HasStyles {
     _widgetTypeStyles = styles;
   }
 
+  String?
+      widgetId; //I know this is a potential repeat of the id field but this keeps it clean here
   //styles defined in the theme for a specific id e.g. #submitBtn where submitBtn is the id of the widget
   Map<String, dynamic>? _idStyles;
 
@@ -306,6 +309,7 @@ class SinglePageModel extends PageModel with HasStyles {
         }
         classList = (viewMap[ViewUtil.classNameAttribute] as String?)
             ?.split(RegExp('\\s+'));
+        widgetType = type;
         widgetTypeStyles =
             EnsembleThemeManager().currentTheme()?.getWidgetTypeStyles(type);
         if (viewMap['footer'] != null &&
@@ -501,6 +505,8 @@ class WidgetModel extends Object with HasStyles {
     this.widgetTypeStyles = widgetTypeStyles;
     this.inlineStyles = inlineStyles;
     this.classList = classList;
+    widgetType = type; //yes I don't like it much as well
+    widgetId = getId();
   }
 }
 
