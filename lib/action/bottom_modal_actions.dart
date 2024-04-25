@@ -1,12 +1,9 @@
-import 'dart:developer';
-
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
-import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
-import 'package:ensemble/framework/view/context_scope_widget.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -15,76 +12,19 @@ import 'package:flutter/material.dart';
 
 /// open a Modal Bottom Sheet
 class ShowBottomModalAction extends EnsembleAction {
-  ShowBottomModalAction(
-      {super.initiator,
-      super.inputs,
-      this.body,
-      this.styles,
-      this.options,
-      this.onDismiss});
+  ShowBottomModalAction({
+    super.initiator,
+    super.inputs,
+    required this.body,
+    required this.payload,
+    this.onDismiss,
+  });
 
+  static const defaultTopBorderRadius = Radius.circular(16);
+
+  final Map payload;
   final dynamic body;
-  final Map<String, dynamic>? styles;
-  final Map<String, dynamic>? options;
   final EnsembleAction? onDismiss;
-
-  // default height is size to content
-  MainAxisSize getVerticalSize(scopeManager) =>
-      MainAxisSize.values
-          .from(scopeManager.dataContext.eval(styles?['verticalSize'])) ??
-      MainAxisSize.min;
-
-  MainAxisAlignment getVerticalAlignment(scopeManager) {
-    var alignment = scopeManager.dataContext.eval(styles?['verticalAlignment']);
-    switch (alignment) {
-      case 'top':
-        return MainAxisAlignment.start;
-      case 'bottom':
-        return MainAxisAlignment.end;
-      default:
-        // if verticalSize is min this doesn't matter, but center align if max
-        return MainAxisAlignment.center;
-    }
-  }
-
-  // default width is stretching 100%
-  CrossAxisAlignment getHorizontalSize(scopeManager) {
-    var size = MainAxisSize.values
-            .from(scopeManager.dataContext.eval(styles?['horizontalSize'])) ??
-        MainAxisSize.max;
-    return size == MainAxisSize.min
-        ? CrossAxisAlignment.center
-        : CrossAxisAlignment.stretch;
-  }
-
-  Alignment? getHorizontalAlignment(scopeManager) {
-    var alignment =
-        scopeManager.dataContext.eval(styles?['horizontalAlignment']);
-    switch (alignment) {
-      case 'start':
-        return Alignment.centerLeft;
-      case 'center':
-        return Alignment.center;
-      case 'end':
-        return Alignment.centerRight;
-      default:
-        return null;
-    }
-  }
-
-  Color? getBarrierColor(scopeManager) =>
-      Utils.getColor(scopeManager.dataContext.eval(styles?['barrierColor']));
-
-  // default background is the dialog background
-  Color? getBackgroundColor(scopeManager) =>
-      Utils.getColor(scopeManager.dataContext.eval(styles?['backgroundColor']));
-
-  int? getTopBorderRadius(scopeManager) => Utils.optionalInt(
-      scopeManager.dataContext.eval(styles?['topBorderRadius']));
-
-  bool getEnableDrag(scopeManager) =>
-      Utils.getBool(scopeManager.dataContext.eval(styles?['enableDrag']),
-          fallback: true);
 
   factory ShowBottomModalAction.from({Invokable? initiator, Map? payload}) {
     dynamic body = payload?['body'] ?? payload?['widget'];
@@ -96,85 +36,100 @@ class ShowBottomModalAction extends EnsembleAction {
         initiator: initiator,
         inputs: Utils.getMap(payload['inputs']),
         body: body,
-        styles: Utils.getMap(payload['styles']),
-        options: Utils.getMap(payload['options']),
-        onDismiss: EnsembleAction.fromYaml(payload['onDismiss']));
+        onDismiss: EnsembleAction.fromYaml(payload['onDismiss']),
+        payload: payload);
   }
+
+  EdgeInsets? margin(scopeManager) =>
+      Utils.optionalInsets(eval(payload["styles"]?["margin"], scopeManager));
+
+  EdgeInsets? padding(scopeManager) =>
+      Utils.optionalInsets(eval(payload["styles"]?["padding"], scopeManager));
+
+  EBorderRadius? borderRadius(scopeManager) => Utils.getBorderRadius(
+      eval(payload["styles"]?["borderRadius"], scopeManager));
+
+  bool useSafeArea(scopeManager) =>
+      Utils.getBool(eval(payload["styles"]?["useSafeArea"], scopeManager),
+          fallback: false);
+
+  Color? getBarrierColor(scopeManager) =>
+      Utils.getColor(eval(payload["styles"]?['barrierColor'], scopeManager));
+
+  Color? getBackgroundColor(scopeManager) =>
+      Utils.getColor(eval(payload["styles"]?['backgroundColor'], scopeManager));
+
+  bool? isScrollable(scopeManager) =>
+      Utils.optionalBool(eval(payload["scrollable"], scopeManager));
 
   @override
   Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
-    if (body == null) return Future.value(null);
+    if (body != null) {
+      showModalBottomSheet(
+        context: context,
+        // disable the default bottom sheet styling since we use our own
+        backgroundColor: Colors.transparent,
+        elevation: 0,
 
-    // verticalSize: min | max
-    // verticalAlignment: top | center | bottom
-    // horizontalSize: min | max
-    // horizontalAlignment: start | center | end
-
-    // topRadius: 15
-    // backgroundColor
-    // barrierColor
-
-    var topRadius =
-        Radius.circular(getTopBorderRadius(scopeManager)?.toDouble() ?? 16);
-    var horizontalAlignment = getHorizontalAlignment(scopeManager);
-    var widget = scopeManager.buildWidgetFromDefinition(body);
-
-    var bodyWidget = Material(
-      type: MaterialType.transparency,
-      elevation: 16,
-      child: Container(
-          decoration: BoxDecoration(
-              color: getBackgroundColor(scopeManager) ??
-                  Theme.of(context).dialogBackgroundColor,
-              borderRadius:
-                  BorderRadius.only(topLeft: topRadius, topRight: topRadius)),
-          child: Column(
-              // vertical
-              mainAxisSize: getVerticalSize(scopeManager),
-              mainAxisAlignment: getVerticalAlignment(scopeManager),
-
-              // horizontal
-              crossAxisAlignment: getHorizontalSize(scopeManager),
-              children: [
-                // account for the bottom notch
-                SafeArea(
-                  bottom: false,
-                    child: horizontalAlignment != null
-                        ? Align(alignment: horizontalAlignment, child: widget)
-                        : widget)
-              ])),
-    );
-
-    showModalBottomSheet(
-      context: context,
-      // disable the default bottom sheet styling since we use our own
-      backgroundColor: Colors.transparent,
-      elevation: 16,
-
-      barrierColor: getBarrierColor(scopeManager),
-      isScrollControlled: true,
-      enableDrag: getEnableDrag(scopeManager),
-      // padding to account for the keyboard when we have input widgets inside the modal
-      builder: (modalContext) => Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(modalContext).viewInsets.bottom,
-          ),
-          // have a bottom modal scope widget so we can close the modal
-          child: BottomModalScopeWidget(
-            rootContext: modalContext,
-            // create a new Data Scope since the bottom modal is placed in a different context tree (directly under MaterialApp)
-            child: DataScopeWidget(
-                scopeManager: scopeManager.createChildScope(),
-                child: bodyWidget),
-          )),
-    ).then((payload) {
-      if (onDismiss != null) {
-        return ScreenController().executeActionWithScope(
-            context, scopeManager, onDismiss!,
-            event: EnsembleEvent(null, data: payload));
-      }
-    });
+        barrierColor: getBarrierColor(scopeManager),
+        isScrollControlled: true,
+        showDragHandle: true,
+        enableDrag: true,
+        // padding to account for the keyboard when we have input widgets inside the modal
+        builder: (modalContext) => Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(modalContext).viewInsets.bottom,
+            ),
+            // have a bottom modal scope widget so we can close the modal
+            child: BottomModalScopeWidget(
+              rootContext: modalContext,
+              // create a new Data Scope since the bottom modal is placed in a different context tree (directly under MaterialApp)
+              child: DataScopeWidget(
+                  scopeManager: scopeManager.createChildScope(),
+                  child: getBodyWidget(scopeManager, context)),
+            )),
+      ).then((payload) {
+        if (onDismiss != null) {
+          return ScreenController().executeActionWithScope(
+              context, scopeManager, onDismiss!,
+              event: EnsembleEvent(null, data: payload));
+        }
+      });
+    }
     return Future.value(null);
+  }
+
+  Widget getBodyWidget(ScopeManager scopeManager, BuildContext context) {
+    var widget = scopeManager.buildWidgetFromDefinition(body);
+    if (isScrollable(scopeManager) == true) {
+      return DraggableScrollableSheet(
+          expand: false,
+          builder: (context, scrollController) =>
+              buildRootContainer(scopeManager, context,
+                  child: SingleChildScrollView(
+                    controller: scrollController,
+                    child: widget,
+                  )));
+    }
+    return buildRootContainer(scopeManager, context, child: widget);
+  }
+
+  // This is the root container where all the root styling happen
+  Widget buildRootContainer(ScopeManager scopeManager, BuildContext context,
+      {required Widget child}) {
+    return Container(
+        margin: margin(scopeManager),
+        padding: padding(scopeManager),
+        decoration: BoxDecoration(
+            color: getBackgroundColor(scopeManager) ??
+                Theme.of(context).dialogBackgroundColor,
+            borderRadius: borderRadius(scopeManager)?.getValue() ??
+                const BorderRadius.only(
+                    topLeft: defaultTopBorderRadius,
+                    topRight: defaultTopBorderRadius)),
+        clipBehavior: Clip.antiAlias,
+        width: double.infinity, // stretch width 100%
+        child: useSafeArea(scopeManager) ? SafeArea(child: child) : child);
   }
 }
 
