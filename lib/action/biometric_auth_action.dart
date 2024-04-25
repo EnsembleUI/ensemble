@@ -4,6 +4,7 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/src/widgets/framework.dart';
 import 'package:local_auth/local_auth.dart';
@@ -32,6 +33,10 @@ class AuthenticateByBiometric extends EnsembleAction {
 
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) async {
+    if (kIsWeb) {
+      print('authenticateByBiometric only works on native device');
+      return;
+    }
     try {
       final LocalAuthentication auth = LocalAuthentication();
 
@@ -79,7 +84,7 @@ class AuthenticateByBiometric extends EnsembleAction {
 
   static EnsembleAction? fromMap({Map? payload}) {
     if (payload == null || payload['onAuthenticated'] == null) {
-      print("localAuth: onAuthenticated is required");
+      print("authenticateByBiometric: onAuthenticated is required");
       return null;
     }
     return AuthenticateByBiometric(

@@ -59,6 +59,8 @@ class ListView extends StatefulWidget
           _controller.separatorWidth = Utils.optionalDouble(value),
       'separatorPadding': (value) =>
           _controller.separatorPadding = Utils.optionalInsets(value),
+      'pullToRefresh': (input) =>
+          _controller.pullToRefresh = PullToRefresh.fromMap(input, this),
       'onPullToRefresh': (funcDefinition) => _controller.onPullToRefresh =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'pullToRefreshOptions': (input) => _controller.pullToRefreshOptions =
@@ -109,7 +111,9 @@ class ListViewController extends BoxLayoutController {
   dynamic loadingWidget;
   bool showLoading = false;
   bool hasReachedMax = false;
+
   ListViewState? widgetState;
+
   void _bind(ListViewState state) {
     widgetState = state;
   }
@@ -166,6 +170,7 @@ class ListViewState extends WidgetState<ListView>
       return const SizedBox.shrink();
     }
 
+    PullToRefresh? pullToRefresh = _getPullToRefresh();
     Widget listView = ListViewCore(
       shrinkWrap: FooterScope.of(context) != null ? true : false,
       itemCount: itemCount,
@@ -181,7 +186,7 @@ class ListViewState extends WidgetState<ListView>
       physics: (footerScope != null &&
               footerScope.isColumnScrollableAndRoot(context))
           ? const NeverScrollableScrollPhysics()
-          : widget._controller.onPullToRefresh != null
+          : pullToRefresh != null
               ? const AlwaysScrollableScrollPhysics()
               : null,
       loadingBuilder: widget._controller.loadingWidget != null
@@ -235,11 +240,9 @@ class ListViewState extends WidgetState<ListView>
           listView, ListView.type, context, widget._controller);
     }
 
-    if (widget._controller.onPullToRefresh != null) {
+    if (pullToRefresh != null) {
       listView = PullToRefreshContainer(
-          options: widget._controller.pullToRefreshOptions,
-          onRefresh: _pullToRefresh,
-          contentWidget: listView);
+          options: pullToRefresh!, contentWidget: listView);
     }
 
     return BoxWrapper(
@@ -251,11 +254,20 @@ class ListViewState extends WidgetState<ListView>
             child: listView));
   }
 
-  Future<void> _pullToRefresh() async {
-    if (widget._controller.onPullToRefresh != null) {
-      await ScreenController()
-          .executeAction(context, widget._controller.onPullToRefresh!);
-    }
+  // backward compatible
+  PullToRefresh? _getPullToRefresh() {
+    return widget._controller.pullToRefresh ??
+        (widget._controller.onPullToRefresh != null
+            ? PullToRefresh(
+                widget._controller.onPullToRefresh!,
+                indicatorType:
+                    widget._controller.pullToRefreshOptions?.indicatorType,
+                indicatorMinDuration: widget
+                    ._controller.pullToRefreshOptions?.indicatorMinDuration,
+                indicatorPadding:
+                    widget._controller.pullToRefreshOptions?.indicatorPadding,
+              )
+            : null);
   }
 
   void _onItemTapped(int index) {
