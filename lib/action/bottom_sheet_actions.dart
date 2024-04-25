@@ -11,8 +11,8 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 
 /// open a Modal Bottom Sheet
-class ShowBottomModalAction extends EnsembleAction {
-  ShowBottomModalAction({
+class ShowBottomSheetAction extends EnsembleAction {
+  ShowBottomSheetAction({
     super.initiator,
     super.inputs,
     required this.body,
@@ -26,13 +26,13 @@ class ShowBottomModalAction extends EnsembleAction {
   final dynamic body;
   final EnsembleAction? onDismiss;
 
-  factory ShowBottomModalAction.from({Invokable? initiator, Map? payload}) {
+  factory ShowBottomSheetAction.from({Invokable? initiator, Map? payload}) {
     dynamic body = payload?['body'] ?? payload?['widget'];
     if (payload == null || body == null) {
       throw LanguageError(
-          "${ActionType.showBottomModal.name} requires a body widget.");
+          "${ActionType.showBottomSheet.name} requires a body widget.");
     }
-    return ShowBottomModalAction(
+    return ShowBottomSheetAction(
         initiator: initiator,
         inputs: Utils.getMap(payload['inputs']),
         body: body,
@@ -104,7 +104,7 @@ class ShowBottomModalAction extends EnsembleAction {
               bottom: MediaQuery.of(modalContext).viewInsets.bottom,
             ),
             // have a bottom modal scope widget so we can close the modal
-            child: BottomModalScopeWidget(
+            child: BottomSheetScopeWidget(
               rootContext: modalContext,
               // create a new Data Scope since the bottom modal is placed in a different context tree (directly under MaterialApp)
               child: DataScopeWidget(
@@ -139,6 +139,9 @@ class ShowBottomModalAction extends EnsembleAction {
         initialViewport = (minViewport + maxViewport) / 2.0;
       }
 
+      // On platforms with a mouse (Web/desktop), there is no min/maxViewport due to platform consistency,
+      // so the height will be fixed to initialViewport, and content will just scroll within it.
+      // https://docs.flutter.dev/release/breaking-changes/default-scroll-behavior-drag
       return DraggableScrollableSheet(
           expand: false,
           minChildSize: minViewport,
@@ -168,8 +171,8 @@ class ShowBottomModalAction extends EnsembleAction {
                     topLeft: defaultTopBorderRadius,
                     topRight: defaultTopBorderRadius)),
         clipBehavior: Clip.antiAlias,
+        // stretch width 100%. Note that Flutter's bottom sheet has a width constraint on Web/Desktop so it may not take 100% on wide screen
         width: double.infinity,
-        // stretch width 100%
         child: useSafeArea(scopeManager) ? SafeArea(child: child) : child);
     if (showDragHandle(scopeManager)) {
       rootWidget = Stack(
@@ -194,43 +197,43 @@ class ShowBottomModalAction extends EnsembleAction {
 }
 
 /// Dismiss the Bottom Modal (if the context is a descendant, no-op otherwise)
-class DismissBottomModalAction extends EnsembleAction {
-  DismissBottomModalAction({this.payload});
+class DismissBottomSheetAction extends EnsembleAction {
+  DismissBottomSheetAction({this.payload});
 
   Map? payload;
 
-  factory DismissBottomModalAction.from({Map? payload}) =>
-      DismissBottomModalAction(payload: payload?['payload']);
+  factory DismissBottomSheetAction.from({Map? payload}) =>
+      DismissBottomSheetAction(payload: payload?['payload']);
 
   @override
   Future<dynamic> execute(BuildContext context, ScopeManager scopeManager,
       {DataContext? dataContext}) {
-    BuildContext? bottomModalContext =
-        BottomModalScopeWidget.getRootContext(context);
-    if (bottomModalContext != null) {
+    BuildContext? bottomSheetContext =
+        BottomSheetScopeWidget.getRootContext(context);
+    if (bottomSheetContext != null) {
       return Navigator.maybePop(
-          bottomModalContext, scopeManager.dataContext.eval(payload));
+          bottomSheetContext, scopeManager.dataContext.eval(payload));
     }
     return Navigator.maybePop(context, scopeManager.dataContext.eval(payload));
   }
 }
 
-/// a wrapper InheritedWidget for its descendant to look up the root modal context to close it
-class BottomModalScopeWidget extends InheritedWidget {
-  const BottomModalScopeWidget(
+/// a wrapper InheritedWidget for its descendant to look up the Sheet's root context to close it
+class BottomSheetScopeWidget extends InheritedWidget {
+  const BottomSheetScopeWidget(
       {super.key, required super.child, required this.rootContext});
 
   // this is the context root of the modal
   final BuildContext rootContext;
 
   @override
-  bool updateShouldNotify(covariant BottomModalScopeWidget oldWidget) {
+  bool updateShouldNotify(covariant BottomSheetScopeWidget oldWidget) {
     return oldWidget.rootContext != rootContext;
   }
 
   static BuildContext? getRootContext(BuildContext context) {
-    BottomModalScopeWidget? wrapperWidget =
-        context.dependOnInheritedWidgetOfExactType<BottomModalScopeWidget>();
+    BottomSheetScopeWidget? wrapperWidget =
+        context.dependOnInheritedWidgetOfExactType<BottomSheetScopeWidget>();
     return wrapperWidget?.rootContext;
   }
 }
