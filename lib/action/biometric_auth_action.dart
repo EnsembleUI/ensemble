@@ -9,7 +9,7 @@ import 'package:flutter/src/widgets/framework.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:local_auth/error_codes.dart' as auth_error;
 
-class BiometricAuthAction extends EnsembleAction {
+class AuthenticateByBiometric extends EnsembleAction {
   EnsembleAction? onAuthenticated;
   EnsembleAction? onAuthenticationFailed;
   EnsembleAction? onSensorNotAvailable;
@@ -19,7 +19,7 @@ class BiometricAuthAction extends EnsembleAction {
   String? label;
   String? androidTitle;
 
-  BiometricAuthAction({
+  AuthenticateByBiometric({
     this.onAuthenticated,
     this.onAuthenticationFailed,
     this.allowConfiguration,
@@ -82,7 +82,7 @@ class BiometricAuthAction extends EnsembleAction {
       print("localAuth: onAuthenticated is required");
       return null;
     }
-    return BiometricAuthAction(
+    return AuthenticateByBiometric(
       onAuthenticated: EnsembleAction.fromYaml(payload['onAuthenticated']),
       onAuthenticationFailed:
           EnsembleAction.fromYaml(payload['onAuthenticationFailed']),

@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:ensemble/action/Log_event_action.dart';
 import 'package:ensemble/action/action_invokable.dart';
 import 'package:ensemble/action/audio_player.dart';
+import 'package:ensemble/action/biometric_auth_action.dart';
 import 'package:ensemble/action/bottom_modal_action.dart';
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/action/invoke_api_action.dart';
@@ -546,6 +547,12 @@ class NativeInvokable extends ActionInvokable {
             buildContext,
             LogEvent.from(payload: inputs),
           ),
+      ActionType.authenticateByBiometric.name: (inputs) {
+        final action =
+            AuthenticateByBiometric.fromMap(payload: Utils.getYamlMap(inputs));
+        if (action == null) return null;
+        return ScreenController().executeAction(buildContext, action);
+      },
     });
     return methods;
   }
