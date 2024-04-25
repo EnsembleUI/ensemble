@@ -59,8 +59,31 @@ class ShowBottomModalAction extends EnsembleAction {
   Color? getBackgroundColor(scopeManager) =>
       Utils.getColor(eval(payload["styles"]?['backgroundColor'], scopeManager));
 
+  bool showDragHandle(scopeManager) =>
+      Utils.getBool(eval(payload["styles"]?["showDragHandle"], scopeManager),
+          fallback: true);
+
+  Color? dragHandleColor(scopeManager) =>
+      Utils.getColor(eval(payload["styles"]?["dragHandleColor"], scopeManager));
+
   bool? isScrollable(scopeManager) =>
       Utils.optionalBool(eval(payload["scrollable"], scopeManager));
+
+  // scroll options
+  double? _initialViewport(scopeManager) => Utils.optionalDouble(
+      eval(payload["scrollOptions"]?["initialViewport"], scopeManager),
+      min: 0,
+      max: 1);
+
+  double? _minViewport(scopeManager) => Utils.optionalDouble(
+      eval(payload["scrollOptions"]?["minViewport"], scopeManager),
+      min: 0,
+      max: 1);
+
+  double? _maxViewport(scopeManager) => Utils.optionalDouble(
+      eval(payload["scrollOptions"]?["maxViewport"], scopeManager),
+      min: 0,
+      max: 1);
 
   @override
   Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
@@ -70,10 +93,10 @@ class ShowBottomModalAction extends EnsembleAction {
         // disable the default bottom sheet styling since we use our own
         backgroundColor: Colors.transparent,
         elevation: 0,
+        showDragHandle: false,
 
         barrierColor: getBarrierColor(scopeManager),
         isScrollControlled: true,
-        showDragHandle: true,
         enableDrag: true,
         // padding to account for the keyboard when we have input widgets inside the modal
         builder: (modalContext) => Padding(
@@ -102,8 +125,25 @@ class ShowBottomModalAction extends EnsembleAction {
   Widget getBodyWidget(ScopeManager scopeManager, BuildContext context) {
     var widget = scopeManager.buildWidgetFromDefinition(body);
     if (isScrollable(scopeManager) == true) {
+      // fix the viewport numbers if used incorrectly
+      double minViewport = _minViewport(scopeManager) ?? 0.25;
+      double maxViewport = _maxViewport(scopeManager) ?? 1;
+      if (minViewport > maxViewport) {
+        // reset
+        minViewport = 0.25;
+        maxViewport = 1;
+      }
+      double initialViewport = _initialViewport(scopeManager) ?? 0.5;
+      if (initialViewport < minViewport || initialViewport > maxViewport) {
+        // to middle
+        initialViewport = (minViewport + maxViewport) / 2.0;
+      }
+
       return DraggableScrollableSheet(
           expand: false,
+          minChildSize: minViewport,
+          maxChildSize: maxViewport,
+          initialChildSize: initialViewport,
           builder: (context, scrollController) =>
               buildRootContainer(scopeManager, context,
                   child: SingleChildScrollView(
@@ -117,7 +157,7 @@ class ShowBottomModalAction extends EnsembleAction {
   // This is the root container where all the root styling happen
   Widget buildRootContainer(ScopeManager scopeManager, BuildContext context,
       {required Widget child}) {
-    return Container(
+    Widget rootWidget = Container(
         margin: margin(scopeManager),
         padding: padding(scopeManager),
         decoration: BoxDecoration(
@@ -128,8 +168,28 @@ class ShowBottomModalAction extends EnsembleAction {
                     topLeft: defaultTopBorderRadius,
                     topRight: defaultTopBorderRadius)),
         clipBehavior: Clip.antiAlias,
-        width: double.infinity, // stretch width 100%
+        width: double.infinity,
+        // stretch width 100%
         child: useSafeArea(scopeManager) ? SafeArea(child: child) : child);
+    if (showDragHandle(scopeManager)) {
+      rootWidget = Stack(
+        alignment: Alignment.topCenter,
+        children: [rootWidget, _buildDragHandle(scopeManager)],
+      );
+    }
+    return rootWidget;
+  }
+
+  Widget _buildDragHandle(ScopeManager scopeManager) {
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      width: 32,
+      height: 3,
+      decoration: BoxDecoration(
+        color: dragHandleColor(scopeManager) ?? Colors.grey[500],
+        borderRadius: BorderRadius.circular(12),
+      ),
+    );
   }
 }
 
