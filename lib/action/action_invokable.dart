@@ -24,18 +24,23 @@ abstract class ActionInvokable with Invokable {
       ActionType.getPhoneContactPhoto,
       ActionType.showBottomModal,
       ActionType.dismissBottomModal,
+      ActionType.showBottomSheet,
+      ActionType.dismissBottomSheet,
       ActionType.showDialog,
       ActionType.navigateViewGroup,
+      ActionType.showToast,
     ]);
   }
 
   Map<String, Function> _generateFromActionTypes(List<ActionType> actionTypes) {
     Map<String, Function> functions = {};
     for (ActionType actionType in actionTypes) {
-      functions[actionType.name] = (payload) {
+      functions[actionType.name] = ([dynamic payload]) {
+        // payload is optional but must be a Map if specified
         if (payload != null && payload is! Map) {
           throw LanguageError("${actionType.name} has an invalid payload.");
         }
+
         EnsembleAction? action =
             EnsembleAction.fromActionType(actionType, payload: payload);
         return action?.execute(buildContext, _getScopeManager(buildContext));

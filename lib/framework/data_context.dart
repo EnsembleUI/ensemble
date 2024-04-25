@@ -5,7 +5,7 @@ import 'dart:ui';
 import 'package:ensemble/action/Log_event_action.dart';
 import 'package:ensemble/action/action_invokable.dart';
 import 'package:ensemble/action/audio_player.dart';
-import 'package:ensemble/action/bottom_modal_actions.dart';
+import 'package:ensemble/action/bottom_sheet_actions.dart';
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/action/invoke_api_action.dart';
 import 'package:ensemble/action/misc_action.dart';
@@ -473,8 +473,6 @@ class NativeInvokable extends ActionInvokable {
       ActionType.stopTimer.name: stopTimer,
       ActionType.openCamera.name: showCamera,
       ActionType.navigateBack.name: navigateBack,
-      ActionType.showToast.name: (inputs) => ScreenController()
-          .executeAction(buildContext, ShowToastAction.fromMap(inputs)),
       ActionType.startTimer.name: (inputs) => ScreenController()
           .executeAction(buildContext, StartTimerAction.fromMap(inputs)),
       ActionType.uploadFiles.name: uploadFiles,
@@ -503,16 +501,6 @@ class NativeInvokable extends ActionInvokable {
         final scope = ScreenController().getScopeManager(buildContext);
         callNativeMethod(buildContext, scope, inputs);
       },
-      ActionType.showBottomModal.name: (inputs) =>
-          ScreenController().executeAction(
-            buildContext,
-            ShowBottomModalAction.from(payload: inputs),
-          ),
-      ActionType.dismissBottomModal.name: (inputs) =>
-          ScreenController().executeAction(
-            buildContext,
-            DismissBottomModalAction.from(payload: inputs),
-          ),
       ActionType.showDialog.name: (inputs) => ScreenController()
           .executeAction(buildContext, ShowDialogAction.from(payload: inputs)),
       ActionType.rateApp.name: (inputs) => ScreenController()
