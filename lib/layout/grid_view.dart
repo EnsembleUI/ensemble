@@ -70,6 +70,8 @@ class GridView extends StatefulWidget
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'onItemTapHaptic': (value) =>
           _controller.onItemTapHaptic = Utils.optionalString(value),
+      'pullToRefresh': (input) =>
+          _controller.pullToRefresh = PullToRefresh.fromMap(input, this),
       'onPullToRefresh': (funcDefinition) => _controller.onPullToRefresh =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'pullToRefreshOptions': (input) => _controller.pullToRefreshOptions =
@@ -93,7 +95,7 @@ class GridView extends StatefulWidget
   }
 }
 
-class GridViewController extends BoxController with HasPullToRefresh {
+class GridViewController extends BoxController {
   List<int>? horizontalTileCount;
   int? horizontalGap;
   int? verticalGap;
@@ -109,6 +111,12 @@ class GridViewController extends BoxController with HasPullToRefresh {
   bool reverse = false;
   ScrollController? scrollController;
   String? direction;
+
+  PullToRefresh? pullToRefresh;
+  @Deprecated("use pullToRefresh")
+  EnsembleAction? onPullToRefresh;
+  @Deprecated("use pullToRefresh")
+  PullToRefreshOptions? pullToRefreshOptions;
 
   // single number, 3 numbers (small, medium, large), or 5 numbers (xSmall, small, medium, large, xLarge)
   // min 1, max 5
@@ -205,6 +213,7 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
       return const SizedBox.shrink();
     }
 
+    PullToRefresh? pullToRefresh = _getPullToRefresh();
     Widget myGridView = LayoutBuilder(builder: (context, constraints) {
       return flutter.GridView.builder(
           controller: (footerScope != null &&
@@ -215,7 +224,7 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
           physics: (footerScope != null &&
                   footerScope.isColumnScrollableAndRoot(context))
               ? const NeverScrollableScrollPhysics()
-              : widget._controller.onPullToRefresh != null
+              : pullToRefresh != null
                   ? const AlwaysScrollableScrollPhysics()
                   : null,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -246,13 +255,10 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
       myGridView = StudioDebugger().assertScrollableHasBoundedHeightWrapper(
           myGridView, GridView.type, context, widget.controller);
     }
-    // wrapping view inside
 
-    if (widget._controller.onPullToRefresh != null) {
+    if (pullToRefresh != null) {
       myGridView = PullToRefreshContainer(
-          options: widget._controller.pullToRefreshOptions,
-          onRefresh: _pullToRefresh,
-          contentWidget: myGridView);
+          options: pullToRefresh, contentWidget: myGridView);
     }
 
     return BoxWrapper(
@@ -263,11 +269,20 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
     );
   }
 
-  Future<void> _pullToRefresh() async {
-    if (widget._controller.onPullToRefresh != null) {
-      await ScreenController()
-          .executeAction(context, widget._controller.onPullToRefresh!);
-    }
+  // backward compatible
+  PullToRefresh? _getPullToRefresh() {
+    return widget._controller.pullToRefresh ??
+        (widget._controller.onPullToRefresh != null
+            ? PullToRefresh(
+                widget._controller.onPullToRefresh!,
+                indicatorType:
+                    widget._controller.pullToRefreshOptions?.indicatorType,
+                indicatorMinDuration: widget
+                    ._controller.pullToRefreshOptions?.indicatorMinDuration,
+                indicatorPadding:
+                    widget._controller.pullToRefreshOptions?.indicatorPadding,
+              )
+            : null);
   }
 
   dynamic _buildItem(int index) {

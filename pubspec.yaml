@@ -52,6 +52,10 @@ dependencies:
       url: https://github.com/EnsembleUI/ensemble_ts_interpreter.git
       ref: master
 
+  ensemble_bracket:
+    git:
+      url: https://github.com/EnsembleUI/ensemble_bracket.git
+      ref: main
   # use our forked high_chart to fix iOS issue
   high_chart:
     git: https://github.com/EnsembleUI/high_chart.git
@@ -126,6 +130,7 @@ dependencies:
   logger: ^2.2.0
   visibility_detector: ^0.4.0+2
   local_auth: ^2.2.0
+
 
 dev_dependencies:
   flutter_test:

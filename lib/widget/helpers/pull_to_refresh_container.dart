@@ -1,7 +1,6 @@
-import 'dart:developer';
-
 import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:ensemble/model/pull_to_refresh.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -10,16 +9,14 @@ class PullToRefreshContainer extends StatefulWidget {
   const PullToRefreshContainer(
       {super.key,
       required this.contentWidget,
-      this.refreshWidget,
-      this.options,
-      required this.onRefresh});
+      required this.options,
+      this.refreshWidget});
 
   final Widget contentWidget;
-  final Future<void> Function() onRefresh;
+  final PullToRefresh options;
 
   // TODO: size the refresh widget properly before expose it.
   final Widget? refreshWidget;
-  final PullToRefreshOptions? options;
 
   @override
   State<PullToRefreshContainer> createState() => _PullToRefreshContainerState();
@@ -31,15 +28,15 @@ class _PullToRefreshContainerState extends State<PullToRefreshContainer> {
   @override
   Widget build(BuildContext context) {
     double totalIndicatorHeight = _defaultIndicatorSize +
-        (widget.options?.indicatorPadding != null
-            ? widget.options!.indicatorPadding!.top +
-                widget.options!.indicatorPadding!.bottom
+        (widget.options.indicatorPadding != null
+            ? widget.options.indicatorPadding!.top +
+                widget.options.indicatorPadding!.bottom
             : 0);
 
     return CustomRefreshIndicator(
         offsetToArmed:
             totalIndicatorHeight / 2, // tweak this number or expose it
-        onRefresh: processOnRefresh,
+        onRefresh: () => processOnRefresh(context),
         builder: (context, child, controller) => Stack(
               children: [
                 if (!controller.isIdle && !controller.isCanceling)
@@ -70,14 +67,14 @@ class _PullToRefreshContainerState extends State<PullToRefreshContainer> {
             width: _defaultIndicatorSize,
             height: _defaultIndicatorSize,
             child: _getProgressIndicator(controller));
-    if (widget.options?.indicatorPadding != null) {
-      rtn = Padding(padding: widget.options!.indicatorPadding!, child: rtn);
+    if (widget.options.indicatorPadding != null) {
+      rtn = Padding(padding: widget.options.indicatorPadding!, child: rtn);
     }
     return rtn;
   }
 
   Widget _getProgressIndicator(IndicatorController controller) {
-    if (widget.options?.indicatorType == RefreshIndicatorType.cupertino) {
+    if (widget.options.indicatorType == RefreshIndicatorType.cupertino) {
       return controller.isDragging || controller.isArmed
           ? CupertinoActivityIndicator.partiallyRevealed(
               progress: controller.value.clamp(0, 1),
@@ -92,16 +89,16 @@ class _PullToRefreshContainerState extends State<PullToRefreshContainer> {
     }
   }
 
-  Future<void> processOnRefresh() async {
+  Future<void> processOnRefresh(BuildContext context) async {
     final stopwatch = Stopwatch()..start();
-    await widget.onRefresh();
+    await ScreenController()
+        .executeAction(context, widget.options.onPullToRefresh);
     stopwatch.stop();
 
     // ensure we run the minimum duration specified
-    if (widget.options?.indicatorMinDuration != null &&
-        widget.options!.indicatorMinDuration!.compareTo(stopwatch.elapsed) >
-            0) {
-      int additionalMs = widget.options!.indicatorMinDuration!.inMilliseconds -
+    if (widget.options.indicatorMinDuration != null &&
+        widget.options.indicatorMinDuration!.compareTo(stopwatch.elapsed) > 0) {
+      int additionalMs = widget.options.indicatorMinDuration!.inMilliseconds -
           stopwatch.elapsedMilliseconds;
 
       return Future.delayed(Duration(milliseconds: additionalMs));
