@@ -59,7 +59,8 @@ class DataContext implements Context {
   final Map<String, dynamic> _contextMap = {};
 
   get contextMap => _contextMap;
-  final BuildContext buildContext;
+  @Deprecated("do not use")
+  BuildContext buildContext;
 
   DataContext(
       {required this.buildContext,
