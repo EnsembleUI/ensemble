@@ -1126,7 +1126,7 @@ enum ActionType {
   invokeHaptic,
   callNativeMethod,
   deeplinkInit,
-  biometricAuth,
+  authenticateByBiometric,
   handleDeeplink,
   createDeeplink,
   verifySignIn,
@@ -1306,8 +1306,8 @@ abstract class EnsembleAction {
       return SeekAudio.from(payload);
     } else if (actionType == ActionType.deeplinkInit) {
       return DeepLinkInitAction.fromMap(payload: payload);
-    } else if (actionType == ActionType.biometricAuth) {
-      return BiometricAuthAction.fromMap(payload: payload);
+    } else if (actionType == ActionType.authenticateByBiometric) {
+      return AuthenticateByBiometric.fromMap(payload: payload);
     } else if (actionType == ActionType.handleDeeplink) {
       return DeepLinkHandleAction.fromMap(payload: payload);
     } else if (actionType == ActionType.createDeeplink) {
