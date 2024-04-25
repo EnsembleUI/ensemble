@@ -5,7 +5,7 @@ import 'dart:ui';
 import 'package:ensemble/action/Log_event_action.dart';
 import 'package:ensemble/action/action_invokable.dart';
 import 'package:ensemble/action/audio_player.dart';
-import 'package:ensemble/action/bottom_modal_action.dart';
+import 'package:ensemble/action/bottom_modal_actions.dart';
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/action/invoke_api_action.dart';
 import 'package:ensemble/action/misc_action.dart';
@@ -59,7 +59,8 @@ class DataContext implements Context {
   final Map<String, dynamic> _contextMap = {};
 
   get contextMap => _contextMap;
-  final BuildContext buildContext;
+  @Deprecated("do not use")
+  BuildContext buildContext;
 
   DataContext(
       {required this.buildContext,
