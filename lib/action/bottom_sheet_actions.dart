@@ -124,6 +124,7 @@ class ShowBottomSheetAction extends EnsembleAction {
 
   Widget getBodyWidget(ScopeManager scopeManager, BuildContext context) {
     var widget = scopeManager.buildWidgetFromDefinition(body);
+
     if (isScrollable(scopeManager) == true) {
       // fix the viewport numbers if used incorrectly
       double minViewport = _minViewport(scopeManager) ?? 0.25;
@@ -152,14 +153,16 @@ class ShowBottomSheetAction extends EnsembleAction {
                   child: SingleChildScrollView(
                     controller: scrollController,
                     child: widget,
-                  )));
+                  ),
+                  isScrollable: true));
     }
-    return buildRootContainer(scopeManager, context, child: widget);
+    return buildRootContainer(scopeManager, context,
+        child: widget, isScrollable: false);
   }
 
   // This is the root container where all the root styling happen
   Widget buildRootContainer(ScopeManager scopeManager, BuildContext context,
-      {required Widget child}) {
+      {required Widget child, required bool isScrollable}) {
     Widget rootWidget = Container(
         margin: margin(scopeManager),
         padding: padding(scopeManager),
@@ -173,6 +176,8 @@ class ShowBottomSheetAction extends EnsembleAction {
         clipBehavior: Clip.antiAlias,
         // stretch width 100%. Note that Flutter's bottom sheet has a width constraint on Web/Desktop so it may not take 100% on wide screen
         width: double.infinity,
+        // if scrollable we have to stretch to the DraggableScrollableSheet's height which is variable
+        height: isScrollable ? double.infinity : null,
         child: useSafeArea(scopeManager) ? SafeArea(child: child) : child);
     if (showDragHandle(scopeManager)) {
       rootWidget = Stack(
