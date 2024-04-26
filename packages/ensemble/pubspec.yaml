@@ -19,7 +19,7 @@ version: 1.0.0+5
 
 environment:
   sdk: ">=3.0.6 <4.0.0"
-  flutter: ">=1.17.0"
+  flutter: 3.19.3
 
 dependencies:
   flutter:
@@ -63,7 +63,7 @@ dependencies:
     git:
       url: https://github.com/EnsembleUI/otp_pin_field.git
       ref: develop
-      
+
   form_validator: ^2.1.1
   flutter_svg: ^2.0.7
   flutter_svg_provider: ^1.0.4
@@ -110,11 +110,11 @@ dependencies:
   app_links: ^3.5.0
   share_plus: ^6.2.0
   rate_my_app: ^2.0.0
-  table_calendar: 
+  table_calendar:
     git:
       url: https://github.com/snehmehta/table_calendar
       ref: master
-  
+
   flutter_app_badger: ^1.5.0
   webview_flutter_wkwebview: ^3.9.2
   webview_flutter_android: ^3.12.0
