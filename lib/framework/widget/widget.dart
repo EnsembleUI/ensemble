@@ -119,17 +119,17 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
         rtn = Expanded(child: rtn);
       }
 
-      final isTestMode = EnvConfig().isTestMode;
+      // final isTestMode = EnvConfig().isTestMode;
 
-      if (isTestMode &&
-          widgetController.testId != null &&
-          widgetController.testId!.isNotEmpty) {
-        rtn = Semantics(
-          //identifier: 'ID#${widgetController.testId!}',//can't use it till we move to flutter 3.19
-          identifier: '${widgetController.testId!}: ',
-          child: rtn,
-        );
-      }
+      // if (isTestMode &&
+      //     widgetController.testId != null &&
+      //     widgetController.testId!.isNotEmpty) {
+      //   rtn = Semantics(
+      //     //identifier: 'ID#${widgetController.testId!}',//can't use it till we move to flutter 3.19
+      //     identifier: '${widgetController.testId!}: ',
+      //     child: rtn,
+      //   );
+      // }
     }
     return rtn;
   }

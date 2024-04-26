@@ -105,16 +105,16 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
         }
       }
 
-      final isTestMode = EnvConfig().isTestMode;
+      // final isTestMode = EnvConfig().isTestMode;
 
-      if (isTestMode &&
-          widgetController.testId != null &&
-          widgetController.testId!.isNotEmpty) {
-        rtn = Semantics(
-          identifier: '${widgetController.testId!}: ',
-          child: rtn,
-        );
-      }
+      // if (isTestMode &&
+      //     widgetController.testId != null &&
+      //     widgetController.testId!.isNotEmpty) {
+      //   rtn = Semantics(
+      //     identifier: '${widgetController.testId!}: ',
+      //     child: rtn,
+      //   );
+      // }
 
       return rtn;
     }
