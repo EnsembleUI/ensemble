@@ -21,6 +21,7 @@ import 'package:source_span/source_span.dart';
 
 class ViewUtil {
   static const classNameAttribute = "className";
+
   static bool isViewModel(dynamic item, Map<String, dynamic>? customWidgetMap) {
     if (item != null) {
       return customWidgetMap?[item.toString()] != null || item is YamlMap;
@@ -249,7 +250,10 @@ class ViewUtil {
         CustomView.fromModel(model: customModel, scopeManager: customScope);
     modelMap[customModel] = ModelPayload(customWidget, customScope);
 
-    return DataScopeWidget(scopeManager: customScope, child: customWidget);
+    return DataScopeWidget(
+        debugLabel: 'customWidget',
+        scopeManager: customScope,
+        child: customWidget);
   }
 
   static Widget buildBareWidget(ScopeNode scopeNode, WidgetModel model,

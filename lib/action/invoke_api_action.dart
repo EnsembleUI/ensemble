@@ -80,7 +80,8 @@ class InvokeAPIController {
         dataContext.addDataContext(additionalInputs);
       }
 
-      execute(action, context, scopeManager, scopeManager.pageData.apiMap);
+      return execute(
+          action, context, scopeManager, scopeManager.pageData.apiMap);
     }
     throw Exception('Unable to execute API from context');
   }
