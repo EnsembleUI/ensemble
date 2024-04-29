@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
@@ -16,22 +17,9 @@ import 'package:yaml/yaml.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' as foundation;
 
-class HttpUtils {
-  static Future<Response> invokeMockAPI(
-      DataContext eContext, dynamic mock) async {
-    if (mock is Map) {
-      mock = YamlMap.wrap(mock);
-    }
-    dynamic mockResponse = eContext.eval(mock);
-    return Response.fromBody(
-        mockResponse['body'],
-        mockResponse['headers'],
-        mockResponse['statusCode'] ?? 200,
-        mockResponse['reasonPhrase'],
-        APIState.success);
-  }
-
-  static Future<Response> invokeApi(BuildContext context, YamlMap api,
+class HTTPAPIProvider extends APIProvider {
+  @override
+  Future<HttpResponse> invokeApi(BuildContext context, YamlMap api,
       DataContext eContext, String apiName) async {
     // headers
     Map<String, String> headers = {};
@@ -149,8 +137,22 @@ class HttpUtils {
     }
     final isOkay = response.statusCode >= 200 && response.statusCode <= 299;
     log('Response: ${response.statusCode}');
-    return Response(response, isOkay ? APIState.success : APIState.error,
+    return HttpResponse(response, isOkay ? APIState.success : APIState.error,
         apiName: apiName);
+  }
+
+  @override
+  Future<HttpResponse> invokeMockAPI(DataContext eContext, dynamic mock) async {
+    if (mock is Map) {
+      mock = YamlMap.wrap(mock);
+    }
+    dynamic mockResponse = eContext.eval(mock);
+    return HttpResponse.fromBody(
+        mockResponse['body'],
+        mockResponse['headers'],
+        mockResponse['statusCode'] ?? 200,
+        mockResponse['reasonPhrase'],
+        APIState.success);
   }
 
   static String _getUrl(YamlMap apiDef) =>
@@ -213,42 +215,39 @@ class HttpUtils {
     }
     return null;
   }
-}
 
-enum APIState {
-  idle,
-  loading,
-  success,
-  error,
-}
+  @override
+  Future<void> init(String appId, Map<String, dynamic> config) async {
+    // doesn't require initialization
+  }
+  @override
+  HTTPAPIProvider clone() {
+    return this; //configless so nothing to close
+  }
 
-extension APIStateX on APIState {
-  bool get isLoading => this == APIState.loading;
-
-  bool get isSuccess => this == APIState.success;
-
-  bool get isError => this == APIState.error;
+  @override
+  dispose() {
+    // nothing to dispose
+  }
 }
 
 /// a wrapper class around the http Response
-class Response {
-  APIState apiState = APIState.idle;
-  dynamic body;
-  Map<String, dynamic>? headers;
-  int? statusCode;
-  String? reasonPhrase;
-  String apiName = '';
+class HttpResponse extends Response {
+  HttpResponse.updateState({required apiState}) {
+    super.updateState(apiState: apiState);
+  }
+// APIState get apiState => _apiState;
+  HttpResponse.fromBody(dynamic body,
+      [headers, statusCode, reasonPhrase, apiState = APIState.idle]) {
+    super.body = body;
+    super.headers = headers;
+    super.statusCode = statusCode;
+    super.reasonPhrase = reasonPhrase;
+    super.apiState = apiState;
+  }
 
-  // APIState get apiState => _apiState;
-  Response.fromBody(this.body,
-      [this.headers,
-      this.statusCode,
-      this.reasonPhrase,
-      this.apiState = APIState.idle]);
-
-  Response.updateState({required this.apiState});
-
-  Response(http.Response response, APIState apiState, {String apiName = ''}) {
+  HttpResponse(http.Response response, APIState apiState,
+      {String apiName = ''}) {
     try {
       body = json.decode(response.body);
     } on FormatException catch (_, e) {
@@ -260,7 +259,7 @@ class Response {
     reasonPhrase = response.reasonPhrase;
     apiName = apiName;
   }
-
+  @override
   bool get isOkay =>
       statusCode != null && statusCode! >= 200 && statusCode! <= 299;
 // bool get isError => !isSuccess;

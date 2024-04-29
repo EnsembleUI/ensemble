@@ -1,12 +1,8 @@
-import 'dart:developer';
-
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
-import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/studio/studio_debugger.dart';
 import 'package:ensemble/framework/view/footer.dart';
-import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -15,24 +11,18 @@ import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/model/pull_to_refresh.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
-import 'package:ensemble/util/layout_utils.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/framework/theme/theme_manager.dart';
-import 'package:ensemble/widget/carousel.dart';
 import 'package:ensemble/widget/helpers/pull_to_refresh_container.dart';
-import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' as flutter;
-import 'package:ensemble/util/platform.dart';
 import 'package:flutter/material.dart';
-
-import '../../widget/helpers/controllers.dart';
 import 'box_utils.dart';
 
 class Column extends BoxLayout {
   static const type = 'Column';
+
   Column({Key? key}) : super(key: key);
 
   @override
@@ -44,6 +34,8 @@ class Column extends BoxLayout {
   Map<String, Function> setters() {
     Map<String, Function> entries = super.setters();
     entries.addAll({
+      'pullToRefresh': (input) =>
+          _controller.pullToRefresh = PullToRefresh.fromMap(input, this),
       'onPullToRefresh': (funcDefinition) => _controller.onPullToRefresh =
           EnsembleAction.fromYaml(funcDefinition, initiator: this),
       'pullToRefreshOptions': (input) => _controller.pullToRefreshOptions =
@@ -55,6 +47,7 @@ class Column extends BoxLayout {
 
 class Row extends BoxLayout {
   static const type = 'Row';
+
   Row({Key? key}) : super(key: key);
 
   @override
@@ -65,6 +58,7 @@ class Row extends BoxLayout {
 
 class Flex extends BoxLayout {
   static const type = 'Flex';
+
   Flex({Key? key}) : super(key: key);
 
   @override
@@ -98,6 +92,7 @@ abstract class BoxLayout extends StatefulWidget
   BoxLayout({Key? key}) : super(key: key);
 
   final BoxLayoutController _controller = BoxLayoutController();
+
   @override
   BoxLayoutController get controller => _controller;
 
@@ -262,7 +257,8 @@ class BoxLayoutState extends WidgetState<BoxLayout>
         controller: widget._controller,
         ignoresMargin: widget is Column);
 
-    if (widget._controller.scrollable) {
+    var pullToRefresh = _getPullToRefresh();
+    if (widget._controller.scrollable || pullToRefresh != null) {
       FooterScope? footerScope = FooterScope.of(context);
       rtn = ScrollableColumn(
         child: SingleChildScrollView(
@@ -273,21 +269,19 @@ class BoxLayoutState extends WidgetState<BoxLayout>
                 : null,
             scrollDirection:
                 widget.isVertical() ? Axis.vertical : Axis.horizontal,
-            physics: widget._controller.onPullToRefresh != null
+            physics: pullToRefresh != null
                 ? const AlwaysScrollableScrollPhysics()
                 : null,
             child: rtn),
       );
 
-      if (widget is Column && widget._controller.onPullToRefresh != null) {
-        rtn = PullToRefreshContainer(
-            options: widget._controller.pullToRefreshOptions,
-            onRefresh: _pullToRefresh,
-            contentWidget: rtn);
+      if (widget is Column && pullToRefresh != null) {
+        rtn =
+            PullToRefreshContainer(options: pullToRefresh, contentWidget: rtn);
       }
     }
 
-    // for Column we add margin at the end, just in case it is inside a Scrollable or PulltoRefresh
+    // for Column we add margin at the end, just in case it is inside a Scrollable or PullToRefresh
     if (widget is Column && widget._controller.margin != null) {
       rtn = Padding(padding: widget._controller.margin!, child: rtn);
     }
@@ -295,11 +289,20 @@ class BoxLayoutState extends WidgetState<BoxLayout>
     return rtn;
   }
 
-  Future<void> _pullToRefresh() async {
-    if (widget._controller.onPullToRefresh != null) {
-      await ScreenController()
-          .executeAction(context, widget._controller.onPullToRefresh!);
-    }
+  // backward compatible
+  PullToRefresh? _getPullToRefresh() {
+    return widget._controller.pullToRefresh ??
+        (widget._controller.onPullToRefresh != null
+            ? PullToRefresh(
+                widget._controller.onPullToRefresh!,
+                indicatorType:
+                    widget._controller.pullToRefreshOptions?.indicatorType,
+                indicatorMinDuration: widget
+                    ._controller.pullToRefreshOptions?.indicatorMinDuration,
+                indicatorPadding:
+                    widget._controller.pullToRefreshOptions?.indicatorPadding,
+              )
+            : null);
   }
 
   void _onItemTap(int index) {

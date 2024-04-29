@@ -68,8 +68,7 @@ class FittedBoxLayoutController extends BaseBoxLayoutController {
 }
 
 /// controller for Column/Row/Flex
-class BoxLayoutController extends BaseBoxLayoutController
-    with HasPullToRefresh {
+class BoxLayoutController extends BaseBoxLayoutController {
   ItemTemplate? itemTemplate;
 
   bool scrollable = false;
@@ -79,6 +78,13 @@ class BoxLayoutController extends BaseBoxLayoutController
 
   // applicable to Flex container only
   String? direction;
+
+  // applicable for Column only
+  PullToRefresh? pullToRefresh;
+  @Deprecated("use pullToRefresh")
+  EnsembleAction? onPullToRefresh;
+  @Deprecated("use pullToRefresh")
+  PullToRefreshOptions? pullToRefreshOptions;
 
   @override
   Map<String, Function> getBaseSetters() {

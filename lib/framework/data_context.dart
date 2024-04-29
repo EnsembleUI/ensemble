@@ -5,13 +5,15 @@ import 'dart:ui';
 import 'package:ensemble/action/Log_event_action.dart';
 import 'package:ensemble/action/action_invokable.dart';
 import 'package:ensemble/action/audio_player.dart';
-import 'package:ensemble/action/bottom_modal_action.dart';
+import 'package:ensemble/action/bottom_sheet_actions.dart';
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/action/invoke_api_action.dart';
 import 'package:ensemble/action/misc_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/all_countries.dart';
+import 'package:ensemble/framework/apiproviders/api_provider.dart';
+import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -33,7 +35,6 @@ import 'package:get_it/get_it.dart';
 
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/screen_controller.dart';
-import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
 import 'package:ensemble_ts_interpreter/parser/newjs_interpreter.dart';
@@ -58,7 +59,8 @@ class DataContext implements Context {
   final Map<String, dynamic> _contextMap = {};
 
   get contextMap => _contextMap;
-  final BuildContext buildContext;
+  @Deprecated("do not use")
+  BuildContext buildContext;
 
   DataContext(
       {required this.buildContext,
@@ -471,8 +473,6 @@ class NativeInvokable extends ActionInvokable {
       ActionType.stopTimer.name: stopTimer,
       ActionType.openCamera.name: showCamera,
       ActionType.navigateBack.name: navigateBack,
-      ActionType.showToast.name: (inputs) => ScreenController()
-          .executeAction(buildContext, ShowToastAction.fromMap(inputs)),
       ActionType.startTimer.name: (inputs) => ScreenController()
           .executeAction(buildContext, StartTimerAction.fromMap(inputs)),
       ActionType.uploadFiles.name: uploadFiles,
@@ -501,16 +501,6 @@ class NativeInvokable extends ActionInvokable {
         final scope = ScreenController().getScopeManager(buildContext);
         callNativeMethod(buildContext, scope, inputs);
       },
-      ActionType.showBottomModal.name: (inputs) =>
-          ScreenController().executeAction(
-            buildContext,
-            ShowBottomModalAction.from(payload: inputs),
-          ),
-      ActionType.dismissBottomModal.name: (inputs) =>
-          ScreenController().executeAction(
-            buildContext,
-            DismissBottomModalAction.from(payload: inputs),
-          ),
       ActionType.showDialog.name: (inputs) => ScreenController()
           .executeAction(buildContext, ShowDialogAction.from(payload: inputs)),
       ActionType.rateApp.name: (inputs) => ScreenController()
@@ -1170,9 +1160,9 @@ class ModifiableAPIResponse extends APIResponse {
   Map<String, Function> setters() {
     return {
       'body': (newBody) =>
-          _response!.body = HttpUtils.parseResponsePayload(newBody),
+          _response!.body = HTTPAPIProvider.parseResponsePayload(newBody),
       'headers': (newHeaders) =>
-          _response!.headers = HttpUtils.parseResponsePayload(newHeaders)
+          _response!.headers = HTTPAPIProvider.parseResponsePayload(newHeaders)
     };
   }
 

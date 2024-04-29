@@ -7,7 +7,9 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/menu.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/bottom_nav_page_view.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page_group.dart';
+import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
@@ -91,11 +93,13 @@ class BottomNavPageGroup extends StatefulWidget {
     required this.menu,
     required this.selectedPage,
     required this.children,
+    required this.screenPayload,
   });
 
   final ScopeManager scopeManager;
   final Menu menu;
   final int selectedPage;
+  final List<ScreenPayload> screenPayload;
   final List<Widget> children;
 
   @override
@@ -167,11 +171,11 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
       final dynamic customIcon = _buildCustomIcon(fabMenuItem!);
 
       final floatingItemColor =
-          Utils.getColor(widget.menu.styles?['floatingIconColor']) ??
+          Utils.getColor(widget.menu.runtimeStyles?['floatingIconColor']) ??
               Theme.of(context).colorScheme.onSecondary;
-      final floatingBackgroundColor =
-          Utils.getColor(widget.menu.styles?['floatingBackgroundColor']) ??
-              Theme.of(context).colorScheme.secondary;
+      final floatingBackgroundColor = Utils.getColor(
+              widget.menu.runtimeStyles?['floatingBackgroundColor']) ??
+          Theme.of(context).colorScheme.secondary;
 
       return Visibility(
         visible: MediaQuery.of(context).viewInsets.bottom == 0.0,
@@ -212,8 +216,10 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
 
   @override
   Widget build(BuildContext context) {
-    final notchColor = Utils.getColor(widget.menu.styles?['notchColor']) ??
-        Theme.of(context).scaffoldBackgroundColor;
+    widget.menu.resolveStyles(widget.scopeManager, widget.menu, context);
+    final notchColor =
+        Utils.getColor(widget.menu.runtimeStyles?['notchColor']) ??
+            Theme.of(context).scaffoldBackgroundColor;
 
     return PageGroupWidgetWrapper(
       reloadView: widget.menu.reloadView,
@@ -230,8 +236,18 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
         body: widget.menu.reloadView == true
             ? ListenableBuilder(
                 listenable: viewGroupNotifier,
-                builder: (_, __) =>
-                    widget.children[viewGroupNotifier.viewIndex])
+                builder: (_, __) {
+                  final screenPayload =
+                      widget.screenPayload[viewGroupNotifier.viewIndex];
+                  final screen = ScreenController().getScreen(
+                    key: UniqueKey(),
+                    screenName: screenPayload.screenName,
+                    pageArgs:
+                        viewGroupNotifier.payload ?? screenPayload.arguments,
+                    isExternal: screenPayload.isExternal,
+                  );
+                  return screen;
+                })
             : Builder(
                 builder: (context) {
                   final controller = PageGroupWidget.getPageController(context);
@@ -249,10 +265,11 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
   Widget? _buildBottomNavBar() {
     List<BottomNavBarItem> navItems = [];
 
-    final unselectedColor = Utils.getColor(widget.menu.styles?['color']) ??
-        Theme.of(context).unselectedWidgetColor;
+    final unselectedColor =
+        Utils.getColor(widget.menu.runtimeStyles?['color']) ??
+            Theme.of(context).unselectedWidgetColor;
     final selectedColor =
-        Utils.getColor(widget.menu.styles?['selectedColor']) ??
+        Utils.getColor(widget.menu.runtimeStyles?['selectedColor']) ??
             Theme.of(context).primaryColor;
 
     // final menu = widget.menu;
@@ -300,24 +317,27 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
           key: UniqueKey(),
           selectedIndex: viewIndex,
           backgroundColor:
-              Utils.getColor(widget.menu.styles?['backgroundColor']) ??
+              Utils.getColor(widget.menu.runtimeStyles?['backgroundColor']) ??
                   Colors.white,
-          height: Utils.optionalDouble(widget.menu.styles?['height'] ?? 60),
-          margin: widget.menu.styles?['margin'],
-          padding: widget.menu.styles?['padding'],
+          height:
+              Utils.optionalDouble(widget.menu.runtimeStyles?['height'] ?? 60),
+          margin: widget.menu.runtimeStyles?['margin'],
+          padding: widget.menu.runtimeStyles?['padding'],
           borderRadius:
-              Utils.getBorderRadius(widget.menu.styles?['borderRadius'])
+              Utils.getBorderRadius(widget.menu.runtimeStyles?['borderRadius'])
                   ?.getValue(),
           color: unselectedColor,
           selectedColor: selectedColor,
-          boxShadow: Utils.getBoxShadow(widget.menu.styles?['boxShadow']),
-          shadowColor: Utils.getColor(widget.menu.styles?['shadowColor']),
+          boxShadow:
+              Utils.getBoxShadow(widget.menu.runtimeStyles?['boxShadow']),
+          shadowColor:
+              Utils.getColor(widget.menu.runtimeStyles?['shadowColor']),
           shadowRadius:
-              Utils.optionalDouble(widget.menu.styles?['shadowRadius']),
-          shadowBlurRadius:
-              Utils.optionalDouble(widget.menu.styles?['shadowBlurRadius']),
-          shadowStyle:
-              Utils.getShadowBlurStyle(widget.menu.styles?['shadowStyle']),
+              Utils.optionalDouble(widget.menu.runtimeStyles?['shadowRadius']),
+          shadowBlurRadius: Utils.optionalDouble(
+              widget.menu.runtimeStyles?['shadowBlurRadius']),
+          shadowStyle: Utils.getShadowBlurStyle(
+              widget.menu.runtimeStyles?['shadowStyle']),
           notchedShape: const CircularNotchedRectangle(),
           onTabSelected: (index) {
             final isSwitchScreen =

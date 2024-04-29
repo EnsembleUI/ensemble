@@ -5,6 +5,7 @@ import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/menu.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/page_model.dart';
@@ -86,6 +87,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
   late ScopeManager _scopeManager;
 
   // managing the list of pages
+  List<ScreenPayload> pagePayloads = [];
   List<Widget> pageWidgets = [];
 
   @override
@@ -100,9 +102,18 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
       ),
     );
 
+    int? selectedIndex = Utils.optionalInt(widget.pageArgs?["viewIndex"],
+        min: 0, max: widget.menu.menuItems.length - 1);
     // init the pages (TODO: need to update if definition changes)
     for (int i = 0; i < widget.menu.menuItems.length; i++) {
       MenuItem menuItem = widget.menu.menuItems[i];
+      pagePayloads.add(
+        ScreenPayload(
+          screenName: menuItem.page,
+          arguments: widget.pageArgs,
+          isExternal: menuItem.isExternal,
+        ),
+      );
       pageWidgets.add(ScreenController().getScreen(
         key: UniqueKey(),
         // ensure each screen is different for Flutter not to optimize
@@ -110,15 +121,24 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
         pageArgs: widget.pageArgs,
         isExternal: menuItem.isExternal,
       ));
-      dynamic selected = _scopeManager.dataContext.eval(menuItem.selected);
-      if (selected == true || selected == 'true') {
-        viewGroupNotifier.updatePage(i, isReload: false);
+      // mark as selected only if selectedIndex is not passed
+      if (selectedIndex == null) {
+        dynamic selected = _scopeManager.dataContext.eval(menuItem.selected);
+        if (selected == true || selected == 'true') {
+          viewGroupNotifier.updatePage(i, isReload: false);
+        }
       }
+    }
+    // select a page if passed via argument
+    if (selectedIndex != null) {
+      viewGroupNotifier.updatePage(selectedIndex, isReload: false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    EnsembleThemeManager()
+        .configureStyles(_scopeManager.dataContext, widget.menu, widget.menu);
     // skip rendering the menu if only 1 menu item, just the content itself
     if (widget.menu.menuItems.length == 1) {
       return pageWidgets[0];
@@ -132,17 +152,26 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
         bool atStart = (widget.menu as DrawerMenu).atStart;
         return ListenableBuilder(
           listenable: viewGroupNotifier,
-          builder: (context, _) => PageGroupWidget(
-            scopeManager: _scopeManager,
-            navigationDrawer: atStart ? drawer : null,
-            navigationEndDrawer: !atStart ? drawer : null,
-            child: widget.menu.reloadView == true
-                ? pageWidgets[viewGroupNotifier.viewIndex]
-                : IndexedStack(
-                    index: viewGroupNotifier.viewIndex,
-                    children: pageWidgets,
-                  ),
-          ),
+          builder: (context, _) {
+            final screenPayload = pagePayloads[viewGroupNotifier.viewIndex];
+            final screen = ScreenController().getScreen(
+              key: UniqueKey(),
+              screenName: screenPayload.screenName,
+              isExternal: screenPayload.isExternal,
+              pageArgs: viewGroupNotifier.payload ?? screenPayload.arguments,
+            );
+            return PageGroupWidget(
+              scopeManager: _scopeManager,
+              navigationDrawer: atStart ? drawer : null,
+              navigationEndDrawer: !atStart ? drawer : null,
+              child: widget.menu.reloadView == true
+                  ? screen
+                  : IndexedStack(
+                      index: viewGroupNotifier.viewIndex,
+                      children: pageWidgets,
+                    ),
+            );
+          },
         );
       } else if (widget.menu is SidebarMenu) {
         return PageGroupWidget(
@@ -155,6 +184,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
               scopeManager: _scopeManager,
               selectedPage: viewGroupNotifier.viewIndex,
               menu: widget.menu,
+              screenPayload: pagePayloads,
               children: pageWidgets,
             ));
       }
@@ -169,10 +199,21 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     Widget content = Expanded(
       child: ListenableBuilder(
         listenable: viewGroupNotifier,
-        builder: (context, _) => menu.reloadView == true
-            ? pageWidgets[viewGroupNotifier.viewIndex]
-            : IndexedStack(
-                index: viewGroupNotifier.viewIndex, children: pageWidgets),
+        builder: (context, _) {
+          final screenPayload = pagePayloads[viewGroupNotifier.viewIndex];
+          final screen = ScreenController().getScreen(
+            key: UniqueKey(),
+            screenName: screenPayload.screenName,
+            isExternal: screenPayload.isExternal,
+            pageArgs: viewGroupNotifier.payload ?? screenPayload.arguments,
+          );
+          return menu.reloadView == true
+              ? screen
+              : IndexedStack(
+                  index: viewGroupNotifier.viewIndex,
+                  children: pageWidgets,
+                );
+        },
       ),
     );
     // figuring out the direction to lay things out
@@ -219,7 +260,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     List<NavigationRailDestination> navItems = [];
     for (var item in menu.menuItems) {
       navItems.add(NavigationRailDestination(
-          padding: Utils.getInsets(menu.styles?['itemPadding']),
+          padding: Utils.getInsets(menu.runtimeStyles?['itemPadding']),
           icon: item.icon != null
               ? ensemble.Icon.fromModel(item.icon!)
               : const SizedBox.shrink(),
@@ -238,9 +279,10 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     }
 
     // misc styles
-    Color? menuBackground = Utils.getColor(menu.styles?['backgroundColor']);
+    Color? menuBackground =
+        Utils.getColor(menu.runtimeStyles?['backgroundColor']);
     MenuItemDisplay itemDisplay =
-        MenuItemDisplay.values.from(menu.styles?['itemDisplay']) ??
+        MenuItemDisplay.values.from(menu.runtimeStyles?['itemDisplay']) ??
             MenuItemDisplay.stacked;
 
     // stacked's min gap seems to be 72 regardless of what we set. For side by side optimal min gap is around 40
@@ -249,7 +291,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
 
     // minExtendedWidth is applicable only for side by side, and should never be below minWidth (or exception)
     int minWidth =
-        Utils.optionalInt(menu.styles?['minWidth'], min: minGap) ?? 200;
+        Utils.optionalInt(menu.runtimeStyles?['minWidth'], min: minGap) ?? 200;
 
     return ListenableBuilder(
       listenable: viewGroupNotifier,
@@ -274,8 +316,8 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
   }
 
   Widget? _buildSidebarSeparator(Menu menu) {
-    Color? borderColor = Utils.getColor(menu.styles?['borderColor']);
-    int? borderWidth = Utils.optionalInt(menu.styles?['borderWidth']);
+    Color? borderColor = Utils.getColor(menu.runtimeStyles?['borderColor']);
+    int? borderWidth = Utils.optionalInt(menu.runtimeStyles?['borderWidth']);
     if (borderColor != null || borderWidth != null) {
       return VerticalDivider(
           thickness: (borderWidth ?? 1).toDouble(),
@@ -345,7 +387,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
           }));
     }
     return Drawer(
-      backgroundColor: Utils.getColor(menu.styles?['backgroundColor']),
+      backgroundColor: Utils.getColor(menu.runtimeStyles?['backgroundColor']),
       child: ListView(
         children: navItems,
       ),
@@ -373,11 +415,16 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
 
 class ViewGroupNotifier extends ChangeNotifier {
   int _viewIndex = 0;
+  Map<String, dynamic>? _payload;
 
   int get viewIndex => _viewIndex;
 
-  void updatePage(int index, {bool isReload = true}) {
+  Map<String, dynamic>? get payload => _payload;
+
+  void updatePage(int index,
+      {bool isReload = true, Map<String, dynamic>? payload}) {
     _viewIndex = index;
+    _payload = payload;
     if (isReload) {
       notifyListeners();
     }

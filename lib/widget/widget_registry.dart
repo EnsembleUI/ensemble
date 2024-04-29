@@ -11,6 +11,7 @@ import 'package:ensemble/layout/form.dart';
 import 'package:ensemble/layout/grid_view.dart';
 import 'package:ensemble/layout/list_view.dart';
 import 'package:ensemble/layout/stack.dart';
+import 'package:ensemble/layout/tab/scrollable_tab_bar.dart';
 import 'package:ensemble/layout/tab_bar.dart';
 import 'package:ensemble/layout/toggle_container.dart';
 import 'package:ensemble/module/location_module.dart';
@@ -63,6 +64,7 @@ import 'package:ensemble/widget/visualization/topology_chart.dart';
 import 'package:ensemble/widget/webview/webview.dart';
 import 'package:ensemble/widget/youtube/youtube.dart';
 import 'package:ensemble/widget/weeklyscheduler.dart';
+import 'package:ensemble_bracket/ensemble_bracket.dart';
 import 'package:get_it/get_it.dart';
 
 import 'fintech/tabapayconnect.dart';
@@ -80,6 +82,7 @@ class WidgetRegistry {
     Avatar.type: Avatar.build,
     Shape.type: Shape.build,
     StaticMap.type: StaticMap.build,
+    Bracket.type: Bracket.build,
   };
 
   /// register or override a widget
@@ -167,6 +170,7 @@ class WidgetRegistry {
         EnsembleDataRow.type: () => EnsembleDataRow(),
         TabBarOnly.type: () => TabBarOnly(),
         TabBarContainer.type: () => TabBarContainer(),
+        ScrollableTabBar.type: () => ScrollableTabBar(),
         AppScroller.type: () => AppScroller(),
         LoadingContainer.type: () => LoadingContainer(),
 

@@ -5,6 +5,7 @@ import 'dart:ui';
 
 import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -12,7 +13,6 @@ import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/toast.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/extensions.dart';
-import 'package:ensemble/util/http_utils.dart';
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/foundation.dart';
@@ -89,7 +89,7 @@ Future<void> uploadFiles({
       apiDefinition['uri']?.toString().trim() ??
       '';
 
-  String url = HttpUtils.resolveUrl(dataContext, rawUrl);
+  String url = HTTPAPIProvider.resolveUrl(dataContext, rawUrl);
   String method = apiDefinition['method']?.toString().toUpperCase() ?? 'POST';
   final fileResponse = action.id == null
       ? null
@@ -299,7 +299,7 @@ Future<void> _setBackgroundUploadTask({
     if (data.containsKey('responseBody')) {
       final taskId = data['taskId'];
       final response =
-          Response.fromBody(data['responseBody'], data['responseHeaders']);
+          HttpResponse.fromBody(data['responseBody'], data['responseHeaders']);
       fileResponse?.setBody(taskId, response.body);
       fileResponse?.setHeaders(taskId, response.headers);
       fileResponse?.setStatus(taskId, UploadStatus.completed);

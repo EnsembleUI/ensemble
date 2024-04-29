@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/theme/theme_loader.dart';
@@ -15,10 +16,15 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:yaml/yaml.dart';
 
 class Screen extends StatefulWidget {
-  const Screen({super.key, required this.appProvider, this.screenPayload});
+  const Screen(
+      {super.key,
+      required this.appProvider,
+      this.screenPayload,
+      required this.apiProviders});
 
   final AppProvider appProvider;
   final ScreenPayload? screenPayload;
+  final Map<String, APIProvider> apiProviders;
 
   @override
   State<Screen> createState() => _ScreenState();
@@ -71,8 +77,19 @@ class _ScreenState extends State<Screen> {
                                 .extension<EnsembleThemeExtension>()
                                 ?.loadingScreenIndicatorColor)));
               }
-              return renderScreen(snapshot.data!);
+
+              return APIProviders(
+                  providers: widget.apiProviders ?? {},
+                  child: renderScreen(snapshot.data!));
             });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    widget.apiProviders?.forEach((key, value) {
+      value.dispose();
+    });
   }
 
   Widget renderScreen(ScreenDefinition screenDefinition) {

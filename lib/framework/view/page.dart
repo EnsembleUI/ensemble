@@ -389,7 +389,10 @@ class PageState extends State<Page>
     bool hasDrawer = _drawer != null || _endDrawer != null;
 
     Widget? _bottomNavBar;
-
+    if (widget._pageModel.menu != null) {
+      EnsembleThemeManager().configureStyles(_scopeManager.dataContext,
+          widget._pageModel.menu!, widget._pageModel.menu!);
+    }
     // build the navigation menu (bottom nav bar or drawer). Note that menu is not applicable on modal pages
     if (widget._pageModel.menu != null &&
         widget._pageModel.screenOptions?.pageType != PageType.modal) {
@@ -561,7 +564,7 @@ class PageState extends State<Page>
       for (int i = 0; i < menuItems.length; i++) {
         MenuItem item = menuItems[i];
         navItems.add(NavigationRailDestination(
-            padding: Utils.getInsets(sidebarMenu.styles?['itemPadding']),
+            padding: Utils.getInsets(sidebarMenu.runtimeStyles?['itemPadding']),
             icon: item.icon != null
                 ? ensemble.Icon.fromModel(item.icon!)
                 : const SizedBox.shrink(),
@@ -591,23 +594,23 @@ class PageState extends State<Page>
         );
       }
 
-      MenuItemDisplay itemDisplay =
-          MenuItemDisplay.values.from(sidebarMenu.styles?['itemDisplay']) ??
-              MenuItemDisplay.stacked;
+      MenuItemDisplay itemDisplay = MenuItemDisplay.values
+              .from(sidebarMenu.runtimeStyles?['itemDisplay']) ??
+          MenuItemDisplay.stacked;
 
       // stacked's min gap seems to be 72 regardless of what we set. For side by side optimal min gap is around 40
       // we set this minGap and let user controls with itemPadding
       int minGap = itemDisplay == MenuItemDisplay.sideBySide ? 40 : 72;
 
       // minExtendedWidth is applicable only for side by side, and should never be below minWidth (or exception)
-      int minWidth =
-          Utils.optionalInt(sidebarMenu.styles?['minWidth'], min: minGap) ??
-              200;
+      int minWidth = Utils.optionalInt(sidebarMenu.runtimeStyles?['minWidth'],
+              min: minGap) ??
+          200;
 
       List<Widget> content = [];
       // process menu styles
       Color? menuBackground =
-          Utils.getColor(sidebarMenu.styles?['backgroundColor']);
+          Utils.getColor(sidebarMenu.runtimeStyles?['backgroundColor']);
       content.add(NavigationRail(
         extended: itemDisplay == MenuItemDisplay.sideBySide ? true : false,
         minExtendedWidth: minWidth.toDouble(),
@@ -627,9 +630,9 @@ class PageState extends State<Page>
 
       // show a divider between the NavigationRail and the content
       Color? borderColor =
-          Utils.getColor(widget._pageModel.menu!.styles?['borderColor']);
-      int? borderWidth =
-          Utils.optionalInt(widget._pageModel.menu!.styles?['borderWidth']);
+          Utils.getColor(widget._pageModel.menu!.runtimeStyles?['borderColor']);
+      int? borderWidth = Utils.optionalInt(
+          widget._pageModel.menu!.runtimeStyles?['borderWidth']);
       if (borderColor != null || borderWidth != null) {
         content.add(VerticalDivider(
             thickness: (borderWidth ?? 1).toDouble(),
@@ -668,7 +671,7 @@ class PageState extends State<Page>
       ));
     }
     return Drawer(
-      backgroundColor: Utils.getColor(menu.styles?['backgroundColor']),
+      backgroundColor: Utils.getColor(menu.runtimeStyles?['backgroundColor']),
       child: ListView(
         children: navItems,
       ),
@@ -687,7 +690,11 @@ class PageState extends State<Page>
 
       final isCustom = customIcon != null || customActiveIcon != null;
       final label = isCustom ? '' : Utils.translate(item.label ?? '', context);
-
+      ScopeManager? scopeManager = DataScopeWidget.getScope(context) ??
+          PageGroupWidget.getScope(context);
+      if (scopeManager != null) {
+        menu.resolveStyles(scopeManager, menu, context);
+      }
       navItems.add(
         BottomNavigationBarItem(
           activeIcon: customActiveIcon ??
@@ -701,7 +708,7 @@ class PageState extends State<Page>
     }
     return BottomNavigationBar(
         items: navItems,
-        backgroundColor: Utils.getColor(menu.styles?['backgroundColor']),
+        backgroundColor: Utils.getColor(menu.runtimeStyles?['backgroundColor']),
         type: BottomNavigationBarType.fixed,
         onTap: (index) {
           if (index != selectedPage) {
