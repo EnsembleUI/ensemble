@@ -149,10 +149,10 @@ class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
     } else if (result is DocumentReference) {
       // Handle DocumentReference for 'add' operations
       body = {'id': result.id, 'path': result.path};
-    } else if (result == null) {
+    } else if (result is DocumentSnapshot) {
       // Handle void results for 'set', 'update', and 'delete' operations
-      body = {'message': 'Operation completed successfully'};
-    } else {
+      body = {'document': getDocument(result)};
+    } else if (result == null) {
       // Fallback for unexpected types, you might not need this, but it's here just in case
       body = {'message': 'Unknown response type', 'details': result.toString()};
     }
@@ -167,15 +167,17 @@ class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
 
   List<Map<String, dynamic>> getDocuments(QuerySnapshot snapshot) {
     return snapshot.docs.map((doc) {
-      // Create a new map from the document data
-      Map<String, dynamic> data =
-          convertFirestoreTypes(doc.data() as Map<String, dynamic>);
-      // Add the document ID under a reserved/special key
-      data['_documentId'] = doc.id;
-      return data;
+      return getDocument(doc);
     }).toList();
   }
-
+  Map<String, dynamic> getDocument(DocumentSnapshot doc) {
+    // Create a new map from the document data
+    Map<String, dynamic> data =
+      convertFirestoreTypes(doc.data() as Map<String, dynamic>);
+    // Add the document ID under a reserved/special key
+    data['_documentId'] = doc.id;
+    return data;
+  }
   Map<String, dynamic> convertFirestoreTypes(Map<String, dynamic> input) {
     Map<String, dynamic> convert(Map<String, dynamic> map) {
       final Map<String, dynamic> newMap = {};
@@ -214,7 +216,9 @@ class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
               return item; // Return the item unchanged if it's not a Map, GeoPoint, or Timestamp
             }
           }).toList();
-        } else {
+        } else if (value is DocumentSnapshot){
+          newMap[key] = getDocument(value);
+        } else{
           // For all other types, just copy the value
           newMap[key] = value;
         }
