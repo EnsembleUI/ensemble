@@ -2,7 +2,7 @@ import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/action/audio_player.dart';
 import 'package:ensemble/action/Log_event_action.dart';
 import 'package:ensemble/action/badge_action.dart';
-import 'package:ensemble/action/bottom_modal_action.dart';
+import 'package:ensemble/action/bottom_sheet_actions.dart';
 import 'package:ensemble/action/deep_link_action.dart';
 import 'package:ensemble/action/call_external_method.dart';
 import 'package:ensemble/action/haptic_action.dart';
@@ -1086,7 +1086,11 @@ enum ActionType {
   navigateViewGroup,
   navigateExternalScreen,
   navigateModalScreen,
+  showBottomSheet,
+  dismissBottomSheet,
+  @Deprecated("use showBottomSheet")
   showBottomModal,
+  @Deprecated("use dismissBottomSheet")
   dismissBottomModal,
   showDialog,
   startTimer,
@@ -1204,10 +1208,12 @@ abstract class EnsembleAction {
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.navigateBack) {
       return NavigateBackAction.from(payload: payload);
-    } else if (actionType == ActionType.showBottomModal) {
-      return ShowBottomModalAction.from(payload: payload);
-    } else if (actionType == ActionType.dismissBottomModal) {
-      return DismissBottomModalAction.from(payload: payload);
+    } else if (actionType == ActionType.showBottomSheet ||
+        actionType == ActionType.showBottomModal) {
+      return ShowBottomSheetAction.from(payload: payload);
+    } else if (actionType == ActionType.dismissBottomSheet ||
+        actionType == ActionType.dismissBottomModal) {
+      return DismissBottomSheetAction.from(payload: payload);
     } else if (actionType == ActionType.invokeAPI) {
       return InvokeAPIAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.openCamera) {
