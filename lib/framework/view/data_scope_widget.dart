@@ -5,9 +5,13 @@ import 'package:flutter/cupertino.dart';
 /// to every widgets in our tree
 class DataScopeWidget extends InheritedWidget {
   const DataScopeWidget(
-      {super.key, required this.scopeManager, required super.child});
+      {super.key,
+      this.debugLabel,
+      required this.scopeManager,
+      required super.child});
 
   final ScopeManager scopeManager;
+  final String? debugLabel;
 
   @override
   bool updateShouldNotify(DataScopeWidget oldWidget) {
