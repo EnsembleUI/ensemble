@@ -346,7 +346,7 @@ class ClearableInput extends StatelessWidget {
   final String text;
   final TextStyle? textStyle;
   final bool enabled;
-  final dynamic onCleared;
+  final void Function()? onCleared;
 
   @override
   Widget build(BuildContext context) {
