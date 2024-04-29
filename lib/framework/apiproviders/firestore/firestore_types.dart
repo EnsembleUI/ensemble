@@ -157,7 +157,6 @@ class FirestoreTimestamp with Invokable {
     return {
       'seconds': () => timestamp.seconds,
       'nanoseconds': () => timestamp.nanoseconds,
-      'toDate': () => Date(timestamp.toDate()),
     };
   }
 
@@ -168,6 +167,11 @@ class FirestoreTimestamp with Invokable {
   Map<String, Function> methods() {
     return {
       'toDate': () => Date(timestamp.toDate()),
+      'toString': () => timestamp.toDate().toString(),
     };
+  }
+  @override
+  String toString() {
+    return methods()['toString']!();
   }
 }
