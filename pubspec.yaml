@@ -129,6 +129,7 @@ dependencies:
   audioplayers: ^5.2.1
   logger: ^2.2.0
   visibility_detector: ^0.4.0+2
+  local_auth: ^2.2.0
 
 
 dev_dependencies:
