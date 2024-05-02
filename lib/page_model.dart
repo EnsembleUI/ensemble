@@ -182,6 +182,7 @@ mixin HasStyles {
   }
 
   String? widgetType;
+
   //styles specified in the theme directly on the type e.g. Text or Button
   Map<String, dynamic>? _widgetTypeStyles;
 
@@ -293,6 +294,7 @@ class SinglePageModel extends PageModel with HasStyles {
 
         // set the view behavior
         viewBehavior.onLoad = EnsembleAction.fromYaml(viewMap['onLoad']);
+        viewBehavior.onPause = EnsembleAction.fromYaml(viewMap['onPause']);
         viewBehavior.onResume = EnsembleAction.fromYaml(viewMap['onResume']);
 
         processHeader(viewMap['header'], viewMap['title']);
@@ -533,15 +535,17 @@ class CustomWidgetModel extends WidgetModel {
   ViewBehavior getViewBehavior() {
     return ViewBehavior(
         onLoad: EnsembleAction.fromYaml(props['onLoad']),
+        onPause: EnsembleAction.fromYaml(props['onPause']),
         onResume: EnsembleAction.fromYaml(props['onResume']));
   }
 }
 
 /// special behaviors for RootView (View) and Custom Views
 class ViewBehavior {
-  ViewBehavior({this.onLoad, this.onResume});
+  ViewBehavior({this.onLoad, this.onPause, this.onResume});
 
   EnsembleAction? onLoad;
+  EnsembleAction? onPause;
   EnsembleAction? onResume;
 }
 

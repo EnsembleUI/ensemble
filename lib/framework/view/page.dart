@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/devmode.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/menu.dart';
 import 'package:ensemble/framework/model.dart';
@@ -88,9 +89,6 @@ class PageState extends State<Page>
   late ScopeManager _scopeManager;
   Widget? footerWidget;
 
-  /// the last time the screen went to the background
-  DateTime? appLastPaused;
-
   // a menu can include other pages, keep track of what is selected
   int selectedPage = 0;
 
@@ -116,7 +114,9 @@ class PageState extends State<Page>
       bottomNavRootScreen.onReVisited(() {
         if (widget._pageModel.viewBehavior.onResume != null) {
           ScreenController().executeActionWithScope(
-              context, _scopeManager, widget._pageModel.viewBehavior.onResume!);
+              context, _scopeManager, widget._pageModel.viewBehavior.onResume!,
+              event: EnsembleEvent(null,
+                  data: {"inactiveDuration": null, "isAppResume": false}));
         }
       });
     }
@@ -124,40 +124,53 @@ class PageState extends State<Page>
     else {
       var route = ModalRoute.of(context);
       if (route is PageRoute) {
+        Ensemble.routeObserver.unsubscribe(this);
         Ensemble.routeObserver.subscribe(this, route);
       }
     }
   }
 
+  /// the last time the screen went to the background
+  DateTime? appLastPaused;
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    log(state.toString());
     // make a note of when the app was paused
     if (state == AppLifecycleState.paused) {
       appLastPaused = DateTime.now();
-    }
-    // the App has to pause (go to background) before we respect resume.
-    if (state == AppLifecycleState.resumed &&
-        widget._pageModel.viewBehavior.onResume != null &&
-        (appLastPaused != null &&
-            DateTime.now().difference(appLastPaused!).inMinutes > 5)) {
+      if (widget._pageModel.viewBehavior.onPause != null) {
+        ScreenController().executeActionWithScope(
+            context, _scopeManager, widget._pageModel.viewBehavior.onPause!,
+            event: EnsembleEvent(null, data: {"isAppPause": true}));
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      // the App has to pause (go to background) before we respect resume.
+      if (appLastPaused != null &&
+          widget._pageModel.viewBehavior.onResume != null) {
+        var inactiveDuration =
+            DateTime.now().difference(appLastPaused!).inMilliseconds;
+
+        // if we our screen is the currently active route
+        var route = ModalRoute.of(context);
+        if (route != null && route.isCurrent) {
+          // BottomNavBar is the route that contains each Tabs,
+          // so we ignore if we are currently not an active Tab
+          BottomNavScreen? bottomNavRootScreen =
+              BottomNavScreen.getScreen(context);
+          if (bottomNavRootScreen != null && !bottomNavRootScreen.isActive()) {
+            return;
+          }
+          ScreenController().executeActionWithScope(
+              context, _scopeManager, widget._pageModel.viewBehavior.onResume!,
+              event: EnsembleEvent(null, data: {
+                "inactiveDuration": inactiveDuration,
+                "isAppResume": true
+              }));
+        }
+      }
       // reset inactive time
       appLastPaused = null;
-
-      // if we our screen is the currently active route
-      var route = ModalRoute.of(context);
-      if (route != null && route.isCurrent) {
-        // BottomNavBar is the route that contains each Tabs,
-        // so we ignore if we are currently not an active Tab
-        BottomNavScreen? bottomNavRootScreen =
-            BottomNavScreen.getScreen(context);
-        if (bottomNavRootScreen != null && !bottomNavRootScreen.isActive()) {
-          return;
-        }
-        ScreenController().executeActionWithScope(
-            context, _scopeManager, widget._pageModel.viewBehavior.onResume!);
-      }
     }
   }
 
@@ -166,13 +179,36 @@ class PageState extends State<Page>
     log("didPush() for ${widget.hashCode}");
   }
 
+  DateTime? screenLastPaused;
+
+  // a new page is pushed and this page is no longer active
+  @override
+  void didPushNext() {
+    super.didPushNext();
+    screenLastPaused = DateTime.now();
+    if (widget._pageModel.viewBehavior.onPause != null) {
+      ScreenController().executeActionWithScope(
+          context, _scopeManager, widget._pageModel.viewBehavior.onPause!,
+          event: EnsembleEvent(null, data: {"isAppPause": false}));
+    }
+  }
+
   /// when a page is popped and we go back to this page
   @override
   void didPopNext() {
+    super.didPopNext();
     if (widget._pageModel.viewBehavior.onResume != null) {
       ScreenController().executeActionWithScope(
-          context, _scopeManager, widget._pageModel.viewBehavior.onResume!);
+          context, _scopeManager, widget._pageModel.viewBehavior.onResume!,
+          event: EnsembleEvent(null, data: {
+            "inactiveDuration": screenLastPaused == null
+                ? null
+                : DateTime.now().difference(screenLastPaused!).inMilliseconds,
+            "isAppResume": false
+          }));
     }
+    // reset the last paused time
+    screenLastPaused = null;
   }
 
   @override
