@@ -170,6 +170,7 @@ class FirestoreTimestamp with Invokable {
       'toString': () => timestamp.toDate().toString(),
     };
   }
+
   @override
   String toString() {
     return methods()['toString']!();
