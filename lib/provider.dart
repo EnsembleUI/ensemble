@@ -132,6 +132,7 @@ class RemoteDefinitionProvider extends DefinitionProvider {
       : super(i18nProps, cacheEnabled: cacheEnabled);
   final String path;
   final String appHome;
+  UserAppConfig? appConfig;
   FlutterI18nDelegate? _i18nDelegate;
 
   @override
@@ -139,7 +140,7 @@ class RemoteDefinitionProvider extends DefinitionProvider {
     _i18nDelegate ??= FlutterI18nDelegate(
         translationLoader: NetworkFileTranslationLoader(
             baseUri: Uri.parse(i18nProps.path),
-            forcedLocale: forcedLocale,
+            forcedLocale: forcedLocale ?? Locale(i18nProps.defaultLocale),
             fallbackFile: i18nProps.fallbackLocale,
             useCountryCode: i18nProps.useCountryCode,
             decodeStrategies: [YamlDecodeStrategy()]));
@@ -172,12 +173,31 @@ class RemoteDefinitionProvider extends DefinitionProvider {
 
   @override
   Future<AppBundle> getAppBundle({bool? bypassCache = false}) async {
+    final env = await _readJsonFile('appConfig.json');
+    if (env != null) {
+      appConfig = UserAppConfig(
+        baseUrl: path,
+        envVariables: env as Map<String, dynamic>,
+      );
+    }
     return AppBundle(
-        theme: await _readFile('theme.ensemble'),
-        resources: await _readFile('resources.ensemble'));
+        theme: await _readYamlFile('theme.ensemble'),
+        resources: await _readYamlFile('resources.ensemble'));
   }
 
-  Future<YamlMap?> _readFile(String file) async {
+  Future<Map?> _readJsonFile(String file) async {
+    http.Response response = await http.get(Uri.parse(path + file));
+    try {
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+    } catch (e) {
+      // ignore
+    }
+    return null;
+  }
+
+  Future<YamlMap?> _readYamlFile(String file) async {
     try {
       http.Response response = await http.get(Uri.parse(path + file));
       if (response.statusCode == 200) {
@@ -189,16 +209,14 @@ class RemoteDefinitionProvider extends DefinitionProvider {
     return null;
   }
 
-  // TODO: to be implemented
   @override
   UserAppConfig? getAppConfig() {
-    return null;
+    return appConfig;
   }
 
-  // TODO: to be implemented
   @override
   Map<String, String> getSecrets() {
-    return <String, String>{};
+    return dotenv.env;
   }
 }
 
