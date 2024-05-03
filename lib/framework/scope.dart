@@ -18,6 +18,8 @@ import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/custom_widget/custom_widget.dart';
+import 'package:ensemble/widget/custom_widget/custom_widget_model.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:event_bus/event_bus.dart';
@@ -318,15 +320,19 @@ mixin ViewBuilder on IsScopeManager {
     return widget;*/
   }
 
-  void setProperties(ScopeManager scopeManager, Map<String, dynamic> map,
-      Invokable invokable) {
-    for (String key in map.keys) {
+  void setProperties(ScopeManager scopeManager, Invokable invokable,
+      Map<String, dynamic> properties,
+      {List<String>? excludedProperties}) {
+    for (String key in properties.keys) {
+      if (excludedProperties != null && excludedProperties.contains(key)) {
+        continue;
+      }
       if (InvokableController.getSettableProperties(invokable).contains(key)) {
         if (_isPassthroughProperty(key, invokable)) {
-          InvokableController.setProperty(invokable, key, map[key]);
+          InvokableController.setProperty(invokable, key, properties[key]);
         } else {
           evalPropertyAndRegisterBinding(
-              scopeManager, invokable, key, map[key]);
+              scopeManager, invokable, key, properties[key]);
         }
       }
     }
@@ -337,8 +343,13 @@ mixin ViewBuilder on IsScopeManager {
       ScopeManager scopeManager = payload.scopeManager;
       DataContext dataContext = scopeManager.dataContext;
 
-      // resolve input parameters
-      if (model is CustomWidgetModel) {
+      // we may process a few special properties differently, then exclude
+      // them when they go through a generic flow that adds listeners
+      List<String> excludedProperties = [];
+
+      // additional special processing for Custom Widget
+      if (model is CustomWidgetModel && payload.widget is CustomWidget) {
+        Invokable invokable = (payload.widget as CustomWidget).controller;
         if (model.parameters != null && model.inputs != null) {
           for (var param in model.parameters!) {
             if (model.inputs![param] != null) {
@@ -346,11 +357,12 @@ mixin ViewBuilder on IsScopeManager {
               evalPropertyAndRegisterBinding(
                   // widget inputs are set in the parent's scope
                   scopeManager._parent!,
-                  payload.widget as Invokable,
+                  invokable,
                   param,
                   model.inputs![param]);
             }
           }
+          excludedProperties.add("parameters");
         }
         if (model.events != null && model.actions != null) {
           for (var event in model.events!.keys) {
@@ -359,16 +371,15 @@ mixin ViewBuilder on IsScopeManager {
               registerEventHandler(
                   // widget inputs are set in the parent's scope
                   scopeManager._parent!,
-                  payload.widget as Invokable,
+                  invokable,
                   event,
                   model.actions![event]!);
             }
           }
+          excludedProperties.add("events");
         }
-        return;
+        // continue processing to set the rest of the properties
       }
-
-      //WidgetModel model = inputModel is CustomWidgetModel ? inputModel.getModel() : inputModel;
 
       Invokable? invokable;
       HasStyles? hasStyles;
@@ -388,19 +399,23 @@ mixin ViewBuilder on IsScopeManager {
       if (invokable != null) {
         // set props and styles on the widget. At this stage the widget
         // has not been attached, so no worries about ValueNotifier
-        setProperties(scopeManager, model.props, invokable);
+
+        // set all the root properties with the exclusion list
+        setProperties(scopeManager, invokable, model.props,
+            excludedProperties: excludedProperties);
+
         if (hasStyles != null) {
           EnsembleThemeManager()
               .configureStyles(scopeManager.dataContext, model, hasStyles);
           if (hasStyles?.runtimeStyles != null) {
-            setProperties(scopeManager, hasStyles!.runtimeStyles!, invokable);
+            setProperties(scopeManager, invokable, hasStyles!.runtimeStyles!);
             //not so lovely but now we set the styleOverrides to null because setting the properties could have set them
             hasStyles?.styleOverrides = null;
           }
           hasStyles?.stylesNeedResolving = false;
         } else {
           if (model.inlineStyles != null) {
-            setProperties(scopeManager, model.inlineStyles!, invokable);
+            setProperties(scopeManager, invokable, model.inlineStyles!);
           }
         }
       }

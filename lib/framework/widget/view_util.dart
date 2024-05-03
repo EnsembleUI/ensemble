@@ -6,13 +6,11 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/theme_manager.dart';
-import 'package:ensemble/framework/view/data_scope_widget.dart';
-import 'package:ensemble/framework/widget/custom_view.dart';
-import 'package:ensemble/framework/view/page.dart';
+import 'package:ensemble/widget/custom_widget/custom_widget.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/gesture_detector.dart';
-import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:ensemble/widget/custom_widget/custom_widget_model.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
@@ -161,7 +159,12 @@ class ViewUtil {
     if (viewDefinition is String) {
       return buildModel(viewDefinition, customWidgetMap);
     }
-    // caller payload may comprise of an ID and input payload key/value pairs. Ignore ID for now
+
+    Map<String, dynamic> props = {};
+    if (callerPayload?['id'] != null) {
+      props["id"] = callerPayload?['id'];
+    }
+
     Map<String, dynamic> inputPayload = {};
     if (callerPayload?['inputs'] is YamlMap) {
       callerPayload!['inputs'].forEach((key, value) {
@@ -175,7 +178,6 @@ class ViewUtil {
       });
     }
     WidgetModel? widgetModel;
-    Map<String, dynamic> props = {};
     List<String> inputParams = [];
     Map<String, EnsembleEvent> eventParams = {};
     List<ParsedCode>? importedCode;
@@ -214,11 +216,19 @@ class ViewUtil {
       }
     }
 
+    // custom widgets can have styles too
+    Map<String, dynamic> styles = {};
+    if (callerPayload?["styles"] is YamlMap) {
+      (callerPayload!["styles"] as YamlMap).forEach((styleKey, styleValue) {
+        styles[styleKey] = EnsembleThemeManager.yamlToDart(styleValue);
+      });
+    }
+
     if (widgetModel == null) {
       throw LanguageError("Custom Widget requires a child widget");
     }
 
-    return CustomWidgetModel(widgetModel, widgetType, props,
+    return CustomWidgetModel(widgetModel, widgetType, props, styles,
         importedCode: importedCode,
         inputs: inputPayload,
         parameters: inputParams,
@@ -246,14 +256,23 @@ class ViewUtil {
     ScopeNode customScopeNode = ScopeNode(customScope);
     scopeNode.addChild(customScopeNode);
 
-    Widget customWidget =
-        CustomView.fromModel(model: customModel, scopeManager: customScope);
+    // re-use the same controller if the Custom Widget is re-created
+    dynamic controller;
+    String? id = customModel.getId();
+    if (id != null) {
+      controller = scopeNode.scope.dataContext.getContextById(id);
+    }
+    CustomWidget customWidget =
+        CustomWidget(controller, model: customModel, scopeManager: customScope);
     modelMap[customModel] = ModelPayload(customWidget, customScope);
 
-    return DataScopeWidget(
-        debugLabel: 'customWidget',
-        scopeManager: customScope,
-        child: customWidget);
+    // add the id so it is accessible in the parent scope
+    if (id != null) {
+      customWidget.controller.id = id;
+      scopeNode.scope.dataContext
+          .addInvokableContext(id, customWidget.controller);
+    }
+    return customWidget;
   }
 
   static Widget buildBareWidget(ScopeNode scopeNode, WidgetModel model,
