@@ -1,7 +1,6 @@
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
-import 'package:ensemble/framework/widget/custom_view.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
@@ -16,17 +15,7 @@ class WidgetUtils {
   static bool isVisible(Widget widget) {
     Widget view = widget;
     if (view is DataScopeWidget) {
-      if (view.child is CustomView) {
-        // Custom Widgets
-        final CustomView customView = view.child as CustomView;
-        // TODO: this logic is hosed since body is now just the model.
-        // TODO: But then we shouldn't be reaching in like this anyway
-        // view = customView.body;
-        return true;
-      } else {
-        // Native Widgets like Button, Text
-        view = view.child;
-      }
+      view = view.child;
     }
 
     final isWidgetController =

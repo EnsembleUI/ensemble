@@ -15,15 +15,12 @@ import 'package:ensemble/framework/view/footer.dart';
 import 'package:ensemble/framework/view/has_selectable_text.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
-import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/unfocus.dart';
-import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
-import '../widget/custom_view.dart';
 
 class SinglePageController extends WidgetController {
   TextStyleComposite? _textStyle;
@@ -759,10 +756,7 @@ class PageState extends State<Page>
     dynamic customWidgetModel =
         isActive ? item.customActiveWidget : item.customWidget;
     if (customWidgetModel != null) {
-      final widget = _scopeManager.buildWidget(customWidgetModel!);
-      final dataScopeWidget = widget as DataScopeWidget;
-      final customWidget = dataScopeWidget.child as CustomView;
-      iconWidget = _scopeManager.buildWidget(customWidget.body);
+      iconWidget = _scopeManager.buildWidget(customWidgetModel);
     }
     return iconWidget;
   }
