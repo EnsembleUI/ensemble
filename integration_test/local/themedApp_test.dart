@@ -11,17 +11,17 @@ import 'package:integration_test/integration_test.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 
-import 'framework/test_helper.dart';
+import '../framework/test_helper.dart';
 
 void main() {
-  EnsembleConfig? config;
+  late EnsembleConfig config;
   setUpAll(() async {
     config = await TestHelper.setupApp(appName: 'themedApp');
   });
 
   group('Theme App Tests', () {
     testWidgets("Test Widgets inheriting from themes", (tester) async {
-      await TestHelper.loadScreen(screenName: 'Widgets', config: config);
+      await TestHelper.loadScreen(tester, 'Widgets', config);
       await tester.pumpAndSettle();
       // checking default style getting from theme without any overrides
       Finder widget = find.ancestor(

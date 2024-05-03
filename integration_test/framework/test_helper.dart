@@ -18,30 +18,23 @@ class TestHelper {
   /// subsequent tests to hang. For this reason, call this in your Test class's
   /// setupApp() once before running the tests.
   static Future<EnsembleConfig> setupApp({required String appName}) async {
-    IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-    WidgetsFlutterBinding.ensureInitialized();
-
     I18nProps i18nProps = I18nProps('en', 'en', false);
     i18nProps.path = 'ensemble/i18n';
 
     EnsembleConfig config = EnsembleConfig(
         definitionProvider: LocalDefinitionProvider(
-            "ensemble/integration_tests/$appName/", "", i18nProps));
-    return await config.updateAppBundle();
+            "integration_test/local/$appName/", "", i18nProps));
+    return config.updateAppBundle();
   }
 
+  // load a screen based on the config returned from setupApp
   static loadScreen(
-      {required String screenName, required EnsembleConfig? config}) {
-    if (config == null) {
-      throw Exception(
-          'Config is required. Please run setupApp() per Test Class to initialize the EnsembleConfig once !');
-    }
-
-    runApp(EnsembleApp(
-      key: UniqueKey(),
+      WidgetTester tester, String screenName, EnsembleConfig config) async {
+    await tester.pumpWidget(EnsembleApp(
       ensembleConfig: config,
-      screenPayload: ScreenPayload(screenName: screenName),
+      screenPayload: ScreenPayload(screenId: screenName),
     ));
+    await tester.pumpAndSettle();
   }
 
   /// initialize an App and init a single screen for testing.
@@ -49,10 +42,10 @@ class TestHelper {
   /// in your test class.
   /// Considering using setupApp(), followed by loadScreen() for multiple
   /// test cases within a class.
-  static Future<void> setupAppForSingleScreen(
+  static loadAppAndScreen(WidgetTester tester,
       {required String appName, required String screenName}) async {
     EnsembleConfig config = await setupApp(appName: appName);
-    loadScreen(screenName: screenName, config: config);
+    await loadScreen(tester, screenName, config);
   }
 
   /// remove focus if any widget currently has focus

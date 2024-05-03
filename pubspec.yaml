@@ -150,9 +150,8 @@ flutter:
     - assets/images/
 
     # integration tests (TODO - exclude from build)
-    - ensemble/integration_tests/
-    - ensemble/integration_tests/defaultApp/
-    - ensemble/integration_tests/themedApp/
+    - integration_test/local/defaultApp/
+    - integration_test/local/themedApp/
 
   fonts:
     # icon fonts
