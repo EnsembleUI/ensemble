@@ -512,34 +512,6 @@ class WidgetModel extends Object with HasStyles {
   }
 }
 
-class CustomWidgetModel extends WidgetModel {
-  CustomWidgetModel(this.widgetModel, String type, Map<String, dynamic> props,
-      {this.importedCode,
-      this.parameters,
-      this.inputs,
-      this.actions,
-      this.events})
-      : super(widgetModel.definition, type, {}, {}, {}, [], props);
-
-  List<ParsedCode>? importedCode;
-  WidgetModel widgetModel;
-  List<String>? parameters;
-  Map<String, dynamic>? inputs;
-  Map<String, EnsembleEvent>? events;
-  Map<String, EnsembleAction?>? actions;
-
-  WidgetModel getModel() {
-    return widgetModel;
-  }
-
-  ViewBehavior getViewBehavior() {
-    return ViewBehavior(
-        onLoad: EnsembleAction.fromYaml(props['onLoad']),
-        onPause: EnsembleAction.fromYaml(props['onPause']),
-        onResume: EnsembleAction.fromYaml(props['onResume']));
-  }
-}
-
 /// special behaviors for RootView (View) and Custom Views
 class ViewBehavior {
   ViewBehavior({this.onLoad, this.onPause, this.onResume});
