@@ -60,7 +60,7 @@ class ToastController {
       },
       toastDuration: toastAction.duration != null
           ? Duration(seconds: toastAction.duration!)
-          : const Duration(days: 99),
+          : const Duration(seconds: 10),
       child: Align(
         alignment: toastAction.alignment ?? Alignment.center,
         child:
