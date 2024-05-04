@@ -23,6 +23,7 @@ import 'package:ensemble/framework/keychain_manager.dart';
 import 'package:ensemble/framework/permissions_manager.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/page_group.dart';
+import 'package:ensemble/framework/widget/toast.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/receive_intent_manager.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -652,6 +653,17 @@ class ShowToastAction extends EnsembleAction {
 
   factory ShowToastAction.fromMap(dynamic inputs) =>
       ShowToastAction.fromYaml(payload: Utils.getYamlMap(inputs));
+
+  @override
+  Future execute(BuildContext context, ScopeManager scopeManager) {
+    Widget? customToastBody;
+    if (body != null) {
+      customToastBody = scopeManager.buildWidgetFromDefinition(body);
+    }
+    ToastController().showToast(context, this, customToastBody,
+        dataContext: scopeManager.dataContext);
+    return Future.value(null);
+  }
 }
 
 class GetLocationAction extends EnsembleAction {

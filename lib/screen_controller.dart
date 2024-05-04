@@ -449,13 +449,6 @@ class ScreenController {
       if (action.onComplete != null) {
         executeActionWithScope(context, scopeManager, action.onComplete!);
       }
-    } else if (action is ShowToastAction) {
-      Widget? customToastBody;
-      if (action.body != null) {
-        customToastBody = scopeManager.buildWidgetFromDefinition(action.body);
-      }
-      ToastController().showToast(context, action, customToastBody,
-          dataContext: scopeManager.dataContext);
     } else if (action is OpenUrlAction) {
       dynamic value = scopeManager.dataContext.eval(action.url);
       value ??= '';
