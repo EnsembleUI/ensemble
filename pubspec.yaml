@@ -152,6 +152,7 @@ flutter:
     # integration tests (TODO - exclude from build)
     - integration_test/local/defaultApp/
     - integration_test/local/themedApp/
+    - integration_test/local/dialog/
 
   fonts:
     # icon fonts

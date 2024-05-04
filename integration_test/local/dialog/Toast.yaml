@@ -1,0 +1,40 @@
+View:
+  styles:
+    useSafeArea: true
+  body:
+    Column:
+      children:
+        - Button:
+            label: Show Toast Action
+            onTap:
+              showToast:
+                message: success by Action
+        - Button:
+            label: Show Toast JS
+            onTap: |-
+              ensemble.showToast({message: "success by JS"});
+        - Button:
+            label: Show Toast Widget
+            onTap:
+              showToast:
+                options:
+                  duration: 1
+                body:
+                  Text:
+                    text: success with body widget
+        - Button:
+            label: Show Toast with custom widget
+            onTap: |-
+              ensemble.showToast({
+                options: {
+                  duration: 1
+                },
+                body: "MyToastWidget"
+              });
+            
+
+
+MyToastWidget:
+  body:
+    Text:
+      text: custom body
