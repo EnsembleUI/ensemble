@@ -24,12 +24,25 @@ View:
                     text: success with body widget
         - Button:
             label: Show Toast with custom widget
+            onTap:
+              showToast:
+                options:
+                  duration: 1
+                body: MyToastWidget
+        - Button:
+            label: Custom Widget with inputs
             onTap: |-
               ensemble.showToast({
                 options: {
                   duration: 1
                 },
-                body: "MyToastWidget"
+                body: {
+                  MyToastWidgetWithInputs: {
+                    inputs: {
+                      name: "Peter Parker"
+                    }
+                  }
+                }
               });
             
 
@@ -38,3 +51,9 @@ MyToastWidget:
   body:
     Text:
       text: custom body
+
+MyToastWidgetWithInputs:
+  inputs: [name]
+  body:
+    Text:
+      text: Hello ${name}

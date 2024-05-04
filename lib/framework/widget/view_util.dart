@@ -64,18 +64,20 @@ class ViewUtil {
   static WidgetModel buildModel(
       dynamic item, Map<String, dynamic>? customWidgetMap) {
     String? widgetType;
-    YamlMap? payload;
+    Map? payload;
     SourceSpan def =
         SourceSpanBase(SourceLocationBase(0), SourceLocationBase(0), '');
     // name only e.g Spacer
     if (item is String) {
       widgetType = item;
-    } else if (item is YamlMap) {
+    } else if (item is Map) {
       widgetType = item.keys.first.toString();
-      if (item[widgetType] is YamlMap) {
+      if (item[widgetType] is Map) {
         payload = item[widgetType];
       }
-      def = getDefinition(item);
+      if (item is YamlMap) {
+        def = getDefinition(item);
+      }
       if (item.keys.length > 1) {
         //multiple widgets found, it is probably because user used wrong indentation
         //TODO: we'll send a warning back
@@ -151,7 +153,7 @@ class ViewUtil {
   }
 
   static WidgetModel? buildCustomModel(
-      YamlMap? callerPayload,
+      Map? callerPayload,
       dynamic viewDefinition,
       String widgetType,
       Map<String, dynamic> customWidgetMap) {
@@ -166,13 +168,13 @@ class ViewUtil {
     }
 
     Map<String, dynamic> inputPayload = {};
-    if (callerPayload?['inputs'] is YamlMap) {
+    if (callerPayload?['inputs'] is Map) {
       callerPayload!['inputs'].forEach((key, value) {
         inputPayload[key] = value;
       });
     }
     Map<String, EnsembleAction?> eventPayload = {};
-    if (callerPayload?['events'] is YamlMap) {
+    if (callerPayload?['events'] is Map) {
       callerPayload!['events'].forEach((key, value) {
         eventPayload[key] = EnsembleAction.fromYaml(value);
       });
@@ -191,7 +193,7 @@ class ViewUtil {
           inputParams.add(input.toString());
         }
       }
-      if (entry.key == 'events' && entry.value is YamlMap) {
+      if (entry.key == 'events' && entry.value is Map) {
         for (var event in entry.value.entries) {
           eventParams[event.key] =
               EnsembleEvent.fromYaml(event.key, event.value);
@@ -218,8 +220,8 @@ class ViewUtil {
 
     // custom widgets can have styles too
     Map<String, dynamic> styles = {};
-    if (callerPayload?["styles"] is YamlMap) {
-      (callerPayload!["styles"] as YamlMap).forEach((styleKey, styleValue) {
+    if (callerPayload?["styles"] is Map) {
+      (callerPayload!["styles"] as Map).forEach((styleKey, styleValue) {
         styles[styleKey] = EnsembleThemeManager.yamlToDart(styleValue);
       });
     }
