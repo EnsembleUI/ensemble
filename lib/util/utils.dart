@@ -261,10 +261,12 @@ class Utils {
   }
 
   static List<T>? getList<T>(dynamic value) {
-    if (value is YamlList) {
+    if (value is List) {
       List<T> results = [];
       for (var item in value) {
-        results.add(item);
+        if (item is T) {
+          results.add(item);
+        }
       }
       return results;
     }
