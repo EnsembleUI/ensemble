@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -85,6 +86,14 @@ class ShowBottomSheetAction extends EnsembleAction {
       min: 0,
       max: 1);
 
+  bool isSnap(scopeManager) =>
+      Utils.optionalBool(
+          eval(payload["scrollOptions"]?["snap"], scopeManager)) ??
+      false;
+
+  List<double>? additionalSnaps(scopeManager) => Utils.getList<double>(
+      eval(payload["scrollOptions"]?["additionalViewportSnaps"], scopeManager));
+
   @override
   Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
     if (body != null) {
@@ -140,6 +149,12 @@ class ShowBottomSheetAction extends EnsembleAction {
         initialViewport = (minViewport + maxViewport) / 2.0;
       }
 
+      bool useSnap = isSnap(scopeManager);
+      List<double>? snaps = additionalSnaps(scopeManager)
+          ?.where((item) => item > minViewport && item < maxViewport)
+          .toList();
+      snaps?.sort();
+
       // On platforms with a mouse (Web/desktop), there is no min/maxViewport due to platform consistency,
       // so the height will be fixed to initialViewport, and content will just scroll within it.
       // https://docs.flutter.dev/release/breaking-changes/default-scroll-behavior-drag
@@ -148,6 +163,8 @@ class ShowBottomSheetAction extends EnsembleAction {
           minChildSize: minViewport,
           maxChildSize: maxViewport,
           initialChildSize: initialViewport,
+          snap: useSnap,
+          snapSizes: useSnap ? snaps : null,
           builder: (context, scrollController) =>
               buildRootContainer(scopeManager, context,
                   child: SingleChildScrollView(
