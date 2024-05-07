@@ -695,6 +695,8 @@ class Utils {
       } else if (values.length == 2) {
         left = right = (parseIntFromString(values[1]) ?? 0).toDouble();
         bottom = top;
+      } else {
+        left = right = bottom = top;
       }
       return EdgeInsets.only(
           top: top, right: right, bottom: bottom, left: left);
