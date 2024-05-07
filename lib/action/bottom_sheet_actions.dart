@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -21,6 +22,8 @@ class ShowBottomSheetAction extends EnsembleAction {
   });
 
   static const defaultTopBorderRadius = Radius.circular(16);
+  static const dragHandleHeight = 3.0;
+  static const dragHandleVerticalMargin = 10.0;
 
   final Map payload;
   final dynamic body;
@@ -85,6 +88,14 @@ class ShowBottomSheetAction extends EnsembleAction {
       min: 0,
       max: 1);
 
+  bool isSnap(scopeManager) =>
+      Utils.optionalBool(
+          eval(payload["scrollOptions"]?["snap"], scopeManager)) ??
+      false;
+
+  List<double>? additionalSnaps(scopeManager) => Utils.getList<double>(
+      eval(payload["scrollOptions"]?["additionalViewportSnaps"], scopeManager));
+
   @override
   Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
     if (body != null) {
@@ -123,7 +134,21 @@ class ShowBottomSheetAction extends EnsembleAction {
   }
 
   Widget getBodyWidget(ScopeManager scopeManager, BuildContext context) {
-    var widget = scopeManager.buildWidgetFromDefinition(body);
+    // We have to handle the BottomSheet's padding directly around the widget,
+    // such that it is inside the Scrollable area to be able to move up and down.
+    var sheetPadding = padding(scopeManager) ?? EdgeInsets.zero;
+
+    // account for the drag handle
+    if (showDragHandle(scopeManager)) {
+      var additionalPaddingTop =
+          dragHandleVerticalMargin * 2 + dragHandleHeight;
+      sheetPadding =
+          sheetPadding.copyWith(top: sheetPadding.top + additionalPaddingTop);
+    }
+
+    var widget = Padding(
+        padding: sheetPadding,
+        child: scopeManager.buildWidgetFromDefinition(body));
 
     if (isScrollable(scopeManager) == true) {
       // fix the viewport numbers if used incorrectly
@@ -140,14 +165,22 @@ class ShowBottomSheetAction extends EnsembleAction {
         initialViewport = (minViewport + maxViewport) / 2.0;
       }
 
+      bool useSnap = isSnap(scopeManager);
+      List<double>? snaps = additionalSnaps(scopeManager)
+          ?.where((item) => item > minViewport && item < maxViewport)
+          .toList();
+      snaps?.sort();
+
       // On platforms with a mouse (Web/desktop), there is no min/maxViewport due to platform consistency,
       // so the height will be fixed to initialViewport, and content will just scroll within it.
       // https://docs.flutter.dev/release/breaking-changes/default-scroll-behavior-drag
       return DraggableScrollableSheet(
-          expand: false,
+          expand: true,
           minChildSize: minViewport,
           maxChildSize: maxViewport,
           initialChildSize: initialViewport,
+          snap: useSnap,
+          snapSizes: useSnap ? snaps : null,
           builder: (context, scrollController) =>
               buildRootContainer(scopeManager, context,
                   child: SingleChildScrollView(
@@ -164,8 +197,6 @@ class ShowBottomSheetAction extends EnsembleAction {
   Widget buildRootContainer(ScopeManager scopeManager, BuildContext context,
       {required Widget child, required bool isScrollable}) {
     Widget rootWidget = Container(
-        margin: margin(scopeManager),
-        padding: padding(scopeManager),
         decoration: BoxDecoration(
             color: getBackgroundColor(scopeManager) ??
                 Theme.of(context).dialogBackgroundColor,
@@ -185,14 +216,17 @@ class ShowBottomSheetAction extends EnsembleAction {
         children: [rootWidget, _buildDragHandle(scopeManager)],
       );
     }
-    return rootWidget;
+    // This is the Margin of the bottom sheet.
+    // Padding will be handled separately inside the scrollable area
+    return Padding(
+        padding: margin(scopeManager) ?? EdgeInsets.zero, child: rootWidget);
   }
 
   Widget _buildDragHandle(ScopeManager scopeManager) {
     return Container(
-      margin: const EdgeInsets.only(top: 10),
+      margin: const EdgeInsets.only(top: dragHandleVerticalMargin),
       width: 32,
-      height: 3,
+      height: dragHandleHeight,
       decoration: BoxDecoration(
         color: dragHandleColor(scopeManager) ?? Colors.grey[500],
         borderRadius: BorderRadius.circular(12),
