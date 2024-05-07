@@ -6,6 +6,7 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/theme_manager.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/widget/custom_widget/custom_widget.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/page_model.dart';
@@ -274,7 +275,12 @@ class ViewUtil {
       scopeNode.scope.dataContext
           .addInvokableContext(id, customWidget.controller);
     }
-    return customWidget;
+
+    // wrap it inside a DataScopeWidget
+    return DataScopeWidget(
+        debugLabel: "CustomWidget",
+        scopeManager: customScope,
+        child: customWidget);
   }
 
   static Widget buildBareWidget(ScopeNode scopeNode, WidgetModel model,

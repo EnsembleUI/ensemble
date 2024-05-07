@@ -15,6 +15,7 @@ class CustomWidget extends EnsembleWidget<CustomWidgetController> {
       {super.key, required this.model, required this.scopeManager}) {
     log("Custom Widget $hashCode created");
   }
+
   final CustomWidgetModel model;
   final ScopeManager scopeManager;
 
@@ -83,14 +84,6 @@ class _CustomWidgetState extends EnsembleWidgetState<CustomWidget> {
   }
 
   @override
-  Widget buildWidget(BuildContext context) {
-    // Note that we wrap the custom widget inside DataScopeWidget here instead
-    // of outside because custom widget can now have flex, and the parent FlexBox
-    // need a way to look up the flex value. CustomWidget has to the the root
-    // for this to work (and DataScopeWidget will be inside)
-    return DataScopeWidget(
-        debugLabel: 'customWidget',
-        scopeManager: widget.scopeManager,
-        child: widget.scopeManager.buildWidget(widget.model.getModel()));
-  }
+  Widget buildWidget(BuildContext context) =>
+      widget.scopeManager.buildWidget(widget.model.getModel());
 }
