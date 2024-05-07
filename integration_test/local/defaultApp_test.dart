@@ -24,14 +24,21 @@ void main() {
     /// test that binding to a TextInput works properly in the same scope
     /// and also in a custom widget's scope
     testWidgets("Bindings to widget's value", (tester) async {
-      await TestHelper.loadScreen(tester, 'Widget Bindings', config);
-      // await tester.pumpAndSettle();
+      await TestHelper.loadScreen(tester, 'Custom Widget', config);
 
       // TextInput has initial value of 'first'
       // so first make sure our EnsembleText is correctly bind to that
       Finder text = find.descendant(
           of: find.byType(EnsembleText), matching: find.text('first'));
       expect(text, findsOneWidget);
+
+      // Custom Widget's onLoad can access inputs
+      // search for toast message
+      await tester.pumpAndSettle();
+      expect(find.text('Hello first'), findsOneWidget);
+
+      // ensure Nested widget's onLoad can access inputs via JS too
+      expect(find.text('Hi first'), findsOneWidget);
 
       // Custom Widget's text should also bind to the same value
       Finder customText = find.descendant(
@@ -68,6 +75,9 @@ void main() {
           of: find.byType(EnsembleText),
           matching: find.text('Custom Custom Widget: second'));
       expect(customCustomText, findsOneWidget);
+
+      // ensure onLoad never run again and still retain original value
+      expect(find.text('Hi first'), findsOneWidget);
     });
 
     /// test bindings to API is working properly

@@ -22,6 +22,9 @@ View:
 
 Custom:
   inputs: [txt]
+  onLoad:
+    showToast:
+      message: Hello ${txt}
   body:
     Column:
       children:
@@ -35,6 +38,13 @@ Custom:
 
 Custom2:
   inputs: [text]
+  onLoad: |-
+    setByJS.text = "Hi " + text;
+
   body:
-    Text:
-      text: "Custom Custom Widget: ${text}"
+    Column:
+      children:
+        - Text:
+            text: "Custom Custom Widget: ${text}"
+        - Text:
+            id: setByJS
