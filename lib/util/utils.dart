@@ -261,10 +261,12 @@ class Utils {
   }
 
   static List<T>? getList<T>(dynamic value) {
-    if (value is YamlList) {
+    if (value is List) {
       List<T> results = [];
       for (var item in value) {
-        results.add(item);
+        if (item is T) {
+          results.add(item);
+        }
       }
       return results;
     }
@@ -693,6 +695,8 @@ class Utils {
       } else if (values.length == 2) {
         left = right = (parseIntFromString(values[1]) ?? 0).toDouble();
         bottom = top;
+      } else {
+        left = right = bottom = top;
       }
       return EdgeInsets.only(
           top: top, right: right, bottom: bottom, left: left);
