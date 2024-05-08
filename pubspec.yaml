@@ -153,6 +153,7 @@ flutter:
     - integration_test/local/defaultApp/
     - integration_test/local/themedApp/
     - integration_test/local/dialogsAndToast/
+    - integration_test/local/widgets/
 
   fonts:
     # icon fonts
