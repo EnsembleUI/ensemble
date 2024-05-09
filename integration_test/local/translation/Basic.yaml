@@ -1,0 +1,16 @@
+View:
+  styles:
+    useSafeArea: true
+  body:
+    Column:
+      children:
+        - TextInput:
+            id: myName
+            value: Peter
+        - Text:
+            text: r@home.hello ${myName.value}
+        - Button:
+            label: Show Toast
+            onTap:
+              showToast:
+                message: r@home.hello r@home.hello ${myName.value}
