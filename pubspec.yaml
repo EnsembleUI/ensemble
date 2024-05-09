@@ -154,6 +154,8 @@ flutter:
     - integration_test/local/themedApp/
     - integration_test/local/dialogsAndToast/
     - integration_test/local/widgets/
+    - integration_test/local/translation/
+    - integration_test/local/translation/i18n/
 
   fonts:
     # icon fonts
