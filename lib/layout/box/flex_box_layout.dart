@@ -3,6 +3,7 @@ import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/studio/studio_debugger.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/box/base_box_layout.dart';
@@ -133,6 +134,10 @@ class FlexBoxLayoutState extends WidgetState<FlexBoxLayout>
   /// check if a widget have flex or flexMode set. This essentially means the
   /// widget already handles this themselves already
   bool hasFlex(Widget widget) {
+    if (widget is DataScopeWidget) {
+      widget = widget.child;
+    }
+
     // legacy widgets
     if (widget is HasController && widget.controller is WidgetController) {
       return (widget.controller as WidgetController).flex != null ||

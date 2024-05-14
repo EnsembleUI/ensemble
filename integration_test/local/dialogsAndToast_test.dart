@@ -8,7 +8,7 @@ import '../framework/test_helper.dart';
 void main() {
   late EnsembleConfig config;
   setUpAll(() async {
-    config = await TestHelper.setupApp(appName: 'dialog');
+    config = await TestHelper.setupApp(appName: 'dialogsAndToast');
   });
 
   group('Testing Toast', () {
