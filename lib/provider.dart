@@ -140,7 +140,7 @@ class RemoteDefinitionProvider extends DefinitionProvider {
     _i18nDelegate ??= FlutterI18nDelegate(
         translationLoader: NetworkFileTranslationLoader(
             baseUri: Uri.parse(i18nProps.path),
-            forcedLocale: forcedLocale ?? Locale(i18nProps.defaultLocale),
+            forcedLocale: forcedLocale,
             fallbackFile: i18nProps.fallbackLocale,
             useCountryCode: i18nProps.useCountryCode,
             decodeStrategies: [YamlDecodeStrategy()]));
@@ -173,7 +173,7 @@ class RemoteDefinitionProvider extends DefinitionProvider {
 
   @override
   Future<AppBundle> getAppBundle({bool? bypassCache = false}) async {
-    final env = await _readJsonFile('appConfig.json');
+    final env = await _readYamlFile('appConfig.yaml');
     if (env != null) {
       appConfig = UserAppConfig(
         baseUrl: path,
@@ -183,18 +183,6 @@ class RemoteDefinitionProvider extends DefinitionProvider {
     return AppBundle(
         theme: await _readYamlFile('theme.ensemble'),
         resources: await _readYamlFile('resources.ensemble'));
-  }
-
-  Future<Map?> _readJsonFile(String file) async {
-    http.Response response = await http.get(Uri.parse(path + file));
-    try {
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      }
-    } catch (e) {
-      // ignore
-    }
-    return null;
   }
 
   Future<YamlMap?> _readYamlFile(String file) async {
