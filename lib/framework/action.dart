@@ -14,7 +14,7 @@ import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/action/notification_action.dart';
 import 'package:ensemble/action/phone_contact_action.dart';
 import 'package:ensemble/action/sign_in_out_action.dart';
-import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/action/toast_actions.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
@@ -27,6 +27,7 @@ import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/receive_intent_manager.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/stub_widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:source_span/source_span.dart';
@@ -606,54 +607,6 @@ class OpenUrlAction extends EnsembleAction {
       OpenUrlAction.fromYaml(payload: Utils.getYamlMap(inputs));
 }
 
-class ShowToastAction extends EnsembleAction {
-  ShowToastAction(
-      {super.initiator,
-      this.type,
-      this.title,
-      this.message,
-      this.body,
-      this.dismissible,
-      this.alignment,
-      this.duration,
-      this.styles});
-
-  ToastType? type;
-  final String? title;
-
-  // either message or widget is needed
-  final String? message;
-  final dynamic body;
-
-  final bool? dismissible;
-
-  final Alignment? alignment;
-  final int? duration; // the during in seconds before toast is dismissed
-  final Map<String, dynamic>? styles;
-
-  factory ShowToastAction.fromYaml({Map? payload}) {
-    if (payload == null ||
-        (payload['message'] == null &&
-            payload['body'] == null &&
-            payload['widget'] == null)) {
-      throw LanguageError(
-          "${ActionType.showToast.name} requires either a message or a body widget.");
-    }
-    return ShowToastAction(
-        type: ToastType.values.from(payload['options']?['type']),
-        title: Utils.optionalString(payload['title']),
-        message: payload['message']?.toString(),
-        body: payload['body'] ?? payload['widget'],
-        dismissible: Utils.optionalBool(payload['options']?['dismissible']),
-        alignment: Utils.getAlignment(payload['options']?['alignment']),
-        duration: Utils.optionalInt(payload['options']?['duration'], min: 1),
-        styles: Utils.getMap(payload['styles']));
-  }
-
-  factory ShowToastAction.fromMap(dynamic inputs) =>
-      ShowToastAction.fromYaml(payload: Utils.getYamlMap(inputs));
-}
-
 class GetLocationAction extends EnsembleAction {
   GetLocationAction(
       {this.onLocationReceived,
@@ -1028,6 +981,25 @@ class SaveKeychain extends EnsembleAction {
   }
 }
 
+class SignInAnonymousAction extends EnsembleAction {
+  final EnsembleAction? onAuthenticated;
+  final EnsembleAction? onError;
+
+  SignInAnonymousAction({
+    super.initiator,
+    super.inputs,
+    required this.onAuthenticated,
+    required this.onError,
+  });
+
+  factory SignInAnonymousAction.fromYaml({Map? payload}) {
+    return SignInAnonymousAction(
+      onAuthenticated: EnsembleAction.fromYaml(payload?['onAuthenticated']),
+      onError: EnsembleAction.fromYaml(payload?['onError']),
+    );
+  }
+}
+
 class ClearKeychain extends EnsembleAction {
   ClearKeychain({
     required this.key,
@@ -1131,6 +1103,8 @@ enum ActionType {
   callNativeMethod,
   deeplinkInit,
   authenticateByBiometric,
+  setLanguage,
+  signInAnonymous,
   handleDeeplink,
   createDeeplink,
   verifySignIn,
@@ -1145,8 +1119,6 @@ enum ActionType {
   seekAudio,
   logEvent
 }
-
-enum ToastType { success, error, warning, info }
 
 /// payload representing an Action to do (navigateToScreen, InvokeAPI, ..)
 abstract class EnsembleAction {
@@ -1243,6 +1215,8 @@ abstract class EnsembleAction {
       return FilePickerAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.uploadFiles) {
       return FileUploadAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.signInAnonymous) {
+      return SignInAnonymousAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.pickFiles) {
       return FilePickerAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.openUrl) {

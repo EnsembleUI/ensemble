@@ -37,7 +37,8 @@ class AuthenticatedUser with Invokable {
       this.emailLVerified,
       this.tenantId,
       this.creationTime,
-      this.lastSignInTime});
+      this.lastSignInTime,
+      this.isAnonymous = false});
 
   final SignInClient? client;
   SignInProvider? provider;
@@ -54,6 +55,8 @@ class AuthenticatedUser with Invokable {
   String? tenantId;
   DateTime? creationTime;
   DateTime? lastSignInTime;
+
+  bool isAnonymous;
 
   // optional server credentials (bearer token, cookies, ....) associated with this user account
   // TODO: move to secure storage

@@ -182,6 +182,7 @@ mixin HasStyles {
   }
 
   String? widgetType;
+
   //styles specified in the theme directly on the type e.g. Text or Button
   Map<String, dynamic>? _widgetTypeStyles;
 
@@ -293,6 +294,7 @@ class SinglePageModel extends PageModel with HasStyles {
 
         // set the view behavior
         viewBehavior.onLoad = EnsembleAction.fromYaml(viewMap['onLoad']);
+        viewBehavior.onPause = EnsembleAction.fromYaml(viewMap['onPause']);
         viewBehavior.onResume = EnsembleAction.fromYaml(viewMap['onResume']);
 
         processHeader(viewMap['header'], viewMap['title']);
@@ -510,38 +512,12 @@ class WidgetModel extends Object with HasStyles {
   }
 }
 
-class CustomWidgetModel extends WidgetModel {
-  CustomWidgetModel(this.widgetModel, String type, Map<String, dynamic> props,
-      {this.importedCode,
-      this.parameters,
-      this.inputs,
-      this.actions,
-      this.events})
-      : super(widgetModel.definition, type, {}, {}, {}, [], props);
-
-  List<ParsedCode>? importedCode;
-  WidgetModel widgetModel;
-  List<String>? parameters;
-  Map<String, dynamic>? inputs;
-  Map<String, EnsembleEvent>? events;
-  Map<String, EnsembleAction?>? actions;
-
-  WidgetModel getModel() {
-    return widgetModel;
-  }
-
-  ViewBehavior getViewBehavior() {
-    return ViewBehavior(
-        onLoad: EnsembleAction.fromYaml(props['onLoad']),
-        onResume: EnsembleAction.fromYaml(props['onResume']));
-  }
-}
-
 /// special behaviors for RootView (View) and Custom Views
 class ViewBehavior {
-  ViewBehavior({this.onLoad, this.onResume});
+  ViewBehavior({this.onLoad, this.onPause, this.onResume});
 
   EnsembleAction? onLoad;
+  EnsembleAction? onPause;
   EnsembleAction? onResume;
 }
 

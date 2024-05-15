@@ -244,7 +244,7 @@ class EnsembleTheme {
     Map<String, dynamic> resolvedStyles =
         resolveStyles(scopeManager.dataContext, controller);
     controller.runtimeStyles = resolvedStyles;
-    scopeManager.setProperties(scopeManager, controller.runtimeStyles!, widget);
+    scopeManager.setProperties(scopeManager, widget, controller.runtimeStyles!);
   }
 
   Map<String, dynamic> resolveStyles(DataContext context, HasStyles widget) {

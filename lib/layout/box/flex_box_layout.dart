@@ -3,6 +3,7 @@ import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/studio/studio_debugger.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/box/base_box_layout.dart';
@@ -19,6 +20,7 @@ import 'package:flutter/material.dart' as flutter;
 
 class FlexRow extends FlexBoxLayout {
   static const type = 'FlexRow';
+
   FlexRow({super.key});
 
   @override
@@ -27,6 +29,7 @@ class FlexRow extends FlexBoxLayout {
 
 class FlexColumn extends FlexBoxLayout {
   static const type = 'FlexColumn';
+
   FlexColumn({super.key});
 
   @override
@@ -41,6 +44,7 @@ abstract class FlexBoxLayout extends StatefulWidget
   FlexBoxLayout({super.key});
 
   final FlexBoxLayoutController _controller = FlexBoxLayoutController();
+
   @override
   FlexBoxLayoutController get controller => _controller;
 
@@ -130,16 +134,21 @@ class FlexBoxLayoutState extends WidgetState<FlexBoxLayout>
   /// check if a widget have flex or flexMode set. This essentially means the
   /// widget already handles this themselves already
   bool hasFlex(Widget widget) {
-    if (widget is HasController) {
-      if (widget.controller is WidgetController) {
-        return (widget.controller as WidgetController).flex != null ||
-            (widget.controller as WidgetController).flexMode != null ||
-            (widget.controller as WidgetController).expanded;
-      }
-      if (widget.controller is EnsembleWidgetController) {
-        return (widget.controller as EnsembleWidgetController).flex != null ||
-            (widget.controller as EnsembleWidgetController).flexMode != null;
-      }
+    if (widget is DataScopeWidget) {
+      widget = widget.child;
+    }
+
+    // legacy widgets
+    if (widget is HasController && widget.controller is WidgetController) {
+      return (widget.controller as WidgetController).flex != null ||
+          (widget.controller as WidgetController).flexMode != null ||
+          (widget.controller as WidgetController).expanded;
+    }
+    // new widgets
+    else if (widget is EnsembleWidget &&
+        widget.controller is EnsembleWidgetController) {
+      return (widget.controller as EnsembleWidgetController).flex != null ||
+          (widget.controller as EnsembleWidgetController).flexMode != null;
     }
     return false;
   }

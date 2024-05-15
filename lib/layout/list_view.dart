@@ -1,6 +1,7 @@
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/studio/studio_debugger.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
@@ -79,6 +80,8 @@ class ListView extends StatefulWidget
           _controller.hasReachedMax = Utils.getBool(value, fallback: false),
       'loadingWidget': (value) => _controller.loadingWidget = value,
       'data': (value) => _controller.itemTemplate?.data = value,
+      'onScroll': (value) =>
+          controller.onScroll = EnsembleAction.fromYaml(value, initiator: this),
     };
   }
 
@@ -113,6 +116,7 @@ class ListViewController extends BoxLayoutController {
   bool hasReachedMax = false;
 
   ListViewState? widgetState;
+  EnsembleAction? onScroll;
 
   void _bind(ListViewState state) {
     widgetState = state;
@@ -177,6 +181,15 @@ class ListViewState extends WidgetState<ListView>
       isLoading: showLoading,
       onFetchData: _fetchData,
       hasReachedMax: widget._controller.hasReachedMax,
+      onScroll: (pixel) {
+        if (widget._controller.onScroll != null) {
+          ScreenController().executeAction(
+            context,
+            widget._controller.onScroll!,
+            event: EnsembleEvent(null, data: {'pixel': pixel}),
+          );
+        }
+      },
       scrollController: (footerScope != null &&
               footerScope.isColumnScrollableAndRoot(context))
           ? null
