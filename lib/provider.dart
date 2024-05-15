@@ -132,6 +132,7 @@ class RemoteDefinitionProvider extends DefinitionProvider {
       : super(i18nProps, cacheEnabled: cacheEnabled);
   final String path;
   final String appHome;
+  UserAppConfig? appConfig;
   FlutterI18nDelegate? _i18nDelegate;
 
   @override
@@ -172,12 +173,19 @@ class RemoteDefinitionProvider extends DefinitionProvider {
 
   @override
   Future<AppBundle> getAppBundle({bool? bypassCache = false}) async {
+    final env = await _readYamlFile('appConfig.yaml');
+    if (env != null) {
+      appConfig = UserAppConfig(
+        baseUrl: path,
+        envVariables: env as Map<String, dynamic>,
+      );
+    }
     return AppBundle(
-        theme: await _readFile('theme.ensemble'),
-        resources: await _readFile('resources.ensemble'));
+        theme: await _readYamlFile('theme.ensemble'),
+        resources: await _readYamlFile('resources.ensemble'));
   }
 
-  Future<YamlMap?> _readFile(String file) async {
+  Future<YamlMap?> _readYamlFile(String file) async {
     try {
       http.Response response = await http.get(Uri.parse(path + file));
       if (response.statusCode == 200) {
@@ -189,16 +197,14 @@ class RemoteDefinitionProvider extends DefinitionProvider {
     return null;
   }
 
-  // TODO: to be implemented
   @override
   UserAppConfig? getAppConfig() {
-    return null;
+    return appConfig;
   }
 
-  // TODO: to be implemented
   @override
   Map<String, String> getSecrets() {
-    return <String, String>{};
+    return dotenv.env;
   }
 }
 
