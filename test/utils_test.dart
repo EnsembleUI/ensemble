@@ -310,6 +310,66 @@ void main() {
       expect(hotelsSortWithRestaurantKey.last['price'], 100);
     });
   });
+
+  group('getColor Tests', () {
+    const myColor = Color(0xff123456);
+
+    test('color hex with #', () {
+      expect(Utils.getColor('#123456'), equals(myColor));
+    });
+
+    test('color hex without #', () {
+      expect(Utils.getColor('123456'), equals(myColor));
+    });
+
+    test('hex with alpha and #', () {
+      expect(Utils.getColor('#123456ff'), equals(myColor));
+    });
+
+    test('hex with alpha', () {
+      expect(Utils.getColor('123456ff'), equals(myColor));
+    });
+
+    test('returns null for invalid hex string', () {
+      expect(Utils.getColor('12345g'), isNull);
+    });
+
+    test('returns Color for valid integer color value', () {
+      expect(Utils.getColor(0xff123456), equals(const Color(0xff123456)));
+    });
+
+    test('test color as a string', () {
+      expect(Utils.getColor("0xff123456"), equals(const Color(0xff123456)));
+    });
+
+    test('returns correct Color for named color strings', () {
+      expect(Utils.getColor('red'), equals(Colors.red));
+      expect(Utils.getColor('blue'), equals(Colors.blue));
+    });
+
+    test('returns Colors.transparent for transparent string', () {
+      expect(Utils.getColor('transparent'), equals(Colors.transparent));
+    });
+
+    test('returns null for non-string, non-int types', () {
+      expect(Utils.getColor([255, 0, 0]), isNull);
+    });
+
+    test('returns null for undefined named colors', () {
+      expect(Utils.getColor('not a color'), isNull);
+    });
+
+    test('returns correct Color for transparent keyword variations', () {
+      expect(Utils.getColor('.transparent'), equals(Colors.transparent));
+    });
+
+    // Additional tests for each named color
+    test('returns correct Color for each named color string', () {
+      expect(Utils.getColor('black'), equals(Colors.black));
+      expect(Utils.getColor('white'), equals(Colors.white));
+      // Continue testing all other named colors...
+    });
+  });
 }
 
 void assertIconEquality(IconModel first, IconModel second) {

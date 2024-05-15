@@ -17,9 +17,11 @@ class TestHelper {
   /// the result but no longer available for the next run, causing the
   /// subsequent tests to hang. For this reason, call this in your Test class's
   /// setupApp() once before running the tests.
-  static Future<EnsembleConfig> setupApp({required String appName}) async {
-    I18nProps i18nProps = I18nProps('en', 'en', false);
-    i18nProps.path = 'ensemble/i18n';
+  static Future<EnsembleConfig> setupApp(
+      {required String appName, String? forcedLocale}) async {
+    I18nProps i18nProps =
+        I18nProps('en', 'en', false, forcedLocale: forcedLocale);
+    i18nProps.path = 'integration_test/local/$appName/i18n';
 
     EnsembleConfig config = EnsembleConfig(
         definitionProvider: LocalDefinitionProvider(
