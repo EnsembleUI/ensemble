@@ -27,6 +27,7 @@ import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/receive_intent_manager.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/stub_widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:source_span/source_span.dart';
@@ -980,6 +981,25 @@ class SaveKeychain extends EnsembleAction {
   }
 }
 
+class SignInAnonymousAction extends EnsembleAction {
+  final EnsembleAction? onAuthenticated;
+  final EnsembleAction? onError;
+
+  SignInAnonymousAction({
+    super.initiator,
+    super.inputs,
+    required this.onAuthenticated,
+    required this.onError,
+  });
+
+  factory SignInAnonymousAction.fromYaml({Map? payload}) {
+    return SignInAnonymousAction(
+      onAuthenticated: EnsembleAction.fromYaml(payload?['onAuthenticated']),
+      onError: EnsembleAction.fromYaml(payload?['onError']),
+    );
+  }
+}
+
 class ClearKeychain extends EnsembleAction {
   ClearKeychain({
     required this.key,
@@ -1083,6 +1103,8 @@ enum ActionType {
   callNativeMethod,
   deeplinkInit,
   authenticateByBiometric,
+  setLanguage,
+  signInAnonymous,
   handleDeeplink,
   createDeeplink,
   verifySignIn,
@@ -1193,6 +1215,8 @@ abstract class EnsembleAction {
       return FilePickerAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.uploadFiles) {
       return FileUploadAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.signInAnonymous) {
+      return SignInAnonymousAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.pickFiles) {
       return FilePickerAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.openUrl) {
