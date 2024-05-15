@@ -69,6 +69,7 @@ class ListViewCore extends StatefulWidget {
     this.loadingBuilder,
     this.errorBuilder,
     this.separatorBuilder,
+    this.onScroll,
   });
 
   final bool shrinkWrap;
@@ -89,6 +90,7 @@ class ListViewCore extends StatefulWidget {
   final WidgetBuilder? errorBuilder;
   final IndexedWidgetBuilder? separatorBuilder;
   final ItemBuilder itemBuilder;
+  final void Function(double)? onScroll;
 
   @override
   State<ListViewCore> createState() => _ListViewCoreState();
@@ -96,6 +98,8 @@ class ListViewCore extends StatefulWidget {
 
 class _ListViewCoreState extends State<ListViewCore> {
   late final Debouncer debounce;
+  late final Debouncer _scrollDebouce;
+  late final ScrollController _scrollController;
 
   int? _lastFetchedIndex;
 
@@ -103,6 +107,10 @@ class _ListViewCoreState extends State<ListViewCore> {
   void initState() {
     super.initState();
     debounce = Debouncer(widget.debounceDuration);
+    _scrollDebouce = Debouncer(const Duration(milliseconds: 15));
+    _scrollController = widget.scrollController ?? ScrollController();
+    _scrollController.addListener(_onScroll);
+
     attemptFetch();
   }
 
@@ -116,8 +124,13 @@ class _ListViewCoreState extends State<ListViewCore> {
 
   @override
   void dispose() {
-    super.dispose();
+    _scrollController.removeListener(_onScroll);
+    if (widget.scrollController == null) {
+      _scrollController.dispose();
+    }
     debounce.cancel();
+    _scrollDebouce.cancel();
+    super.dispose();
   }
 
   void attemptFetch() {
@@ -132,6 +145,14 @@ class _ListViewCoreState extends State<ListViewCore> {
     if (_lastFetchedIndex != lastItemIndex) {
       _lastFetchedIndex = lastItemIndex;
       attemptFetch();
+    }
+  }
+
+  void _onScroll() {
+    if (widget.onScroll != null) {
+      _scrollDebouce.run(() {
+        widget.onScroll?.call(_scrollController.position.pixels);
+      });
     }
   }
 
@@ -162,7 +183,7 @@ class _ListViewCoreState extends State<ListViewCore> {
       scrollDirection: widget.scrollDirection,
       reverse: widget.reverse,
       shrinkWrap: widget.shrinkWrap,
-      controller: widget.scrollController,
+      controller: _scrollController,
       physics: widget.physics,
       cacheExtent: widget.cacheExtent,
       slivers: [
