@@ -261,10 +261,12 @@ class Utils {
   }
 
   static List<T>? getList<T>(dynamic value) {
-    if (value is YamlList) {
+    if (value is List) {
       List<T> results = [];
       for (var item in value) {
-        results.add(item);
+        if (item is T) {
+          results.add(item);
+        }
       }
       return results;
     }
@@ -341,6 +343,8 @@ class Utils {
 
   static Color? getColor(dynamic value) {
     if (value is String) {
+      value = value.trim();
+
       // Check for hexadecimal color pattern (with or without alpha). It begins with #
       RegExp hexColor = RegExp(r'^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$');
       if (hexColor.hasMatch(value)) {
@@ -350,6 +354,10 @@ class Utils {
         if (hexValue.length == 6) {
           hexValue = 'FF$hexValue'; // Add full opacity for RGB values
         }
+        // else move alpha to the front (Flutter specific)
+        else if (hexValue.length == 8) {
+          hexValue = "${hexValue.substring(6, 8)}${hexValue.substring(0, 6)}";
+        }
         // Convert to an integer and create a Color object
         try {
           return Color(int.parse('0x$hexValue'));
@@ -358,7 +366,16 @@ class Utils {
           print('Failed to convert hex to Color: $e');
           return null;
         }
+      } else if (value.startsWith("0x")) {
+        try {
+          return Color(int.parse(value));
+        } catch (e) {
+          debugPrint("fail to convert 0x to Color");
+          return null;
+        }
       }
+
+      // check for name values
       switch (value) {
         case '.transparent':
         case 'transparent':
@@ -693,6 +710,8 @@ class Utils {
       } else if (values.length == 2) {
         left = right = (parseIntFromString(values[1]) ?? 0).toDouble();
         bottom = top;
+      } else {
+        left = right = bottom = top;
       }
       return EdgeInsets.only(
           top: top, right: right, bottom: bottom, left: left);

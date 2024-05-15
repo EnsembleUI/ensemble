@@ -1,0 +1,77 @@
+View:
+  styles:
+    useSafeArea: true
+  body:
+    Column:
+      children:
+        # visibility test
+        - TextWidget:
+            id: visibleWidget
+            inputs:
+              text: I am visible
+        - TextWidget:
+            id: reallyVisibleWidget
+            inputs:
+              text: I am really visible
+            styles:
+              visible: true
+        - TextWidget:
+            id: invisibleWidget
+            inputs:
+              text: I am invisible
+            styles:
+              visible: false
+        - Button:
+            label: Toggle Visibility
+            onTap: |-
+              visibleWidget.visible = false;
+              reallyVisibleWidget.visible = false;
+              invisibleWidget.visible = true;
+
+        # default flex - equal distribution
+        - FlexRow:
+            styles:
+              width: 300
+            children:
+              - TextWidget:
+                  inputs:
+                    text: hello
+              - TextWidget:
+                  id: world
+                  inputs:
+                    text: world
+
+# Doesn't work well yet. See note in the test
+#        - Button:
+#            label: Change Flex
+#            onTap: |-
+#              world.flex = 2;
+
+        - FlexRow:
+            styles:
+              width: 300
+            children:
+              - TextWidget:
+                  inputs:
+                    text: 1x
+              - TextWidget:
+                  inputs:
+                    text: 2x
+                  styles:
+                    flex: 2
+
+
+TextWidget:
+  inputs: [text]
+  body:
+    Text:
+      text: ${text}
+
+Rectangle:
+  inputs: [color]
+  body:
+    Shape:
+      type: rectangle
+      styles:
+        height: 50
+        backgroundColor: ${color}

@@ -170,14 +170,16 @@ class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
       return getDocument(doc);
     }).toList();
   }
+
   Map<String, dynamic> getDocument(DocumentSnapshot doc) {
     // Create a new map from the document data
     Map<String, dynamic> data =
-      convertFirestoreTypes(doc.data() as Map<String, dynamic>);
+        convertFirestoreTypes(doc.data() as Map<String, dynamic>);
     // Add the document ID under a reserved/special key
     data['_documentId'] = doc.id;
     return data;
   }
+
   Map<String, dynamic> convertFirestoreTypes(Map<String, dynamic> input) {
     Map<String, dynamic> convert(Map<String, dynamic> map) {
       final Map<String, dynamic> newMap = {};
@@ -216,9 +218,9 @@ class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
               return item; // Return the item unchanged if it's not a Map, GeoPoint, or Timestamp
             }
           }).toList();
-        } else if (value is DocumentSnapshot){
+        } else if (value is DocumentSnapshot) {
           newMap[key] = getDocument(value);
-        } else{
+        } else {
           // For all other types, just copy the value
           newMap[key] = value;
         }

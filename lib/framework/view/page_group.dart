@@ -7,16 +7,13 @@ import 'package:ensemble/framework/menu.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
-import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
-import 'package:ensemble/page_model.dart' as model;
 import 'package:ensemble/framework/extensions.dart';
 
-import '../widget/custom_view.dart';
 import 'bottom_nav_page_group.dart';
 
 /// a collection of pages grouped under a navigation menu

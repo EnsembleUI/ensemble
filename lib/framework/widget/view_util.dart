@@ -7,12 +7,11 @@ import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
-import 'package:ensemble/framework/widget/custom_view.dart';
-import 'package:ensemble/framework/view/page.dart';
+import 'package:ensemble/widget/custom_widget/custom_widget.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/gesture_detector.dart';
-import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:ensemble/widget/custom_widget/custom_widget_model.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
@@ -66,18 +65,20 @@ class ViewUtil {
   static WidgetModel buildModel(
       dynamic item, Map<String, dynamic>? customWidgetMap) {
     String? widgetType;
-    YamlMap? payload;
+    Map? payload;
     SourceSpan def =
         SourceSpanBase(SourceLocationBase(0), SourceLocationBase(0), '');
     // name only e.g Spacer
     if (item is String) {
       widgetType = item;
-    } else if (item is YamlMap) {
+    } else if (item is Map) {
       widgetType = item.keys.first.toString();
-      if (item[widgetType] is YamlMap) {
+      if (item[widgetType] is Map) {
         payload = item[widgetType];
       }
-      def = getDefinition(item);
+      if (item is YamlMap) {
+        def = getDefinition(item);
+      }
       if (item.keys.length > 1) {
         //multiple widgets found, it is probably because user used wrong indentation
         //TODO: we'll send a warning back
@@ -153,7 +154,7 @@ class ViewUtil {
   }
 
   static WidgetModel? buildCustomModel(
-      YamlMap? callerPayload,
+      Map? callerPayload,
       dynamic viewDefinition,
       String widgetType,
       Map<String, dynamic> customWidgetMap) {
@@ -161,21 +162,25 @@ class ViewUtil {
     if (viewDefinition is String) {
       return buildModel(viewDefinition, customWidgetMap);
     }
-    // caller payload may comprise of an ID and input payload key/value pairs. Ignore ID for now
+
+    Map<String, dynamic> props = {};
+    if (callerPayload?['id'] != null) {
+      props["id"] = callerPayload?['id'];
+    }
+
     Map<String, dynamic> inputPayload = {};
-    if (callerPayload?['inputs'] is YamlMap) {
+    if (callerPayload?['inputs'] is Map) {
       callerPayload!['inputs'].forEach((key, value) {
         inputPayload[key] = value;
       });
     }
     Map<String, EnsembleAction?> eventPayload = {};
-    if (callerPayload?['events'] is YamlMap) {
+    if (callerPayload?['events'] is Map) {
       callerPayload!['events'].forEach((key, value) {
         eventPayload[key] = EnsembleAction.fromYaml(value);
       });
     }
     WidgetModel? widgetModel;
-    Map<String, dynamic> props = {};
     List<String> inputParams = [];
     Map<String, EnsembleEvent> eventParams = {};
     List<ParsedCode>? importedCode;
@@ -189,7 +194,7 @@ class ViewUtil {
           inputParams.add(input.toString());
         }
       }
-      if (entry.key == 'events' && entry.value is YamlMap) {
+      if (entry.key == 'events' && entry.value is Map) {
         for (var event in entry.value.entries) {
           eventParams[event.key] =
               EnsembleEvent.fromYaml(event.key, event.value);
@@ -214,11 +219,19 @@ class ViewUtil {
       }
     }
 
+    // custom widgets can have styles too
+    Map<String, dynamic> styles = {};
+    if (callerPayload?["styles"] is Map) {
+      (callerPayload!["styles"] as Map).forEach((styleKey, styleValue) {
+        styles[styleKey] = EnsembleThemeManager.yamlToDart(styleValue);
+      });
+    }
+
     if (widgetModel == null) {
       throw LanguageError("Custom Widget requires a child widget");
     }
 
-    return CustomWidgetModel(widgetModel, widgetType, props,
+    return CustomWidgetModel(widgetModel, widgetType, props, styles,
         importedCode: importedCode,
         inputs: inputPayload,
         parameters: inputParams,
@@ -246,12 +259,26 @@ class ViewUtil {
     ScopeNode customScopeNode = ScopeNode(customScope);
     scopeNode.addChild(customScopeNode);
 
-    Widget customWidget =
-        CustomView.fromModel(model: customModel, scopeManager: customScope);
+    // re-use the same controller if the Custom Widget is re-created
+    dynamic controller;
+    String? id = customModel.getId();
+    if (id != null) {
+      controller = scopeNode.scope.dataContext.getContextById(id);
+    }
+    CustomWidget customWidget =
+        CustomWidget(controller, model: customModel, scopeManager: customScope);
     modelMap[customModel] = ModelPayload(customWidget, customScope);
 
+    // add the id so it is accessible in the parent scope
+    if (id != null) {
+      customWidget.controller.id = id;
+      scopeNode.scope.dataContext
+          .addInvokableContext(id, customWidget.controller);
+    }
+
+    // wrap it inside a DataScopeWidget
     return DataScopeWidget(
-        debugLabel: 'customWidget',
+        debugLabel: "CustomWidget",
         scopeManager: customScope,
         child: customWidget);
   }

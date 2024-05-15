@@ -1,3 +1,4 @@
+import 'package:ensemble/action/toast_actions.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
@@ -60,7 +61,7 @@ class ToastController {
       },
       toastDuration: toastAction.duration != null
           ? Duration(seconds: toastAction.duration!)
-          : const Duration(days: 99),
+          : const Duration(seconds: 10),
       child: Align(
         alignment: toastAction.alignment ?? Alignment.center,
         child:
