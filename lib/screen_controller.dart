@@ -8,6 +8,7 @@ import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/action/phone_contact_action.dart';
 import 'package:ensemble/action/upload_files_action.dart';
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'package:ensemble/framework/bindings.dart';
@@ -210,6 +211,7 @@ class ScreenController {
         pageArgs: nextArgs,
         transition: action.transition,
         isExternal: action.isExternal,
+        asExternal: action.asExternal,
       );
 
       if (action is NavigateScreenAction && action.onNavigateBack != null) {
@@ -665,7 +667,7 @@ class ScreenController {
         SystemStorageBindingSource(key, storagePrefix: storagePrefix), value));
   }
 
-  /// Navigate to another screen
+  /// Navigate to another
   /// [screenName] - navigate to the screen if specified, otherwise to appHome
   /// [asModal] - shows the App in a regular or modal screen
   /// [replace] - whether to replace the current route on the stack, such that
@@ -680,6 +682,7 @@ class ScreenController {
     Map<String, dynamic>? pageArgs,
     Map<String, dynamic>? transition,
     bool isExternal = false,
+    bool asExternal = false,
   }) {
     PageType pageType = asModal == true ? PageType.modal : PageType.regular;
 
@@ -715,11 +718,24 @@ class ScreenController {
     );
     // push the new route and remove all existing screens. This is suitable for logging out.
     if (routeOption == RouteOption.clearAllScreens) {
-      Navigator.pushAndRemoveUntil(context, route, (route) => false);
+      if (asExternal) {
+        externalAppNavigateKey?.currentState
+            ?.pushAndRemoveUntil(route, (route) => false);
+      } else {
+        Navigator.pushAndRemoveUntil(context, route, (route) => false);
+      }
     } else if (routeOption == RouteOption.replaceCurrentScreen) {
-      Navigator.pushReplacement(context, route);
+      if (asExternal) {
+        externalAppNavigateKey?.currentState?.pushReplacement(route);
+      } else {
+        Navigator.pushReplacement(context, route);
+      }
     } else {
-      Navigator.push(context, route);
+      if (asExternal) {
+        externalAppNavigateKey?.currentState?.push(route);
+      } else {
+        Navigator.push(context, route);
+      }
     }
     return route;
   }
