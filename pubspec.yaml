@@ -32,7 +32,7 @@ dependencies:
       path: device_preview
 
   yaml: ^3.1.2
-  intl: ^0.19.0
+  intl: ^0.18.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
