@@ -297,11 +297,23 @@ class ImageState extends WidgetState<EnsembleImage> {
           imageBytes[2] == 0x78 &&
           imageBytes[3] == 0x6D &&
           imageBytes[4] == 0x6C;
-    }
+    } else if (widget._controller.source is String) {
+      // cheap check for extension
+      Uri uri;
+      try {
+        uri = Uri.parse(widget._controller.source);
+        if (uri.path.toLowerCase().endsWith("svg")) {
+          return true;
+        }
+      } catch (e) {
+        // ignore
+      }
 
-    // String path image
-    final mimeType = lookupMimeType(widget._controller.source);
-    return mimeType?.contains('svg') == true;
+      // String path image
+      final mimeType = lookupMimeType(widget._controller.source);
+      return mimeType?.contains('svg') == true;
+    }
+    return false;
   }
 
   /// display if the image cannot be loaded
